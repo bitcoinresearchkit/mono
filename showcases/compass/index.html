@@ -1327,13 +1327,36 @@
       /** @type {Days | null} */
       let days = null;
 
-      /** Where a price is against a cloud, -1 to 1: inside it the middle third, the outer thirds the distance out
-       * (in log terms), easing toward the edge. */
-      function along(/** @type {number} */ price, /** @type {number} */ bottom, /** @type {number} */ top) {
-        const out = (/** @type {number} */ d) => (2 / 3) * (1 - Math.exp(-d / 0.3));
-        if (price < bottom) return -1 / 3 - out(Math.log(bottom / price));
-        if (price > top) return 1 / 3 + out(Math.log(price / top));
-        return top > bottom ? -1 / 3 + ((2 / 3) * Math.log(price / bottom)) / Math.log(top / bottom) : 0;
+      /** A halving cycle in days, about four years: the half-life of the days a place outside a cloud is ranked against. */
+      const HALF_LIFE = 1461;
+      /**
+       * Where each day from `first` to `last` is against a cloud, -1 to 1. Inside it, the middle third, by where the
+       * price is between its edges (in log terms). Outside, the outer third on its side, by how far out it is (in log
+       * terms) against the days before that were out on that side, as the backend's rarity meter ranks its values:
+       * each weighted half as much a halving cycle further back, none after it. As far out as any lately is at the
+       * edge, in any cycle; a cycle whose swings were wider doesn't press the ones after it against the cloud.
+       */
+      function placeOf(/** @type {Float64Array} */ close, /** @type {[Float64Array, Float64Array]} */ [bottom, top], /** @type {number} */ first, /** @type {number} */ last) {
+        const place = new Float32Array(close.length);
+        // (Each side's days so far, weighted, by how far out in buckets of 0.002 (a Fenwick tree each, for its prefix
+        // sums); farther than the last bucket, in it.)
+        const BUCKETS = 4096, WIDTH = 0.002, trees = [new Float64Array(BUCKETS + 1), new Float64Array(BUCKETS + 1)], mass = [0, 0];
+        for (let i = first; i <= last; i++) {
+          const p = close[i], lo = bottom[i], hi = top[i];
+          if (p >= lo && p <= hi) {
+            place[i] = hi > lo ? -1 / 3 + ((2 / 3) * Math.log(p / lo)) / Math.log(hi / lo) : 0;
+            continue;
+          }
+          const k = p > hi ? 0 : 1, tree = trees[k], bucket = Math.min(BUCKETS - 1, Math.floor(Math.log(k ? lo / p : p / hi) / WIDTH));
+          // (Its share of the days before as far out or less; the first out on its side, halfway.)
+          let below = 0;
+          for (let j = bucket + 1; j > 0; j -= j & -j) below += tree[j];
+          const rank = mass[k] ? below / mass[k] : 0.5, weight = 2 ** ((i - first) / HALF_LIFE);
+          for (let j = bucket + 1; j <= BUCKETS; j += j & -j) tree[j] += weight;
+          mass[k] += weight;
+          place[i] = (k ? -1 : 1) * (1 / 3 + (2 / 3) * rank);
+        }
+        return place;
       }
 
       function compute(/** @type {Record<string, Answer>} */ answered, which = coins, by = basis) {
@@ -1358,7 +1381,7 @@
         const long = cloudOf(lines(cloudIds("long", which, by))), short = cloudOf(lines(cloudIds("short", which, by)));
         const floors = lines(SERIES.floors), ceilings = lines(SERIES.ceilings);
         const trends = floors.map((floor, k) => trendOf(floor, ceilings[k], low, high));
-        const state = new Int8Array(n).fill(-1), trend = new Int8Array(n).fill(-1), x = new Float32Array(n), y = new Float32Array(n);
+        const state = new Int8Array(n).fill(-1), trend = new Int8Array(n).fill(-1);
         let first = -1, last = -1;
         for (let i = 0; i < n; i++) {
           const p = close[i];
@@ -1367,8 +1390,6 @@
           state[i] = stateOf(side(long), side(short));
           const ups = trends.filter((t) => t[i] === 1).length;
           trend[i] = ups === 3 ? 0 : ups === 0 ? 2 : 1;
-          x[i] = along(p, short[0][i], short[1][i]);
-          y[i] = along(p, long[0][i], long[1][i]);
           if (first < 0) first = i;
           last = i;
         }
@@ -1377,8 +1398,10 @@
           if (state[i] >= 0) continue;
           close[i] = close[i - 1];
           for (const edge of [...long, ...short]) edge[i] = edge[i - 1];
-          (state[i] = state[i - 1]), (trend[i] = trend[i - 1]), (x[i] = x[i - 1]), (y[i] = y[i - 1]);
+          (state[i] = state[i - 1]), (trend[i] = trend[i - 1]);
         }
+        // (Where on the compass: the moment's place across, the cycle's up.)
+        const x = placeOf(close, short, first, last), y = placeOf(close, long, first, last);
         // (Each trend's line: its floor while on a support, its ceiling while on a resistance.)
         const trendLines = trends.map((sides, k) => ({ sides, values: Float64Array.from(sides, (side, i) => (side === 1 ? floors[k][i] : side === -1 ? ceilings[k][i] : NaN)) }));
         return { first, last, close, cloud: { long, short }, trendLines, state, trend, x, y };
