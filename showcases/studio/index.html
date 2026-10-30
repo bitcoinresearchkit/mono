@@ -34629,20 +34629,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ title: string | (() => string), heading?: boolean, placeholder?: string, rows: () => any[], options?: () => Action[], chooses?: boolean, input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean, left?: () => void }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
-      /** Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. */
+      /**
+       * Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. (Three rows
+       * taken in turn, each one's least kept as it's made: no call, spread or swap by destructuring a letter, as a phone
+       * without a JIT pays for them.)
+       */
       function editsBetween(a, b, most) {
         if (Math.abs(a.length - b.length) > most) return most + 1;
-        let before = [], row = Array.from({ length: b.length + 1 }, (_, j) => j);
+        const n = b.length;
+        let before = new Array(n + 1), row = new Array(n + 1), next = new Array(n + 1);
+        for (let j = 0; j <= n; j++) row[j] = j;
         for (let i = 1; i <= a.length; i++) {
-          const next = [i];
-          for (let j = 1; j <= b.length; j++) {
-            next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], before[j - 2] + 1);
+          let least = (next[0] = i);
+          for (let j = 1; j <= n; j++) {
+            const kept = row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1), added = next[j - 1] + 1, dropped = row[j] + 1;
+            let edits = kept < added ? kept : added;
+            if (dropped < edits) edits = dropped;
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1] && before[j - 2] + 1 < edits) edits = before[j - 2] + 1;
+            next[j] = edits;
+            if (edits < least) least = edits;
           }
-          if (Math.min(...next) > most) return most + 1;
-          [before, row] = [row, next];
+          if (least > most) return most + 1;
+          const spare = before;
+          (before = row), (row = next), (next = spare);
         }
-        return row[b.length];
+        return row[n];
       }
       /**
        * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
@@ -34650,7 +34661,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * "right"); 0 when a word finds nothing.
        */
       function fitScore(text, words, name = text) {
-        const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean), named = new Set(name.toLowerCase().split(/[^a-z0-9%×.]+/));
+        const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean);
+        /** Its name's words, made once a slip's looked for. @type {Set<string> | null} */
+        let named = null;
         let total = 0;
         for (const word of words) {
           if (!/[a-z0-9]/.test(word)) {
@@ -34662,7 +34675,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (other === word) best = 4;
             else if (other.startsWith(word)) best = Math.max(best, 3);
             else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
-            else if (!best && word.length >= 4 && named.has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
+            else if (!best && word.length >= 4 && (named ??= new Set(name.toLowerCase().split(/[^a-z0-9%×.]+/))).has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
             if (best === 4) break;
           }
           if (!best && word.length >= 3 && lower.includes(word)) best = 2;
