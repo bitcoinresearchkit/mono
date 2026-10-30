@@ -24,9 +24,15 @@ export class Crosshair {
     this.height = 0;
     // (As drawn: nothing to clear when it's gone already.)
     this.shown = false;
-    // (Each date written once: a day's, or a day's and its time's where points are less than a day apart.)
+    // (Each date written once: a day's, or a day's and its time's where points are less than a day apart; or as a page
+    // writes them, see setFormat.)
     this.day = kept((t) => dateOf(t, false));
     this.fine = kept((t) => dateOf(t, true));
+  }
+
+  /** Its dates written by `format` (a point's time, seconds), whatever their points' spacing. @param {(t: number) => string} format */
+  setFormat(format) {
+    this.day = this.fine = kept(format);
   }
 
   /** @param {number} width @param {number} height @param {number} dpr */
@@ -54,25 +60,26 @@ export class Crosshair {
     g.translate(left, 0);
     this.shown = true;
     const plot = time.width, x = Math.round(time.x(i) * dpr) / dpr + 0.5 / dpr;
-    g.strokeStyle = theme.crosshair;
+    // (Its line down, solid; its line across its pane, dashed, fainter.)
     g.lineWidth = 1;
-    g.setLineDash(DASH);
-    g.beginPath();
-    if (x >= 0 && x <= plot) g.moveTo(x, 0), g.lineTo(x, room);
+    if (x >= 0 && x <= plot) (g.strokeStyle = theme.crosshair), g.beginPath(), g.moveTo(x, 0), g.lineTo(x, room), g.stroke();
     const pane = panes[this.pane];
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       const y = Math.round(this.y * dpr) / dpr + 0.5 / dpr;
+      g.strokeStyle = theme.across;
+      g.setLineDash(DASH);
+      g.beginPath();
       g.moveTo(0, y), g.lineTo(plot, y);
+      g.stroke();
+      g.setLineDash(NONE);
     }
-    g.stroke();
-    g.setLineDash(NONE);
     g.font = theme.font;
     g.textBaseline = "middle";
     // (Its value on its pane's axis.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
-      badge(g, theme, pane.axisLabel(round(pane.scale.value(this.y - pane.top))), plot + 2, this.y, "left");
+      badge(g, theme, pane.axisLabel(pane.scale.value(this.y - pane.top)), plot + 2, this.y, "left");
       // (Its value on the left axis too, where the pane has a left scale.)
-      if (pane.left && left) badge(g, theme, pane.axisLabel(round(pane.left.value(this.y - pane.top)), pane.left), -left + 2, this.y, "left");
+      if (pane.left && left) badge(g, theme, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), -left + 2, this.y, "left");
     }
     // (Its date on the time axis, its point's.)
     const times = time.times, k = Math.round(i);
@@ -84,13 +91,8 @@ export class Crosshair {
   }
 }
 
-/** A crosshair's dash, and none (made once). */
-const DASH = [4, 4], NONE = /** @type {number[]} */ ([]);
-
-/** A value as a badge shows it: four significant digits, no more. @param {number} v */
-function round(v) {
-  return v === 0 ? 0 : Number(v.toPrecision(4));
-}
+/** A crosshair's dash (its line across), and none (made once). */
+const DASH = [6, 6], NONE = /** @type {number[]} */ ([]);
 
 /**
  * Text in a badge at `x`, `y` (CSS pixels): its left there, or its middle.

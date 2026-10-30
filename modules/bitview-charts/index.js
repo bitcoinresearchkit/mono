@@ -30,9 +30,9 @@ export { Scale } from "./scale.js";
 export { compact } from "./format.js";
 
 /** @type {import("./pane.js").Theme} */
-export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)" };
+export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", across: "rgba(247, 248, 248, 0.25)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)" };
 /** @type {import("./pane.js").Theme} */
-export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)" };
+export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", across: "rgba(14, 15, 17, 0.2)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)" };
 
 /** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart. */
 const HOLD = 350;
@@ -44,7 +44,7 @@ const SLOWING = 0.998;
 
 /**
  * @param {HTMLElement} element
- * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number }} [options]
+ * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
  */
 export function createChart(element, options) {
   return new Chart(element, options);
@@ -53,9 +53,9 @@ export function createChart(element, options) {
 export class Chart {
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, timeHeight = 26, rightOffset, maxSpacing } = {}) {
+  constructor(element, { theme = DARK, axis = 64, timeHeight = 26, rightOffset, maxSpacing, dateFormat } = {}) {
     this.element = element;
     this.theme = theme;
     /** The axis' width at every pane's right (CSS pixels). */
@@ -64,6 +64,7 @@ export class Chart {
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
+    if (dateFormat) this.crosshair.setFormat(dateFormat);
     /** @type {((index: number, pane: number, y: number, input: boolean) => void)[]} */
     this.crosshairListeners = [];
     /** @type {((index: number, pane: number, series: number, y: number) => void)[]} */
@@ -325,8 +326,9 @@ export class Chart {
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
     element.addEventListener("pointerdown", (event) => {
-      // (A separator dragged: no other pointer does anything meanwhile.)
-      if (event.button || sizer >= 0) return;
+      // (A separator dragged: no other pointer does anything meanwhile. A press on a page's own element in the chart (a
+      // legend's button) is the page's: none of its canvases, not the chart's.)
+      if (event.button || sizer >= 0 || (event.target !== element && !(event.target instanceof HTMLCanvasElement && event.target.parentElement === element))) return;
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");

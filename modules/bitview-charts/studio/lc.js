@@ -67,7 +67,7 @@ class Chart {
   constructor(element, options) {
     this.element = element;
     this.options = merged({}, options);
-    this.engine = make(element, { theme: this.#theme(options), rightOffset: options.timeScale?.rightOffsetPixels ?? 48 });
+    this.engine = make(element, { theme: this.#theme(this.options), rightOffset: this.options.timeScale?.rightOffsetPixels ?? 48, dateFormat: this.options.localization?.timeFormatter });
     /** @type {Pane[]} */
     this.panesList = [];
     /** @type {Series[]} */
@@ -97,13 +97,14 @@ class Chart {
 
   /** The library's theme from LWC's options: its colors, its font, its crosshair's and separators'. @param {any} options */
   #theme(options) {
-    const layout = options.layout ?? {}, grid = options.grid?.horzLines ?? {}, cross = options.crosshair?.vertLine ?? {};
+    const layout = options.layout ?? {}, grid = options.grid?.horzLines ?? {}, cross = options.crosshair?.vertLine ?? {}, across = options.crosshair?.horzLine ?? {};
     return {
       ...DARK,
       ...(layout.background?.color && layout.background.color !== "transparent" ? { background: layout.background.color } : {}),
       ...(layout.textColor ? { text: layout.textColor } : {}),
       ...(grid.color ? { grid: grid.color } : {}),
       ...(cross.color ? { crosshair: cross.color } : {}),
+      ...(across.color ? { across: across.color } : {}),
       ...(cross.labelBackgroundColor ? { badge: cross.labelBackgroundColor } : {}),
       ...(layout.panes?.separatorColor ? { separator: layout.panes.separatorColor } : {}),
       font: `${layout.fontSize ?? 11}px ${layout.fontFamily ?? "system-ui, sans-serif"}`,
@@ -132,6 +133,7 @@ class Chart {
     // (Its halo come or changed: the outlined series edged in it.)
     if (options.layout && "bvHalo" in options.layout) for (const series of this.all) series.restyle();
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
+    if (options.localization?.timeFormatter) this.engine.crosshair.setFormat(options.localization.timeFormatter);
     if (options.timeScale?.rightOffsetPixels !== undefined) this.engine.time.rightOffset = options.timeScale.rightOffsetPixels;
     this.engine.invalidate(true);
   }

@@ -17,7 +17,7 @@ import { inkOn } from "./color.js";
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
  * words; the line between panes.
- * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, badge: string, separator: string }} Theme
+ * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, across: string, badge: string, separator: string }} Theme
  */
 
 /** Drawing a pane whole slower than this (ms): a zoom stretches its picture instead (see draw). */

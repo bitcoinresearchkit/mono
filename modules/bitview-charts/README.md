@@ -20,9 +20,10 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Chart
 
-- `createChart(element, { theme, axis, timeHeight, rightOffset, maxSpacing })`: `theme` is `DARK` (default) or
-  `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair`, `badge`, `separator`); `axis`,
-  the axis' width at the right (64); `rightOffset`, CSS pixels left empty past the last point (24).
+- `createChart(element, { theme, axis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
+  (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
+  and across, `badge`, `separator`); `axis`, the axis' width at the right (64); `rightOffset`, CSS pixels left empty
+  past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
