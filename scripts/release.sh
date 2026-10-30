@@ -32,4 +32,15 @@ cargo package --workspace --allow-dirty --no-verify
 cargo api
 echo ""
 
+echo "--- API changes ---"
+# What this release changes of the API, from the version it follows: the page beside the API reference
+# (showcases/api-changes/), made from prod, still on that version, and next, by its diff.mjs.
+CURRENT_VERSION=$(sed -n 's/^package\.version = "\([^"]*\)"/\1/p' "$ROOT_DIR/Cargo.toml")
+if [ ! -f "$ROOT_DIR/showcases/api-changes/v$CURRENT_VERSION.json" ]; then
+    echo "The API changes since v$CURRENT_VERSION aren't written: run bun showcases/api-changes/diff.mjs, then commit them."
+    exit 1
+fi
+echo "OK"
+echo ""
+
 "$SCRIPT_DIR/quick-release.sh" "$RELEASE_ARG"

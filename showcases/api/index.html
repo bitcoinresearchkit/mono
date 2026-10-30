@@ -69,6 +69,46 @@
         }
       }
 
+      /* What each release changed, on the bar's other side: an id renamed or removed, an endpoint changed. */
+      .changes {
+        position: fixed;
+        z-index: 1001;
+        top: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        height: 52px;
+        padding: 0 16px;
+        color: #5f6570;
+        font: 500 13px / 1 Inter, -apple-system, system-ui, sans-serif;
+        text-decoration: none;
+
+        &:hover {
+          color: #0f1012;
+        }
+
+        @media (prefers-color-scheme: dark) {
+          color: #8a8f98;
+
+          &:hover {
+            color: #f7f8f8;
+          }
+        }
+
+        @media (prefers-contrast: more) {
+          color: #3d4048;
+
+          @media (prefers-color-scheme: dark) {
+            color: #b4b8bd;
+          }
+        }
+
+        @media (width < 1000px) {
+          height: 50px;
+          padding-right: 14px;
+        }
+      }
+
       /* (Its bar on a desk, what scrolls passing under it; a phone's is Scalar's own.) */
       @media (width >= 1000px) {
         body::before {
@@ -91,6 +131,7 @@
 
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+    <a class="changes" href="/api-changes/">What changed</a>
     <div id="app"></div>
 
     <!-- Every endpoint, from the specification of the server that serves this page. -->

@@ -2220,7 +2220,7 @@
         </div>
         <div>
           <h3>Developers</h3>
-          <a href="/api/">API</a><a href="/openapi.json">OpenAPI</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pypi.org/project/bitview-client/">Python client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://crates.io/crates/bitview_client">Rust client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="/llms.txt">llms.txt</a><a href="https://mcp.bitview.space/">MCP server<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <a href="/api/">API</a><a href="/api-changes/">API changes</a><a href="/openapi.json">OpenAPI</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pypi.org/project/bitview-client/">Python client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://crates.io/crates/bitview_client">Rust client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="/llms.txt">llms.txt</a><a href="https://mcp.bitview.space/">MCP server<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
         <div>
           <h3>Run your own</h3>
@@ -2301,6 +2301,7 @@
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
         { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "Bitview's series, blocks, addresses and mempool" },
+        { id: "changes", name: "API changes", line: "Every id renamed or removed, release by release.", href: "/api-changes/", made: "Each release's API, against the one before it" },
         { id: "run", name: "Run your own", line: "Bitview on your own node.", href: "/dev/", made: "Your own Bitcoin Core node", copy: "cargo install --locked bitviewd" },
         { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
         { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
@@ -2317,6 +2318,7 @@
         "/series/": { "name": "Series", "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/logs/": { "name": "Logs", "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
         "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
+        "/api-changes/": { "about": "What each release of Bitview's API changed: endpoints and parameters gone or changed, and every series id renamed or removed, with where it went." },
         "/dev/": { "about": "Bitview is an open-source Bitcoin data server that runs beside Bitcoin Core: about 1½ hours to a full index on a 16 GB Mac mini, 21,154 series, Studio, an HTTP API, generated clients and MCP." },
         "/brk/": { "about": "Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." },
       };
@@ -2526,6 +2528,7 @@
       /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
+        changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_2y_to_3y_old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
         run: () => el("span", { className: "say" }, el("code", { className: "big cmd" }, el("b", {}, "$"), " cargo install", el("br"), "--locked bitviewd"), el("span", { className: "small" }, "Linux · macOS · beside Bitcoin Core")),
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
         mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · ChatGPT · any MCP client")),
