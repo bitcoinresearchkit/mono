@@ -1096,8 +1096,10 @@ options alone (a baseline's line takes its color from its value, bars and candle
 these), so a point with none of its type's own colors has the style of every other such point: made for the first one
 in a pass, the same object given to the others (`bvSame` not needed for them).
 
-- `class xt` (a series' colorer): `bvK`, its type's own colors' keys on a row (Line, Histogram, Custom: `R`; Area: `vt`,
-  `ah`, `oh`); `bvSh(t, i, c)`, `Sh`, but for a row with none of them the pass's own (`c.bvP`, made once).
+- `class xt` (a series' colorer): `bvK`, whether a row has its type's own colors (Line, Histogram, Custom: `R`; Area:
+  `vt`, `ah`, `oh`), written out for each type (a loop over the keys took twice as long without a JIT: an area's
+  check, 23 x 6,000 rows, 16 → 9 ms in JavaScriptCore, the iPhone's `bvSh` opening a 23-band stack 24–28 → 14
+  samples); `bvSh(t, i, c)`, `Sh`, but for a row with none of them the pass's own (`c.bvP`, made once).
 - `bvOwn()`'s `Sh` (points made, 23) and `BM()`: through `bvSh`; a style that's the first's object isn't compared.
 
 `tests.html`: "an area's points of their own colors" (points with one of an area's three colors each among points of
