@@ -82,8 +82,11 @@ export class Chart {
     this.whole = true;
     this.moved = false;
     this.seams = false;
-    /** A flick gliding on: its speed (CSS pixels a millisecond) and its last frame's time. */
-    this.glide = { speed: 0, at: 0 };
+    /**
+     * A flick gliding on: its speed (CSS pixels a millisecond), its last frame's time, and its speed kept each
+     * millisecond (iOS's lists' rate; more where it'd pass an end: it eases into it, see #fling).
+     */
+    this.glide = { speed: 0, at: 0, slowing: SLOWING };
     /** @type {((from: number, to: number) => void)[]} */
     this.rangeListeners = [];
     /** @type {(() => void)[]} */
@@ -268,7 +271,7 @@ export class Chart {
     if (glide.speed) {
       const dt = Math.min(64, now - glide.at);
       glide.at = now;
-      glide.speed *= SLOWING ** dt;
+      glide.speed *= glide.slowing ** dt;
       if (Math.abs(glide.speed) < 0.02 || !this.time.pan(glide.speed * dt)) glide.speed = 0;
       else (this.moved = true), (this.frame = requestAnimationFrame(this.tick));
     }
@@ -326,9 +329,10 @@ export class Chart {
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
     element.addEventListener("pointerdown", (event) => {
-      // (A separator dragged: no other pointer does anything meanwhile. A press on a page's own element in the chart (a
-      // legend's button) is the page's: none of its canvases, not the chart's.)
-      if (event.button || sizer >= 0 || (event.target !== element && !(event.target instanceof HTMLCanvasElement && event.target.parentElement === element))) return;
+      // (A separator dragged: no other pointer does anything meanwhile. A press beginning on a page's own element in the
+      // chart (a legend's button) is the page's: none of its canvases, not the chart's; one more during the chart's own
+      // (a second finger: a pinch), the chart's wherever it lands.)
+      if (event.button || sizer >= 0 || (!down.size && event.target !== element && !(event.target instanceof HTMLCanvasElement && event.target.parentElement === element))) return;
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
@@ -415,7 +419,7 @@ export class Chart {
       }
       const ms = trailAt[last] - trailAt[first], stale = event.timeStamp - trailAt[last] > 60;
       trailSize = 0;
-      if (ms > 0 && !stale) (this.glide.speed = (trail[last] - trail[first]) / ms), (this.glide.at = performance.now()), this.invalidate();
+      if (ms > 0 && !stale) this.#fling((trail[last] - trail[first]) / ms);
     };
     element.addEventListener("pointerup", up, { signal });
     element.addEventListener("lostpointercapture", (event) => event.pointerId === sizer && stopSizing(), { signal });
@@ -428,6 +432,19 @@ export class Chart {
       this.glide.speed = 0;
       this.invalidate();
     }, { passive: false, signal });
+  }
+
+  /**
+   * A flick let go at `speed` (CSS pixels a millisecond): it glides on, slowing as iOS's lists do (its travel `speed /
+   * -ln(SLOWING)`); where that would pass an end, slowing faster to come to rest there (held at it, it stopped dead).
+   * @param {number} speed
+   */
+  #fling(speed) {
+    const glide = this.glide, room = this.time.room(speed);
+    glide.slowing = Math.abs(speed) / -Math.log(SLOWING) > room ? Math.exp(-Math.abs(speed) / Math.max(room, 1e-9)) : SLOWING;
+    glide.speed = speed;
+    glide.at = performance.now();
+    this.invalidate();
   }
 
   /** A click at a pointer's place: its point, pane and series told to the click's listeners. @param {PointerEvent} event */

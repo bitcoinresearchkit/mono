@@ -116,6 +116,12 @@ export class Timeline {
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
 
+  /** How far it can pan (CSS pixels) to `px`'s side (over 0: earlier points coming in) before an end holds it. @param {number} px */
+  room(px) {
+    const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
+    return Math.max(0, (px > 0 ? this.to - hold : last - hold - this.from) * this.spacing);
+  }
+
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */
   limit() {
     let span = this.to - this.from;
