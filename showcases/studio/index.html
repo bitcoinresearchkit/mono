@@ -12849,13 +12849,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return out;
       }
       /**
+       * Where a formula's values start a stretch anew with no gap before it (a rebase's, by a change of its `by`), by the
+       * values: the point before each marked, as a trend's breaks are (nothing drawn down to the new start). Kept through
+       * what's worked out point by point (signs, arithmetic, comparisons, when, min and max, log and the like), not through
+       * a window, a shift or a drawdown.
+       * @type {WeakMap<Vector, Uint8Array>}
+       */
+      const restarts = new WeakMap();
+      /**
+       * A formula's restarts as its line's breaks: each on the last point it has before one (a when() may have taken the
+       * marked one out), none where nothing follows. @param {Vector} values @param {Uint8Array} marks
+       */
+      function breaksAt(values, marks) {
+        let breaks = /** @type {Uint8Array | null} */ (null), last = -1, owed = false;
+        for (let i = 0; i < values.length; i++) {
+          if (Number.isFinite(values[i])) {
+            if (owed) (breaks ??= new Uint8Array(values.length))[last] = 1;
+            (owed = false), (last = i);
+          }
+          if (marks[i] && last >= 0) owed = true;
+        }
+        return breaks;
+      }
+      /** `out`, worked out point by point from `from`, with their restarts. @param {Vector} out @param {(Vector | number)[]} from */
+      function restarted(out, ...from) {
+        let marks = /** @type {Uint8Array | null} */ (null);
+        for (const vector of from) {
+          const own = typeof vector === "number" ? undefined : restarts.get(vector);
+          if (own) marks = marks ? marks.map((mark, i) => mark | own[i]) : own;
+        }
+        if (marks) restarts.set(out, marks);
+        return out;
+      }
+      /**
        * Each stretch of `x` over its first value (from 1): a gap in `x` starts another, and with `by`, a change of by's
-       * value (none of by's, no change). Values of 0 first (a price before there was one), none: it starts at the next.
+       * value (none of by's, no change); each after the first marked (see restarts: the chart's line drawn across a gap
+       * too). Values of 0 first (a price before there was one), none: it starts at the next.
        * @param {Vector} x @param {Vector | null} by
        */
       function rebaseOf(x, by) {
         const out = new Float64Array(x.length).fill(NaN);
-        let base = NaN, was = NaN;
+        let base = NaN, was = NaN, last = -1, marks = /** @type {Uint8Array | null} */ (null);
         for (let i = 0; i < x.length; i++) {
           // (By's changes followed through x's gaps too: one there starts the stretch after it, once.)
           const key = by ? by[i] : NaN, changed = key === key && was === was && key !== was;
@@ -12864,9 +12898,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             base = NaN;
             continue;
           }
-          if (!base || changed) base = x[i];
+          if (!base || changed) {
+            if (last >= 0) (marks ??= new Uint8Array(x.length))[last] = 1;
+            base = x[i];
+          }
           out[i] = base ? x[i] / base : NaN;
+          if (base) last = i;
         }
+        if (marks) restarts.set(out, marks);
         return out;
       }
       function shifted(x, n, f) {
@@ -13174,8 +13213,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within, memo);
         const vec = (value) => (typeof value === "number" ? new Float64Array(length).fill(value) : value);
         const lift = (a, b, f) => {
-          if (typeof a === "number") return typeof b === "number" ? f(a, b) : b.map((v) => f(a, v));
-          return typeof b === "number" ? a.map((v) => f(v, b)) : a.map((v, i) => f(v, b[i]));
+          if (typeof a === "number") return typeof b === "number" ? f(a, b) : restarted(b.map((v) => f(a, v)), b);
+          return restarted(typeof b === "number" ? a.map((v) => f(v, b)) : a.map((v, i) => f(v, b[i])), a, b);
         };
         switch (node.k) {
           case "num":
@@ -13190,7 +13229,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return yearsOf(vec(ref("date", "date")));
           case "neg": {
             const a = sub(node.a);
-            return typeof a === "number" ? -a : a.map((v) => -v);
+            return typeof a === "number" ? -a : restarted(a.map((v) => -v), a);
           }
           case "bin": {
             const a = sub(node.a), b = sub(node.b);
@@ -13257,7 +13296,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (A drawdown is from the highest of all history: on a finer interval, only part of it loads.)
             if (node.f === "drawdown" && FINE.has(index)) throw failing(`drawdown: from the highest of all history, more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-            return run(vec(args[0]), 0, 0, false, INTERVAL_DAYS[index]);
+            const x = vec(args[0]), out = run(x, 0, 0, false, INTERVAL_DAYS[index]);
+            // (Point by point, a drawdown aside: from the highest so far, past any restart.)
+            return node.f === "drawdown" ? out : restarted(out, x);
           }
         }
       }
@@ -15948,7 +15989,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * @typedef {{ values?: Vector, ohlc?: (number[] | null)[], low?: Vector, members?: Vector[], memberIds?: string[], highest?: Int8Array, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector, heat?: true, closes?: Vector }} Result
        *   `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
-       *   flips; `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
+       *   flips, a formula's restarts (each the point before: see restarts); `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
        * @typedef {{ times: number[], results: Map<string, Result>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
@@ -16173,7 +16214,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (The layers it reads with no value anywhere, named: what it lacks is theirs.)
             const blanks = [...refsOf(node)].filter((letter) => ((target) => target && target !== layer && target.type !== "cloud" && computed(target)?.blank)(byLetter.get(letter)));
             if (!FINE.has(doc.index) && !values.some(Number.isFinite)) return { blank: new Float64Array(values.length).fill(NaN), unit, ...(blanks.length ? { error: `${blanks[0]} has no data`, detail: `${blanks.join(", ")} ${blanks.length > 1 ? "have" : "has"} no value at any date` } : { error: "No values", detail: "It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere" }) };
-            return { values, unit };
+            const breaks = ((marks) => marks && breaksAt(values, marks))(restarts.get(values));
+            return { values, unit, ...(breaks ? { breaks } : {}) };
           });
         });
         /** A layer's result, made now if it's a formula's or made from layers (each once, in the order they need). */
@@ -33070,25 +33112,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * A layer's halving cycles (halving(A, n), each mined, named by its years) or its years (year(A, y), from the first
-       * it has values in as drawn, else the genesis block's, to this one): each from its start at 1×.
+       * it has values in as drawn, else the genesis block's, to this one): each from its start at 1×. `over`: instead,
+       * this one over the ones before it, all of history (rebase(shift(A, 1halving), halving_epoch): at each start, the
+       * one before from its start, each line broken where it starts anew), as far back as it has values whole, three at
+       * most (more cross into a tangle), the oldest first.
        * @param {Layer} layer @param {"cycles" | "years"} which @returns {{ formula: string, label: string }[]}
        */
-      function periodsOf(layer, which) {
-        const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear();
-        if (which === "cycles") return ((starts) => starts.map((start, n) => ({ formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` })))([GENESIS, ...minedHalvings()]);
+      function periodsOf(layer, which, over = false) {
+        const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear(), cycles = which === "cycles";
+        const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, first = resolved && at >= 0 ? resolved.times[at] : GENESIS;
+        if (over) {
+          const now = year(Date.now() / 1000), whole = cycles ? [GENESIS, ...minedHalvings()].filter((start) => start >= first).length : now - year(first) + (first <= Date.UTC(year(first), 0, 1) / 1000 ? 1 : 0);
+          // (None whole before this one: nothing to lay it over.)
+          const before = Math.min(whole - 1, 3), [unit, by, what] = cycles ? ["halving", "halving_epoch", "cycle"] : ["y", "year", "year"];
+          if (before < 1) return [];
+          return Array.from({ length: before + 1 }, (_, i) => ((k) => ({ formula: k ? `rebase(shift(${layer.letter}, ${k}${unit}), ${by})` : `rebase(${layer.letter}, ${by})`, label: k ? `${k} ${what}${k > 1 ? "s" : ""} before` : `This ${what}` }))(before - i));
+        }
+        if (cycles) return ((starts) => starts.map((start, n) => ({ formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` })))([GENESIS, ...minedHalvings()]);
         // (Not before the first year year() takes: a week's or a month's first point can be dated before the genesis block.)
-        const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, from = Math.max(PERIODS_TAKEN.year[0], resolved && at >= 0 ? year(resolved.times[at]) : year(GENESIS));
+        const from = Math.max(PERIODS_TAKEN.year[0], year(first));
         return Array.from({ length: year(Date.now() / 1000) - from + 1 }, (_, k) => ({ formula: `year(${layer.letter}, ${from + k})`, label: String(from + k) }));
       }
+      /** Why there's nothing to lay over each other: no whole one before this one, by the layer's values. @param {"cycles" | "years"} which */
+      const overShort = (which) => (which === "cycles" ? "No whole halving cycle before this one" : "No whole year before this one");
       /**
-       * A layer's halving cycles or years side by side (periodsOf's): a layer each, colored in time (the oldest indigo,
-       * the newest orange: recencyColor), in a pane of their own on a log scale, all of history in view. Formulas, there to
-       * read and change; not at an interval they can't be at. @param {string} id @param {"cycles" | "years"} which
+       * A layer's halving cycles or years side by side, or `over` each other (periodsOf's): a layer each, colored in time
+       * (the oldest indigo, the newest orange: recencyColor; over each other, this one the widest), in a pane of their own
+       * on a log scale, all of history in view. Formulas, there to read and change; not at an interval they can't be at.
+       * @param {string} id @param {"cycles" | "years"} which
        */
-      function comparePeriods(id, which) {
+      function comparePeriods(id, which, over = false) {
         const layer = layerById(id);
         if (!layer) return;
-        const periods = periodsOf(layer, which), what = which === "cycles" ? "halving cycles" : "years";
+        const periods = periodsOf(layer, which, over), what = which === "cycles" ? "halving cycles" : "years";
+        if (!periods.length) return void notice(overShort(which));
         if (chart.layers.length + periods.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${periods.length} ${what} need ${periods.length}`);
         if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the ${what} need one of their own`);
         const unfit = unfitHere([periods[0].formula]);
@@ -33099,7 +33156,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const pane = newPaneIn(doc);
           pane.mode = 1;
           periods.forEach(({ formula, label }, k) => {
-            const added = makeLayer({ formula, label, color: recencyColor(k, periods.length), pane: pane.id }, doc);
+            const added = makeLayer({ formula, label, color: recencyColor(k, periods.length), pane: pane.id, ...(over && k === periods.length - 1 ? { width: 2 } : {}) }, doc);
             doc.layers.push(added);
             first ??= added;
           });
@@ -33109,7 +33166,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const go = ++dateGoes, at = revision;
         const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
         afterDrawn(go, drawn);
-        toast(`Added ${labelOf(layer)}'s ${periods.length} ${what}, each from its start`, editAdded(first));
+        toast(over ? `Added ${labelOf(layer)}'s ${what} over each other: each over the ${periods.length - 1} before it` : `Added ${labelOf(layer)}'s ${periods.length} ${what}, each from its start`, editAdded(first));
       }
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
       const cloudable = () => chart.layers.some((layer) => !layer.from && !placedOn(layer));
@@ -35647,7 +35704,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
             ] : []),
-            ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", "Compare halving cycles"], ["years", "Compare years"]]).map(([which, label]) => ({ key: which, icon: ICONS.pane, label, verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([periodsOf(layer, which)[0].formula])), run: () => comparePeriods(id, which) })) : []),
+            ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", false, "Compare halving cycles"], ["cycles", true, "Overlay halving cycles"], ["years", false, "Compare years"], ["years", true, "Overlay years"]]).map(([which, over, label]) => ({ key: over ? `${which}-over` : which, icon: ICONS.pane, label, verb: over ? "Overlay" : "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: over ? "Each over the ones before" : "Each from its start" }))(((periods) => (periods.length ? unfitHere([periods[0].formula]) : overShort(which)))(periodsOf(layer, which, over))), run: () => comparePeriods(id, which, over) })) : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             // (A bubbles layer's own, after its series' or formula's, as its settings have them: one group each.)
             ...(layer.type === "bubbles" ? [
