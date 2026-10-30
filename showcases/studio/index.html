@@ -16134,11 +16134,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
-      // (Its element filling its box from the start, as after every resize: see sizeChart.)
-      Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+      /** The chart's element filling its box (whatever size it's drawn at: see sizeChart). */
+      const fillBox = () => Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+      // (From the start, as after every resize.)
+      fillBox();
       /** The chart drawn at a size, at once (as the library's own watch did: no frame of what it was). */
       // (Its element filling its box after, whatever the library makes it (a pixel short, rounded): no strip under it.)
-      const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && Object.assign(view.chartElement().style, { width: "100%", height: "100%" }));
+      const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && fillBox());
       /** The chart drawn at a size, its stretch (the bars it shows across) kept as it was: see keepStretch. */
       const sizeKeeping = (/** @type {number} */ width, /** @type {number} */ height) => {
         const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
@@ -16174,7 +16176,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const { width, height } = box.getBoundingClientRect();
           if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
           sizeKeeping(width, height);
-          Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+          fillBox();
           return;
         }
         // (Its box now and the chart's own size: the same, unless a motion before this one's still holding it.)
@@ -29899,12 +29901,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layer) return;
         // (The only one in its pane, or a signal (alone, its layer hidden, it shows nothing): shown or hidden, as a click
         // does.)
-        if (layer.type === "signal" || !chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer))) return toggleHidden(id);
+        if (layer.type === "signal" || !othersInPane(layer)) return toggleHidden(id);
         const alone = aloneInPane(layer);
         commit((doc) => doc.layers.forEach((other) => other.pane === layer.pane && (other.hidden = alone || itsOwn(other, layer) ? undefined : true)), { look: true });
       }
       /** Whether a layer is the only one shown in its pane, its signals with it (beside others hidden). */
-      const aloneInPane = (/** @type {Layer} */ layer) => !layer.hidden && chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer)) && chart.layers.every((other) => other.pane !== layer.pane || itsOwn(other, layer) || other.hidden);
+      const aloneInPane = (/** @type {Layer} */ layer) => !layer.hidden && othersInPane(layer) && chart.layers.every((other) => other.pane !== layer.pane || itsOwn(other, layer) || other.hidden);
+      /** Whether a layer's pane holds others than it and its signals. @param {Layer} layer */
+      const othersInPane = (layer) => chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer));
       /** A layer, or a signal marked on it: shown alone with it. @param {Layer} other @param {Layer} layer */
       const itsOwn = (other, layer) => other.id === layer.id || (other.type === "signal" && other.ref === layer.id);
       /**
@@ -32506,7 +32510,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(layer.from || placedOn(layer) || heatLike(layer) || !markable(chart).some((other) => other.id !== id) ? [] : [{ key: "bubbles", icon: glyph("bubbles"), label: "As bubbles on…", aside: inPalette ? "Sized by its values" : undefined, page: () => choicePage("As bubbles on", () => markable(chart).filter((other) => other.id !== id).map((other) => ({ key: other.id, icon: letterChip(other), label: labelOf(other), run: () => editById(id, (item) => reshape(item, (one) => Object.assign(one, { type: "bubbles", ref: other.id }))) }))) }]),
           // (Its settings', by its name: its eye there.)
           ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
-          ...(layer.type !== "signal" && chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer)) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show it alone in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
+          ...(layer.type !== "signal" && othersInPane(layer) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show it alone in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
           // (Its right-click beside others picked: its copy alone, the picks as they are.)
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds up to ${MAX_LAYERS} layers` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
           // (A cloud or a trend goes where its layers go, a signal where its layer goes.)
