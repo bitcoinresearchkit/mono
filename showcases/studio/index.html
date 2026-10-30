@@ -25360,7 +25360,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return section;
       }
       /** The recommended presets, by their place in the tree. */
-      const recommendedPresets = () => RECOMMENDED.flatMap((place) => ((i) => (i < 0 ? [] : [i]))(/** @type {Preset[]} */ (presets).findIndex((preset) => preset.p.join(" › ") === place)));
+      /** The recommended places' presets as last found, and the list they were found in. */
+      let recommendedFound = /** @type {{ for: Preset[] | null, at: number[] }} */ ({ for: null, at: [] });
+      /** Each recommended place's preset (-1: none there), found in one walk of the list, once a list. @returns {number[]} */
+      const recommendedAt = () => {
+        if (recommendedFound.for !== presets) {
+          const wanted = new Map(RECOMMENDED.map((place, k) => [place, k])), at = RECOMMENDED.map(() => -1);
+          (presets ?? []).forEach((preset, i) => ((k) => k !== undefined && at[k] < 0 && (at[k] = i))(wanted.get(preset.p.join(" › "))));
+          recommendedFound = { for: presets, at };
+        }
+        return recommendedFound.at;
+      };
+      const recommendedPresets = () => recommendedAt().filter((i) => i >= 0);
       /**
        * A preset's tile, as a chart's in the grid: its title, its layers' legend, its mini chart (drawn once in view). New
        * chart's (`card`, its place among the recommended): the same, its drawing framed apart (its own ids).
@@ -28574,8 +28585,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderRecommended() {
         const list = presets;
         // (Each as it shows: as edited here, else as made.)
-        recommendedCards = !list ? [] : RECOMMENDED.flatMap((place, k) => {
-          const preset = list.findIndex((item) => item.p.join(" › ") === place);
+        recommendedCards = !list ? [] : recommendedAt().flatMap((preset, k) => {
           if (preset < 0) return [];
           const edited = editedPreset(preset);
           if (edited && presetEdited(edited)) return [{ preset, doc: edited }];
@@ -28597,7 +28607,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The recommended cards as last drawn: by the theme and the presets edited among them (one edited since, drawn anew, see renderCharts). */
       let recommendedDrawn = "";
-      const recommendedKey = () => (presets ? JSON.stringify([light, ...RECOMMENDED.map((place) => ((i) => ((doc) => (doc && presetEdited(doc) ? `${doc.id}@${doc.updated}` : ""))(i >= 0 ? editedPreset(i) : undefined))(/** @type {Preset[]} */ (presets).findIndex((item) => item.p.join(" › ") === place)))]) : "");
+      const recommendedKey = () => (presets ? JSON.stringify([light, ...recommendedAt().map((i) => ((doc) => (doc && presetEdited(doc) ? `${doc.id}@${doc.updated}` : ""))(i >= 0 ? editedPreset(i) : undefined))]) : "");
       // A card's drawing, once it comes into view: one at a time, each asked for at the page's next idle moment (however
       // long that takes). Kept for the day.
       const cardQueue = new Set();
