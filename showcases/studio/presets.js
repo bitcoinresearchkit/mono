@@ -995,30 +995,22 @@ export function studioPresets(client, facts) {
         ...trends(10),
       ]);
     };
-    /** A basis of two lines a group: each cloud three lines, as the one-line charts' are: the highest of its six, the
-     * middle of its three groups' medians, and the lowest of its six;
-     * coloured as those charts are, the upper band one colour, the lower another (letters: the price A, all holders' B,
-     * the short-term lines C to E, the long-term F to H, the clouds I and J, the trends' edges K to P). */
+    /** A basis of two lines a group: each cloud all six of its lines, coloured as the one-line charts' are, each band
+     * by the line over it (a group's two lines its colour); letters: the price A, the short-term lines B to G, the
+     * long-term H to M, all holders' N, the clouds O and P, the trends' edges Q to V. */
     const ofTwo = (/** @type {string} */ name, /** @type {[string, string]} */ which, /** @type {string} */ said) => {
-      const lines = (/** @type {[string, string, string][]} */ groups, /** @type {string} */ label, /** @type {[string, string, string]} */ colors) => {
-        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name)).join(", "), medians = groups.map(([key]) => stat(key, "median").name).join(", ");
-        const line = (/** @type {string} */ formula, /** @type {string} */ part, /** @type {string} */ color) => ({ formula, label: `${label}, ${part}`, format: "usd", color, opacity: 0.5 });
-        return [
-          line(`min(${names})`, "lowest", colors[0]),
-          line(`middle(${medians})`, "middle", colors[1]),
-          line(`max(${names})`, "highest", colors[2]),
-        ];
-      };
+      const STAT = /** @type {Record<string, string>} */ ({ p40: "40th percentile", p60: "60th percentile", median: "median", avg: "average" });
+      const lines = (/** @type {[string, string, string][]} */ groups) => groups.flatMap(([key, label, color]) => which.map((w) => series(stat(key, w), `${label}, ${STAT[w]}`, { color, opacity: 0.5 })));
+      const at = (/** @type {number} */ from) => Array.from({ length: 6 }, (_, i) => letter(from + i));
       return chart(name, `Compass: holder clouds of ${said}, and trends`, [
         price(),
+        ...lines(short),
+        ...lines(long),
         series(stat("all", "median"), "All holders", { color: HOLDER_COLORS.all, shape: "curved" }),
-        ...lines(short, "Short-term cloud", ["yellow", "orange", "red"]),
-        ...lines(long, "Long-term cloud", ["violet", "cyan", "blue"]),
-        // (Each band coloured by the line over it: the lower the middle's, the upper the highest's.)
-        { cloud: ["C", "D", "E"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
-        { cloud: ["F", "G", "H"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
+        { cloud: at(1), label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
+        { cloud: at(7), label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
         ...edges,
-        ...trends(10),
+        ...trends(16),
       ]);
     };
     // (Named as Compass names its bases: its link opens the one in use.)
