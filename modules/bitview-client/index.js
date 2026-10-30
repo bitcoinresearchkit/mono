@@ -2700,7 +2700,10 @@ function _seriesPattern(client, name, indexes) {
  */
 function _n(c, b, children) {
   const node = {};
-  for (const [key, [make, template]] of Object.entries(children)) {
+  // (By index, nothing destructured: no iterator stepped for each child, thousands of nodes on an engine without a JIT.)
+  const keys = Object.keys(children);
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i], child = children[key], make = child[0], template = child[1];
     Object.defineProperty(node, key, {
       get() {
         const name = template.replace(b ? '*' : /^\*_|_?\*/, b);
