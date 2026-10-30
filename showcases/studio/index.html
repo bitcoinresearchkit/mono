@@ -26148,6 +26148,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         requestAnimationFrame(wait);
       }
       const slides = new WeakMap();
+      /** A sheet's transitions of its own transform (a drag let go, given back). @param {Element} sheet */
+      const ownSlides = (sheet) => sheet.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.transitionProperty === "transform");
       // (The screen turned or resized mid-slide: each sheet's slide in flight is where it was going at once, laid out for
       // the screen it's on, not slid on by the old one's way. One stopped already stays so: finished, it'd be back.)
       addEventListener("resize", () => {
@@ -26175,7 +26177,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const height = sheet.getBoundingClientRect().height, by = document.documentElement.clientHeight - height - from;
         // (A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS
         // showed neither, the sheet still where it was let go till both were over, then at its stop.)
-        for (const animation of sheet.getAnimations()) if (animation instanceof CSSTransition && animation.transitionProperty === "transform") animation.cancel();
+        for (const animation of ownSlides(sheet)) animation.cancel();
         if (reduced.matches || Math.abs(by) < 1) return;
         // (The layout's curve, as a sheet opens and closes, its start's slope the finger's speed in shares of the way a
         // duration: none still, at most 2.5.)
@@ -26275,7 +26277,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           unheard();
           if (later && !changed) close();
           // (Closed, at its closed place at once, out of sight already: its own way there, from where it went, not taken.)
-          for (const animation of sheet.getAnimations()) if (animation instanceof CSSTransition && animation.transitionProperty === "transform") animation.finish();
+          for (const animation of ownSlides(sheet)) animation.finish();
           slide.cancel();
           fade?.cancel();
         }, () => (unheard(), fade?.cancel()));
@@ -32161,7 +32163,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (No line, no value on the axis: nothing to turn on.)
           if (!layer || !lineAt(layer, lineTag)) return;
           // (Not to be had: why, said, as every control that can't be pressed says it (a finger has no tip).)
-          if (lineLook(layer, lineTag).line === false) return notice("Turn on the line to show its value on the axis");
+          if (lineLook(layer, lineTag).line === false) return notice(TAG_NEEDS_LINE);
           refocus(`[data-line-tag="${lineTag}"]`);
           const on = !lineLook(layer, lineTag).tag;
           setLineLook(selected, lineTag, "tag", on || undefined);
@@ -32207,6 +32209,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const lineAt = (layer, key) => (key === "base" ? layer.baseLine ?? {} : layer.levels?.[Number(key)]);
       const lineDefaults = (layer, key) => (key === "base" ? { color: "gray", dash: LC.LineStyle.SparseDotted } : { color: layer.color, dash: LC.LineStyle.LargeDashed });
       const lineLook = (layer, key) => ({ ...lineDefaults(layer, key), ...lineAt(layer, key) });
+      /** Why a line's value on the axis can't be turned on, said one way everywhere. */
+      const TAG_NEEDS_LINE = "Turn on the line to show its value on the axis";
       /**
        * A value as its layer's levels name it: the highest level at or under it (as they color it, by levels; of two at one
        * value, the first), if it's named: its name, in its color; under them all, the layer's `underName`, in its own. Not
@@ -32282,7 +32286,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const look = lineLook(layer, i);
         return /** @type {any[]} */ ([
           { key: "line", icon: lineStyleGlyph(look), label: "Line", aside: lineStyleName(look), page: () => ({ title: "Line", placeholder: "Search the choices", rows: () => lineChoices(id, i) }) },
-          { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: "Turn on the line to show its value on the axis" } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
+          { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: TAG_NEEDS_LINE } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
           { key: "remove", icon: ICONS.trash, label: "Remove the level", danger: true, run: () => {
             editById(id, (item) => withoutLevel(item, i));
             refocus('[data-action="add-level"]');
@@ -33600,6 +33604,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         })() };
         return ranking.steps;
       }
+      /** A command as ⌘K lists it. @param {any} command */
+      const commandItem = (command) => ({ kind: "command", key: command.title, command, group: "Commands" });
       function showPalette() {
         // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
         pointedOption = false;
@@ -33645,7 +33651,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const lastCharts = root ? recentCharts().filter((item) => home || item.id !== chart.id).slice(0, 3).map((item) => ({ ...recentRow(item), group: "Recent" })) : [];
           const recents = root && browsing ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
           const suggestions = root && browsing ? SUGGESTED.filter((name) => !gone.has(name) && !recents.some((item) => item.name === name)).map((name) => ({ kind: "series", key: name, name, group: "Suggested" })) : [];
-          const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
+          const suggested = root ? commands().filter((command) => command.suggested).map(commandItem) : [];
           // What you pick most from here, lately: three, a step closer. (Named for what orders them: "Recently used" read as
           // "Recent" again, above it.)
           const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingsNow().rows, ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
@@ -33673,7 +33679,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the page that has them all, the
         // one in effect checked, does.
         const leads = (command) => (command.follows ?? command.title).toLowerCase().split(/[^a-z0-9%×.]+/).some((word) => word.startsWith(words[0]));
-        const found = !everything ? [] : rank(commands().map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
+        const found = !everything ? [] : rank(commands().map(commandItem), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
         // (Of those leading, a title starting with it first, "delete" Delete this chart; an interval's by its own name
         // after; one that destroys, so, last.)
         const titled = (/** @type {Command} */ command) => command.title.toLowerCase().startsWith(words[0]), ahead = found.filter((item) => leads(item.command));
@@ -35104,6 +35110,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ] });
       /** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
       const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "derive", "hide", "solo", "duplicate", "remove"]);
+      /** A drawing's, likewise. */
+      const DRAWING_QUICK = new Set(["flip-x", "flip-y", "duplicate", "remove"]);
       /** A layer, by its letter and name, with what it shows (a series, a formula): ↵ opens all it is, to change. */
       function layerRow(layer) {
         const open = () => layerPage(layer.id);
@@ -35270,7 +35278,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (↵ selects one on the chart, ⌘K closed: the arrows move it there, ⌘ the arrows its end; all it is, in its actions.)
           ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", verb: "Select", run: () => selectInView(drawing.id), actions: () => [
             { label: "Settings", icon: ICONS.sliders, page: () => drawingPage(drawing.id) },
-            ...drawingPage(drawing.id).rows().filter((row) => ["flip-x", "flip-y", "duplicate", "remove"].includes(String(row.key))),
+            ...drawingPage(drawing.id).rows().filter((row) => DRAWING_QUICK.has(String(row.key))),
           ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, under: true, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
           { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: capitalize(LENS_SAYS), under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
@@ -35329,7 +35337,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               else delete item[side];
             }) }))) })) : []),
             { key: "select", icon: TOOLS[drawing.kind].icon, label: "Select it", aside: "On the chart: the arrows move it", verb: "Select", group: "Drawing", run: () => selectInView(id) },
-            ...drawingRows([id]).filter((row) => ["flip-x", "flip-y", "duplicate", "remove"].includes(String(row.key))).map((row) => ({ ...row, group: "Drawing" })),
+            ...drawingRows([id]).filter((row) => DRAWING_QUICK.has(String(row.key))).map((row) => ({ ...row, group: "Drawing" })),
           ].map((row) => ({ kind: "row", ...row }));
         } };
       }
@@ -35354,7 +35362,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(level ? [{ key: "value", icon: ICONS.pencil, label: "Value", aside: format(level.value, unitFor(layer, resolved?.results.get(layer.id))), page: () => numberPage({ title: "Value", value: String(level.value), apply: (n) => editById(id, (item) => item.levels?.[Number(key)] && (item.levels[Number(key)].value = n)) }) }] : []),
             { key: "color", icon: swatchOf(look.color), label: "Color", aside: colorName(look.color), page: () => choicePage("Color", () => colorRows(now().color, (name) => setLineLook(id, key, "color", name), (doc, name) => lineLookOn(doc, id, key, "color", name))) },
             { key: "dash", icon: lineStyleGlyph(look), label: "Line style", aside: lineStyleName(look), page: () => choicePage("Line style", () => lineChoices(id, key)) },
-            { key: "tag", icon: ICONS.label, label: "Value on the axis", aside: look.tag && look.line !== false ? "On" : "Off", verb: look.tag ? "Turn off" : "Turn on", stay: true, ...(look.line === false ? { disabled: "Turn on the line to show its value on the axis" } : {}), run: () => setLineLook(id, key, "tag", now().tag ? undefined : true) },
+            { key: "tag", icon: ICONS.label, label: "Value on the axis", aside: look.tag && look.line !== false ? "On" : "Off", verb: look.tag ? "Turn off" : "Turn on", stay: true, ...(look.line === false ? { disabled: TAG_NEEDS_LINE } : {}), run: () => setLineLook(id, key, "tag", now().tag ? undefined : true) },
             ...(level ? [{ key: "remove", icon: ICONS.trash, label: "Remove the level", verb: "Remove", danger: true, stay: true, run: () => {
               editById(id, (item) => withoutLevel(item, Number(key)));
               popPage();
@@ -38106,10 +38114,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function notice(text, action) {
         toast(text, action, false);
       }
+      /** An Undo asked for once another change came after its own: told how to step back to it. */
+      const steppedPast = () => notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`);
       /** A toast whose Undo steps back only while that change is still the latest one (the chart's own step: see libraryEdits). */
       function undoToast(text) {
         const mark = revision;
-        toast(text, { label: "Undo", chart: true, run: () => (revision === mark ? undo() : notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`)) });
+        toast(text, { label: "Undo", chart: true, run: () => (revision === mark ? undo() : steppedPast()) });
       }
       let toastTimer = 0;
       /**
@@ -38282,7 +38292,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           toastUndo = toastRedo = null;
           syncUndo();
           // (A Library step's Undo: it, while it's the last of them.)
-          if (step) return libraryEdits.past.at(-1) === step ? undoLibrary() : notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`);
+          if (step) return libraryEdits.past.at(-1) === step ? undoLibrary() : steppedPast();
           // (A Redo after a change since, as an Undo's: not done, said.)
           if (redoes && revision !== mark && !(home && action?.run === redoLibrary)) return notice(`Nothing to redo: things have changed since then`);
           const again = action?.run();
@@ -38466,7 +38476,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("live").classList.remove("waiting");
         // (To a screen reader, as it connects, goes offline or comes back, in the live dot's words: not each price, as a
         // live line (or the dot's own name, were it one) read whenever it changes would, each second.)
-        if (lost !== saidLost) (saidLost = lost), say(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`);
+        const state = lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`;
+        if (lost !== saidLost) (saidLost = lost), say(state);
         renderHorizon();
         const said = {
           status: lost ? '<span class="live-off">Offline</span>' : "",
@@ -38483,7 +38494,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (tip) half.dataset.tip = tip;
           return half;
         }));
-        liveTip(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
+        liveTip(state, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
       }
       /** The live dot's tip, a line each (its first, what it is), its name all of it: the one open, said again. @param {...string} lines */
       function liveTip(...lines) {
