@@ -10636,7 +10636,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). min(A, B, C) and max(A, B, C) are the least and the most of several, date by date, middle(A, B, C) their median (of an even number, halfway between the two in the middle); each where all of them have a value. when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
@@ -12707,41 +12707,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         exp: [1, "exp(x)", "the exponential: e to the power x", (x) => x.map(Math.exp)],
         sqrt: [1, "sqrt(x)", "square root", (x) => x.map(Math.sqrt)],
         abs: [1, "abs(x)", "absolute value", (x) => x.map(Math.abs)],
-        min: [2, "min(a, b, …)", "the smallest of them, date by date", null],
-        max: [2, "max(a, b, …)", "the largest of them, date by date", null],
-        middle: [2, "middle(a, b, …)", "the median of them, date by date: the middle one (of an even number, halfway between the two in the middle)", null],
+        min: [2, "min(a, b)", "smaller of two", null],
+        max: [2, "max(a, b)", "larger of two", null],
         when: [2, "when(x, condition)", "x where the condition holds (not 0), none elsewhere: when(A, date >= 2020-05-11)", null],
         halving: [3, "halving(x, n, at?)", "x over halving cycle n (0 the first, from the genesis block; 4 since 2024) from 1× at its start; with at, moved to start where cycle at starts (halving(A, 0, 2): the first cycle over the third's dates, day for day)", null, true],
         rebase: [2, "rebase(x, by?)", "each stretch of x over its first value, from 1×: a gap starts another, and with by, so does a change of by (rebase(A, halving_epoch): each cycle from its start)", null, true],
       };
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
-      /** Functions of any number of values, two at least, across them date by date (each where all have one). */
-      const ACROSS = new Set(["min", "max", "middle"]);
-      /** A function's arguments' names, as its signature writes them (one of any number's last, "…"). */
+      /** A function's arguments' names, as its signature writes them. */
       const argNames = (/** @type {string} */ f) => ((signature) => signature.slice(signature.indexOf("(") + 1, -1).split(", "))(FUNCTIONS[f][1]);
-      /** The name of a function's `i`th argument: past the last named of one of any number, another as its last named is. */
-      const argName = (/** @type {string} */ f, /** @type {number} */ i) => ((names) => (ACROSS.has(f) && i >= names.length - 2 ? names[names.length - 2] : names[i]))(argNames(f));
-      /**
-       * The middle of several values, date by date: of an odd number, the middle one; of an even one, halfway between the
-       * two in the middle. Where one has none (an infinity is none: a division by 0), none, as min and max. @param {(Vector | number)[]} args
-       * @returns {Vector | number}
-       */
-      function middleOf(args, length) {
-        const n = args.length, half = n >> 1, values = new Float64Array(n);
-        const at = (/** @type {number} */ i) => {
-          for (let j = 0; j < n; j++) {
-            const arg = args[j];
-            if (!Number.isFinite((values[j] = typeof arg === "number" ? arg : arg[i]))) return NaN;
-          }
-          values.sort();
-          // (Halves added: their sum could pass the largest number.)
-          return n % 2 ? values[half] : values[half - 1] / 2 + values[half] / 2;
-        };
-        if (args.every((arg) => typeof arg === "number")) return at(0);
-        const out = new Float64Array(length);
-        for (let i = 0; i < length; i++) out[i] = at(i);
-        return out;
-      }
 
       /** A date in a formula: a year, a month, a day (2020-05-11). */
       const DATE_TOKEN = /\s*(\d{4})-(\d{1,2})-(\d{1,2})(?![\w.])/y;
@@ -12837,7 +12811,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               while (peek()?.v === "," && at++);
             }
             expect(")");
-            if (ACROSS.has(token.v) ? args.length < arity : args.length !== arity && !(spanless && args.length === arity - 1)) throw new Error(`${token.v} takes ${ACROSS.has(token.v) ? `${arity} arguments or more` : `${spanless ? `${arity - 1} or ${arity}` : arity} argument${arity > 1 ? "s" : ""}`}: ${signature}`);
+            if (args.length !== arity && !(spanless && args.length === arity - 1)) throw new Error(`${token.v} takes ${spanless ? `${arity - 1} or ${arity}` : arity} argument${arity > 1 ? "s" : ""}: ${signature}`);
             return { k: "call", f: token.v, args };
           }
           if (token.v === "(") {
@@ -12931,10 +12905,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return "number";
           }
           case "call":
-            // (Across several: their unit where they share one, numbers' aside.)
-            if (ACROSS.has(node.f)) {
-              const units = node.args.map((arg) => unitOfNode(arg, unitOfRef)).filter((unit) => unit !== null);
-              return units.every((unit) => unit === units[0]) ? units[0] ?? null : "number";
+            if (node.f === "min" || node.f === "max") {
+              const a = unitOfNode(node.args[0], unitOfRef), b = unitOfNode(node.args[1], unitOfRef);
+              return a && b && a !== b ? "number" : a ?? b;
             }
             return unitOfCall(node.f, KEEPS_UNIT.has(node.f) ? unitOfNode(node.args[0], unitOfRef) : null);
         }
@@ -13000,9 +12973,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if ([n, at ?? 0].some((cycle) => typeof cycle !== "number" || !Number.isInteger(cycle) || cycle < 0)) throw new Error("halving(x, n, at?): n and at are cycles, 0, 1, 2 and on");
               return halvingOf(vec(args[0]), vec(ref("halving_epoch", "series")), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
             }
-            if (node.f === "middle") return middleOf(args, length);
-            // (Where one has none, none: an infinity too, as the middle's.)
-            if (!run) return args.reduce((a, b) => lift(a, b, ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max)));
+            // (Where one has none, none: an infinity too, a division by 0.)
+            if (!run) return lift(args[0], args[1], ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max));
             if (windowed) {
               // (A usual span, in points at any interval: 14 RSI's, 26 MACD's; its days for what's said.)
               const days = spanned ? args[arity - 1] : usual ? usual * INTERVAL_DAYS[index] : Infinity, p = args[1];
@@ -19585,8 +19557,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const spanDaysOf = (node) => {
         if (node.k === "num") return node.unit ? node.v * SPAN_DAYS[node.unit] : node.v;
         if (node.k === "neg") return -spanDaysOf(node.a);
-        // (The least or the most of several: max(6h, 12h).)
-        if (node.k === "call" && (node.f === "min" || node.f === "max")) return Math[/** @type {"min" | "max"} */ (node.f)](...node.args.map(spanDaysOf));
+        // (The less or the more of two: max(6h, 12h).)
+        if (node.k === "call" && (node.f === "min" || node.f === "max") && node.args.length === 2) return Math[/** @type {"min" | "max"} */ (node.f)](spanDaysOf(node.args[0]), spanDaysOf(node.args[1]));
         if (node.k !== "bin") return Infinity;
         const a = spanDaysOf(node.a), b = spanDaysOf(node.b);
         return { "+": a + b, "-": a - b, "*": a * b, "/": a / b, "^": a ** b }[/** @type {string} */ (node.op)] ?? Infinity;
@@ -31665,7 +31637,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A span begun (its number, its letter), the whole of its argument, where a span goes: the usual ones it begins, as
         // an empty one's offered, see fitsAt; none, as before: a number's (part of one: 1.5, 1e+2).)
         const begun = token || !/^\s*(?:[,)]|$)/.test(text.slice(caret)) ? null : /[(,]\s*(\d+[a-z]*)$/.exec(text.slice(0, caret)), call = begun && callAt(text, caret);
-        const name = call?.f && argName(call.f, call.arg);
+        const name = call?.f && argNames(call.f)[call.arg];
         const spans = begun && (name === "span" || name === "span?") ? spansFor(/** @type {string} */ (call?.f)).filter((item) => item.insert.startsWith(begun[1]) && item.insert !== begun[1]) : [];
         if (begun && spans.length) return { start: caret - begun[1].length, token: begun[1], items: spans };
         return { start, token, items };
@@ -31738,9 +31710,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const word = /(?<![A-Za-z0-9_.])[a-z_][a-z0-9_]*$/.exec(text.slice(0, caret))?.[0] ?? "";
         const call = hasFunction(word) ? { f: word, arg: -1 } : callAt(text, caret);
         if (!call?.f) return "";
-        // (Of any number: those past its last named, its "…".)
-        const [, , what, , , usual] = FUNCTIONS[call.f], names = argNames(call.f), at = argName(call.f, call.arg), on = ACROSS.has(call.f) ? Math.min(call.arg, names.length - 1) : call.arg;
-        return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === on ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
+        const [, , what, , , usual] = FUNCTIONS[call.f], names = argNames(call.f), at = names[call.arg];
+        return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
           ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
           <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
@@ -31775,7 +31746,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!/[-+*/^(,×÷−]\s*$/.test(text.slice(0, caret)) || !/^\s*(?:[,)]|$)/.test(text.slice(end))) return null;
         const call = callAt(text, caret);
         if (!call?.f) return null;
-        const name = argName(call.f, call.arg);
+        const name = argNames(call.f)[call.arg];
         if (name === "x" || name === "a" || name === "b") {
           const layers = formulaInputs(self);
           // A series drawn as a layer is its letter; an open-high-low-close one reads as its close (offered as itself).
