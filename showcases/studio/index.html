@@ -10768,7 +10768,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
@@ -12193,9 +12193,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const OPACITIES = Array.from({ length: 20 }, (_, i) => (i + 1) / 20);
       /** A layer's opacity: its own, else its type's (a cloud's fill a fifth, under what it spans; solid at 100%). */
       const defaultOpacity = (/** @type {{ type?: string }} */ layer) => (layer.type === "cloud" ? 0.2 : 1), opacityOf = (/** @type {Layer} */ layer) => layer.opacity ?? defaultOpacity(layer);
-      /** A window's units in days (a month and a year on average), the letters formulas write them with, and each interval in days. */
-      const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25 };
-      const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year" };
+      /**
+       * A window's units in days (a month and a year on average, a halving its 210,000 blocks at ten minutes each), the
+       * letters formulas write them with, and each interval in days.
+       */
+      const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25, halving: (210_000 * 600) / 86400 };
+      const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
@@ -12758,6 +12761,57 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return out;
       }
       /**
+       * A shift's span as written (shift(A, -30d)): its count, signed, its unit (none written: days) and its text; null
+       * for anything else (a series, a sum): a year's and a halving's own lengths vary, so it's read as written, not as a
+       * window's days. @param {any} node @returns {{ v: number, unit: keyof typeof SPAN_DAYS, text: string } | null}
+       */
+      const shiftSpan = (node) =>
+        node?.k === "num" && !node.date ? { v: node.v, unit: node.unit ?? "day", text: node.text ?? String(node.v) } : node?.k === "neg" ? ((span) => span && { ...span, v: -span.v, text: `-${span.text}` })(shiftSpan(node.a)) : null;
+      /** What's wrong with a shift's span as written, or "". @param {ReturnType<typeof shiftSpan>} span */
+      const shiftSpanError = (span) => {
+        if (!span || !span.v) return "shift(x, by): by is a span, as 30d, -2w, 1y or 1halving";
+        return span.unit === "month" || span.unit === "year" || span.unit === "halving" ? (Number.isInteger(span.v) ? "" : `shift(x, by): ${span.text} isn't whole: months, years and halvings count whole ones (18mo, not 1.5y)`) : "";
+      };
+      /**
+       * x moved by a span (shiftSpan's), later where it's positive: by points (hours, days, weeks: `step`, a point's days);
+       * to the same date (months, years: one with none there, as Feb 29 a year on, dropped), placed at the point nearest
+       * it, within half a step; or as far into the halving cycle `v` on as into its own (`epochs`, halving_epoch: day for
+       * day, what runs past that cycle's end cut). Nothing past the data.
+       * @param {Vector} x @param {{ v: number, unit: keyof typeof SPAN_DAYS }} span @param {Vector | null} times @param {Vector | null} epochs @param {number} step
+       */
+      function shiftOf(x, span, times, epochs, step) {
+        const out = new Float64Array(x.length).fill(NaN);
+        if (epochs) {
+          // (Each cycle's first point: the first at it or past it.)
+          const starts = /** @type {number[]} */ ([]);
+          for (let i = 0; i < epochs.length; i++) while (epochs[i] >= starts.length) starts.push(i);
+          for (let i = 0; i < x.length; i++) {
+            const own = epochs[i], to = own + span.v;
+            if (!(to >= 0 && to < starts.length)) continue;
+            const j = starts[to] + i - starts[own];
+            if (j < (starts[to + 1] ?? x.length)) out[j] = x[i];
+          }
+        } else if (times) {
+          const months = span.unit === "year" ? span.v * 12 : span.v, half = (step * 86400) / 2, at = new Date(0);
+          // (Where each lands only grows, so its point is looked for from the last one's on.)
+          for (let i = 0, j = 0; i < x.length; i++) {
+            if (!Number.isFinite(x[i])) continue;
+            at.setTime(times[i] * 1000);
+            const date = at.getUTCDate();
+            at.setUTCMonth(at.getUTCMonth() + months);
+            if (at.getUTCDate() !== date) continue;
+            const time = at.getTime() / 1000;
+            while (j < times.length - 1 && times[j + 1] <= time) j++;
+            const k = j + 1 < times.length && times[j + 1] - time < time - times[j] ? j + 1 : j;
+            if (Math.abs(times[k] - time) <= half) out[k] = x[i];
+          }
+        } else {
+          const n = Math.round((span.v * SPAN_DAYS[span.unit]) / step);
+          for (let i = Math.max(0, n); i < Math.min(x.length, x.length + n); i++) out[i] = x[i - n];
+        }
+        return out;
+      }
+      /**
        * Each stretch of `x` over its first value (from 1): a gap in `x` starts another, and with `by`, a change of by's
        * value (none of by's, no change). Values of 0 first (a price before there was one), none: it starts at the next.
        * @param {Vector} x @param {Vector | null} by
@@ -12823,7 +12877,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         percentile: [3, "percentile(x, p, span?)", "rolling p-th percentile (p from 0 to 100; the median at 50; no span: of all so far)", (x, n, p, partial) => rollingPercentile(x, n, p, partial), true],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
-        lag: [2, "lag(x, span)", "value a span earlier", (x, n) => x.map((_value, i) => (i >= n ? x[i - n] : NaN))],
+        shift: [2, "shift(x, by)", "x moved later by a span, earlier by a negative one (1y to the same date a year on, 1halving as far into the next halving cycle as into its own)", null],
         cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
         drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
           let top = -Infinity;
@@ -12892,7 +12946,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!match) throw new Error(((char) => (char === "=" ? 'Unexpected "=": to compare, write ==' : `Unexpected "${char}"`))(source.slice(index).trim()[0]));
           index = TOKEN.lastIndex;
           if (match[1]) {
-            if (match[2] && !Object.hasOwn(SPAN_LETTERS, match[2])) throw new Error(`Unknown unit "${match[2]}" in ${match[0].trim()}: h, d, w, mo or y`);
+            if (match[2] && !Object.hasOwn(SPAN_LETTERS, match[2])) throw new Error(`Unknown unit "${match[2]}" in ${match[0].trim()}: h, d, w, mo, y or halving`);
             tokens.push({ t: "num", v: Number(match[1]), unit: match[2] ? SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (match[2])] : undefined, text: match[0].trim() });
           } else if (match[3]) tokens.push({ t: "ref", v: match[3] });
           else if (match[4]) tokens.push({ t: "id", v: match[4] });
@@ -12999,10 +13053,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (node.k === "call") (kind === "call" && into.add(node.f), node.args.forEach((arg) => refsOf(arg, kind, into)));
         return into;
       }
-      /** The series a formula reads without naming them: halving()'s cycles. @returns {string[]} */
+      /** Whether a formula shifts by halvings somewhere (shift(A, 1halving)). @param {any} node @returns {boolean} */
+      const shiftsByHalvings = (node) =>
+        node?.k === "call" ? (node.f === "shift" && shiftSpan(node.args[1])?.unit === "halving") || node.args.some(shiftsByHalvings) : node?.k === "neg" ? shiftsByHalvings(node.a) : node?.k === "bin" ? shiftsByHalvings(node.a) || shiftsByHalvings(node.b) : false;
+      /** The series a formula reads without naming them: halving()'s cycles, a shift's by halvings. @returns {string[]} */
       function seriesUnnamed(/** @type {string} */ formula) {
         try {
-          return refsOf(parse(formula), "call").has("halving") ? ["halving_epoch"] : [];
+          const node = parse(formula);
+          return refsOf(node, "call").has("halving") || shiftsByHalvings(node) ? ["halving_epoch"] : [];
         } catch {
           return [];
         }
@@ -13020,7 +13078,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
       const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "lag", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
       /** Functions whose result is a percent, whatever their input's unit. */
       const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
@@ -13104,6 +13162,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [arity, signature, , run, , usual] = FUNCTIONS[node.f];
             const windowed = arity >= 2 && run !== null, spanned = windowed && node.args.length === arity;
             if (node.f === "percentile" && spanned && node.args[1].k === "num" && node.args[1].unit) throw new Error(`${signature}: p first, the span last`);
+            // (Its span as written, not a window's days: see shiftSpan.)
+            if (node.f === "shift") {
+              const span = shiftSpan(node.args[1]), problem = shiftSpanError(span), step = INTERVAL_DAYS[index];
+              if (!span || problem) throw new Error(problem);
+              const days = Math.abs(span.v * SPAN_DAYS[span.unit]), halvings = span.unit === "halving";
+              if (halvings && FINE.has(index)) throw failing(`shift by halvings: each cycle from its first point, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+              if (days < 0.9 * step) throw failing(`shift: ${span.text} is less than a point at ${INTERVAL_LABEL[index]}: a longer span, or a finer interval`, "Span too short");
+              const x = vec(sub(node.args[0])), calendar = span.unit === "month" || span.unit === "year";
+              const out = shiftOf(x, span, calendar ? vec(ref("date", "date")) : null, halvings ? vec(ref("halving_epoch", "series")) : null, step);
+              // (Nothing where there was something: moved past all the data there is.)
+              if (!out.some(Number.isFinite) && x.some(Number.isFinite)) throw windowTooLong("shift", span.text, days, index, days / step > length, true);
+              return out;
+            }
             const args = node.args.map((arg, i) => sub(arg, spanned ? i === arity - 1 : inWindow));
             if (node.f === "when") return lift(args[0], args[1], (x, holds) => (holds && Number.isFinite(holds) ? x : NaN));
             // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
@@ -13131,9 +13202,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
               // RSI's stochastic, MACD's signal, reach twice as far.)
               const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
-              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "lag", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
+              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
                 const written = spanned ? node.args[arity - 1] : null;
-                throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff", "lag"].includes(node.f));
+                throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff"].includes(node.f));
               }
               return out;
             }
@@ -19739,8 +19810,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const span = node.args.length === arity ? node.args[arity - 1] : null;
               found.push({ days: span ? spanDaysOf(span) : usual ? 0 : Infinity, two: TWO_POINTS.has(node.f) && Boolean(span) });
             }
-            // (A drawdown's from the highest of all history; a rebase, from each stretch's first value in it.)
+            // (A drawdown's from the highest of all history; a rebase, from each stretch's first value in it; a shift, its
+            // span back (or on), by halvings each cycle from its first point.)
             if (node.f === "drawdown" || node.f === "rebase" || node.f === "halving") found.push({ days: Infinity, two: false });
+            if (node.f === "shift") found.push({ days: shiftSpan(node.args[1])?.unit === "halving" ? Infinity : Math.abs(spanDaysOf(node.args[1])), two: false });
             node.args.forEach(walk);
           } else (walk(node.a), walk(node.b));
         };
@@ -31839,7 +31912,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // an empty one's offered, see fitsAt; none, as before: a number's (part of one: 1.5, 1e+2).)
         const begun = token || !/^\s*(?:[,)]|$)/.test(text.slice(caret)) ? null : /[(,]\s*(\d+[a-z]*)$/.exec(text.slice(0, caret)), call = begun && callAt(text, caret);
         const name = call?.f && argNames(call.f)[call.arg];
-        const spans = begun && (name === "span" || name === "span?") ? spansFor(/** @type {string} */ (call?.f)).filter((item) => item.insert.startsWith(begun[1]) && item.insert !== begun[1]) : [];
+        const spans = begun && (name === "span" || name === "span?" || name === "by") ? spansFor(/** @type {string} */ (call?.f)).filter((item) => item.insert.startsWith(begun[1]) && item.insert !== begun[1]) : [];
         if (begun && spans.length) return { start: caret - begun[1].length, token: begun[1], items: spans };
         return { start, token, items };
       }
@@ -31886,6 +31959,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         "span?": "how far back, as 12h, 30d, 4w, 6mo or 2y; left out (at 1D and up), all of history so far",
         condition: "where it holds: a comparison, or two joined (date >= 2020-05-11 & A > 1); not 0",
         "by?": "a value whose change starts another stretch, as halving_epoch; left out, only a gap does",
+        by: "how far, later (earlier where it's negative): 12h, 30d or 2w by points; 6mo or 1y to the same date; 1halving as far into the next halving cycle as into its own",
         n: "a halving cycle: 0 the first (from the genesis block), then 1 from 2012, 2 from 2016, 3 from 2020, 4 from 2024",
         "at?": "the cycle whose start it's moved to, day for day (halving(A, 0, 2): the first over the third's dates); left out, where it is",
       };
@@ -31917,9 +31991,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
       /** Spans a window often takes, from the shortest, each in words. */
-      const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week"], ["30d", "a month"], ["90d", "a quarter"], ["200d", "about six and a half months"], ["1y", "a year"], ["2y", "two years"], ["4y", "four years, a halving cycle"]];
+      const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week"], ["30d", "a month"], ["90d", "a quarter"], ["200d", "about six and a half months"], ["1y", "a year"], ["2y", "two years"], ["1halving", "a halving cycle"], ["4y", "four years"]];
       const spanDays = (/** @type {string} */ span) => {
-        const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|[hdwy])$/.exec(span));
+        const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
         return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
       };
       /**
@@ -31928,8 +32002,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {string} f
        */
       function spansFor(f) {
-        const shift = ["change", "diff", "lag"].includes(f), loaded = FINE.has(chart.index) ? resolved?.times.length ?? 0 : Infinity;
-        const fit = SPANS.map(([span, words]) => /** @type {[string, string, number]} */ ([span, words, windowPoints(spanDays(span), chart.index)])).filter(([span, , points]) => (shift ? spanDays(span) >= 0.9 * INTERVAL_DAYS[chart.index] : points >= 2) && points <= loaded);
+        const shift = ["change", "diff", "shift"].includes(f), loaded = FINE.has(chart.index) ? resolved?.times.length ?? 0 : Infinity;
+        // (A shift by halvings, each cycle from its first point: not at a fine interval, which loads part of history.)
+        const fit = SPANS.map(([span, words]) => /** @type {[string, string, number]} */ ([span, words, windowPoints(spanDays(span), chart.index)])).filter(([span, , points]) => (shift ? spanDays(span) >= 0.9 * INTERVAL_DAYS[chart.index] && !(f === "shift" && FINE.has(chart.index) && span.endsWith("halving")) : points >= 2) && points <= loaded);
         return fit.map(([span, words, points]) => ({ insert: span, title: span, text: chart.index === "day1" ? words : `${words} · ${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}`, group: "Spans" }));
       }
       /** Percents a percentile often takes, and what each is. */
@@ -31955,7 +32030,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const names = [...new Set([...seriesIn(chart), ...recent(), ...recommended])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !isOhlc(name)).slice(0, 5);
           return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: seriesCount > names.length ? `${grouped.format(seriesCount - names.length)} more series: type a few letters` : "" };
         }
-        if (name === "span" || name === "span?") return { items: spansFor(call.f), more: "" };
+        if (name === "span" || name === "span?" || name === "by") return { items: spansFor(call.f), more: "" };
         if (name === "p") return { items: PERCENTS.map(([p, what]) => ({ insert: String(p), title: String(p), text: what, group: "Percents" })), more: "" };
         return null;
       }
@@ -34103,6 +34178,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (span && p?.k === "num" && p.unit) return `${signature}: p first, the span last`;
           if (span && !Number.isNaN(written(span)) && !(written(span) > 0)) return `${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`;
           if (p && !p.unit && !Number.isNaN(written(p)) && !(written(p) >= 0 && written(p) <= 100)) return `${signature}: p is a percent, from 0 to 100`;
+          if (node.f === "shift" && shiftSpanError(shiftSpan(node.args[1]))) return shiftSpanError(shiftSpan(node.args[1]));
           if (node.f === "halving" && node.args.slice(1).some((/** @type {any} */ arg) => ((cycle) => !Number.isNaN(cycle) && !(Number.isInteger(cycle) && cycle >= 0))(written(arg)))) return `${signature}: n and at are cycles, 0, 1, 2 and on`;
           // (Each once: twice, a nest of them doubles at each level.)
           for (const arg of node.args) {
