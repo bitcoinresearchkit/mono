@@ -8769,10 +8769,11 @@
           display: none;
         }
 
-        /* The pill sits above the home indicator as iOS's own does (room kept for it and a gap above). */
+        /* The pill sits where iOS's own does: 21pt over the screen's foot, clear of the home indicator (its 34 less 13;
+           measured in Photos, iOS 27.2); 12px with none. */
         :root {
           --bar-h: 58px;
-          --bar-y: max(12px, calc(env(safe-area-inset-bottom) - 8px));
+          --bar-y: max(12px, calc(env(safe-area-inset-bottom) - 13px));
           --bar-room: calc(var(--bar-y) + var(--bar-h) + 8px);
         }
 
