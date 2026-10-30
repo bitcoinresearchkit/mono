@@ -137,17 +137,20 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
  * @param {{readonly Index[]}} indexes
  */
 function _seriesPattern(client, name, indexes) {{
-  const by = {{}};
-  for (const idx of indexes) {{
-    Object.defineProperty(by, idx, {{
-      get() {{ return _endpoint(client, name, idx); }},
-      enumerable: true,
-      configurable: true
-    }});
-  }}
   return {{
     name,
-    by,
+    /** Each index's endpoint: made when first read, as the tree's nodes are (its thousands of series are walked, few read). */
+    get by() {{
+      const by = {{}};
+      for (const idx of indexes) {{
+        Object.defineProperty(by, idx, {{
+          get() {{ return _endpoint(client, name, idx); }},
+          enumerable: true,
+          configurable: true
+        }});
+      }}
+      return _lazy(this, 'by', () => by);
+    }},
     /** @returns {{readonly Index[]}} */
     indexes() {{ return indexes; }},
     /** @param {{Index}} index @returns {{SeriesEndpoint<T>|undefined}} */
