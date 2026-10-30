@@ -20405,6 +20405,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A layer whose series covers what's behind it: a cloud, an area, a baseline's fill, bars, candles. @param {Layer} layer */
       const fills = (layer) => layer.type === "cloud" || ["area", "baseline", "histogram", "candles"].includes(layer.type);
       /**
+       * Each pane's halving marks' hosts (its frontmost fill, else its first layer drawn and shown; and its last), and the
+       * lowest pane with a layer shown: found once for every series' primitive a draw updates (each found them itself, the
+       * chart's layers walked for each), anew after a change of state, a draw, or by the next task.
+       */
+      let hostsFound = /** @type {{ at: string, byPane: Map<string | undefined, { fill: Layer | undefined, host: Layer | null, back: Layer | null }>, lowest: string | undefined } | null} */ (null);
+      function halvingHosts() {
+        const at = `${revision}:${drawVersion}:${drawn.size}`;
+        if (hostsFound?.at === at) return hostsFound;
+        const byPane = new Map();
+        for (const pane of chart.panes) {
+          const shown = chart.layers.filter((layer) => drawn.has(layer.id) && !layer.hidden && layer.pane === pane.id), frontFirst = pane.reverse ? shown.reverse() : shown, fill = frontFirst.find(fills);
+          byPane.set(pane.id, { fill, host: fill ?? frontFirst[0] ?? null, back: frontFirst.at(-1) ?? null });
+        }
+        hostsFound = { at, byPane, lowest: chart.panes.filter((pane) => chart.layers.some((layer) => layer.pane === pane.id && !layer.hidden)).at(-1)?.id };
+        queueMicrotask(() => (hostsFound = null));
+        return hostsFound;
+      }
+      /**
        * A layer's drawings, on its series: over its pane (over every series, and the crosshair), a line across's value or
        * date on its axis (a selected one's, each point's), and found under the pointer where they were last drawn.
        */
@@ -20412,6 +20430,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         constructor(layer) {
           this.layer = layer;
           this.series = null;
+          /** Updated since what it shows was last found (see fresh). */
+          this.stale = false;
           this.update = () => {};
           /** @type {{ drawing: Drawing, points: { x: number, y: number }[], box: { left: number, top: number, right: number, bottom: number } | null }[]} */
           this.shown = [];
@@ -20445,19 +20465,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.shown = [];
         }
         updateAllViews() {
+          // (Asked again and again a frame (each pane's update, each scale's, for every series: 13 times a series a pan step
+          // on a stack), its views read once or twice: what it shows found when they're read, see fresh.)
+          this.stale = true;
           this.priceTags = this.timeTags = null;
+        }
+        /** What it shows as things are now: found once after an update, as its views, its tags or a hit read it. */
+        fresh() {
+          if (!this.stale) return this;
+          this.stale = false;
           const line = timeLine(), series = this.series;
           // (Once a pane, the lowest pane's with their words: over its frontmost fill, a cloud's, an area's, bars, candles,
           // so none hides them; under the lines in front of it. No fill: under every series.)
-          const pane = layerById(this.layer)?.pane, shown = chart.halvings && line && series ? chart.layers.filter((layer) => drawn.has(layer.id) && !layer.hidden && layer.pane === pane) : [];
-          const frontFirst = chart.panes.find((item) => item.id === pane)?.reverse ? shown.reverse() : shown, fill = frontFirst.find(fills);
-          const host = fill ?? frontFirst[0] ?? null, back = frontFirst.at(-1) ?? null;
+          const own = layerById(this.layer), hosts = chart.halvings && line && series ? halvingHosts() : null, at = hosts?.byPane.get(own?.pane);
+          const fill = at?.fill, host = at?.host ?? null, back = at?.back ?? null;
           this.markOrder = fill ? "normal" : "bottom";
-          const lowest = Boolean(host) && chart.panes.filter((pane) => chart.layers.some((layer) => layer.pane === pane.id && !layer.hidden)).at(-1)?.id === host?.pane;
+          const lowest = Boolean(host) && hosts?.lowest === host?.pane;
           const marks = line && (host?.id === this.layer || (lowest && back?.id === this.layer)) ? [...minedHalvings().map((time, i) => ({ x: line.at + barOf(time) * line.step, n: i + 1, next: false })), ...nextHalvings().map(({ n, time }) => ({ x: line.at + barOf(time) * line.step, n, next: true }))] : [];
           this.marks = host?.id === this.layer ? marks : [];
           this.names = lowest && back?.id === this.layer ? marks : [];
-          const own = layerById(this.layer), trend = own?.type === "trend" && !own.hidden && line && series ? resolved?.results.get(this.layer) : null;
+          const trend = own?.type === "trend" && !own.hidden && line && series ? resolved?.results.get(this.layer) : null;
           this.ends = trend ? segmentEnds(trend, /** @type {{ at: number, step: number }} */ (line), series) : [];
           if (this.ends.length && own) {
             // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
@@ -20470,8 +20497,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A stroke's box, a path's (but one run on to the plot's edges): only a pointer near it is looked at closely.)
             return { drawing, points, box: drawing.kind === "brush" || (drawing.kind === "path" && drawing.start !== "extend" && drawing.end !== "extend") ? boundsOf(drawing, points) : null };
           }) : [];
+          return this;
         }
         paneViews() {
+          this.fresh();
           const parts = [this.ends.length ? this.endsView : null, this.marks.length ? this.markView : null, this.names.length ? this.namesView : null, this.shown.length ? this.drawingsView : null];
           const key = parts.reduce((sum, part, i) => sum + (part ? 1 << i : 0), 0);
           if (!key) return NONE;
@@ -20481,7 +20510,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
         priceAxisViews() {
-          if (!this.shown.length) return NONE;
+          if (!this.fresh().shown.length) return NONE;
           if (this.priceTags) return this.priceTags;
           const text = this.valueText();
           return (this.priceTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "hline" ? [0] : told(drawing) && POINTED.has(drawing.kind) ? [0, points.length - 1] : []).map((i) => axisTag(points[i].y, text(drawing.points[i][1]), colorOfDrawing(drawing)))));
@@ -20502,7 +20531,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
         }
         timeAxisViews() {
-          if (!this.shown.length) return NONE;
+          if (!this.fresh().shown.length) return NONE;
           if (this.timeTags) return this.timeTags;
           return (this.timeTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && POINTED.has(drawing.kind) ? [0, points.length - 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing)))));
         }
@@ -20518,6 +20547,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          * taken there (`over`: its body, a point, or a box's corner, ↖↘ or ↗↙ as it lies on screen).
          */
         hit(x, y, reach) {
+          this.fresh();
           let body = null;
           // (From the last drawn, on top.)
           for (let i = this.shown.length - 1; i >= 0; i--) {
@@ -23002,7 +23032,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const found = [];
         for (const layer of chart.layers) {
           const sketch = layer.pane === id ? sketches.get(drawn.get(layer.id)) : null;
-          if (sketch) for (const { drawing, points } of sketch.shown) if (inBox(drawing, points, box, sketch.size)) found.push(drawing.id);
+          if (sketch) for (const { drawing, points } of sketch.fresh().shown) if (inBox(drawing, points, box, sketch.size)) found.push(drawing.id);
         }
         if (selectingArea) takeUp("");
         chooseDrawings(found);
