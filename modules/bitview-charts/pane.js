@@ -30,6 +30,7 @@ const TAG = 18;
  * plot; `version`, changed at each change of its values or look.
  * @typedef {{
  *   version: number,
+ *   hidden?: boolean,
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
@@ -177,6 +178,7 @@ export class Pane {
     const from = this.#from(time);
     let best = -1, nearest = within;
     for (let k = this.series.length - 1; k >= 0; k--) {
+      if (this.series[k].hidden) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = this.series[k].first(from);
@@ -276,7 +278,7 @@ export class Pane {
     let same = true;
     const a = Math.ceil(time.from), b = Math.floor(time.to);
     for (let k = 0; k < n; k++) {
-      if (this.sides[k] !== side) continue;
+      if (this.sides[k] !== side || this.series[k].hidden) continue;
       const series = this.series[k];
       if (!relative) {
         if (auto) series.extent(a, b, log, out);
@@ -419,6 +421,7 @@ export class Pane {
     g.stroke();
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
+      if (this.series[k].hidden) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = this.series[k].first(from);
@@ -431,7 +434,7 @@ export class Pane {
     g.setLineDash(DOTS);
     for (let k = 0; k < this.series.length; k++) {
       const line = this.series[k], scale = this.scaleOf(k);
-      if (!(line instanceof Line) || !line.priceLine) continue;
+      if (!(line instanceof Line) || !line.priceLine || line.hidden) continue;
       const i = line.last(scale.mode === "log");
       if (i < 0) continue;
       if (scale.relative) {
@@ -478,7 +481,7 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.last(log) < 0) continue;
+      if (!(line instanceof Line) || !line.tag || line.hidden || line.last(log) < 0) continue;
       // (On a relative scale, one with no base has no reading: no tag.)
       const base = relative ? line.first(from) : 1;
       if (base && base === base) lines.push(line);

@@ -11086,7 +11086,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // @ts-check
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
-      import * as LC from "/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
+      import * as LC from "/modules/bitview-charts/studio/lc.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -16316,7 +16317,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
       // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
       const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
-      /** @type {any} */ (window).__view = view;
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
       /** The chart's element filling its box (whatever size it's drawn at: see sizeChart). */

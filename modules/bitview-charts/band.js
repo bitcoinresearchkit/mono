@@ -1,8 +1,8 @@
 // @ts-check
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there, the
 // band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see stack.js).
-// Without `lower`, an area: filled down to `base` (0 if not given; above zero on a log scale); with `below` too, a
-// baseline: under its base, in that color. Zoomed out, each pixel column takes each edge's last value in it: bands
+// Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0 or under)
+// is its foot: the area down to the pane's foot); with `below` too, a baseline: under its base, in that color. Zoomed out, each pixel column takes each edge's last value in it: bands
 // sharing an edge meet exactly, no gap or overlap between them, whatever the zoom.
 
 /**
@@ -52,6 +52,8 @@ export class Band {
     /** @type {Float64Array} */
     this.upper = upper;
     this.color = color;
+    /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
+    this.hidden = false;
     /** Changed at each change of its edges or color: its pane's picture drawn whole then. */
     this.version = 0;
     // (Each point's next without both edges (on a log scale, without both above zero), made at its first draw of a
@@ -78,33 +80,46 @@ export class Band {
   distance(i, y, scale) {
     // (As it's drawn: both edges there, above zero on a log scale.)
     if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
-    const lo = this.lower[i], hi = this.upper[i];
-    if (!(scale.mode === "log" ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
-    const top = scale.y(Math.max(lo, hi)), bottom = scale.y(Math.min(lo, hi));
+    const log = scale.mode === "log", floored = this.#floored(log), hi = this.upper[i], lo = floored ? hi : this.lower[i];
+    if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
+    const top = scale.y(floored ? hi : Math.max(lo, hi)), bottom = floored ? scale.height : scale.y(Math.min(lo, hi));
     return y < top ? top - y : y > bottom ? y - bottom : 0;
   }
 
   /** Its next gap from each point (the length: none). @param {boolean} log */
   #gaps(log) {
     if (this.gapsVersion !== this.version) (this.gaps = this.logGaps = null), (this.gapsVersion = this.version);
-    const kept = log ? this.logGaps : this.gaps;
+    // (An area to the foot: its values alone count; its log gaps those, kept as the log ones, its version theirs.)
+    const kept = log ? this.logGaps : this.gaps, floored = this.#floored(log);
     if (kept) return kept;
     const lower = this.lower, upper = this.upper, n = Math.min(lower.length, upper.length), next = new Int32Array(n + 1);
     next[n] = n;
     for (let i = n - 1; i >= 0; i--) {
-      const lo = lower[i], hi = upper[i];
+      const lo = floored ? upper[i] : lower[i], hi = upper[i];
       next[i] = (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) ? next[i + 1] : i;
     }
     return log ? (this.logGaps = next) : (this.gaps = next);
   }
 
-  /** @param {{ lower?: Float64Array, upper?: Float64Array, color?: string, below?: string | null }} change */
-  set({ lower, upper = this.upper, color = this.color, below = this.below }) {
+  /**
+   * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base).
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, below?: string | null, base?: number }} change
+   */
+  set({ lower, upper = this.upper, color = this.color, below = this.below, base = this.base }) {
     this.version++;
-    // (An area's base made again to its values' length; a lower edge given, a band.)
-    if (lower) this.area = false;
-    this.lower = lower ?? (this.area ? (this.lower.length === upper.length ? this.lower : new Float64Array(upper.length).fill(this.base)) : this.lower);
+    const wasArea = this.area;
+    if (lower === null) this.area = true;
+    else if (lower) this.area = false;
+    // (An area's base made again to its values' length, or a new base, or once it was a band's lower edge.)
+    const kept = wasArea && this.lower.length === upper.length && base === this.base;
+    this.base = base;
+    this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
     (this.upper = upper), (this.color = color), (this.below = below);
+  }
+
+  /** On a log scale, an area whose base it can't show: filled to the pane's foot, its lower edge none. @param {boolean} log */
+  #floored(log) {
+    return log && this.area && !(this.base > 0);
   }
 
   /**
@@ -115,10 +130,11 @@ export class Band {
   extent(a, b, positive, out) {
     a = Math.max(0, a);
     b = Math.min(this.lower.length - 1, this.upper.length - 1, b);
+    const floored = this.#floored(positive);
     // (Only where it's drawn: both edges there, above zero on a log scale; either edge the lower (an area or a
-    // baseline under its base).)
+    // baseline under its base); an area to the foot, its values alone.)
     for (let i = a; i <= b; i++) {
-      const l = this.lower[i], u = this.upper[i];
+      const l = floored ? this.upper[i] : this.lower[i], u = this.upper[i];
       if (!(positive ? l > 0 && u > 0 : l === l && u === u)) continue;
       const lo = l < u ? l : u, hi = l < u ? u : l;
       if (lo < out[0]) out[0] = lo;
@@ -133,8 +149,10 @@ export class Band {
    */
   draw(g, time, scale, x0, x1) {
     if (!this.below) return this.#fill(g, time, scale, x0, x1, this.color);
-    // (A baseline: over its base in its color, under it in the other; the same outline filled twice, clipped at it.)
-    const at = scale.y(this.base);
+    // (A baseline: over its base in its color, under it in the other; the same outline filled twice, clipped at it (at
+    // the foot where its scale can't show it: a log scale's base of zero).)
+    let at = scale.y(this.base);
+    at = at < 0 ? 0 : at < scale.height ? at : scale.height;
     g.save();
     g.beginPath();
     g.rect(x0, 0, x1 - x0, at);
@@ -161,7 +179,7 @@ export class Band {
     // (Zoomed out, its y as bottom - k * (t - ta) (t the value, or its log, from the scale's low end), inline: without
     // a JIT a call costs more than its work. Its columns' points as Timeline.index has them, to the bit.)
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height, room = scale.height - top - scale.bottom * scale.height;
-    const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c;
+    const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, floored = this.#floored(log), foot = scale.height;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     // (A point each, zoomed in; a pixel column each, its last, zoomed out.)
     const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1;
@@ -170,8 +188,8 @@ export class Band {
     g.beginPath();
     for (let k = from; k <= to; k++) {
       if (zoomedIn) {
-        const lo = lower[k], hi = upper[k];
-        if (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) outline.add(time.x(k), scale.y(hi), scale.y(lo));
+        const lo = floored ? upper[k] : lower[k], hi = upper[k];
+        if (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) outline.add(time.x(k), scale.y(hi), floored ? foot : scale.y(lo));
         else outline.close();
         continue;
       }
@@ -181,20 +199,20 @@ export class Band {
       if (last < first) continue;
       if (/** @type {Int32Array} */ (gaps)[first] > last) {
         const hi = upper[last], lo = lower[last];
-        outline.add(k, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta));
+        outline.add(k, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), floored ? foot : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta));
         continue;
       }
       let at = -1;
       for (let i = first; i <= last; i++) {
-        const lo = lower[i], hi = upper[i];
+        const lo = floored ? upper[i] : lower[i], hi = upper[i];
         if (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) at = i;
         else {
-          if (at >= 0) outline.add(k, scale.y(upper[at]), scale.y(lower[at]));
+          if (at >= 0) outline.add(k, scale.y(upper[at]), floored ? foot : scale.y(lower[at]));
           outline.close();
           at = -1;
         }
       }
-      if (at >= 0) outline.add(k, scale.y(upper[at]), scale.y(lower[at]));
+      if (at >= 0) outline.add(k, scale.y(upper[at]), floored ? foot : scale.y(lower[at]));
     }
     outline.close();
     g.fill();

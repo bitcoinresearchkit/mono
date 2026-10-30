@@ -116,10 +116,11 @@ const run = {
 
 export class Line {
   /**
-   * `tag`: its last value in a badge on its pane's axis, in its color; `priceLine`: a dotted line across at it.
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean }} [options]
+   * `tag`: its last value in a badge on its pane's axis, in its color; `priceLine`: a dotted line across at it;
+   * `stroke: false`, no line drawn (its tag and price line still).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -127,9 +128,12 @@ export class Line {
     this.palette = palette;
     this.tag = tag;
     this.priceLine = priceLine;
+    this.stroke = stroke;
     // (Its last point with a value, found once a version: NaN, none.)
     this.lastAt = NaN;
     this.lastVersion = -1;
+    /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
+    this.hidden = false;
     /** Changed at each change of its values or look: its pane's picture drawn whole then. */
     this.version = 0;
     /** @type {Float64Array} */
@@ -164,10 +168,10 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke);
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
@@ -335,7 +339,7 @@ export class Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
-    if (!this.values.length) return;
+    if (!this.values.length || !this.stroke) return;
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";

@@ -20,6 +20,8 @@ export class Candles {
     this.open = open;
     /** @type {Float64Array} */
     this.close = close;
+    /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
+    this.hidden = false;
     this.version = 0;
     this.setValues({ open, high, low, close });
   }

@@ -21,6 +21,8 @@ export class Custom {
   /** @param {Hooks} hooks */
   constructor(hooks) {
     this.hooks = hooks;
+    /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
+    this.hidden = false;
     this.version = 0;
     // (Its view, filled at each draw: none made a frame.)
     /** @type {View} */
