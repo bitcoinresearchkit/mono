@@ -24,9 +24,10 @@ chart.show(365);                                 // the last 365 points in view
   `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair`, `badge`, `separator`); `axis`,
   the axis' width at the right (64); `rightOffset`, CSS pixels left empty past the last point (24).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
-  fractions allowed), `range`, `onRange(listener)`, `setCrosshair(index, y)`, `onCrosshair(listener)`,
-  `onClick(listener)` (a click or a tap: its point, its pane, the series hit there), `invalidate(whole)` (after
-  changing a series: `invalidate(true)`), `destroy()`.
+  fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
+  things kept on them), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
+  point, its pane, the series hit there), `invalidate(whole)` (after changing a series: `invalidate(true)`),
+  `destroy()`.
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
   point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels. Separators between

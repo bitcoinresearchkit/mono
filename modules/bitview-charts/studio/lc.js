@@ -89,6 +89,10 @@ class Chart {
       for (const listener of this.clickListeners) listener(param);
     });
     this.timeScaleApi = new TimeScale(this);
+    // (Its panes' rows kept on them as it's laid out.)
+    this.engine.onLayout(() => {
+      for (const pane of this.panesList) pane.place();
+    });
   }
 
   /** The library's theme from LWC's options: its colors, its font, its crosshair's and separators'. @param {any} options */
@@ -226,6 +230,7 @@ class Chart {
 
   remove() {
     this.engine.destroy();
+    for (const pane of this.panesList) pane.row.remove();
   }
 
   // ── Its panes and timeline ──
@@ -236,6 +241,7 @@ class Chart {
       const pane = new Pane(this, this.engine.addPane({ scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } }));
       this.#percents(pane);
       this.panesList.push(pane);
+      pane.place();
     }
     return this.panesList[index];
   }
@@ -245,6 +251,7 @@ class Chart {
     while (this.panesList.length > 1 && !this.panesList.at(-1)?.list.length) {
       const pane = /** @type {Pane} */ (this.panesList.pop());
       this.engine.removePane(pane.engine);
+      pane.row.remove();
     }
   }
 
@@ -396,6 +403,19 @@ class Pane {
     this.updated = false;
     /** Its series' markers. @type {Marks[]} */
     this.marks = [];
+    // (Its DOM as the chart library's was, where Studio looks for it: a row over the pane (its box: getHTMLElement), its
+    // left axis', plot's and right axis' cells, the plot's a frame over it, first in it, its legend put in there. None
+    // of it takes the pointer: the chart's under it.)
+    this.row = document.createElement("div");
+    this.row.style.cssText = "position: absolute; left: 0; right: 0; pointer-events: none";
+    const cell = () => document.createElement("div");
+    this.plotCell = cell();
+    this.plotCell.style.cssText = "position: absolute; top: 0; bottom: 0";
+    this.frame = cell();
+    this.frame.style.cssText = "position: relative; width: 100%; height: 100%";
+    this.plotCell.append(this.frame);
+    this.row.append(cell(), this.plotCell, cell());
+    chart.element.append(this.row);
     this.target = new Target();
   }
 
@@ -457,7 +477,14 @@ class Pane {
   }
 
   getHTMLElement() {
-    return this.engine.canvas;
+    return this.row;
+  }
+
+  /** Its row over its pane, its plot's cell over its plot (the left axis' room before it). */
+  place() {
+    const engine = this.engine;
+    Object.assign(this.row.style, { top: `${engine.top}px`, height: `${engine.height}px` });
+    Object.assign(this.plotCell.style, { left: `${this.chart.engine.left}px`, width: `${engine.plot}px` });
   }
 
   getHeight() {

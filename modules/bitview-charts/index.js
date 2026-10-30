@@ -85,6 +85,8 @@ export class Chart {
     this.glide = { speed: 0, at: 0 };
     /** @type {((from: number, to: number) => void)[]} */
     this.rangeListeners = [];
+    /** @type {(() => void)[]} */
+    this.layoutListeners = [];
     this.drawnFrom = NaN;
     this.drawnTo = NaN;
     // (Its frame's callback, made once: none made each frame.)
@@ -198,6 +200,12 @@ export class Chart {
     return () => void (this.crosshairListeners = this.crosshairListeners.filter((each) => each !== listener));
   }
 
+  /** Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them). @param {() => void} listener */
+  onLayout(listener) {
+    this.layoutListeners.push(listener);
+    return () => void (this.layoutListeners = this.layoutListeners.filter((each) => each !== listener));
+  }
+
   /** Told each frame the view changed in. @param {(from: number, to: number) => void} listener */
   onRange(listener) {
     this.rangeListeners.push(listener);
@@ -238,6 +246,7 @@ export class Chart {
     // (The crosshair's pane found again: panes moved, came or went.)
     if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y);
     this.invalidate(true);
+    for (let k = 0; k < this.layoutListeners.length; k++) this.layoutListeners[k]();
   }
 
   /**
