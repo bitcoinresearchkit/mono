@@ -5111,7 +5111,7 @@ class SeriesTree(_Node):
 class BitviewClient(BitviewClientBase):
     """A method per API endpoint, and the typed series tree."""
 
-    VERSION = "v0.12.2"
+    VERSION = "v0.13.0"
 
     INDEXES = [
       "minute10",

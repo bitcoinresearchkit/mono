@@ -34,5 +34,5 @@
     "url": "git+https://github.com/bitcoinresearchkit/mono.git"
   },
   "type": "module",
-  "version": "0.12.2"
+  "version": "0.13.0"
 }

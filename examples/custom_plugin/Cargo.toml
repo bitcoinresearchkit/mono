@@ -1,19 +1,19 @@
 [package]
 name = "bitview-custom-plugin-example"
-version = "0.12.2"
+version = "0.13.0"
 edition = "2024"
 license = "MIT"
 publish = false
 
 [dependencies]
-bitview = { version = "0.12.2", path = "../../crates/bitview", default-features = false, features = ["full-api"] }
-bitview_default = { version = "0.12.2", path = "../../crates/bitview_default" }
-bitview_plugin = { version = "0.12.2", path = "../../crates/bitview_plugin", features = ["derive"] }
-bitview_plugin_indexer = { version = "0.12.2", path = "../../crates/bitview_plugin_indexer" }
-bitview_primitives = { version = "0.12.2", path = "../../crates/bitview_primitives", features = ["storage"] }
-bitview_traversable = { version = "0.12.2", path = "../../crates/bitview_traversable", features = ["derive", "pco"] }
-brk_alloc = { version = "0.12.2", path = "../../crates/brk_alloc" }
-brk_error = { version = "0.12.2", path = "../../crates/brk_error" }
-brk_reader = { version = "0.12.2", path = "../../crates/brk_reader" }
-brk_types = { version = "0.12.2", path = "../../crates/brk_types", features = ["storage"] }
-vecdb = { version = "0.12.2", path = "../../crates/vecdb", features = ["pco", "serde"] }
+bitview = { version = "0.13.0", path = "../../crates/bitview", default-features = false, features = ["full-api"] }
+bitview_default = { version = "0.13.0", path = "../../crates/bitview_default" }
+bitview_plugin = { version = "0.13.0", path = "../../crates/bitview_plugin", features = ["derive"] }
+bitview_plugin_indexer = { version = "0.13.0", path = "../../crates/bitview_plugin_indexer" }
+bitview_primitives = { version = "0.13.0", path = "../../crates/bitview_primitives", features = ["storage"] }
+bitview_traversable = { version = "0.13.0", path = "../../crates/bitview_traversable", features = ["derive", "pco"] }
+brk_alloc = { version = "0.13.0", path = "../../crates/brk_alloc" }
+brk_error = { version = "0.13.0", path = "../../crates/brk_error" }
+brk_reader = { version = "0.13.0", path = "../../crates/brk_reader" }
+brk_types = { version = "0.13.0", path = "../../crates/brk_types", features = ["storage"] }
+vecdb = { version = "0.13.0", path = "../../crates/vecdb", features = ["pco", "serde"] }
