@@ -10476,6 +10476,15 @@
         }
       }
 
+      /* A step whose motion the system played already (iOS's swipe back: see stepShown): its own transitions not played
+         over it (a sheet sliding away, the phone's tabs), as it lands. */
+      :root[data-still] *,
+      :root[data-still] *::before,
+      :root[data-still] *::after,
+      :root[data-still] ::backdrop {
+        transition: none !important;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -11350,7 +11359,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const isSeriesName = (name) => typeof name === "string" && /^[a-z0-9_]{1,200}$/.test(name);
       /** A series' path in the catalog: its keys, dotted. */
       const isCatalogPath = (path) => typeof path === "string" && /^\w{1,80}(\.\w{1,80}){0,15}$/.test(path);
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      const reducedAsked = matchMedia("(prefers-reduced-motion: reduce)");
+      /**
+       * A Back or Forward whose motion the system played already (iOS's swipe from the screen's edge: the page before slid
+       * in, as it was): Studio's own motion not played over it (its transitions neither: data-still), the step shown as it
+       * lands. For the work the step starts (go's, a frame and a task on), then over.
+       */
+      let stepShown = false;
+      /** Motion reduced: as asked for (the system's setting), or for a step shown already (see stepShown). */
+      const reduced = { get matches() { return reducedAsked.matches || stepShown; }, addEventListener: reducedAsked.addEventListener.bind(reducedAsked) };
+      let stillSteps = 0;
+      /** A step from the history begun, the system's motion of it played or not (see stepShown). @param {boolean} shown */
+      function stillStep(shown) {
+        const at = ++stillSteps;
+        stepShown = shown;
+        document.documentElement.toggleAttribute("data-still", shown);
+        if (!shown) return;
+        // (A motion under way as it comes, or held for its frames (beginOnTime), at its end at once: a sheet let go as the
+        // swipe ended, its slide begun over the page the step showed. One that never ends, as it is.)
+        for (const motion of document.getAnimations()) if (motion.timeline === document.timeline && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime))) motion.finish();
+        // (Over once its work's begun; another step's since, that one's.)
+        requestAnimationFrame(() => setTimeout(() => requestAnimationFrame(() => at === stillSteps && ((stepShown = false), document.documentElement.removeAttribute("data-still")))));
+      }
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
       /**
        * A motion's clock, called once a frame (its own frames, timed here: the view's glides, the logo, …): the frame's time,
@@ -26335,6 +26365,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const dialog of all$("dialog")) dialog.addEventListener("toggle", () => watch(dialog.id, phone.matches && isOpen(dialog), () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })) && dialog.hidePopover()));
       }
       addEventListener("popstate", (event) => {
+        stillStep(/** @type {PopStateEvent & { hasUAVisualTransition?: boolean }} */ (event).hasUAVisualTransition === true);
         // (The page left, where it was, by its step: its own can't be written now. Still coming back (a second step
         // taken at once), it isn't shown yet: nothing to keep.)
         if (home && shownKey && document.body.hasAttribute("data-home")) leftPlaces.set(shownKey, galleryPlace());
