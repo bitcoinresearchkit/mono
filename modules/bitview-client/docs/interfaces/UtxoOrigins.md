@@ -6,7 +6,7 @@
 
 # Interface: UtxoOrigins
 
-Defined in: [modules/bitview-client/index.js:1635](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1635)
+Defined in: modules/bitview-client/index.js:1639
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1635](https://github.com/bitcoinres
 
 > **count**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1636](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1636)
+Defined in: modules/bitview-client/index.js:1640
 
 Number of unspent outputs per creation height.
 
@@ -24,6 +24,6 @@ Number of unspent outputs per creation height.
 
 > **supply**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1637](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1637)
+Defined in: modules/bitview-client/index.js:1641
 
 BTC held by the unspent outputs per creation height.

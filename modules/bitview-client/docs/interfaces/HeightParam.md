@@ -6,7 +6,7 @@
 
 # Interface: HeightParam
 
-Defined in: [modules/bitview-client/index.js:681](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L681)
+Defined in: modules/bitview-client/index.js:681
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:681](https://github.com/bitcoinrese
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:682](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L682)
+Defined in: modules/bitview-client/index.js:682

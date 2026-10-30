@@ -8,7 +8,7 @@
 
 > **HoldersRealized** = `object`
 
-Defined in: [modules/bitview-client/index.js:4941](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4941)
+Defined in: modules/bitview-client/index.js:4955
 
 ## Type Parameters
 

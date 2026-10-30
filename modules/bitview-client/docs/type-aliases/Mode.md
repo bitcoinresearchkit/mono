@@ -8,7 +8,7 @@
 
 > **Mode** = `object`
 
-Defined in: [modules/bitview-client/index.js:3952](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3952)
+Defined in: modules/bitview-client/index.js:3966
 
 ## Type Parameters
 

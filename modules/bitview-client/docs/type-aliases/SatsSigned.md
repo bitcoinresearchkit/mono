@@ -8,6 +8,6 @@
 
 > **SatsSigned** = `number`
 
-Defined in: [modules/bitview-client/index.js:1310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1310)
+Defined in: modules/bitview-client/index.js:1312
 
 ## Type Parameters

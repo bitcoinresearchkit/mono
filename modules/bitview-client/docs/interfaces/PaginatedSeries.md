@@ -6,7 +6,7 @@
 
 # Interface: PaginatedSeries
 
-Defined in: [modules/bitview-client/index.js:1083](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1083)
+Defined in: modules/bitview-client/index.js:1085
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1083](https://github.com/bitcoinres
 
 > **currentPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:1084](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1084)
+Defined in: modules/bitview-client/index.js:1086
 
 Current page number (0-indexed)
 
@@ -24,7 +24,7 @@ Current page number (0-indexed)
 
 > **hasMore**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1088](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1088)
+Defined in: modules/bitview-client/index.js:1090
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:1088](https://github.com/bitcoinres
 
 > **maxPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:1085](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1085)
+Defined in: modules/bitview-client/index.js:1087
 
 Maximum valid page index (0-indexed)
 
@@ -42,7 +42,7 @@ Maximum valid page index (0-indexed)
 
 > **perPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:1087](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1087)
+Defined in: modules/bitview-client/index.js:1089
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [modules/bitview-client/index.js:1087](https://github.com/bitcoinres
 
 > **series**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:1089](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1089)
+Defined in: modules/bitview-client/index.js:1091
 
 ***
 
@@ -58,4 +58,4 @@ Defined in: [modules/bitview-client/index.js:1089](https://github.com/bitcoinres
 
 > **totalCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:1086](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1086)
+Defined in: modules/bitview-client/index.js:1088

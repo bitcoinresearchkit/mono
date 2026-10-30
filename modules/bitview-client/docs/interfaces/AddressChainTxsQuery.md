@@ -6,7 +6,7 @@
 
 # Interface: AddressChainTxsQuery
 
-Defined in: [modules/bitview-client/index.js:33](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L33)
+Defined in: modules/bitview-client/index.js:33
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:33](https://github.com/bitcoinresea
 
 > `optional` **maxTxs?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:34](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L34)
+Defined in: modules/bitview-client/index.js:34
 
 Transactions to return, at most 25 (the default); larger values return 25.

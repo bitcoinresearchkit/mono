@@ -8,7 +8,7 @@
 
 > **Under6mRealizedPriceMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2885](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2885)
+Defined in: modules/bitview-client/index.js:2899
 
 ## Type Parameters
 

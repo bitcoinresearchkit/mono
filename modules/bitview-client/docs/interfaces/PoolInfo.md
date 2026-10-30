@@ -6,7 +6,7 @@
 
 # Interface: PoolInfo
 
-Defined in: [modules/bitview-client/index.js:1157](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1157)
+Defined in: modules/bitview-client/index.js:1159
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1157](https://github.com/bitcoinres
 
 > **name**: `string`
 
-Defined in: [modules/bitview-client/index.js:1158](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1158)
+Defined in: modules/bitview-client/index.js:1160
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1158](https://github.com/bitcoinres
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [modules/bitview-client/index.js:1159](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1159)
+Defined in: modules/bitview-client/index.js:1161
 
 URL-friendly pool identifier
 
@@ -32,6 +32,6 @@ URL-friendly pool identifier
 
 > **uniqueId**: `number`
 
-Defined in: [modules/bitview-client/index.js:1160](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1160)
+Defined in: modules/bitview-client/index.js:1162
 
 Zero-based pool ID, matching mempool.space's `unique_id`

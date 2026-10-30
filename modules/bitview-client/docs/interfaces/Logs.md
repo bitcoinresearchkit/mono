@@ -6,7 +6,7 @@
 
 # Interface: Logs
 
-Defined in: [modules/bitview-client/index.js:744](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L744)
+Defined in: modules/bitview-client/index.js:744
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:744](https://github.com/bitcoinrese
 
 > **lines**: [`LogLine`](LogLine.md)[]
 
-Defined in: [modules/bitview-client/index.js:747](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L747)
+Defined in: modules/bitview-client/index.js:747
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:747](https://github.com/bitcoinrese
 
 > **next**: `string`
 
-Defined in: [modules/bitview-client/index.js:748](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L748)
+Defined in: modules/bitview-client/index.js:748
 
 Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the
 `seq` of the next line it will log; to pass back as it is, not to read.
@@ -33,7 +33,7 @@ Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms
 
 > **startedUnixMs**: `number`
 
-Defined in: [modules/bitview-client/index.js:745](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L745)
+Defined in: modules/bitview-client/index.js:745
 
 When this server process began its log, in Unix milliseconds: another than the last answer's shows the
 server restarted.

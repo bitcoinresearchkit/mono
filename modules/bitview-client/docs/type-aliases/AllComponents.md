@@ -8,7 +8,7 @@
 
 > **AllComponents** = `object`
 
-Defined in: [modules/bitview-client/index.js:3156](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3156)
+Defined in: modules/bitview-client/index.js:3170
 
 ## Type Parameters
 

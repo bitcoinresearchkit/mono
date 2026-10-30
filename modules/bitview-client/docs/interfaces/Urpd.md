@@ -6,7 +6,7 @@
 
 # Interface: Urpd
 
-Defined in: [modules/bitview-client/index.js:1553](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1553)
+Defined in: modules/bitview-client/index.js:1557
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1553](https://github.com/bitcoinres
 
 > **aggregation**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [modules/bitview-client/index.js:1559](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1559)
+Defined in: modules/bitview-client/index.js:1563
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1559](https://github.com/bitcoinres
 
 > **buckets**: [`UrpdBuckets`](UrpdBuckets.md)
 
-Defined in: [modules/bitview-client/index.js:1562](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1562)
+Defined in: modules/bitview-client/index.js:1566
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [modules/bitview-client/index.js:1562](https://github.com/bitcoinres
 
 > **close**: `number`
 
-Defined in: [modules/bitview-client/index.js:1560](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1560)
+Defined in: modules/bitview-client/index.js:1564
 
 Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
@@ -40,7 +40,7 @@ Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
 > **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [modules/bitview-client/index.js:1557](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1557)
+Defined in: modules/bitview-client/index.js:1561
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [modules/bitview-client/index.js:1557](https://github.com/bitcoinres
 
 > **date**: `string`
 
-Defined in: [modules/bitview-client/index.js:1556](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1556)
+Defined in: modules/bitview-client/index.js:1560
 
 UTC date of the represented block's monotonic timestamp.
 
@@ -58,7 +58,7 @@ UTC date of the represented block's monotonic timestamp.
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:1555](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1555)
+Defined in: modules/bitview-client/index.js:1559
 
 Hash of block `height`.
 
@@ -68,7 +68,7 @@ Hash of block `height`.
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:1554](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1554)
+Defined in: modules/bitview-client/index.js:1558
 
 Exact published block represented by this distribution.
 
@@ -78,7 +78,7 @@ Exact published block represented by this distribution.
 
 > **supply**: `number`
 
-Defined in: [modules/bitview-client/index.js:1561](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1561)
+Defined in: modules/bitview-client/index.js:1565
 
 Sum of `buckets.supply`, in BTC.
 
@@ -88,4 +88,4 @@ Sum of `buckets.supply`, in BTC.
 
 > **weight**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [modules/bitview-client/index.js:1558](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1558)
+Defined in: modules/bitview-client/index.js:1562

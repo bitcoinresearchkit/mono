@@ -6,7 +6,7 @@
 
 # Interface: TxOut
 
-Defined in: [modules/bitview-client/index.js:1476](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1476)
+Defined in: modules/bitview-client/index.js:1480
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1476](https://github.com/bitcoinres
 
 > **scriptpubkey**: `string`
 
-Defined in: [modules/bitview-client/index.js:1477](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1477)
+Defined in: modules/bitview-client/index.js:1481
 
 Script pubkey (locking script), encoded as hexadecimal.
 
@@ -24,7 +24,7 @@ Script pubkey (locking script), encoded as hexadecimal.
 
 > `optional` **scriptpubkeyAddress?**: `string`
 
-Defined in: [modules/bitview-client/index.js:1480](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1480)
+Defined in: modules/bitview-client/index.js:1484
 
 Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
 
@@ -34,7 +34,7 @@ Bitcoin address, omitted for scripts without an address (P2PK included, as Esplo
 
 > **scriptpubkeyAsm**: `string`
 
-Defined in: [modules/bitview-client/index.js:1478](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1478)
+Defined in: modules/bitview-client/index.js:1482
 
 Script pubkey in assembly format.
 
@@ -44,7 +44,7 @@ Script pubkey in assembly format.
 
 > **scriptpubkeyType**: [`OutputTypeNormalized`](../type-aliases/OutputTypeNormalized.md)
 
-Defined in: [modules/bitview-client/index.js:1479](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1479)
+Defined in: modules/bitview-client/index.js:1483
 
 Esplora/mempool.space script type.
 
@@ -54,6 +54,6 @@ Esplora/mempool.space script type.
 
 > **value**: `number`
 
-Defined in: [modules/bitview-client/index.js:1481](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1481)
+Defined in: modules/bitview-client/index.js:1485
 
 Value of the output in satoshis.

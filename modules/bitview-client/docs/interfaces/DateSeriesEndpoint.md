@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesEndpoint\<T\>
 
-Defined in: [modules/bitview-client/index.js:2008](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2008)
+Defined in: modules/bitview-client/index.js:2016
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:2008](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:2014](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2014)
+Defined in: modules/bitview-client/index.js:2022
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:2015](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2015)
+Defined in: modules/bitview-client/index.js:2023
 
 Fetch all data as CSV
 
@@ -64,7 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2011](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2011)
+Defined in: modules/bitview-client/index.js:2019
 
 #### Parameters
 
@@ -82,7 +82,7 @@ Defined in: [modules/bitview-client/index.js:2011](https://github.com/bitcoinres
 
 > **get**: (`index`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2009](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2009)
+Defined in: modules/bitview-client/index.js:2017
 
 #### Parameters
 
@@ -100,7 +100,7 @@ Defined in: [modules/bitview-client/index.js:2009](https://github.com/bitcoinres
 
 > **last**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2012](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2012)
+Defined in: modules/bitview-client/index.js:2020
 
 #### Parameters
 
@@ -118,7 +118,7 @@ Defined in: [modules/bitview-client/index.js:2012](https://github.com/bitcoinres
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:2016](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2016)
+Defined in: modules/bitview-client/index.js:2024
 
 Get total number of data points
 
@@ -132,7 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: [modules/bitview-client/index.js:2019](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2019)
+Defined in: modules/bitview-client/index.js:2027
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [modules/bitview-client/index.js:2019](https://github.com/bitcoinres
 
 > **skip**: (`n`) => [`DateSkippedBuilder`](DateSkippedBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2013](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2013)
+Defined in: modules/bitview-client/index.js:2021
 
 Skip first n items, chain with take()
 
@@ -160,7 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2010](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2010)
+Defined in: modules/bitview-client/index.js:2018
 
 #### Parameters
 
@@ -182,7 +182,7 @@ Defined in: [modules/bitview-client/index.js:2010](https://github.com/bitcoinres
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:2018](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2018)
+Defined in: modules/bitview-client/index.js:2026
 
 Thenable (await endpoint)
 
@@ -224,7 +224,7 @@ A Promise for the completion of which ever callback is executed.
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:2017](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2017)
+Defined in: modules/bitview-client/index.js:2025
 
 #### Returns
 

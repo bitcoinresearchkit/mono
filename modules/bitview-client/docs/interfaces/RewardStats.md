@@ -6,7 +6,7 @@
 
 # Interface: RewardStats
 
-Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1295)
+Defined in: modules/bitview-client/index.js:1297
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinres
 
 > **endBlock**: `number`
 
-Defined in: [modules/bitview-client/index.js:1297](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1297)
+Defined in: modules/bitview-client/index.js:1299
 
 Last block in the range
 
@@ -24,7 +24,7 @@ Last block in the range
 
 > **startBlock**: `number`
 
-Defined in: [modules/bitview-client/index.js:1296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1296)
+Defined in: modules/bitview-client/index.js:1298
 
 First block in the range
 
@@ -34,7 +34,7 @@ First block in the range
 
 > **totalFee**: `string`
 
-Defined in: [modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1299)
+Defined in: modules/bitview-client/index.js:1301
 
 Total transaction fees in sats
 
@@ -44,7 +44,7 @@ Total transaction fees in sats
 
 > **totalReward**: `string`
 
-Defined in: [modules/bitview-client/index.js:1298](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1298)
+Defined in: modules/bitview-client/index.js:1300
 
 Total coinbase rewards (subsidy + fees) in sats
 
@@ -54,6 +54,6 @@ Total coinbase rewards (subsidy + fees) in sats
 
 > **totalTx**: `string`
 
-Defined in: [modules/bitview-client/index.js:1300](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1300)
+Defined in: modules/bitview-client/index.js:1302
 
 Total transactions, coinbase included

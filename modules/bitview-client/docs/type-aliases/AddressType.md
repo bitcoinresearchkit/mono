@@ -8,7 +8,7 @@
 
 > **AddressType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5834](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5834)
+Defined in: modules/bitview-client/index.js:5848
 
 ## Type Parameters
 
