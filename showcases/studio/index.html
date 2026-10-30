@@ -10768,7 +10768,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
@@ -11192,7 +11192,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       import * as LC from "/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
-      import { holderColor, wheelColor } from "/studio/palette.js";
+      import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -12536,7 +12536,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A formula's parts: numbers (a date written 2020-05-11, its time), layers by letter (`ref`), series by name, each
        * point's date (`date`, its time), and what combines them.
-       * @typedef {{ k: "num", v: number, unit?: string, text?: string, date?: true } | { k: "ref", v: string } | { k: "series", v: string } | { k: "date" } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
+       * @typedef {{ k: "num", v: number, unit?: string, text?: string, date?: true } | { k: "ref", v: string } | { k: "series", v: string } | { k: "date" } | { k: "year" } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
        */
 
       /** @typedef {{ mean: Vector, variance: Vector, count: Vector, total: Vector }} WindowStats */
@@ -12746,18 +12746,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** `f(value, the one a span earlier)`: the latest value `n` points back or before (a point may have none). */
       /**
-       * x over halving cycle `n` (its points where `epochs`, halving_epoch, is n) from 1× at its first value; moved by as many
-       * points as there are between cycle `n`'s first and cycle `at`'s, where `at` is given (its first past the data: all
-       * of it past it too).
-       * @param {Vector} x @param {Vector} epochs @param {number} n @param {number | undefined} at
+       * x over period `n` (its points where `periods` is n: halving_epoch's cycles, each point's year) from 1× at its first
+       * value; moved by as many points as there are between period `n`'s first and period `at`'s, where `at` is given (its
+       * first past the data: all of it past it too).
+       * @param {Vector} x @param {Vector} periods @param {number} n @param {number | undefined} at
        */
-      function halvingOf(x, epochs, n, at) {
-        const own = rebaseOf(x.map((value, i) => (epochs[i] === n ? value : NaN)), null);
+      function periodAlone(x, periods, n, at) {
+        const own = rebaseOf(x.map((value, i) => (periods[i] === n ? value : NaN)), null);
         if (at === undefined || at === n) return own;
-        const firstOf = (/** @type {number} */ cycle) => ((i) => (i < 0 ? Infinity : i))(epochs.findIndex((epoch) => epoch >= cycle));
+        const firstOf = (/** @type {number} */ period) => ((i) => (i < 0 ? Infinity : i))(periods.findIndex((p) => p >= period));
         const by = firstOf(at) - firstOf(n), out = new Float64Array(x.length).fill(NaN);
         if (!Number.isFinite(by)) return out;
         for (let i = Math.max(0, by); i < x.length && i - by < x.length; i++) out[i] = own[i - by];
+        return out;
+      }
+      /** Each time's year (UTC; times in seconds, in order): a date made once a year. @param {Vector} times */
+      function yearsOf(times) {
+        const out = new Float64Array(times.length);
+        let year = NaN, next = -Infinity;
+        for (let i = 0; i < times.length; i++) {
+          if (times[i] >= next) (year = new Date(times[i] * 1000).getUTCFullYear()), (next = Date.UTC(year + 1, 0, 1) / 1000);
+          out[i] = year;
+        }
         return out;
       }
       /**
@@ -12907,9 +12917,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         max: [2, "max(a, b)", "larger of two", null],
         when: [2, "when(x, condition)", "x where the condition holds (not 0), none elsewhere: when(A, date >= 2020-05-11)", null],
         halving: [3, "halving(x, n, at?)", "x over halving cycle n (0 the first, from the genesis block; 4 since 2024) from 1× at its start; with at, moved to start where cycle at starts (halving(A, 0, 2): the first cycle over the third's dates, day for day)", null, true],
-        rebase: [2, "rebase(x, by?)", "each stretch of x over its first value, from 1×: a gap starts another, and with by, so does a change of by (rebase(A, halving_epoch): each cycle from its start)", null, true],
+        year: [3, "year(x, y, at?)", "x over year y (2021) from 1× at its start; with at, moved to start where year at starts (year(A, 2021, 2024): 2021 over 2024's dates, day for day)", null, true],
+        rebase: [2, "rebase(x, by?)", "each stretch of x over its first value, from 1×: a gap starts another, and with by, so does a change of by (rebase(A, halving_epoch): each cycle from its start; rebase(A, year), each year)", null, true],
       };
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
+      /** The language's own values, each point's: its date and its year (year(…) a function besides). */
+      const VALUES = new Set(["date", "year"]);
+      /** halving()'s and year()'s periods as they take them: the least, and what's said of one that isn't. */
+      const PERIODS_TAKEN = /** @type {Record<string, [number, string]>} */ ({ halving: [0, "n and at are cycles, 0, 1, 2 and on"], year: [2009, "y and at are years, 2009 (the genesis block's) and on"] });
       /** A function's arguments' names, as its signature writes them. */
       const argNames = (/** @type {string} */ f) => ((signature) => signature.slice(signature.indexOf("(") + 1, -1).split(", "))(FUNCTIONS[f][1]);
 
@@ -12993,7 +13008,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (token.t === "id") {
             // A name with arguments is a function; alone, it's a series, by its name on Bitview.
             if (peek()?.v !== "(") {
-              if (token.v === "date") return { k: "date" };
+              if (VALUES.has(token.v)) return { k: /** @type {"date" | "year"} */ (token.v) };
               if (hasFunction(token.v)) throw new Error(`${token.v} needs its arguments: ${FUNCTIONS[token.v][1]}`);
               if (/^[a-z]{1,2}$/.test(token.v)) throw new Error(`Unknown name "${token.v}": layers are capital letters (A, B…)`);
               return { k: "series", v: token.v };
@@ -13082,7 +13097,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Functions whose result is a percent, whatever their input's unit. */
       const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
-      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : f === "rebase" || f === "halving" ? "ratio" : "number");
+      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : f === "rebase" || f === "halving" || f === "year" ? "ratio" : "number");
       /**
        * The unit a formula's result carries, from its parts (`unitOfRef(name, kind)`); null for plain numbers.
        * @param {Node} node @param {(name: string, kind: "ref" | "series") => string | null} unitOfRef @returns {string | null}
@@ -13091,6 +13106,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         switch (node.k) {
           case "num":
           case "date":
+          case "year":
             return null;
           case "ref":
           case "series":
@@ -13143,6 +13159,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return ref(node.v, node.k);
           case "date":
             return ref("date", "date");
+          case "year":
+            return yearsOf(vec(ref("date", "date")));
           case "neg": {
             const a = sub(node.a);
             return typeof a === "number" ? -a : a.map((v) => -v);
@@ -13180,11 +13198,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
             if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
             if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]));
-            if (node.f === "halving") {
-              if (FINE.has(index)) throw failing(`halving: from its cycle's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+            // (A halving cycle or a year alone, from 1× at its start: where it is, or moved to start where another does.)
+            if (node.f === "halving" || node.f === "year") {
+              const cycles = node.f === "halving", [least, says] = PERIODS_TAKEN[node.f];
+              if (FINE.has(index)) throw failing(`${node.f}: from its ${cycles ? "cycle" : "year"}'s first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
               const [n, at] = args.slice(1);
-              if ([n, at ?? 0].some((cycle) => typeof cycle !== "number" || !Number.isInteger(cycle) || cycle < 0)) throw new Error("halving(x, n, at?): n and at are cycles, 0, 1, 2 and on");
-              return halvingOf(vec(args[0]), vec(ref("halving_epoch", "series")), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
+              if ([n, at ?? least].some((period) => typeof period !== "number" || !Number.isInteger(period) || period < least)) throw new Error(`${signature}: ${says}`);
+              return periodAlone(vec(args[0]), cycles ? vec(ref("halving_epoch", "series")) : yearsOf(vec(ref("date", "date"))), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
             }
             // (Where one has none, none: an infinity too, a division by 0.)
             if (!run) return lift(args[0], args[1], ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max));
@@ -13232,8 +13252,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             html += color ? `<span class="t-ref" style="--c:${escape(color)}">${text}</span>` : `<span class="t-bad">${text}</span>`;
           } else if (id) {
             const call = /^\s*\(/.test(source.slice(match.index + text.length));
-            // (`date`, each point's: the language's own, as a function's name is.)
-            html += `<span class="${call ? (hasFunction(id) ? "t-fn" : "t-bad") : id === "date" ? "t-fn" : missing(id) ? "t-bad" : "t-series"}">${escape(text)}</span>`;
+            // (`date` and `year`, each point's: the language's own, as a function's name is.)
+            html += `<span class="${call ? (hasFunction(id) ? "t-fn" : "t-bad") : VALUES.has(id) ? "t-fn" : missing(id) ? "t-bad" : "t-series"}">${escape(text)}</span>`;
           }
           else html += `<span class="t-op">${escape(text)}</span>`;
           last = match.index + text.length;
@@ -19812,7 +19832,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (A drawdown's from the highest of all history; a rebase, from each stretch's first value in it; a shift, its
             // span back (or on), by halvings each cycle from its first point.)
-            if (node.f === "drawdown" || node.f === "rebase" || node.f === "halving") found.push({ days: Infinity, two: false });
+            if (node.f === "drawdown" || node.f === "rebase" || node.f === "halving" || node.f === "year") found.push({ days: Infinity, two: false });
             if (node.f === "shift") found.push({ days: shiftSpan(node.args[1])?.unit === "halving" ? Infinity : Math.abs(spanDaysOf(node.args[1])), two: false });
             node.args.forEach(walk);
           } else (walk(node.a), walk(node.b));
@@ -31765,8 +31785,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return used ? `${letter} (${labelOf(used)})` : letter;
         }),
         ...refsOf(node, "series"),
-        // (Each point's date: what the formula reads too.)
-        ...(JSON.stringify(node).includes('"k":"date"') ? ["date"] : []),
+        // (Each point's date and year: what the formula reads too.)
+        ...[...VALUES].filter((name) => JSON.stringify(node).includes(`"k":"${name}"`)),
       ];
       /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
       /** The formula editor as tall as its lines, its width changed (a phone turned, the panel resized). */
@@ -31958,10 +31978,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         span: "how far back, as 12h, 30d, 4w, 6mo or 2y (a bare number is days)",
         "span?": "how far back, as 12h, 30d, 4w, 6mo or 2y; left out (at 1D and up), all of history so far",
         condition: "where it holds: a comparison, or two joined (date >= 2020-05-11 & A > 1); not 0",
-        "by?": "a value whose change starts another stretch, as halving_epoch; left out, only a gap does",
+        "by?": "a value whose change starts another stretch, as halving_epoch or year; left out, only a gap does",
         by: "how far, later (earlier where it's negative): 12h, 30d or 2w by points; 6mo or 1y to the same date; 1halving as far into the next halving cycle as into its own",
         n: "a halving cycle: 0 the first (from the genesis block), then 1 from 2012, 2 from 2016, 3 from 2020, 4 from 2024",
-        "at?": "the cycle whose start it's moved to, day for day (halving(A, 0, 2): the first over the third's dates); left out, where it is",
+        y: "a year, as 2021 (2009 the first, the genesis block's)",
+        "at?": "the cycle or year whose start it's moved to, day for day (halving(A, 0, 2): the first cycle over the third's dates; year(A, 2021, 2024), 2021 over 2024's); left out, where it is",
       };
       /** The innermost call the caret is in, and which of its arguments it's at; null outside of one. */
       function callAt(/** @type {string} */ text, /** @type {number} */ caret) {
@@ -31983,7 +32004,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The call or function name at the caret: arguments, the current one marked and explained, then what it does. */
       function callHelp(/** @type {string} */ text, /** @type {number} */ caret) {
         const word = /(?<![A-Za-z0-9_.])[a-z_][a-z0-9_]*$/.exec(text.slice(0, caret))?.[0] ?? "";
-        const call = hasFunction(word) ? { f: word, arg: -1 } : callAt(text, caret);
+        // (A value that's a function's name too, year, is the function only with its parenthesis.)
+        const call = hasFunction(word) && !(VALUES.has(word) && text[caret] !== "(") ? { f: word, arg: -1 } : callAt(text, caret);
         if (!call?.f) return "";
         const [, , what, , , usual] = FUNCTIONS[call.f], names = argNames(call.f), at = names[call.arg];
         return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
@@ -32927,27 +32949,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added ${formula} as ${added.letter}`, editAdded(added));
       }
 
-      /** A layer's `n`th halving cycle, from its start. @param {Layer} layer @param {number} n */
-      const cycleFormula = (layer, n) => `halving(${layer.letter}, ${n})`;
       /**
-       * A layer's halving cycles side by side, each from its start at 1× (halving(A, n)): a layer a
-       * cycle mined, named by its years, each its own color, in a pane of their own on a log scale, all of history in
-       * view. Formulas, there to read and change; not at an interval they can't be at. @param {string} id
+       * A layer's halving cycles (halving(A, n), each mined, named by its years) or its years (year(A, y), from the first
+       * it has values in as drawn, else the genesis block's, to this one): each from its start at 1×.
+       * @param {Layer} layer @param {"cycles" | "years"} which @returns {{ formula: string, label: string }[]}
        */
-      function compareCycles(id) {
-        const layer = layerById(id), starts = [GENESIS, ...minedHalvings()], year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear();
+      function periodsOf(layer, which) {
+        const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear();
+        if (which === "cycles") return ((starts) => starts.map((start, n) => ({ formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` })))([GENESIS, ...minedHalvings()]);
+        const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, from = resolved && at >= 0 ? year(resolved.times[at]) : year(GENESIS);
+        return Array.from({ length: year(Date.now() / 1000) - from + 1 }, (_, k) => ({ formula: `year(${layer.letter}, ${from + k})`, label: String(from + k) }));
+      }
+      /**
+       * A layer's halving cycles or years side by side (periodsOf's): a layer each, colored in time (the oldest violet,
+       * the newest amber: recencyColor), in a pane of their own on a log scale, all of history in view. Formulas, there to
+       * read and change; not at an interval they can't be at. @param {string} id @param {"cycles" | "years"} which
+       */
+      function comparePeriods(id, which) {
+        const layer = layerById(id);
         if (!layer) return;
-        if (chart.layers.length + starts.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${starts.length} cycles need ${starts.length}`);
-        if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the cycles need one of their own`);
-        const unfit = unfitHere([cycleFormula(layer, 0)]);
+        const periods = periodsOf(layer, which), what = which === "cycles" ? "halving cycles" : "years";
+        if (chart.layers.length + periods.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${periods.length} ${what} need ${periods.length}`);
+        if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the ${what} need one of their own`);
+        const unfit = unfitHere([periods[0].formula]);
         if (unfit) return void notice(unfit);
         /** @type {Layer | undefined} */
         let first;
         commit((doc) => {
           const pane = newPaneIn(doc);
           pane.mode = 1;
-          starts.forEach((start, n) => {
-            const added = makeLayer({ formula: cycleFormula(layer, n), label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}`, pane: pane.id }, doc);
+          periods.forEach(({ formula, label }, k) => {
+            const added = makeLayer({ formula, label, color: recencyColor(k, periods.length), pane: pane.id }, doc);
             doc.layers.push(added);
             first ??= added;
           });
@@ -32957,7 +32989,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const go = ++dateGoes, at = revision;
         const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
         afterDrawn(go, drawn);
-        toast(`Added ${labelOf(layer)}'s ${starts.length} halving cycles, each from its start`, editAdded(first));
+        toast(`Added ${labelOf(layer)}'s ${periods.length} ${what}, each from its start`, editAdded(first));
       }
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
       const cloudable = () => chart.layers.some((layer) => !layer.from && !placedOn(layer));
@@ -34121,7 +34153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         try {
           const node = parse(text);
           letters = [...refsOf(node)];
-          dated = JSON.stringify(node).includes('"k":"date"');
+          dated = [...VALUES].some((name) => JSON.stringify(node).includes(`"k":"${name}"`));
         } catch {
           return false;
         }
@@ -34179,7 +34211,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (span && !Number.isNaN(written(span)) && !(written(span) > 0)) return `${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`;
           if (p && !p.unit && !Number.isNaN(written(p)) && !(written(p) >= 0 && written(p) <= 100)) return `${signature}: p is a percent, from 0 to 100`;
           if (node.f === "shift" && shiftSpanError(shiftSpan(node.args[1]))) return shiftSpanError(shiftSpan(node.args[1]));
-          if (node.f === "halving" && node.args.slice(1).some((/** @type {any} */ arg) => ((cycle) => !Number.isNaN(cycle) && !(Number.isInteger(cycle) && cycle >= 0))(written(arg)))) return `${signature}: n and at are cycles, 0, 1, 2 and on`;
+          if (Object.hasOwn(PERIODS_TAKEN, node.f) && ((least) => node.args.slice(1).some((/** @type {any} */ arg) => ((period) => !Number.isNaN(period) && !(Number.isInteger(period) && period >= least))(written(arg))))(PERIODS_TAKEN[node.f][0])) return `${signature}: ${PERIODS_TAKEN[node.f][1]}`;
           // (Each once: twice, a nest of them doubles at each level.)
           for (const arg of node.args) {
             const error = windowError(arg);
@@ -35495,7 +35527,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
             ] : []),
-            ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([cycleFormula(layer, 0)])), run: () => compareCycles(id) }] : []),
+            ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", "Compare halving cycles"], ["years", "Compare years"]]).map(([which, label]) => ({ key: which, icon: ICONS.pane, label, verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([periodsOf(layer, which)[0].formula])), run: () => comparePeriods(id, which) })) : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             // (A bubbles layer's own, after its series' or formula's, as its settings have them: one group each.)
             ...(layer.type === "bubbles" ? [
@@ -35553,7 +35585,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // look, nor a place of its own: its layer's.)
           const NOT_A_SIGNAL = new Set(["type", "fill", "base", "levels", "to-series", "shape", "colors", "color-from", "width", "dash", "price-line", "pane", "side", "scale", "stack", "order", "up", "down", "format"]);
           // (A heatmap: its days, its cohort's: nothing of a line's look or a series' (its colors and opacity its own).)
-          const NOT_A_HEATMAP = new Set(["cycles", "type", "base", "color-from", "width", "dash", "shape", "fill", "fill-opacity", "fill-style", "price-line", "levels", "stack", "format"]);
+          const NOT_A_HEATMAP = new Set(["cycles", "years", "type", "base", "color-from", "width", "dash", "shape", "fill", "fill-opacity", "fill-style", "price-line", "levels", "stack", "format"]);
           return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : heatLike(layer) ? rows.filter((row) => !NOT_A_HEATMAP.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }

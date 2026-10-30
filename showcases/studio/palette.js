@@ -16,3 +16,11 @@ export const holderColor = (key) => (Object.hasOwn(HOLDER_COLORS, key) ? HOLDER_
  * warm to pink, all as light and as vivid. @param {number} i @param {number} count
  */
 export const wheelColor = (i, count, from = 25, to = 320) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`;
+
+/**
+ * The `i`th of `count` in time, the oldest first (halving cycles, years, a family's members by when): a quiet violet,
+ * then orchid and coral, to a bright amber, the newest, each brighter and warmer; on the light theme (its lightness
+ * turned over) the newest the deepest, the hues still parting them. Four in a chart (one, and the three before it) are
+ * told apart by every kind of color vision, in either theme. @param {number} i @param {number} count
+ */
+export const recencyColor = (i, count) => ((t) => `oklch(${(0.52 + 0.31 * t).toFixed(3)} ${(0.19 - 0.01 * t).toFixed(3)} ${((285 + 143 * t) % 360).toFixed(1)})`)(count > 1 ? i / (count - 1) : 1);

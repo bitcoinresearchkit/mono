@@ -27,7 +27,7 @@
  * have found a block, its height, the year
  */
 
-import { HOLDER_COLORS, holderColor, wheelColor } from "./palette.js";
+import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
 
 /** @param {any} n */
 const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
@@ -502,17 +502,18 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, profile?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
+   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
    * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort);
-   * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart
+   * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart; `inTime`: its
+   * members are times (halving epochs, years), the oldest first: colored as halving cycles and years are (recencyColor)
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
-    // (Holder groups each their own, wherever they're drawn (see palette.js); others around the wheel.)
-    const colors = ((wheel) => members.map(([key], i) => holderColor(key) ?? wheel[i]))(ramp(members.length));
+    // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
+    const colors = ((wheel) => members.map(([key], i) => holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
     const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
@@ -601,6 +602,8 @@ export function studioPresets(client, facts) {
     ]);
   };
 
+  // (The halving epoch and the year now, by the chain's facts: without them, the fourth and this year.)
+  const epoch = Math.floor((facts?.height ?? 840_000) / 210_000), year = facts?.year ?? new Date().getUTCFullYear();
   const tree = [
     section("Price", [
       chart("In dollars", "Bitcoin price", [price()]),
@@ -634,8 +637,14 @@ export function studioPresets(client, facts) {
         // turtles' breakout, as a trend.)
         chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "shift(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2, hidden: true }, { formula: "shift(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2, hidden: true }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
         // (Each halving cycle mined from its start, at 1×: as ⌘K's "Compare halving cycles" makes them; a cycle's years,
-        // its halving's, every four.)
-        ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2], halvings: true, range: "max" }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
+        // its halving's, every four. Each year the same, the last eight. Colored in time, the oldest violet, the newest
+        // amber.)
+        ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: recencyColor(n, cycles) }))], { log: [2], halvings: true, range: "max" }))(epoch + 1),
+        chart("Years", "The price's years, each from its start", [price(), ...Array.from({ length: 8 }, (_, k) => ({ formula: `year(A, ${year - 7 + k})`, label: String(year - 7 + k), pane: 2, color: recencyColor(k, 8) }))], { log: [2], range: "8y" }),
+        // (This cycle and this year so far, each over the ones before it (shifted onto its dates, from 1× at its start):
+        // this one amber, then coral, orchid, violet, as far back as the price goes whole.)
+        .../** @type {[string, string, string, number, string, number, { halvings?: boolean, range: string }][]} */ ([["Halving cycles overlaid", "The price's cycle since the last halving, over the ones before it", "halving", epoch, "cycle", Math.min(3, epoch - 1), { halvings: true, range: "4y" }], ["Years overlaid", "The price's year so far, over the ones before it", "year", year, "year", 3, { range: "1y" }]]).map(([name, title, f, now, what, before, options]) =>
+          chart(name, title, [price(), ...Array.from({ length: before + 1 }, (_, k) => ({ formula: k ? `${f}(shift(A, ${k}${f === "halving" ? "halving" : "y"}), ${now})` : `${f}(A, ${now})`, label: k ? `${k} ${what}${k > 1 ? "s" : ""} before` : `This ${what}`, pane: 2, color: recencyColor(3 - k, 4), ...(k ? {} : { width: 2 }) }))], { log: [2], ...options })),
       ]),
     ], { icon: "candles" }),
     section("Valuation", [
@@ -698,8 +707,8 @@ export function studioPresets(client, facts) {
     section("Coin age", [
       lastMovedChart(),
       section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
-      section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
-      section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
+      section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true, inTime: true })),
+      section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
     section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
     section("UTXOs", [
