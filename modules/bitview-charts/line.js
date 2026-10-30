@@ -198,6 +198,14 @@ export class Line {
     return i;
   }
 
+  /** Its last point with a value at or before index `i` (on a log scale, above zero: a tag's, the last in view), or -1. @param {number} i @param {boolean} log */
+  lastBy(i, log) {
+    const last = this.last(log), values = this.values;
+    if (i >= last) return last;
+    for (; i >= 0; i--) if (log ? values[i] > 0 : values[i] === values[i]) return i;
+    return -1;
+  }
+
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
   first(i) {
     const values = this.values;

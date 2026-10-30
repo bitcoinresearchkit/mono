@@ -124,6 +124,9 @@ export class Pane {
     // (Its tags as they're laid out: each one's line, its height, kept and grown, never made a frame.)
     this.tagLines = /** @type {Line[]} */ ([]);
     this.tagAt = new Int32Array(8);
+    this.tagIndex = new Int32Array(8);
+    /** The view's last point as its axes were drawn (their tags read it). */
+    this.axesEnd = NaN;
     this.tagY = new Float64Array(8);
     this.tagPlace = new Float64Array(8);
     /** The least room between two tags as last placed. */
@@ -454,24 +457,17 @@ export class Pane {
     } else {
       const began = performance.now();
       this.#strip(time, theme, dpr, 0, plot);
-      // (The axis: its ticks' values, at their heights.)
-      this.#axis(g, this.scale, time, theme, dpr, plot, this.width - plot, 0);
-      if (this.leftG && this.leftWidth) {
-        const lg = this.leftG;
-        lg.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (this.left) this.#axis(lg, this.left, time, theme, dpr, 0, this.leftWidth, 1);
-        else {
-          lg.fillStyle = theme.background;
-          lg.fillRect(0, 0, this.leftWidth, this.height);
-          if (this.separated) this.#separator(lg, theme, dpr, 0, this.leftWidth);
-        }
-      }
+      this.#axes(time, theme, dpr);
       // (Sharp: a zoom from here keeps this picture as it begins.)
       this.sharp = true;
       this.snapSpacing = NaN;
       this.wholeCost = this.wholeCost * 0.5 + (performance.now() - began) * 0.5;
     }
-    if (moves || stretches) this.sharp = false;
+    if (moves || stretches) {
+      this.sharp = false;
+      // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
+      if (Math.floor(time.to) !== this.axesEnd && this.#tagged()) this.#axes(time, theme, dpr);
+    }
     this.scale.drawnNow();
     this.left?.drawnNow();
     this.drawnFrom = time.from;
@@ -481,6 +477,32 @@ export class Pane {
     this.drawnTheme = theme;
     for (let k = 0; k < this.series.length; k++) this.drawnBases[k] = this.bases[k];
     return moves || stretches;
+  }
+
+  /** Its axes drawn (the right one's on its canvas past the plot, the left one's on its own): ticks, tags, separators. @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
+  #axes(time, theme, dpr) {
+    this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.#axis(this.g, this.scale, time, theme, dpr, this.plot, this.width - this.plot, 0);
+    if (this.leftG && this.leftWidth) {
+      const lg = this.leftG;
+      lg.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (this.left) this.#axis(lg, this.left, time, theme, dpr, 0, this.leftWidth, 1);
+      else {
+        lg.fillStyle = theme.background;
+        lg.fillRect(0, 0, this.leftWidth, this.height);
+        if (this.separated) this.#separator(lg, theme, dpr, 0, this.leftWidth);
+      }
+    }
+    this.axesEnd = Math.floor(time.to);
+  }
+
+  /** Whether it has a tag shown (a line's, with one). */
+  #tagged() {
+    for (let k = 0; k < this.series.length; k++) {
+      const line = this.series[k];
+      if (line instanceof Line && line.tag && !line.hidden) return true;
+    }
+    return false;
   }
 
   /**
@@ -594,29 +616,31 @@ export class Pane {
   }
 
   /**
-   * A side's lines' tags placed (their count returned; their lines in tagLines, by tagAt top to bottom at tagPlace,
-   * tagStep apart at least): each one at its last value, laid top to bottom where they'd overlap (none pushed past its
-   * axis' ends); on a relative scale, as it reads them.
+   * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view (as the chart library's
+   * were: they read the view's end as a pan moves it; a price line, its last of all), laid top to bottom where they'd
+   * overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines;
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.floor(time.to);
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.hidden || line.last(log) < 0) continue;
+      if (!(line instanceof Line) || !line.tag || line.hidden || line.lastBy(end, log) < 0) continue;
       // (On a relative scale, one with no base has no reading: no tag.)
       const base = relative ? line.first(from) : 1;
       if (base && base === base) lines.push(line);
     }
     const n = lines.length;
     if (!n) return 0;
-    if (this.tagY.length < n) (this.tagY = new Float64Array(n * 2)), (this.tagAt = new Int32Array(n * 2)), (this.tagPlace = new Float64Array(n * 2));
-    const ys = this.tagY, order = this.tagAt, at = this.tagPlace;
+    if (this.tagY.length < n) (this.tagY = new Float64Array(n * 2)), (this.tagAt = new Int32Array(n * 2)), (this.tagPlace = new Float64Array(n * 2)), (this.tagIndex = new Int32Array(n * 2));
+    const ys = this.tagY, order = this.tagAt, at = this.tagPlace, index = this.tagIndex;
     for (let k = 0; k < n; k++) {
       if (relative) scale.setBase(lines[k].first(from));
-      (ys[k] = scale.y(lines[k].values[lines[k].last(log)])), (order[k] = k);
+      index[k] = lines[k].lastBy(end, log);
+      (ys[k] = scale.y(lines[k].values[index[k]])), (order[k] = k);
     }
     // (Top to bottom, each at least a tag below the one over it (less, where they'd not all fit: the axis shared); then,
     // past the foot, each back up.)
@@ -639,12 +663,12 @@ export class Pane {
    * @param {number} x @param {number} width @param {number} side @param {number} n
    */
   #tags(g, scale, time, theme, x, width, side, n) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, order = this.tagAt, at = this.tagPlace, step = this.tagStep;
+    const relative = scale.relative, from = this.#from(time), lines = this.tagLines, order = this.tagAt, at = this.tagPlace, index = this.tagIndex, step = this.tagStep;
     g.font = theme.font;
     g.textAlign = side ? "right" : "left";
     g.textBaseline = "middle";
     for (let k = 0; k < n; k++) {
-      const line = lines[order[k]], i = line.last(log), y = at[k];
+      const line = lines[order[k]], i = index[order[k]], y = at[k];
       const color = line.colorAt(i);
       g.fillStyle = color;
       g.beginPath();
