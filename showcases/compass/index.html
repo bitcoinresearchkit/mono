@@ -522,8 +522,13 @@
           fill: currentColor;
         }
 
-        &[aria-pressed="true"] svg {
-          display: none;
+        /* (The chart's: its icon alone, round.) */
+        &.round {
+          width: 32px;
+
+          span {
+            display: none;
+          }
         }
 
         &:disabled {
@@ -540,8 +545,9 @@
         }
       }
 
-      /* A choice of a few, one pressed: the chart's span. */
-      .ranges {
+      /* A choice of a few, one pressed: the chart's span. Zoom's pair drawn the same, neither ever pressed. */
+      .ranges,
+      .zoom {
         display: inline-flex;
         gap: 2px;
         padding: 2px;
@@ -574,6 +580,22 @@
               inset: -8px 0;
             }
           }
+        }
+      }
+
+      .zoom button {
+        display: grid;
+        place-items: center;
+        min-width: 32px;
+        padding: 0;
+        color: var(--ink);
+
+        svg {
+          width: 11px;
+          height: 11px;
+          stroke: currentColor;
+          stroke-width: 1.6;
+          stroke-linecap: round;
         }
       }
 
@@ -1056,7 +1078,11 @@
       <div class="foot shell" id="foot">
         <div class="pan" id="pan" aria-hidden="true"><canvas id="pan-canvas"></canvas><div class="window"></div></div>
         <div class="controls">
-          <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+          <button type="button" class="replay round" data-replay aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+          <div class="zoom" role="group" aria-label="Zoom">
+            <button type="button" data-zoom="1.25" aria-label="Zoom out"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" /></svg></button>
+            <button type="button" data-zoom="0.8" aria-label="Zoom in"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8" /></svg></button>
+          </div>
           <div class="ranges" role="group" aria-label="Span">
             <button type="button" data-span="91" aria-pressed="false">3M</button>
             <button type="button" data-span="365" aria-pressed="false">1Y</button>
@@ -1085,7 +1111,7 @@
             </div>
             <div class="compass-foot">
               <b id="scrub-day">Today</b>
-              <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+              <button type="button" class="replay" data-replay aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
               <span class="legend">The year before as a path, its trend lit.</span>
             </div>
           </div>
@@ -1536,6 +1562,7 @@
           // (The prices' drawing kept under the words over it: a trend's line can run past the range, above them.)
           ctx.rect(0, plotTop - 8, right, bottom - plotTop + 9);
           ctx.clip();
+          const bent = curved();
 
           // The days under the price, each run of one state its colour, fading down: a state's runs one fill, of one
           // gradient (nine at most, not one a run).
@@ -1555,12 +1582,16 @@
             ctx.beginPath();
             // (A run's edges halfway between its end day and the next run's, on the price's line there, so its fill
             // meets its neighbour's under that line, never a step past it.)
+            // Curved, the edges are the curve's own halfway points, its halves drawn to them.
             const edge = (/** @type {number} */ k, /** @type {number} */ next) => (next < a || next > b ? yOf(d.close[k]) : (yOf(d.close[k]) + yOf(d.close[next])) / 2);
             for (const [i, j] of ofState) {
               ctx.moveTo(xOf(i) - halfDay(), bottom);
-              ctx.lineTo(xOf(i) - halfDay(), edge(i, i - 1));
-              trace(d.close, i, j);
-              ctx.lineTo(xOf(j) + halfDay(), edge(j, j + 1));
+              if (bent && i - 1 >= a) half(d.close, i - 1, true);
+              else ctx.lineTo(xOf(i) - halfDay(), edge(i, i - 1));
+              if (bent) curve(d.close, i, j);
+              else trace(d.close, i, j);
+              if (bent && j + 1 <= b) half(d.close, j, false);
+              else ctx.lineTo(xOf(j) + halfDay(), edge(j, j + 1));
               ctx.lineTo(xOf(j) + halfDay(), bottom);
               ctx.closePath();
             }
@@ -1597,7 +1628,8 @@
 
           // The price, over all of it.
           ctx.beginPath();
-          trace(d.close, a, b);
+          if (bent) curve(d.close, a, b);
+          else trace(d.close, a, b);
           ctx.strokeStyle = paint.ink;
           ctx.lineWidth = 1.5;
           ctx.lineJoin = "round";
@@ -1684,6 +1716,43 @@
        * are no narrower than half a pixel; else, each pixel's column its lowest and highest, in the order they came, so no
        * spike is lost and a long history costs two points a pixel, not one a day (short runs of a state too).
        */
+      /** Whether the price is drawn curved through each day: when there are few enough of them that each has its own
+       * point (more, trace keeps a column's lowest and highest, and a curve couldn't be seen). */
+      const curved = () => view.b - view.a + 1 <= 2 * plotRight();
+      /** The price's curve from day k to the next: a monotone cubic, as Studio's curved lines (d3's monotoneX), so it
+       * never runs past either day's price; its ends and controls in pixels. Its controls sit a third of the way
+       * across, so its halfway point is halfway between the days. */
+      function bend(/** @type {ArrayLike<number>} */ values, /** @type {number} */ k) {
+        const x0 = xOf(k), x1 = xOf(k + 1), h = x1 - x0, y = (/** @type {number} */ i) => yOf(values[i]);
+        const slope = (/** @type {number} */ i) => (y(i + 1) - y(i)) / h;
+        const tangent = (/** @type {number} */ i) => {
+          const s0 = slope(i - 1), s1 = slope(i);
+          // (At either end of the days, the one slope there.)
+          if (Number.isNaN(s0)) return Number.isNaN(s1) ? 0 : s1;
+          if (Number.isNaN(s1)) return s0;
+          return (Math.sign(s0) + Math.sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), Math.abs(s0 + s1) / 4) || 0;
+        };
+        const y0 = y(k), y1 = y(k + 1);
+        return [x0, y0, x0 + h / 3, y0 + (h * tangent(k)) / 3, x1 - h / 3, y1 - (h * tangent(k + 1)) / 3, x1, y1];
+      }
+      /** The price curved from day `from` to day `to` (on, or begun at, the first). */
+      function curve(/** @type {ArrayLike<number>} */ values, /** @type {number} */ from, /** @type {number} */ to) {
+        ctx.lineTo(xOf(from), yOf(values[from]));
+        for (let k = from; k < to; k++) {
+          const [, , ax, ay, bx, by, x1, y1] = bend(values, k);
+          ctx.bezierCurveTo(ax, ay, bx, by, x1, y1);
+        }
+      }
+      /** Half of the curve from day k to the next, split where it's halfway: the first, from day k, or the second, to
+       * the next (a line to its halfway point first). */
+      function half(/** @type {ArrayLike<number>} */ values, /** @type {number} */ k, /** @type {boolean} */ second) {
+        const [x0, y0, ax, ay, bx, by, x1, y1] = bend(values, k);
+        const m = (/** @type {number} */ p, /** @type {number} */ q) => (p + q) / 2;
+        const [abx, aby] = [m(x0, ax), m(y0, ay)], [bcx, bcy] = [m(ax, bx), m(ay, by)], [cdx, cdy] = [m(bx, x1), m(by, y1)];
+        const [lx, ly] = [m(abx, bcx), m(aby, bcy)], [rx, ry] = [m(bcx, cdx), m(bcy, cdy)], [mx, my] = [m(lx, rx), m(ly, ry)];
+        if (second) ctx.lineTo(mx, my), ctx.bezierCurveTo(rx, ry, cdx, cdy, x1, y1);
+        else ctx.bezierCurveTo(abx, aby, lx, ly, mx, my);
+      }
       function trace(/** @type {ArrayLike<number>} */ values, /** @type {number} */ from, /** @type {number} */ to, smooth = false) {
         const step = to >= from ? 1 : -1, end = to + step;
         if (view.b - view.a + 1 <= 2 * plotRight()) {
@@ -1954,17 +2023,25 @@
           keepVisible(next);
           show(!e.repeat);
         } else if (e.key === "+" || e.key === "=" || e.key === "-") {
-          // (About the day shown, where it is in the chart.)
           e.preventDefault();
-          stopPlay();
-          const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length * (e.key === "-" ? 1.25 : 0.8))), share = (at - target.a) / length;
-          viewTo(at - share * next, next);
+          zoom(e.key === "-" ? 1.25 : 0.8);
         } else if (e.key === "Escape" && (pinned !== null || hovered !== null || d.last > target.b + 0.5)) {
           stopPlay();
           (hovered = null), (pinned = null);
           keepVisible(d.last);
           show(true);
         }
+      });
+      /** The chart's days made `by` times as many (more than 1 out, less in), about the day shown, where it is in the
+       * chart. */
+      function zoom(/** @type {number} */ by) {
+        const d = /** @type {Days} */ (days), at = shownDay();
+        stopPlay();
+        const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length * by)), share = (at - target.a) / length;
+        viewTo(at - share * next, next);
+      }
+      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-zoom]"))) button.addEventListener("click", () => {
+        if (days) zoom(Number(button.dataset.zoom));
       });
       chart.addEventListener("keyup", (e) => {
         if (days && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) show(true);
@@ -2260,16 +2337,18 @@
       slider.addEventListener("change", () => show(true));
       new ResizeObserver(redraw).observe(strip);
 
-      // ── Playing: the day shown runs on to today at the chart's span in 8 seconds; paused, it stays where it is, and
+      // ── Playing: the day shown runs on to today at the chart's span in 16 seconds; paused, it stays where it is, and
       // plays on from there (from today, it starts again at the chart's first day) ──
 
+      /** How long play takes over the chart's span, in ms. */
+      const PLAY = 16_000;
       let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
       const replays = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("[data-replay]")]);
       const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
       /** Each play button says whether it plays: Pause while it does. */
       function saidPlaying(/** @type {boolean} */ on) {
         for (const button of replays) {
-          button.setAttribute("aria-pressed", String(on));
+          button.setAttribute("aria-label", on ? "Pause" : "Play");
           button.innerHTML = `${on ? PAUSE_ICON : PLAY_ICON}<span>${on ? "Pause" : "Play"}</span>`;
         }
       }
@@ -2306,7 +2385,7 @@
         // would end the play at once.)
         const d = days, at = pinned ?? d.last;
         playFrom = at >= d.last ? Math.max(d.first, Math.ceil(target.a)) : at;
-        playSpeed = (Math.min(d.last, target.b) - target.a + 1) / 8000;
+        playSpeed = (Math.min(d.last, target.b) - target.a + 1) / PLAY;
         playAt = performance.now();
         hovered = null;
         gliding = 0;
@@ -2396,8 +2475,9 @@
         show(true);
       }
       /** New days (other coins, another basis, the live price, a new day): the same span and day on them, their
-       * drawings made again. */
-      function use(/** @type {Days} */ computed) {
+       * drawings made again; the compass and the lists built again only for other coins or another basis (built
+       * again, they'd fade back in: the live price updates them where they are). */
+      function use(/** @type {Days} */ computed, rebuild = true) {
         const before = /** @type {Days} */ (days);
         days = computed;
         slider.min = String(days.first);
@@ -2409,8 +2489,8 @@
           else viewTo(view.a, view.b - view.a + 1);
         }
         stillKey = panKey = stripKey = "";
-        buildCompass();
-        buildShares();
+        if (rebuild) buildCompass(), buildShares();
+        else compassDay = -1;
         following = true;
       }
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
@@ -2446,7 +2526,7 @@
           }
           // (Something else changed the days meanwhile, or the new ones have none: left as they are.)
           if (days !== was || switching || computed.first < 0) return;
-          use(computed);
+          use(computed, false);
           show();
         } catch {
           // (Nothing read: the next try's in 10 seconds.)
