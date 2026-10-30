@@ -1950,7 +1950,7 @@
         if (!days || e.button || gesture || (e.target instanceof Element && e.target.closest("button"))) return;
         const x = xIn(e);
         if (x > plotRight()) return;
-        // (A flick stopped. Play goes on through a press, and ends once it's a drag or a slide.)
+        // (A flick stopped. Play goes on through a press: let go, it pauses; a drag or a slide ends it.)
         gliding = 0;
         chart.setPointerCapture(e.pointerId);
         gesture = { id: e.pointerId, kind: "press", x, y: e.clientY, a: view.a, length: view.b - view.a + 1, timer: 0, trail: [[e.timeStamp, x]] };
@@ -2005,7 +2005,9 @@
         clearTimeout(g.timer);
         chart.classList.remove("grabbing");
         if (g.kind === "press") {
-          // (A kept day's tag pressed: the day let go, back to today. Anywhere else, a press keeps nothing.)
+          // (Playing, a press pauses it on its day, as Pause does. A kept day's tag pressed: the day let go, back to
+          // today. Anywhere else, a press keeps nothing.)
+          if (playing) return stopPlay(), show(true);
           if (!onTag(g.x, g.y - chart.getBoundingClientRect().top)) return;
           (pinned = null), (hovered = null);
           keepVisible(days.last);
@@ -2367,8 +2369,8 @@
       new ResizeObserver(redraw).observe(strip);
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
-      // plays on from there (from today, it starts again at the chart's first day); a drag on the chart or the pan bar
-      // ends it, today shown again ──
+      // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it, a
+      // drag on the chart or the pan bar ends it, today shown again ──
 
       /** How long play takes over the chart's span, in ms. */
       const PLAY = 60_000;
