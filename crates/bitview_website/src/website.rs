@@ -60,6 +60,8 @@ fn content_type(path: &Path) -> Option<&'static str> {
         "json" => "application/json",
         "html" => "text/html",
         "txt" => "text/plain",
+        // (A file has no charset of its own to declare, as a page's meta does.)
+        "md" => "text/markdown; charset=utf-8",
         "xml" => "application/xml",
         "woff2" => "font/woff2",
         "png" => "image/png",
