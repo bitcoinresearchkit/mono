@@ -18389,6 +18389,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (TWO_KEPT.has(layer.type) && result?.sides) return (i) => (/** @type {Uint8Array} */ (result.sides)[i] === 1 ? under : result.sides?.[i] ? top : null);
         return null;
       }
+      /** A layer and each layer its colors come from in turn, as colorsAt follows them: each once. @param {Chart} doc @param {Layer} layer */
+      function colorChain(doc, layer) {
+        /** @type {Layer[]} */
+        const chain = [];
+        for (let at = /** @type {Layer | undefined} */ (layer); at && !chain.includes(at); at = at.colorFrom ? doc.layers.find((item) => item.id === at?.colorFrom) : undefined) chain.push(at);
+        return chain;
+      }
       /**
        * What a layer's painted points depend on besides its values: its type, fill (its own strength, solid), opacity and color, and each layer its
        * colors come from (their colors, base, type, values, sides and levels), as colorsAt follows them.
@@ -18396,10 +18403,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function paintSig(/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {Resolved} */ data, /** @type {number} */ op, /** @type {string} */ base) {
         /** @type {any[]} */
         const sig = [layer.type, layer.fill, layer.fillOpacity, layer.solid, op, base];
-        /** @type {Layer | undefined} */
-        let at = layer;
-        for (const seen = new Set(); at && !seen.has(at.id); at = at.colorFrom ? doc.layers.find((item) => item.id === at?.colorFrom) : undefined) {
-          seen.add(at.id);
+        for (const at of colorChain(doc, layer)) {
           const result = data.results.get(at.id);
           sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.byGradient ? `${JSON.stringify(at.gradient)}${at.upToDate ? "|to date" : `|${rangeOf(result?.values ?? []).join()}`}|${light}` : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "", at.type === "cloud" && at.byLayers ? (result?.memberIds ?? []).map((id) => ink(doc.layers.find((item) => item.id === id)?.color ?? "")).join() : "", at.type === "cloud" && at.byLayers ? result?.members : undefined, at.type === "candles" ? result?.ohlc : undefined);
         }
@@ -23975,6 +23979,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return canvas.toDataURL("image/png");
       }
       /**
+       * Each picture's panes as last drawn, by the data they're drawn from (see previewOf): the picture's look (the chart's,
+       * its size, its window) and each pane's marks with what they're drawn from. The next picture of the same look from
+       * the same data keeps each pane drawn from the same: a live price, which gives its own layer a new result alone, draws
+       * its pane again, not a stack's 23 bands.
+       * @type {WeakMap<object, { look: string, times: ArrayLike<number>, panes: { from: any[], marks: any[], scales: any[] }[] }>}
+       */
+      const panesDrawn = new WeakMap();
+      /**
        * @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data
        * @param {number} [most] the most bars the chart shows, in this data's interval @returns {Preview}
        */
@@ -24005,6 +24017,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const total = doc.panes.reduce((sum, pane, i) => sum + sizeOf(pane, i), 0), stacked = stackOf(doc, data);
         // (The layers bubbles shown are on.)
         const carried = new Set(doc.layers.filter((layer) => layer.type === "bubbles" && !layer.hidden && layer.ref).map((layer) => layer.ref));
+        // (The panes last drawn from this data, if it looked as it does now: see panesDrawn.)
+        const look = JSON.stringify([previewKey(doc), W, H, size.points, big, shown.from, shown.to, light]), was = panesDrawn.get(data), before = was?.look === look && was.times === times ? was.panes : null;
+        /** @type {{ from: any[], marks: any[], scales: any[] }[]} */
+        const panes = [];
         let top = 0;
         doc.panes.forEach((pane, k) => {
           const height = (sizeOf(pane, k) / total) * H;
@@ -24015,6 +24031,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // The pane's marks in the order the chart draws its series, whichever side each is on (a stack from its top, at
           // the back, to its foot); their lines across behind them all.
           const from = drawn.marks.length, ranks = new Map(), inPaneOrder = doc.layers.filter((layer) => layer.pane === pane.id);
+          // What they're drawn from: the pane's place, and its layers' results (a stack's sums are of its own), heatmap days
+          // and bubbles, and those of each layer their colors come from (see colorsAt). The same as last time: its marks kept.
+          const sources = /** @type {any[]} */ ([band.top, band.height]), scalesFrom = drawn.scales?.length ?? 0;
+          for (const layer of inPaneOrder) for (const at of colorChain(doc, layer)) sources.push(data.results.get(at.id), heat.get(at.id), bubbles.get(at.id));
+          const kept = before?.[k];
+          if (kept && kept.from.length === sources.length && sources.every((item, i) => item === kept.from[i])) return void (drawn.marks.push(...kept.marks), drawn.scales?.push(...kept.scales), panes.push(kept));
           const zOf = new Map((pane.reverse ? inPaneOrder : [...inPaneOrder].reverse()).map((layer, z) => [layer.id, z]));
           /**
            * A bubbles layer as the chart draws it, each at `place` (its date's height, NaN for none): each bucket's largest
@@ -24338,7 +24360,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Bubbles on none: along the pane's middle, whatever its sides draw.)
           for (const layer of doc.layers) if (layer.type === "bubbles" && layer.pane === pane.id && !doc.layers.some((other) => other.id === layer.ref)) drawBubbles(layer, () => round((paneTop + paneBottom) / 2));
           drawn.marks.splice(from, Infinity, ...drawn.marks.slice(from).sort((a, b) => ranks.get(a) - ranks.get(b)));
+          panes.push({ from: sources, marks: drawn.marks.slice(from), scales: drawn.scales?.slice(scalesFrom) ?? [] });
         });
+        panesDrawn.set(data, { look, times, panes });
         return drawn;
       }
       /** Each subpath of a line closed down (or up) to `edge`: the fill under it. */
