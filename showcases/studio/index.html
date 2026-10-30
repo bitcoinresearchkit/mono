@@ -24202,7 +24202,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
               const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
               const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => (band?.type === "area" && band.fill !== "above") || band?.type === "line")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
-              const floorAt = own && ((/** @type {number} */ i) => ((band) => ((at) => (Number.isFinite(at) ? Math.min(paneBottom, at) : paneBottom))(y(scaled(band ? band.values[i] : 0))))(under.find((band) => Number.isFinite(band.values[i]))));
+              const floorAt = own && ((/** @type {number} */ i) => {
+                const band = under.find((item) => Number.isFinite(item.values[i])), at = y(scaled(band ? band.values[i] : 0));
+                return Number.isFinite(at) ? Math.min(paneBottom, at) : paneBottom;
+              });
               // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
               const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
               /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
