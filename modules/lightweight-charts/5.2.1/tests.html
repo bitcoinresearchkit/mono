@@ -732,8 +732,8 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   say(`Marks' words edged: 2 checks, ${edged.length} failing`);
   for (const f of edged) say(`  ✗ ${f}`);
   // 13. A pan moving the picture (patch 48): `bvPanShift` on, an area and a line panned a step a frame, by whole and part
-  // pixels, both ways, their scale held: frames drew strips alone, and once still (the frame after), the picture the
-  // published library draws.
+  // pixels and under one, both ways, their scale held: frames drew strips alone, or nothing (moved under a pixel), and
+  // once still (the frame after), as drawn, the picture the published library draws.
   const shifted = [];
   {
     document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = ""; window.__charts = [];
@@ -750,24 +750,27 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
     }
     await frames();
     const proto = Object.getPrototypeOf(made[1].hv.ng[0]), shift = proto.bvShift;
-    let strips = 0;
-    proto.bvShift = function (t) { const r = shift.call(this, t); if (r) strips++; return r; };
+    let strips = 0, kept = 0;
+    proto.bvShift = function (t) { const r = shift.call(this, t); if (r && r[0] === r[1]) kept++; else if (r) strips++; return r; };
     const px = 1 / made[1].hv.sn.Bt().ml();
-    for (const [label, steps] of [["whole pixels", [3, 7, -4, 12, 1]], ["parts of pixels", [2.4, 0.7, -3.3, 5.5, 0.2]]]) {
+    // (A picture taken as it moves, before its next frame: the frame it asks for not lost with it.)
+    for (const [label, steps, shoot] of [["whole pixels", [3, 7, -4, 12, 1]], ["parts of pixels", [2.4, 0.7, -3.3, 5.5, 0.2]], ["under a pixel", [0.3, 0.3, 0.3, -0.2, 0.4, 0.45].map((step) => step / devicePixelRatio)], ["a picture taken as it moves", [0.3 / devicePixelRatio], true]]) {
       for (const step of steps) {
         for (const c of made) c.timeScale().scrollToPosition(c.timeScale().scrollPosition() - step * px, false);
+        if (shoot) for (const c of made) c.takeScreenshot(false, true);
         await new Promise((r) => requestAnimationFrame(r));
       }
       await frames();
-      const d = differ(plot(made[0]), plot(made[1]));
+      const d = differ(plot(made[0], true), plot(made[1], true));
       if (d !== 0) shifted.push(`${label}, once still: ${d < 0 ? "pictures of other sizes" : `${d} values differing`}`);
     }
     proto.bvShift = shift;
     if (strips < 6) shifted.push(`frames drawing a strip alone: ${strips}`);
+    if (kept < 2) shifted.push(`frames keeping the picture: ${kept}`);
     for (const c of made) c.remove();
     window.__charts = [];
   }
-  say(`A pan moving the picture: 3 checks, ${shifted.length} failing`);
+  say(`A pan moving the picture: 6 checks, ${shifted.length} failing`);
   for (const f of shifted) say(`  ✗ ${f}`);
 
   // 14. Last values' tags made again only once what they read changes (patch 49): three series' tags, a view off their

@@ -1033,6 +1033,28 @@ filled in on whitespace left out of the marks (798 values apart without the `ign
 40 updates of the price's last point on the 23-band stack, drawn at once (`bvFlush`): Chromium at 4x CPU 7.9 → 2.4 ms
 an update; Mullvad Browser (headless, 2x) 11-12 → ~1.8 ms; the iPhone without its JIT ~19 → ~7 ms.
 
+## 56. A pan by under a pixel: the picture kept
+
+A pan's frame (48) whose offset, carried, rounds to no whole device pixel drew its pane whole: the same rule (`0===o`)
+told the frame after the motion stops, at rest, to draw it whole. A slow pan, or one over bars under a pixel apart,
+moves less than a pixel a frame: Studio's 100% stack, 3 bars a frame at 0.26 px a bar, every third frame drawn whole
+(~60 ms in Mullvad Browser). Now the two are told apart by whether the time scale moved since the pane's last frame.
+
+- `bvShift`: `bvAt.h`, the time scale's offset (`Dc()+Oc()`) at the pane's last frame. The same: at rest, null (drawn
+  whole, as before). Moved by under a pixel: its picture kept (`bvAt.c` where it was, the rest carried), the next frame
+  asked for (`ka`, as after a strip: a stop is then drawn whole), and an empty strip returned (`[0,0]`).
+- `bvMain`: an empty strip, nothing drawn.
+- A picture (`Tg`, `takeScreenshot`) takes what's waiting before drawing it, as `bvFlush` does: drawn while still
+  waiting, a frame asked for meanwhile (the next frame after a strip (48) or a picture kept) merged into it and was
+  dropped with it, the pane left mid-motion till something else asked for it.
+
+`tests.html` 13 compares its pictures once still as drawn (patch 55's `asDrawn`; before, a picture hid the crosshair,
+drawing every pane again first), and pans by under a device pixel too: frames keeping the picture counted (none
+before), the picture once still the published library's; and once with a picture taken as drawn after a step, before
+its frame (4071 values apart once still without `Tg`'s change). Measured, a pan of 3 bars a step drawn at once (`bvFlush`): Mullvad
+Browser, the 100% stack 21-22 → ~3 ms a step, the 23-band stack 8-10 → ~3.5 ms; the iPhone (60 frames by rAF), the
+100% stack p50 24-32 → 16 ms, p90 50 → 18-21 ms.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
