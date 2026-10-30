@@ -19254,7 +19254,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (source && source.values.length > 1) {
           const key = `${idOf(source.values)}:${source.log}:${canvas.width}:${liveMoves}`;
           if (overviewShape.key !== key) {
-            const scaled = Array.from(source.values, (value) => (Number.isFinite(value) && (!source.log || value > 0) ? (source.log ? Math.log10(value) : value) : NaN));
+            const scaled = onScaleAll(source.values, source.log ? 1 : 0, NaN);
             let [lo, hi] = rangeOf(scaled);
             // The shape: smooth (each pixel's column its mean: a sketch of the series, not its noise). (A few points in
             // one column, a mean is one point, no line: their lowest and highest then.)
@@ -23484,16 +23484,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * bars, each the value farthest from their base.
        */
       function shapeOf(values, mode, bars = false, base = 0) {
-        const scale = onScale(mode, values.find((value) => Number.isFinite(value) && value !== 0) ?? NaN);
-        const scaled = Array.from(values, scale);
+        const from = values.find((value) => Number.isFinite(value) && value !== 0) ?? NaN, scale = onScale(mode, from);
+        const scaled = onScaleAll(values, mode, from);
         const [lo, hi] = rangeOf(scaled);
         const step = scaled.length / THUMB_POINTS, level = scale(base);
         const averaged = Array.from({ length: THUMB_POINTS }, (_, k) => {
-          const bucket = scaled.slice(Math.floor(k * step), Math.max(Math.floor(k * step) + 1, Math.floor((k + 1) * step))).filter(Number.isFinite);
-          if (!bucket.length) return null;
-          // Bars keep the one farthest from their base (an average of them would sit on it).
-          if (bars) return bucket.reduce((far, value) => (Math.abs(value - level) > Math.abs(far - level) ? value : far));
-          return bucket.reduce((sum, value) => sum + value, 0) / bucket.length;
+          let sum = 0, count = 0, far = NaN;
+          for (let i = Math.floor(k * step), end = Math.min(scaled.length, Math.max(Math.floor(k * step) + 1, Math.floor((k + 1) * step))); i < end; i++) {
+            const value = scaled[i];
+            if (value - value !== 0) continue;
+            sum += value;
+            // Bars keep the one farthest from their base (an average of them would sit on it).
+            if (!count++ || Math.abs(value - level) > Math.abs(far - level)) far = value;
+          }
+          return !count ? null : bars ? far : sum / count;
         });
         const points = averaged.map((value, k) => {
           if (value === null || bars) return value;
@@ -23507,6 +23511,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * from where it starts (`from`) over that one's size, as the chart's are (from a negative one, a rise still rises).
        */
       const onScale = (/** @type {number} */ mode, /** @type {number} */ from) => (/** @type {number} */ value) => (!Number.isFinite(value) ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? (from ? (value - from) / Math.abs(from) : NaN) : value);
+      /**
+       * Values as onScale puts them, all at once (from `first` to `last`, every one by default; NaN past them): by index,
+       * finite by a subtraction, no call a value (thousands a picture, a phone's engine without a JIT).
+       */
+      function onScaleAll(/** @type {ArrayLike<number>} */ values, /** @type {number} */ mode, /** @type {number} */ from, first = 0, last = values.length - 1) {
+        const out = new Float64Array(values.length).fill(NaN), size = Math.abs(from);
+        for (let i = Math.max(0, first), end = Math.min(last, values.length - 1); i <= end; i++) {
+          const value = values[i];
+          out[i] = value - value !== 0 ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? (from ? (value - from) / size : NaN) : value;
+        }
+        return out;
+      }
       /** Points placed between a low and a high, in hundredths of the height. */
       const place = (points, lo, hi, bottom = 0, height = 1) => points.map((value) => (value === null || !Number.isFinite(value) ? null : clamp(Math.round((bottom + ((value - lo) / (hi - lo || 1)) * height) * 100) / 100, 0, 1)));
       /** Work done one pass at a time: asked for again while one runs, it runs once more after. @param {() => Promise<void>} pass */
@@ -23985,7 +24001,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
-              const scaled = onScale(mode, base);
+              const scaled = onScale(mode, base), inView = onScaleAll(values, mode, base, first, last);
               // Each bucket's low and high, in the order they came (one point where they're one), and the latest value last:
               // at up to four bars a pixel the chart shows every bar, so its peaks and troughs show; an average would round
               // them off.
@@ -23993,10 +24009,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               let latest = -1, latestIn = -1;
               const breaks = data.results.get(layer.id)?.breaks, cut = breaks ? new Uint8Array(B) : null;
               for (let i = first; i <= last; i++) {
-                // (The point at the view's very end is its last bucket's, not past it.)
-                const value = scaled(values[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
+                // (The point at the view's very end is its last bucket's, not past it. Its bucket by a truncation, no call:
+                // a point before the view's start, its place under 0 but never under -1, none.)
+                const value = inView[i], at = ((i - shown.from) / span) * B, edge = i <= shown.to ? B - 1 : B, b = at < 0 ? -1 : (at | 0) < edge ? at | 0 : edge;
                 if (cut && breaks?.[i] && b >= 0 && b < B) cut[b] = 1;
-                if (!Number.isFinite(value) || b < 0 || b >= B) continue;
+                if (value - value !== 0 || b < 0 || b >= B) continue;
                 if (value < lows[b]) (lows[b] = value), (lowAt[b] = i);
                 if (value > highs[b]) (highs[b] = value), (highAt[b] = i);
                 (latest = i), (latestIn = b);
@@ -24050,7 +24067,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const ranged = bands ? hull(bands) : band;
               // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
               const parts = baseOf(layer);
-              return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
+              return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, inView, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -24059,7 +24076,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const shared = Array.from({ length: B }, (_, b) => [...new Set(stack.flatMap((item) => (item.points[b] ?? []).map(([i]) => i)))].sort((a, z) => a - z));
               for (const item of stack) {
                 item.points = shared.map((indices) => {
-                  const at = indices.map((i) => /** @type {[number, number]} */ ([i, item.scaled(item.values[i])])).filter(([, value]) => Number.isFinite(value));
+                  const at = indices.map((i) => /** @type {[number, number]} */ ([i, item.inView[i]])).filter(([, value]) => Number.isFinite(value));
                   return at.length ? at : null;
                 });
               }
@@ -24081,8 +24098,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // the price's closes too, as the chart scales it.)
             const heats = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && heat.has(layer.id));
             if (!Number.isFinite(lo) || lo === hi) for (const layer of heats) {
-              const closes = data.results.get(layer.id)?.closes, scaled = onScale(modeOf(doc, layer), NaN);
-              for (let i = first; closes && i <= last; i++) if (Number.isFinite(scaled(closes[i]))) (lo = Math.min(lo, scaled(closes[i]))), (hi = Math.max(hi, scaled(closes[i])));
+              const closes = data.results.get(layer.id)?.closes;
+              if (!closes) continue;
+              const [low, high] = rangeOf(onScaleAll(closes, modeOf(doc, layer), NaN, first, last));
+              (lo = Math.min(lo, low)), (hi = Math.max(hi, high));
             }
             // (A side of a pane's shade alone: drawn, from the pane's edges.)
             if (!Number.isFinite(lo) && !shaped.some((item) => item.layer.type === "cloud" && edgesOf(item.layer).length > 1)) continue;
@@ -24231,8 +24250,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   drawn.marks.push({ ...look, c, k: "dots", d: parts.flat().map((point) => `M${at(point)}h0`).join("") });
                   continue;
                 }
-                const line = { ...look, c, d: parts.map((part) => `M${part.map(at).join("L")}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
-                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part) => `M${part.map(at).join("L")}L${[...part].reverse().map(([i]) => `${x(i)} ${floorAt(i)}`).join("L")}Z`).join("") } : {}) });
+                // (Each part's points written once: its line's, and a band's way along them.)
+                const written = parts.map((part) => part.map(at).join("L"));
+                const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
+                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part, k) => `M${written[k]}L${[...part].reverse().map(([i]) => `${x(i)} ${floorAt(i)}`).join("L")}Z`).join("") } : {}) });
                 else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
                 else drawn.marks.push({ ...line, k: "line" });
               }
@@ -33881,10 +33902,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const per = Math.max(1, values.length / columns);
         for (let start = 0; start < values.length; start += per) {
           let lo = -1, hi = -1;
+          // (Finite by a subtraction: no call each value.)
           for (let i = Math.floor(start), end = Math.min(values.length, Math.floor(start + per)); i < end; i++) {
-            if (!Number.isFinite(values[i])) continue;
-            if (lo < 0 || values[i] < values[lo]) lo = i;
-            if (hi < 0 || values[i] > values[hi]) hi = i;
+            const value = values[i];
+            if (value - value !== 0) continue;
+            if (lo < 0 || value < values[lo]) lo = i;
+            if (hi < 0 || value > values[hi]) hi = i;
           }
           if (lo < 0) continue;
           for (const i of lo === hi ? [lo] : [Math.min(lo, hi), Math.max(lo, hi)]) points.push([i, values[i]]);
@@ -33901,9 +33924,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const per = Math.max(1, values.length / columns);
         for (let start = 0; start < values.length; start += per) {
           let sum = 0, count = 0, at = 0;
+          // (Finite by a subtraction: no call each value.)
           for (let i = Math.floor(start), end = Math.min(values.length, Math.floor(start + per)); i < end; i++) {
-            if (!Number.isFinite(values[i])) continue;
-            sum += values[i];
+            const value = values[i];
+            if (value - value !== 0) continue;
+            sum += value;
             at += i;
             count++;
           }
