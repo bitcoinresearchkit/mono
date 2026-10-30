@@ -11069,8 +11069,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
       /** @type {HTMLElement} */ (document.getElementById("live")).dataset.tip = SERVER_HOST;
       const tree = client.series;
-      /** Charts keep a series' dotted catalog path with its name, so a rename still finds it. */
-      const isLeaf = (node) => Boolean(node) && typeof node.name === "string" && typeof node.by === "object";
+      /**
+       * Charts keep a series' dotted catalog path with its name, so a rename still finds it. (A series by its name and its
+       * intervals: its endpoints, `by`, are made when first read, not for every series a walk passes.)
+       */
+      const isLeaf = (node) => Boolean(node) && typeof node.name === "string" && typeof node.indexes === "function";
       /** The series at a path, by its current name; nothing if the path is gone. @param {string} path */
       function nameAt(path) {
         const node = nodeAt(path.split("."));
@@ -13817,7 +13820,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const index = new Map(), byBlock = new Set(), sharedTops = new Set(), stack = [[tree, ""]];
         while (stack.length) {
           const [node, path] = /** @type {[any, string]} */ (stack.pop());
-          if (node && typeof node.name === "string" && typeof node.by === "object") {
+          if (node && typeof node.name === "string" && typeof node.indexes === "function") {
             // (A name in several places, each with its own intervals (an interval's first height, under each): by date if
             // any of them is.)
             const byDate = dated.some((id) => node.indexes().includes(id));
