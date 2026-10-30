@@ -4,6 +4,8 @@ description = "Snapshot and diff storage for UTXO state aggregated by creation h
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 pco = { workspace = true }
