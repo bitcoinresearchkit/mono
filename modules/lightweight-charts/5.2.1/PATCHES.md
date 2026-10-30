@@ -1191,7 +1191,9 @@ by touch: a drag's frames 16–17 ms, the release drawn in 24 ms; at 3x, after a
 and a drag again, every canvas's backing its box's size times 3, nothing stretched, the catcher down. The iPhone by
 touch (age bands' 23-band stack, 30 moves of 3 px): a drag's frames 16–17 ms (2 of 30 slower: 37, 70), was ~50 ms
 each; the release drawn in 15 ms. (A first frame of ~33 ms is the timing's own: a frame loop started after a wait
-begins with one, touches or not.) Found by Codex:
+begins with one, touches or not.) Mullvad Browser, a real mouse's drag of the same: its frames p50 33 → 17 ms, p90
+50 → 33 (Mullvad rounds its clock to frames), the release one frame of 83–100 ms; stretched mid-drag, nothing left
+stretched after. Found by Codex:
 the release measured stretched canvases; the drag's ends when resizing's turned off, the separator's gone, its panes
 bound to others, a touch cancelled.
 
