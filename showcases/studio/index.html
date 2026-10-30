@@ -26598,7 +26598,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return !names.length ? "Untitled chart" : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} & ${names.length - 1} more`;
       };
       /**
-       * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine of yours: written
+       * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine of its topmost open
+       * group's (see numbered): written
        * again only where it changed (an edit that changes nothing in it, a formula typed, leaves it as it is).
        */
       function renderCharts() {
@@ -26614,13 +26615,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const recentOrder = recents.map((item) => item.id).join();
         if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
         recentDrawn = recentOrder;
-        // (Named always, nothing in it too: what's yours, and where New folder is.)
-        libraryFolded = groupShut("library");
-        const keys = numbered();
-        const row = (/** @type {Chart} */ doc, depth = 0) => ((i) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
+        const row = (/** @type {Chart} */ doc, depth = 0) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
+            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}">${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span></button>
             <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
-          </div>`)(keys.indexOf(doc));
+          </div>`;
         /** @type {[string, string][]} */
         const parts = [
           // Home first (Studio's start), a rule under it, scrolled with the rest: only the brand, the search and the
@@ -26650,10 +26648,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...presetParts(),
         ];
         // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
-        if (writeList($("chart-list"), parts)) {
-          fitSoon($("chart-list"), true);
-          drawKeys($("chart-list"));
+        if (writeList($("chart-list"), parts)) fitSoon($("chart-list"), true);
+        // (⌘1–⌘9 shown on the rows they open, those alone: their key, and their tip's.)
+        const keyed = numbered();
+        for (const button of all$("[data-kbd]", $("chart-list"))) {
+          if (keyed.includes(button) || !/^⌘ [1-9]$/.test(button.dataset.kbd ?? "")) continue;
+          button.querySelector(":scope > kbd.mod")?.remove();
+          button.removeAttribute("data-kbd");
+          button.removeAttribute("aria-keyshortcuts");
         }
+        keyed.forEach((button, i) => {
+          const key = keyText(`⌘${i + 1}`), shown = button.querySelector(":scope > kbd.mod");
+          if (button.dataset.kbd === `⌘ ${i + 1}` && shown?.textContent === key) return;
+          button.dataset.kbd = `⌘ ${i + 1}`;
+          button.removeAttribute("aria-keyshortcuts");
+          (shown ?? button.appendChild(Object.assign(document.createElement("kbd"), { className: "mod" }))).textContent = key;
+          shown?.removeAttribute("aria-hidden");
+        });
+        drawKeys($("chart-list"));
         // (The presets' rows in sight: their marks, drawn as they come; those drawn already, nothing to watch; those
         // gone, nothing to draw.)
         // (Not before the presets are read: their rows as kept till then, see presetParts.)
@@ -26951,12 +26963,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let at = /** @type {string | undefined} */ (id), steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) names.unshift(folderById(at)?.name ?? "");
         return names.join(" › ");
       };
-      /** Whether your Library's closed in the sidebar, as last drawn (named, so closed: see renderCharts). */
-      let libraryFolded = false;
       /** Recent's charts as the sidebar last listed them, in order (see renderCharts). */
       let recentDrawn = "";
       /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder or a closed Library, out of sight, out of reach). */
-      const numbered = () => (libraryFolded ? [] : sideTree().flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, 9));
+      /**
+       * What ⌘1–⌘9 open: the first nine charts of the sidebar's topmost open group (Recent, the previews, yours, the
+       * presets) with any, as it lists them (its open folders' and sections' too): their rows' buttons, pressed as a click
+       * presses them. @returns {HTMLElement[]}
+       */
+      const numbered = () => {
+        const rows = [];
+        let open = false;
+        for (const row of $("chart-list").children) {
+          if (row.matches(".list-head")) {
+            if (rows.length) break;
+            open = !row.classList.contains("closed");
+            continue;
+          }
+          const button = open ? row.querySelector("[data-open-recent], [data-open-chart], [data-open-preset]") : null;
+          if (button && rows.push(/** @type {HTMLElement} */ (button)) === 9) break;
+        }
+        return rows;
+      };
       /** Your charts and folders as the sidebar shows them: open, as a tree (a closed folder's out of sight); the rail, the top's alone. */
       const sideTree = () => (onRail() ? childrenOf(undefined).map((item) => ({ item, depth: 0 })) : treeOf(undefined, true));
       /** A folder made (in `parent`, first there; none: at the top), named at once where it shows (`keys`: what it starts with). */
@@ -38948,7 +38976,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (mod && /^[1-9]$/.test(event.key) && !event.shiftKey && !event.altKey) {
           event.preventDefault();
-          go(numbered()[Number(event.key) - 1]);
+          numbered()[Number(event.key) - 1]?.click();
           return;
         }
         // Everything saves as you go: ⌘S just says so, instead of the browser saving the page; a preview, it keeps it.
