@@ -24015,6 +24015,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** A bucket's first and last points in view (the last bucket's to the view's end). @param {number} b */
         const bucketOf = (b) => ((edge) => [Math.max(first, Math.ceil(shown.from + (b * span) / B)), Math.min(last, b === B - 1 ? Math.max(edge, Math.floor(shown.to)) : edge)])(Math.ceil(shown.from + ((b + 1) * span) / B) - 1);
         const round = (value) => Math.round(value * 10) / 10;
+        /** A date's place across; written in a path, once a picture (its layers' points all at its dates, by index). */
+        const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), xTexts = new Array(n), xText = (/** @type {number} */ i) => xTexts[i] ?? (xTexts[i] = String(x(i)));
         // (A folded pane takes no band: it shows nothing.)
         const folded = foldedPanes(doc), sizeOf = (pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
         const total = doc.panes.reduce((sum, pane, i) => sum + sizeOf(pane, i), 0), stacked = stackOf(doc, data);
@@ -24069,7 +24071,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             for (const [b, out] of edge) if (larger(inside, b, Math.abs(own[out.i]))) inside.set(-1 - b, out);
             const sizes = new Map();
             for (const { i, at } of inside.values()) {
-              const w = Math.max(1, Math.round(across * Math.sqrt(Math.min(1, Math.abs(own[i]) / most)))), dot = `M${round(((i - shown.from) / span) * W)} ${at}h0`;
+              const w = Math.max(1, Math.round(across * Math.sqrt(Math.min(1, Math.abs(own[i]) / most)))), dot = `M${x(i)} ${at}h0`;
               const into = sizes.get(w) ?? sizes.set(w, { d: "", d2: "" }).get(w);
               if (own[i] >= 0) into.d += dot;
               else into.d2 += dot;
@@ -24267,16 +24269,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const yAt = y(scaled(value)), { color, dash, line } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
                 if (line !== false && yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
               }
-              const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
+              const at = ([i, value]) => `${xText(i)} ${y(value)}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline && OUTLINED.has(layer.type) ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
               // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band or line under it with
               // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
               const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
               const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => (band?.type === "area" && band.fill !== "above") || band?.type === "line")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
+              // (A loop, finite by a subtraction: no call a band, its every point. See stackOf.)
               const floorAt = own && ((/** @type {number} */ i) => {
-                const band = under.find((item) => Number.isFinite(item.values[i])), at = y(scaled(band ? band.values[i] : 0));
-                return Number.isFinite(at) ? Math.min(paneBottom, at) : paneBottom;
+                let value = 0;
+                for (const item of under) if (item.values[i] - item.values[i] === 0) {
+                  value = item.values[i];
+                  break;
+                }
+                const at = y(scaled(value));
+                return at - at === 0 && at < paneBottom ? at : paneBottom;
               });
+              /** Its floor, back along a run of its points from its last. @param {[number, number][]} part */
+              const backAlong = (part) => {
+                let back = "";
+                for (let p = part.length - 1; p >= 0; p--) back += `L${xText(part[p][0])} ${/** @type {(i: number) => number} */ (floorAt)(part[p][0])}`;
+                return back;
+              };
               // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
               const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
               /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
@@ -24343,7 +24357,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 // (Each part's points written once: its line's, and a band's way along them.)
                 const written = parts.map((part) => part.map(at).join("L"));
                 const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
-                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part, k) => `M${written[k]}L${[...part].reverse().map(([i]) => `${x(i)} ${floorAt(i)}`).join("L")}Z`).join("") } : {}) });
+                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part, k) => `M${written[k]}${backAlong(part)}Z`).join("") } : {}) });
                 else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
                 else drawn.marks.push({ ...line, k: "line" });
               }
