@@ -1188,7 +1188,9 @@ drawing call, `setTransform`). As iPad's Split View resizes, the panes are now s
 `tests.html` as before (it drags no separator). Measured: Chromium, a mouse drag of 120 px: mid-drag the panes' sizes as
 they were, their contents scaled 0.749 and 1.538; after, 478/223 → 358/343, nothing left stretched. The iOS Simulator
 by touch: a drag's frames 16–17 ms (its first two 29–33), the release drawn in 24 ms; at 3x, after a release, a cancel
-and a drag again, every canvas's backing its box's size times 3, nothing stretched, the catcher down. Found by Codex:
+and a drag again, every canvas's backing its box's size times 3, nothing stretched, the catcher down. The iPhone by
+touch (age bands' 23-band stack, 30 moves of 3 px): a drag's frames 16–17 ms (3 of 30 slower: 35, 37, 70), was ~50 ms
+each; the release drawn in 15 ms. Found by Codex:
 the release measured stretched canvases; the drag's ends when resizing's turned off, the separator's gone, its panes
 bound to others, a touch cancelled.
 
