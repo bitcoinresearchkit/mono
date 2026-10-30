@@ -37570,9 +37570,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (kind === "share") return shareImage();
         if (kind === "open") return openImage();
         const name = fileName("png");
-        const failed = (/** @type {unknown} */ error = null) => notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
-        chartImage(pictureSize()).then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
+        chartImage(pictureSize()).then(pngOf).then((blob) => (download(name, blob), toast("Downloaded the image")), (error) => notice(imageTrouble(error)));
       }
+      /** A canvas as a PNG file's contents. @param {HTMLCanvasElement} canvas @returns {Promise<Blob>} */
+      const pngOf = (canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png"));
+      /** Why the image couldn't be made, as said: unreadable here (see canvasReadable), else plainly. @param {unknown} error */
+      const imageTrouble = (error) => (error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
       /**
        * The chart's picture alone, in a tab of its own (titled with the chart's): to look at, save, or show (an assistant
        * in a browser shares this, not a screenshot of the page). Round it, the picture's own ground (nothing framing it);
@@ -37582,10 +37585,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function openImage() {
         const tab = window.open("", "_blank");
         if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
-        const failed = (/** @type {unknown} */ error = null) => (tab.close(), notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image"));
         tab.document.title = `${titleOf(chart)} · Bitview Studio`;
-        chartImage(pictureSize()).then((canvas) => canvas.toBlob((blob) => {
-          if (!blob || tab.closed) return blob ? undefined : failed();
+        chartImage(pictureSize()).then((canvas) => pngOf(canvas).then((blob) => /** @type {const} */ ([canvas, blob]))).then(([canvas, blob]) => {
+          if (tab.closed) return;
           const url = URL.createObjectURL(new File([blob], fileName("png"), { type: "image/png" })), page = tab.document, image = page.createElement("img");
           openedImages.push(url);
           tab.addEventListener("pagehide", () => {
@@ -37597,7 +37599,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           image.style.cssText = `display: block; width: ${canvas.width / devicePixelRatio}px; max-width: 100%; height: auto`;
           page.body.style.cssText = `margin: 0; min-height: 100vh; display: grid; place-items: center; background: ${css("--card")}`;
           page.body.replaceChildren(image);
-        }), failed);
+        }, (error) => (tab.close(), notice(imageTrouble(error))));
       }
       /** The images opened in tabs of their own, their addresses let go of as this page goes. @type {string[]} */
       const openedImages = [];
@@ -37607,14 +37609,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!canvasReadable()) return void notice(UNREADABLE);
         const name = fileName("png");
         chartImage(pictureSize())
-          .then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")))
-          .then((blob) => navigator.share({ files: [new File([/** @type {Blob} */ (blob)], name, { type: "image/png" })], title: titleOf(chart) }))
+          .then(pngOf)
+          .then((blob) => navigator.share({ files: [new File([blob], name, { type: "image/png" })], title: titleOf(chart) }))
           .catch((/** @type {unknown} */ error) => error instanceof Error && error.name !== "AbortError" && notice(error.message === UNREADABLE ? UNREADABLE : "Couldn't share the image"));
       }
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         if (!canvasReadable()) return void notice(UNREADABLE);
-        const png = chartImage(pictureSize()).then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
+        const png = chartImage(pictureSize()).then(pngOf);
         navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Copied the image: paste it anywhere"), () => notice("Couldn't copy the image"));
       }
       /**
