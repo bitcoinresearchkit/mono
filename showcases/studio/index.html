@@ -25569,6 +25569,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return Boolean(at?.closest("#main") && !at.closest("#home"));
       };
       function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
+        /** The open chart's card drawn again once it's in (see below). @type {(() => void) | null} */
+        let redrawCard = null;
         stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
@@ -25585,9 +25587,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // own fetch tries again, see paint.)
         if (settled() && chart.layers.length && resolved && !resolved.failed.length) {
           // (A heatmap's days aren't at hand at a card's density: its card kept till it's drawn with them, see drawPreview.
-          // One drawn here as it is now already, of the same data (left as it was), kept.)
+          // One drawn here as it is now already, of the same data (left as it was), kept; one as it is, its data since
+          // moved on (a live price, a block: its last points), shown as it shrinks and drawn again in an idle moment once
+          // it's in (not in the motion's frames).)
           const key = chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : previewKey(chart);
-          if (!key || previews.get(chart.id)?.key !== key || cardsDrawn.get(chart.id) !== dataRevision) previews.set(chart.id, { key, ...previewOf(chart, resolved) }), savePreviews(), cardsDrawn.set(chart.id, dataRevision);
+          const drawCard = (/** @type {Chart} */ doc, /** @type {Resolved} */ data, /** @type {number} */ revision) => {
+            const drawn = { key, ...previewOf(doc, data) };
+            previews.set(doc.id, drawn), savePreviews(), cardsDrawn.set(doc.id, revision);
+            return drawn;
+          };
+          if (!key || previews.get(chart.id)?.key !== key) drawCard(chart, resolved, dataRevision);
+          else if (cardsDrawn.get(chart.id) !== dataRevision) {
+            const doc = chart, data = resolved, revision = dataRevision, kept = previews.get(doc.id);
+            // (Only while it's still the chart under the grid: another opened since, what a picture reads of the open one
+            // (its bars' spacing, its room) is that one's; this card kept as it is till the next time.)
+            redrawCard = () => home && chart === doc && previews.get(doc.id) === kept && previewKey(doc) === key && paint(doc.id, drawCard(doc, data, revision), true);
+          }
         }
         // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way; one
         // deleted, gone (nothing to shrink into).)
@@ -25624,6 +25639,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return draft || !seen ? null : card;
         }).then(() => {
           if (!home) return;
+          if (redrawCard) whenIdle(redrawCard);
           // (In reach again once it's there, the focus on it then: inert is style, inherited, and lifting it has the whole
           // page styled again, not in the motion's frames. Moved meanwhile, the focus is where it was put.)
           $("home").inert = false;
