@@ -9,7 +9,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 /** Each unit's steps, from the finest: [seconds a step (about), step in its unit, its unit]. */
 const STEPS = /** @type {const} */ ([
   [3600, 1, "hour"], [6 * 3600, 6, "hour"], [DAY, 1, "day"], [7 * DAY, 7, "day"], [30 * DAY, 1, "month"],
-  [91 * DAY, 3, "month"], [182 * DAY, 6, "month"], [365 * DAY, 1, "year"], [5 * 365 * DAY, 5, "year"], [10 * 365 * DAY, 10, "year"],
+  [91 * DAY, 3, "month"], [182 * DAY, 6, "month"], [365 * DAY, 1, "year"], [2 * 365 * DAY, 2, "year"], [5 * 365 * DAY, 5, "year"], [10 * 365 * DAY, 10, "year"],
 ]);
 
 /** A time's UTC year and month (0 to 11), written here: no Date made each frame (Hinnant's civil from days). */

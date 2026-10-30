@@ -83,10 +83,10 @@ export class Chart {
     this.moved = false;
     this.seams = false;
     /**
-     * A flick gliding on: its speed (CSS pixels a millisecond), its last frame's time, and its speed kept each
-     * millisecond (iOS's lists' rate; more where it'd pass an end: it eases into it, see #fling).
+     * A flick gliding on: its speed (CSS pixels a millisecond), its last frame's time, its speed kept each millisecond
+     * (iOS's lists' rate; more where it'd pass an end: it eases into it, see #fling), and its way left to that end.
      */
-    this.glide = { speed: 0, at: 0, slowing: SLOWING };
+    this.glide = { speed: 0, at: 0, slowing: SLOWING, left: Infinity };
     /** @type {((from: number, to: number) => void)[]} */
     this.rangeListeners = [];
     /** @type {(() => void)[]} */
@@ -269,11 +269,18 @@ export class Chart {
     this.frame = 0;
     const glide = this.glide;
     if (glide.speed) {
-      const dt = Math.min(64, now - glide.at);
+      // (Its move over the frame as its speed falls through it (not at its end's speed); come to its least speed, a
+      // flick easing into an end moves the rest of its way there.)
+      const dt = Math.min(64, now - glide.at), decay = glide.slowing ** dt, ln = -Math.log(glide.slowing);
       glide.at = now;
-      glide.speed *= glide.slowing ** dt;
-      if (Math.abs(glide.speed) < 0.02 || !this.time.pan(glide.speed * dt)) glide.speed = 0;
+      let by = ln < Infinity ? (glide.speed * (1 - decay)) / ln : 0;
+      glide.speed *= decay;
+      const ends = Math.abs(glide.speed) < 0.02;
+      if (ends && glide.left < Infinity) by = Math.sign(by || glide.speed) * glide.left;
+      glide.left -= Math.abs(by);
+      if (!this.time.pan(by) || ends) glide.speed = 0;
       else (this.moved = true), (this.frame = requestAnimationFrame(this.tick));
+      if (ends && by) (this.moved = true), (this.frame ||= requestAnimationFrame(this.tick));
     }
     // (Nothing moved since the last frame, its pictures moved or stretched before: drawn whole now, the seams gone; till
     // then they're kept, a move of less than a pixel moving nothing.)
@@ -440,8 +447,9 @@ export class Chart {
    * @param {number} speed
    */
   #fling(speed) {
-    const glide = this.glide, room = this.time.room(speed);
-    glide.slowing = Math.abs(speed) / -Math.log(SLOWING) > room ? Math.exp(-Math.abs(speed) / Math.max(room, 1e-9)) : SLOWING;
+    const glide = this.glide, room = this.time.room(speed), passes = Math.abs(speed) / -Math.log(SLOWING) > room;
+    glide.slowing = passes ? Math.exp(-Math.abs(speed) / Math.max(room, 1e-9)) : SLOWING;
+    glide.left = passes ? room : Infinity;
     glide.speed = speed;
     glide.at = performance.now();
     this.invalidate();

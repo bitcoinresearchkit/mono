@@ -6,8 +6,9 @@
 
 /** @typedef {"linear" | "log" | "percent" | "indexed"} ScaleMode */
 
-// (A log scale's ticks in a power of ten: all three with room, else the power alone.)
-const THIRDS = [1, 2, 5], ONE = [1];
+// (A log scale's ticks in a decade, the sparsest first, and each one's least gap (in decades): the densest with room.)
+const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
+const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
 
 export class Scale {
   /** @param {{ mode?: ScaleMode, top?: number, bottom?: number }} [options] */
@@ -97,18 +98,23 @@ export class Scale {
   }
 
   /**
-   * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) about `every`
-   * CSS pixels apart; on a log scale over a decade or more, each power of ten, and its 2 and 5 when there's room.
+   * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) `every` CSS
+   * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale over a decade
+   * or more, its powers of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2
+   * and 5; 2 to 6 and 8; all).
    * @param {Float64Array} out @param {number} [every]
    */
-  ticks(out, every = 50) {
+  ticks(out, every = 28) {
     const lo = this.value(this.height), hi = this.value(0), want = Math.max(2, this.height / every);
     let count = 0;
     // (A log scale over a decade or more: its powers of ten, and their 2s and 5s with room; within one, as a linear
     // scale's: round numbers, else it'd show one or none.)
     const decades = this.mode === "log" ? Math.log10(hi / lo) : 0;
     if (decades >= 1) {
-      const steps = decades * 3 <= want ? THIRDS : ONE, every10 = decades <= want ? 1 : Math.ceil(decades / want);
+      const perDecade = this.height / decades;
+      let set = 0;
+      while (set + 1 < DECADE.length && DECADE_GAP[set + 1] * perDecade >= every) set++;
+      const steps = DECADE[set], every10 = perDecade >= every ? 1 : Math.ceil(every / perDecade);
       for (let p = Math.floor(Math.log10(lo)); p <= Math.ceil(Math.log10(hi)) && count < out.length; p += every10)
         for (let k = 0; k < steps.length; k++) {
           const v = steps[k] * 10 ** p;
