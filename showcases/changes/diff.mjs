@@ -6,10 +6,10 @@
 // written out, and those gone for good grouped by cohort and by measure. Run it before a release, both servers synced to
 // the same tip:
 //
-//   bun showcases/api-changes/diff.mjs [old server] [new server]   writes <old version>.json, and lists it on the page
+//   bun showcases/changes/diff.mjs [old server] [new server]   writes <old version>.json, and lists it on the page
 //   ... --to VERSION                                                 the version about to be released (the old one's
 //                                                                    next minor, by default: 0.12.2 to 0.13.0)
-//   ... --cache                                                      keeps what it fetched in target/api-changes, for
+//   ... --cache                                                      keeps what it fetched in target/changes, for
 //                                                                    work on this script (never for a release)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -23,7 +23,7 @@ const toAt = args.indexOf("--to");
 const servers = args.filter((arg, i) => !arg.startsWith("--") && i !== toAt + 1);
 const OLD = (servers[0] ?? "https://bitview.space").replace(/\/$/, "");
 const NEW = (servers[1] ?? "https://next.bitview.space").replace(/\/$/, "");
-const CACHE = args.includes("--cache") ? join(HERE, "..", "..", "target", "api-changes") : null;
+const CACHE = args.includes("--cache") ? join(HERE, "..", "..", "target", "changes") : null;
 // (Requests at once, per server: gentle on a prod server that may be serving alone.)
 const AT_ONCE = 4;
 // (Values read per series: enough that two series match only if they're one, or one cohort's matches another's.)

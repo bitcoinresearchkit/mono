@@ -908,7 +908,7 @@
         typing = setTimeout(lookUp, 250);
       });
       $("search-form").addEventListener("submit", (event) => (event.preventDefault(), lookUp()));
-      // (A link may name an id, and a release: /api-changes/?id=utxos_2y_to_3y_old_supply&from=v0.12.2.)
+      // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply&from=v0.12.2.)
       const params = new URLSearchParams(location.search), asked0 = params.get("id"), from = params.get("from");
       if (asked0) /** @type {HTMLInputElement} */ ($("q")).value = asked0;
       if (RELEASES.length) open(RELEASES.some(([release]) => release === from) ? /** @type {string} */ (from) : RELEASES[0][0]);
