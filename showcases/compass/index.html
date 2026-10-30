@@ -259,6 +259,11 @@
           font-size: 15px;
           font-weight: 550;
 
+          /* (The trend's pill, the index and a six-figure price on one line down to the narrowest phone.) */
+          @media (max-width: 399px) {
+            column-gap: 12px;
+          }
+
           span {
             display: inline-flex;
             align-items: center;
@@ -285,6 +290,57 @@
             svg {
               width: 14px;
               height: 14px;
+            }
+          }
+
+          /* The index: its number, and where it is on a line from Fear's colour through Doubt's to Optimism's; a link to
+             its own part, below. */
+          .index {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: inherit;
+            text-decoration: none;
+
+            &:has(.num:empty) {
+              visibility: hidden;
+            }
+
+            @media (hover: hover) {
+              &:hover small {
+                text-decoration: underline;
+                text-underline-offset: 0.2em;
+              }
+            }
+
+            .meter {
+              position: relative;
+              width: 44px;
+              height: 10px;
+
+              @media (max-width: 399px) {
+                width: 32px;
+              }
+
+              &::before {
+                content: "";
+                position: absolute;
+                inset: 3px 0;
+                border-radius: 2px;
+                background: linear-gradient(90deg, var(--s-fear), var(--s-doubt), var(--s-optimism));
+                opacity: 0.45;
+              }
+
+              &::after {
+                content: "";
+                position: absolute;
+                left: calc(var(--i, 50) * 1% - 5px);
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--dot, var(--s-doubt));
+                box-shadow: 0 0 0 2px var(--app);
+              }
             }
           }
 
@@ -629,6 +685,42 @@
         h2 {
           color: var(--ink);
           font: 400 32px/1.1 var(--serif);
+        }
+      }
+
+      /* The index's part: its whole history, the raw one faint under it; the day pointed at (or today) said in its
+         header, the line under it read the same way. */
+      .index-now {
+        color: var(--soft);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+
+        b {
+          margin: 0 6px 0 8px;
+          color: var(--ink);
+          font-weight: 600;
+        }
+      }
+
+      .index-chart {
+        position: relative;
+        height: 220px;
+        margin: 0;
+        touch-action: pan-y;
+
+        @media (max-width: 719px) {
+          height: 180px;
+        }
+
+        canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        + .note {
+          margin-top: 12px;
         }
       }
 
@@ -1130,7 +1222,7 @@
       <section class="hero shell" id="hero" aria-labelledby="state">
         <p class="day"><span id="day">Today</span><button type="button" class="today" id="today" hidden>Back to today</button></p>
         <h1 id="state"><span class="sr">Compass: </span><span id="name" role="button" tabindex="0" aria-pressed="false">…</span><small id="move"></small></h1>
-        <p class="facts"><span class="trend" id="trend" role="button" tabindex="0" aria-pressed="false"></span><span class="num" id="price"></span><span class="run" id="since"></span></p>
+        <p class="facts"><span class="trend" id="trend" role="button" tabindex="0" aria-pressed="false"></span><a class="index" id="index-chip" href="#index"><small>Index</small><span class="num" id="index-value"></span><i class="meter" aria-hidden="true"></i></a><span class="num" id="price"></span><span class="run" id="since"></span></p>
         <p class="why" id="why"></p>
       </section>
 
@@ -1186,6 +1278,14 @@
             <p class="since" id="counted"></p>
           </div>
         </div>
+      </section>
+
+      <section class="part" id="index" aria-labelledby="index-title">
+        <header><h2 id="index-title">The index</h2><p class="index-now" id="index-now"></p></header>
+        <figure class="index-chart" id="index-chart" aria-label="The index day by day, from a year after the first day to today, the raw one under it: point at a day to read it">
+          <canvas id="index-canvas" aria-hidden="true"></canvas>
+        </figure>
+        <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The faint line is the <b>raw</b> index: the compass's own place ranked the same way, closer to the moods, and faster.</p>
       </section>
 
       <section class="part" aria-labelledby="how-title">
@@ -1381,7 +1481,7 @@
       /**
        * Every day's: close, each cloud's bottom and top, the state, the trend (0 up, 1 turning, 2 down), and where on
        * the compass (x the moment's, y the cycle's, each -1 to 1).
-       * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, trendLines: { sides: Int8Array, values: Float64Array }[], state: Int8Array, trend: Int8Array, x: Float32Array, y: Float32Array }} Days
+       * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, trendLines: { sides: Int8Array, values: Float64Array }[], state: Int8Array, trend: Int8Array, x: Float32Array, y: Float32Array, index: Float32Array, raw: Float32Array }} Days
        */
       /** @type {Days | null} */
       let days = null;
@@ -1416,6 +1516,31 @@
           place[i] = (k ? -1 : 1) * (1 / 3 + (2 / 3) * rank);
         }
         return place;
+      }
+
+      /** The days an index has behind it before it's said: a year (fewer, it'd be ranked against next to nothing). */
+      const RANKED_AFTER = 365;
+      /**
+       * Each day from `first` to `last`, 0 to 100: the share of the days before it at or under its value, each weighted
+       * half as much a halving cycle further back, as placeOf ranks a place outside a cloud (the first day, 50).
+       */
+      function rankOf(/** @type {ArrayLike<number>} */ values, /** @type {number} */ first, /** @type {number} */ last) {
+        const n = last - first + 1, order = Array.from({ length: n }, (_, k) => k).sort((p, q) => values[first + p] - values[first + q]);
+        // (Each day's place among the values, equal ones one place; a Fenwick tree over them for the prefix sums.)
+        const at = new Int32Array(n);
+        let places = 0;
+        for (let k = 1; k < n; k++) at[order[k]] = values[first + order[k]] === values[first + order[k - 1]] ? places : ++places;
+        const tree = new Float64Array(places + 2), rank = new Float32Array(values.length);
+        let mass = 0;
+        for (let k = 0; k < n; k++) {
+          let below = 0;
+          for (let j = at[k] + 1; j > 0; j -= j & -j) below += tree[j];
+          rank[first + k] = mass ? (100 * below) / mass : 50;
+          const weight = 2 ** (k / HALF_LIFE);
+          for (let j = at[k] + 1; j <= places + 1; j += j & -j) tree[j] += weight;
+          mass += weight;
+        }
+        return rank;
       }
 
       function compute(/** @type {Record<string, Answer>} */ answered, which = coins, by = basis) {
@@ -1461,9 +1586,18 @@
         }
         // (Where on the compass: the moment's place across, the cycle's up.)
         const x = placeOf(close, short, first, last), y = placeOf(close, long, first, last);
+        // (How far into a mood, 0 to 100: the index, the price's distance from both clouds' middles (in log terms, the
+        // two added) ranked; the raw one, the compass's place (across and up, added) ranked.)
+        const away = new Float64Array(n), place = new Float64Array(n);
+        for (let i = first; i <= last; i++) {
+          away[i] = 2 * Math.log(close[i]) - Math.log(long[0][i] * long[1][i] * short[0][i] * short[1][i]) / 2;
+          place[i] = x[i] + y[i];
+        }
+        const index = rankOf(away, first, last), raw = rankOf(place, first, last);
+        for (let i = first; i < Math.min(last + 1, first + RANKED_AFTER); i++) index[i] = raw[i] = NaN;
         // (Each trend's line: its floor while on a support, its ceiling while on a resistance.)
         const trendLines = trends.map((sides, k) => ({ sides, values: Float64Array.from(sides, (side, i) => (side === 1 ? floors[k][i] : side === -1 ? ceilings[k][i] : NaN)) }));
-        return { first, last, close, cloud: { long, short }, trendLines, state, trend, x, y };
+        return { first, last, close, cloud: { long, short }, trendLines, state, trend, x, y, index, raw };
       }
 
       /** The run of days a day's state belongs to: its first and its last. */
@@ -1737,6 +1871,7 @@
             ctx.fillRect(x0, lane, x1 - x0, LANE);
             i = j + 1;
           }
+
           ctx = onScreen;
         }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1879,6 +2014,8 @@
       }
       /** A colour at an opacity, as a canvas reads it (whatever form the browser resolved it to). */
       const withAlpha = (/** @type {string} */ color, /** @type {number} */ alpha) => `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
+      /** An index's colour: Fear's at 0, Doubt's at 50, Optimism's at 100, mixed between (as the pane's gradient). */
+      const indexMix = (/** @type {number} */ index, /** @type {string[]} */ [optimism, doubt, fear]) => (index < 50 ? `color-mix(in srgb, ${fear}, ${doubt} ${index * 2}%)` : `color-mix(in srgb, ${doubt}, ${optimism} ${(index - 50) * 2}%)`);
 
       // ── Drawing: one frame at a time, all that moves in it ──
 
@@ -1894,7 +2031,7 @@
         /** @type {any} */ (window).bitviewLaunch?.ready();
       }
       /** The one place anything's drawn, once a frame: a span's easing or the range's following moved on, a playing day
-       * moved on, then the chart, the compass, the strip and the pan bar. */
+       * moved on, then the chart, the compass, the strip, the index and the pan bar. */
       function frame(/** @type {number} */ now) {
         queued = 0;
         if (!days) return;
@@ -1917,6 +2054,7 @@
         draw();
         drawCompass();
         drawStrip();
+        drawIndex();
         drawPan();
         // (Its first frame drawn, at its size: a home screen's launch hands over to it now, not to an empty chart.)
         if (width) launch();
@@ -2309,12 +2447,16 @@
         const [from, to] = runOf(d.state, day), length = to - from + 1;
         $("since").innerHTML = to === d.last ? `Since ${dated(from, dateOf(from).getUTCFullYear() !== dateOf(d.last).getUTCFullYear())}<small>· ${lasted(length)}</small>` : `${dated(from, dateOf(from).getUTCFullYear() !== dateOf(to).getUTCFullYear())} – ${dated(to)}<small>· ${lasted(length)}</small>`;
         $("price").textContent = usd(d.close[day]);
+        const index = Math.round(d.index[day]);
+        $("index-value").textContent = Number.isNaN(index) ? "" : String(index);
+        $("index-chip").style.setProperty("--i", String(index));
+        $("index-chip").style.setProperty("--dot", indexMix(index, ["var(--s-optimism)", "var(--s-doubt)", "var(--s-fear)"]));
         const trendWords = t === 0 ? "all three trends on a support" : t === 2 ? "all three trends on a resistance" : "the trends split";
         const cycleWords = SIDE_WORDS[state.cycle];
         const why = `${cycleWords[0].toUpperCase()}${cycleWords.slice(1)} the long-term cloud, ${SIDE_WORDS[state.local]} the short-term one; ${trendWords}.`;
         $("why").textContent = why;
         if (say) remember();
-        if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend. ${why}`;
+        if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend${Number.isNaN(index) ? "" : `, index ${index}`}. ${why}`;
       }
 
       // ── Moods and trends lit: each pressed wherever it's named (its compass cell, its row, the words over the chart),
@@ -2488,6 +2630,123 @@
         stripContext.stroke();
       }
       new ResizeObserver(redraw).observe(strip);
+
+      // ── The index, in a part of its own: every day from the first to today, the raw index faint under it; the day
+      // pointed at (or today) said over it, ringed on both ──
+
+      const indexChart = $("index-chart"), indexCanvas = /** @type {HTMLCanvasElement} */ ($("index-canvas"));
+      const indexContext = /** @type {CanvasRenderingContext2D} */ (indexCanvas.getContext("2d"));
+      /** Its lines drawn once (for its days, a size, a density, colours, what's lit), the day pointed at over them. */
+      const indexBase = document.createElement("canvas");
+      let indexKey = "", indexDays = /** @type {Days | null} */ (null), indexTold = "";
+      /** The day pointed at on it, or null: today's said. */
+      let indexAt = /** @type {number | null} */ (null);
+      /** Its layout, in CSS pixels: its lines' top, the room at the right for its scale, the dates' row under it. */
+      const INDEX_LAYOUT = { top: 8, right: 30, dates: 26 };
+      function drawIndex() {
+        const w = indexCanvas.clientWidth, h = indexCanvas.clientHeight;
+        if (!days || !w) return;
+        const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, from = d.first + RANKED_AFTER;
+        const x = (/** @type {number} */ day) => ((day - from + 0.5) / (d.last - from + 1)) * right;
+        const y = (/** @type {number} */ index) => INDEX_LAYOUT.top + (1 - index / 100) * (bottom - INDEX_LAYOUT.top);
+        const key = `${w}×${h}×${dpr}×${paint.ink}×${litKey()}`;
+        for (const c of [indexCanvas, indexBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
+        if (key !== indexKey || d !== indexDays) {
+          (indexKey = key), (indexDays = d);
+          const g = /** @type {CanvasRenderingContext2D} */ (indexBase.getContext("2d"));
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.clearRect(0, 0, w, h);
+          // Its scale: the middle a faint line, 20 and 80 dashed, each named at the right.
+          g.font = "500 11px Inter, system-ui, sans-serif";
+          g.textAlign = "right";
+          g.textBaseline = "middle";
+          for (const at of [0, 20, 50, 80, 100]) {
+            g.fillStyle = paint.faint;
+            g.fillText(String(at), w, y(at));
+            if (at % 100 === 0) continue;
+            g.strokeStyle = withAlpha(paint.ink, at === 50 ? 0.16 : 0.1);
+            g.lineWidth = 1;
+            g.setLineDash(at === 50 ? [] : [3, 4]);
+            g.beginPath();
+            g.moveTo(0, Math.round(y(at)) + 0.5);
+            g.lineTo(right, Math.round(y(at)) + 0.5);
+            g.stroke();
+          }
+          g.setLineDash([]);
+          // Years along the foot, as many as fit.
+          g.textAlign = "center";
+          g.textBaseline = "alphabetic";
+          const since = dateOf(from).getUTCFullYear() + 1, to = dateOf(d.last).getUTCFullYear(), every = Math.ceil((to - since + 1) / Math.max(1, Math.floor(right / 64)));
+          for (let year = since; year <= to; year++) {
+            if ((to - year) % every) continue;
+            const at = x((Date.UTC(year, 0, 1) - EPOCH) / DAY);
+            if (at > 16 && at < right - 16) g.fillText(String(year), at, h - 6);
+          }
+          // The raw index, faint; the index over it in the colour of where it is (Fear's at 0, Doubt's at 50,
+          // Optimism's at 100). Each run of days not lit, faded.
+          const byHeight = g.createLinearGradient(0, y(100), 0, y(0));
+          byHeight.addColorStop(0, paint.states[0]);
+          byHeight.addColorStop(0.5, paint.states[4]);
+          byHeight.addColorStop(1, paint.states[8]);
+          g.lineJoin = "round";
+          for (const [values, style, lineWidth] of /** @type {const} */ ([[d.raw, withAlpha(paint.ink, 0.3), 1], [d.index, byHeight, 1.75]])) {
+            g.strokeStyle = style;
+            g.lineWidth = lineWidth;
+            for (let i = from; i <= d.last; ) {
+              const on = litDay(i);
+              let j = i;
+              while (j + 1 <= d.last && litDay(j + 1) === on) j++;
+              g.globalAlpha = on ? 1 : FADED;
+              g.beginPath();
+              // (A run from the day before it, so the runs meet.)
+              for (let k = Math.max(from, i - 1); k <= j; k++) g.lineTo(x(k), y(values[k]));
+              g.stroke();
+              i = j + 1;
+            }
+          }
+          g.globalAlpha = 1;
+          const today = Math.round(d.index[d.last]);
+          $("index-read").textContent = `Today's, ${today}: further over them than on ${today}% of the days before.`;
+        }
+        indexContext.setTransform(1, 0, 0, 1, 0, 0);
+        indexContext.clearRect(0, 0, indexCanvas.width, indexCanvas.height);
+        indexContext.drawImage(indexBase, 0, 0);
+        // The day pointed at, a line down it (today, its rings alone), both indexes ringed on it.
+        indexContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const day = indexAt ?? d.last, at = Math.round(x(day)) + 0.5;
+        if (indexAt !== null) (indexContext.fillStyle = withAlpha(paint.ink, 0.28)), indexContext.fillRect(at - 0.5, 0, 1, bottom);
+        for (const [cy, r, fill] of /** @type {const} */ ([[y(d.raw[day]), 3, withAlpha(paint.ink, 0.5)], [y(d.index[day]), 4.5, indexMix(d.index[day], [paint.states[0], paint.states[4], paint.states[8]])]])) {
+          indexContext.beginPath();
+          indexContext.arc(at, cy, r, 0, Math.PI * 2);
+          indexContext.fillStyle = fill;
+          indexContext.fill();
+          indexContext.lineWidth = 2;
+          indexContext.strokeStyle = paint.app;
+          indexContext.stroke();
+        }
+        const told = `${day}|${d.index[day]}|${d.raw[day]}`;
+        if (told !== indexTold) {
+          indexTold = told;
+          $("index-now").innerHTML = `${day === d.last ? "Today" : dated(day)}<b>${Math.round(d.index[day])}</b>raw ${Math.round(d.raw[day])}`;
+        }
+      }
+      new ResizeObserver(redraw).observe(indexCanvas);
+      /** A mouse reads the day under it; a finger, while it holds and slides. */
+      const pointIndex = (/** @type {PointerEvent} */ e) => {
+        const d = /** @type {Days} */ (days), w = indexCanvas.clientWidth - INDEX_LAYOUT.right, from = d.first + RANKED_AFTER;
+        if (!days || e.offsetX > w) return leaveIndex();
+        indexAt = Math.max(from, Math.min(d.last, from + Math.floor((e.offsetX / w) * (d.last - from + 1))));
+        redraw();
+      };
+      const leaveIndex = () => {
+        if (indexAt === null) return;
+        indexAt = null;
+        redraw();
+      };
+      indexChart.addEventListener("pointerdown", pointIndex);
+      indexChart.addEventListener("pointermove", pointIndex);
+      for (const type of ["pointerleave", "pointercancel"]) indexChart.addEventListener(type, leaveIndex);
+      indexChart.addEventListener("pointerup", (e) => e.pointerType !== "mouse" && leaveIndex());
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
       // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it or
