@@ -10928,6 +10928,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">Shortcuts that are a single letter, digit or symbol. When off, only shortcuts with ⌘ or ⌥ work</span></span>
         <div class="tabs" role="group" aria-labelledby="single-keys-label" aria-describedby="single-keys-text"><button type="button" data-single-keys="off" aria-pressed="false">Off</button><button type="button" data-single-keys="on" aria-pressed="true">On</button></div>
       </div>
+      <!-- (Its lists made the first time it opens: see keyGroupsNow.) -->
+      <template id="key-groups">
       <div class="key-groups">
         <div>
           <h3>General</h3>
@@ -11039,6 +11041,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </dl>
         </div>
       </div>
+      </template>
     </dialog>
 
     <div id="menu" class="menu" role="menu" tabindex="-1" hidden></div>
@@ -38182,8 +38185,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const copied = await copyLink(kind === "link" ? linksOf().copy : Promise.resolve(JSON.stringify(portable(chart), null, 2)));
         copied ? toast(kind === "link" ? "Copied the link" : "Copied the JSON") : notice("Couldn't copy");
       });
+      /**
+       * The shortcuts sheet's lists, made the first time it opens (600 elements a phone may never show, none of them
+       * styled, laid out or read by the page meanwhile): their keys as this platform writes them and drawn, as the page's.
+       */
+      function keyGroupsNow() {
+        const template = /** @type {HTMLTemplateElement | null} */ (document.getElementById("key-groups"));
+        if (!template) return;
+        const groups = /** @type {DocumentFragment} */ (template.content.cloneNode(true));
+        for (const element of groups.querySelectorAll(MAC ? "kbd" : "kbd, dt, h3")) element.textContent = keyText(element.textContent ?? "");
+        drawKeys(groups);
+        template.replaceWith(groups);
+      }
       /** The shortcuts sheet opens on itself, not on a ringed close button. */
       function showShortcuts() {
+        keyGroupsNow();
         renderSingleKeys();
         arrive($("shortcuts"));
         showDialog($("shortcuts"));
