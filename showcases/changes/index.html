@@ -591,6 +591,9 @@
       // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
       // diff.mjs from two servers, the one release's and the other's before it was released.
       const RELEASES = [["v0.12.2","v0.13.0"]];
+      // Libraries of Bitview's own, released apart, a tab each after its own: their name, their changelog beside this
+      // page (linked from theirs), and what they do in Bitview.
+      const LIBRARIES = [["quickmatch", "./quickmatch/CHANGELOG.md", "the fuzzy matching Studio's search finds series and charts with"]];
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const escape = (/** @type {unknown} */ text) =>
@@ -709,8 +712,9 @@
 
       /**
        * @typedef {import("./changelog.js").Release} Release
-       * @typedef {{ name: string, label: string, notes: Release[], api?: string[] }} Tab A minor release (`0.12`), or
-       *   those not released yet; its releases' notes, newest first; the API comparison into it, as from, to.
+       * @typedef {{ name: string, label: string, notes: Release[], api?: string[], library?: string[] }} Tab A minor
+       *   release (`0.12`), or those not released yet, or a library's releases; its releases' notes, newest first; the
+       *   API comparison into it, as from, to; the library, as LIBRARIES has it.
        */
       /** @type {Tab[]} */
       let tabs = [];
@@ -725,10 +729,12 @@
 
       /**
        * The tabs: the changelog's releases by their minor, then each API comparison in the tab of the release it's
-       * into, those not released yet if it isn't out (a tab of its own if the changelog has neither).
+       * into, those not released yet if it isn't out (a tab of its own if the changelog has neither); then a tab each
+       * library with releases.
        * @param {Release[]} notes
+       * @param {Release[][]} libraries each library's releases, as LIBRARIES lists them
        */
-      function tabsOf(notes) {
+      function tabsOf(notes, libraries) {
         /** @type {Tab[]} */
         const tabs = [];
         for (const release of notes) {
@@ -742,6 +748,7 @@
           if (tab) tab.api ??= [from, to];
           else tabs.push({ name: minorOf(to), label: versions(from, to).join(" → "), notes: [], api: [from, to] });
         }
+        LIBRARIES.forEach((library, i) => libraries[i].length && tabs.push({ name: library[0], label: library[0], notes: libraries[i], library }));
         return tabs;
       }
 
@@ -775,6 +782,10 @@
       /** What a tab says first: what its notes are, and how to find an id of its API's. @param {Tab} tab */
       function leadOf(tab) {
         const released = tab.notes.filter((release) => release.version);
+        if (tab.library) {
+          const [name, , does] = tab.library, span = released.length > 1 ? `, ${version(/** @type {Release} */ (released.at(-1)))} to ${version(released[0])}` : "";
+          return `What each release of ${escape(name)} changed${span}: ${escape(does)}.`;
+        }
         const notes = !tab.notes.length
           ? ""
           : !released.length
@@ -798,7 +809,9 @@
             said: group.said.join(" "),
             rows: group.notes.map((note) => ({ html: `<li class="whole">${note.html}</li>`, text: `${note.text} ${group.kind} ${group.topic?.text ?? ""}` })),
           }));
-          addSection(release.version ?? "unreleased", title, release.said.join("</p><p>"), lists, release.version ? version(release) : "Unreleased");
+          // (A library's ids its own, as its versions are: `quickmatch-v0.3.0`.)
+          const id = `${tab.library ? `${tab.library[0]}-` : ""}${release.version ?? "unreleased"}`;
+          addSection(id, title, release.said.join("</p><p>"), lists, release.version ? version(release) : "Unreleased");
         }
       }
 
@@ -1029,9 +1042,10 @@
       // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply, /changes/?release=0.12.)
       const params = new URLSearchParams(location.search), asked0 = params.get("id"), wanted = params.get("release");
       if (asked0) /** @type {HTMLInputElement} */ ($("q")).value = asked0;
-      // (Without the changelog, the API's comparisons alone.)
-      const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
-      tabs = tabsOf(releases(changelog));
+      // (Without a changelog, what's left: the API's comparisons alone, if it's Bitview's.)
+      const textOf = (/** @type {string} */ path) => fetch(path).then((response) => (response.ok ? response.text() : ""), () => "");
+      const [changelog, ...libraries] = await Promise.all([textOf("./CHANGELOG.md"), ...LIBRARIES.map(([, path]) => textOf(path))]);
+      tabs = tabsOf(releases(changelog), libraries.map(releases));
       if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
       else $("lead").textContent = "No release yet.";
     </script>
