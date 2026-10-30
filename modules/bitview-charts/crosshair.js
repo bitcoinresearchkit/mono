@@ -11,7 +11,7 @@ const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "A
 export class Crosshair {
   constructor() {
     this.canvas = document.createElement("canvas");
-    this.canvas.style.cssText = "position: absolute; left: 0; top: 0; display: block; pointer-events: none";
+    this.canvas.style.cssText = "position: absolute; left: 0; top: 0; z-index: 1; display: block; pointer-events: none";
     const g = this.canvas.getContext("2d");
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;

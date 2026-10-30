@@ -128,7 +128,8 @@ export class Chart {
   addPane(options) {
     const pane = new Pane(options);
     this.panes.push(pane);
-    this.element.insertBefore(pane.canvas, this.timeAxis.canvas);
+    // (Under the crosshair however they're put in: see its z-index.)
+    this.element.append(pane.canvas, pane.axisCanvas);
     // (Its left scale come or gone, its layer over it come: laid out again.)
     pane.onLayout = () => this.layout();
     this.layout();
@@ -139,6 +140,7 @@ export class Chart {
   removePane(pane) {
     this.panes = this.panes.filter((each) => each !== pane);
     pane.canvas.remove();
+    pane.axisCanvas.remove();
     pane.leftCanvas?.remove();
     pane.overCanvas?.remove();
     this.layout();
@@ -231,11 +233,12 @@ export class Chart {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
       pane.place(top, width, bottom - top, this.axis, this.dpr);
       pane.canvas.style.left = `${left}px`;
+      pane.axisCanvas.style.left = `${left + pane.plot}px`;
       const had = pane.leftCanvas;
       pane.placeLeft(top, left, this.dpr);
-      if (pane.leftCanvas && !had) this.element.insertBefore(pane.leftCanvas, this.timeAxis.canvas);
+      if (pane.leftCanvas && !had) this.element.append(pane.leftCanvas);
       if (pane.leftCanvas) pane.leftCanvas.style.display = left ? "block" : "none";
-      // (Its layer over everything: over the crosshair, the last in.)
+      // (Its layer over everything: over the crosshair (see their z-index).)
       if (pane.overCanvas) {
         if (!pane.overCanvas.parentNode) this.element.append(pane.overCanvas);
         pane.overCanvas.style.left = `${left}px`;
@@ -337,9 +340,9 @@ export class Chart {
     const signal = this.listening.signal;
     element.addEventListener("pointerdown", (event) => {
       // (A separator dragged: no other pointer does anything meanwhile. A press beginning on a page's own element in the
-      // chart (a legend's button) is the page's: none of its canvases, not the chart's; one more during the chart's own
-      // (a second finger: a pinch), the chart's wherever it lands.)
-      if (event.button || sizer >= 0 || (!down.size && event.target !== element && !(event.target instanceof HTMLCanvasElement && event.target.parentElement === element))) return;
+      // chart (a legend's button) is the page's: none of its canvases (wherever a page put them), not the chart's; one
+      // more during the chart's own (a second finger: a pinch), the chart's wherever it lands.)
+      if (event.button || sizer >= 0 || (!down.size && event.target !== element && !this.#owns(event.target))) return;
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
@@ -441,6 +444,13 @@ export class Chart {
     }, { passive: false, signal });
   }
 
+  /** Whether `target` is one of its canvases (a pane's plot or axes, the time axis). @param {EventTarget | null} target */
+  #owns(target) {
+    if (target === this.timeAxis.canvas) return true;
+    for (const pane of this.panes) if (target === pane.canvas || target === pane.axisCanvas || target === pane.leftCanvas) return true;
+    return false;
+  }
+
   /**
    * A flick let go at `speed` (CSS pixels a millisecond): it glides on, slowing as iOS's lists do (its travel `speed /
    * -ln(SLOWING)`); where that would pass an end, slowing faster to come to rest there (held at it, it stopped dead).
@@ -491,7 +501,7 @@ export class Chart {
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();
-    for (const pane of this.panes) pane.canvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove();
+    for (const pane of this.panes) pane.canvas.remove(), pane.axisCanvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove();
     this.timeAxis.canvas.remove();
     this.panes = [];
   }

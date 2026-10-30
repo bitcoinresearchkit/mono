@@ -53,11 +53,16 @@ export class Pane {
    * @param {{ share?: number, scale?: ConstructorParameters<typeof Scale>[0], left?: ConstructorParameters<typeof Scale>[0], format?: (v: number) => string }} [options]
    */
   constructor({ share = 1, scale, left, format = compact } = {}) {
+    // (Its plot's canvas, and its right axis' beside it (as its left axis' is, see placeLeft): a page can move or stretch
+    // the plot alone.)
     this.canvas = document.createElement("canvas");
     this.canvas.style.cssText = "position: absolute; left: 0; display: block";
     const g = this.canvas.getContext("2d", { alpha: false });
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;
+    this.axisCanvas = document.createElement("canvas");
+    this.axisCanvas.style.cssText = "position: absolute; left: 0; display: block";
+    this.axisG = /** @type {CanvasRenderingContext2D} */ (this.axisCanvas.getContext("2d", { alpha: false }));
     /** Its part of the chart's height, against the other panes'. */
     this.share = share;
     this.scale = new Scale(scale);
@@ -155,7 +160,8 @@ export class Pane {
     }
     if (series.over && !this.overCanvas) {
       this.overCanvas = document.createElement("canvas");
-      this.overCanvas.style.cssText = "position: absolute; left: 0; display: block; pointer-events: none";
+      // (Over the crosshair's, wherever a page puts them.)
+      this.overCanvas.style.cssText = "position: absolute; left: 0; z-index: 2; display: block; pointer-events: none";
       this.overG = this.overCanvas.getContext("2d");
       this.onLayout();
     }
@@ -254,17 +260,20 @@ export class Pane {
   }
 
   /**
-   * Laid out at `top`, `width` by `height` CSS pixels, the axis `axis` wide, at `dpr` device pixels a CSS pixel.
+   * Laid out at `top`, `width` by `height` CSS pixels (its plot, then its axis `axis` wide), at `dpr` device pixels a CSS
+   * pixel.
    * @param {number} top @param {number} width @param {number} height @param {number} axis @param {number} dpr
    */
   place(top, width, height, axis, dpr) {
-    const w = Math.round(width * dpr), h = Math.round(height * dpr);
-    if (this.canvas.width !== w || this.canvas.height !== h) (this.canvas.width = w), (this.canvas.height = h), (this.drawnFrom = NaN);
-    Object.assign(this.canvas.style, { top: `${top}px`, width: `${width}px`, height: `${height}px` });
     this.top = top;
     this.width = width;
     this.height = height;
     this.plot = Math.max(1, width - axis);
+    const w = Math.round(this.plot * dpr), h = Math.round(height * dpr), aw = Math.round((width - this.plot) * dpr);
+    if (this.canvas.width !== w || this.canvas.height !== h) (this.canvas.width = w), (this.canvas.height = h), (this.drawnFrom = NaN);
+    Object.assign(this.canvas.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px` });
+    if (this.axisCanvas.width !== aw || this.axisCanvas.height !== h) (this.axisCanvas.width = aw), (this.axisCanvas.height = h), (this.drawnFrom = NaN);
+    Object.assign(this.axisCanvas.style, { top: `${top}px`, width: `${width - this.plot}px`, height: `${height}px` });
     this.scale.height = height;
     if (this.left) this.left.height = height;
     // (Its ticks' room: at most one each 28 pixels (see Scale.ticks), a few more at the ends.)
@@ -482,10 +491,10 @@ export class Pane {
     return moves || stretches;
   }
 
-  /** Its axes drawn (the right one's on its canvas past the plot, the left one's on its own): ticks, tags, separators. @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
+  /** Its axes drawn (each on its own canvas, beside its plot): ticks, tags, separators. @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
   #axes(time, theme, dpr) {
-    this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.#axis(this.g, this.scale, time, theme, dpr, this.plot, this.width - this.plot, 0);
+    this.axisG.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.#axis(this.axisG, this.scale, time, theme, dpr, 0, this.width - this.plot, 0);
     if (this.leftG && this.leftWidth) {
       const lg = this.leftG;
       lg.setTransform(dpr, 0, 0, dpr, 0, 0);
