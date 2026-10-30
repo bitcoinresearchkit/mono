@@ -25457,7 +25457,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const tile = /** @type {HTMLElement} */ (made.content.firstElementChild);
         place.replaceWith(tile);
         restoreFocus(tile, focus);
-        for (const frame of all$(".pending[data-plot]", tile)) galleryTilesSeen.observe(frame);
+        for (const frame of all$(".pending[data-plot]", tile)) watchTile(frame);
         return tile;
       }
       /** Every slot of a shelf's row filled (a keyboard's focus come into it: Tab reaches each tile). @param {HTMLElement} row */
@@ -25502,6 +25502,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         galleryQueue.clear();
         gallerySeen.clear();
         galleryTilesSeen.disconnect();
+        galleryAhead.clear();
+        galleryTilesAhead.disconnect();
         galleryFound = 0;
         // (The focus in it, back on its like once drawn. A shelf's arrows are alike: one focused is let go, not put on
         // another shelf's.)
@@ -25542,7 +25544,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (kept) placeGallery(kept);
         restoreFocus($("gallery"), focus);
-        for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
+        for (const frame of all$(".pending[data-plot]", $("gallery"))) watchTile(frame);
         shelvesSoon();
       }
       /**
@@ -25689,9 +25691,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
         drawGallery();
       });
+      // (Ahead: the tiles a screen below the view, drawn while the grid's at rest (its scroll ended, no finger on it), after
+      // those in view, one at a time: a scroll finds them drawn. A touch or a scroll stops the next.)
+      const galleryAhead = /** @type {Set<Element>} */ (new Set()), homeScroller = /** @type {HTMLElement} */ ($("home").querySelector(".home-scroll"));
+      let galleryResting = true;
+      // (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
+      // margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
+      const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entries) => {
+        for (const entry of entries) entry.isIntersecting ? galleryAhead.add(entry.target) : galleryAhead.delete(entry.target);
+        drawGallery();
+      }, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
+      let galleryTilesAhead = aheadOf(homeScroller.clientHeight || innerHeight), aheadHeight = homeScroller.clientHeight;
+      new ResizeObserver(() => {
+        const height = homeScroller.clientHeight;
+        if (!height || height === aheadHeight) return;
+        aheadHeight = height;
+        galleryTilesAhead.disconnect();
+        galleryAhead.clear();
+        galleryTilesAhead = aheadOf(height);
+        for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesAhead.observe(frame);
+      }).observe(homeScroller);
+      /** A tile waiting to be drawn, watched in view and a screen ahead. @param {Element} frame */
+      const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
+      // (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
+      // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
+      $("home").addEventListener("scroll", () => (galleryResting = false), { capture: true, passive: true });
+      $("home").addEventListener("scrollend", () => ((galleryResting = true), drawGallery()), { capture: true });
+      $("home").addEventListener("pointerdown", () => (galleryResting = false));
+      $("home").addEventListener("pointerup", () => ((galleryResting = true), drawGallery()));
+      /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
+      const nextGallery = (tried) => {
+        for (const i of galleryQueue) return galleryQueue.delete(i), i;
+        if (galleryResting) for (const frame of galleryAhead) if (frame.isConnected && frame.classList.contains("pending") && !tried.has(presetOf(frame))) return presetOf(frame);
+        return -1;
+      };
       const drawGallery = serial(async () => {
-        for (const i of galleryQueue) {
-          galleryQueue.delete(i);
+        const tried = /** @type {Set<number>} */ (new Set());
+        for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
+          tried.add(i);
           if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
           const doc = presetDoc(i), have = previews.get(doc.id);
           // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
