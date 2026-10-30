@@ -11392,6 +11392,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
       const phone = matchMedia(PHONE);
+      /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
+      let listOwed = false;
       /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
       const readRowSizes = () => ({ value: parseFloat(css("--row-value-size")), change: parseFloat(css("--row-change-size")) });
       let rowSizes = readRowSizes();
@@ -25340,7 +25342,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderSideNav() {
         const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => on !== element.hasAttribute("aria-current") && (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
         const folder = home && "folder" in homeAt ? homeAt.folder : null, path = home && "path" in homeAt ? JSON.stringify(homeAt.path) : null, at = home ? JSON.stringify(homeAt) : "";
-        lit($("charts-nav"), home && "top" in homeAt);
+        // (Charts' row in the list: none where the list is owed, a phone's, see renderCharts.)
+        const nav = document.getElementById("charts-nav");
+        if (nav) lit(nav, home && "top" in homeAt);
         for (const head of all$("[data-at]", $("chart-list"))) lit(head, head.dataset.at === at);
         for (const button of all$("[data-folder-item]", $("chart-list"))) lit(button, button.dataset.folderItem === folder);
         for (const button of all$("[data-section-item]", $("chart-list"))) lit(button, button.dataset.sectionItem === path);
@@ -26889,6 +26893,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const names = (doc.layers ?? []).filter((layer) => layer.type !== "signal").map(labelOf);
         return !names.length ? "Untitled chart" : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} & ${names.length - 1} more`;
       };
+      /** The sidebar's list, written first where it's owed (⌘1–⌘9 read its rows on a phone's layout too). */
+      function sideList() {
+        if (listOwed) writeSideList(home ? null : chart);
+        return $("chart-list");
+      }
       /**
        * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine of its topmost open
        * group's (see numbered): written
@@ -26896,6 +26905,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function renderCharts() {
         const current = home ? null : chart;
+        // (On a phone the sidebar never shows: its list left unwritten, owed, till the layout turns wider or something
+        // reads it: see sideList.)
+        if (phone.matches) listOwed = true;
+        else writeSideList(current);
+        renderSideNav();
+        // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
+        $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
+        // (A preset's: what can be done with it beside it, Reset once it's edited.)
+        $("preset-note").hidden = chart.preset === undefined || presetIndex(chart) < 0;
+        renderChartPath();
+        $("preset-reset").hidden = $("preset-note").hidden || !presetEdited(chart);
+        $("chart-more").hidden = !home && isPreview(chart) && !chart.layers.length;
+        // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
+        /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
+        // (Layers, the open chart's: none in the grid, nor on an empty chart.)
+        $("mobile-layers").disabled = home || !chart.layers.length;
+        if (home) $("mobile-charts").setAttribute("aria-current", "page");
+        else $("mobile-charts").removeAttribute("aria-current");
+        if (home) $("mobile-add").removeAttribute("aria-haspopup");
+        else $("mobile-add").setAttribute("aria-haspopup", "dialog");
+        keepNaming();
+        renderHome();
+        // (The empty chart's cards, where they show, one of them edited since: as it is now.)
+        if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
+      }
+      /** The sidebar's list written (see renderCharts): its rows, ⌘1–⌘9's keys, the presets' marks, the open one lit. @param {Chart | null} current */
+      function writeSideList(current) {
+        listOwed = false;
         /** A preview's row, its × (but the open one with nothing to go back to). */
         const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
@@ -26981,26 +27018,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (presetToReveal >= 0 && presetToReveal === openedPreset && $("chart-list").querySelector(`[data-open-preset="${openedPreset}"]`)) (presetToReveal = -1), revealNearest(openedPreset, /** @type {Chart} */ (current).id);
         // (Its Tab stop, the open one marked first.)
         roveList();
-        renderSideNav();
-        // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
-        $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
-        // (A preset's: what can be done with it beside it, Reset once it's edited.)
-        $("preset-note").hidden = chart.preset === undefined || presetIndex(chart) < 0;
-        renderChartPath();
-        $("preset-reset").hidden = $("preset-note").hidden || !presetEdited(chart);
-        $("chart-more").hidden = !home && isPreview(chart) && !chart.layers.length;
-        // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
-        /** @type {HTMLElement} */ ($("mobile-add").querySelector(".label")).textContent = home ? "New chart" : "Add";
-        // (Layers, the open chart's: none in the grid, nor on an empty chart.)
-        $("mobile-layers").disabled = home || !chart.layers.length;
-        if (home) $("mobile-charts").setAttribute("aria-current", "page");
-        else $("mobile-charts").removeAttribute("aria-current");
-        if (home) $("mobile-add").removeAttribute("aria-haspopup");
-        else $("mobile-add").setAttribute("aria-haspopup", "dialog");
-        keepNaming();
-        renderHome();
-        // (The empty chart's cards, where they show, one of them edited since: as it is now.)
-        if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
       }
       /** A count as the sidebar says it, short: whole thousands (1k, 11k, 111k), whole millions, never more than it is. */
       const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
@@ -27266,7 +27283,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const numbered = () => {
         const rows = [];
         let open = false;
-        for (const row of $("chart-list").children) {
+        for (const row of sideList().children) {
           if (row.matches(".list-head")) {
             if (rows.length) break;
             open = !row.classList.contains("closed");
