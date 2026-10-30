@@ -11125,9 +11125,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tokens.set(name, `#${[r, g, b, ...(a < 1 ? [a * 255] : [])].map((n) => Math.round(n).toString(16).padStart(2, "0")).join("")}`);
         });
       }
+      /** What the page's tokens are read for: its theme and the media they answer to. */
+      const tokensNow = () => [document.documentElement.dataset.theme, ...tokensMedia.map((media) => media.matches)].join();
       /** A token's value (none set: ""). @param {string} name */
       const css = (name) => {
-        const now = [document.documentElement.dataset.theme, ...tokensMedia.map((media) => media.matches)].join();
+        const now = tokensNow();
         if (now !== tokensFor) (tokens.clear(), (tokensFor = now), readTokens());
         // (One the page's root doesn't list, read by its name: a browser that lists none (Chromium before 141), one unset.)
         if (!tokens.has(name)) readTokens([name]);
@@ -11989,13 +11991,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FORMAT_GROUPS = new Set(["usd", "percent", "days", "bytes", "hashrate", "coindays"]);
       /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
       /** `tip`: its name as its tip, where the letter stands alone for it (several layers' heads). */
+      /** Each letter's tone (see letterChip), by its color, the theme and the tokens. @type {Map<string, string>} */
+      const letterTones = new Map();
       function letterChip(layer, tip = false) {
         const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
-        const color = ink(colored.color);
+        const color = ink(colored.color), key = `${color}|${light}|${tokensNow()}`;
         // (Its letter in a tone of it that reads on its own tint, 4.5:1, on each ground it's on: the card, a raised
-        // surface, a lit row on it; the tint and edge its color.)
-        const grounds = [css("--card"), css("--raise"), laidOver(css("--raise"), light ? "#000000" : "#ffffff", 0.07)];
-        const tone = grounds.reduce((each, ground) => wordsOn(each, laidOver(ground, color, 0.13)), color);
+        // surface, a lit row on it; the tint and edge its color. Found once a color and theme: a layer's row and its
+        // settings write it each time.)
+        let tone = letterTones.get(key);
+        if (tone === undefined) {
+          const grounds = [css("--card"), css("--raise"), laidOver(css("--raise"), light ? "#000000" : "#ffffff", 0.07)];
+          tone = /** @type {string} */ (grounds.reduce((each, ground) => wordsOn(each, laidOver(ground, color, 0.13)), color));
+          if (letterTones.size > 500) letterTones.clear();
+          letterTones.set(key, tone);
+        }
         return `<span class="letter" style="--c:${escape(color)};--t:${escape(tone)}"${tip ? ` data-tip="${escape(labelOf(layer))}"` : ""}>${escape(layer.letter)}</span>`;
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
