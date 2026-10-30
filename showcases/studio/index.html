@@ -23852,12 +23852,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * What a chart's picture shows of its data (`most` bars at most): the view it opens on, its own; the open one's,
        * linked, every chart's (as its chunks are, see spanOf); else its range. (Another chart's: the room any chart has
        * after its latest point, not the open one's tags'.) A shown profile's room after the latest, as the chart leaves it
-       * (see rightGap): a quarter of the picture, where it ends at the latest.
+       * (see rightGap): a quarter of the picture, where it ends at the latest. As the picture spans it: from its first bar's
+       * left edge to its last's right edge (a view's range is by their middles, the library's: see lastShown).
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most
        */
       const previewShown = (doc, data, most) => {
         const left = openView(doc), shown = left ? within(viewOn(left, doc.index, data.times, rightGap()), "to") : presetWindow(doc, data, most, 0, 0), last = data.times.length - 1, ROOM = 0.25;
-        return profiled(doc) && shown.to >= last - 0.5 && shown.to - last < (shown.to - shown.from) * ROOM ? { from: shown.from, to: last + ((last - shown.from) * ROOM) / (1 - ROOM) } : shown;
+        const range = profiled(doc) && shown.to >= last - 0.5 && shown.to - last < (shown.to - shown.from) * ROOM ? { from: shown.from, to: last + ((last - shown.from) * ROOM) / (1 - ROOM) } : shown;
+        return { from: range.from - 0.5, to: range.to + 0.5 };
       };
       /**
        * The density a picture's heatmaps are sampled at: 50 rows a ×10 (a tile's few hundred pixels tall); their days, a
@@ -24008,7 +24010,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           drawn.ticks = dateTicks(times, shown.from, shown.to, W);
           drawn.scales = [];
         }
-        const first = clamp(Math.floor(shown.from), 0, n - 1), last = clamp(Math.ceil(shown.to), 0, n - 1);
+        // (Its bars: those whose middles are in it, as the chart's, see firstInView and lastShown.)
+        const first = clamp(Math.ceil(shown.from), 0, n - 1), last = clamp(Math.floor(shown.to), 0, n - 1);
         /** A bucket's first and last points in view (the last bucket's to the view's end). @param {number} b */
         const bucketOf = (b) => ((edge) => [Math.max(first, Math.ceil(shown.from + (b * span) / B)), Math.min(last, b === B - 1 ? Math.max(edge, Math.floor(shown.to)) : edge)])(Math.ceil(shown.from + ((b + 1) * span) / B) - 1);
         const round = (value) => Math.round(value * 10) / 10;
