@@ -28424,6 +28424,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The presets' list, read once (made from presets.js and the client, see presetsKept), and the looks they give series
        * (see looksOf). Nothing else: nothing opens or shows (that's loadPresets').
        */
+      /**
+       * Whether the page waits for the presets as it starts (to open what its address names, or a link: see presetsSettled),
+       * said by the first to know (see presetsKept); not at all, once it's started.
+       */
+      let presetsWaited = /** @type {(waits: boolean) => void} */ (() => {});
+      const presetsWaiting = new Promise((/** @type {(waits: boolean) => void} */ resolve) => (presetsWaited = resolve));
       function readPresetList() {
         return (presetsRead ??= (async () => {
           const list = await presetsKept();
@@ -28462,7 +28468,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
         });
         try {
-          if (typeof caches === "undefined") return JSON.parse(/** @type {string} */ ((await made(null)).text));
+          // (Nothing to keep them in: made in the worker, but here while the page waits for them (an address or a link
+          // being read, see presetsWaited): ~150 ms sooner on a phone in Lockdown Mode, the client here already read.)
+          if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse(/** @type {string} */ ((await made(null)).text));
           const store = await caches.open("bitview-studio:presets");
           // (What they're made from: the presets, the palette they're colored by, the client.)
           const texts = await Promise.all([presetsUrl, new URL("/studio/palette.js", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
@@ -28591,7 +28599,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The presets' list read, or given up on (readPresetList: nothing opens): a chart written by hand (a link, a file,
        * studio.open) and a series added are read after, as a series' first look comes from them (see firstLook).
        */
-      const presetsSettled = () => readPresetList().then(() => {}, () => {});
+      const presetsSettled = () => (presetsWaited(true), readPresetList().then(() => {}, () => {}));
       /** The presets read again, asked for (after a failure). */
       function retryPresets() {
         presetsLoad = presetsRead = null;
@@ -39989,6 +39997,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
         // (A step back whose chart is gone (a reload with nothing kept): the address, as a visit's.)
         const asked = !shared && (!there || (there.chart && !resumed) || there.route) && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
+        presetsWaited(Boolean(asked));
         if (asked) await loadPresets().catch(() => {});
         const routed = asked ? routeOf(asked) : null;
         chart = resumed || (routed && "preset" in routed ? presetChart(routed.preset) : chart);
@@ -40037,7 +40046,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight, nor held from
       // input (see started).)
-      navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
+      navigate(start().finally(() => (presetsWaited(false), (started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
     </script>
   </body>
 </html>
