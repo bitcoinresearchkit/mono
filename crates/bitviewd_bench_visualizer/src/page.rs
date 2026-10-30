@@ -36,7 +36,6 @@ fn run(run: &Run) -> Value {
         "duration_s": round(run.end_s(), 1),
         "revision": meta("revision"),
         "dirty": meta("dirty").is_some_and(|dirty| dirty == "true"),
-        "version": meta("version"),
         "host": {
             "cpu": meta("cpu"),
             "ram_bytes": number("ram_bytes"),

@@ -595,7 +595,7 @@
             <div><dt>Indexing</dt><dd>${duration(phase(r, "indexing"))}<small>reading the blocks</small></dd></div>
             <div><dt>Compute</dt><dd>${duration(phase(r, "compute") + phase(r, "catch-up"))}<small>every series</small></dd></div>
           </dl>
-          <div class="host">${[h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`, r.version && `bitviewd ${r.version}`].filter(Boolean).map(escape).join(" · ")} · commit ${r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r)}</div>`;
+          <div class="host">${[h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape).join(" · ")} · commit ${r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r)}</div>`;
       }
       const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);
 
