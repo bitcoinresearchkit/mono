@@ -26285,23 +26285,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           return pickChart(/** @type {string} */ (/** @type {HTMLElement} */ (document.activeElement).dataset.openChart));
         }
-        const at = cards.indexOf(/** @type {HTMLElement} */ (document.activeElement));
-        if (at < 0 || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
-        event.preventDefault();
-        if (event.key === "Home") return cards[0].focus();
-        if (event.key === "End") return lastCard($("home-grid")).focus();
-        nextCard(cards[at], event.key)?.focus();
+        walkCards($("home-grid"), event, cards);
       });
       // (The presets' gallery's cards too: the arrows, Home and End, as the grid's.)
       $("gallery").addEventListener("keydown", (event) => {
         if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-        const cards = all$(CARDS, $("gallery")), at = cards.indexOf(/** @type {HTMLElement} */ (document.activeElement));
+        walkCards($("gallery"), event);
+      });
+      /**
+       * The arrows, Home and End among a list's cards (the grid's, the gallery's), as they're laid out.
+       * @param {HTMLElement} list @param {KeyboardEvent} event @param {HTMLElement[]} cards
+       */
+      function walkCards(list, event, cards = all$(CARDS, list)) {
+        const at = cards.indexOf(/** @type {HTMLElement} */ (document.activeElement));
         if (at < 0 || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         if (event.key === "Home") return cards[0].focus();
-        if (event.key === "End") return lastCard($("gallery")).focus();
-        nextCard(cards[at], event.key, $("gallery"))?.focus();
-      });
+        if (event.key === "End") return lastCard(list).focus();
+        nextCard(cards[at], event.key, list)?.focus();
+      }
       /** A list's last card, its last shelf's row (or grid) written whole first (its last tiles may be slots yet). @param {HTMLElement} list */
       const lastCard = (list) => (((row) => row && fillRow(row))(all$(".shelf-row, .grid-tiles", list).at(-1)), /** @type {HTMLElement} */ (all$(CARDS, list).at(-1)));
       /** What the arrows go along in the grid: the cards (one still waited for, not yet), and a shelf's last tile, to them all. */
