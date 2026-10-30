@@ -24449,6 +24449,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     if (top > most) (most = top), (high = i);
                   }
                   shared[b] = start < 0 ? [] : flat || least === most ? (start === end ? [start] : [start, end]) : low < high ? [low, high] : [high, low];
+                  // (A band with values in the bucket but not at each place its top's taken, one starting, ending or there
+                  // for a while within it: its first and last there too, else it'd be a point there or gone. One there at
+                  // each place, as most are, adds none: two points a column. Each told against where the top's taken
+                  // alone: another's added there could hide it again.)
+                  const taken = shared[b], more = [];
+                  if (start >= 0) for (const item of stack) {
+                    if (taken.every((i) => item.inView[i] - item.inView[i] === 0)) continue;
+                    let first = -1, last = -1;
+                    for (let i = from; i <= to; i++) if (item.inView[i] - item.inView[i] === 0) (first < 0 && (first = i)), (last = i);
+                    if (first >= 0) more.push(first, last);
+                  }
+                  if (more.length) shared[b] = [...new Set([...taken, ...more])].sort((a, z) => a - z);
                   if (end >= 0) (lastIn = b), (latest = end);
                 }
                 if (lastIn >= 0 && shared[lastIn].at(-1) !== latest) shared[lastIn].push(latest);
