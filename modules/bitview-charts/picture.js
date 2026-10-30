@@ -16,8 +16,12 @@ export function picture(chart, { crosshair = false } = {}) {
   const g = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
   g.fillStyle = chart.theme.background;
   g.fillRect(0, 0, canvas.width, canvas.height);
-  for (const pane of chart.panes) g.drawImage(pane.canvas, 0, Math.round(pane.top * dpr));
-  g.drawImage(chart.timeAxis.canvas, 0, Math.round((chart.height - chart.timeHeight) * dpr));
+  const left = Math.round(chart.left * dpr);
+  for (const pane of chart.panes) {
+    g.drawImage(pane.canvas, left, Math.round(pane.top * dpr));
+    if (pane.leftCanvas && left) g.drawImage(pane.leftCanvas, 0, Math.round(pane.top * dpr));
+  }
+  g.drawImage(chart.timeAxis.canvas, left, Math.round((chart.height - chart.timeHeight) * dpr));
   if (crosshair) g.drawImage(chart.crosshair.canvas, 0, 0);
   return canvas;
 }

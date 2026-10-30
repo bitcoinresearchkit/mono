@@ -40,16 +40,17 @@ export class Crosshair {
   /**
    * Drawn for where it is now (nothing, if it's not shown).
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Pane[]} panes @param {number} room the panes' height
-   * @param {import("./pane.js").Theme} theme @param {number} dpr
+   * @param {number} left the left axis' width (the plot after it) @param {import("./pane.js").Theme} theme @param {number} dpr
    */
-  draw(time, panes, room, theme, dpr) {
+  draw(time, panes, room, left, theme, dpr) {
     const g = this.g, i = this.index;
     if (i !== i) {
-      if (this.shown) g.clearRect(0, 0, this.canvas.width, this.canvas.height), (this.shown = false);
+      if (this.shown) g.setTransform(1, 0, 0, 1, 0, 0), g.clearRect(0, 0, this.canvas.width, this.canvas.height), (this.shown = false);
       return;
     }
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, this.width, this.height);
+    g.translate(left, 0);
     this.shown = true;
     const plot = time.width, x = Math.round(time.x(i) * dpr) / dpr + 0.5 / dpr;
     g.strokeStyle = theme.crosshair;
@@ -67,7 +68,11 @@ export class Crosshair {
     g.font = theme.font;
     g.textBaseline = "middle";
     // (Its value on its pane's axis.)
-    if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) badge(g, theme, pane.axisLabel(round(pane.scale.value(this.y - pane.top))), plot + 2, this.y, "left");
+    if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
+      badge(g, theme, pane.axisLabel(round(pane.scale.value(this.y - pane.top))), plot + 2, this.y, "left");
+      // (Its value on the left axis too, where the pane has a left scale.)
+      if (pane.left && left) badge(g, theme, pane.axisLabel(round(pane.left.value(this.y - pane.top)), pane.left), -left + 2, this.y, "left");
+    }
     // (Its date on the time axis, its point's.)
     const times = time.times, k = Math.round(i);
     if (k >= 0 && k < times.length && x >= 0 && x <= plot) {

@@ -194,6 +194,18 @@ export class Line {
     return NaN;
   }
 
+  /**
+   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
+   * (its base set already, where it's relative).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   */
+  distance(i, y, scale) {
+    // (Where it's drawn alone: in its data, a value there, above zero on a log scale.)
+    if (!(i >= 0 && i < this.values.length)) return Infinity;
+    const v = this.values[i];
+    return v === v && (scale.mode !== "log" || v > 0) ? Math.abs(scale.y(v) - y) : Infinity;
+  }
+
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {
     return this.colors && this.palette.length ? this.palette[this.colors[i]] ?? this.color : this.color;

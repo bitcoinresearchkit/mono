@@ -66,9 +66,13 @@ export class Chart {
     this.crosshair = new Crosshair();
     /** @type {((index: number, pane: number) => void)[]} */
     this.crosshairListeners = [];
+    /** @type {((index: number, pane: number, series: number) => void)[]} */
+    this.clickListeners = [];
     /** @type {Pane[]} */
     this.panes = [];
     this.dpr = 1;
+    /** The left axis' width (0: none, no pane has a left scale): the plot after it. */
+    this.left = 0;
     this.width = 0;
     this.height = 0;
     // (A frame asked for; drawn whole (sizes, panes or data changed); moved since the last frame; pictures moved, to
@@ -119,6 +123,8 @@ export class Chart {
     const pane = new Pane(options);
     this.panes.push(pane);
     this.element.insertBefore(pane.canvas, this.timeAxis.canvas);
+    // (Its left scale come: room made for it.)
+    pane.onLeft = () => this.layout();
     this.layout();
     return pane;
   }
@@ -127,6 +133,7 @@ export class Chart {
   removePane(pane) {
     this.panes = this.panes.filter((each) => each !== pane);
     pane.canvas.remove();
+    pane.leftCanvas?.remove();
     this.layout();
   }
 
@@ -161,6 +168,16 @@ export class Chart {
     this.invalidate();
   }
 
+  /**
+   * Told of a click or a tap (a press let go where it began, the crosshair not shown by it): its point (a logical index,
+   * the nearest whole one), its pane (-1: none), and the series hit there (its index in the pane, -1: none).
+   * @param {(index: number, pane: number, series: number) => void} listener
+   */
+  onClick(listener) {
+    this.clickListeners.push(listener);
+    return () => void (this.clickListeners = this.clickListeners.filter((each) => each !== listener));
+  }
+
   /** Told each time the crosshair moves to another point (NaN: gone), and the pane it's in. @param {(index: number, pane: number) => void} listener */
   onCrosshair(listener) {
     this.crosshairListeners.push(listener);
@@ -180,16 +197,25 @@ export class Chart {
     this.width = box.width;
     this.height = box.height;
     const room = Math.max(0, box.height - this.timeHeight), shares = this.panes.reduce((sum, pane) => sum + pane.share, 0) || 1;
+    // (An axis at the left too, as wide as the right one, where a pane has a left scale: the plot and the time axis
+    // after it.)
+    const left = (this.left = this.panes.some((pane) => pane.left) ? this.axis : 0), width = Math.max(1, box.width - left);
     let top = 0;
     for (const [k, pane] of this.panes.entries()) {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
-      pane.place(top, box.width, bottom - top, this.axis, this.dpr);
+      pane.place(top, width, bottom - top, this.axis, this.dpr);
+      pane.canvas.style.left = `${left}px`;
+      const had = pane.leftCanvas;
+      pane.placeLeft(top, left, this.dpr);
+      if (pane.leftCanvas && !had) this.element.insertBefore(pane.leftCanvas, this.timeAxis.canvas);
+      if (pane.leftCanvas) pane.leftCanvas.style.display = left ? "block" : "none";
       pane.separated = k < this.panes.length - 1;
       top = bottom;
     }
-    this.timeAxis.place(room, box.width, this.timeHeight, this.dpr);
+    this.timeAxis.place(room, width, this.timeHeight, this.dpr);
+    this.timeAxis.canvas.style.left = `${left}px`;
     this.crosshair.place(box.width, box.height, this.dpr);
-    this.time.resize(Math.max(1, box.width - this.axis));
+    this.time.resize(Math.max(1, width - this.axis));
     // (The crosshair's pane found again: panes moved, came or went.)
     if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y);
     this.invalidate(true);
@@ -236,7 +262,7 @@ export class Chart {
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
     this.timeAxis.draw(time, this.theme, this.dpr, time.width);
-    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.theme, this.dpr);
+    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
       for (let k = 0; k < this.rangeListeners.length; k++) this.rangeListeners[k](time.from, time.to);
@@ -250,6 +276,8 @@ export class Chart {
   #input() {
     const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean }>} */ (new Map());
     let held = -1;
+    // (Two fingers down in this gesture: its end no click.)
+    let twoFingers = false;
     // (A separator dragged: the panes over and under it, the pointer dragging it (-1: none).)
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
     const stopSizing = () => void ((sizing = null), (sizer = -1), this.invalidate(true));
@@ -260,12 +288,12 @@ export class Chart {
     };
     const point = (/** @type {PointerEvent} */ event) => {
       const box = element.getBoundingClientRect();
-      this.setCrosshair(time.index(event.clientX - box.left), event.clientY - box.top);
+      this.setCrosshair(time.index(event.clientX - box.left - this.left), event.clientY - box.top);
     };
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
     let trailEnd = 0, trailSize = 0;
-    const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left;
+    const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
     element.addEventListener("pointerdown", (event) => {
       // (A separator dragged: no other pointer does anything meanwhile.)
@@ -282,6 +310,7 @@ export class Chart {
       this.holding = 0;
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
       if (held >= 0) (held = -1), this.setCrosshair(NaN);
+      if (down.size > 1) twoFingers = true;
       if (touch && down.size === 1) {
         const id = event.pointerId;
         this.holding = setTimeout(() => {
@@ -290,7 +319,7 @@ export class Chart {
           if (!at || at.panning || down.size !== 1) return;
           held = id;
           const box = element.getBoundingClientRect();
-          this.setCrosshair(time.index(at.x - box.left), at.y - box.top);
+          this.setCrosshair(time.index(at.x - box.left - this.left), at.y - box.top);
         }, HOLD);
       }
     }, { signal });
@@ -331,11 +360,19 @@ export class Chart {
     element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && this.setCrosshair(NaN), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
       if (sizer === event.pointerId) return void stopSizing();
-      if (!down.delete(event.pointerId)) return;
+      const at = down.get(event.pointerId);
+      if (!at || !down.delete(event.pointerId)) return;
+      const pinched = twoFingers;
+      if (!down.size) twoFingers = false;
       clearTimeout(this.holding);
       this.holding = 0;
       // (The finger holding the crosshair let go: it goes; no glide.)
       if (held === event.pointerId) return void ((held = -1), (trailSize = 0), this.setCrosshair(NaN));
+      // (Let go where it began: a click.)
+      if (event.type === "pointerup" && !down.size && !pinched && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
+        trailSize = 0;
+        return void this.#click(event);
+      }
       if (down.size || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
       // (Its speed over its last tenth of a second; held still that long, none.)
       const last = (trailEnd + trail.length - 1) % trail.length;
@@ -360,6 +397,16 @@ export class Chart {
       this.glide.speed = 0;
       this.invalidate();
     }, { passive: false, signal });
+  }
+
+  /** A click at a pointer's place: its point, pane and series told to the click's listeners. @param {PointerEvent} event */
+  #click(event) {
+    const box = this.element.getBoundingClientRect(), x = event.clientX - box.left - this.left, y = event.clientY - box.top, n = this.time.length;
+    const index = n && x >= 0 && x <= this.time.width ? Math.min(Math.max(Math.round(this.time.index(x)), 0), n - 1) : NaN;
+    let pane = -1, series = -1;
+    for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
+    if (pane >= 0 && index === index) series = this.panes[pane].hit(this.time, index, y - this.panes[pane].top);
+    for (let l = 0; l < this.clickListeners.length; l++) this.clickListeners[l](index, pane, series);
   }
 
   /**
@@ -387,7 +434,7 @@ export class Chart {
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();
-    for (const pane of this.panes) pane.canvas.remove();
+    for (const pane of this.panes) pane.canvas.remove(), pane.leftCanvas?.remove();
     this.timeAxis.canvas.remove();
     this.panes = [];
   }

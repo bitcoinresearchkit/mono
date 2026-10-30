@@ -21,6 +21,21 @@ export class Bars extends Line {
     this.radius = radius;
   }
 
+  /**
+   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
+   * (its base set already, where it's relative).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   */
+  distance(i, y, scale) {
+    // (As it's drawn: a value there, above zero on a log scale, from its base (the scale's low end where a log scale
+    // can't show its base).)
+    if (!(i >= 0 && i < this.values.length)) return Infinity;
+    const v = this.values[i], log = scale.mode === "log";
+    if (!(log ? v > 0 : v === v)) return Infinity;
+    const base = log && !(this.base > 0) ? scale.lo : this.base, top = scale.y(Math.max(v, base)), bottom = scale.y(Math.min(v, base));
+    return y < top ? top - y : y > bottom ? y - bottom : 0;
+  }
+
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
   extent(a, b, positive, out) {
     (OWN[0] = Infinity), (OWN[1] = -Infinity);

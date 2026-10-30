@@ -13,6 +13,7 @@
  *   draw: (g: CanvasRenderingContext2D, view: View) => void,
  *   extent?: (a: number, b: number, positive: boolean, out: Float64Array) => void,
  *   first?: (i: number) => number,
+ *   distance?: (i: number, y: number, scale: import("./scale.js").Scale) => number,
  * }} Hooks
  */
 
@@ -34,6 +35,11 @@ export class Custom {
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
   extent(a, b, positive, out) {
     this.hooks.extent?.(a, b, positive, out);
+  }
+
+  /** How far a point is from it (its hook's; none: it's never hit). @param {number} i @param {number} y @param {import("./scale.js").Scale} scale */
+  distance(i, y, scale) {
+    return this.hooks.distance ? this.hooks.distance(i, y, scale) : Infinity;
   }
 
   /** @param {number} i */

@@ -70,6 +70,20 @@ export class Band {
     return NaN;
   }
 
+  /**
+   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
+   * (its base set already, where it's relative).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   */
+  distance(i, y, scale) {
+    // (As it's drawn: both edges there, above zero on a log scale.)
+    if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
+    const lo = this.lower[i], hi = this.upper[i];
+    if (!(scale.mode === "log" ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
+    const top = scale.y(Math.max(lo, hi)), bottom = scale.y(Math.min(lo, hi));
+    return y < top ? top - y : y > bottom ? y - bottom : 0;
+  }
+
   /** Its next gap from each point (the length: none). @param {boolean} log */
   #gaps(log) {
     if (this.gapsVersion !== this.version) (this.gaps = this.logGaps = null), (this.gapsVersion = this.version);

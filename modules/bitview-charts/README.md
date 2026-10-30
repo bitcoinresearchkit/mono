@@ -25,7 +25,8 @@ chart.show(365);                                 // the last 365 points in view
   the axis' width at the right (64); `rightOffset`, CSS pixels left empty past the last point (24).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `setCrosshair(index, y)`, `onCrosshair(listener)`,
-  `invalidate(whole)` (after changing a series: `invalidate(true)`), `destroy()`.
+  `onClick(listener)` (a click or a tap: its point, its pane, the series hit there), `invalidate(whole)` (after
+  changing a series: `invalidate(true)`), `destroy()`.
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
   point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels. Separators between
@@ -33,10 +34,13 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Panes
 
-- `addPane({ share, scale: { mode, top, bottom }, format })`: `share`, its part of the height; `mode`: `"linear"`,
-  `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it); `top` and
-  `bottom`, room kept as shares of its height; `format`, how its values are written.
-- `addLine`, `addBand`, `addBars`, `addCandles`, `add(series)`, `remove(series)`, `setRange(lo, hi)` (none: fitted).
+- `addPane({ share, scale: { mode, top, bottom }, left, format })`: `share`, its part of the height; `mode`:
+  `"linear"`, `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it);
+  `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
+  written.
+- `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
+  its axis at the chart's left), `add(series, side)`, `remove(series)`, `setRange(lo, hi, side)` (no range: fitted),
+  `hit(time, index, y)` (the series nearest a point, within 6 pixels).
 
 ## Series
 
