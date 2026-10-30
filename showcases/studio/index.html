@@ -32299,6 +32299,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {Action[]}
        */
       const dashChoices = (/** @type {number | undefined} */ now, /** @type {(dash: number) => { run: () => void, look?: (doc: Chart) => void }} */ does) => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now === dash, ...does(dash) }));
+      /**
+       * A line's Width and Line style rows (a layer's, a drawing's): `width` and `style` (see dashOf) as it is, `now` it as
+       * it is when a page opens, `both` a choice's change (kept, and shown while highlighted: see bothOf).
+       * @param {() => { width?: number, dash?: number }} now @param {(edit: (item: any) => void) => { run: () => void, look?: (doc: Chart) => void }} both
+       */
+      const widthRow = (/** @type {number | undefined} */ width, now, both) => ({ key: "width", icon: ICONS.sliders, label: "Width", aside: `${width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((each) => ({ key: String(each), icon: ICONS.sliders, label: `${each}px`, current: now().width === each, ...both((item) => (item.width = each)) }))) });
+      const dashRow = (/** @type {ReturnType<typeof dashOf>} */ style, /** @type {Parameters<typeof widthRow>[1]} */ now, /** @type {Parameters<typeof widthRow>[2]} */ both) => ({ key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => dashChoices(now().dash, (dash) => both((item) => (item.dash = dash)))) });
       /** A layer one place up or down among its pane's (listed, and drawn, before or after its neighbor). */
       function moveLayer(id, by) {
         slideLayers(id, null, () => editById(id, (layer, doc) => {
@@ -35179,9 +35186,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ...(heatLike(layer) ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
             ] : []),
             { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
-            ...(layer.type !== "histogram" && !placedOn(layer) ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
+            ...(layer.type !== "histogram" && !placedOn(layer) ? [widthRow(layer.width, now, both)] : []),
             ...(lineish ? [
-              { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => dashChoices(now().dash, (dash) => both((item) => (item.dash = dash)))) },
+              dashRow(style, now, both),
               { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Style", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
             ] : []),
             ...(layer.type === "area" ? [
@@ -35288,8 +35295,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(drawing.kind === "ruler" ? [] : drawing.kind === "text"
               ? []
               : [
-                { key: "width", icon: ICONS.sliders, label: "Width", aside: `${drawing.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) },
-                { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => dashChoices(now().dash, (dash) => both((item) => (item.dash = dash)))) },
+                widthRow(drawing.width, now, both),
+                dashRow(style, now, both),
               ]),
             ...(LINES.has(drawing.kind) ? [{ key: "label", icon: ICONS.label, label: "Label", aside: drawing.label ?? "None", group: "Style", page: () => inputPage({ title: "Label", value: drawing.label ?? "", placeholder: "Label text (leave empty for none)", hint: "No label", verb: "Set", read: (text) => (labelText(text) ? `Label it “${labelText(text)}”` : drawing.label ? "Remove its label" : null), apply: (text) => editById(id, (item) => {
               if (labelText(text)) item.label = labelText(text);
