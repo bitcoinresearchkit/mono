@@ -19,7 +19,7 @@ export function picture(chart, { crosshair = false } = {}) {
   const left = Math.round(chart.left * dpr);
   for (const pane of chart.panes) {
     g.drawImage(pane.canvas, left, Math.round(pane.top * dpr));
-    g.drawImage(pane.axisCanvas, left + Math.round(pane.plot * dpr), Math.round(pane.top * dpr));
+    if (pane.axisCanvas.width) g.drawImage(pane.axisCanvas, left + Math.round(pane.plot * dpr), Math.round(pane.top * dpr));
     if (pane.leftCanvas && left) g.drawImage(pane.leftCanvas, 0, Math.round(pane.top * dpr));
   }
   g.drawImage(chart.timeAxis.canvas, left, Math.round((chart.height - chart.timeHeight) * dpr));

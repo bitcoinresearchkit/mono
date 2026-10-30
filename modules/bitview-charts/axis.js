@@ -95,7 +95,8 @@ export class TimeAxis {
       const i = at(times, t);
       if (i <= b) {
         const x = time.x(i);
-        if (x - last >= room && x > 12 && x < plot - 12) (g.fillText(label(t), x, this.height / 2), (last = x));
+        // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
+        if (x - last >= room && x > 18 && x < plot - 18) (g.fillText(label(t), x, this.height / 2), (last = x));
       }
       if (unit === "year") t = Date.UTC((y += size), 0, 1) / 1000;
       else if (unit === "month") t = Date.UTC(y, (m += size), 1) / 1000;

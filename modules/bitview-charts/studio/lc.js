@@ -105,7 +105,9 @@ class Chart {
     this.timeFrame = frame();
     this.timeRow.children[1].append(this.timeFrame);
     this.table.append(this.timeRow);
-    this.element.append(this.table);
+    // (The crosshair's canvas after the table: Studio's magnifier draws the chart's canvases in their order, the
+    // crosshair's last.)
+    this.element.append(this.table, this.engine.crosshair.canvas);
     this.engine.onLayout(() => {
       const engine = this.engine;
       for (const pane of this.panesList) pane.place();
@@ -701,15 +703,17 @@ class Series {
   /** Its look in the library, from its options; outlined (`bvOutline`, LWC patch 53), in the chart's halo. */
   #style() {
     const o = this.opts, engine = this.engine, shown = o.visible !== false, outline = (o.bvOutline && this.chart.options.layout?.bvHalo) || null;
+    // (The crosshair's dot on its line, and its dots at each point, as the chart library's options give them.)
+    const marker = o.crosshairMarkerVisible === false ? 0 : (o.crosshairMarkerRadius ?? 4), dots = o.pointMarkersVisible ? (o.pointMarkersRadius ?? 3) : 0;
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
     if (this.edge) {
       this.edge.hidden = !shown;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline });
+      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     }
     if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), engine.version++);
-    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline });
+    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0 });
     if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor });
   }

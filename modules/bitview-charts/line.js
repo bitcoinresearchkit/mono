@@ -119,10 +119,12 @@ export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
    * values); `priceLine`: a dotted line across at it; `stroke: false`, no line drawn (its tag and price line still);
-   * `outline`, a color it's edged in (under it, its width each side: over a fill or a line, it stands off it).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null }} [options]
+   * `outline`, a color it's edged in (under it, its width each side: over a fill or a line, it stands off it); `dots`, a
+   * dot that radius at each point (in its color there; ringed in its outline); `marker`, the crosshair's dot on it that
+   * radius (ringed in the ground, 2 pixels; 0: none).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4 } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -135,6 +137,8 @@ export class Line {
     this.format = format && kept(format);
     /** @type {string | null} */
     this.outline = outline;
+    this.dots = dots;
+    this.marker = marker;
     // (Its last point with a value, found once a version: NaN, none.)
     this.lastAt = NaN;
     this.lastVersion = -1;
@@ -179,10 +183,10 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -367,7 +371,9 @@ export class Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
-    if (!this.values.length || !this.stroke) return;
+    if (!this.values.length) return;
+    if (this.dots) this.#dots(g, time, scale, x0, x1);
+    if (!this.stroke) return;
     const colors = this.colors && this.palette.length ? this.colors : null;
     // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show).)
     if (this.outline) {
@@ -391,6 +397,30 @@ export class Line {
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
+    }
+  }
+
+  /**
+   * Its dots from x `x0` to `x1` (and those reaching in), each color's in one fill, ringed in its outline first.
+   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x0 @param {number} x1
+   */
+  #dots(g, time, scale, x0, x1) {
+    const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
+    const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
+    const colors = this.colors && this.palette.length ? this.colors : null;
+    for (let pass = ring ? -2 : colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
+      if (pass === -1 && colors) continue;
+      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : pass < 0 ? this.color : this.palette[pass];
+      g.beginPath();
+      for (let i = a; i <= b; i++) {
+        const v = values[i];
+        if (v !== v || (colors && pass >= 0 && colors[i] !== pass)) continue;
+        const x = time.x(i), y = scale.y(v), size = pass === -2 ? ring : r;
+        g.moveTo(x + size, y);
+        g.arc(x, y, size, 0, 2 * Math.PI);
+      }
+      g.fill();
     }
   }
 

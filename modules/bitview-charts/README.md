@@ -48,11 +48,12 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Series
 
-- `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline })`: `colors` (a
-  `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a `Uint8Array`, 1 at a
-  point) stops the line after it; `tag`, its last value in view on the axis (written by `format`, else as its side writes
-  values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price line kept); `outline`,
-  a color it's edged in (over a heatmap, a cloud, another line: it stands off them).
+- `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline, dots, marker })`:
+  `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
+  `Uint8Array`, 1 at a point) stops the line after it; `tag`, its last value in view on the axis (written by `format`,
+  else as its side writes values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
+  line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
+  dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none).
 - `Band({ lower, upper, base, color, below })`: a fill between two columns; without `lower`, an area down to `base`;
   with `below`, a baseline (under its base in that color).
 - `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`.

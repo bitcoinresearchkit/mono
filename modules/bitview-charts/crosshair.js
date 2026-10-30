@@ -4,6 +4,7 @@
 // point's date on the time axis and the height's value on that pane's axis, each in a badge.
 
 import { kept } from "./format.js";
+import { Line } from "./line.js";
 import { inkOn } from "./color.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -72,6 +73,34 @@ export class Crosshair {
       g.moveTo(0, y), g.lineTo(plot, y);
       g.stroke();
       g.setLineDash(NONE);
+    }
+    // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground.)
+    if (x >= 0 && x <= plot) {
+      const from = Math.max(0, Math.floor(time.from));
+      for (let p = 0; p < panes.length; p++) {
+        const each = panes[p];
+        for (let s = 0; s < each.series.length; s++) {
+          const line = each.series[s];
+          if (!(line instanceof Line) || !line.marker || line.hidden || !(line.stroke || line.dots)) continue;
+          const v = line.values[i], scale = each.scaleOf(s);
+          if (v !== v) continue;
+          if (scale.relative) {
+            const base = line.first(from);
+            if (!base || base !== base) continue;
+            scale.setBase(base);
+          }
+          const y = each.top + scale.y(v);
+          if (!(y >= each.top && y <= each.top + each.height)) continue;
+          g.fillStyle = theme.background;
+          g.beginPath();
+          g.arc(x, y, line.marker + 2, 0, 2 * Math.PI);
+          g.fill();
+          g.fillStyle = line.colorAt(i);
+          g.beginPath();
+          g.arc(x, y, line.marker, 0, 2 * Math.PI);
+          g.fill();
+        }
+      }
     }
     g.font = theme.font;
     g.textBaseline = "middle";

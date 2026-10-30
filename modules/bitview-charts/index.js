@@ -51,6 +51,9 @@ export function createChart(element, options) {
 }
 
 export class Chart {
+  /** @type {import("./pane.js").Theme} */
+  #theme = DARK;
+
   /**
    * @param {HTMLElement} element
    * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
@@ -206,6 +209,16 @@ export class Chart {
     return () => void (this.crosshairListeners = this.crosshairListeners.filter((each) => each !== listener));
   }
 
+  /** Its look (DARK, LIGHT or a page's): its element's ground too (under the axis' corner). Then invalidate(true). */
+  get theme() {
+    return this.#theme;
+  }
+
+  set theme(theme) {
+    this.#theme = theme;
+    this.element.style.background = theme.background;
+  }
+
   /** Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them). @param {() => void} listener */
   onLayout(listener) {
     this.layoutListeners.push(listener);
@@ -246,7 +259,8 @@ export class Chart {
       pane.separated = k < this.panes.length - 1;
       top = bottom;
     }
-    this.timeAxis.place(room, width, this.timeHeight, this.dpr);
+    // (The time axis under the plot alone: a page stretching the plot stretches it alike. Under the axis, the chart's ground.)
+    this.timeAxis.place(room, Math.max(1, width - this.axis), this.timeHeight, this.dpr);
     this.timeAxis.canvas.style.left = `${left}px`;
     this.crosshair.place(box.width, box.height, this.dpr);
     this.time.resize(Math.max(1, width - this.axis));

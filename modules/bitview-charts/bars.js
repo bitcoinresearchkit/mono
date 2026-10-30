@@ -16,7 +16,8 @@ export class Bars extends Line {
    * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | null, palette?: string[], radius?: number }} [options]
    */
   constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2 } = {}) {
-    super({ values, color, colors, palette });
+    // (No crosshair dot on bars.)
+    super({ values, color, colors, palette, marker: 0 });
     this.base = base;
     this.radius = radius;
   }
