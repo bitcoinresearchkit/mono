@@ -138,6 +138,11 @@ export class Line {
     // (Its last point with a value, found once a version: NaN, none.)
     this.lastAt = NaN;
     this.lastVersion = -1;
+    // (lastBy's last ask and answer, and the version and scale they were for.)
+    this.byAsk = -1;
+    this.byAnswer = -1;
+    this.byVersion = -1;
+    this.byLog = false;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
     /** Changed at each change of its values or look: its pane's picture drawn whole then. */
@@ -202,8 +207,16 @@ export class Line {
   lastBy(i, log) {
     const last = this.last(log), values = this.values;
     if (i >= last) return last;
-    for (; i >= 0; i--) if (log ? values[i] > 0 : values[i] === values[i]) return i;
-    return -1;
+    if (i < 0) return -1;
+    // (Its last ask and answer kept: a pan's asks are near each other, and between the two there's none. Past the ask,
+    // only the points since read; else from `i` back.)
+    const kept = this.byVersion === this.version && this.byLog === log;
+    if (kept && i >= this.byAnswer && i <= this.byAsk) return this.byAnswer;
+    const stop = kept && i > this.byAsk ? this.byAsk : -1;
+    let k = i;
+    while (k > stop && !(log ? values[k] > 0 : values[k] === values[k])) k--;
+    (this.byVersion = this.version), (this.byLog = log), (this.byAsk = i), (this.byAnswer = k > stop ? k : stop >= 0 ? this.byAnswer : -1);
+    return this.byAnswer;
   }
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */

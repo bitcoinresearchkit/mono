@@ -628,18 +628,21 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.hidden || line.lastBy(end, log) < 0) continue;
+      if (!(line instanceof Line) || !line.tag || line.hidden) continue;
+      const i = line.lastBy(end, log);
       // (On a relative scale, one with no base has no reading: no tag.)
       const base = relative ? line.first(from) : 1;
-      if (base && base === base) lines.push(line);
+      if (i < 0 || !base || base !== base) continue;
+      if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
+      this.tagIndex[lines.length] = i;
+      lines.push(line);
     }
     const n = lines.length;
     if (!n) return 0;
-    if (this.tagY.length < n) (this.tagY = new Float64Array(n * 2)), (this.tagAt = new Int32Array(n * 2)), (this.tagPlace = new Float64Array(n * 2)), (this.tagIndex = new Int32Array(n * 2));
+    if (this.tagY.length < n) (this.tagY = new Float64Array(n * 2)), (this.tagAt = new Int32Array(n * 2)), (this.tagPlace = new Float64Array(n * 2));
     const ys = this.tagY, order = this.tagAt, at = this.tagPlace, index = this.tagIndex;
     for (let k = 0; k < n; k++) {
       if (relative) scale.setBase(lines[k].first(from));
-      index[k] = lines[k].lastBy(end, log);
       (ys[k] = scale.y(lines[k].values[index[k]])), (order[k] = k);
     }
     // (Top to bottom, each at least a tag below the one over it (less, where they'd not all fit: the axis shared); then,
