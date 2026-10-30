@@ -650,8 +650,8 @@
       }
 
       /* A mood or trend lit (see light): pressable wherever it's named; the compass's other cells and the other rows
-         dimmed; where it's named over the chart, underlined: dotted and faint so it reads as pressable without a hover,
-         solid once lit. */
+         dimmed; where it's named over the chart, underlined: dotted and faint (stronger under a mouse) so it reads as
+         pressable without a hover, solid once lit. */
       [data-light] {
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
@@ -673,8 +673,14 @@
       }
 
       .hero [data-light] {
-        text-decoration: underline dotted 2px color-mix(in srgb, currentColor 45%, transparent);
+        text-decoration: underline dotted 2px color-mix(in srgb, currentColor 30%, transparent);
         text-underline-offset: 0.15em;
+
+        @media (hover: hover) {
+          &:hover {
+            text-decoration-color: color-mix(in srgb, currentColor 70%, transparent);
+          }
+        }
 
         &.lit {
           text-decoration: underline 2px;
