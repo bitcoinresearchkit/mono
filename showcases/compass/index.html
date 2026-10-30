@@ -1945,6 +1945,8 @@
        * @type {{ id: number, kind: "press" | "move" | "slide", x: number, y: number, a: number, length: number, timer: number, trail: [number, number][] } | null}
        */
       let gesture = null;
+      /** The last press let go on the chart, when and where (a second one soon after, near it, is a double click). */
+      let lastPress = { at: -Infinity, x: 0 };
       const xIn = (/** @type {PointerEvent} */ e) => e.clientX - chart.getBoundingClientRect().left;
       chart.addEventListener("pointerdown", (e) => {
         if (!days || e.button || gesture || (e.target instanceof Element && e.target.closest("button"))) return;
@@ -2005,10 +2007,18 @@
         clearTimeout(g.timer);
         chart.classList.remove("grabbing");
         if (g.kind === "press") {
-          // (Playing, a press pauses it on its day, as Pause does. A kept day's tag pressed: the day let go, back to
-          // today. Anywhere else, a press keeps nothing.)
-          if (playing) return stopPlay(), show(true);
-          if (!onTag(g.x, g.y - chart.getBoundingClientRect().top)) return;
+          // (A press toggles play, as its button does: playing, it pauses on its day; paused there, it plays on. A
+          // second press soon after the first (a double click or tap), or a kept day's tag pressed: play stopped and
+          // the day let go, back to today, as its ✕ says. Anything else, a press keeps nothing.)
+          const second = e.timeStamp - lastPress.at < 400 && Math.abs(g.x - lastPress.x) < 24;
+          lastPress = second ? { at: -Infinity, x: 0 } : { at: e.timeStamp, x: g.x };
+          const tagged = onTag(g.x, g.y - chart.getBoundingClientRect().top);
+          if (!(second && (playing || pinned !== null)) && !tagged) {
+            if (playing) stopPlay(), show(true);
+            else if (pinned !== null && pinned === pausedOn) play();
+            return;
+          }
+          stopPlay();
           (pinned = null), (hovered = null);
           keepVisible(days.last);
           show(true);
@@ -2369,12 +2379,14 @@
       new ResizeObserver(redraw).observe(strip);
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
-      // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it, a
-      // drag on the chart or the pan bar ends it, today shown again ──
+      // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it or
+      // plays on, a double click lets its day go, a drag on the chart or the pan bar ends it, today shown again ──
 
       /** How long play takes over the chart's span, in ms. */
       const PLAY = 60_000;
       let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
+      /** The day play last stopped on: still the kept day, it's paused there (a click on the chart plays on). */
+      let pausedOn = /** @type {number | null} */ (null);
       const replays = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("[data-replay]")]);
       const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
       /** Each play button says whether it plays: Pause while it does. */
@@ -2389,6 +2401,7 @@
         gliding = 0;
         if (!playing) return;
         playing = false;
+        pausedOn = pinned;
         saidPlaying(false);
       }
       /** Play ended outright, not paused (a drag takes the chart from it): its day let go too, today shown again, the
@@ -2417,14 +2430,14 @@
       }
       for (const button of replays) button.addEventListener("click", () => {
         if (!days) return;
-        if (playing) {
-          stopPlay();
-          show(true);
-          return;
-        }
-        // (From the day kept, where a pause left it, never the one a mouse is over: that's passing, and near today it
-        // would end the play at once.)
-        const d = days, at = pinned ?? d.last;
+        if (!playing) return play();
+        stopPlay();
+        show(true);
+      });
+      /** Play started: from the day kept, where a pause left it, never the one a mouse is over (that's passing, and
+       * near today it would end the play at once); from today, at the chart's first day. */
+      function play() {
+        const d = /** @type {Days} */ (days), at = pinned ?? d.last;
         playFrom = at >= d.last ? Math.max(d.first, Math.ceil(target.a)) : at;
         playSpeed = (Math.min(d.last, target.b) - target.a + 1) / PLAY;
         playAt = performance.now();
@@ -2435,7 +2448,7 @@
         playing = true;
         saidPlaying(true);
         show();
-      });
+      }
 
       // ── Time in each ──
 
