@@ -12317,6 +12317,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const word = (text) => WORDS[text] ?? percentileWord(text) ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
       const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+      /** A name as a sentence reads it, after its start: its first letter lowered, not an initialism's ("URPD"). @param {string} text */
+      const inSentence = (text) => text.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase());
       /** A series id as words, a percentile's decimal point kept: "supply_in_loss_rarity_p99_9" …rarity 99.9th percentile. */
       const humanize = (name) => capitalize(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
       /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole, "p99_5ToP99_9" 99.5th percentile to 99.9th percentile. */
@@ -21597,12 +21599,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Heatmaps: the URPD, a day a column ──────────────────────────────────────
 
       /** A heatmap's name: its measure by cost basis, its cohort's, its weight's ("Supply by cost basis, short-term holders, awake"). @param {Layer} layer */
-      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${cohortName(layer.heatmap ?? "all").replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
+      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${inSentence(cohortName(layer.heatmap ?? "all"))}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
       /**
        * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
        * short-term and long-term holders"). @param {Layer} layer
        */
-      const profileName = (layer, grouped = true) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}`}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
+      const profileName = (layer, grouped = true) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => inSentence(cohortName(cohort))).join(" and ")}`}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
       const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
@@ -21854,8 +21856,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const heatFelt = (value, most) => (value && most ? clamp(1 + Math.log10(Math.abs(value) / most) / HEAT_DECADES, 0, 1) ** HEAT_CURVE : 0);
       /** The amount a cell reads as strong as `felt` (0 to 1) against the reference `most` (heatFelt's inverse). @param {number} felt @param {number} most */
       const heatAmount = (felt, most) => most * 10 ** (HEAT_DECADES * (felt ** (1 / HEAT_CURVE) - 1));
+      /** A URPD day's amounts, a row each, as a measure reads them: its coins, their capital, their unrealized P&L. @param {any} day @param {string} measure @returns {Float32Array} */
+      const amountsOf = (day, measure) => (measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply);
       /** The largest of a day's cells, by measure. @param {any} day @param {string} measure */
-      const heatMost = (day, measure) => (day.most ??= {})[measure] ??= ((values) => values.reduce((most, value) => Math.max(most, Math.abs(value)), 0))(measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply);
+      const heatMost = (day, measure) => (day.most ??= {})[measure] ??= amountsOf(day, measure).reduce((most, value) => Math.max(most, Math.abs(value)), 0);
       /**
        * A day's strip: each row's cell in its color, as strong as its amount against the map's reference (`most`: the
        * open day's largest cell, the same for every day and every view, see drawHeat), on a log scale over
@@ -21878,7 +21882,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (had) return looks.delete(look), looks.set(look, had), had;
         let reused = null;
         for (const [other, strip] of looks) if (looks.size >= HEAT_LOOKS) looks.delete(other), (reused = strip.canvas);
-        const rows = /** @type {Int32Array} */ (day.rows), values = measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply;
+        const rows = /** @type {Int32Array} */ (day.rows), values = amountsOf(day, measure);
         const lowest = grid.price(rows[0]), highest = grid.price(rows[rows.length - 1] + 1);
         // (A step no finer than its height's most, `HEAT_PIXELS`: zoomed far in on a linear scale, its pixels stretched,
         // finer than its rows anyway (one at $100K, at 500 a ×10, is $230).)
@@ -22027,7 +22031,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const grid = look.grid, shown = profileDays(look, look.g[point.at]);
         const bar = pointed && litCohort(look.id) ? profileLit : null, item = bar && shown.find((one) => one?.cohort.id === bar.cohort);
         if (bar && item) {
-          const { rows } = item.day, values = /** @type {Float32Array} */ (look.measure === "capital" ? item.day.capital : look.measure === "pnl" ? item.day.pnl : item.day.supply);
+          const { rows } = item.day, values = amountsOf(item.day, look.measure);
           let amount = 0;
           for (let k = lowerBound(rows, bar.from); k < rows.length && rows[k] < bar.to; k++) amount += values[k];
           return { amount: format(amount, look.measure === "supply" ? "btc" : "usd"), at: `$${compact(grid.price(bar.from))}–$${compact(grid.price(bar.to))}` };
@@ -22103,7 +22107,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = crossSet ? (pinned && y !== null ? { pane: pinned.getPane().paneIndex(), y } : null) : heatAt;
         const pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? drawn.get(layer.id)?.coordinateToPrice(at.y) : day.close;
         if (!(Number(price) > 0)) return null;
-        const row = grid.cell(Number(price)), rows = day.rows, values = look.measure === "capital" ? day.capital : look.measure === "pnl" ? day.pnl : day.supply;
+        const row = grid.cell(Number(price)), rows = day.rows, values = amountsOf(day, look.measure);
         const k = lowerBound(rows, row), value = rows[k] === row ? /** @type {Float32Array} */ (values)[k] : 0;
         return { amount: format(value, look.measure === "supply" ? "btc" : "usd"), at: format(grid.price(row), "usd") };
       }
@@ -22335,7 +22339,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const bins = edges.length - 1, count = shown.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
         shown.forEach((item, c) => {
           if (!item) return;
-          const { day } = item, rows = day.rows, values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply);
+          const { day } = item, rows = day.rows, values = amountsOf(day, heat.measure);
           for (let k = lowerBound(rows, lo); k < rows.length && rows[k] <= hi; k++) {
             const bin = binAt[rows[k] - lo], amount = Math.abs(values[k]);
             sums[bin * count + c] += amount;
@@ -23864,7 +23868,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const row = Math.floor(k * Math.log10(price * 100));
           sample.days.forEach((day, c) => {
             if (!day?.rows) return;
-            const at = lowerBound(day.rows, row), values = look.measure === "capital" ? day.capital : look.measure === "pnl" ? day.pnl : day.supply;
+            const at = lowerBound(day.rows, row), values = amountsOf(day, look.measure);
             if (day.rows[at] === row) heatColor(values[at], most, look, image.data, (p * columns + c) * 4);
           });
         }
@@ -24084,7 +24088,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!groups.length) continue;
               const BIN = 4, bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
               groups.forEach(({ day }, c) => {
-                const values = measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply;
+                const values = amountsOf(day, measure);
                 for (let k = 0; k < day.rows.length; k++) {
                   const at = y(scaled(10 ** ((day.rows[k] + 0.5) / rows) / 100));
                   if (!(at >= paneTop && at < paneBottom)) continue;
@@ -34958,7 +34962,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
-              : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${label.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}` : "Color"))),
+              : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${inSentence(label)}` : "Color"))),
             // (A gradient's: another color, and what its lowest and highest are of (not a heatmap's: each day its own).)
             ...(layer.byGradient && layer.gradient ? [
               // (The gradients ready made, as its editor's row of them: each a small bar of itself.)
@@ -39559,7 +39563,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, k = fine ? Number(heatGrid(copy, layer)?.agg.slice(3) ?? 200) : Number(HEAT_PICTURE_AGG.slice(3)), close = day?.close;
               if (!day?.rows || !(Number(close) > 0)) return [];
               const row = Math.floor(k * Math.log10(Number(close) * 100)), at = lowerBound(day.rows, row), measure = layer.measure ?? "supply";
-              const amount = day.rows[at] === row ? (measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply)[at] : 0;
+              const amount = day.rows[at] === row ? amountsOf(day, measure)[at] : 0;
               return [[layer.id, `${format(amount, measure === "supply" ? "btc" : "usd")} at ${format(10 ** (row / k) / 100, "usd")}`]];
             })(heat.get(layer.id));
             if (!high || result.error) return [];
