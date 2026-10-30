@@ -12,11 +12,12 @@ import { Bars } from "./bars.js";
 import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
+import { inkOn } from "./color.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
  * words; the line between panes.
- * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, badge: string, badgeText: string, separator: string }} Theme
+ * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, badge: string, separator: string }} Theme
  */
 
 /** Drawing a pane whole slower than this (ms): a zoom stretches its picture instead (see draw). */
@@ -27,12 +28,19 @@ const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
 const TAG = 18;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
- * plot; `version`, changed at each change of its values or look.
+ * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
+ * moves (its pane drawn whole each frame, its picture never moved); `over`, drawn over everything, the crosshair too,
+ * on a layer of its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its
+ * side's scale (its grid by the other's). How far a point is from it: at index `i` (and `x` CSS pixels into the plot),
+ * `y` from the pane's top.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
+ *   fixed?: boolean,
+ *   over?: boolean,
+ *   scaled?: boolean,
  *   first(i: number): number,
- *   distance(i: number, y: number, scale: Scale): number,
+ *   distance(i: number, y: number, scale: Scale, x: number): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number): void,
  * }} Series
@@ -66,16 +74,27 @@ export class Pane {
     /** @type {CanvasRenderingContext2D | null} */
     this.leftG = null;
     this.leftWidth = 0;
-    /** Told when its left scale comes: the chart lays itself out again, room made for it. @type {() => void} */
-    this.onLeft = () => {};
+    /** Its layer over everything, the crosshair too (its series `over`: see draw), made as the first comes. @type {HTMLCanvasElement | null} */
+    this.overCanvas = null;
+    /** @type {CanvasRenderingContext2D | null} */
+    this.overG = null;
+    /** Told when its layout changes (its left scale come or gone, its layer over it come): the chart lays itself out again. @type {() => void} */
+    this.onLayout = () => {};
     /** @type {Series[]} */
     this.series = [];
     /** Each series' side: 0, the right scale; 1, the left. @type {number[]} */
     this.sides = [];
-    this.label = kept(format);
-    // (A relative scale's labels: a percent, an index.)
-    this.percentLabel = kept((v) => `${compact(v)}%`);
-    this.indexLabel = kept(compact);
+    // (How each side writes a value (its tags', but a line's own, and the crosshair's), and its ticks, all of them at
+    // once (their digits alike; none, each as a value): 0, the right one's; 1, the left one's; 2 and 3, theirs as a
+    // percent (an indexed scale's as its side's values are). Each slot's ticks as last written, and their words:
+    // written anew only when they change.)
+    const percent = kept((v) => `${compact(v)}%`);
+    this.labels = [kept(format), kept(format), percent, percent];
+    /** @type {(((values: number[]) => string[]) | null)[]} */
+    this.tickWriters = [null, null, null, null];
+    this.tickValues = [new Float64Array(0), new Float64Array(0), new Float64Array(0), new Float64Array(0)];
+    /** @type {string[][]} */
+    this.tickTexts = [[], [], [], []];
     // (A relative scale's: each series' base, as fitted and as drawn: its picture moved only where each is the same.)
     this.bases = new Float64Array(4);
     this.drawnBases = new Float64Array(4);
@@ -107,6 +126,8 @@ export class Pane {
     this.tagAt = new Int32Array(8);
     this.tagY = new Float64Array(8);
     this.tagPlace = new Float64Array(8);
+    /** The least room between two tags as last placed. */
+    this.tagStep = 0;
     /** What drawing it whole takes (ms, the last few weighed): a zoom stretches its picture only where it's slow. */
     this.wholeCost = 0;
     /** @type {Theme | null} */
@@ -127,7 +148,13 @@ export class Pane {
       this.left = new Scale(this.leftOptions);
       this.left.height = this.height;
       if (this.leftRange) this.left.fit(this.leftRange[0], this.leftRange[1]);
-      this.onLeft();
+      this.onLayout();
+    }
+    if (series.over && !this.overCanvas) {
+      this.overCanvas = document.createElement("canvas");
+      this.overCanvas.style.cssText = "position: absolute; left: 0; display: block; pointer-events: none";
+      this.overG = this.overCanvas.getContext("2d");
+      this.onLayout();
     }
     this.drawnFrom = NaN;
     return series;
@@ -158,6 +185,18 @@ export class Pane {
     return this.add(new Custom(hooks), side);
   }
 
+  /** Its series drawn in `list`'s order (the same series, rearranged: the last on top), each on its side. @param {Series[]} list */
+  order(list) {
+    let same = list.length === this.series.length;
+    for (let k = 0; same && k < list.length; k++) same = list[k] === this.series[k];
+    if (same) return;
+    const sides = list.map((series) => this.sides[this.series.indexOf(series)]);
+    console.assert(sides.every((side) => side !== undefined), "bitview-charts: order() takes the pane's own series");
+    this.series.splice(0, this.series.length, ...list);
+    this.sides.splice(0, this.sides.length, ...sides);
+    this.drawnFrom = NaN;
+  }
+
   /** @param {Series} series */
   remove(series) {
     const k = this.series.indexOf(series);
@@ -166,15 +205,15 @@ export class Pane {
     this.sides.splice(k, 1);
     this.drawnFrom = NaN;
     // (Its last left series gone: its left scale with it, and its axis' room.)
-    if (this.left && !this.sides.includes(1)) (this.left = null), this.onLeft();
+    if (this.left && !this.sides.includes(1)) (this.left = null), this.onLayout();
   }
 
   /**
-   * The series nearest a point (index `i`, `y` CSS pixels from its top) within `within` pixels (the one on top, where
-   * two are as near), or -1: none.
-   * @param {import("./timeline.js").Timeline} time @param {number} i @param {number} y @param {number} [within]
+   * The series nearest a point (index `i`, `x` CSS pixels into the plot, `y` from its top) within `within` pixels (the
+   * one on top, where two are as near), or -1: none.
+   * @param {import("./timeline.js").Timeline} time @param {number} i @param {number} x @param {number} y @param {number} [within]
    */
-  hit(time, i, y, within = 6) {
+  hit(time, i, x, y, within = 6) {
     const from = this.#from(time);
     let best = -1, nearest = within;
     for (let k = this.series.length - 1; k >= 0; k--) {
@@ -185,7 +224,7 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      const d = this.series[k].distance(i, y, scale);
+      const d = this.series[k].distance(i, y, scale, x);
       if (d < nearest) (nearest = d), (best = k);
     }
     return best;
@@ -225,6 +264,38 @@ export class Pane {
     this.plot = Math.max(1, width - axis);
     this.scale.height = height;
     if (this.left) this.left.height = height;
+    // (Its layer over everything: over its plot.)
+    const over = this.overCanvas;
+    if (over) {
+      const ow = Math.round(this.plot * dpr);
+      if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h);
+      Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px` });
+    }
+  }
+
+  /**
+   * Its series `over` (marks over everything: the crosshair too) drawn on its layer over it, whole: at each frame,
+   * wherever its picture's moved.
+   * @param {import("./timeline.js").Timeline} time @param {number} dpr
+   */
+  drawOver(time, dpr) {
+    const g = this.overG;
+    if (!g || !this.overCanvas) return;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, this.overCanvas.width, this.overCanvas.height);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const from = this.#from(time);
+    for (let k = 0; k < this.series.length; k++) {
+      const series = this.series[k];
+      if (!series.over || series.hidden) continue;
+      const scale = this.scaleOf(k);
+      if (scale.relative) {
+        const base = series.first(from);
+        if (!base || base !== base) continue;
+        scale.setBase(base);
+      }
+      series.draw(g, time, scale, 0, this.plot, dpr);
+    }
   }
 
   /**
@@ -246,9 +317,49 @@ export class Pane {
     Object.assign(canvas.style, { top: `${top}px`, width: `${width}px`, height: `${this.height}px` });
   }
 
+  /** A scale's writers' slot: its side's, or its side's as a percent. @param {Scale} scale */
+  #slot(scale) {
+    return (scale.mode === "percent" ? 2 : 0) + (scale === this.left ? 1 : 0);
+  }
+
   /** A value as an axis writes it (the right one's, or `scale`'s). @param {number} v @param {Scale} [scale] */
   axisLabel(v, scale = this.scale) {
-    return scale.mode === "percent" ? this.percentLabel(v) : scale.mode === "indexed" ? this.indexLabel(v) : this.label(v);
+    return this.labels[this.#slot(scale)](v);
+  }
+
+  /**
+   * How a side writes its values (`format`: its tags', but a line's own, and the crosshair's; an indexed scale's too)
+   * and its ticks (`ticks`: all of them at once, so their digits agree; none, each as a value).
+   * @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] @param {"right" | "left"} [side]
+   */
+  setFormat(format, ticks = null, side = "right") {
+    this.#write(side === "left" ? 1 : 0, format, ticks);
+  }
+
+  /** How a percent scale (either side) writes its values and its ticks, as setFormat. @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] */
+  setPercentFormat(format, ticks = null) {
+    this.#write(2, format, ticks);
+    this.#write(3, format, ticks);
+  }
+
+  /** @param {number} slot @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} ticks */
+  #write(slot, format, ticks) {
+    this.labels[slot] = kept(format);
+    this.tickWriters[slot] = ticks;
+    this.tickValues[slot] = new Float64Array(0);
+    this.drawnFrom = NaN;
+  }
+
+  /** A slot's ticks (`count` of them, in axisTicks) as its writer writes them, written anew only when they change. @param {number} slot @param {number} count */
+  #tickTexts(slot, count) {
+    const was = this.tickValues[slot], ticks = this.axisTicks;
+    let same = was.length === count;
+    for (let k = 0; same && k < count; k++) same = was[k] === ticks[k];
+    if (same) return this.tickTexts[slot];
+    const values = new Array(count);
+    for (let k = 0; k < count; k++) values[k] = ticks[k];
+    this.tickValues[slot] = Float64Array.from(values);
+    return (this.tickTexts[slot] = /** @type {(values: number[]) => string[]} */ (this.tickWriters[slot])(values));
   }
 
   /** The first point a relative scale reads its series from: its first in view. @param {import("./timeline.js").Timeline} time */
@@ -310,9 +421,10 @@ export class Pane {
    */
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
-    let versions = 0;
-    for (let k = 0; k < this.series.length; k++) versions += this.series[k].version;
-    const same = !whole && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
+    // (Its series over it drawn apart: theirs never stale its picture.)
+    let versions = 0, fixed = false;
+    for (let k = 0; k < this.series.length; k++) if (!this.series[k].over) (versions += this.series[k].version), (fixed ||= Boolean(this.series[k].fixed && !this.series[k].hidden));
+    const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
@@ -385,12 +497,18 @@ export class Pane {
     g.font = theme.font;
     g.textBaseline = "middle";
     g.textAlign = side ? "right" : "left";
-    const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8;
+    const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8, slot = this.#slot(scale), texts = this.tickWriters[slot] ? this.#tickTexts(slot, count) : null;
+    // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
+    // 4 pixels: one touching a tag reads cramped against it).)
+    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10;
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
-      if (y > 6 && y < this.height - 6) g.fillText(this.axisLabel(this.axisTicks[k], scale), at, y);
+      if (!(y > 6 && y < this.height - 6)) continue;
+      let covered = false;
+      for (let t = 0; !covered && t < tags; t++) covered = Math.abs(place[t] - y) < near;
+      if (!covered) g.fillText(texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale), at, y);
     }
-    this.#tags(g, scale, time, theme, x, width, side);
+    this.#tags(g, scale, time, theme, x, width, side, tags);
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 
@@ -407,8 +525,11 @@ export class Pane {
     g.clip();
     g.fillStyle = theme.background;
     g.fillRect(x0, 0, x1 - x0, this.height);
-    // (The grid by the right scale's ticks; by the left one's where only it has series.)
-    const grid = this.left && !this.sides.includes(0) ? this.left : this.scale;
+    // (The grid by the right scale's ticks; by the left one's where only it has series read on a scale (a page's own
+    // drawn as it likes, none).)
+    let right = !this.left;
+    for (let k = 0; !right && k < this.series.length; k++) right = this.sides[k] === 0 && !this.series[k].hidden && this.series[k].scaled !== false;
+    const grid = right ? this.scale : /** @type {Scale} */ (this.left);
     this.tickCount = grid.ticks(this.ticks);
     g.strokeStyle = theme.grid;
     g.lineWidth = 1;
@@ -421,7 +542,7 @@ export class Pane {
     g.stroke();
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
-      if (this.series[k].hidden) continue;
+      if (this.series[k].hidden || this.series[k].over) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = this.series[k].first(from);
@@ -430,8 +551,10 @@ export class Pane {
       }
       this.series[k].draw(g, time, scale, x0, x1, dpr);
     }
-    // (Price lines: across at a line's last value, dotted, in its color there.)
+    // (Price lines: across at a line's last value, dotted, in its color there; its dots where they'd be on the timeline,
+    // so a picture moved by a pan has them where a whole draw does.)
     g.setLineDash(DOTS);
+    g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
     for (let k = 0; k < this.series.length; k++) {
       const line = this.series[k], scale = this.scaleOf(k);
       if (!(line instanceof Line) || !line.priceLine || line.hidden) continue;
@@ -451,6 +574,7 @@ export class Pane {
       g.stroke();
     }
     g.setLineDash(SOLID);
+    g.lineDashOffset = 0;
     if (this.separated) this.#separator(g, theme, dpr, x0, x1);
     g.restore();
   }
@@ -470,12 +594,12 @@ export class Pane {
   }
 
   /**
-   * A side's lines' tags on its axis (`g`, from `x`, `width` wide): each one's last value in a badge in its color, laid
-   * top to bottom where they'd overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
-   * @param {CanvasRenderingContext2D} g @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {Theme} theme
-   * @param {number} x @param {number} width @param {number} side
+   * A side's lines' tags placed (their count returned; their lines in tagLines, by tagAt top to bottom at tagPlace,
+   * tagStep apart at least): each one at its last value, laid top to bottom where they'd overlap (none pushed past its
+   * axis' ends); on a relative scale, as it reads them.
+   * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
-  #tags(g, scale, time, theme, x, width, side) {
+  #placeTags(scale, time, side) {
     const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
@@ -487,7 +611,7 @@ export class Pane {
       if (base && base === base) lines.push(line);
     }
     const n = lines.length;
-    if (!n) return;
+    if (!n) return 0;
     if (this.tagY.length < n) (this.tagY = new Float64Array(n * 2)), (this.tagAt = new Int32Array(n * 2)), (this.tagPlace = new Float64Array(n * 2));
     const ys = this.tagY, order = this.tagAt, at = this.tagPlace;
     for (let k = 0; k < n; k++) {
@@ -504,20 +628,33 @@ export class Pane {
       }
     for (let k = 0; k < n; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : step / 2);
     for (let k = n - 1; k >= 0; k--) at[k] = Math.min(at[k], k < n - 1 ? at[k + 1] - step : this.height - step / 2);
+    this.tagStep = step;
+    return n;
+  }
+
+  /**
+   * A side's `n` tags (as #placeTags placed them) drawn on its axis (`g`, from `x`, `width` wide): each one's last value
+   * in a badge in its color, its words black or white by its lightness.
+   * @param {CanvasRenderingContext2D} g @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {Theme} theme
+   * @param {number} x @param {number} width @param {number} side @param {number} n
+   */
+  #tags(g, scale, time, theme, x, width, side, n) {
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, order = this.tagAt, at = this.tagPlace, step = this.tagStep;
     g.font = theme.font;
     g.textAlign = side ? "right" : "left";
     g.textBaseline = "middle";
     for (let k = 0; k < n; k++) {
       const line = lines[order[k]], i = line.last(log), y = at[k];
-      g.fillStyle = line.colorAt(i);
+      const color = line.colorAt(i);
+      g.fillStyle = color;
       g.beginPath();
       g.roundRect(x + 2, y - step / 2 + 1, width - 4, Math.max(1, step - 2), Math.max(0, Math.min(4, step / 2 - 1)));
       g.fill();
       // (Too tight to read: its color alone.)
       if (step < 10) continue;
-      g.fillStyle = theme.background;
+      g.fillStyle = inkOn(color);
       if (relative) scale.setBase(line.first(from));
-      g.fillText(relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : this.label(line.values[i]), side ? x + width - 8 : x + 8, y);
+      g.fillText(relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : (line.format ?? this.labels[side])(line.values[i]), side ? x + width - 8 : x + 8, y);
     }
   }
 

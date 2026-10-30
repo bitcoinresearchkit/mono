@@ -20218,7 +20218,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.lineWidth = 3;
         context.strokeStyle = css("--card");
         for (const { x, n, next } of marks) {
-          if (x < -1 || x > size.width + 1) continue;
+          // (Drawn while any of it's in view: it runs from its mark to about 16 pixels right of it, so a pan slides it out.)
+          if (x < -16 || x > size.width + 1) continue;
           const name = `${ordinal(n)} halving${next ? " ≈" : ""}`;
           context.save();
           context.translate(Math.round(x) + 4.5, size.height - 8);
@@ -20247,14 +20248,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         context.beginPath();
         const through = THROUGH.has(drawing.kind) ? lineThrough(drawing, points, size) : [], n = through.length;
+        // (Its dashes from its own first point, whatever's drawn of it: run on to the plot's edge, or across, they move with
+        // the chart as it's panned, as a picture moved along has them.)
+        if (n > 1 && Number.isFinite(a.x)) context.lineDashOffset = -Math.hypot(a.x - through[0].x, a.y - through[0].y);
         if (n > 1) {
           // (An arrow's line stops at its head's back: its head makes its end.)
           context.moveTo(...(drawing.start === "arrow" ? arrowBack(through[1], through[0], drawing.width) : [through[0].x, through[0].y]));
           for (const point of through.slice(1, -1)) context.lineTo(point.x, point.y);
           context.lineTo(...(drawing.end === "arrow" ? arrowBack(through[n - 2], through[n - 1], drawing.width) : [through[n - 1].x, through[n - 1].y]));
         } else if (drawing.kind === "hline" && Number.isFinite(a.y)) {
-          context.moveTo(0, a.y);
+          const from = Number.isFinite(a.x) ? a.x : 0;
+          context.moveTo(from, a.y);
           context.lineTo(size.width, a.y);
+          context.moveTo(from, a.y);
+          context.lineTo(0, a.y);
         } else if (drawing.kind === "vline" && Number.isFinite(a.x)) {
           context.moveTo(a.x, 0);
           context.lineTo(a.x, size.height);

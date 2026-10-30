@@ -30,9 +30,9 @@ export { Scale } from "./scale.js";
 export { compact } from "./format.js";
 
 /** @type {import("./pane.js").Theme} */
-export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", badge: "#f7f8f8", badgeText: "#0e0f11", separator: "rgba(255, 255, 255, 0.14)" };
+export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)" };
 /** @type {import("./pane.js").Theme} */
-export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", badge: "#0e0f11", badgeText: "#ffffff", separator: "rgba(0, 0, 0, 0.12)" };
+export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)" };
 
 /** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart. */
 const HOLD = 350;
@@ -123,8 +123,8 @@ export class Chart {
     const pane = new Pane(options);
     this.panes.push(pane);
     this.element.insertBefore(pane.canvas, this.timeAxis.canvas);
-    // (Its left scale come: room made for it.)
-    pane.onLeft = () => this.layout();
+    // (Its left scale come or gone, its layer over it come: laid out again.)
+    pane.onLayout = () => this.layout();
     this.layout();
     return pane;
   }
@@ -134,6 +134,7 @@ export class Chart {
     this.panes = this.panes.filter((each) => each !== pane);
     pane.canvas.remove();
     pane.leftCanvas?.remove();
+    pane.overCanvas?.remove();
     this.layout();
   }
 
@@ -222,6 +223,11 @@ export class Chart {
       pane.placeLeft(top, left, this.dpr);
       if (pane.leftCanvas && !had) this.element.insertBefore(pane.leftCanvas, this.timeAxis.canvas);
       if (pane.leftCanvas) pane.leftCanvas.style.display = left ? "block" : "none";
+      // (Its layer over everything: over the crosshair, the last in.)
+      if (pane.overCanvas) {
+        if (!pane.overCanvas.parentNode) this.element.append(pane.overCanvas);
+        pane.overCanvas.style.left = `${left}px`;
+      }
       pane.separated = k < this.panes.length - 1;
       top = bottom;
     }
@@ -276,6 +282,7 @@ export class Chart {
     }
     this.timeAxis.draw(time, this.theme, this.dpr, time.width);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
+    for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
       for (let k = 0; k < this.rangeListeners.length; k++) this.rangeListeners[k](time.from, time.to);
@@ -418,7 +425,7 @@ export class Chart {
     const index = n && x >= 0 && x <= this.time.width ? Math.min(Math.max(Math.round(this.time.index(x)), 0), n - 1) : NaN;
     let pane = -1, series = -1;
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
-    if (pane >= 0 && index === index) series = this.panes[pane].hit(this.time, index, y - this.panes[pane].top);
+    if (pane >= 0 && index === index) series = this.panes[pane].hit(this.time, index, x, y - this.panes[pane].top);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN;
     for (let l = 0; l < this.clickListeners.length; l++) this.clickListeners[l](index, pane, series, within);
   }
@@ -448,7 +455,7 @@ export class Chart {
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();
-    for (const pane of this.panes) pane.canvas.remove(), pane.leftCanvas?.remove();
+    for (const pane of this.panes) pane.canvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove();
     this.timeAxis.canvas.remove();
     this.panes = [];
   }

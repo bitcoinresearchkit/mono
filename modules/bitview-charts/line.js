@@ -7,6 +7,7 @@
 // stretch begun anew). `colors` (a Uint8Array of indices into `palette`): each segment in its first point's color.
 
 import { Summary, FIRST } from "./summary.js";
+import { kept } from "./format.js";
 
 const BLOCK = 64;
 
@@ -116,11 +117,12 @@ const run = {
 
 export class Line {
   /**
-   * `tag`: its last value in a badge on its pane's axis, in its color; `priceLine`: a dotted line across at it;
-   * `stroke: false`, no line drawn (its tag and price line still).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean }} [options]
+   * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
+   * values); `priceLine`: a dotted line across at it; `stroke: false`, no line drawn (its tag and price line still);
+   * `outline`, a color it's edged in (under it, its width each side: over a fill or a line, it stands off it).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -129,6 +131,10 @@ export class Line {
     this.tag = tag;
     this.priceLine = priceLine;
     this.stroke = stroke;
+    /** How its tag's written (each value once: see kept); none, as its side writes values. @type {((v: number) => string) | null} */
+    this.format = format && kept(format);
+    /** @type {string | null} */
+    this.outline = outline;
     // (Its last point with a value, found once a version: NaN, none.)
     this.lastAt = NaN;
     this.lastVersion = -1;
@@ -168,10 +174,11 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline);
+    if (format !== undefined) this.format = format && kept(format);
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
@@ -340,11 +347,22 @@ export class Line {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.values.length || !this.stroke) return;
+    const colors = this.colors && this.palette.length ? this.colors : null;
+    // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show).)
+    if (this.outline) {
+      g.lineWidth = this.width * 3;
+      g.lineJoin = "round";
+      g.strokeStyle = this.outline;
+      g.beginPath();
+      pen.start(g, dpr, -1);
+      this.#trace(time, scale, x0, x1, colors);
+      pen.lift();
+      g.stroke();
+    }
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";
     // (One stroke a color: its segments in it.)
-    const colors = this.colors && this.palette.length ? this.colors : null;
     for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
       g.strokeStyle = pass < 0 ? this.color : this.palette[pass];
       g.beginPath();

@@ -1,6 +1,6 @@
 // @ts-check
-// The chart as a picture (an Export, a card, a preview): its canvases (each pane's, the time axis', and the crosshair's
-// with `crosshair`) drawn into one, at the chart's size and its device pixels, as it shows now (drawn whole first, so no
+// The chart as a picture (an Export, a card, a preview): its canvases (each pane's, the time axis', the crosshair's with
+// `crosshair`, and the layers over the panes) drawn into one, at the chart's size and its device pixels, as it shows now (drawn whole first, so no
 // pan's seams are in it). A picture at another size: a chart laid out at that size (an element of it, out of sight),
 // pictured, then destroyed.
 
@@ -23,5 +23,6 @@ export function picture(chart, { crosshair = false } = {}) {
   }
   g.drawImage(chart.timeAxis.canvas, left, Math.round((chart.height - chart.timeHeight) * dpr));
   if (crosshair) g.drawImage(chart.crosshair.canvas, 0, 0);
+  for (const pane of chart.panes) if (pane.overCanvas) g.drawImage(pane.overCanvas, left, Math.round(pane.top * dpr));
   return canvas;
 }

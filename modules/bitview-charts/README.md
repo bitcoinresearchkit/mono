@@ -21,7 +21,7 @@ chart.show(365);                                 // the last 365 points in view
 ## Chart
 
 - `createChart(element, { theme, axis, timeHeight, rightOffset, maxSpacing })`: `theme` is `DARK` (default) or
-  `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair`, `badge`, `badgeText`, `separator`); `axis`,
+  `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair`, `badge`, `separator`); `axis`,
   the axis' width at the right (64); `rightOffset`, CSS pixels left empty past the last point (24).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `setCrosshair(index, y)`, `onCrosshair(listener)`,
@@ -37,24 +37,30 @@ chart.show(365);                                 // the last 365 points in view
 - `addPane({ share, scale: { mode, top, bottom }, left, format })`: `share`, its part of the height; `mode`:
   `"linear"`, `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it);
   `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
-  written.
+  written. `setFormat(format, ticks, side)`: a side's own (`ticks`, its ticks written all at once, their digits alike;
+  an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's.
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
-  its axis at the chart's left), `add(series, side)`, `remove(series)`, `setRange(lo, hi, side)` (no range: fitted),
-  `hit(time, index, y)` (the series nearest a point, within 6 pixels).
+  its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
+  the last on top), `setRange(lo, hi, side)` (no range: fitted),
+  `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
 
 ## Series
 
-- `Line({ values, color, width, colors, palette, breaks, tag, priceLine })`: `colors` (a `Uint8Array` of indices into
-  `palette`) colors each segment by its first point; `breaks` (a `Uint8Array`, 1 at a point) stops the line after it;
-  `tag`, its last value on the axis; `priceLine`, a dotted line across at it.
+- `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline })`: `colors` (a
+  `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a `Uint8Array`, 1 at a
+  point) stops the line after it; `tag`, its last value on the axis (written by `format`, else as its side writes
+  values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price line kept); `outline`,
+  a color it's edged in (over a heatmap, a cloud, another line: it stands off them).
 - `Band({ lower, upper, base, color, below })`: a fill between two columns; without `lower`, an area down to `base`;
   with `below`, a baseline (under its base in that color).
 - `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`.
 - `stack(members, { percent })`: a stack's edges from its members' columns.
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate(true)`.
-- `Custom({ draw, extent, first })`: a page's own (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of
-  its pane's picture (see custom.js); `changed()` after a change.
+- `Custom({ draw, extent, first, distance }, { fixed, over })`: a page's own (bubbles, a heatmap, drawings, marks),
+  drawn by its hooks as part of its pane's picture (see custom.js); `fixed`, held in place as the view moves (its pane
+  drawn whole each frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame
+  (labels and handles placed in the plot); `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 
 ## How it draws

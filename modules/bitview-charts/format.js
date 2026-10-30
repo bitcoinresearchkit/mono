@@ -9,6 +9,7 @@ export function compact(v) {
   const a = Math.abs(v);
   if (a < 1e-4) return v.toExponential(1);
   if (a < 1000) return String(Number(v.toPrecision(4)));
+  if (a >= 1e15) return v.toExponential(2);
   const k = Math.min(SUFFIXES.length - 1, Math.floor(Math.log10(a) / 3));
   return `${Number((v / 1000 ** k).toPrecision(3))}${SUFFIXES[k]}`;
 }

@@ -4,6 +4,7 @@
 // point's date on the time axis and the height's value on that pane's axis, each in a badge.
 
 import { kept } from "./format.js";
+import { inkOn } from "./color.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -102,7 +103,7 @@ function badge(g, theme, text, x, y, align) {
   g.beginPath();
   g.roundRect(left, y - 10, width, 20, 4);
   g.fill();
-  g.fillStyle = theme.badgeText;
+  g.fillStyle = inkOn(theme.badge);
   g.textAlign = "center";
   g.fillText(text, left + width / 2, y);
 }
