@@ -14766,6 +14766,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let navigations = 0;
       /** A block came while the Charts page was over the chart (see checkLive). */
       let blockAtHome = false;
+      /** The chart under the grid not drawn yet (a start onto the grid): drawn as it's opened, as any other is (see leaveHome). */
+      let undrawn = false;
       /** @param {Chart} doc */
       function openChart(doc) {
         if (doc.id !== chart?.id) navigations++;
@@ -16647,6 +16649,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           (buildAsked = 0), (refit ||= buildRefit), (buildRefit = false);
         }
         const version = ++drawVersion;
+        undrawn = false;
         // Drawn on the way out of the grid: the chart grows out of its card instead of wiping in.
         const fromHome = document.body.hasAttribute("data-home");
         const doc = structuredClone(chart);
@@ -25862,8 +25865,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           document.body.removeAttribute("data-home");
           if ($("toast").classList.contains("visible")) placeToast();
           refresh("none");
-          // (A block came while it was away: its data comes again, as it would have.)
-          if (blockAtHome) (blockAtHome = false), void draw(false, true);
+          // (Never drawn (a start onto the grid): drawn now, as it opens. A block came while it was away: its data comes
+          // again, as it would have.)
+          if (undrawn) (blockAtHome = false), void draw(true);
+          else if (blockAtHome) (blockAtHome = false), void draw(false, true);
           const row = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${chart.id}"]`));
           if (focused && row?.checkVisibility()) row.focus({ preventScroll: true });
           // (Drawn as it grows, live: its data is usually at hand, from its tile.)
@@ -39997,7 +40002,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         rememberViewed(chart.id);
         normalize(chart);
         save();
-        refresh(true, true);
+        // (Onto the grid, its chart drawn once it's opened: the grid's first moments its own, not shared with a chart's
+        // build out of sight.)
+        undrawn = home;
+        refresh(home ? "none" : true, true);
         // (Rendered: the page shown, settling in whole; opened from a home screen, there whole at once, under its launch's
         // orange, which drawing back is its way in: see /assets/launch/launch.js.)
         if ("launch" in document.documentElement.dataset) document.body.classList.remove("boot");
