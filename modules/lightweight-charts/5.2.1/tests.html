@@ -184,6 +184,32 @@ scenario("older data prepended", (L, el) => {
     ["emptied, then older", () => { held.set(s4, []); s4.setData([]); prepend(s4, all4.slice(100, 900)); }], ["last fit", () => c.timeScale().fitContent()],
     ["gaps held, older values before them", () => prepend(s5, all5.slice(2000, 2500))], ["then a live update", () => s5.update({ time: day(3000), value: 99 })], ["fit at the end", () => c.timeScale().fitContent()]];
 });
+// Data as columns (patch 57's bvSetColumns; as published, the same as rows, a value's none where it isn't finite):
+// series of values on one times array, one set again on it (its points kept, not let go of first), one on another, a live
+// update between (its point let go of when set again on the old times), emptied, and back.
+scenario("data as columns", (L, el) => {
+  seed = 57;
+  const c = base(L, el);
+  const set = (series, times, values) => (series.bvSetColumns ? series.bvSetColumns(times, values) : series.setData(times.map((time, i) => (values[i] - values[i] === 0 ? { time, value: values[i] } : { time }))));
+  // (A column of a walk's values, none where it has a gap, and every `every`th none too.)
+  const column = (rows, every = 0) => Float64Array.from(rows, (row, i) => (every && i % every === 0 ? NaN : "value" in row ? row.value : NaN));
+  const first = walk(3000, 100, 0.02, { gaps: 0.02 }), times = first.map((row) => row.time), later = times.slice(500);
+  const v1 = column(first), v2 = column(walk(3000, 90, 0.02), 37), v3 = column(walk(3000, 0, 1, { negative: true })), v4 = column(walk(3000, 0, 2, { negative: true }));
+  const w1 = column(walk(3000, 120, 0.03)), w2 = column(walk(2500, 80, 0.02));
+  v2[1000] = Infinity;
+  const s1 = c.addSeries(L.LineSeries, { color: "#fff" }), s2 = c.addSeries(L.AreaSeries, { lineColor: "#0f8", topColor: "#0f84", bottomColor: "#0f80" });
+  const s3 = c.addSeries(L.HistogramSeries, { color: "#08f", base: 0 }, 1), s4 = c.addSeries(L.BaselineSeries, { baseValue: { type: "price", price: 0 } }, 1);
+  set(s1, times, v1); set(s2, times, v2); set(s3, times, v3); set(s4, times, v4);
+  return [["full", () => c.timeScale().fitContent()],
+    ["the same times, other values", () => set(s1, times, w1)], ...pan(c, 3, 1000, 2000, 700),
+    ["another times array", () => set(s2, later, w2)], ["fit", () => c.timeScale().fitContent()],
+    ["a live update", () => s1.update({ time: day(3000), value: 130 })], ["fit again", () => c.timeScale().fitContent()],
+    // (A point left behind would be the last, no value on it, out of a fit's sight: the update's time asked for, the view
+    // would end there, not the day before.)
+    ["the same times again, the update's point gone", () => set(s1, times, v1)], ["to the update's time", () => c.timeScale().setVisibleRange({ from: day(2900), to: day(3000) })], ["fit once more", () => c.timeScale().fitContent()],
+    ["emptied", () => set(s3, [], new Float64Array(0))], ...pan(c, 3, 400, 1400, 900),
+    ["back", () => set(s3, times, v3)], ["last fit", () => c.timeScale().fitContent()]];
+});
 for (const mode of [0, 1]) scenario(`candles and bars mode ${mode}`, (L, el) => {
   seed = 123 + mode;
   const c = base(L, el, { rightPriceScale: { mode, entireTextOnly: true } });

@@ -1055,10 +1055,41 @@ its frame (4071 values apart once still without `Tg`'s change). Measured, a pan 
 Browser, the 100% stack 21-22 → ~3 ms a step, the 23-band stack 8-10 → ~3.5 ms; the iPhone (60 frames by rAF), the
 100% stack p50 24-32 → 16 ms, p90 50 → 18-21 ms.
 
+## 57. A series' data as columns (`bvSetColumns`)
+
+A series' data came as rows alone: an object a value (`{ time, value }`), each one's time converted (the library's form
+and its key), made into the library's own row and put on its time's point. A page holding its data as columns (Studio:
+one times array a chart, a `Float64Array` of values a series) made ~156,000 objects to open a 23-band stack, and the
+library converted the same times again for every band. `series.bvSetColumns(times, values)` takes them as they are, for
+a series of values alone (Line, Area, Baseline, Histogram; another, or lengths that differ, an error): a finite value a
+row, any other (NaN, an infinity) none (whitespace), as the same rows with no colors of their own set by `setData`
+(`{ time, value }`, `{ time }`) are. A times array's conversion is made once (held on the array, weakly: an array once
+given is taken as never changing) and shared by every series set on it. Set again on the same array as its last columns, nothing else set between (`setData`,
+`update`, `pop`, `bvPrepend` let it go), a series' rows aren't taken off every point first: each of its points gets its
+new row in place. One difference with `setData` there, as with `bvPrepend` (9): a point's `originalTime` stays the form
+of the first series holding it (`setData` would put the series after the others); they differ only when series give the
+same moment in different forms (a business day or a date string in one, a timestamp in another).
+
+- `class ms` (the data layer): `bvColumns(t, i, v)`, beside `oM` (setData), and `bvTail`, setData's end shared by both
+  (the rows put on the series, points no series holds dropped, the time scale made again if points were made or
+  dropped); `bvConverted(i)`, a times array's conversion (`bvConv`); `bvTimesOf`, each series' times array as last set
+  as columns, let go of by `oM`, `pM` (update), `wM` (pop), `bvPrepend` and a reset (`m()`).
+- The chart (`JM`'s class): `bvJMc(t, i, n)`, as `JM` hands its result on.
+- The series' API (`setData`'s class): `bvSetColumns(times, values)`, as `setData` (a full data change to its listeners).
+
+`tests.html`: "data as columns" (as published, the same rows set by `setData`): a line, an area, a histogram and a
+baseline on one times array (gaps, every 37th value none, an infinity); one set again on it with other values, pans; one
+on another array; a live update, then the same array again (the update's point let go of: kept, a view asked to end at
+its time ended a day further, 32,566 values apart without `pM`'s letting go); emptied, and back. Measured, an interval
+opened again on Studio's age bands' 100% stack (23 bands): the iPhone without its JIT, setData's samples 215 → 129
+(`bvSetColumns` 88, `setData` 41 for the layers Studio still gives rows: candles, a close, colored bars, breaks, a fine
+interval's), the chart's build 388 → 334; Chromium at 4x CPU, the library's intake 53-54 → 44-56 ms (a JIT makes rows
+cheap: no gain there, no loss).
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
-`bvAutoRange`; a series' `bvPrepend`, `bvTagHit`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`,
+`bvAutoRange`; a series' `bvPrepend`, `bvTagHit`, `bvSetColumns`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`,
 `minVisibleDataRatio`, `bvHoldOnAxes`, `bvTagsTop`, `bvTagsWidth`, `bvSimplify`, `bvBandFill`, `bvOutline`, a candlestick's and a histogram's
 `cornerRadius`), in one block at its end, merged into the
 library's own interfaces: a fresh download's typings take it again as it is.

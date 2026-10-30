@@ -5106,6 +5106,11 @@ export interface ISeriesApi<TSeriesType extends SeriesType, HorzScaleItem = Time
 	bvPrepend(data: TData[]): void;
 	/** Whether a point (client coordinates) is on either of its last value's tags, as last drawn (51). */
 	bvTagHit(x: number, y: number): boolean;
+	/**
+	 * Its data as columns: its times and its values, none where a value isn't finite, as rows of no colors of their own;
+	 * a series of values alone (Line, Area, Baseline, Histogram). Series set on the same times array share its conversion: once given, the array mustn't change (57).
+	 */
+	bvSetColumns(times: ArrayLike<number>, values: ArrayLike<number>): void;
 }
 
 export {};
