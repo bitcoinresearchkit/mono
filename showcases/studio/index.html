@@ -24174,15 +24174,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
             const stack = shaped.filter((item) => item.stack);
             if (stack.length > 1) {
-              // (Each bucket's dates, any of its layers', in order, once each; each layer's values there, finite by a
-              // subtraction. By loops: no call a point.)
+              // (Each bucket's dates, in order, once each: in Quick Look, any of its layers' lows and highs; on a card,
+              // where the stack's top is lowest and highest (flat, a 100% stack's: its first and last), and the latest,
+              // its line's end. Each layer's values there, finite by a subtraction. By loops: no call a point.)
               const shared = new Array(B);
-              for (let b = 0; b < B; b++) {
+              if (big) for (let b = 0; b < B; b++) {
                 const all = [], indices = [];
                 for (const item of stack) for (const point of item.points[b] ?? []) all.push(point[0]);
                 all.sort((a, z) => a - z);
                 for (let k = 0; k < all.length; k++) if (k === 0 || all[k] !== all[k - 1]) indices.push(all[k]);
                 shared[b] = indices;
+              }
+              else {
+                // (Its top: the highest band with a value there. A 100% stack's is flat, whatever its sums' rounding.)
+                const flat = pane.stack === "percent", down = [...stack].sort((a, z) => (stacked.get(z.layer.id)?.rank ?? 0) - (stacked.get(a.layer.id)?.rank ?? 0));
+                let lastIn = -1, latest = -1;
+                for (let b = 0; b < B; b++) {
+                  const [from, to] = bucketOf(b);
+                  let start = -1, end = -1, low = -1, high = -1, least = Infinity, most = -Infinity;
+                  for (let i = from; i <= to; i++) {
+                    let top = NaN;
+                    for (const item of down) if (item.inView[i] - item.inView[i] === 0) {
+                      top = item.inView[i];
+                      break;
+                    }
+                    if (top - top !== 0) continue;
+                    if (start < 0) start = i;
+                    end = i;
+                    if (top < least) (least = top), (low = i);
+                    if (top > most) (most = top), (high = i);
+                  }
+                  shared[b] = start < 0 ? [] : flat || least === most ? (start === end ? [start] : [start, end]) : low < high ? [low, high] : [high, low];
+                  if (end >= 0) (lastIn = b), (latest = end);
+                }
+                if (lastIn >= 0 && shared[lastIn].at(-1) !== latest) shared[lastIn].push(latest);
               }
               for (const item of stack) {
                 const points = new Array(B);
