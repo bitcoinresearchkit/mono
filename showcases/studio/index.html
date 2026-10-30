@@ -216,6 +216,16 @@
         text-wrap-style: pretty;
       }
 
+      /* Installed on an iPhone: iOS starts the page a status bar's height short of the screen and gives it the rest only
+         once the page is taller than that; laid out to its viewport, it never was, the screen's foot a black strip under
+         the tab bar for good. At least the screen's height, it's given the screen (and is then that tall: nothing to
+         scroll). Elsewhere the large viewport is the viewport (or a browser's, its bars down): nothing. */
+      @media (display-mode: standalone) {
+        html {
+          min-height: 100lvh;
+        }
+      }
+
       /* A finger's: no grey flash on a tap (over a whole list either); a control's, no wait for a second (a double tap
          doesn't zoom one). No zoom of the page by a pinch either (the chart's zoomed by its own; an app's page isn't:
          installed, nothing would zoom it back): the viewport's user-scalable (Android's), and, as iOS ignores that, no
