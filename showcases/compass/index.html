@@ -1868,19 +1868,42 @@
       }
       /** The fewest days the chart shows. */
       const FEWEST = 30;
-      /** The view on `length` days from `a`, kept within the history; moved by hand, so no span's pressed. */
-      function viewTo(/** @type {number} */ a, /** @type {number} */ length) {
+      /** A view's length in days, as many as it can be: FEWEST at least, all the history at most, with ROOM past its
+       * latest day. */
+      const lengthOf = (/** @type {number} */ length) => { const d = /** @type {Days} */ (days); return Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length)); };
+      /** The view on `length` days from `a`, kept within the history: at most as far right as leaves ROOM past its
+       * latest day. */
+      function fit(/** @type {number} */ a, /** @type {number} */ length) {
         const d = /** @type {Days} */ (days);
-        // (All the history at most, with ROOM past its latest day; at most as far right as leaves that room.)
-        length = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length));
+        length = lengthOf(length);
         a = Math.max(d.first, Math.min(d.last + roomShare() * length - length + 1, a));
+        return { a, b: a + length - 1 };
+      }
+      /** Whether two views are the same days. */
+      const same = (/** @type {{ a: number, b: number }} */ v, /** @type {{ a: number, b: number }} */ w) => Math.abs(v.a - w.a) < 1e-6 && Math.abs(v.b - w.b) < 1e-6;
+      /** The view on `length` days from `a`, there at once (dragged, its range following); moved by hand, so no span's
+       * pressed. */
+      function viewTo(/** @type {number} */ a, /** @type {number} */ length) {
+        const v = fit(a, length);
         // (Already there, at an end: nothing moves, the span stays pressed.)
-        if (Math.abs(a - view.a) < 1e-6 && Math.abs(a + length - 1 - view.b) < 1e-6) return;
+        if (same(v, view)) return;
         easing = null;
-        view = { a, b: a + length - 1 };
+        view = v;
         target = { ...view };
-        if (span !== -1) (span = -1), pressSpans(), remember();
+        movedByHand();
         following = true;
+      }
+      /** The view eased to `v` over 300 ms, its range with it, as a span's change is (zoomed). */
+      function easeTo(/** @type {{ a: number, b: number }} */ v) {
+        if (same(v, target)) return;
+        target = v;
+        easing = { view: { ...view }, range: { ...range }, to: rangeOf(target), at: performance.now() };
+        following = false;
+        movedByHand();
+      }
+      /** No span's pressed once the view's moved by hand; what it changes in the words said. */
+      function movedByHand() {
+        if (span !== -1) (span = -1), pressSpans(), remember();
         sayToday();
         redraw();
       }
@@ -2038,13 +2061,13 @@
           show(true);
         }
       });
-      /** The chart's days made `by` times as many (more than 1 out, less in), about the day shown, where it is in the
-       * chart. */
+      /** The chart's days made `by` times as many (more than 1 out, less in), about its middle, eased there as a span's
+       * change is (the − and + buttons and keys). */
       function zoom(/** @type {number} */ by) {
-        const d = /** @type {Days} */ (days), at = shownDay();
         stopPlay();
-        const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length * by)), share = (at - target.a) / length;
-        viewTo(at - share * next, next);
+        // (From where the view's going, so presses in a row add up.)
+        const next = lengthOf((target.b - target.a + 1) * by);
+        easeTo(fit((target.a + target.b) / 2 - next / 2, next));
       }
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-zoom]"))) button.addEventListener("click", () => {
         if (days) zoom(Number(button.dataset.zoom));
