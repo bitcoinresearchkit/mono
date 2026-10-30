@@ -25033,10 +25033,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The page at a place (a shelf's name, a step up, the sidebar's, ⌘K's), nothing searched, at its top; where it is
        * already, back at its top. A step of the history, where it was kept in the one it leaves (Back comes back there).
        */
-      /** Another page of Charts come to (a folder, a section, back): it comes in, up a little as it shows, not swapped at once. */
+      /**
+       * The page left fading out over the one coming in (see pageIn), as it was, scrolled where it was: never a frame of
+       * neither. (Left again before its own way in began, held: whole as it's left, its copy no blank.)
+       */
+      function pageOut() {
+        if (reduced.matches) return;
+        for (const animation of /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).getAnimations()) animation.finish();
+        fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
+      }
+      /**
+       * Another page of Charts come to (a folder, a section, back): it comes in, up a little as it shows, not swapped at
+       * once. Its way in and the page left's way out (see goTo) begun once frames come on time: on a phone the new page's
+       * first frames (laid out, its tiles painted) took a tenth of a second or more, the fade all but over when it showed.
+       */
       function pageIn() {
         if (reduced.matches) return;
-        /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
+        const into = /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
+        beginOnTime(into, ...(fading.get(homeScroll())?.getAnimations() ?? []));
       }
       function goTo(/** @type {Place} */ place) {
         quickHide();
@@ -25044,9 +25058,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Where the page was, read before its copy's put in (after, it'd be laid out at once for it); at its top already,
         // not put there again (a scroll written lays the page out first). Above it (Safari's bounce), not there.)
         const left = home && !same ? galleryPlace() : null, scrolledDown = !home || homeScroll().scrollTop !== 0;
-        // (The page left fades out over the one coming in (see pageIn), as it was, scrolled where it was: never a frame
-        // of neither.)
-        if (home && !same && !reduced.matches) fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
+        if (home && !same) pageOut();
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
           if (left) {
@@ -26022,6 +26034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           placeHome(to);
           if (!home) return showHome(false, place);
           const fromPage = $("home").contains(document.activeElement);
+          pageOut();
           renderHome();
           pageIn();
           // (Gone with the page it was on, the focus starts the one come back to: its name.)
