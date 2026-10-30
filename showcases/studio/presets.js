@@ -171,7 +171,8 @@ export function studioPresets(client, facts) {
     return { series: node.name, label, type: "line", ...extra };
   };
   /** A chart's letter for its `i`th layer (fewer than 26). */
-  const letter = (/** @type {number} */ i) => String.fromCharCode(65 + i);
+  // (Past Z, AA on, as Studio names layers.)
+  const letter = (/** @type {number} */ i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
   /** The price, as its candles: in one color, the page's ink (rising hollow, falling filled say which). @returns {Layer} */
   const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, priceLine: true });
   /**
@@ -965,10 +966,8 @@ export function studioPresets(client, facts) {
   }
   /** Compass's charts (showcases/compass), one for each of its clouds' bases: the price against two clouds, the
    * short-term holders' and the long-term holders' (each three age groups, coins likely to move, by dollar), and the
-   * short-term groups' trends between the lowest and highest price their coins were bought at. A basis of one line a
-   * group (medians, averages) has its lines shown and its clouds coloured by which is over; one of two (percentiles,
-   * medians and averages), its clouds from the lowest of its six lines to the highest, as Compass draws them, through
-   * the middle of its three medians. */
+   * short-term groups' trends between the lowest and highest price their coins were bought at. Every group's lines
+   * shown (one, two or three a group), each cloud over its own, coloured by which is over. */
   function compassCharts() {
     const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", HOLDER_COLORS.under4m], ["sth", "Short-term holders", HOLDER_COLORS.sth], ["under6m", "Under 6 months", HOLDER_COLORS.under6m]]);
     const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", HOLDER_COLORS.over4m], ["lth", "Long-term holders", HOLDER_COLORS.lth], ["over6m", "Over 6 months", HOLDER_COLORS.over6m]]);
@@ -995,30 +994,36 @@ export function studioPresets(client, facts) {
         ...trends(10),
       ]);
     };
-    /** A basis of two lines a group: each cloud all six of its lines, coloured as the one-line charts' are, each band
-     * by the line over it (a group's two lines its colour); letters: the price A, the short-term lines B to G, the
-     * long-term H to M, all holders' N, the clouds O and P, the trends' edges Q to V. */
-    const ofTwo = (/** @type {string} */ name, /** @type {[string, string]} */ which, /** @type {string} */ said) => {
+    /** A basis of several lines a group: each cloud all of its lines, coloured as the one-line charts' are, each band
+     * by the line over it (a group's lines its colour); letters: the price A, the short-term lines, the long-term, all
+     * holders', the two clouds, then the trends' edges. A cloud's bands join its lines next to each other in its list,
+     * so it lists them as they usually lie, lowest to highest (a band painted over another darkens): by statistic
+     * (40th percentile, average, median, 60th), each one's three groups back and forth, as the one-line charts' are
+     * (measured over its history, a third to a quarter of the overlap of listing them by group). */
+    const ofMany = (/** @type {string} */ name, /** @type {string[]} */ which, /** @type {string} */ said) => {
       const STAT = /** @type {Record<string, string>} */ ({ p40: "40th percentile", p60: "60th percentile", median: "median", avg: "average" });
       const lines = (/** @type {[string, string, string][]} */ groups) => groups.flatMap(([key, label, color]) => which.map((w) => series(stat(key, w), `${label}, ${STAT[w]}`, { color, opacity: 0.5 })));
-      const at = (/** @type {number} */ from) => Array.from({ length: 6 }, (_, i) => letter(from + i));
+      const RANK = /** @type {Record<string, number>} */ ({ p40: 0, avg: 1, median: 2, p60: 3 }), n = 3 * which.length;
+      // (Line g·k + s is group g's statistic s; the lowest statistic's groups from the last, the next's from the first.)
+      const at = (/** @type {number} */ from) => [...which.keys()].sort((a, b) => RANK[which[a]] - RANK[which[b]]).flatMap((stat, k) => (k % 2 ? [0, 1, 2] : [2, 1, 0]).map((g) => letter(from + g * which.length + stat)));
       return chart(name, `Compass: holder clouds of ${said}, and trends`, [
         price(),
         ...lines(short),
         ...lines(long),
         series(stat("all", "median"), "All holders", { color: HOLDER_COLORS.all, shape: "curved" }),
         { cloud: at(1), label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
-        { cloud: at(7), label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
+        { cloud: at(1 + n), label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
         ...edges,
-        ...trends(16),
+        ...trends(2 * n + 4),
       ]);
     };
     // (Named as Compass names its bases: its link opens the one in use.)
     return [
-      ofTwo("Percentiles", ["p40", "p60"], "the 40th–60th percentiles"),
+      ofMany("Percentiles and average", ["p40", "p60", "avg"], "the 40th–60th percentiles and the averages"),
+      ofMany("Percentiles", ["p40", "p60"], "the 40th–60th percentiles"),
       ofOne("Medians", "median", "the medians"),
       ofOne("Averages", "avg", "the averages"),
-      ofTwo("Medians and averages", ["median", "avg"], "the medians and averages"),
+      ofMany("Medians and averages", ["median", "avg"], "the medians and averages"),
     ];
   }
   /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the

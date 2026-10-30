@@ -1159,8 +1159,8 @@
     </main>
 
     <footer class="shell">
-      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a id="in-studio" href="/studio/presets/valuation/compass/percentiles">Compass in Studio</a>.</p>
-      <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles" aria-pressed="true">40th–60th percentiles</button>, <button type="button" data-basis="medians" aria-pressed="false">medians</button>, <button type="button" data-basis="averages" aria-pressed="false">averages</button> or <button type="button" data-basis="medians-and-averages" aria-pressed="false">medians and averages</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins paid.<span id="coins-said" aria-live="polite"></span></p>
+      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a id="in-studio" href="/studio/presets/valuation/compass/percentiles-and-average">Compass in Studio</a>.</p>
+      <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles-and-average" aria-pressed="true">40th–60th percentiles and averages</button>, <button type="button" data-basis="percentiles" aria-pressed="false">40th–60th percentiles</button>, <button type="button" data-basis="medians" aria-pressed="false">medians</button>, <button type="button" data-basis="averages" aria-pressed="false">averages</button> or <button type="button" data-basis="medians-and-averages" aria-pressed="false">medians and averages</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins paid.<span id="coins-said" aria-live="polite"></span></p>
     </footer>
 
     <script type="module">
@@ -1231,11 +1231,17 @@
       const WEIGHTING = { mobile: "each age group weighted by how likely its coins are ever to be spent", awake: "each age group weighted by how much of its coin days have been spent" };
       /**
        * What the clouds are made from (chosen at the page's foot, like the coins): each of its three groups' 40th and 60th
-       * percentiles of the price paid, by dollar (inside, a group split: 40 to 60% of its dollars in profit), their medians,
-       * their averages, or both. With How it reads' words for each, and its chart in Studio.
-       * @typedef {"percentiles" | "medians" | "averages" | "medians-and-averages"} Basis
+       * percentiles of the price paid, by dollar (inside, a group split: 40 to 60% of its dollars in profit), with their
+       * averages or alone, their medians, their averages, or both. With How it reads' words for each, and its chart in
+       * Studio.
+       * @typedef {"percentiles-and-average" | "percentiles" | "medians" | "averages" | "medians-and-averages"} Basis
        */
       const BASES = {
+        "percentiles-and-average": {
+          stats: ["p40", "p60", "avg"], what: "The 40th and the 60th percentile of the price paid, and the average", count: "nine",
+          long: "Price above it, each of those groups has more than 60% of the dollars it put in in profit, and its average dollar too; below it, fewer than 40%, and its average dollar at a loss; inside, they're split, or they disagree.",
+          short: "Above it, more than 60% of each group's dollars are in profit, and its average dollar too; below it, fewer than 40%, and its average dollar at a loss; inside, they're split, or they disagree.",
+        },
         percentiles: {
           stats: ["p40", "p60"], what: "The 40th and the 60th percentile of the price paid", count: "six",
           long: "Price above it, each of those groups has more than 60% of the dollars it put in in profit; below it, fewer than 40%; inside, they're split, or they disagree.",
@@ -1257,8 +1263,9 @@
           short: "Above it, each group's average dollar is in profit; below it, at a loss; inside, the groups differ.",
         },
       };
-      /** @type {Basis} */
-      let basis = "percentiles";
+      /** The basis a page opens on (a link names another): the steadiest of them, its nine moods about as even as any. */
+      const BASIS = /** @type {Basis} */ ("percentiles-and-average");
+      let basis = BASIS;
       /** A cloud's lines, of some coins and a basis: each of its three groups' lines, by dollar. */
       const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins, by = basis) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => BASES[by].stats.map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
       /** Every series read, by id: a switch of coins reads only its clouds'. @type {Map<string, Promise<Answer>>} */
@@ -1456,7 +1463,7 @@
         if (span !== SPAN && name) query.set("span", name);
         if (pinned !== null) query.set("day", iso(pinned));
         if (coins !== "mobile") query.set("coins", coins);
-        if (basis !== "percentiles") query.set("clouds", basis);
+        if (basis !== BASIS) query.set("clouds", basis);
         // (Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.)
         try {
           history.replaceState(history.state, "", query.size ? `?${query}` : location.pathname);
@@ -2555,7 +2562,7 @@
           // (The coins a link asks for, before anything's read.)
           const asked = new URLSearchParams(location.search), clouds = asked.get("clouds");
           if (asked.get("coins") === "awake") coins = "awake";
-          if (clouds !== null && clouds !== "percentiles" && Object.hasOwn(BASES, clouds)) basis = /** @type {Basis} */ (clouds);
+          if (clouds !== null && clouds !== BASIS && Object.hasOwn(BASES, clouds)) basis = /** @type {Basis} */ (clouds);
           pressCoins();
           const computed = compute(await readAll());
           if (computed.first < 0) throw new Error("the holders' series have no days yet");
