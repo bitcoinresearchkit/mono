@@ -2302,33 +2302,39 @@
         if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend. ${why}`;
       }
 
-      // ── A mood or a trend lit: pressed wherever it's named (its compass cell, its row, the words over the chart), its
-      // days keep their colours wherever days are drawn (the chart's fills and lane, the pan bar, the strip), every
-      // other day's faded, the price itself as it is; the compass's other cells and the other rows dimmed. Pressed
-      // again, or Escape, none ──
+      // ── Moods and trends lit: each pressed wherever it's named (its compass cell, its row, the words over the chart),
+      // as many as wanted; the days lit keep their colours wherever days are drawn (the chart's fills and lane, the pan
+      // bar, the strip), every other day's faded, the price itself as it is; the compass's other cells and the other
+      // rows dimmed. A day's lit if it's in any mood lit (or none is) and any trend lit (or none is): Fear and Bull lit,
+      // the Fear days of a Bull trend. Pressed again, each let go; Escape, all ──
 
-      /** The mood or trend lit (null: none). @type {{ kind: "state" | "trend", i: number } | null} */
-      let lit = null;
+      /** The moods and the trends lit (both empty: none). */
+      const lit = { state: new Set(), trend: new Set() };
       /** How strongly a day not lit is drawn, against its own colour's usual strength. */
       const FADED = 0.15;
+      const lighting = () => lit.state.size + lit.trend.size > 0;
       /** Whether a day's lit: every day while nothing is. */
-      const litDay = (/** @type {number} */ day) => !lit || /** @type {Days} */ (days)[lit.kind][day] === lit.i;
+      const litDay = (/** @type {number} */ day) => {
+        const d = /** @type {Days} */ (days);
+        return (!lit.state.size || lit.state.has(d.state[day])) && (!lit.trend.size || lit.trend.has(d.trend[day]));
+      };
       /** What's lit, for the drawings kept as bitmaps (made again when it changes). */
-      const litKey = () => (lit ? `${lit.kind}:${lit.i}` : "");
+      const litKey = () => `${[...lit.state].sort()}|${[...lit.trend].sort()}`;
       /** A mood or trend ("state:3", "trend:0") lit, or let go if it was. */
       function light(/** @type {string} */ what) {
-        lit = what === litKey() ? null : { kind: /** @type {"state" | "trend"} */ (what.split(":")[0]), i: Number(what.split(":")[1]) };
+        const [kind, i] = what.split(":"), set = lit[/** @type {"state" | "trend"} */ (kind)];
+        if (!set.delete(Number(i))) set.add(Number(i));
         sayLit();
         redraw();
       }
       /** What's lit, where it's named: pressed there, the others dimmed. */
       function sayLit() {
         for (const at of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-light]"))) {
-          const on = at.dataset.light === litKey();
+          const [kind, i] = /** @type {string} */ (at.dataset.light).split(":"), on = lit[/** @type {"state" | "trend"} */ (kind)].has(Number(i));
           at.classList.toggle("lit", on);
           if (at.hasAttribute("role")) at.setAttribute("aria-pressed", String(on));
         }
-        document.body.classList.toggle("lighting", lit !== null);
+        document.body.classList.toggle("lighting", lighting());
       }
       document.addEventListener("click", (e) => {
         const at = e.target instanceof Element ? /** @type {HTMLElement | null} */ (e.target.closest("[data-light]")) : null;
@@ -2337,7 +2343,7 @@
       document.addEventListener("keydown", (e) => {
         const at = e.target instanceof HTMLElement || e.target instanceof SVGElement ? e.target : null;
         if ((e.key === "Enter" || e.key === " ") && at?.dataset.light && at.getAttribute("role") === "button" && days) e.preventDefault(), light(at.dataset.light);
-        else if (e.key === "Escape" && lit) (lit = null), sayLit(), redraw();
+        else if (e.key === "Escape" && lighting()) lit.state.clear(), lit.trend.clear(), sayLit(), redraw();
       });
 
       // ── The compass ──
