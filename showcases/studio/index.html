@@ -29617,6 +29617,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: inPalette ? `Swaps with pane ${i}` : undefined, verb: "Move", stay: true, run: () => movePane(id, -1) }] : []),
           ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: inPalette ? `Swaps with pane ${i + 2}` : undefined, verb: "Move", stay: true, run: () => movePane(id, 1) }] : []),
+          // (Its share of the height, chosen (a drag's own is hard to get just so by touch): in its menu and on ⌘K's page of it.)
+          ...(sizable(i) ? [heightRow(id)] : []),
           ...(inPalette ? [{ key: "eye", icon: shown ? ICONS.eyeOff : ICONS.eye, label: shown ? "Hide every layer" : "Show every layer", aside: shown && many ? "The pane folds to its names" : undefined, verb: shown ? "Hide" : "Show", stay: true, run: () => hideLayers(layers.map((layer) => layer.id)) }] : []),
           { key: "remove", icon: ICONS.trash, label: many ? "Remove the pane" : "Remove every layer", aside: plural(layers.length, "layer"), verb: "Remove", danger: true, run: () => removePane(id) },
         ];
@@ -35682,7 +35684,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const total = sizes.reduce((sum, size, k) => sum + (open[k] ? size : 0), 0), count = open.filter(Boolean).length;
         doc.panes.forEach((pane, k) => open[k] && (pane.size = Math.max(0.01, Math.round((sizes[k] / total) * count * 100) / 100)));
       }
-      const SHARES = [25, 33, 50, 67, 75];
+      const SHARES = [10, 25, 33, 50, 67, 75, 90];
+      /** A pane's Height: its share of the chart, chosen among SHARES (seen as it would be, on ⌘K's page). @param {string} id */
+      function heightRow(id) {
+        const at = () => chart.panes.findIndex((pane) => pane.id === id);
+        return { key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(at())}% of the chart`, page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) };
+      }
       /** A pane, by its layers, scale and height: ↵ opens all it is. */
       function paneRow(id, i) {
         const pane = chart.panes[i], open = () => panePage(id);
@@ -35703,7 +35710,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
             ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
-            ...(sizable(i) ? [{ key: "height", icon: ICONS.sliders, label: "Height", aside: `${shareOf(i)}% of the chart`, group: "Pane", page: () => choicePage("Height", () => SHARES.map((share) => ({ key: String(share), icon: ICONS.sliders, label: `${share}% of the chart`, current: shareOf(at()) === share, run: () => setShare(id, share / 100), look: (/** @type {Chart} */ doc) => shareOn(doc, id, share / 100) })), (panel, option) => previewPane(panel, id, Number(option.key) / 100)) }] : []),
             ...paneRows(id, true).map((row) => ({ ...row, group: "Pane" })),
             ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
             { key: "add-series", icon: ICONS.plus, label: "Add a layer here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => openPalette({ add: true, into: id }) },
