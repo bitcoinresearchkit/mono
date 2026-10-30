@@ -29978,6 +29978,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escape(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
       /** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
       let inspectorDue = false;
+      /** The layer a layer's on (a signal's) or flipped by (a trend's), as its picker shows it. @param {Layer} layer */
+      const refPicked = (layer) => ((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""));
       function renderInspector() {
         // (Not under a hex being typed: its caret, its undo, what's half typed; drawn again once it's left.)
         if (document.activeElement?.matches?.("#inspector .color-editor .hex")) return void (inspectorDue = true);
@@ -30041,7 +30043,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ? `<section>
               <h3>${typeName(layer.type)}</h3>
               ${betweenField(layer)}
-              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
+              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${refPicked(layer)}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula
@@ -30061,7 +30063,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
                 <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
               </details>
-              ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
+              ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${refPicked(layer)}${CHEVRON}</button></div>
               <div class="field"><span>Shown as<span class="color-now">${escape(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
               <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
               <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Every time it signaled; pick one to jump to it">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
@@ -30473,7 +30475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "Backspace" || event.key === "Delete") {
           event.preventDefault();
           event.stopPropagation();
-          gradientEdit((item) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k), true);
+          gradientEdit((item) => removeStop(item, k), true);
         }
       });
       // A place typed (or stepped by ↑ ↓): its color there as it's typed, between its neighbors, its keys within a second
@@ -30977,6 +30979,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const k = stops.findIndex(([where]) => where > place), index = k < 0 ? stops.length : k;
         stops.splice(index, 0, [place, table[Math.round((place / 100) * (GRADIENT_STEPS - 1))]]);
         return index;
+      }
+      /**
+       * A gradient's color `k` taken out, as long as it keeps its fewest (GRADIENT_LEAST): the index of the one in hand
+       * then (the one before it), else `k`. @param {Layer} layer @param {number} k @returns {number}
+       */
+      function removeStop(layer, k) {
+        if (!layer.gradient || layer.gradient.length <= GRADIENT_LEAST) return k;
+        layer.gradient.splice(k, 1);
+        return Math.max(0, k - 1);
       }
       /** A color of four that fades (its default: its growing one, fainter). */
       const fadingSlot = (/** @type {string} */ key) => key === "colorFading" || key === "colorBelowFading";
@@ -32106,7 +32117,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A gradient's: a color added, one removed, one ready made (its menu), reversed, relative to all of history or up to each date.)
         else if ((action === "gradient-add" || button.dataset.stopRemove) && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
         else if (action === "gradient-add") gradientEdit((item) => addStop(item), true);
-        else if (button.dataset.stopRemove) gradientEdit((item) => ((k) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k))(Number(button.dataset.stopRemove)), true);
+        else if (button.dataset.stopRemove) gradientEdit((item) => removeStop(item, Number(button.dataset.stopRemove)), true);
         else if (action === "gradient-ready") menuOf(button, /** @type {any} */ (readyPage(selected).options?.() ?? []));
         else if (action === "gradient-reverse") reverseGradient(selected), refocus('#inspector [data-action="gradient-reverse"]');
         else if (button.dataset.gradientTo !== undefined) editLayer((item) => (item.upToDate = button.dataset.gradientTo ? true : undefined));
@@ -35142,7 +35153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A gradient's color: its place, typed; it removed (two left at least).)
             ...(key.startsWith("stop") ? ((k, stops) => [
               { key: "place", icon: ICONS.ruler, label: "Its place", aside: `${stops[k]?.[0] ?? 0}%`, page: () => numberPage({ title: `${label}, its place`, value: String(stops[k]?.[0] ?? 0), apply: (n) => editById(id, (item) => moveStop(item, k, n)) }) },
-              { key: "remove", icon: ICONS.trash, label: "Remove it", danger: true, ...(stops.length > GRADIENT_LEAST ? {} : { disabled: `A gradient has ${GRADIENT_LEAST} colors at least` }), run: () => editById(id, (item) => item.gradient && item.gradient.length > GRADIENT_LEAST && item.gradient.splice(k, 1)) },
+              { key: "remove", icon: ICONS.trash, label: "Remove it", danger: true, ...(stops.length > GRADIENT_LEAST ? {} : { disabled: `A gradient has ${GRADIENT_LEAST} colors at least` }), run: () => editById(id, (item) => removeStop(item, k)) },
             ])(Number(key.slice(4)), now().gradient ?? []) : []),
             ...(key === "colorFading" || key === "colorBelowFading" ? [((side) => ({ key: "paler", icon: swatchOf(faintOf(side)), label: `Fainter ${colorName(side).toLowerCase()}`, aside: "The growing one's", current: (key === "colorFading" ? now().colorFading : now().colorBelowFading) === undefined, run: set((item) => setColor(item, key, "")), look: (/** @type {Chart} */ doc) => ((item) => item && setColor(item, key, ""))(doc.layers.find((one) => one.id === id)) }))(key === "colorFading" ? now().color : belowOf(now()))] : []),
           ], lookOfChoice) });
