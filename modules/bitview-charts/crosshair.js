@@ -74,14 +74,18 @@ export class Crosshair {
       g.stroke();
       g.setLineDash(NONE);
     }
-    // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground.)
+    // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground, within its pane's plot.)
     if (x >= 0 && x <= plot) {
       const from = Math.max(0, Math.floor(time.from));
       for (let p = 0; p < panes.length; p++) {
         const each = panes[p];
+        g.save();
+        g.beginPath();
+        g.rect(0, each.top, plot, each.height);
+        g.clip();
         for (let s = 0; s < each.series.length; s++) {
           const line = each.series[s];
-          if (!(line instanceof Line) || !line.marker || line.hidden || !(line.stroke || line.dots)) continue;
+          if (!(line instanceof Line) || !line.marker || line.hidden) continue;
           const v = line.values[i], scale = each.scaleOf(s);
           if (v !== v) continue;
           if (scale.relative) {
@@ -100,6 +104,7 @@ export class Crosshair {
           g.arc(x, y, line.marker, 0, 2 * Math.PI);
           g.fill();
         }
+        g.restore();
       }
     }
     g.font = theme.font;

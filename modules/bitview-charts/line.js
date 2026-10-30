@@ -372,8 +372,17 @@ export class Line {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.values.length) return;
+    if (this.stroke) this.#stroke(g, time, scale, x0, x1, dpr);
+    // (Its dots over its line.)
     if (this.dots) this.#dots(g, time, scale, x0, x1);
-    if (!this.stroke) return;
+  }
+
+  /**
+   * Its line stroked from x `x0` to `x1`: its outline first, then a stroke a color.
+   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x0 @param {number} x1 @param {number} dpr
+   */
+  #stroke(g, time, scale, x0, x1, dpr) {
     const colors = this.colors && this.palette.length ? this.colors : null;
     // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show).)
     if (this.outline) {
