@@ -1440,9 +1440,10 @@
       /** The chart's span in days (0: all; -1: none, moved by hand), and the days it shows now (eased toward the span's). */
       let span = SPAN;
       let view = { a: 0, b: 0 }, target = { a: 0, b: 0 };
-      /** The day shown above: pinned (kept), or under the pointer for now; else the last. */
+      /** The day shown above: pinned (kept, and locked: a pointer elsewhere only marks its own day, faintly), or under
+       * the pointer for now; else the last. */
       let pinned = /** @type {number | null} */ (null), hovered = /** @type {number | null} */ (null);
-      const shownDay = () => hovered ?? pinned ?? /** @type {Days} */ (days).last;
+      const shownDay = () => pinned ?? hovered ?? /** @type {Days} */ (days).last;
 
       /** A span's days, the room past the latest kept after them (see ROOM). */
       function spanOf(/** @type {number} */ s) {
@@ -1700,7 +1701,7 @@
           ctx.strokeStyle = paint.app;
           ctx.stroke();
         };
-        if (pinned !== null && pinned !== day) mark(pinned, true);
+        if (hovered !== null && hovered !== day) mark(hovered, false);
         mark(day, day === pinned);
         if (seen) {
           ctx.font = "600 11.5px Inter, system-ui, sans-serif";
@@ -2157,11 +2158,11 @@
 
       // ── Where it stands, above: the day shown's ──
 
-      /** "Back to today", there while another day's kept or today's out of the chart's view (not while one's pointed at):
+      /** "Back to today", there while another day's kept or today's out of the chart's view (not while one's pointed at, none kept):
        * all a moved view changes in the words, so a drag says nothing else. */
       function sayToday() {
         const d = /** @type {Days} */ (days);
-        $("today").hidden = (shownDay() === d.last && d.last <= target.b + 0.5) || hovered !== null;
+        $("today").hidden = (shownDay() === d.last && d.last <= target.b + 0.5) || (hovered !== null && pinned === null);
       }
       /** The day shown, everywhere it's said and drawn. */
       function show(say = false) {
@@ -2344,11 +2345,11 @@
       slider.addEventListener("change", () => show(true));
       new ResizeObserver(redraw).observe(strip);
 
-      // ── Playing: the day shown runs on to today at the chart's span in 16 seconds; paused, it stays where it is, and
+      // ── Playing: the day shown runs on to today at the chart's span in 30 seconds; paused, it stays where it is, and
       // plays on from there (from today, it starts again at the chart's first day) ──
 
       /** How long play takes over the chart's span, in ms. */
-      const PLAY = 16_000;
+      const PLAY = 30_000;
       let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
       const replays = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("[data-replay]")]);
       const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
