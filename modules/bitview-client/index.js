@@ -1798,7 +1798,11 @@ const _camelName = (key) => {
 const _camelKeys = (value, keep) => {
   if (keep === true || value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) value[i] = _camelKeys(value[i], keep);
+    // A series' values are numbers: nothing to rename, no call each (thousands a response, an engine without a JIT).
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (item !== null && typeof item === 'object') value[i] = _camelKeys(item, keep);
+    }
     return value;
   }
   let renamed = false;
