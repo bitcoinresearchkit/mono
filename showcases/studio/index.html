@@ -19162,7 +19162,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keyValue = null;
         keyAt(clamp(to, 0, n - 1));
       });
-      let layoutFrame = 0, laidWidth = 0;
+      let layoutFrame = 0, laidWidth = 0, layoutOwed = false;
       /**
        * The overview, the drawing belt and a preset's window, laid out again once a frame however many changes ask: the
        * plot's size (the window, the panel, a price axis grown with its labels), the navigator's, a new build.
@@ -19171,6 +19171,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layoutFrame) return;
         layoutFrame = requestAnimationFrame(() => {
           layoutFrame = 0;
+          // (A chart's card growing out of the grid or shrinking into it: nothing laid out against it as it moves, where
+          // it'd be measured scaled; laid out once it's over, see morph.)
+          if (document.body.hasAttribute("data-morph")) return void (layoutOwed = true);
+          layoutOwed = false;
           // (A layout's motion, the chart's size held: only the belt follows its box; the navigator stretches as the chart
           // does (its brush in shares), the rest laid out once it ends (releaseSize).)
           if (sizeHeld) return void placeBelt();
@@ -26010,8 +26014,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           animations.push(card.animate(opening ? [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: timing.duration }));
         } else animations.push(card.animate(ends([{ opacity: 0 }, { opacity: 1 }]), timing));
         morphing = animations;
-        // (Over, the chart laid out as it shows, at its own size: measured while it moved, it was measured scaled.)
-        return Promise.all(animations.map((animation) => animation.finished)).then(() => {}, () => {}).finally(() => morphing === animations && ((morphing = []), delete document.body.dataset.morph, opening && relayout()));
+        // (Over, the chart laid out as it shows, at its own size, and anything asked meanwhile (see relayout): measured
+        // while it moved, it'd be measured scaled.)
+        return Promise.all(animations.map((animation) => animation.finished)).then(() => {}, () => {}).finally(() => morphing === animations && ((morphing = []), delete document.body.dataset.morph, (opening || layoutOwed) && relayout()));
       }
       /**
        * The Charts page, where `homeAt` is; the open one shrinks into its card (one of yours that's never had anything in
