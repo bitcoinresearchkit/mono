@@ -16234,7 +16234,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             fontFamily: chartSans,
             fontSize: 11,
             attributionLogo: false,
-            panes: { ...colors.layout.panes, enableResize: true },
+            // (A separator's grip a finger's by touch: 9px, the library's, is a mouse's.)
+            panes: { ...colors.layout.panes, enableResize: true, bvGrip: TOUCH ? 25 : 9 },
           },
           grid: { vertLines: { visible: false }, ...colors.grid },
           // (The pane's order, as chosen, holds under the pointer too: its drawings are found as they're drawn.)
