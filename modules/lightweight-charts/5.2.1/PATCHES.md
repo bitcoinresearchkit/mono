@@ -1148,6 +1148,19 @@ same to the pixel. Candles: on the iPhone a candle update drawn (weekly, 1,974) 
 the age bands' 100% stack (the price as candles and a line, live) 257 → 151–158 samples, none of its points made again
 at a tick.
 
+## 60. Points made: not styled again in the same frame
+
+A series' view starts with its data and its options both new (`yM`, `PM`), so its first frame made every point, each
+styled by the options (`zM`), then styled every point again by the same options (`BM`): a chart of 24 series, 155,512
+points styled twice as it opened. Points made in a frame are styled by the options as they are then, so the frame
+that makes them no longer styles them again; the same for a series whose data and options both change before a frame.
+
+- `class Es`, `IM`: `zM` clears `PM`.
+
+`tests.html` the same as before. Measured, a chart of 23 areas of 6,000 points added, set and drawn at once: the
+iPhone without its JIT 334–336 → 278–279 ms; Chromium at 4x CPU 140–149 → 119–125 ms; Mullvad Browser 83 ms either
+way (its clock in frames). Studio's charts of ten presets the same to the pixel.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
