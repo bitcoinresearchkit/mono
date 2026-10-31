@@ -84,13 +84,15 @@ class Chart {
     this.crosshairListeners = [];
     /** @type {((param: any) => void)[]} */
     this.clickListeners = [];
+    // (Each with the series under the point, as the chart library's: a pointer's moves (Studio lights a line's item) and
+    // clicks (it selects its layer).)
     this.engine.onCrosshair((index, pane, y, input) => {
-      const param = this.#param(index, pane, y, input);
+      const engine = this.engine.panes[pane], hit = input && engine && index === index ? engine.hit(this.engine.time, index, this.engine.time.x(index), y) : -1;
+      const param = { ...this.#param(index, pane, y, input), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.crosshairListeners) listener(param);
     });
     this.engine.onClick((index, pane, hit, y) => {
-      const engine = this.engine.panes[pane], drawn = engine && hit >= 0 ? engine.series[hit] : null, series = drawn ? this.all.find((each) => each.engine === drawn || each.edge === drawn) : undefined;
-      const param = { ...this.#param(index, pane, y, true), hoveredSeries: series };
+      const param = { ...this.#param(index, pane, y, true), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.clickListeners) listener(param);
     });
     this.timeScaleApi = new TimeScale(this);
@@ -146,6 +148,12 @@ class Chart {
   #percents(pane) {
     const local = this.options.localization ?? {};
     if (local.percentageFormatter) pane.engine.setPercentFormat(local.percentageFormatter, local.tickmarksPercentageFormatter ?? null);
+  }
+
+  /** The series (Studio's) that drew a pane's library series `hit` (-1: none): its own, or its edge. @param {number} pane @param {number} hit */
+  #owner(pane, hit) {
+    const drawn = hit >= 0 ? this.engine.panes[pane]?.series[hit] : null;
+    return drawn ? this.all.find((each) => each.engine === drawn || each.edge === drawn) : undefined;
   }
 
   /** An LWC crosshair or click event. @param {number} index @param {number} pane @param {number} y @param {boolean} input */
