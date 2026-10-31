@@ -6,7 +6,7 @@
 // areas (stacked ones' fills to the line under them), histograms, baselines, candles), rows or columns onto one
 // timeline. Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted), overlay scales, its scales'
 // and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint) and markers (its
-// signals' marks: see Marks). Not yet: primitives' axis tags, price lines of its own.
+// signals' marks: see Marks), primitives' axis tags (its drawings' values, a profile's shares) and price lines.
 
 import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale, channels } from "/modules/bitview-charts/index.js";
 import { pill } from "/modules/bitview-charts/tags.js";
@@ -369,7 +369,8 @@ class Chart {
     // (The timeline: Studio's series share one array of times, mostly; else, all their times as one. Each array once.)
     const lists = [...new Set(this.all.map((series) => series.times).filter((times) => times.length))];
     let times = lists[0] ?? new Float64Array(0);
-    if (lists.some((list) => !sameTimes(list, times))) {
+    const alike = !lists.some((list) => !sameTimes(list, times));
+    if (!alike) {
       const union = new Set();
       for (const list of lists) for (const t of list) union.add(t);
       times = new Float64Array(union).sort();
@@ -380,13 +381,13 @@ class Chart {
     if (fresh) this.times = times;
     else times = was;
     // (A series' times the same point for point taken as the timeline's own array: compared by identity from here on
-    // (each pushed, each set again), each array read once.)
+    // (each pushed, each set again). All alike, all of them, compared above; else each array read once.)
     const same = new Map();
     for (const series of this.all) {
       const own = series.times;
       if (!own.length || own === times) continue;
-      if (!same.has(own)) same.set(own, sameTimes(own, times));
-      if (same.get(own)) series.times = times;
+      if (!alike && !same.has(own)) same.set(own, sameTimes(own, times));
+      if (alike || same.get(own)) series.times = times;
     }
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
     if (fresh) for (const pane of this.panesList) for (const marks of pane.marks) marks.place();
@@ -1237,15 +1238,15 @@ class Marks {
     this.series = series;
     /** @type {any[]} */
     this.list = [];
-    /** Each mark's point on the timeline (-1: none), and its words' width (CSS pixels). */
+    /** Each mark's point on the timeline (-1: none). */
     this.at = new Int32Array(0);
-    this.widths = new Float64Array(0);
     /** How far past its point a mark reaches (its words' half, a shape's), for a strip's. */
     this.reach = 15;
-    /** Whether it has marks above bars, below them, in them (its room at the scale's ends: see room). */
+    /** Whether it has marks above bars, below them, in them, and words (its room at the scale's ends: see room). */
     this.over = false;
     this.under = false;
     this.inside = false;
+    this.words = false;
     this.margins = { above: 0, below: 0 };
     this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i), margins: (_spacing, out) => this.#margins(out) }), series.side);
     series.pane.marks.push(this);
@@ -1273,30 +1274,36 @@ class Marks {
     this.series.chart.engine.invalidate(true);
   }
 
-  /** Each mark's point on the chart's timeline, its words measured; drawn anew. */
+  /** Each mark's point on the chart's timeline, its words measured (the widest: its reach); drawn anew. */
   place() {
     const times = this.series.chart.times, list = this.list, g = (unseen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d")));
     g.font = this.series.chart.engine.theme.font;
-    this.at = Int32Array.from(list, (mark) => indexOf(times, Number(mark.time)));
-    this.widths = Float64Array.from(list, (mark) => (mark.text ? g.measureText(mark.text).width : 0));
-    this.reach = 18 + Math.max(0, ...this.widths) / 2;
-    this.over = list.some((mark) => mark.position === "aboveBar");
-    this.under = list.some((mark) => mark.position === "belowBar");
-    this.inside = list.some((mark) => mark.position === "inBar");
+    this.at = new Int32Array(list.length);
+    let widest = 0;
+    (this.over = false), (this.under = false), (this.inside = false), (this.words = false);
+    for (let k = 0; k < list.length; k++) {
+      const mark = list[k];
+      this.at[k] = indexOf(times, Number(mark.time));
+      if (mark.text) (this.words = true), (widest = Math.max(widest, g.measureText(mark.text).width));
+      if (mark.position === "aboveBar") this.over = true;
+      else if (mark.position === "belowBar") this.under = true;
+      else if (mark.position === "inBar") this.inside = true;
+    }
+    this.reach = 18 + widest / 2;
     this.engine.changed();
     this.series.chart.engine.invalidate(true);
   }
 
   /**
-   * The room its marks keep clear at its scale's ends, as the plugin's (its series' autoscale info carries it): a
-   * mark's height and a half and two margins (by `spacing`) over the range where it has marks above bars, under it
-   * where below, half where only in them; none without marks.
+   * The room its marks keep clear at its scale's ends (its series' autoscale info carries it): a mark's height and a
+   * margin (by `spacing`), and its words' pill and gap where it has words, over the range where it has marks above
+   * bars, under it where below, half where only in them; none without marks.
    * @param {number} spacing
    */
   room(spacing) {
     if (!this.list.length) return null;
     // (Its shape, its margin, and where it has words their pill (16 pixels) 2 from it: see #draw.)
-    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.list.some((mark) => mark.text) ? 18 : 0);
+    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.words ? 18 : 0);
     (this.margins.above = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (this.margins.below = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
     return this.margins;
   }

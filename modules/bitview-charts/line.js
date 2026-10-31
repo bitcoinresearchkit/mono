@@ -1,7 +1,7 @@
 // @ts-check
 // A line: its values as one column on the chart's timeline (a Float64Array, an index a time; NaN: none there, the line
-// broken), its color and width. Its lowest and highest kept a block of 64 points (a view's extremes read block by
-// block), the lowest above zero apart (a log scale's). Drawn point to point where a point has a pixel or more; zoomed
+// broken), its color and width. Its values summed up by blocks of 4, 8, 16… points (its summary: a view's extremes,
+// and the lowest above zero a log scale's, read by its largest whole blocks). Drawn point to point where a point has a pixel or more; zoomed
 // out, each pixel column as its first, low, high and last values (as many points as the column holds, drawn as the eye
 // sees them). `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a
 // trend's flip, a stretch begun anew). `colors` (a Uint8Array or Uint16Array of indices into `palette`): each segment

@@ -1,6 +1,6 @@
 // @ts-check
 // A pane's value scale: linear or logarithmic, fitted to what its series show (or set by hand), with room kept at its
-// top and bottom; values to y and back, and its ticks: round numbers about every 50 CSS pixels. Or relative: each series
+// top and bottom; values to y and back, and its ticks: round numbers 28 CSS pixels apart at least. Or relative: each series
 // read against its first value in view (set by its pane before it's fitted or drawn: setBase), as its percent change
 // from it ("percent"), or with it at 100 ("indexed"); the scale's range, ticks and values then in those terms.
 
@@ -133,16 +133,10 @@ export class Scale {
    * @param {number} base
    */
   setBase(base) {
-    this.#stale = true;
     if (!this.relative || !base || base !== base) return void ((this.#m = 1), (this.#c = 0));
     const size = Math.abs(base);
     this.#m = 100 / size;
     this.#c = (-100 * base) / size + (this.mode === "indexed" ? (base < 0 ? -100 : 100) : 0);
-  }
-
-  /** An end of its range as it maps (its range is in its own terms: a relative one's already read). @param {number} v */
-  #end(v) {
-    return this.mode === "log" ? Math.log10(v) : v;
   }
 
   /** Its mapping made again (see #foot). */
@@ -160,15 +154,15 @@ export class Scale {
 
   /** The y of a value in its own terms (a tick's, a relative scale's percent or index: not read against a base). @param {number} t */
   own(t) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
-    return top + (1 - (this.#end(t) - a) / (b - a)) * room;
+    if (this.#stale) this.#remap();
+    return this.#foot - (((this.#log ? Math.log10(t) : t) - this.#ta) / this.#span) * this.#room;
   }
 
   /** The value at a y, in its own terms. @param {number} y */
   value(y) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
-    const t = a + (1 - (y - top) / room) * (b - a);
-    return this.mode === "log" ? 10 ** t : t;
+    if (this.#stale) this.#remap();
+    const t = this.#ta + ((this.#foot - y) / this.#room) * this.#span;
+    return this.#log ? 10 ** t : t;
   }
 
   /** Whether it shows what it showed when last drawn. */

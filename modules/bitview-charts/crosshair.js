@@ -154,8 +154,9 @@ export class Crosshair {
       for (let k = 0; k < drawn.lines.length + page.count; k++) {
         const at = k < drawn.lines.length ? drawn.at[k] : page.at[k - drawn.lines.length], reach = k < drawn.lines.length ? half : PILL / 2;
         // (Within the pixel the fill reaches past the band: any it would cut taken in whole.)
-        if (at - reach < hi + 1 && at + reach > lo - 1 && (at - reach < lo || at + reach > hi)) (lo = Math.min(lo, at - reach)), (hi = Math.max(hi, at + reach)), (grown = any = true);
-        else if (at - reach < hi + 1 && at + reach > lo - 1) any = true;
+        if (!(at - reach < hi + 1 && at + reach > lo - 1)) continue;
+        any = true;
+        if (at - reach < lo || at + reach > hi) (lo = Math.min(lo, at - reach)), (hi = Math.max(hi, at + reach)), (grown = true);
       }
     }
     if (any) g.fillRect(x, pane.top + lo - 1, width, hi - lo + 2);
