@@ -1,7 +1,7 @@
 // @ts-check
-// Words on a color: black or white by its lightness as OKLab measures it (black from L 0.7157, where APCA flips for a
-// grey: a hue then reads as a grey of its lightness does), each color measured once. And a fill's or a stroke's style
-// as a vertical gradient (a fade, or a color split at a height), kept till it changes.
+// Words on a color: white or black, whichever APCA finds reads better on it, each color measured once; a series' tag
+// (its color, its words, its edge). And a fill's or a stroke's style as a vertical gradient (a fade, or a color split at
+// a height), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is read back from (any CSS color: a name, hex, rgb(), oklch()). @type {CanvasRenderingContext2D | null} */
@@ -31,19 +31,11 @@ export function solid(color) {
   return full;
 }
 
-/** Black or white, whichever reads on `color`. @param {string} color */
+/** White or black, whichever reads better on `color` (see whiteReads). @param {string} color */
 export function inkOn(color) {
   let text = ink.get(color);
   if (text !== undefined) return text;
-  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true }));
-  pen.clearRect(0, 0, 1, 1);
-  pen.fillStyle = "#000";
-  pen.fillStyle = color;
-  pen.fillRect(0, 0, 1, 1);
-  const [r, g, b] = pen.getImageData(0, 0, 1, 1).data, lin = (/** @type {number} */ v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  const R = lin(r), G = lin(g), B = lin(b);
-  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B), m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B), s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
-  text = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s < 0.7157 ? "#ffffff" : "#000000";
+  text = whiteReads(rgb(read(color))) ? "#ffffff" : "#000000";
   if (ink.size > 512) ink.clear();
   ink.set(color, text);
   return text;
@@ -68,7 +60,7 @@ export function tint(color, ground) {
   const seen = read(color);
   if (seen[3] === 0) look = { fill: "transparent", ink: "transparent", border: "transparent" };
   else {
-    const fill = rgb(seen), [l0, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0), light = apca([255, 255, 255], fill) >= apca([0, 0, 0], fill);
+    const fill = rgb(seen), [l0, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0), light = whiteReads(fill);
     // (Its hue at a lightness, its chroma the most sRGB allows there, `most` at most.)
     const at = (/** @type {number} */ l, /** @type {number} */ most) => {
       let lo = 0, hi = most;
@@ -87,6 +79,15 @@ export function tint(color, ground) {
   if (tints.size > 512) tints.clear();
   tints.set(key, look);
   return look;
+}
+
+/**
+ * Whether white words read better than black on `back` (sRGB channels, 0 to 255), as APCA finds (WCAG 2's ratio gets
+ * mid blues and purples wrong).
+ * @param {number[]} back
+ */
+function whiteReads(back) {
+  return apca([255, 255, 255], back) >= apca([0, 0, 0], back);
 }
 
 /**
