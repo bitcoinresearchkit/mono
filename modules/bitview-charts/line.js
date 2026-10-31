@@ -19,6 +19,11 @@ const BEND = new Float64Array(4);
 const SOLID = /** @type {number[]} */ ([]);
 /** CSS pixels along a dashed line between the places its subpath may be split (see the pen's to()). */
 const SPLIT = 128;
+/** A dashed subpath longer than this never split (no point of it in a gap where it could be: its segments each about
+ * a multiple of its dashes' period): its line drawn whole as the view moves (see Line's drifts). Found by a whole
+ * draw: a pan's strips see short subpaths alone, so the first pan into such a stretch ends in one shift of its dashes
+ * there (its whole draw at rest), the pans after it drawn whole. */
+const DRIFT = 16 * SPLIT;
 
 /** A dash list's period: its sum, twice where it's odd (the canvas repeats it). @param {number[]} dash */
 function periodOf(dash) {
@@ -69,6 +74,9 @@ const pen = {
   firstId: -1,
   last: NaN,
   lastId: -1,
+  // (Where its dashed subpath began, along the line, and the longest it's written this stroke: see DRIFT.)
+  subStart: 0,
+  longest: 0,
   /**
    * Begun on `g`; dashed (`dashes`, their period `period`), its path `length` along from its dash origin where it
    * starts.
@@ -77,7 +85,7 @@ const pen = {
   start(g, dpr, pass, length = 0, dashes = SOLID, period = 0) {
     (this.g = g), (this.dpr = dpr), (this.pass = pass), (this.shown = null);
     (this.on = false), (this.has = false), (this.runX = NaN);
-    (this.dashes = dashes), (this.period = period), (this.length = length), (this.before = length), (this.begun = false), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1);
+    (this.dashes = dashes), (this.period = period), (this.length = length), (this.before = length), (this.begun = false), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1), (this.subStart = length), (this.longest = 0);
   },
   /** @param {number} x @param {number} y @param {number} color @param {boolean} cut */
   to(x, y, color, cut) {
@@ -112,6 +120,7 @@ const pen = {
    */
   dash(g) {
     if (this.begun) g.stroke(), g.beginPath();
+    this.subStart = this.length;
     g.lineDashOffset = this.length % this.period;
     this.begun = true;
   },
@@ -163,6 +172,8 @@ const pen = {
   /** The path so far written, its run's end too. */
   close() {
     if (this.on && this.runX === this.runX) /** @type {CanvasRenderingContext2D} */ (this.g).lineTo(this.runX, this.y);
+    // (A dashed subpath's length, the longest kept: see DRIFT.)
+    if (this.on && this.period) this.longest = Math.max(this.longest, this.length - this.subStart);
     (this.on = false), (this.runX = NaN);
   },
 };
@@ -275,6 +286,8 @@ export class Line {
     this.values = values;
     /** Its values summed up by blocks, for drawing zoomed out and fitting (see summary.js). @type {Summary | null} */
     this.summary = null;
+    /** A dashed subpath of it written longer than DRIFT, never split: drawn whole as the view moves (till its values or look change). */
+    this.drifts = false;
     this.setValues(values);
   }
 
@@ -282,6 +295,7 @@ export class Line {
   setValues(values) {
     this.version++;
     this.values = values;
+    this.drifts = false;
     this.summary = values.length >= 1 << FIRST ? new Summary(values) : null;
   }
 
@@ -295,6 +309,7 @@ export class Line {
   /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
   setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, under = this.under }) {
     this.version++;
+    this.drifts = false;
     (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.under = under);
     if (format !== undefined) this.format = format && kept(format);
   }
@@ -304,9 +319,9 @@ export class Line {
     return this.dash !== null && this.stroke;
   }
 
-  /** What it draws can't move with a pan's picture (see Pane's draw): a curve's dashes, from where its path starts. */
+  /** What it draws can't move with a pan's picture (see Pane's draw): a curve's dashes, from where its path starts; a dashed line's that drift (see DRIFT). */
   get immovable() {
-    return this.dashed && this.curve && !this.steps;
+    return this.dashed && ((this.curve && !this.steps) || this.drifts);
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
@@ -558,6 +573,7 @@ export class Line {
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
+      if (period > 0 && pen.longest > DRIFT) this.drifts = true;
     }
     if (dash) g.setLineDash(SOLID), (g.lineDashOffset = 0);
     if (period > 0) (this.dashLast = pen.lastId), (this.dashLastAt = pen.last);
