@@ -14742,7 +14742,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [times[i], logical - i];
       }
       /** The most bars the chart shows at once: four a pixel (its least bar spacing), however many there are. */
-      const mostBars = () => (view.timeScale().width() ? view.timeScale().width() / view.timeScale().options().minBarSpacing : Infinity);
+      const mostBars = () => (engine.time.width ? engine.time.width / engine.time.minSpacing : Infinity);
       /**
        * A window of the view, no wider than the chart shows (wider, it would fold the view to a sliver): a wider one keeps
        * its middle, or the end `keep` names ("to", its latest; "from").
@@ -14759,10 +14759,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ from: number, to: number }} range
        */
       function ontoData(range) {
-        const scale = view.timeScale(), now = scale.getVisibleLogicalRange(), bars = resolved?.times.length ?? 0;
+        const now = shownSpan(), bars = resolved?.times.length ?? 0;
         if (!now || !bars) return null;
         // (Its data ends where the chart counts it: its last bar with a value, its view's end less its offset; gaps past.)
-        const last = Math.round(now.to - scale.scrollPosition());
+        const last = Math.round(now.to - (engine.time.to - (engine.time.length - 1)));
         const least = Math.min(Math.max(2, ON_DATA * (range.to - range.from + 1)), bars);
         const shift = Math.min(0, last + 1 - least - range.from) + Math.max(0, least - 1 - range.to);
         return shift ? { from: range.from + shift, to: range.to + shift } : null;
@@ -14812,7 +14812,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // No further past the data than the chart's own room on the right (at the view's own spacing); only a few bars
         // here (two days, at a week): thirty, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
-        const plot = view.timeScale().width(), bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
+        const plot = engine.time.width, bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
         const room = plot > gap ? Math.max(0, (gap * (bars + 1)) / (plot - gap) - 0.5) : 0;
         const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
         return { from, to };
@@ -14886,7 +14886,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const viewRecord = (range, times, index = drawnIndex) => ({ index, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}) });
       /** The open chart's view as it shows (none while it shows its range, the range said instead), as a link carries it. */
       function shownView() {
-        const range = view.timeScale().getVisibleLogicalRange(), times = resolved?.times;
+        const range = shownSpan(), times = resolved?.times;
         return chart && drawnChart === chart.id && range && times?.length && !presetShown ? viewRecord(range, times) : null;
       }
       /** Whether the page has been in sight (see storeView). */
@@ -14899,9 +14899,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A page made ahead, unseen (a prerender), keeps nothing.)
         if (!(document.visibilityState === "visible" || (leaving && seen))) return;
         const times = resolved?.times;
-        if (!chart || drawnChart !== chart.id || (!asDrawn && drawnIndex !== chart.index) || !times?.length || !view.timeScale().width()) return;
+        if (!chart || drawnChart !== chart.id || (!asDrawn && drawnIndex !== chart.index) || !times?.length || !engine.time.width) return;
         // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
-        const range = (asDrawn && glideTarget) || view.timeScale().getVisibleLogicalRange();
+        const range = (asDrawn && glideTarget) || shownSpan();
         // (Linked, every chart's, a range's too: the one each opens on; said only once it's moved since it was in line with
         // it (see linkedAt).)
         const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
@@ -15254,7 +15254,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A width changed by hand: to `px` (null: as it comes), at once, the view kept. @param {Widthed} which @param {number | null} px */
       function setWidth(which, px) {
         const run = ++resizes;
-        resizeKeeps ??= chart && drawnChart === chart.id ? view.timeScale().getVisibleLogicalRange() : null;
+        resizeKeeps ??= chart && drawnChart === chart.id ? shownSpan() : null;
         document.body.dataset.resizing = "";
         /** @type {any} */ (prefs)[SIDE_WIDTHS[which].key] = px === null ? null : Math.round(clamp(px, SIDE_WIDTHS[which].min, widthMost(which)));
         applyWidths();
@@ -16200,7 +16200,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * share of the chart's width, a phone's narrower, a large screen's no wider than 48; with a heatmap's profile, its
        * width more, the latest day clear of it (the chart drawn: ⌘K's preview, while it shows). Any chart's (a preview's too).
        */
-      const rightGap = (width = view.timeScale().width(), doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? profileWidth(width) : 0);
+      const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? profileWidth(width) : 0);
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -16217,19 +16217,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // labels are, which would set it again as the view moves, the library then moving the view: a spacing set again
         // is applied a frame later, as it was when set, undoing a zoom made since.)
         const sides = ["left", "right"].filter((side) => view.priceScale(side, 0).options().visible).length;
-        const width = view.timeScale().width() ? chartWidth() - sides * axisWidth() : 0;
+        const width = engine.time.width ? chartWidth() - sides * axisWidth() : 0;
         const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
         // (Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`:
         // a view about to be shown, its own.)
-        const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? view.timeScale().getVisibleLogicalRange() : null), spacing = Math.min(fitted, range ? view.timeScale().width() / (range.to - range.from + 1) : Infinity);
-        if (spacing !== view.timeScale().options().minBarSpacing) view.applyOptions({ timeScale: { minBarSpacing: spacing } });
+        const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? shownSpan() : null), spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from + 1) : Infinity);
+        if (spacing !== engine.time.minSpacing) (engine.time.minSpacing = spacing), engine.invalidate(true);
       }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
       const yearsOnly = (_time, type) => (type === LC.TickMarkType.Year ? null : "");
       /** How the time axis names its ticks now: years only (over several years), or dates. */
       let axisNamed = "";
       function nameAxis() {
-        const span = view.timeScale().getVisibleRange();
+        const span = shownDates();
         const by = span && Number(span.to) - Number(span.from) > 3 * 365.25 * 86400 ? "years" : "dates";
         // The chart keeps labels it has formatted: a new formatter, only when the way changes, starts them over.
         if (by === axisNamed) return;
@@ -16305,6 +16305,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
       // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
       const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
+      /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
+      const engine = view.engine;
+      /** The points in view (fractions allowed) as the timeline has them; none without data. */
+      const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
+      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
+      const showSpan = (span) => engine.setRange(span.from, span.to);
+      /** The dates of the first and last points at least partly in view; none without data. */
+      const shownDates = () => {
+        const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
+        return n ? { from: at(Math.floor(engine.time.from)), to: at(Math.ceil(engine.time.to)) } : null;
+      };
+      /** The view moved to show the points from one date to another (the first at or after it, the last at or before). @param {{ from: number, to: number }} span */
+      const showDates = (span) => {
+        const times = engine.time.times, from = lowerBound(times, span.from), after = lowerBound(times, span.to);
+        engine.setRange(from, times[after] === span.to ? after : after - 1);
+      };
+      /** A date's x across the plot (its point's); none where no point has it. @param {number} time */
+      const xOfTime = (time) => ((times, i) => (times[i] === time ? engine.time.x(i) : null))(engine.time.times, lowerBound(engine.time.times, time));
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
       /** The chart's element filling its box (whatever size it's drawn at: see sizeChart). */
@@ -16316,7 +16334,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && fillBox());
       /** The chart drawn at a size, its stretch (the bars it shows across) kept as it was: see keepStretch. */
       const sizeKeeping = (/** @type {number} */ width, /** @type {number} */ height) => {
-        const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
+        const was = (view.bvFlush(), shownSpan());
         sizeChart(width, height);
         keepStretch(was);
       };
@@ -16363,13 +16381,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Across, its stretch kept: the view as drawn (a motion's in flight, as it'll end), and the plot's width shown now
         // (a motion's in flight, as stretched).)
         const across = Math.abs(end.width - now.width) >= 1 && Boolean(resolved?.times.length) && Boolean(chart) && drawnChart === chart?.id;
-        const leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
+        const leftAxis = engine.left > 0 && !(engine.axisShown > 0);
         // (Only its width changing (the sidebar's, the panel's): the drawing as it is, stretched from the first frame,
         // nothing held back, nothing drawn (a draw waiting, the live price's, flushed now, would hold the motion's first
         // frame as long as a heavy chart takes); drawn at its end's width once the motion's over (releaseSize). Its height
         // too (full screen): drawn at its end's size first.)
         const later = across && Math.abs(end.height - chartSize.height) < 1;
-        const was = across && !later ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
+        const was = across && !later ? (view.bvFlush(), shownSpan()) : null;
         stretchDrawn(null);
         const width = later ? chartSize.width : end.width, height = end.height;
         // (Its height changing too (full screen): its prices held where they show as it's drawn at its end's size, then
@@ -16471,7 +16489,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /** @type {number} */ width) {
         const box = $("chart");
-        const left = view.priceScale("left").width(), right = view.priceScale("right").width(), element = view.chartElement();
+        const left = engine.left, right = engine.axisShown, element = view.chartElement();
         // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
         // at the box.)
         const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
@@ -16479,7 +16497,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
         // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
         // the same (see stretchDrawn).)
-        const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
+        const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? xOfTime(time) : null);
         // (Max's room before the first value anything shown has, as applyRange keeps it.)
         const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
         drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
@@ -16494,7 +16512,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function holdChart() {
         if (sizeHeld || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
-        const run = ++motionsSized, leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
+        const run = ++motionsSized, leftAxis = engine.left > 0 && !(engine.axisShown > 0);
         stretchKept = chart.id;
         sizeHeld = true;
         chartHeight = chartSize.height;
@@ -16550,7 +16568,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!chart || !resolved || drawnChart !== chart.id) return;
         fitSpacing(chart, resolved.times.length, was);
         if (presetShown && !glideTarget) applyRange(chart, resolved);
-        else if (was) view.timeScale().setVisibleLogicalRange(was);
+        else if (was) showSpan(was);
         view.bvFlush();
       }
       /** The chart following its box again (a window resized meanwhile, at once): what's laid out by its size, again. */
@@ -16680,10 +16698,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What the marks were last made from: made again where candles turn into their line, or back. @type {{ doc: Chart, data: Resolved, drawn: Map<string, any> } | null} */
       let marksMade = null;
       function fitCandles() {
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         // A rebuild empties the chart for a moment: no range then, and nothing to decide.
         if (!range) return;
-        const fit = view.timeScale().width() / Math.max(1, range.to - range.from) >= 2.5;
+        const fit = engine.time.width / Math.max(1, range.to - range.from) >= 2.5;
         // (Each tag in its last candle in view's color, as the view moves: see tintClose.)
         if (fit === candlesFit) return void closes.forEach((_, id) => tintClose(id));
         candlesFit = fit;
@@ -16705,7 +16723,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function tintClose(id) {
         const close = closes.get(id);
         if (!close || close.dated) return;
-        const end = view.timeScale().getVisibleRange()?.to, at = end === undefined ? null : view.timeScale().timeToIndex(end, true);
+        const n = engine.time.length, at = n ? clamp(Math.ceil(engine.time.to), 0, n - 1) : null;
         const bar = close.candles.dataByIndex(at ?? Number.MAX_SAFE_INTEGER, LC.MismatchDirection.NearestLeft);
         const color = candlesFit && bar && "close" in bar && bar.close < bar.open ? close.fall : close.rise;
         if (color === close.paint.color) return;
@@ -16727,9 +16745,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return Math.round(radius * 4) / 4;
       }
       function fitDots() {
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!range) return;
-        dotSpacing = view.timeScale().width() / Math.max(1, range.to - range.from);
+        dotSpacing = engine.time.width / Math.max(1, range.to - range.from);
         for (const dots of dotted.values()) {
           const radius = dotRadius(dots.width);
           if (radius !== dots.radius) dots.series.applyOptions({ pointMarkersRadius: (dots.radius = radius) });
@@ -17005,7 +17023,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * marks set again only as that changes (a pan, mostly, changes nothing).
        */
       function labelMarks() {
-        const scale = view.timeScale();
         for (const [series, list] of markLists) {
           const plugin = markers.get(series);
           // (Words of none: set once, as made.)
@@ -17016,7 +17033,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const mark = list[i];
             if (!mark.text) continue;
             any = true;
-            const x = scale.timeToCoordinate(mark.time), half = labelWidth(mark.text) / 2 + 3;
+            const x = xOfTime(mark.time), half = labelWidth(mark.text) / 2 + 3;
             if (x === null || x + half > start) continue;
             start = x - half;
             key += `${i},`;
@@ -17047,8 +17064,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
         if (drawnChart !== doc.id || drawnIndex !== doc.index) crossSet ? dropCross() : keyAway();
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
-        const visible = sameView ? view.timeScale().getVisibleRange() : null;
-        const logical = sameView ? view.timeScale().getVisibleLogicalRange() : null;
+        const visible = sameView ? shownDates() : null;
+        const logical = sameView ? shownSpan() : null;
         const showedAll = visible && drawnTimes.length > 0 && Number(visible.from) <= drawnTimes[0] && Number(visible.to) >= /** @type {number} */ (drawnTimes.at(-1));
         const sameTimeline = drawnTimes.length > 0 && data.times.length === drawnTimes.length && data.times[0] === drawnTimes[0] && data.times.at(-1) === drawnTimes.at(-1);
         // Points added (or dropped) at the start, at a fine interval (the view reaching out): the view holds still, its
@@ -17219,7 +17236,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // on a scale of their own. Sized against the largest in view, or of all their history: see bubbleView.)
             const on = doc.layers.some((other) => other.id === layer.ref), values = result?.values;
             // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
-            const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : view.timeScale().getVisibleLogicalRange()) : 0;
+            const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : shownSpan()) : 0;
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "", hitTestTolerance: 0, ...(on ? {} : { priceScaleId: `bubbles:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) }) };
             series = madeOrKept(() => view.addCustomSeries(bubbleView(), options, pane), options);
             // (On none: its scale's middle the pane's, its margins even.)
@@ -17427,25 +17444,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // library's own, on a first draw), and the change of their width held against it, see LWC patch 20.)
         if (back && back.to - back.from >= 1) {
           const target = within(back, "to");
-          view.timeScale().setVisibleLogicalRange(target);
+          showSpan(target);
           view.bvFlush();
-          view.timeScale().setVisibleLogicalRange(target);
+          showSpan(target);
           setPresetShown(false);
-          if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
+          if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         } else if (!visible || presetShown || onRange || linkOpen) {
           applyRange(doc, data);
           view.bvFlush();
           applyRange(doc, data);
           setPresetShown(true);
-          if (onRange || linkOpen) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
+          if (onRange || linkOpen) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         }
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
-          view.timeScale().setVisibleLogicalRange(within({ from: range.from + shift, to: range.to + shift }));
+          showSpan(within({ from: range.from + shift, to: range.to + shift }));
         }
-        else if (sameTimeline && (glidingTo ?? logical)) view.timeScale().setVisibleLogicalRange(within(/** @type {{ from: number, to: number }} */ (glidingTo ?? logical)));
+        else if (sameTimeline && (glidingTo ?? logical)) showSpan(within(/** @type {{ from: number, to: number }} */ (glidingTo ?? logical)));
         else if (showedAll) applyRange({ ...doc, range: "max" }, data);
-        else view.timeScale().setVisibleRange(visible);
+        else showDates(visible);
         // Grown or shrunk at an end (a chunk reached for, a block, the oldest let go): the overview moves there from where
         // the data was, and the chart shows what came from the join out, at the same pace. Any other change lands both.
         if (!sameView) {
@@ -17516,7 +17533,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const step = () => {
           if (id !== revealing) return;
           // Placed by the view's own window (the chart's coordinates lag a frame behind a new one).
-          const range = view.timeScale().getVisibleLogicalRange(), plot = view.timeScale().width();
+          const range = shownSpan(), plot = engine.time.width;
           const at = range ? ((own.join - range.from) / (range.to - range.from)) * plot : NaN;
           if (!(at > 0 && at < plot)) return endReveal();
           // As the page's own wipe: a soft edge two fifths of the way wide, from the join out past the plot's edge, on its
@@ -17554,7 +17571,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const legend = $("chart").querySelector(`.legend[data-pane="${pane.id}"]`), top = legend?.parentElement?.getBoundingClientRect().top ?? 0;
           return Math.max(28, ...[...(legend?.querySelectorAll(".legend-name, .legend-error") ?? [])].map((name) => Math.ceil(name.getBoundingClientRect().bottom - top) + 7));
         };
-        const total = (chartHeight || $("chart").clientHeight) - view.timeScale().height() - (count - 1);
+        const total = (chartHeight || $("chart").clientHeight) - engine.timeHeight - (count - 1);
         const strips = doc.panes.reduce((sum, pane) => sum + (folded.has(pane.id) ? strip(pane) : 0), 0);
         const open = doc.panes.reduce((sum, pane, i) => sum + (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(i)), 0);
         return doc.panes.map((pane, i) => (folded.has(pane.id) ? (open * strip(pane)) / Math.max(1, total - strips) : pane.size ?? defaultSize(i)));
@@ -17599,17 +17616,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const first = days ? lowerBound(data.times, data.times[n - 1] - days * 86400) : firstShown(doc, data);
         // Its first bar `room` pixels in (a range's, at its edge), its last `gap` pixels from the end, as many bars between
         // as fit (at most `most` across: the latest of them).
-        const width = view.timeScale().width(), lead = days ? 0 : room, inner = width - lead - gap;
+        const width = engine.time.width, lead = days ? 0 : room, inner = width - lead - gap;
         if (!(inner > 0)) return within({ from: first, to: n - 1 }, "to", most);
         // (Bars sit at their middles: a span holds as many as it's long and one.)
         const spacing = Math.max(inner / Math.max(1, n - 1 - first), width / most), to = n - 1 + gap / spacing - 0.5;
         return { from: to + 1 - width / spacing, to };
       }
       function applyRange(doc, data, animate = false) {
-        if (data.times.length < 2 || !view.timeScale().width()) return view.timeScale().fitContent();
+        if (data.times.length < 2 || !engine.time.width) return engine.show(engine.time.length);
         const target = presetWindow(doc, data);
         if (animate) glide(target, doc.range);
-        else view.timeScale().setVisibleLogicalRange(target);
+        else showSpan(target);
       }
       let gliding = 0;
       /** Where a glide in flight is going, and the preset it goes to (null for zooms). */
@@ -17622,7 +17639,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         glideLast = null;
       }
       /** The view's range as it's being moved to: a glide's last step, else the chart's own (a move from it starts there, not a step back). */
-      const viewRange = () => glideLast ?? view.timeScale().getVisibleLogicalRange();
+      const viewRange = () => glideLast ?? shownSpan();
       /** Moves the view to a window over a moment, easing out, instead of jumping. */
       function glide(target, preset = null) {
         // (From where the one going was, before it's stopped: a view moved otherwise (rebuilt, panned) stops it too.)
@@ -17632,7 +17649,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         target = within(target);
         target = ontoData(target) ?? target;
         // Mid-rebuild (an interval swapping its data) the chart can report no window, or an inverted one: jump instead.
-        if (!from || !(from.from < from.to) || reduced.matches) return view.timeScale().setVisibleLogicalRange(target);
+        if (!from || !(from.from < from.to) || reduced.matches) return showSpan(target);
         glideTarget = target;
         glidePreset = preset;
         const since = motionTime();
@@ -17640,7 +17657,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const t = Math.min(1, since(now) / MOTION.page), eased = 1 - (1 - t) ** 3;
           const next = { from: from.from + (target.from - from.from) * eased, to: from.to + (target.to - from.to) * eased };
           if (!(next.from < next.to)) return stopGlide();
-          view.timeScale().setVisibleLogicalRange(next);
+          showSpan(next);
           // (Kept till the chart's taken it, a frame on.)
           glideLast = next;
           requestAnimationFrame(() => glideLast === next && (glideLast = null));
@@ -17656,7 +17673,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (glidePreset !== null) return glidePreset === chart.range;
         // In bars, against the preset's own window: empty room past the data counts (a time range stops at the data,
         // and zoomed out past both ends it would read as "Max").
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!range || !resolved || resolved.times.length < 2) return true;
         const target = presetWindow(chart, resolved), slack = (target.to - target.from) * 0.015 + 1;
         return Math.abs(range.from - target.from) <= slack && Math.abs(range.to - target.to) <= slack;
@@ -17668,7 +17685,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const width = Math.min(mostBars(), Math.max(10, (range.to - range.from) * factor)), center = (range.from + range.to) / 2;
         // (At the latest: it stays where it is, its room after it as wide as ever.)
         // (Bars sit at their middles, as many across as the span and one: the last one's middle the gap from the edge.)
-        const last = (resolved?.times.length ?? 0) - 1, to = last + (rightGap() * (width + 1)) / Math.max(1, view.timeScale().width()) - 0.5;
+        const last = (resolved?.times.length ?? 0) - 1, to = last + (rightGap() * (width + 1)) / Math.max(1, engine.time.width) - 0.5;
         glide(range.to >= last ? { from: to - width, to } : within({ from: center - width / 2, to: center + width / 2 }));
       }
       /** Every price scale back on auto, however it was dragged. */
@@ -17687,14 +17704,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The view's last point: where the readout rests, so values and changes describe what's on screen. */
       function lastShown() {
         const n = resolved?.times.length ?? 0;
-        const range = n ? view.timeScale().getVisibleLogicalRange() : null;
+        const range = n ? shownSpan() : null;
         // (A bar sits whole in view to half a bar past the range's end: the library centres its last half a bar in.)
         return range ? clamp(Math.floor(range.to + 0.5), 0, n - 1) : n - 1;
       }
       /** The view's first point (in view from half a bar before the range's start). */
       function firstInView() {
         const n = resolved?.times.length ?? 0;
-        const range = n ? view.timeScale().getVisibleLogicalRange() : null;
+        const range = n ? shownSpan() : null;
         return range ? clamp(Math.ceil(range.from - 0.5), 0, n - 1) : 0;
       }
       /** The point the readout describes: the one under the crosshair, else the view's last (`rest`). */
@@ -17810,7 +17827,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * picture at another width). Else null. @param {{ from: number, to: number }} range @param {number} was
        */
       function atLatest(range, was) {
-        const width = view.timeScale().width(), last = (resolved?.times.length ?? 0) - 1, span = range.to - range.from;
+        const width = engine.time.width, last = (resolved?.times.length ?? 0) - 1, span = range.to - range.from;
         if (!width || !was || last <= 0 || Math.abs(range.to - (last + (rightGap(was) * (span + 1)) / was - 0.5)) > 0.5) return null;
         const to = last + (rightGap(width) * (span + 1)) / width - 0.5;
         return { from: to - span, to };
@@ -17820,9 +17837,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it is (the library would scroll to it), and its legends' forms with it. As it's laid out, not as it moves.
        */
       function setGap() {
-        const width = view.timeScale().width(), gap = rightGap(width), was = view.timeScale().options().rightOffsetPixels;
+        const width = engine.time.width, gap = rightGap(width), was = engine.time.rightOffset;
         if (width) {
-          const range = view.timeScale().getVisibleLogicalRange(), last = (resolved?.times.length ?? 0) - 1, base = rightGap(width, /** @type {any} */ (null)), room = gap - base;
+          const range = shownSpan(), last = (resolved?.times.length ?? 0) - 1, base = rightGap(width, /** @type {any} */ (null)), room = gap - base;
           if (gap !== was) view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
           // (Showing the latest (as zoom has it: its room after it as it was, or its last bar in view with less room than
           // now), its room after it as wide as it is now once a heatmap's profile comes or goes: the chart moved over for
@@ -17832,8 +17849,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The room it was placed with another chart's: none to move from, as it's placed for this one.)
           // (The room as it was at this width: a resize places the view with it, see holdView.)
           const on = room > 0, moves = !lookShown && roomPlaced.id === chart.id && on !== roomPlaced.on && range && last > 0 && range.to >= last - 0.5 && (Math.abs(range.to - end(base + (roomPlaced.on ? profileWidth(width) : 0))) <= 0.5 || range.to < end(gap));
-          if (moves) view.timeScale().setVisibleLogicalRange({ from: end(gap) - span, to: end(gap) });
-          else if (range && gap !== was) view.timeScale().setVisibleLogicalRange(range);
+          if (moves) showSpan({ from: end(gap) - span, to: end(gap) });
+          else if (range && gap !== was) showSpan(range);
           if (!lookShown) roomPlaced = { id: chart.id, on };
         }
         fitLegends();
@@ -17845,7 +17862,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * click's writes would all be laid out at once, mid-click).
        */
       function fitLegends(tags = true) {
-        const width = view.timeScale().width();
+        const width = engine.time.width;
         if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < KEY_NARROW), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
         if (tags) chart?.panes.forEach((pane, i) => {
           if (!view.panes()[i]) return;
@@ -18781,7 +18798,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * positive across the view, relatively from its first non-zero one (price before 2010 starts at zero).
        */
       function changeWindow(layer) {
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!resolved || !range || !resolved.times.length) return null;
         const result = resolved.results.get(layer.id), values = result?.values;
         if (!values) return null;
@@ -18932,7 +18949,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let lit = null;
         const doc = drawnDoc ?? chart;
         if (time !== null && pane !== undefined && resolved && doc.layers.some((layer) => layer.type === "bubbles")) {
-          const x = view.timeScale().timeToCoordinate(/** @type {any} */ (time)), i = lowerBound(resolved.times, time);
+          const x = xOfTime(time), i = lowerBound(resolved.times, time);
           for (const layer of doc.layers) {
             const series = drawn.get(layer.id), row = series && layer.type === "bubbles" && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? series.dataByIndex(i) : null;
             if (!row || x === null) continue;
@@ -19024,7 +19041,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What the chart shows, in words: its interval and dates, each pane's layers with their values at the view's end. */
       function chartFacts() {
         if (!resolved?.times.length) return "No data yet.";
-        const point = { at: lastShown(), rest: true }, shown = view.timeScale().getVisibleRange();
+        const point = { at: lastShown(), rest: true }, shown = shownDates();
         const span = shown ? spanParts(Number(shown.from), Number(shown.to)).join(" to ").replace(/’(\d\d)/g, "20$1") : "";
         const panes = chart.panes.map((pane, i) => {
           const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden);
@@ -19051,7 +19068,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The keys' crosshair on a bar: in view (the view moves to it), on the chart, its values in the legends, said. */
       function keyAt(/** @type {number} */ i) {
         if (!resolved) return;
-        const time = resolved.times[i], range = view.timeScale().getVisibleLogicalRange();
+        const time = resolved.times[i], range = shownSpan();
         keyTime = time;
         // (A profile's bar pointed at, let go: the keys' day read.)
         pointProfile(null);
@@ -19059,7 +19076,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         pinCross(null);
         // (Out of sight, the view moves just enough to show it.)
         const first = range ? firstInView() : i, last = lastShown(), shift = i < first ? i - first : i > last ? i - last : 0;
-        if (range && shift) view.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+        if (range && shift) showSpan({ from: range.from + shift, to: range.to + shift });
         // Its line where its point is (none drawn there, none); a point being placed click by click goes there too.
         const point = keyPoint(i);
         // (The chart says nothing of a crosshair set or cleared here: a finger's kept one, ended now, see fingerCross.)
@@ -19144,7 +19161,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Left for another window, it's where it was when the window's back.)
       $("plot-keys").addEventListener("blur", () => (document.hasFocus() && keyAway(), tool && renderBelt()));
       $("plot-keys").addEventListener("keydown", (event) => {
-        const n = resolved?.times.length ?? 0, range = view.timeScale().getVisibleLogicalRange();
+        const n = resolved?.times.length ?? 0, range = shownSpan();
         // (Another chart loading, nothing to read yet; drawings selected, the arrows are theirs: see nudgeDrawings.)
         if (!n || !range || drawnChart !== chart.id || $("chart").classList.contains("waiting") || event.metaKey || event.ctrlKey || event.altKey || (chosen.size && event.key.startsWith("Arrow"))) return;
         const on = keyTime === null ? -1 : indexOfTime(keyTime), first = firstInView(), last = lastShown(), from = on >= 0 ? on : last + 1;
@@ -19189,7 +19206,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The lens shows what the chart draws next: after this frame's changes.)
           if (lensAt) lookAt(lensAt);
           // A preset showing shows as much of it as the new width fits.
-          const width = view.timeScale().width();
+          const width = engine.time.width;
           // (A drawing placed by taps, its first made: it starts over, its pane moved from under it (the screen turned,
           // the sidebar went); its second, else, would land as if it hadn't. Said once the belt's placed: its toast by it.)
           // (A path's points kept, its pane where it is now: as many as it has, starting over would lose them.)
@@ -19540,7 +19557,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function placeBrush() {
         const brush = $("brush");
         const n = resolved?.times.length ?? 0;
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!range || n < 2 || !chart?.layers.length) {
           brush.hidden = true;
           paintNavigator(null);
@@ -19582,7 +19599,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const dates = [];
         /** Outside the window (as the brush stands: no narrower than its least width), to dim. */
         const outside = new Path2D();
-        const shown = view.timeScale().getVisibleRange();
+        const shown = shownDates();
         // (Said: what it's over (a finer interval loads a stretch, not all of history), what it shows, its keys.)
         const over = fineDrawn() ? "the stretch loaded" : "all history";
         const keys = "← → to move, ↑ ↓ to zoom, ⇧ for bigger steps";
@@ -19627,7 +19644,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks(), fitLegends()));
+      new ResizeObserver(() => (holdView(), relayout(), labelMarks(), fitLegends())).observe(view.chartElement());
       /**
        * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
        * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
@@ -19636,15 +19653,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let heldView = null, madeView = /** @type {{ from: number, to: number } | null} */ (null);
       /** The chart's own width, its plot's and its price scales': a price scale wider, the plot narrower, it's the same. */
-      const chartWidth = () => view.timeScale().width() + view.priceScale("left", 0).width() + view.priceScale("right", 0).width();
+      const chartWidth = () => engine.time.width + engine.left + engine.axisShown;
       /**
        * A view by the chart's box: its bars from the box's left edge to its right, the price scales' room counted. A price
        * scale wider or narrower, the library holds the bars where they are on screen (patch 20 of lightweight-charts): the
        * same view by the box, though the plot's range isn't.
        */
       function boxView(/** @type {{ from: number, to: number }} */ range) {
-        const spacing = view.timeScale().width() / (range.to - range.from + 1);
-        return { from: range.from - view.priceScale("left", 0).width() / spacing, to: range.to + view.priceScale("right", 0).width() / spacing };
+        const spacing = engine.time.width / (range.to - range.from + 1);
+        return { from: range.from - engine.left / spacing, to: range.to + engine.axisShown / spacing };
       }
       /** The chart's own width as last seen: a size change at it is a price scale's, not the box's. */
       let lastBox = 0;
@@ -19658,29 +19675,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * showing is shown again whole (see relayout).
        */
       function holdView() {
-        const width = view.timeScale().width(), box = chartWidth(), was = heldView, resized = box !== lastBox;
+        const width = engine.time.width, box = chartWidth(), was = heldView, resized = box !== lastBox;
         // (Only the chart's box resized: a price scale's labels wider or narrower, the library holds the bars on screen.)
         if (exporting) return;
         if (width) lastBox = box;
         if (!was || !width || !resized) return;
-        if (rightGap(width) !== view.timeScale().options().rightOffsetPixels) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap(width) } });
+        if (rightGap(width) !== engine.time.rightOffset) (engine.time.rightOffset = rightGap(width)), engine.invalidate(true);
         // (A width changed by hand (the sidebar's, the panel's): the view's stretch kept instead, its bars as close as that
         // needs; a preset showing is shown again whole (see relayout).)
         if (resizeKeeps && resolved && chart && drawnChart === chart.id) {
           heldView = madeView = null;
           fitSpacing(chart, resolved.times.length, resizeKeeps);
-          if (!presetShown) view.timeScale().setVisibleLogicalRange(resizeKeeps);
+          if (!presetShown) showSpan(resizeKeeps);
           return;
         }
         if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
         // (Its bars as wide: as many across the box as it holds, the last whole, as the library counts them.)
         const spacing = was.box / (was.to - was.from + 1), bars = box / spacing - 1, last = resolved.times.length - 1;
-        const right = view.priceScale("right", 0).width() / spacing;
+        const right = engine.axisShown / spacing;
         const to = was.at.from < 0 ? (was.to / (was.to - was.from)) * bars : was.at.to > last ? last + rightGap(width) / spacing - 0.5 + right : was.to;
         madeView = { from: to - bars, to };
-        view.timeScale().setVisibleLogicalRange({ from: to - right - (width / spacing - 1), to: to - right });
+        showSpan({ from: to - right - (width / spacing - 1), to: to - right });
       }
-      view.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      engine.onRange(() => {
         // (The view as left: one moved in the box it was left in, or moved since a resize of the box made it; not one the
         // library or a resize made, see holdView.)
         ((range, width, box) => {
@@ -19688,7 +19705,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           lastBox ||= box;
           const now = boxView(range), made = madeView && Math.abs(now.from - madeView.from) < 0.05 && Math.abs(now.to - madeView.to) < 0.05;
           if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { ...now, box, at: { from: range.from, to: range.to } }), (madeView = null);
-        })(view.timeScale().getVisibleLogicalRange(), view.timeScale().width(), chartWidth());
+        })(shownSpan(), engine.time.width, chartWidth());
         // (A scale gliding follows the view moved again, at once.)
         if (scaleGliding) endScaleGlide();
         // (The lens shows the view as it's drawn next, moved by a key, a range, the navigator.)
@@ -19705,7 +19722,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitLegends();
         valuesSoon();
         // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
-        const shown = view.timeScale().width() !== laidWidth ? presetShown : showsPreset();
+        const shown = engine.time.width !== laidWidth ? presetShown : showsPreset();
         if (shown !== presetShown) setPresetShown(shown);
         prefetch();
         keepView();
@@ -19747,7 +19764,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function prefetch() {
         const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!span || presetShown || !range || n < 2 || drawnChart !== chart.id || drawnIndex !== chart.index) return;
         const side = nearEnd(span, range, n);
         if (!side) return;
@@ -19765,7 +19782,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function reachOut() {
         const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
         const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
         // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
@@ -19945,7 +19962,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.button !== 0 || brushDrag) return;
         // (Taken mid-glide: on from its last step, read before it's stopped (by the glide that jumps, else here).)
         const n = resolved?.times.length ?? 0, last = viewRange();
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (n < 2 || !range || !last) return stopGlide();
         const rect = $("navigator").getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -19973,7 +19990,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rect = $("navigator").getBoundingClientRect();
         const x = event.clientX - rect.left;
         if (!brushDrag) {
-          const range = view.timeScale().getVisibleLogicalRange();
+          const range = shownSpan();
           const n = resolved?.times.length ?? 0;
           if (range && n > 1) {
             const { left, right, grip } = brushOn(rect, n, range);
@@ -19993,7 +20010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The timeline or the strip changed under it (another interval, a block, a resize): taken up again from here, not
         // moved by the old one's bars a pixel.)
         if (brushDrag.times !== resolved?.times || brushDrag.width !== rect.width) {
-          const now = view.timeScale().getVisibleLogicalRange(), n = resolved?.times.length ?? 0;
+          const now = shownSpan(), n = resolved?.times.length ?? 0;
           if (!now || n < 2) return;
           Object.assign(brushDrag, { x, perPixel: (n - 1) / rect.width, range: now, times: resolved?.times, width: rect.width });
         }
@@ -20005,7 +20022,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (brushDrag.mode === "left") from = Math.min(from + delta, to - 10);
         else to = Math.max(to + delta, from + 10);
         // An edge dragged out past the most the view shows: the other edge gives way.
-        view.timeScale().setVisibleLogicalRange(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
+        showSpan(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
       });
       /** The brush let go of: its release, or the window left (its release may never come here). */
       function dropBrush() {
@@ -20020,14 +20037,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // Focused (tabbed to, pressed or dragged, after Go to a date), its keys move the view as its drags do: ← → a tenth of
       // it along (⇧, all of it), ↑ ↓ in and out (⇧, twice as far), Home and End to the start and to the latest.
       $("navigator").addEventListener("keydown", (event) => {
-        const range = view.timeScale().getVisibleLogicalRange(), n = resolved?.times.length ?? 0;
+        const range = shownSpan(), n = resolved?.times.length ?? 0;
         if (!range || n < 2 || event.metaKey || event.ctrlKey || event.altKey || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         event.stopPropagation();
         const width = range.to - range.from, far = event.shiftKey;
         if (upDown(event)) return zoom(event.key === "ArrowUp" ? (far ? 0.5 : 0.8) : far ? 2 : 1.25);
         const by = (event.key === "ArrowLeft" ? -1 : 1) * width * (far ? 1 : 0.1);
-        const end = n - 1 + (rightGap() * (width + 1)) / Math.max(1, view.timeScale().width()) - 0.5;
+        const end = n - 1 + (rightGap() * (width + 1)) / Math.max(1, engine.time.width) - 0.5;
         glide(event.key === "Home" ? { from: -0.5, to: width - 0.5 } : event.key === "End" ? { from: end - width, to: end } : { from: range.from + by, to: range.to + by });
       });
       $("navigator").addEventListener("pointercancel", endBrush);
@@ -20112,15 +20129,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The time axis as a line: bar 0's x, and a bar's width (the chart library's own conversions keep to whole bars). */
       function timeLine() {
-        const scale = view.timeScale(), at = scale.logicalToCoordinate(/** @type {any} */ (0)), next = scale.logicalToCoordinate(/** @type {any} */ (1));
-        return drawnTimes.length && at !== null && next !== null && next > at ? { at, step: next - at } : null;
+        const at = engine.time.x(0), next = engine.time.x(1);
+        return drawnTimes.length && next > at ? { at, step: next - at } : null;
       }
       /**
        * A trend's segments' ends in view, in pixels: each one's first point (none before it, or a switch just before) and
        * its last (a switch, or none after). @param {Result} result @param {{ at: number, step: number }} line
        */
       function segmentEnds(result, line, series) {
-        const shown = result.values, breaks = result.breaks, range = view.timeScale().getVisibleLogicalRange();
+        const shown = result.values, breaks = result.breaks, range = shownSpan();
         if (!shown || !range) return [];
         const on = (/** @type {number} */ i) => i >= 0 && i < shown.length && Number.isFinite(shown[i]), ends = [];
         for (let i = Math.max(0, Math.floor(range.from) - 1), to = Math.min(shown.length - 1, Math.ceil(range.to) + 1); i <= to; i++) {
@@ -20744,7 +20761,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         valueText() {
           const series = this.series, mode = series.priceScale().options().mode;
           if (mode < 2) return (/** @type {number} */ value) => series.priceFormatter().format(value);
-          const from = view.timeScale().getVisibleLogicalRange()?.from, row = from === undefined ? null : series.dataByIndex(Math.floor(from), LC.MismatchDirection.NearestRight);
+          const from = shownSpan()?.from, row = from === undefined ? null : series.dataByIndex(Math.floor(from), LC.MismatchDirection.NearestRight);
           const base = row?.close ?? row?.value;
           return (/** @type {number} */ value) => {
             if (!base) return "";
@@ -21193,11 +21210,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!first || !last) return null;
         const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = view.chartElement().getBoundingClientRect();
         // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
-        const axis = view.priceScale("left", 0).width(), firstTop = first.getBoundingClientRect().top, lastBottom = last.getBoundingClientRect().bottom;
+        const axis = engine.left, firstTop = first.getBoundingClientRect().top, lastBottom = last.getBoundingClientRect().bottom;
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
         const [left, right, top, bottom] = boxed
-          ? [chartBox.left + axis, chartBox.right - (element.width - axis - view.timeScale().width()), chartBox.top + (firstTop - element.top), chartBox.bottom - (element.bottom - lastBottom)]
-          : [Math.max(element.left + axis, chartBox.left), Math.min(element.left + axis + view.timeScale().width(), chartBox.right), Math.max(firstTop, chartBox.top), Math.min(lastBottom, chartBox.bottom)];
+          ? [chartBox.left + axis, chartBox.right - (element.width - axis - engine.time.width), chartBox.top + (firstTop - element.top), chartBox.bottom - (element.bottom - lastBottom)]
+          : [Math.max(element.left + axis, chartBox.left), Math.min(element.left + axis + engine.time.width, chartBox.right), Math.max(firstTop, chartBox.top), Math.min(lastBottom, chartBox.bottom)];
         return { left: left - canvas.left, top: top - canvas.top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
       }
       /** The sides the drawing tools dock on, as choices (⌘K's, the grip's by keys). */
@@ -21241,7 +21258,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (row) fitStrip(row);
           // (Its caption on the plot's side, as a belt's elsewhere: over the plot, above the dates, which a finger drawing reads.)
           const caption = /** @type {HTMLElement | null} */ (belt.querySelector(".belt-caption"));
-          if (caption) Object.assign(caption.style, { position: "fixed", top: "auto", right: "auto", left: `${foot.left + 10}px`, bottom: `${innerHeight - $("chart").getBoundingClientRect().bottom + view.timeScale().height() + 6}px`, translate: "none", transform: "none" });
+          if (caption) Object.assign(caption.style, { position: "fixed", top: "auto", right: "auto", left: `${foot.left + 10}px`, bottom: `${innerHeight - $("chart").getBoundingClientRect().bottom + engine.timeHeight + 6}px`, translate: "none", transform: "none" });
           return;
         }
         belt.style.width = belt.style.height = "";
@@ -21549,14 +21566,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         repaintDrawings();
       }
       /** A point of the chart in its pane's plot, where drawings are drawn, in pixels. */
-      const plotPoint = (clientX, clientY, rect) => ({ x: clientX - view.chartElement().getBoundingClientRect().left - view.priceScale("left", 0).width(), y: clientY - rect.top });
+      const plotPoint = (clientX, clientY, rect) => ({ x: clientX - view.chartElement().getBoundingClientRect().left - engine.left, y: clientY - rect.top });
       /** The drawing under a point of the chart: a point of one first, else the last drawn. */
       function drawingAt(clientX, clientY, reach = REACH) {
         const pane = shownDrawings.length ? paneAt(clientY) : null, id = pane && chart.panes[pane.index]?.id;
         if (!pane || !id) return null;
         const at = plotPoint(clientX, clientY, pane.rect);
         // Over an axis, the axis'.
-        if (at.x < 0 || at.x > view.timeScale().width()) return null;
+        if (at.x < 0 || at.x > engine.time.width) return null;
         // (On top as painted: as the pane's series are, its first layer's over the others (reversed, its last's); then the
         // later added; a point of one (a corner, an end; not a side) over any body.)
         const inPane = chart.layers.filter((layer) => layer.pane === id);
@@ -21815,7 +21832,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of drawnDoc?.layers ?? chart.layers) {
           const series = drawn.get(layer.id), values = resolved.results.get(layer.id)?.values;
           if (layer.type !== "bubbles" || layer.scaleTo === "all" || !series || !values) continue;
-          const most = mostIn(values, view.timeScale().getVisibleLogicalRange());
+          const most = mostIn(values, shownSpan());
           if (series.options().most !== most) series.applyOptions({ most });
         }
       }
@@ -22346,7 +22363,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function profilesUnder(param) {
         if (keyTime !== null || !param.point || param.paneIndex === undefined) return [];
-        const width = view.timeScale().width(), pane = chart.panes[param.paneIndex];
+        const width = engine.time.width, pane = chart.panes[param.paneIndex];
         if (param.point.x < width - 2 - profileWidth(width)) return [];
         const mine = chart.layers.filter((layer) => layer.type === "profile" && !layer.hidden && layer.pane === pane?.id);
         return pane?.reverse ? mine.reverse() : mine;
@@ -22796,7 +22813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!pane) return;
         const at = plotPoint(event.clientX, event.clientY, pane.rect);
         // A press on an axis scales it, whatever's drawing.
-        if (at.x < 0 || at.x > view.timeScale().width()) return;
+        if (at.x < 0 || at.x > engine.time.width) return;
         // A box around drawings: the Select tool's, or ⌘ and a drag (a chord: the keys held don't come up).
         if (!tool && (selectingArea || boxKey(event))) {
           take(event);
@@ -23186,7 +23203,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const flipsOf = (/** @type {string[]} */ ids) => FLIPS.filter(([across]) => flips(/** @type {Drawing[]} */ (ids.map(drawingById).filter(Boolean)), across));
       /** A drawing selected, from ⌘K: the view goes to it first where it's out of it (at the zoom it has). */
       function selectInView(/** @type {string} */ id) {
-        const drawing = drawingById(id), range = view.timeScale().getVisibleLogicalRange();
+        const drawing = drawingById(id), range = shownSpan();
         if (!drawing) return;
         chooseDrawings([id]);
         // (The chart then has the keys, ⌘K closed: its arrows move it; by touch, none.)
@@ -23267,7 +23284,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function boxTo(event) {
         const at = plotPoint(event.clientX, event.clientY, boxing.rect);
-        boxing.now = { x: clamp(at.x, 0, view.timeScale().width()), y: clamp(at.y, 0, boxing.rect.height) };
+        boxing.now = { x: clamp(at.x, 0, engine.time.width), y: clamp(at.y, 0, boxing.rect.height) };
         showBox();
       }
       /** Let go of a box: the drawings of its pane it touches are selected (a click, no box: none); the Select tool's put down. */
@@ -23374,7 +23391,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
         const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && view.panes()[chart.panes.findIndex((item) => item.id === layer.pane)]?.getHTMLElement();
         if (!drawing || !series || !line || !pane) return;
-        const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = view.chartElement().getBoundingClientRect().left + view.priceScale("left", 0).width();
+        const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = view.chartElement().getBoundingClientRect().left + engine.left;
         if (writing.label) {
           // A label: centered where it sits (a trend line's at its angle; its field level).
           const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || field.placeholder);
@@ -24048,13 +24065,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
       // (A heatmap's picture in its colors as the theme shows them: drawn again in the other. A profile shown, its bars and
       // its room after the latest (see previewShown): one kept from before them drawn again, others' as they were.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo, layer.byLayers]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo, layer.byLayers]), openView(doc), FINE.has(doc.index) ? Math.round(engine.time.width / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
        */
       function previewBars(/** @type {Chart} */ doc, index = doc.index) {
-        const width = view.timeScale().width(), days = rangeDays(doc.range);
+        const width = engine.time.width, days = rangeDays(doc.range);
         // (A short range at a coarse interval, 3M of months: a dozen bars still, not a preview of none.)
         return Math.min(FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
       }
@@ -35180,7 +35197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Drawn first: a view set while it loads is the one it lands on undone. For this chart only, the latest Go: see
         // afterDrawn.)
         if (!settled()) return afterDrawn(go, () => goToTime(time, go));
-        const range = view.timeScale().getVisibleLogicalRange(), at = resolved ? lowerBound(resolved.times, time) : -1;
+        const range = shownSpan(), at = resolved ? lowerBound(resolved.times, time) : -1;
         if (!range || !resolved) return;
         // (Not in what's loaded now (an interval since, the oldest let go): there by its date, loaded first.)
         if (resolved.times[at] !== time) return goToDate({ from: time, to: time + INTERVAL_DAYS[chart.index] * 86400 - 1, day: true, label: pointLabel(time, chart.index) }, 0, go);
@@ -35211,7 +35228,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * gone to; none, said.
        */
       function stepSignal(/** @type {1 | -1} */ by) {
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = shownSpan();
         if (!resolved || !range) return;
         // (From where the view's going, a glide under way: pressed again on the way, the next on, not the same again.)
         const middle = glideTarget ? (glideTarget.from + glideTarget.to) / 2 : (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
@@ -35345,7 +35362,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let settingsKept = { key: /** @type {any[]} */ ([]), rows: /** @type {any[]} */ ([]), choices: /** @type {Map<string, { said: string, choices: any[] }>} */ (new Map()) };
       let paletteOpenings = 0;
       function settingsNow() {
-        const key = [paletteOpenings, chart.id, revision, chart.updated, resolved, home, presetShown, view.timeScale().width(), document.documentElement.dataset.theme, tokensMedia.map((media) => media.matches).join()];
+        const key = [paletteOpenings, chart.id, revision, chart.updated, resolved, home, presetShown, engine.time.width, document.documentElement.dataset.theme, tokensMedia.map((media) => media.matches).join()];
         if (key.some((part, i) => part !== settingsKept.key[i])) settingsKept = { key, rows: settingRows(), choices: new Map() };
         return settingsKept;
       }
@@ -35977,7 +35994,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The stretch a date shows (its middle, as wide as the chart shows, when it's longer), and whether it's all loaded. */
       function stretchOf(span) {
         // (A span running past now, this month or year, ends now: its middle is of what there is.)
-        const step = INTERVAL_DAYS[shownIndex()] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
+        const step = INTERVAL_DAYS[shownIndex()] * 86400, range = shownSpan(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
         // (A day shows at the zoom the chart has, centered: that's its stretch.)
         const width = span.day && range ? (range.to - range.from) * step : Math.min(end - span.from, mostBars() * step);
         const from = middle - width / 2, to = Math.min(middle + width / 2, end), times = resolved?.times ?? [];
@@ -36033,7 +36050,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const mine = drawVersion;
           return void afterDrawn(go, () => goToDate(span, mine, go));
         }
-        const { first, last } = pointsOf(span), range = view.timeScale().getVisibleLogicalRange();
+        const { first, last } = pointsOf(span), range = shownSpan();
         autoScale();
         if (span.day || last - first < 8) {
           const half = range ? (range.to - range.from) / 2 : 60, center = (first + last) / 2;
@@ -38155,7 +38172,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          */
         const asPicture = (read) => {
           // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
-          const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight, shown = presetShown, screen = view.timeScale().width();
+          const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = shownSpan(), heightWas = chartHeight, shown = presetShown, screen = engine.time.width;
           let restoreLegends = () => {};
           // (Its resizes aren't the chart's: the view held as it is, see holdView.)
           exporting = true;
@@ -38170,7 +38187,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) {
               fitSpacing(chart, resolved.times.length);
               if (presetShown) applyRange(chart, resolved);
-              else if (logical) view.timeScale().setVisibleLogicalRange(atLatest(logical, screen) ?? logical);
+              else if (logical) showSpan(atLatest(logical, screen) ?? logical);
             }
             marginsSet = "";
             fitMargins();
@@ -38190,7 +38207,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
             if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
-            if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
+            if (sized && logical) showSpan(logical);
             // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
             // picture).)
             if (sized && shown && resolved && drawnChart === chart.id) {
@@ -38257,7 +38274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               updateReadout();
             }
             // (Its dates and its axes' size, as the shot has them.)
-            return { shot, scale, pieces, dates: viewDates(), axisHeight: view.timeScale().height(), leftWidth: view.priceScale("left").width() };
+            return { shot, scale, pieces, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
           });
         } finally {
           heatExtras.delete(extra);
@@ -38355,7 +38372,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * written whole, as "Values on" writes its own (the navigator's tight form, ’18, beside a whole 2026 read as two).
        */
       function viewDates() {
-        const times = resolved?.times ?? [], span = view.timeScale().getVisibleRange();
+        const times = resolved?.times ?? [], span = shownDates();
         if (!times.length) return { span: "", values: "" };
         const last = times[lastShown()], [from, to] = [pointLabel(Number(span?.from ?? times[0])), pointLabel(Number(span?.to ?? last))];
         return { span: from === to ? to : `${from} – ${to}`, values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
