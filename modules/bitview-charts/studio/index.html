@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Marks } from "/modules/bitview-charts/index.js";
+      import { Marks, DARK, channels } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -16214,44 +16214,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return width + (width % 2);
       }
       /** The chart's colors, the theme's (set again when it changes). */
-      function chartColors() {
-        const crosshair = { color: css("--crosshair"), labelBackgroundColor: css("--crosshair-label") };
-        return {
-          // (Marks' words edged in the card's color, as the legends' are: see LWC patch 47.)
-          layout: { textColor: css("--chart-text"), bvHalo: css("--card"), panes: { separatorColor: css("--line"), separatorHoverColor: css("--press") } },
-          grid: { horzLines: { color: css("--chart-grid") } },
-          crosshair: { vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint") } },
-        };
+      /**
+       * The chart's look, the library's theme: Studio's colors and its font, on the ground under the chart as the page
+       * shows it (see chartGround).
+       */
+      function chartTheme() {
+        return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), font: `11px ${chartSans}` };
       }
+      /**
+       * The ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first that isn't
+       * see-through, laid over each other (the card over the page's ground: the color they make; the library's canvases
+       * are opaque). Worked out, not drawn and read back: a browser resisting fingerprinting (Mullvad) gives a read pixel
+       * noise.
+       */
+      function chartGround() {
+        /** @type {string[]} */
+        const layers = [];
+        for (let element = /** @type {HTMLElement | null} */ ($("chart")); element; element = element.parentElement) {
+          const color = getComputedStyle(element).backgroundColor, alpha = channels(color)[3] / 255;
+          if (!color || !alpha) continue;
+          layers.push(color);
+          if (alpha >= 1) break;
+        }
+        if (!layers.length) return DARK.background;
+        const ground = channels(layers[layers.length - 1])[3] >= 255;
+        if (layers.length === 1 && ground) return layers[0];
+        // (From the page's ground in: none opaque, the library's dark one.)
+        const made = channels(ground ? layers[layers.length - 1] : DARK.background);
+        for (let k = layers.length - (ground ? 2 : 1); k >= 0; k--) {
+          const layer = channels(layers[k]), a = layer[3] / 255;
+          for (let c = 0; c < 3; c++) made[c] = layer[c] * a + made[c] * (1 - a);
+        }
+        return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
+      }
+      /** What the facade still reads of the chart's options: the halo outlined lines are edged in (the card's), and how its percent scales write values. */
       function chartOptions() {
-        const colors = chartColors(), line = { width: /** @type {const} */ (1), style: LC.LineStyle.Solid };
-        const scale = { borderVisible: false, entireTextOnly: true, scaleMargins: { top: 0.17, bottom: 0.08 } };
         return {
-          // (Areas' fills, soft gradients, drawn at half resolution under every line: Firefox fills on the CPU; see LWC
-          // patch 30.)
-          bvHalfFills: true,
-          // (A pan moves the picture, only what comes into view drawn, the frame after it whole: see LWC patch 48.)
-          bvPanShift: true,
-          layout: {
-            ...colors.layout,
-            background: { type: LC.ColorType.Solid, color: "transparent" },
-            fontFamily: chartSans,
-            fontSize: 11,
-            attributionLogo: false,
-            // (A separator's grip a finger's by touch: 9px, the library's, is a mouse's.)
-            panes: { ...colors.layout.panes, enableResize: true, bvGrip: TOUCH ? 25 : 9 },
-          },
-          grid: { vertLines: { visible: false }, ...colors.grid },
-          // (The pane's order, as chosen, holds under the pointer too: its drawings are found as they're drawn.)
-          hoveredSeriesOnTop: false,
-          crosshair: { mode: LC.CrosshairMode.Normal, vertLine: { ...line, ...colors.crosshair.vertLine }, horzLine: { ...line, ...colors.crosshair.horzLine, style: LC.LineStyle.LargeDashed } },
-          // (A finger's crosshair, held then dragged, let go of by the chart as it's lifted: else the next drag moved it rather
-          // than the chart. Studio keeps it where it was, to be read with no finger over it, till the next touch: see fingerCross.)
-          trackingMode: { exitMode: LC.TrackingModeExitMode.OnTouchEnd },
-          rightPriceScale: scale,
-          leftPriceScale: { ...scale },
-          timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, bvHoldOnAxes: true, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
-          localization: { locale: "en-US", timeFormatter: (time) => pointLabel(Number(time)), percentageFormatter: (value) => precise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
+          layout: { bvHalo: css("--card") },
+          localization: { percentageFormatter: (/** @type {number} */ value) => precise(value, "%"), tickmarksPercentageFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%") },
         };
       }
 
@@ -16274,7 +16274,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
       /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
       const engine = view.engine;
-      /** The points in view (fractions allowed) as the timeline has them; none without data. */
+      engine.theme = chartTheme();
+      engine.time.rightOffset = 48;
+      engine.time.minSpacing = MIN_BAR_SPACING;
+      engine.crosshair.setFormat((time) => pointLabel(time));
       /** Studio's dates as the chart's timeline: a Float64Array, made once an array (an interval's data keeps its own). */
       const timelines = /** @type {WeakMap<number[], Float64Array>} */ (new WeakMap());
       const timelineOf = (/** @type {number[]} */ times) => timelines.get(times) ?? ((line) => (timelines.set(times, line), line))(new Float64Array(times));
@@ -16284,6 +16287,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {number[]} times
        */
       const showTimes = (times) => ((line) => engine.time.times !== line && (engine.setTimes(line), view.changed()))(timelineOf(times));
+      /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
       /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
       const showSpan = (span) => engine.setRange(span.from, span.to);
@@ -16612,7 +16616,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!loaded) return;
         chartSans = css("--chart-sans");
         navigatorFont = "";
-        view.applyOptions({ layout: { fontFamily: chartSans } });
+        engine.theme = chartTheme();
+        engine.invalidate(true);
         drawOverview();
       });
       /** @type {Map<string, any>} layer id → its series on the chart */
@@ -27380,7 +27385,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           pickedAt.clear();
           document.documentElement.dataset.theme = prefs.theme;
           hexCache.clear();
-          view.applyOptions(chartColors());
+          view.applyOptions({ layout: { bvHalo: css("--card") } });
+          engine.theme = chartTheme();
           refresh();
           // (Its chart recolored inside the crossfade, not a frame after it: see buildSoon.)
           buildNow();

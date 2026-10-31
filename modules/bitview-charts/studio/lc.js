@@ -8,7 +8,7 @@
 // and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint), primitives' axis
 // tags (its drawings' values, a profile's shares) and price lines.
 
-import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale, channels } from "/modules/bitview-charts/index.js";
+import { createChart as make, picture, compact, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
 
 export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
@@ -63,16 +63,14 @@ class Chart {
   constructor(element, options) {
     // (Its own element in the page's box, as the chart library made one: Studio sizes and pins it while a motion stretches
     // its picture, its box laid out as it goes. Sized as asked, else as the box.)
-    this.box = element;
     this.element = document.createElement("div");
     Object.assign(this.element.style, { width: options.width ? `${options.width}px` : "100%", height: options.height ? `${options.height}px` : "100%" });
     element.append(this.element);
     this.options = merged({}, options);
-    this.engine = make(this.element, { theme: this.#theme(this.options), rightOffset: this.options.timeScale?.rightOffsetPixels ?? 48, dateFormat: this.options.localization?.timeFormatter });
+    // (Its look, its time scale's room and spacing, its dates' words: the page's, set on the library.)
+    this.engine = make(this.element);
     /** Its right axis' width where it's shown (see axes). */
     this.axisWidth = this.engine.axis;
-    // (Zoomed out no further than its points this close (the chart library's 0.5 unless given).)
-    this.engine.time.minSpacing = this.options.timeScale?.minBarSpacing ?? 0.5;
     /** @type {Pane[]} */
     this.panesList = [];
     /** @type {Series[]} */
@@ -95,49 +93,6 @@ class Chart {
       const param = { ...this.#param(index, pane, x, y, true), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.clickListeners) listener(param);
     });
-  }
-
-  /** The library's theme from LWC's options: its colors, its font, its crosshair's and separators'. @param {any} options */
-  #theme(options) {
-    const layout = options.layout ?? {}, grid = options.grid?.horzLines ?? {}, cross = options.crosshair?.vertLine ?? {}, across = options.crosshair?.horzLine ?? {};
-    return {
-      ...DARK,
-      // (A transparent one (Studio's) the page's ground under it: the library's canvases are opaque.)
-      background: layout.background?.color && layout.background.color !== "transparent" ? layout.background.color : this.#ground(),
-      ...(layout.textColor ? { text: layout.textColor } : {}),
-      ...(grid.color ? { grid: grid.color } : {}),
-      ...(cross.color ? { crosshair: cross.color } : {}),
-      ...(across.color ? { across: across.color } : {}),
-      ...(cross.labelBackgroundColor ? { badge: cross.labelBackgroundColor } : {}),
-      ...(layout.panes?.separatorColor ? { separator: layout.panes.separatorColor } : {}),
-      font: `${layout.fontSize ?? 11}px ${layout.fontFamily ?? "system-ui, sans-serif"}`,
-    };
-  }
-
-  /**
-   * The page's ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first one that
-   * isn't see-through, laid over each other (a translucent card over the page's ground: the color it makes).
-   */
-  #ground() {
-    /** @type {string[]} */
-    const layers = [];
-    for (let element = /** @type {HTMLElement | null} */ (this.box); element; element = element.parentElement) {
-      const color = getComputedStyle(element).backgroundColor, alpha = channels(color)[3] / 255;
-      if (!color || !alpha) continue;
-      layers.push(color);
-      if (alpha >= 1) break;
-    }
-    if (!layers.length) return DARK.background;
-    const ground = channels(layers[layers.length - 1])[3] >= 255;
-    if (layers.length === 1 && ground) return layers[0];
-    // (Laid over each other as a canvas lays them, from the page's ground in (none opaque: the library's dark one),
-    // worked out, not drawn and read back: a browser resisting fingerprinting (Mullvad) gives a read pixel noise.)
-    const made = channels(ground ? layers[layers.length - 1] : DARK.background);
-    for (let k = layers.length - (ground ? 2 : 1); k >= 0; k--) {
-      const layer = channels(layers[k]), a = layer[3] / 255;
-      for (let c = 0; c < 3; c++) made[c] = layer[c] * a + made[c] * (1 - a);
-    }
-    return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
   }
 
   /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
@@ -166,11 +121,9 @@ class Chart {
   /** @param {any} options */
   applyOptions(options) {
     this.options = merged(this.options, options);
-    if (options.layout || options.grid || options.crosshair) this.engine.theme = this.#theme(this.options);
     // (Its halo come or changed: the outlined series edged in it.)
     if (options.layout && "bvHalo" in options.layout) for (const series of this.all) series.restyle();
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
-    if (options.localization?.timeFormatter) this.engine.crosshair.setFormat(options.localization.timeFormatter);
     this.engine.invalidate(true);
   }
 
