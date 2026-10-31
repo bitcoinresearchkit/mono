@@ -57,14 +57,17 @@ chart.show(365);                                 // the last 365 points in view
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none).
 - `Band({ lower, upper, base, color, below })`: a fill between two columns; without `lower`, an area down to `base`;
   with `below`, a baseline (under its base in that color).
-- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`.
+- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`: each with
+  an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a number or
+  one by its points' spacing).
 - `stack(members, { percent })`: a stack's edges from its members' columns.
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate(true)`.
-- `Custom({ draw, extent, first, distance }, { fixed, over })`: a page's own (bubbles, a heatmap, drawings, marks),
-  drawn by its hooks as part of its pane's picture (see custom.js); `fixed`, held in place as the view moves (its pane
-  drawn whole each frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame
-  (labels and handles placed in the plot); `changed()` after a change.
+- `Custom({ draw, extent, first, distance, axisTags, timeTags }, { fixed, over })`: a page's own (bubbles, a heatmap,
+  drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags on a price axis or
+  the time axis (a drawing's value, its date); `fixed`, held in place as the view moves (its pane drawn whole each
+  frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
+  placed in the plot); `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 
 ## How it draws
