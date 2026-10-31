@@ -525,6 +525,7 @@ export class Pane {
         lg.fillStyle = theme.background;
         lg.fillRect(0, 0, this.leftWidth, this.height);
         if (this.separated) this.#separator(lg, theme, dpr, 0, this.leftWidth);
+        this.drawnTags[1].lines.length = 0;
       }
     }
     this.axesEnd = Math.floor(time.to);
