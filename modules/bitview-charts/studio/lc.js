@@ -130,7 +130,7 @@ class Chart {
     this.engine.onLayout(() => {
       const engine = this.engine;
       for (const pane of this.panesList) pane.place();
-      placeRow(this.timeRow, engine.height - engine.timeHeight, engine.timeHeight, engine.left, engine.time.width, engine.axis);
+      placeRow(this.timeRow, engine.height - engine.timeHeight, engine.timeHeight, engine.left, engine.time.width, engine.axisShown);
       mount(engine.timeAxis.canvas, this.timeFrame);
     });
   }
@@ -621,7 +621,7 @@ class Pane {
   place() {
     const engine = this.engine;
     // (Where it shows: a separator's drag stretches it, its legend kept on it.)
-    placeRow(this.row, engine.shownTop, engine.shownHeight, this.chart.engine.left, engine.plot, this.chart.engine.axis);
+    placeRow(this.row, engine.shownTop, engine.shownHeight, this.chart.engine.left, engine.plot, this.chart.engine.axisShown);
     mount(engine.canvas, this.frame, true);
     if (engine.overCanvas) mount(engine.overCanvas, this.frame, true), engine.canvas.after(engine.overCanvas);
     mount(engine.axisCanvas, /** @type {HTMLElement} */ (this.row.children[2]));
@@ -724,7 +724,7 @@ class PriceScale {
   }
 
   width() {
-    return this.side === "left" ? this.pane.chart.engine.left : this.side ? this.pane.chart.engine.axis : 0;
+    return this.side === "left" ? this.pane.chart.engine.left : this.side ? this.pane.chart.engine.axisShown : 0;
   }
 
   /** The patches' range: what it shows, as values. */

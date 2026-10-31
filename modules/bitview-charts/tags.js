@@ -9,10 +9,22 @@ import { inkOn } from "./color.js";
 export const PILL = 18;
 
 /**
+ * A value as a tag writes it: three significant digits (leading zeros not counted), a whole number under a million
+ * all its digits (77,443; 1,235; 89.0; 0.961; 0.0795; 1.51M): as exact at every size and every zoom, and short. The
+ * exact value is the legend's and the crosshair's.
+ * @param {number} v
+ */
+export function tagValue(v) {
+  const size = Math.abs(v), round = size >= 1000 && size < 1e6 ? Math.round(v) : size > 0 && size < Infinity ? Number(v.toPrecision(3)) : v;
+  // (One rounded past the largest number (1.80e+308): as it is.)
+  return round === round && Math.abs(round) < Infinity ? round : v;
+}
+
+/**
  * A pill (every tag and badge the chart draws: its series' and a page's on the axes, the crosshair's): `words` on
  * `color` in `ink`, as wide as its words and 6 pixels each side, `height` tall (its corners 4, less where it's lower), its
  * middle at `y`; its left at `x` (`align` "left"), its right ("right") or its middle ("center"). Too low to read (under
- * 10 pixels: crowded tags), its color alone. With a `border`, edged in it (a pixel, inside).
+ * 10 pixels: crowded tags), its color alone. With a `border`, edged in it (a pixel, inside). Its width returned.
  * @param {CanvasRenderingContext2D} g @param {string} words @param {string} color @param {string} ink @param {number} x
  * @param {number} y @param {"left" | "right" | "center"} align @param {number} [height] @param {string} [border]
  */
@@ -29,10 +41,11 @@ export function pill(g, words, color, ink, x, y, align, height = PILL, border = 
     g.roundRect(left + 0.5, y - height / 2 + 0.5, width - 1, height - 1, Math.max(0, radius - 0.5));
     g.stroke();
   }
-  if (height < 10) return;
+  if (height < 10) return width;
   g.fillStyle = ink;
   g.textAlign = "center";
   g.fillText(words, left + width / 2, y);
+  return width;
 }
 
 export class Tags {

@@ -69,6 +69,8 @@ export class Chart {
     /** The axis' width at every pane's right, and at their left where one has a left scale (CSS pixels; 0, none). Then layout(). */
     this.axis = axis;
     this.leftAxis = leftAxis;
+    /** Each side's axis widened past it where a tag needs more room (right, left; 0: as asked), till the times are set again. */
+    this.fitted = [0, 0];
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -159,6 +161,8 @@ export class Chart {
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
   setTimes(times) {
     this.time.setTimes(times);
+    // (New data: the axes as asked again, widened anew as its tags need.)
+    if (this.fitted[0] || this.fitted[1]) (this.fitted[0] = this.fitted[1] = 0), this.layout();
     this.#recross();
     this.invalidate(true);
   }
@@ -271,6 +275,16 @@ export class Chart {
     return () => void (this.rangeListeners = this.rangeListeners.filter((each) => each !== listener));
   }
 
+  /** The right axis' width as shown: as asked, or wider where a tag needs it (see fitted). */
+  get axisShown() {
+    return this.axis && Math.max(this.axis, this.fitted[0]);
+  }
+
+  /** The left axis' width as shown (where a pane has a left scale). */
+  get leftShown() {
+    return this.leftAxis && Math.max(this.leftAxis, this.fitted[1]);
+  }
+
   /** Laid out again at the element's size (watched: needed only for a change it can't see). */
   layout() {
     const box = this.element.getBoundingClientRect(), wasLeft = this.left;
@@ -279,13 +293,13 @@ export class Chart {
     this.height = box.height;
     const room = Math.max(0, box.height - this.timeHeight), shares = this.panes.reduce((sum, pane) => sum + pane.share, 0) || 1;
     // (An axis at the left too where a pane has a left scale: the plot and the time axis after it.)
-    const left = (this.left = this.panes.some((pane) => pane.left) ? this.leftAxis : 0), width = Math.max(1, box.width - left);
+    const left = (this.left = this.panes.some((pane) => pane.left) ? this.leftShown : 0), width = Math.max(1, box.width - left), axis = this.axisShown;
     // (A pointer's place kept where it is on the chart: the plot moved under it as a left axis comes or goes.)
     if (this.pointerX === this.pointerX) this.pointerX += wasLeft - left;
     let top = 0;
     for (const [k, pane] of this.panes.entries()) {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
-      pane.place(top, width, bottom - top, this.axis, this.dpr);
+      pane.place(top, width, bottom - top, axis, this.dpr);
       pane.canvas.style.left = `${left}px`;
       pane.axisCanvas.style.left = `${left + pane.plot}px`;
       const had = pane.leftCanvas;
@@ -301,10 +315,10 @@ export class Chart {
       top = bottom;
     }
     // (The time axis under the plot alone: a page stretching the plot stretches it alike. Under the axis, the chart's ground.)
-    this.timeAxis.place(room, Math.max(1, width - this.axis), this.timeHeight, this.dpr);
+    this.timeAxis.place(room, Math.max(1, width - axis), this.timeHeight, this.dpr);
     this.timeAxis.canvas.style.left = `${left}px`;
     this.crosshair.place(box.width, box.height, this.dpr);
-    this.time.resize(Math.max(1, width - this.axis));
+    this.time.resize(Math.max(1, width - axis));
     // (The crosshair's pane found again: panes moved, came or went.)
     this.#recross();
     this.invalidate(true);
@@ -357,6 +371,15 @@ export class Chart {
       const pane = this.panes[k];
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
+    }
+    // (A tag wider than its axis (a left one only where its pane has a left scale): the axis widened to it, laid out
+    // and drawn whole again now (a picture taken from this render has it all). Widening only grows: done once.)
+    let right = 0, leftNeed = 0;
+    for (let k = 0; k < this.panes.length; k++) (right = Math.max(right, this.panes[k].tagsNeed[0])), (leftNeed = Math.max(leftNeed, this.panes[k].left ? this.panes[k].tagsNeed[1] : 0));
+    if ((this.axis && right > this.axisShown) || (this.left && leftNeed > this.leftShown)) {
+      (this.fitted[0] = Math.max(this.fitted[0], Math.ceil(right))), (this.fitted[1] = Math.max(this.fitted[1], Math.ceil(leftNeed)));
+      this.layout();
+      return this.render(true);
     }
     // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
     // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as

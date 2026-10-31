@@ -13,7 +13,7 @@ import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
 import { solid, tint } from "./color.js";
-import { Tags, pill, PILL } from "./tags.js";
+import { Tags, pill, PILL, tagValue } from "./tags.js";
 import { painted } from "./recorder.js";
 
 /**
@@ -160,6 +160,8 @@ export class Pane {
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
     this.tagsTop = [0, 0];
+    /** Each side's widest tag as last drawn, its gaps from the plot and the edge in (CSS pixels): what its axis needs (see the chart's). */
+    this.tagsNeed = [0, 0];
     /**
      * The view's last point as its axes were drawn (their tags read it); and, as the view's first moves, where its tags
      * change (a line's last point in view dropping out, one left out back in): the first point a tag was drawn at, the
@@ -645,9 +647,10 @@ export class Pane {
       for (let t = 0; !covered && t < tags; t++) covered = Math.abs(place[t] - y) < near;
       if (!covered) g.fillText(texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale), at, y);
     }
+    this.tagsNeed[side] = 0;
     this.#tags(g, scale, time, theme, x, width, side, tags);
     // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
-    for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width - 2 : x + 2, page.at[k], side ? "right" : "left");
+    for (let k = 0; k < page.count; k++) this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width - 2 : x + 2, page.at[k], side ? "right" : "left") + 4);
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 
@@ -803,9 +806,10 @@ export class Pane {
       // (Its pill against the plot, as wide as its words (too tight to read: its color alone).)
       const color = solid(line.colorAt(i));
       if (relative) scale.setBase(line.first(from));
-      const words = relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : (line.format ?? this.labels[side])(line.values[i]);
+      // (Its value as a tag writes it, then in its writer's words: see tagValue.)
+      const words = relative ? this.axisLabel(tagValue(line.values[i] * scale.m + scale.c), scale) : (line.format ?? this.labels[side])(tagValue(line.values[i]));
       const look = tint(color, theme.background);
-      pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2), look.border);
+      this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2), look.border) + 4);
     }
   }
 
