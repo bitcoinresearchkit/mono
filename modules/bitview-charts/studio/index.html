@@ -16924,16 +16924,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * What each series holding a layer's data was last set to (by any way: its rows, a spotlight's faded ones), to tell
-       * rows set again from the same with older ones before them; its last point updated (a live tick), unknown. Only at
+       * What each custom series (the page's own: clouds, shades, heatmaps, bubbles) was last set to, its rows, to tell rows
+       * set again from the same with older ones before them; its last point updated (a live tick), unknown. Only at
        * a fine interval, the one that reaches back (elsewhere, rows kept would only take memory).
        */
       const rowsOf = /** @type {WeakMap<object, object[]>} */ (new WeakMap());
       /** A series holding a layer's data, its data followed (see rowsOf). @param {any} series @returns {any} */
       function tracked(series) {
-        const setData = series.setData.bind(series), update = series.update.bind(series), bvSetColumns = series.bvSetColumns.bind(series);
-        // (Set as columns (see the chart library's patch 57): never at a fine interval, its rows unknown.)
-        series.bvSetColumns = (/** @type {Float64Array} */ times, /** @type {ArrayLike<number>} */ values) => (rowsOf.delete(series), bvSetColumns(times, values));
+        const setData = series.setData.bind(series), update = series.update.bind(series);
         series.setData = (/** @type {any[]} */ rows) => {
           setData(rows);
           // (By the chart being built: a look's, mid-switch, at the old interval.)
@@ -17099,7 +17097,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // legend says that); the scale from zero (the stack's foot), a 100% one's from 0 to 100.
           const stack = stacked.get(layer.id);
           // (A stacked line: an area of no fill, its line where a line's is, the edge the band over it stops at (see
-          // bvBandFill): a band shows its own layer's share alone.)
+          // stackBands): a band shows its own layer's share alone.)
           const stackedLine = layer.type === "line" && Boolean(stack);
           // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
           // its values: the legend's, the crosshair's.)
@@ -17141,7 +17139,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {Record<string, string>} */
           const paint = layer.type === "cloud" ? { color: alpha(base, op), ...(banded ? Object.fromEntries(/** @type {string[]} */ (result?.memberIds).map((id, k) => [`band${k}`, alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)])) : {}) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ upColor: hollowOf(layer) ? css("--card") : up, downColor: down, wickUpColor: up, wickDownColor: down, borderUpColor: up, borderDownColor: down }))(color, layer.colors === 1 ? color : below)
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
-            // high it would all but vanish. Stacked, its band (from its line to the one under it, see bvBandFill) evenly too:
+            // high it would all but vanish. Stacked, its band (from its line to the one under it, see stackBands) evenly too:
             // a band fading by price would read lighter the lower it sits.
             : layer.type === "area" ? (([top, foot]) => ({ lineColor: color, topColor: alpha(base, top * op), bottomColor: alpha(base, foot * op) }))(fillOf(layer, Boolean(stack)))
             : layer.type === "histogram" ? { color: alpha(base, 0.75 * op) }
@@ -17217,7 +17215,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see the facade's
             // stack). An area's fill to the pane's foot, or its top where it's filled above its line.)
             const [kind, options, look] = layer.type === "dots" ? [LC.LineSeries, common, { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
-              : layer.type === "area" || stackedLine ? [LC.AreaSeries, { ...common, bvBandFill: stackedLine || (stack && layer.fill !== "above") ? layer.side : undefined }, { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "area" || stackedLine ? [LC.AreaSeries, common, { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
               : layer.type === "histogram" ? [LC.HistogramSeries, common, { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
               : layer.type === "baseline" ? [LC.BaselineSeries, common, { line: { ...stroke, color: paint.topLineColor, under: { value: base, color: paint.bottomLineColor } }, band: { color: paint.topFillColor1, fade: paint.topFillColor2, below: paint.bottomFillColor1, belowFade: paint.bottomFillColor2, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
               : [LC.LineSeries, common, { line: { ...stroke, color: paint.color } }];
@@ -17236,8 +17234,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // drawn (a stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") setRows(series, result?.values ? bubbleRows(doc, data, layer, stacked) : []);
           else if (!result?.values && again && before?.shown) {
-            series.setData([]);
-            closes.get(layer.id)?.series.setData([]);
+            customKind(layer) ? series.setData([]) : setColumn(series, EMPTY, false);
+            const close = closes.get(layer.id);
+            if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
           } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
             if (carried) "points" in carried ? paintedRows.set(layer.id, carried) : paintedLayers.set(layer.id, /** @type {Painted} */ (carried));
@@ -17272,15 +17271,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const fill = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
             const look = !dated || layer.type === "baseline" ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
-            // (Its values as a column on the timeline (none where not finite (a formula's division by zero), or not over zero
-            // on a log scale: copied only then), its colors and a trend's breaks as columns too: no row a date. Candles as
-            // rows, their close line as a column.)
+            // (Its values as a column on the timeline, the library's (none where not finite (a formula's division by zero), or
+            // not over zero on a log scale: copied only then), its colors and a trend's breaks as columns too; candles' four.)
             const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, close = closes.get(layer.id)?.series;
             const drawable = (/** @type {number} */ value) => (value - value === 0 && (!log || value > 0) ? value : NaN);
             const values = times.length ? (log || shown.some((/** @type {number} */ value) => value === Infinity || value === -Infinity) ? shown.map(drawable) : shown) : [];
-            if (candles) setRows(series, data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time })));
-            else series.bvSetColumns(timelineOf(times), values);
-            if (close) close.bvSetColumns(timelineOf(times), values), tintClose(layer.id);
+            if (candles) series.engine.setValues(candleColumns(result.ohlc, shown, log, at));
+            else setColumn(series, values, Boolean(stack) && (stackedLine || (layer.type === "area" && layer.fill !== "above")));
+            if (close) setColumn(close, values, false), tintClose(layer.id);
             const traced = close ?? (candles ? null : series);
             (traced?.edge ?? traced?.engine)?.setStyle({ breaks: result.breaks ?? null });
             // (Bars below their base each in its second color, the rest in its own: two colors.)
@@ -17293,6 +17291,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           drawn.set(layer.id, series);
         }
+        stackBands(doc, stacked);
         // Lines across, behind every series, labeled on the axis: one per value on a scale (a pane's side), in its color
         // and style; shared by several layers, gray, in the first one's style; shown while any of its layers is. None in
         // % and indexed panes: they show changes, not values. The chart draws a series' lines just over it, so these hang
@@ -17317,7 +17316,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               carriersBefore.delete(key);
             } else {
               carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, autoscaleInfoProvider: () => null }, first.pane);
-              carrier.setData(data.times.map((time) => ({ time, value: first.value })));
+              setColumn(carrier, new Float64Array(data.times.length).fill(first.value), false);
             }
             // (Drawing nothing: no line, no dot, no tag of its own.)
             styleSeries(carrier, { hidden: false, tag: false, priceLine: false, format: first.format.formatter, outline: null, line: { stroke: false, marker: 0, dots: 0 } });
@@ -18574,6 +18573,60 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           colors[i] = k;
         }
         return { colors, palette };
+      }
+      /** No values (made once). */
+      const EMPTY = new Float64Array(0);
+      /** A layer drawn by the page's own series (its rows: clouds, shades, heatmaps, profiles, bubbles), not a standard one. @param {Layer} layer */
+      const customKind = (layer) => layer.type === "cloud" || layer.type === "bubbles" || heatLike(layer) || (layer.type === "signal" && layer.place === "shade");
+      /**
+       * A standard series' values set on the library, as a column on the timeline: its line's, its bars', an area's or a
+       * baseline's band and edge (`stacked`: its band's lower edge its stack's, see stackBands; else an area, to its floor).
+       * @param {any} series @param {ArrayLike<number>} values @param {boolean} stacked
+       */
+      function setColumn(series, values, stacked) {
+        const column = values instanceof Float64Array ? values : Float64Array.from(values), own = series.engine;
+        if (series.edge) own.set({ upper: column, ...(stacked ? {} : { lower: null }) }), series.edge.setValues(column);
+        else own.setValues(column);
+        engine.invalidate(true);
+      }
+      /**
+       * A standard series' latest point, live: set in place where the library holds the live price's own copy of its values
+       * (see liveCopy: an area's band and edge one array), else its column set anew (the first tick, a bar added).
+       * @param {any} series @param {Float64Array} values @param {number} at @param {number} value
+       */
+      function liveColumn(series, values, at, value) {
+        const line = series.edge ?? series.engine;
+        if (line.values !== values) return void setColumn(series, values, false);
+        line.set(at, value);
+        if (series.edge) series.engine.set({});
+        engine.invalidate();
+      }
+      /**
+       * Candles' open, high, low and close as columns on the timeline (`at`: a stacked one's on those under it; none where
+       * its value isn't finite, or its low not over zero on a log scale).
+       * @param {any[]} ohlc @param {ArrayLike<number>} shown @param {boolean} log @param {(value: number, i: number) => number} at
+       */
+      function candleColumns(ohlc, shown, log, at) {
+        const n = ohlc.length, open = new Float64Array(n).fill(NaN), high = new Float64Array(n).fill(NaN), low = new Float64Array(n).fill(NaN), close = new Float64Array(n).fill(NaN);
+        for (let i = 0; i < n; i++) {
+          const bar = ohlc[i];
+          if (!bar || !Number.isFinite(shown[i]) || (log && !(at(bar[2], i) > 0))) continue;
+          (open[i] = at(bar[0], i)), (high[i] = at(bar[1], i)), (low[i] = at(bar[2], i)), (close[i] = at(bar[3], i));
+        }
+        return { open, high, low, close };
+      }
+      /**
+       * Each stacked area's or line's band, from its line down to the band under it in its stack (its group's next lower
+       * rank drawn as a band, its line as drawn: gaps where it has none); the stack's foot's down to the pane's floor.
+       * @param {Chart} doc @param {ReturnType<typeof stackOf>} stacked
+       */
+      function stackBands(doc, stacked) {
+        const bands = doc.layers.flatMap((layer) => ((stack, series) => (stack && series?.edge && (layer.type === "line" || (layer.type === "area" && layer.fill !== "above")) ? [{ stack, series }] : []))(stacked.get(layer.id), drawn.get(layer.id))).sort((a, b) => a.stack.rank - b.stack.rank);
+        bands.forEach(({ stack, series }, k) => {
+          const below = bands.slice(0, k).findLast((other) => other.stack.group === stack.group);
+          series.engine.set({ lower: below ? below.series.engine.upper : null, base: 0 });
+        });
+        if (bands.length) engine.invalidate(true);
       }
       /**
        * A standard layer's series styled as the library takes it: its line (a line's, dots', a trend's, a candle layer's
@@ -24543,7 +24596,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
               const at = (/** @type {[number, number]} */ point) => `${xText(point[0])} ${y(point[1])}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline && OUTLINED.has(layer.type) ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
-              // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band or line under it with
+              // (A stacked area's band, as the chart draws it (see stackBands): down to the nearest band or line under it with
               // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
               const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
               const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => (band?.type === "area" && band.fill !== "above") || band?.type === "line")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
@@ -39734,10 +39787,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [open, high, low, before] = bar.map(Number), from = opens ? before : open;
             const candle = opens ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
             ohlc[at] = candle;
-            for (const gap of added.slice(0, -1)) close?.candles.update({ time: gap });
-            close?.candles.update({ time, open: candle[0], high: candle[1], low: candle[2], close: value });
+            // (Its candle set in place on the library's columns (Studio's own, made at the build); a bar added, all again.)
+            const own = close?.candles.engine;
+            if (own && own.close.length > at) own.set(at, candle[0], candle[1], candle[2], value), engine.invalidate();
+            else if (own) own.setValues(candleColumns(ohlc, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
           }
-          for (const gap of added.slice(0, -1)) series?.update({ time: gap });
+          const custom = customKind(layer);
+          if (custom) for (const gap of added.slice(0, -1)) series?.update({ time: gap });
           // (Painted date by date: its point once every live value is in, from the colors as they are then; kept with the
           // others. Rows (a cloud's), the dates opened meanwhile empty.)
           const rows = paintedRows.get(layer.id);
@@ -39747,7 +39803,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
           if (rows?.paintWith) toPaint.push({ id: layer.id, series, rows, point: { time, value } });
-          else series?.update({ time, value });
+          else if (custom) series?.update({ time, value });
+          else if (series) liveColumn(series, values, at, value);
           if (paintedLayers.has(layer.id)) toPaint.push({ id: layer.id, series, rows: null, point: null });
           if (close) tintClose(layer.id);
           moved = true;

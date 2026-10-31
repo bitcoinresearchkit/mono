@@ -35,14 +35,6 @@ function merged(a, b) {
   return out;
 }
 
-/** Whether two arrays of times are the same, point for point. @param {Float64Array} a @param {Float64Array} b */
-function sameTimes(a, b) {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-}
-
 /** The index of `time` in rising `times`, or -1 (exact), or the nearest one each way (`mismatch`). @param {Float64Array | number[]} times @param {number} time @param {number} [mismatch] */
 function indexOf(times, time, mismatch = 0) {
   let lo = 0, hi = times.length;
@@ -174,7 +166,7 @@ class Chart {
     const times = this.engine.time.times, fresh = times !== this.times;
     this.times = times;
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
-    for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.stack(), pane.formats();
+    for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.formats();
     this.engine.invalidate(fresh);
   }
 }
@@ -299,21 +291,6 @@ class Pane {
       this.engine.setFormat(format?.formatter ?? compact, format?.tickmarksFormatter ?? null, side);
     }
   }
-
-  /**
-   * Its stacked areas' fills each down to the stacked line under it on its side (the library's patch 41's bands), from
-   * the stack's foot (Studio orders it last) up; the foot's an area to zero.
-   */
-  stack() {
-    /** @type {Record<string, Float64Array | undefined>} */
-    const under = {};
-    for (let k = this.list.length - 1; k >= 0; k--) {
-      const series = this.list[k], side = series.opts.bvBandFill;
-      if (!side || !(series.engine instanceof Band)) continue;
-      series.engine.set({ lower: under[side] ?? null, upper: series.columns, base: 0 });
-      under[side] = series.columns;
-    }
-  }
 }
 
 class PriceScale {
@@ -344,9 +321,8 @@ class Series {
     this.columns = new Float64Array(0);
     /** @type {any[] | null} */
     this.rows = null;
-    /** Whether its rows are its own copy, and its values (Studio's arrays, given to setData or bvSetColumns, never changed). */
+    /** Whether its rows are its own copy (Studio's arrays, given to setData, never changed). */
     this.ownRows = false;
-    this.ownValues = true;
     /** Its data or look changed since it was pushed. */
     this.dirty = true;
     /** @type {any[]} */
@@ -467,8 +443,7 @@ class Series {
     // (Pushed again only where its push reads what changed (its place in a stack): a look alone is set (Studio's
     // bubbles' sizes, as the view moves, a spotlight's fading); a pane's writers or stack set again; shown or hidden,
     // drawn whole.)
-    if (!this.painted && "bvBandFill" in options) this.dirty = true;
-    if ("priceFormat" in options || "bvBandFill" in options) this.pane.dirty = true;
+    if ("priceFormat" in options) this.pane.dirty = true;
     if ("visible" in options) this.chart.engine.invalidate(true);
     this.chart.changed();
   }
@@ -476,20 +451,10 @@ class Series {
   /** @param {any[]} rows */
   setData(rows) {
     this.rows = rows;
-    (this.ownRows = false), (this.ownValues = true);
+    this.ownRows = false;
     // (In a loop: without a JIT, from() with a mapping costs several times as much.)
     (this.times = new Float64Array(rows.length)), (this.values = new Float64Array(rows.length));
     for (let i = 0; i < rows.length; i++) (this.times[i] = Number(rows[i].time)), (this.values[i] = rows[i].value ?? rows[i].close ?? NaN);
-    this.dirty = true;
-    this.chart.changed();
-  }
-
-  /** The patches' columns: times (the page's timeline, or none) and values. @param {Float64Array} times @param {Float64Array | number[]} values */
-  bvSetColumns(times, values) {
-    this.rows = null;
-    this.ownValues = false;
-    this.times = times;
-    this.values = values instanceof Float64Array ? values : new Float64Array(values);
     this.dirty = true;
     this.chart.changed();
   }
@@ -501,7 +466,6 @@ class Series {
 
   /** The last row set, or one added past it. @param {any} row */
   update(row) {
-    if (this.#updateLast(row)) return;
     // (A copy: Studio's own array, given to setData, stays as it gave it.)
     const rows = this.rows ? this.rows.slice() : Array.from(this.times, (time, i) => ({ time, value: this.values[i] }));
     if (rows.length && Number(rows[rows.length - 1].time) === Number(row.time)) rows[rows.length - 1] = row;
@@ -510,56 +474,11 @@ class Series {
     this.ownRows = true;
   }
 
-  /**
-   * Its last row, at the same time, set in place (a live price within its interval, each second): a line's, bars', an
-   * area's (its edge's: their values one array; not a stacked one's, the band over it on it too) or candles' point, its
-   * rows and values its own copies (made once: Studio's arrays never written), nothing made again but that point; its
-   * pane alone drawn anew. Whether it was.
-   * @param {any} row
-   */
-  #updateLast(row) {
-    const n = this.times.length, engine = this.engine, last = n - 1;
-    if (!n || this.dirty || Number(row.time) !== this.times[last] || this.painted || this.opts.bvBandFill) return false;
-    const i = indexOf(this.chart.times, this.times[last]);
-    if (i < 0) return false;
-    if (this.rows) {
-      if (!this.ownRows) (this.rows = this.rows.slice()), (this.ownRows = true);
-      this.rows[last] = row;
-    } else if (!this.ownValues) (this.values = this.values.slice()), (this.ownValues = true), this.push(this.chart.times);
-    const value = row.value ?? row.close ?? NaN;
-    (this.values[last] = value), (this.columns[i] = value);
-    if (engine instanceof Candles) engine.set(i, row.open ?? NaN, row.high ?? NaN, row.low ?? NaN, row.close ?? NaN);
-    else if (engine instanceof Band) /** @type {Line} */ (this.edge).set(i, value), engine.set({});
-    else engine.set(i, value);
-    this.chart.engine.invalidate();
-    return true;
+  /** A custom series' rows onto the timeline (its bars; its closes its values: see Painted); a standard one's data is the page's, set on the library. @param {Float64Array} times */
+  push(times) {
+    if (this.painted) this.columns = this.painted.push(times);
   }
 
-  /** Its values on the chart's timeline (its colors and breaks the page's: set on its library series). @param {Float64Array} times */
-  push(times) {
-    // (A custom series' rows its bars; its "closes" its values, its rows read by them.)
-    if (this.painted) return void (this.columns = this.painted.push(times));
-    const own = this.times, rows = this.rows, engine = this.engine;
-    const same = sameTimes(own, times);
-    const on = (/** @type {Float64Array} */ column) => (same ? column : ((out) => (own.forEach((t, k) => ((i) => i >= 0 && (out[i] = column[k]))(indexOf(times, t))), out))(new Float64Array(times.length).fill(NaN)));
-    this.columns = on(this.values);
-    if (engine instanceof Candles && rows) {
-      const column = (/** @type {string} */ key) => {
-        const out = new Float64Array(rows.length);
-        for (let i = 0; i < rows.length; i++) out[i] = rows[i][key] ?? NaN;
-        return on(out);
-      };
-      engine.setValues({ open: column("open"), high: column("high"), low: column("low"), close: column("close") });
-      return;
-    }
-    if (engine instanceof Band) {
-      // (Stacked: its lower edge its stack's (see Pane.stack); else an area, to its base.)
-      engine.set({ upper: this.columns, ...(this.opts.bvBandFill ? {} : { lower: null }) });
-      /** @type {Line} */ (this.edge).setValues(this.columns);
-      return;
-    }
-    if (engine instanceof Line) engine.setValues(this.columns);
-  }
 
   /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */
   dataByIndex(index, mismatch = 0) {
