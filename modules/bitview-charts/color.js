@@ -24,7 +24,8 @@ export function solid(color) {
   pen.fillStyle = color;
   // (None at all (transparent): as it is, nothing to show.)
   const read = String(pen.fillStyle), m = /^rgba\((\d+), (\d+), (\d+), ([^)]+)\)$/.exec(read);
-  full = m ? (Number(m[4]) > 0 ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : color) : read.replace(/\s*\/\s*[^)/]+\)$/, ")");
+  const slash = m ? null : /\s*\/\s*([^)/]+)\)$/.exec(read), alpha = m ? Number(m[4]) : slash ? parseFloat(slash[1]) / (slash[1].trim().endsWith("%") ? 100 : 1) : 1;
+  full = !(alpha > 0) ? color : m ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : slash ? read.slice(0, slash.index) + ")" : read;
   if (solids.size > 512) solids.clear();
   solids.set(color, full);
   return full;
