@@ -105,26 +105,6 @@ class Chart {
       const param = { ...this.#param(index, pane, x, y, true), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.clickListeners) listener(param);
     });
-    // (Its DOM as the chart library's was, where Studio looks for it: a table of rows, each pane's (see Pane) and, last,
-    // the time axis' (its right corner's cell Studio's Full screen button's, the one cell taking the pointer), kept on
-    // them as it's laid out; the library's canvases in their cells (Studio stretches the plots' and the time axis' as
-    // its panel slides), none taking the pointer (the chart's element takes it).)
-    this.table = document.createElement("table");
-    this.table.style.cssText = "position: absolute; inset: 0; display: block; pointer-events: none";
-    this.timeRow = row();
-    /** @type {HTMLElement} */ (this.timeRow.children[2]).style.pointerEvents = "auto";
-    this.timeFrame = frame();
-    this.timeRow.children[1].append(this.timeFrame);
-    this.table.append(this.timeRow);
-    // (The crosshair's canvas after the table: Studio's magnifier draws the chart's canvases in their order, the
-    // crosshair's last.)
-    this.element.append(this.table, this.engine.crosshair.canvas);
-    this.engine.onLayout(() => {
-      const engine = this.engine;
-      for (const pane of this.panesList) pane.place();
-      placeRow(this.timeRow, engine.height - engine.timeHeight, engine.timeHeight, engine.left, engine.time.width, engine.axisShown);
-      mount(engine.timeAxis.canvas, this.timeFrame);
-    });
   }
 
   /** The library's theme from LWC's options: its colors, its font, its crosshair's and separators'. @param {any} options */
@@ -319,7 +299,6 @@ class Chart {
       const pane = new Pane(this, this.engine.addPane({ scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } }));
       this.#percents(pane);
       this.panesList.push(pane);
-      pane.place();
       this.axes();
     }
     return this.panesList[index];
@@ -336,7 +315,6 @@ class Chart {
     while (this.panesList.length > 1 && !this.panesList.at(-1)?.list.length) {
       const pane = /** @type {Pane} */ (this.panesList.pop());
       this.engine.removePane(pane.engine);
-      pane.row.remove();
     }
     this.axes();
   }
@@ -390,14 +368,6 @@ class Pane {
     this.updated = false;
     /** Its series' markers. @type {Marks[]} */
     this.marks = [];
-    // (Its row in the chart's table (its box: getHTMLElement), over it: its plot's cell a frame over the plot, first in
-    // it (its canvases in it, its legend put in there after them), its axes' cells theirs.)
-    this.row = row();
-    this.frame = frame();
-    this.leftFrame = frame();
-    this.row.children[0].append(this.leftFrame);
-    this.row.children[1].append(this.frame);
-    chart.table.insertBefore(this.row, chart.timeRow);
     this.target = new Target();
   }
 
@@ -486,21 +456,6 @@ class Pane {
 
   paneIndex() {
     return this.chart.panesList.indexOf(this);
-  }
-
-  getHTMLElement() {
-    return this.row;
-  }
-
-  /** Its row over its pane, the library's canvases of it in its cells (its plot's first in its frame, its layer over it next). */
-  place() {
-    const engine = this.engine;
-    // (Where it shows: a separator's drag stretches it, its legend kept on it.)
-    placeRow(this.row, engine.shownTop, engine.shownHeight, this.chart.engine.left, engine.plot, this.chart.engine.axisShown);
-    mount(engine.canvas, this.frame, true);
-    if (engine.overCanvas) mount(engine.overCanvas, this.frame, true), engine.canvas.after(engine.overCanvas);
-    mount(engine.axisCanvas, /** @type {HTMLElement} */ (this.row.children[2]));
-    if (engine.leftCanvas) mount(engine.leftCanvas, this.leftFrame);
   }
 
   getHeight() {
@@ -1176,40 +1131,6 @@ class Marks {
       pill(g, mark.text, theme.background, color, time.x(at[k]), this.said[s * 2 + 1], "center", tall, color);
     }
   }
-}
-
-/** A row of the chart's table (a pane's, the time axis'): its left axis', plot's and right axis' cells. */
-function row() {
-  const tr = document.createElement("tr");
-  tr.style.cssText = "position: absolute; left: 0; right: 0; display: block";
-  for (let k = 0; k < 3; k++) {
-    const td = document.createElement("td");
-    td.style.cssText = "position: absolute; top: 0; bottom: 0; display: block; padding: 0";
-    tr.append(td);
-  }
-  return tr;
-}
-
-/** A cell's frame (the chart library's: the canvases and what Studio puts over them, in it). */
-function frame() {
-  const div = document.createElement("div");
-  div.style.cssText = "position: relative; width: 100%; height: 100%";
-  return div;
-}
-
-/** One of the library's canvases in a cell of the table (`first`: before what's there), at its corner. @param {HTMLCanvasElement} canvas @param {HTMLElement} into @param {boolean} [first] */
-function mount(canvas, into, first = false) {
-  if (canvas.parentElement !== into) first ? into.prepend(canvas) : into.append(canvas);
-  Object.assign(canvas.style, { left: "0px", top: "0px" });
-}
-
-/** A row laid over the chart from `top`, `height` tall: its cells the left axis' `left`, the plot's `plot`, the right axis' `axis` wide. @param {HTMLElement} tr @param {number} top @param {number} height @param {number} left @param {number} plot @param {number} axis */
-function placeRow(tr, top, height, left, plot, axis) {
-  Object.assign(tr.style, { top: `${top}px`, height: `${height}px` });
-  const [a, b, c] = /** @type {HTMLElement[]} */ ([...tr.children]);
-  Object.assign(a.style, { left: "0px", width: `${left}px` });
-  Object.assign(b.style, { left: `${left}px`, width: `${plot}px` });
-  Object.assign(c.style, { left: `${left + plot}px`, width: `${axis}px` });
 }
 
 /** No views. */

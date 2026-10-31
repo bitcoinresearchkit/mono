@@ -16595,8 +16595,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         laidOut.observe(/** @type {HTMLElement} */ (document.querySelector(".app")), { attributes: true, attributeFilter: ["data-full"] });
       }
       addEventListener("resize", releaseSize);
-      // (Its layout table is no table to read: the chart's said by its plot's keys, see placePlotKeys.)
-      view.chartElement().querySelector("table")?.setAttribute("role", "presentation");
       // Its figures in Inter, as every figure here (tabular, by the face's own setting: see chartFont), set again once the
       // font has loaded: a canvas doesn't wait for it.
       chartFont.then((loaded) => {

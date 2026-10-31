@@ -187,8 +187,10 @@ export class Chart {
   addPane(options) {
     const pane = new Pane(options);
     this.panes.push(pane);
-    // (Under the crosshair however they're put in: see its z-index. Its frame over its plot.)
-    this.element.append(pane.canvas, pane.axisCanvas, pane.frame);
+    // (Its canvases before the time axis' and the crosshair's: the element's canvases in the order they're painted (a
+    // page drawing them in turn, a magnifier, shows them as they are). Its frame over its plot.)
+    this.timeAxis.canvas.before(pane.canvas, pane.axisCanvas);
+    this.element.append(pane.frame);
     // (Its left scale come or gone, its layer over it come: laid out again.)
     pane.onLayout = () => this.layout();
     this.layout();
@@ -327,7 +329,7 @@ export class Chart {
       pane.axisCanvas.style.left = `${left + pane.plot}px`;
       const had = pane.leftCanvas;
       pane.placeLeft(top, left, this.dpr);
-      if (pane.leftCanvas && !had) this.element.append(pane.leftCanvas);
+      if (pane.leftCanvas && !had) this.timeAxis.canvas.before(pane.leftCanvas);
       if (pane.leftCanvas) pane.leftCanvas.style.display = left ? "block" : "none";
       // (Its layer over everything: over the crosshair (see their z-index).)
       if (pane.overCanvas) {
