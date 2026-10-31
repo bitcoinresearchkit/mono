@@ -2,7 +2,7 @@ use bitview_primitives::TxVersion;
 use brk_error::{Error, Result};
 use brk_store::Store;
 use brk_types::{Height, TxIndex, Txid, TxidPrefix};
-use rayon::{join, prelude::*};
+use rayon::join;
 use tracing::error;
 use vecdb::{WritableVec, likely};
 
@@ -26,10 +26,11 @@ impl<'a> BlockProcessor<'a> {
     pub fn compute_txids(&self) -> Result<Vec<ComputedTx<'a>>> {
         let base_tx_index = self.lengths.tx_index;
 
+        // The reader hashed the txids: a plain pass, no parallel region on the indexing path.
         let mut txs = self
             .block
             .txdata
-            .par_iter()
+            .iter()
             .enumerate()
             .map(|(index, tx)| {
                 let (btc_txid, base_size, total_size) = self.block.compute_txid_and_sizes(index);

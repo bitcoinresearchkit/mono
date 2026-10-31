@@ -17,6 +17,9 @@ pub struct ReadBlock {
     bytes: Vec<u8>,
     /// Each transaction's byte offset within `bytes`.
     tx_offsets: Vec<u32>,
+    /// Each transaction's txid, base size and total size, hashed where the block is parsed (the
+    /// reader's threads), off its consumer's path.
+    txids: Vec<(Txid, u32, u32)>,
 }
 
 impl ReadBlock {
@@ -29,14 +32,19 @@ impl ReadBlock {
         tx_offsets: Vec<u32>,
     ) -> Self {
         debug_assert_eq!(block.txdata.len(), tx_offsets.len());
-        Self {
+        let mut read = Self {
             height,
             hash,
             block,
             position,
             bytes,
             tx_offsets,
-        }
+            txids: Vec::new(),
+        };
+        read.txids = (0..read.txdata.len())
+            .map(|index| read.hash_txid_and_sizes(index))
+            .collect();
+        read
     }
 
     pub fn height(&self) -> Height {
@@ -55,8 +63,13 @@ impl ReadBlock {
         self.tx_offsets.iter().map(|&offset| self.position + offset)
     }
 
-    /// Compute txid, base_size, and total_size for the transaction at `index` from its raw bytes.
+    /// The txid, base_size and total_size of the transaction at `index`.
     pub fn compute_txid_and_sizes(&self, index: usize) -> (Txid, u32, u32) {
+        self.txids[index]
+    }
+
+    /// Compute txid, base_size, and total_size for the transaction at `index` from its raw bytes.
+    fn hash_txid_and_sizes(&self, index: usize) -> (Txid, u32, u32) {
         let tx = &self.txdata[index];
         let raw = self.tx_bytes(index);
         let total_size = raw.len() as u32;
