@@ -28,7 +28,8 @@ chart.show(365);                                 // the last 365 points in view
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
   point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
-  `invalidate(whole)` (after changing a series: `invalidate(true)`), `destroy()`.
+  `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
+  draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`.
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
   point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels. Separators between
@@ -62,7 +63,7 @@ chart.show(365);                                 // the last 365 points in view
   one by its points' spacing).
 - `stack(members, { percent })`: a stack's edges from its members' columns.
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
-  color, below })`; then `chart.invalidate(true)`.
+  color, below })`; then `chart.invalidate()`.
 - `Custom({ draw, extent, first, distance, axisTags, timeTags }, { fixed, over })`: a page's own (bubbles, a heatmap,
   drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags on a price axis or
   the time axis (a drawing's value, its date); `fixed`, held in place as the view moves (its pane drawn whole each

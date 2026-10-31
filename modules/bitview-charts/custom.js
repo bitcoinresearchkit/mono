@@ -12,7 +12,7 @@
 // frame). Its options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
 // edge: its pane drawn whole each frame) or `over` (drawn over everything, the crosshair too, on its pane's layer over
 // it, whole each frame: labels and handles placed in the plot, its pane's picture moved without them). After a change
-// of what it draws, `changed()`, then the chart's invalidate(true).
+// of what it draws, `changed()`, then the chart's invalidate().
 
 /**
  * @typedef {{ time: import("./timeline.js").Timeline, scale: import("./scale.js").Scale, x0: number, x1: number, dpr: number }} View
