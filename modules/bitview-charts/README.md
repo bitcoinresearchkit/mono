@@ -86,6 +86,10 @@ chart.show(365);                                 // the last 365 points in view
   `invalidate()`), its bins' bounds `edges`; a cell's color its `place(value)` along `gradient` (stops blended in OKLab,
   `gradientTable` in color.js). Each column a strip made once and stretched into place; kept while the scale's
   resolution stays within a power of two. Never fitted or hit.
+- `Profile({ edges, groups, at, width, bin })`: groups' amounts by value bins (each `{ rows, values, color, dim }`) as
+  bars from the plot's right edge, stacked, as long as a bin's total against the largest in view (`width` of the plot at
+  most), bins of rows gathered by powers of two `bin` pixels tall at least; under `at` in each group's color, over it
+  dim. On its pane's own layer over everything, drawn whole each frame. Never fitted or hit.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
