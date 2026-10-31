@@ -17156,7 +17156,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
               : { type: /** @type {const} */ ("custom"), formatter: (value) => precise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
           };
-          const lineWidth = /** @type {any} */ (layer.width);
+          const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
@@ -23427,8 +23427,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Layers ────────────────────────────────────────────────────────────────
 
-      /** A stacked area's band, its tint: even, from its line to the one under it (a cloud's bands alike, each its own). */
-      const STACK_FILL = 0.2;
+      /** A stacked area's band, its tint: even, from its line to the one under it (a cloud's bands alike, each its own):
+       * the band read as an area, its edges a fine line (STACK_WIDTH). */
+      const STACK_FILL = 0.35, STACK_WIDTH = 1;
       /**
        * An area's fill, its top's opacity and its foot's (before its own opacity): its own (`fillOpacity`, `solid`), else its
        * kind's. Stacked or filled above, even (a band fading by price would read lighter the lower it sits; above a line
