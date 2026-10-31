@@ -16,13 +16,19 @@ const OWN = new Float64Array(2);
 export class Bars extends Line {
   /**
    * `radius`, its corners' at their value's end (a number, or one by the spacing of its points).
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number) }} [options]
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number), outline?: string | null }} [options]
    */
-  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2 } = {}) {
+  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2, outline = null } = {}) {
     // (No crosshair dot on bars.)
-    super({ values, color, colors, palette, marker: 0 });
+    super({ values, color, colors, palette, marker: 0, outline });
     this.base = base;
     this.radius = radius;
+  }
+
+  /** Its look; its corners (`radius`) and base too. @param {Parameters<Line["setStyle"]>[0] & { radius?: number | ((spacing: number) => number), base?: number }} look */
+  setStyle({ radius = this.radius, base = this.base, ...look }) {
+    super.setStyle(look);
+    (this.radius = radius), (this.base = base);
   }
 
   /**

@@ -15,16 +15,16 @@ export class Candles {
   /**
    * `up` and `down`, the bodies' colors of those that rose and fell; their wicks' and borders' (`upWick`, `downWick`,
    * `upBorder`, `downBorder`), the same unless given (a hollow candle: its body the ground's, its border and wick its).
-   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null }} options
+   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number) }} options
    */
-  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null }) {
+  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null, outline = null, radius = 0 }) {
     this.up = up;
     this.down = down;
     (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder);
     /** A color it's edged in: each candle's body and wick a pixel and a half wider all round, under them. @type {string | null} */
-    this.outline = null;
+    this.outline = outline;
     /** Its bodies' corners' radius (a number, or one by the spacing of its points). @type {number | ((spacing: number) => number)} */
-    this.radius = 0;
+    this.radius = radius;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its lows' and highs' extremes kept as a line's are: a view's read block by block.)

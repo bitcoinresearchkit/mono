@@ -48,7 +48,7 @@ const SLOWING = 0.998;
 
 /**
  * @param {HTMLElement} element
- * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
+ * @param {ConstructorParameters<typeof Chart>[1]} [options]
  */
 export function createChart(element, options) {
   return new Chart(element, options);

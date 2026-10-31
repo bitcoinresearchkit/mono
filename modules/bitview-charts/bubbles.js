@@ -42,6 +42,7 @@ export class Bubbles {
     this.setValues({ values, sizes });
   }
 
+  /** Its positions where a bubble's drawn. */
   get values() {
     return this.positions.values;
   }
@@ -50,8 +51,10 @@ export class Bubbles {
   setValues({ values, sizes }) {
     this.version++;
     this.sizes = sizes;
-    this.positions.setValues(values);
-    this.magnitudes.setValues(Float64Array.from(sizes, (v) => (Math.abs(v) < Infinity ? Math.abs(v) : NaN)));
+    // (Its positions and sizes where a bubble's drawn alone: a position with a size (none of 0), a size with a position.)
+    const drawn = (/** @type {number} */ i) => values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity;
+    this.positions.setValues(Float64Array.from(values, (v, i) => (drawn(i) ? v : NaN)));
+    this.magnitudes.setValues(Float64Array.from(sizes, (v, i) => (drawn(i) ? Math.abs(v) : NaN)));
     if (this.scaleTo === "all") this.most = this.#largest(0, sizes.length - 1);
   }
 

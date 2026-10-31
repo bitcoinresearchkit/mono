@@ -6,8 +6,9 @@
 
 import { NOISE } from "./timeline.js";
 
-/** A slot's edges, shared by two neighbors and on device pixels (no seam between two colors' fills): grown, never made again. */
-let edges = new Float64Array(64);
+/** A slot's edges, shared by two neighbors and on device pixels (no seam between two colors' fills); zoomed out, each
+ * column's last shaded point (-1: none): grown, never made again. */
+let edges = new Float64Array(64), lasts = new Int32Array(64);
 
 export class Shade {
   /** @param {{ values: Float64Array, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[] }} options */
@@ -71,14 +72,21 @@ export class Shade {
       }
       return;
     }
+    // (Each column's last shaded point found once, then its columns filled a color at a time.)
+    const from = Math.floor(x0) - 1, columns = Math.ceil(x1) + 1 - from + 1;
+    if (lasts.length < columns) lasts = new Int32Array(columns * 2);
+    for (let c = 0; c < columns; c++) {
+      const x = from + c;
+      let last = -1;
+      for (let i = Math.max(0, Math.ceil(time.index(x) - NOISE)), end = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1); i <= end; i++) if (values[i] === values[i]) last = i;
+      lasts[c] = last;
+    }
     for (let pass = 0; pass < passes; pass++) {
       g.fillStyle = colors ? this.palette[pass] : this.color;
       g.beginPath();
-      for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
-        let last = -1;
-        for (let i = Math.max(0, Math.ceil(time.index(x) - NOISE)), end = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1); i <= end; i++) if (values[i] === values[i]) last = i;
-        const left = time.snap(x, dpr);
-        if (last >= 0 && (!colors || colors[last] === pass)) g.rect(left, 0, time.snap(x + 1, dpr) - left, scale.height);
+      for (let c = 0; c < columns; c++) {
+        const last = lasts[c], left = time.snap(from + c, dpr);
+        if (last >= 0 && (!colors || colors[last] === pass)) g.rect(left, 0, time.snap(from + c + 1, dpr) - left, scale.height);
       }
       g.fill();
     }

@@ -2,6 +2,7 @@
 import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
 import { measure } from "./recorder.js";
+import { Line } from "./line.js";
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
 // the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
 // stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
@@ -97,6 +98,10 @@ export class Band {
     /** @type {Int32Array | null} */
     this.logGaps = null;
     this.gapsVersion = -1;
+    // (Its edges' lines for fitting (see #fitted), any scale's and a log one's, and the version they're of.)
+    /** @type {[[Line, Line] | null, [Line, Line] | null]} */
+    this.fits = [null, null];
+    this.fitVersion = -1;
   }
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
@@ -191,16 +196,29 @@ export class Band {
    * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
    */
   extent(a, b, positive, out) {
-    a = Math.max(0, a);
-    b = Math.min(this.lower.length - 1, this.upper.length - 1, b);
-    // (Only where it's drawn: both edges there, above zero on a log scale; either edge the lower (a band crossing).)
-    for (let i = a; i <= b; i++) {
-      const l = this.area ? this.upper[i] : this.lower[i], u = this.upper[i];
-      if (!(positive ? l > 0 && u > 0 : l === l && u === u)) continue;
-      const lo = l < u ? l : u, hi = l < u ? u : l;
-      if (lo < out[0]) out[0] = lo;
-      if (hi > out[1]) out[1] = hi;
+    const [lows, highs] = this.#fitted(positive);
+    lows.extent(a, b, false, out);
+    highs.extent(a, b, false, out);
+  }
+
+  /**
+   * Its low and high edges where it's drawn (both edges there, above zero on a log scale (`positive`); either edge the
+   * lower: a band crossing), as lines: their extents read block by block (a stationary frame's fit no scan of every
+   * point). Made at the first fit of a version, each kind.
+   * @param {boolean} positive
+   */
+  #fitted(positive) {
+    if (this.fitVersion !== this.version) (this.fitVersion = this.version), (this.fits = [null, null]);
+    const k = positive ? 1 : 0, had = this.fits[k];
+    if (had) return had;
+    const n = Math.min(this.lower.length, this.upper.length), lows = new Float64Array(n), highs = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const l = this.area ? this.upper[i] : this.lower[i], u = this.upper[i], drawn = positive ? l > 0 && u > 0 : l === l && u === u;
+      (lows[i] = drawn ? (l < u ? l : u) : NaN), (highs[i] = drawn ? (l < u ? u : l) : NaN);
     }
+    const made = /** @type {[Line, Line]} */ ([new Line({ values: lows }), new Line({ values: highs })]);
+    this.fits[k] = made;
+    return made;
   }
 
   /**

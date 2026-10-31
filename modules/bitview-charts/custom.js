@@ -78,9 +78,9 @@ export class Custom {
     this.hooks.timeTags?.(add);
   }
 
-  /** @param {number} i */
+  /** Its first value at or after `i` (a relative scale's base), its hook's; none, any (its drawing reads no values against one). @param {number} i */
   first(i) {
-    return this.hooks.first ? this.hooks.first(i) : NaN;
+    return this.hooks.first ? this.hooks.first(i) : 1;
   }
 
   /**

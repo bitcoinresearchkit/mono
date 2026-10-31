@@ -34,6 +34,8 @@ export class Grid {
     this.strips = new Map();
     /** Strips kept at most, as its last draw needed. */
     this.kept = KEPT;
+    /** Not read on its side's scale: its pane's other series say where it is. */
+    this.scaled = false;
     this.hidden = false;
     this.version = 0;
   }
