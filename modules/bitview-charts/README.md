@@ -75,6 +75,12 @@ chart.show(365);                                 // the last 365 points in view
   downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
   number or one by its points' spacing).
+- `Bubbles({ values, sizes, up, upEdge, down, downEdge, size, hide, scaleTo, halo })`: a dot a point where `values`
+  put it, its area its size's share of the largest (of those in view, kept up as the view moves, or `scaleTo: "all"`),
+  `size` pixels across at the largest, those under `hide` of it left out; above zero in `up`, below in `down`, each
+  edged; the largest drawn first; `halo`, ringed in it first.
+- A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
+  the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
   from point `a` to `b` widening `out`'s low and high), its own `extent` there to call (a range from zero, a fixed one).
 - `stack(members, { percent })`: a stack's edges from its members' columns.

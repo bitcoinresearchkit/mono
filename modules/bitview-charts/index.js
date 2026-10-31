@@ -23,6 +23,7 @@ export { Line } from "./line.js";
 export { Band } from "./band.js";
 export { Bars } from "./bars.js";
 export { Candles } from "./candles.js";
+export { Bubbles } from "./bubbles.js";
 export { stack } from "./stack.js";
 export { Custom } from "./custom.js";
 export { picture } from "./picture.js";

@@ -39,8 +39,9 @@ const TAG = PILL + 2;
  * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
  * (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading: none of it, a
  * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
- * over and under the range, by the points' spacing: its marks over bars). How far a point is from it: at index `i` (and
- * `x` CSS pixels into the plot), `y` from the pane's top.
+ * over and under the range, by the points' spacing: its marks over bars); `viewed`, brought up to the view before each
+ * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
+ * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -56,6 +57,7 @@ const TAG = PILL + 2;
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale, x: number, time: import("./timeline.js").Timeline): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
+ *   viewed?(time: import("./timeline.js").Timeline): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number): void,
  * }} Series
  */
@@ -516,6 +518,8 @@ export class Pane {
     let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
+      // (Brought up to the view first: what it draws may hang on it (bubbles sized to the largest in view).)
+      if (!series.hidden) series.viewed?.(time);
       if (series.over) overs += series.version;
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
     }
