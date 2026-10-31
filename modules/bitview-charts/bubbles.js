@@ -7,7 +7,7 @@
 // ground's color: overlapping bubbles stand apart).
 
 import { Line } from "./line.js";
-import { measure, measuring } from "./recorder.js";
+import { measure, measuring, painted } from "./recorder.js";
 
 /** The bubbles a draw puts down: their x, y, radius (CSS pixels), whether above zero, and their order (made once, grown). */
 let xs = new Float64Array(64), ys = new Float64Array(64), radii = new Float64Array(64), ups = new Uint8Array(64), order = new Int32Array(64);
@@ -117,11 +117,13 @@ export class Bubbles {
       const j = sorted[k], up = ups[j] === 1;
       // (Its halo the ground's: not what's hit.)
       if (this.halo && !measuring) (g.fillStyle = this.halo), g.beginPath(), g.arc(xs[j], ys[j], radii[j] + ring, 0, Math.PI * 2), g.fill();
-      g.fillStyle = up ? this.up : this.down;
+      // (Measured, a see-through bubble with an edge that shows hit by its circle all the same.)
+      const fill = up ? this.up : this.down, edge = up ? this.upEdge : this.downEdge;
+      g.fillStyle = measuring && !painted(fill) ? edge : fill;
       g.beginPath();
       g.arc(xs[j], ys[j], radii[j], 0, Math.PI * 2);
       g.fill();
-      g.strokeStyle = up ? this.upEdge : this.downEdge;
+      g.strokeStyle = edge;
       g.stroke();
     }
   }

@@ -6,7 +6,7 @@
 
 import { NOISE } from "./timeline.js";
 
-/** A slot's edges, shared by two neighbors (no seam between them): grown, never made again. */
+/** A slot's edges, shared by two neighbors and on device pixels (no seam between two colors' fills): grown, never made again. */
 let edges = new Float64Array(64);
 
 export class Shade {
@@ -41,9 +41,9 @@ export class Shade {
   /** Nothing to fit. */
   extent() {}
 
-  /** @param {number} i */
-  first(i) {
-    return NaN;
+  /** Any base: it has no values to read against one (a relative scale draws it all the same). */
+  first() {
+    return 1;
   }
 
   /** Never hit: a backdrop. */
@@ -62,7 +62,7 @@ export class Shade {
     if (time.spacing >= 1) {
       const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
       if (edges.length < b - a + 2) edges = new Float64Array((b - a + 2) * 2);
-      for (let i = a; i <= b + 1; i++) edges[i - a] = time.x(i - 0.5);
+      for (let i = a; i <= b + 1; i++) edges[i - a] = time.snap(time.x(i - 0.5), dpr);
       for (let pass = 0; pass < passes; pass++) {
         g.fillStyle = colors ? this.palette[pass] : this.color;
         g.beginPath();
@@ -77,7 +77,8 @@ export class Shade {
       for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
         let last = -1;
         for (let i = Math.max(0, Math.ceil(time.index(x) - NOISE)), end = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1); i <= end; i++) if (values[i] === values[i]) last = i;
-        if (last >= 0 && (!colors || colors[last] === pass)) g.rect(x, 0, 1, scale.height);
+        const left = time.snap(x, dpr);
+        if (last >= 0 && (!colors || colors[last] === pass)) g.rect(left, 0, time.snap(x + 1, dpr) - left, scale.height);
       }
       g.fill();
     }
