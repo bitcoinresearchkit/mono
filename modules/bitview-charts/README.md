@@ -125,11 +125,12 @@ chart.show(365);                                 // the last 365 points in view
 - `stack(members, { percent })`: a stack's edges from its members' columns.
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate()`.
-- `Custom({ draw, extent, first, distance, axisTags, timeTags }, { fixed, over })`: a page's own (bubbles, a heatmap,
-  drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags on a price axis or
-  the time axis (a drawing's value, its date); `fixed`, held in place as the view moves (its pane drawn whole each
+- `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own
+  (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags
+  on a price axis or the time axis (a drawing's value, its date); `viewed`, told before each draw of its pane (what it
+  draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole each
   frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
-  placed in the plot); `changed()` after a change.
+  placed in the plot); `behind`, behind every series; `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 - Hits (`Pane.hit`, the crosshair's and clicks' series) are measured against each series' own drawing near the pointer
   (recorder.js: a canvas stand-in keeping its strokes, fills and dots), so they match the picture at any zoom.

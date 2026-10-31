@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Marks, Levels, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { Marks, Levels, Custom, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -17316,24 +17316,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const { levels, pane } of levelsBefore.values()) pane.remove(levels);
         engine.invalidate(true);
         markSignals(doc, data, drawn, old);
-        for (const series of old) heatSeries.delete(series), view.removeSeries(series);
+        for (const series of old) heatSeries.delete(series), dropOwnLayers(series), view.removeSeries(series);
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
+        // (Each new series' sketch: its drawings, halving marks, a trend's ends.)
+        for (const [id, series] of drawn) if (!sketches.has(series)) sketches.set(series, new Sketch(id, series));
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
         // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first:
-        // as a series is added, or the order's another (a layer moved, a pane reversed).
+        // as a series is added, or the order's another (a layer moved, a pane reversed). Each series' edge and its own
+        // layers just over it (see ownLayer): those behind every series under them all, those over everything over them,
+        // each in the same order.
         const order = JSON.stringify([doc.layers.map((layer) => [layer.id, layer.pane]), doc.panes.map((pane) => Boolean(pane.reverse))]);
         if (added || order !== drawnOrder) {
-          const next = new Map();
+          /** @type {Map<number, { under: any[], series: any[], over: any[] }>} */
+          const lists = new Map();
           const reversed = new Set(doc.panes.filter((pane) => pane.reverse).map((pane) => pane.id));
           for (const layer of [...[...doc.layers].reverse().filter((item) => !reversed.has(item.pane)), ...doc.layers.filter((item) => reversed.has(item.pane))]) {
-            const pane = paneIndex.get(layer.pane) ?? 0;
+            const pane = paneIndex.get(layer.pane) ?? 0, list = lists.get(pane) ?? lists.set(pane, { under: [], series: [], over: [] }).get(pane);
             for (const series of [drawn.get(layer.id), closes.get(layer.id)?.series]) {
-              if (!series) continue;
-              const k = next.get(pane) ?? 0;
-              series.setSeriesOrder(k);
-              next.set(pane, k + 1);
+              if (!series || !list) continue;
+              list.series.push(series.engine);
+              if (series.edge) list.series.push(series.edge);
+              for (const custom of ownLayers.get(series) ?? []) (custom.behind ? list.under : custom.over ? list.over : list.series).push(custom);
             }
           }
+          for (const [pane, { under, series, over }] of lists) engine.panes[pane]?.order([...under, ...series, ...over]);
         }
         drawnOrder = order;
         const panes = engine.panes;
@@ -20629,19 +20635,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A tick on a color, in contrast, as a background image. */
       const tickOn = (/** @type {string} */ color) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='${encodeURIComponent(contrastOn(color))}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
-      /** A label on an axis, in a drawing's color as drawn (see colorOfDrawing: not toned again). @param {number} coordinate @param {string} text @param {string} color */
-      function axisTag(coordinate, text, color) {
-        const back = color, fore = textOn(oklchOf(color));
-        return { coordinate: () => coordinate, text: () => text, textColor: () => fore, backColor: () => back, visible: () => Number.isFinite(coordinate) };
+      /** A label on an axis, at `at` along it, in a drawing's color as drawn (see colorOfDrawing: not toned again). @param {number} at @param {string} text @param {string} color */
+      function axisTag(at, text, color) {
+        return { at, text, color, ink: textOn(oklchOf(color)) };
       }
+      /** @typedef {{ at: number, text: string, color: string, ink: string }} AxisTag */
 
-      const NONE = /** @type {any[]} */ ([]);
+      const NONE = /** @type {AxisTag[]} */ ([]);
       /** A layer whose series covers what's behind it: a cloud, an area, a baseline's fill, bars, candles. @param {Layer} layer */
       const fills = (layer) => layer.type === "cloud" || ["area", "baseline", "histogram", "candles"].includes(layer.type);
       /**
        * Each pane's halving marks' hosts (its frontmost fill, else its first layer drawn and shown; and its last), and the
-       * lowest pane with a layer shown: found once for every series' primitive a draw updates (each found them itself, the
-       * chart's layers walked for each), anew after a change of state, a draw, or by the next task.
+       * lowest pane with a layer shown: found once for every series' sketch a draw brings up to the view (each found them
+       * itself, the chart's layers walked for each), anew after a change of state, a draw, or by the next task.
        */
       let hostsFound = /** @type {{ at: string, byPane: Map<string | undefined, { fill: Layer | undefined, host: Layer | null, back: Layer | null }>, lowest: string | undefined } | null} */ (null);
       function halvingHosts() {
@@ -20658,15 +20664,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A layer's drawings, on its series: over its pane (over every series, and the crosshair), a line across's value or
-       * date on its axis (a selected one's, each point's), and found under the pointer where they were last drawn.
+       * date on its axis (a selected one's, each point's), and found under the pointer where they were last drawn. With
+       * them its pane's halving marks (if its layer draws them) and a trend's ends: the library's layers on its series'
+       * pane (see its constructor).
        */
       class Sketch {
-        constructor(layer) {
+        /** @param {string} layer @param {any} series */
+        constructor(layer, series) {
           this.layer = layer;
-          this.series = null;
-          /** Updated since what it shows was last found (see fresh). */
-          this.stale = false;
-          this.update = () => {};
+          this.series = series;
+          /** The view moved, or something it shows changed, since what it shows was last found (see fresh). */
+          this.stale = true;
+          this.update = () => engine.invalidate(true);
           /** @type {{ drawing: Drawing, points: { x: number, y: number }[], box: { left: number, top: number, right: number, bottom: number } | null }[]} */
           this.shown = [];
           this.size = { width: 0, height: 0 };
@@ -20676,35 +20685,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.names = [];
           /** Where the halvings draw: just over this layer's series (it's the pane's frontmost fill), else under every one. @type {"bottom" | "normal"} */
           this.markOrder = "bottom";
-          this.markView = { zOrder: () => this.markOrder, renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => paintHalvings(context, mediaSize, this.marks)) }) };
-          this.namesView = { zOrder: () => /** @type {const} */ ("top"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => paintHalvingNames(context, mediaSize, this.names)) }) };
-          this.drawingsView = { zOrder: () => /** @type {const} */ ("top"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context, mediaSize }) => this.draw(context, mediaSize)) }) };
           /** A trend's segments' ends, dotted (where one starts after a switch, or ends before one), as the series draws. @type {{ x: number, y: number, i: number }[]} */
           this.ends = [];
           this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ ({ color: "", radius: 1.5 });
-          this.endsView = { zOrder: () => /** @type {const} */ ("normal"), renderer: () => ({ draw: (target) => target.useMediaCoordinateSpace(({ context }) => paintEnds(context, this.ends, this.endsLook)) }) };
-          /** What it draws, by which of its parts it has (made once each: asked for every frame). @type {Map<number, any[]>} */
-          this.viewSets = new Map();
-          /** Its axes' tags, made once an update (the library reads them twice a paint: the same, its cache holding). @type {any[] | null} */
+          /** Its axes' tags, found once a view (read again as the axes are drawn). @type {AxisTag[] | null} */
           this.priceTags = null;
-          /** @type {any[] | null} */
+          /** @type {AxisTag[] | null} */
           this.timeTags = null;
+          // Its layers on its series' pane, on its side: the halvings under every series (its pane with no fill to draw
+          // them over); just over its series, a trend's ends and the halvings over its fill; over everything (the crosshair
+          // too), the halvings' names and its drawings, their values and dates on the axes. Each pane's view the plot's
+          // size (see sizeOf). Brought up to the view before each draw (see viewed).
+          const size = { width: 0, height: 0 }, sizeOf = (/** @type {{ time: { width: number }, scale: { height: number } }} */ at) => ((size.width = at.time.width), (size.height = at.scale.height), size);
+          const under = new Custom({ draw: (g, at) => void (this.fresh().markOrder === "bottom" && this.marks.length && paintHalvings(g, sizeOf(at), this.marks)), viewed: () => this.viewed() }, { behind: true });
+          const beside = new Custom({
+            draw: (g, at) => {
+              if (this.fresh().ends.length) paintEnds(g, this.ends, this.endsLook);
+              if (this.markOrder === "normal" && this.marks.length) paintHalvings(g, sizeOf(at), this.marks);
+            },
+          });
+          const side = series.side === "left" ? 1 : 0;
+          const over = new Custom(
+            {
+              draw: (g, at) => {
+                if (this.fresh().names.length) paintHalvingNames(g, sizeOf(at), this.names);
+                if (this.shown.length) this.draw(g, sizeOf(at));
+              },
+              axisTags: (on, add) => {
+                if (on === side) for (const tag of this.axisTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color, tag.ink);
+              },
+              timeTags: (add) => {
+                for (const tag of this.dateTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color, tag.ink);
+              },
+            },
+            { over: true },
+          );
+          for (const custom of [under, beside, over]) ownLayer(series, custom);
         }
-        attached({ series, requestUpdate }) {
-          this.series = series;
-          this.update = requestUpdate;
-        }
-        detached() {
-          this.series = null;
-          this.shown = [];
-        }
-        updateAllViews() {
-          // (Asked again and again a frame (each pane's update, each scale's, for every series: 13 times a series a pan step
-          // on a stack), its views read once or twice: what it shows found when they're read, see fresh.)
+        /** The view moved, or what it shows changed: found again as it's next read. */
+        viewed() {
           this.stale = true;
           this.priceTags = this.timeTags = null;
         }
-        /** What it shows as things are now: found once after an update, as its views, its tags or a hit read it. */
+        /** What it shows as things are now: found once a view, as its layers, its tags or a hit read it. */
         fresh() {
           if (!this.stale) return this;
           this.stale = false;
@@ -20733,17 +20756,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }) : [];
           return this;
         }
-        paneViews() {
-          this.fresh();
-          const parts = [this.ends.length ? this.endsView : null, this.marks.length ? this.markView : null, this.names.length ? this.namesView : null, this.shown.length ? this.drawingsView : null];
-          const key = parts.reduce((sum, part, i) => sum + (part ? 1 << i : 0), 0);
-          if (!key) return NONE;
-          let views = this.viewSets.get(key);
-          if (!views) this.viewSets.set(key, (views = parts.filter(Boolean)));
-          return views;
-        }
         /** Each line across's value; a selected line's or box's, each point's (and as it's drawn): as the axis reads it. */
-        priceAxisViews() {
+        axisTags() {
           if (!this.fresh().shown.length) return NONE;
           if (this.priceTags) return this.priceTags;
           const text = this.valueText();
@@ -20764,7 +20778,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return scale.mode === "percent" ? precise(change, "%") : precise(base < 0 ? change - 100 : change + 100);
           };
         }
-        timeAxisViews() {
+        /** Each line down's date; a selected line's or box's, each point's (and as it's drawn). */
+        dateTags() {
           if (!this.fresh().shown.length) return NONE;
           if (this.timeTags) return this.timeTags;
           return (this.timeTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && POINTED.has(drawing.kind) ? [0, points.length - 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing)))));
@@ -20820,6 +20835,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const told = (drawing) => lit(drawing) && (drawing === draft || chosen.size === 1);
       /** Each series' sketch. @type {WeakMap<any, Sketch>} */
       const sketches = new WeakMap();
+      /** The library's layers of a drawn series' own (its sketch's, a profile's shares on the axis), gone with it. @type {WeakMap<any, any[]>} */
+      const ownLayers = new WeakMap();
+      /** A layer of a series' own, on its pane and side. @param {any} series @param {any} custom */
+      function ownLayer(series, custom) {
+        engine.panes[seriesPane(series)]?.add(custom, series.side);
+        (ownLayers.get(series) ?? ownLayers.set(series, []).get(series))?.push(custom);
+      }
+      /** A series' own layers gone from its pane, as it goes. @param {any} series */
+      function dropOwnLayers(series) {
+        const pane = engine.panes[seriesPane(series)];
+        for (const custom of ownLayers.get(series) ?? []) pane?.remove(custom);
+        ownLayers.delete(series);
+      }
       /** The drawings hidden from view: a view, not an edit (back on another chart, with a tool taken, or any selected). */
       let drawingsHidden = false;
       /** The drawings hidden or shown again (`tell`: by a key or ⌘K, said where the drawing tools don't show it). */
@@ -20876,12 +20904,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The layer a drawing was being placed on, gone: it goes.)
         if (placing && !drawn.has(placing.host.id)) stopDrawing();
         shownDrawings = doc.drawings ?? [];
-        for (const [id, series] of drawn) {
-          if (sketches.has(series)) continue;
-          const sketch = new Sketch(id);
-          series.attachPrimitive(sketch);
-          sketches.set(series, sketch);
-        }
         repaintDrawings();
       }
 
@@ -22711,22 +22733,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A profile's shares on its axis, where its plot has no room for them (over its bars or the price): in loss just
        * over its close's tag, in profit just under it, in their colors on the card's (as text beside the tag); none
-       * where it isn't drawn. A primitive on its series (its axis views).
+       * where it isn't drawn. A layer of its series' own (see ownLayer).
        * @param {string} id @param {any} series
        */
       function profileShares(id, series) {
         if (sharesShown.has(series)) return;
         sharesShown.add(series);
-        const view = (/** @type {boolean} */ loss) => ({
-          coordinate: () => ((look) => ((y) => (y === null || y === undefined ? -100 : y + (loss ? -19 : 19)))(look?.shares && seriesY(series, look.shares.close)))(heatLooks.get(id)),
-          text: () => ((shares) => (shares ? `${loss ? 100 - shares.share : shares.share}%` : ""))(heatLooks.get(id)?.shares),
-          textColor: () => ((look) => (loss ? look?.lose : look?.gain) ?? "transparent")(heatLooks.get(id)),
-          backColor: () => heatLooks.get(id)?.halo ?? "transparent",
-          visible: () => Boolean(heatLooks.get(id)?.shares),
-          tickVisible: () => false,
-        });
-        const views = [view(true), view(false)];
-        series.attachPrimitive({ updateAllViews() {}, paneViews: () => NONE, priceAxisViews: () => views });
+        const side = series.side === "left" ? 1 : 0;
+        // (Over everything, as its tags are asked again each time the axes are drawn: its shares as they are.)
+        const tags = new Custom(
+          {
+            draw: () => {},
+            axisTags: (on, add) => {
+              const look = heatLooks.get(id), shares = look?.shares, y = shares && seriesY(series, shares.close);
+              if (on !== side || !shares || y === null || y === undefined) return;
+              add(y - 19, `${100 - shares.share}%`, look.halo ?? "transparent", look.lose ?? "transparent");
+              add(y + 19, `${shares.share}%`, look.halo ?? "transparent", look.gain ?? "transparent");
+            },
+          },
+          { over: true },
+        );
+        ownLayer(series, tags);
       }
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
       function simplify(points, tolerance) {

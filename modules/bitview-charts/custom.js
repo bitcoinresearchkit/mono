@@ -9,11 +9,13 @@
 // the pane's top; none, it's never hit), `axisTags` (its own tags on a price axis: its side's, 0 the right, 1 the left;
 // each at a height in its pane, its words, its color; asked as the axis is drawn: whole, or its tags' view's end moved,
 // so a change of them is a change of it, see changed()), `timeTags` (on the time axis, at an x in the plot: asked each
-// frame) and `margins` (room it keeps clear at its scale's ends, by the points' spacing: CSS pixels over its highest
-// and under its lowest, into `out`: its marks over and under bars). Its options: `fixed` (what it draws holds its place
-// as the view moves, a mark at the plot's edge: its pane drawn whole each frame) or `over` (drawn over everything, the
+// frame), `margins` (room it keeps clear at its scale's ends, by the points' spacing: CSS pixels over its highest and
+// under its lowest, into `out`: its marks over and under bars) and `viewed` (told before each draw of its pane, the
+// view as it is: what it draws found again from it, once). Its options: `fixed` (what it draws holds its place
+// as the view moves, a mark at the plot's edge: its pane drawn whole each frame), `over` (drawn over everything, the
 // crosshair too, on its pane's layer over it, whole each frame: labels and handles placed in the plot, its pane's
-// picture moved without them). After a change of what it draws, `changed()`, then the chart's invalidate().
+// picture moved without them) or `behind` (drawn behind every series, whatever their order: a backdrop). After a
+// change of what it draws, `changed()`, then the chart's invalidate().
 
 /**
  * @typedef {{ time: import("./timeline.js").Timeline, scale: import("./scale.js").Scale, x0: number, x1: number, dpr: number, theme: import("./pane.js").Theme }} View
@@ -25,12 +27,13 @@
  *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: import("./scale.js").Scale) => void,
  *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
  *   margins?: (spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean) => void,
+ *   viewed?: (time: import("./timeline.js").Timeline) => void,
  * }} Hooks
  */
 
 export class Custom {
-  /** @param {Hooks} hooks @param {{ fixed?: boolean, over?: boolean }} [options] */
-  constructor(hooks, { fixed = false, over = false } = {}) {
+  /** @param {Hooks} hooks @param {{ fixed?: boolean, over?: boolean, behind?: boolean }} [options] */
+  constructor(hooks, { fixed = false, over = false, behind = false } = {}) {
     this.hooks = hooks;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
@@ -38,6 +41,8 @@ export class Custom {
     this.fixed = fixed;
     /** Drawn over everything, on its pane's layer over it, whole each frame. */
     this.over = over;
+    /** Drawn behind every series, whatever their order. */
+    this.behind = behind;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** Read on its side's scale: it has an extent (else, drawn as it likes, its pane's grid isn't its side's for it). */
@@ -77,6 +82,11 @@ export class Custom {
    */
   axisTags(side, add, scale) {
     this.hooks.axisTags?.(side, add, scale);
+  }
+
+  /** Told before each draw of its pane (its hook's). @param {import("./timeline.js").Timeline} time */
+  viewed(time) {
+    this.hooks.viewed?.(time);
   }
 
   /** Its own tags on the time axis. @param {(x: number, text: string, color: string, ink?: string) => void} add */

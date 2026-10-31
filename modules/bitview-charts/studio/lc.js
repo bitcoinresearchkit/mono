@@ -4,9 +4,9 @@
 // with the library (its options, its patches' calls: bv*), mapped onto bitview-charts' panes, scales and series. Phase
 // one: the chart, its panes and scales, the view, the crosshair and clicks, pictures, and the standard series (lines,
 // areas (stacked ones' fills to the line under them), histograms, baselines, candles), rows or columns onto one
-// timeline (the page's: see Chart.#sync). Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted), overlay scales, its scales'
-// and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint), primitives' axis
-// tags (its drawings' values, a profile's shares) and price lines.
+// timeline (the page's: see Chart.#sync). Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted) and
+// overlay scales. (Their order in their panes, and what Studio draws with them (its drawings, halving marks, lines
+// across), Studio's own on the library.)
 
 import { createChart as make, picture, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
 
@@ -81,10 +81,7 @@ class Chart {
   removeSeries(series) {
     series.pane.engine.remove(series.engine);
     if (series.edge) series.pane.engine.remove(series.edge);
-    if (series.beside) series.pane.engine.remove(series.beside);
-    for (const primitive of series.primitives) primitive.detached?.();
     series.pane.list = series.pane.list.filter((each) => each !== series);
-    series.pane.dirty = true;
     this.all = this.all.filter((each) => each !== series);
     this.#trimPanes();
     this.changed();
@@ -102,7 +99,6 @@ class Chart {
   }
 
   remove() {
-    for (const series of this.all) for (const primitive of series.primitives) primitive.detached?.();
     this.engine.destroy();
     this.element.remove();
   }
@@ -143,8 +139,7 @@ class Chart {
     this.dirty = false;
     const times = this.engine.time.times, fresh = times !== this.times;
     this.times = times;
-    for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
-    for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange();
+    for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times);
     this.engine.invalidate(fresh);
   }
 }
@@ -158,102 +153,12 @@ class Pane {
     this.list = [];
     /** @type {Record<string, PriceScale>} */
     this.scales = {};
-    /** A series of its pushed (or ordered) since its series were arranged. */
-    this.dirty = false;
-    /**
-     * Its series' primitives' views under every series, and over everything (the crosshair too: the library's layer
-     * over the pane, drawn whole each frame, as their labels and handles keep to the plot), once one's attached.
-     * @type {Custom | null}
-     */
-    this.under = null;
-    /** @type {Custom | null} */
-    this.over = null;
-    /** Its primitives told the chart moved this frame (see fresh). */
-    this.updated = false;
-    this.target = new Target();
-  }
-
-  /** Its layers for its series' primitives' views: under every series, over everything (each series' own, just over it). */
-  layers() {
-    const pane = this.engine, first = () => 1;
-    this.under ??= pane.add(new Custom({ draw: (g, at) => this.paint(g, at, "bottom", null), first }));
-    this.over ??= pane.add(new Custom({ draw: (g, at) => this.paint(g, at, "top", null), first, axisTags: (side, add) => this.axisTags(side, add), timeTags: (add) => this.timeTags(add) }, { over: true }));
-  }
-
-  /**
-   * Its series' primitives' views of one z-order drawn (Studio's drawings, its halving marks: the chart library's
-   * primitives): `owner`'s alone ("normal": just over it), or all of the pane's ("bottom", under every series, drawn
-   * first; "top", over everything, drawn last). Each primitive told the chart moved first (see fresh): by the layer
-   * under the series wherever the pane's drawn (each strip), else by whatever reads them first.
-   * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/custom.js").View} at @param {string} z @param {Series | null} owner
-   */
-  paint(g, at, z, owner) {
-    const target = this.target.set(g, at.time.width, at.scale.height, at.dpr);
-    if (z === "bottom") (this.updated = false), this.fresh();
-    else if (z === "top") this.fresh(), (this.updated = false);
-    for (let k = 0; k < this.list.length; k++) {
-      const series = this.list[k];
-      // (A hidden series' primitives drawn all the same, as the chart library drew them: Studio's drawings on a price
-      // layer ride its candles, hidden while they're too thin to read; Studio leaves out what it hides itself.)
-      if (owner && series !== owner) continue;
-      for (let p = 0; p < series.primitives.length; p++) {
-        const primitive = series.primitives[p];
-        const views = primitive.paneViews?.() ?? NONE;
-        for (let v = 0; v < views.length; v++) if ((views[v].zOrder?.() ?? "normal") === z) rendererOf(views[v])?.draw(target);
-      }
-    }
-  }
-
-  /**
-   * Its series' primitives told the chart moved (their updateAllViews), once a frame: by the first of its drawing to read
-   * them (its layer under the series where the pane's drawn, else the time axis' tags or its layer over everything),
-   * the layer over everything last (the next frame's anew).
-   */
-  fresh() {
-    if (this.updated) return;
-    this.updated = true;
-    for (const series of this.list) for (const primitive of series.primitives) primitive.updateAllViews?.();
-  }
-
-  /**
-   * Its series' primitives' tags on its axis on `side` (0, the right; 1, the left): their price axis views (a drawing's
-   * value), each on its series' side (a hidden one's too, as its views are drawn).
-   * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add
-   */
-  axisTags(side, add) {
-    this.fresh();
-    for (const series of this.list)
-      if ((series.side === "left" ? 1 : 0) === side) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
-  }
-
-  /** Its series' primitives' tags on the time axis: their time axis views (a drawing's date). @param {(x: number, text: string, color: string, ink?: string) => void} add */
-  timeTags(add) {
-    this.fresh();
-    for (const series of this.list) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
-  }
-
-  /**
-   * Its series in the library in their order (Studio's), each with its edge and its own primitives' layer over it; its
-   * markers over them all ("aboveSeries"); its primitives' layers under and over everything.
-   */
-  arrange() {
-    /** @type {any[]} */
-    const list = [];
-    if (this.under) list.push(this.under);
-    for (const series of this.list) {
-      list.push(series.engine);
-      if (series.edge) list.push(series.edge);
-      if (series.beside) list.push(series.beside);
-    }
-    if (this.over) list.push(this.over);
-    this.engine.order(list);
   }
 
   /** Its scale of that id: its right one, its left one, or an overlay (any other id: its series' own, unseen). @param {string} id */
   scaleApi(id) {
     return (this.scales[id] ??= new PriceScale(this, id));
   }
-
 }
 
 class PriceScale {
@@ -288,10 +193,6 @@ class Series {
     this.ownRows = false;
     /** Its data or look changed since it was pushed. */
     this.dirty = true;
-    /** @type {any[]} */
-    this.primitives = [];
-    /** Its primitives' views of the "normal" z-order, drawn just over it (made once one's attached). @type {Custom | null} */
-    this.beside = null;
     /** A custom series' view, drawn as the chart library drew it. @type {Painted | null} */
     this.painted = view ? new Painted(this, view) : null;
     // (Its fitting by its autoscaleInfoProvider (see #fit), made once: nothing made a frame but what the provider makes.)
@@ -437,7 +338,6 @@ class Series {
     if (this.painted) this.columns = this.painted.push(times);
   }
 
-
   /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */
   dataByIndex(index, mismatch = 0) {
     const times = this.chart.times, columns = this.columns;
@@ -455,43 +355,6 @@ class Series {
     }
     return { time: times[i], value: columns[i] };
   }
-
-  /** Its place among its pane's series (theirs in the library arranged so at the next sync). @param {number} order */
-  setSeriesOrder(order) {
-    this.pane.list = this.pane.list.filter((each) => each !== this);
-    this.pane.list.splice(order, 0, this);
-    this.pane.dirty = true;
-    this.chart.changed();
-  }
-
-  /** A primitive of Studio's on it (its drawings, halving marks): drawn by its pane views (see Pane.paint). @param {any} primitive */
-  attachPrimitive(primitive) {
-    this.primitives.push(primitive);
-    this.pane.layers();
-    this.beside ??= this.pane.engine.add(new Custom({ draw: (g, at) => this.pane.paint(g, at, "normal", this), first: () => 1 }));
-    primitive.attached?.({ chart: this.chart, series: this, requestUpdate: () => this.chart.engine.invalidate(true) });
-    this.pane.dirty = true;
-    this.chart.changed();
-  }
-
-  /** @param {any} primitive */
-  detachPrimitive(primitive) {
-    this.primitives = this.primitives.filter((each) => each !== primitive);
-    primitive.detached?.();
-    this.chart.engine.invalidate(true);
-  }
-}
-
-/** No views. */
-const NONE = /** @type {any[]} */ ([]);
-
-/** Each view's renderer, asked once (Studio's draw what their views hold now, whichever is asked: none made a frame). @type {WeakMap<any, any>} */
-const renderers = new WeakMap();
-/** @param {any} view */
-function rendererOf(view) {
-  let renderer = renderers.get(view);
-  if (renderer === undefined) renderers.set(view, (renderer = view.renderer?.() ?? null));
-  return renderer;
 }
 
 /**
