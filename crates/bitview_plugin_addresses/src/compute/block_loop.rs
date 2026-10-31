@@ -3,7 +3,7 @@ use std::{
     ops::{ControlFlow, Range},
 };
 
-use bitview_cohort::AddressTypeId;
+use bitview_cohort::{AddressType, AddressTypeId, AmountRange};
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -19,14 +19,68 @@ use vecdb::{AnyVec, ReadableVec, Stamp, VecIndex, unlikely};
 use super::{AddrReaders, Workspace, readers::tx_indexes};
 use crate::{
     Vecs,
-    addr::{Changed, MemberState, SHARDS, SourcedAddrData},
+    addr::{AddrMetricsState, AddressVecs, Changed, MemberState, SHARDS, SourcedAddrData},
+    balance::Balances,
     block::{
         AddrTypeLookup, ShardBlocks, TransferAddressCache, TypeBlock, process_inputs, process_lost,
         process_outputs, process_received, process_sent,
     },
     compute::write::{UnpublishedState, write},
-    state::{AddrStates, CohortLog},
+    state::{AddrCohortState, AddrStates, CohortLog},
 };
+
+/// A batch's per-block series values and band updates, deferred to run beside the next batch's
+/// loading and grouping, which read neither the bands nor the series.
+struct PendingApply {
+    first_height: usize,
+    /// The counters the batch's shards started from.
+    base: AddrMetricsState,
+    ids: Vec<Option<AddressTypeId>>,
+    processed: Vec<(CohortLog, Option<MemberState>)>,
+    block_count: usize,
+}
+
+impl PendingApply {
+    /// Each block in order: its cohort changes into the bands, then every series' value.
+    fn apply(
+        self,
+        all: &mut AddressVecs,
+        types: &mut AddressType<AddressVecs>,
+        balances: &mut Balances,
+        amount_range: &mut AmountRange<AddrCohortState>,
+        prices: &[Cents],
+    ) {
+        let Self {
+            first_height,
+            base,
+            ids,
+            processed,
+            block_count,
+        } = self;
+        let mut metrics = base.clone();
+        for offset in 0..block_count {
+            let height = first_height + offset;
+            if unlikely(height.is_multiple_of(100)) {
+                info!("Computing address metrics at block {height}...");
+            }
+            metrics.clone_from(&base);
+            for (id, blocks) in ids.iter().zip(processed.chunks(block_count)) {
+                if let (Some(id), (cohorts, Some(member))) = (*id, &blocks[offset]) {
+                    cohorts.apply_to(amount_range);
+                    metrics.add_member_delta(id, *member, &base);
+                }
+            }
+            all.push(&metrics.all());
+            for (member, member_state) in types.iter_mut().zip(metrics.0.iter()) {
+                member.push(member_state);
+            }
+            balances.push(amount_range, prices[height]);
+            amount_range
+                .iter_mut()
+                .for_each(|state| state.inner.reset_block());
+        }
+    }
+}
 
 /// A BIP30-overwritten coinbase output, removed from its P2PK65 address without a spend.
 struct Lost {
@@ -130,6 +184,7 @@ pub fn process_chunk(
     // Load cold address state once for each batch of blocks.
     let bounds = BlockBounds::new(indexer, blocks);
     let mut next = end_usize;
+    let mut pending: Option<PendingApply> = None;
     columns.for_each_batch(&bounds, |batch, columns| {
         let offset = batch.blocks.start - start_usize;
         let BatchColumns {
@@ -145,70 +200,90 @@ pub fn process_chunk(
         // Addresses created within this batch start at these per-type indexes.
         let first_addr_indexes = ByAddrType::from_fn(|id| id.select(&first_indexes)[offset]);
 
-        cache.load_addresses(
-            output_types
-                .iter()
-                .copied()
-                .zip(output_indexes.iter().copied())
-                .chain(
-                    input_types
+        let previous = pending.take();
+        let (all, types, balances) = (&mut vecs.all, &mut vecs.types, &mut vecs.balances);
+        let amount_range = &mut addr_states.amount_range;
+        let state = &vecs.state;
+        let (_, lanes) = rayon::join(
+            || {
+                if let Some(previous) = previous {
+                    previous.apply(all, types, balances, amount_range, prices);
+                }
+            },
+            || {
+                cache.load_addresses(
+                    output_types
                         .iter()
                         .copied()
-                        .zip(input_indexes.iter().copied()),
-                ),
-            &first_addr_indexes,
-            &state_readers,
-            &vecs.state,
-        );
+                        .zip(output_indexes.iter().copied())
+                        .chain(
+                            input_types
+                                .iter()
+                                .copied()
+                                .zip(input_indexes.iter().copied()),
+                        ),
+                    &first_addr_indexes,
+                    &state_readers,
+                    state,
+                );
 
-        // Group each block's outputs and inputs by address, blocks in parallel.
-        let groups = batch
-            .blocks
-            .clone()
-            .into_par_iter()
-            .map(|height| {
-                let offset = height - start_usize;
-                let transactions =
-                    index_range(&height_to_first_tx_index_vec, offset, offset + 1, tx_count);
-                let first_tx = TxIndex::from(transactions.start);
-                let tx_len = transactions.len() as u64;
-                let output_range = batch.block_outputs(height);
-                // Omit this block's coinbase, including coinbase-only blocks.
-                let input_range = batch.block_spends(height);
-                let mut blocks = ShardBlocks::default();
-                process_outputs(
-                    &mut blocks,
-                    tx_indexes(first_tx, tx_len, tx_index_to_output_count),
-                    &output_values[output_range.clone()],
-                    &output_types[output_range.clone()],
-                    &output_indexes[output_range],
+                // Group each block's outputs and inputs by address, blocks in parallel.
+                let groups = batch
+                    .blocks
+                    .clone()
+                    .into_par_iter()
+                    .map(|height| {
+                        let offset = height - start_usize;
+                        let transactions = index_range(
+                            &height_to_first_tx_index_vec,
+                            offset,
+                            offset + 1,
+                            tx_count,
+                        );
+                        let first_tx = TxIndex::from(transactions.start);
+                        let tx_len = transactions.len() as u64;
+                        let output_range = batch.block_outputs(height);
+                        // Omit this block's coinbase, including coinbase-only blocks.
+                        let input_range = batch.block_spends(height);
+                        let mut blocks = ShardBlocks::default();
+                        process_outputs(
+                            &mut blocks,
+                            tx_indexes(first_tx, tx_len, tx_index_to_output_count),
+                            &output_values[output_range.clone()],
+                            &output_types[output_range.clone()],
+                            &output_indexes[output_range],
+                        );
+                        process_inputs(
+                            &mut blocks,
+                            tx_indexes(first_tx, tx_len, tx_index_to_input_count).skip(1),
+                            &input_values[input_range.clone()],
+                            &input_types[input_range.clone()],
+                            &input_indexes[input_range.clone()],
+                            &input_heights[input_range],
+                            prices,
+                        );
+                        blocks
+                    })
+                    .collect::<Vec<_>>();
+                // Every shard of every type is a lane holding its blocks side by side, lanes in
+                // `shards_mut` order.
+                let block_count = batch.blocks.len();
+                let mut lanes = Vec::new();
+                lanes.resize_with(
+                    SHARDS * AddrTypeId::ALL.len() * block_count,
+                    TypeBlock::default,
                 );
-                process_inputs(
-                    &mut blocks,
-                    tx_indexes(first_tx, tx_len, tx_index_to_input_count).skip(1),
-                    &input_values[input_range.clone()],
-                    &input_types[input_range.clone()],
-                    &input_indexes[input_range.clone()],
-                    &input_heights[input_range],
-                    prices,
-                );
-                blocks
-            })
-            .collect::<Vec<_>>();
-        // Every shard of every type is a lane holding its blocks side by side, lanes in
-        // `shards_mut` order.
-        let block_count = batch.blocks.len();
-        let mut lanes = Vec::new();
-        lanes.resize_with(
-            SHARDS * AddrTypeId::ALL.len() * block_count,
-            TypeBlock::default,
+                for (offset, blocks) in groups.into_iter().enumerate() {
+                    let blocks = blocks.into_iter().flat_map(|shard| shard.into_iter());
+                    for (lane, (_, block)) in blocks.enumerate() {
+                        lanes[lane * block_count + offset] = block;
+                    }
+                }
+                lanes
+            },
         );
-        for (offset, blocks) in groups.into_iter().enumerate() {
-            let blocks = blocks.into_iter().flat_map(|shard| shard.into_iter());
-            for (lane, (_, block)) in blocks.enumerate() {
-                lanes[lane * block_count + offset] = block;
-            }
-        }
+        let mut lanes = lanes;
+        let block_count = batch.blocks.len();
 
         // Each address touches only its own state, so every shard of every type runs apart from
         // the same base metrics; cohort changes are logged per block and applied below in order.
@@ -242,33 +317,37 @@ pub fn process_chunk(
             })
             .collect::<Vec<_>>();
 
-        for (offset, height) in batch.blocks.clone().enumerate() {
-            let height = Height::from(height);
-            if unlikely(height.is_multiple_of(100)) {
-                info!("Computing address metrics at block {height}...");
+        // The next batch's shards start from this one's last counters: set now, from each lane's
+        // state after its last block; the per-block values and bands follow beside it.
+        let mut last = base.clone();
+        for (id, blocks) in ids.iter().zip(processed.chunks(block_count)) {
+            if let (Some(id), (_, Some(member))) = (*id, &blocks[block_count - 1]) {
+                last.add_member_delta(id, *member, base);
             }
-            let metrics = &mut addr_states.metrics;
-            metrics.clone_from(base);
-            for (id, blocks) in ids.iter().zip(processed.chunks(block_count)) {
-                if let (Some(id), (cohorts, Some(member))) = (*id, &blocks[offset]) {
-                    cohorts.apply_to(&mut addr_states.amount_range);
-                    metrics.add_member_delta(id, *member, base);
-                }
-            }
-            vecs.all.push(&metrics.all());
-            for (member, member_state) in vecs.types.iter_mut().zip(metrics.0.iter()) {
-                member.push(member_state);
-            }
-            vecs.balances
-                .push(&addr_states.amount_range, block_prices[offset]);
-            addr_states.reset_block();
         }
+        addr_states.metrics = last;
+        pending = Some(PendingApply {
+            first_height: batch.blocks.start,
+            base: base.clone(),
+            ids,
+            processed,
+            block_count,
+        });
         if cache.len() >= MAX_CACHED_ADDRS {
             next = batch.blocks.end;
             return Ok(ControlFlow::Break(()));
         }
         Ok(ControlFlow::Continue(()))
     })?;
+    if let Some(pending) = pending {
+        pending.apply(
+            &mut vecs.all,
+            &mut vecs.types,
+            &mut vecs.balances,
+            &mut addr_states.amount_range,
+            prices,
+        );
+    }
     drop(state_readers);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
