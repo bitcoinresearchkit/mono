@@ -18,6 +18,8 @@ const BLOCK = 64;
 const BEND = new Float64Array(4);
 /** No dashes (made once). */
 const SOLID = /** @type {number[]} */ ([]);
+/** CSS pixels along a dashed line between the places its subpath may be split (see the pen's to()). */
+const SPLIT = 128;
 
 /** A dash list's period: its sum, twice where it's odd (the canvas repeats it). @param {number[]} dash */
 function periodOf(dash) {
@@ -53,15 +55,16 @@ const pen = {
   color: 0,
   cut: false,
   // (A dashed line's (see Line's #stroke): its dashes and their period (0: not kept), its path's length so far from its
-  // dash origin, and where its subpath began (each its own stroke; none yet: NaN); whether it's a ruler's (its length
-  // measured alone, nothing drawn: see Line's #anchor); the point whose vertex is written next (a point's own, zoomed
-  // in; a column's first run's, zoomed out), else -1; a ruler's asks: the length at point `seek`'s vertex (`found`),
-  // and at the first from point `from` on (`first`, its point `firstId`); the last written (`last`, its point
-  // `lastId`).)
+  // dash origin, and at the point before; whether a subpath's been begun (each its own stroke); whether it's a ruler's
+  // (its length measured alone, nothing drawn: see Line's #anchor); the point whose vertex is written next (a point's
+  // own, zoomed in; a column's first run's, zoomed out), else -1; a ruler's asks: the length at point `seek`'s vertex
+  // (`found`), and at the first from point `from` on (`first`, its point `firstId`); the last written (`last`, its
+  // point `lastId`).)
   dashes: SOLID,
   period: 0,
   length: 0,
-  since: NaN,
+  before: 0,
+  begun: false,
   ruling: false,
   id: -1,
   seek: -1,
@@ -79,17 +82,18 @@ const pen = {
   start(g, dpr, pass, length = 0, dashes = SOLID, period = 0) {
     (this.g = g), (this.dpr = dpr), (this.pass = pass), (this.shown = null);
     (this.on = false), (this.has = false), (this.runX = NaN);
-    (this.dashes = dashes), (this.period = period), (this.length = length), (this.since = NaN), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1);
+    (this.dashes = dashes), (this.period = period), (this.length = length), (this.before = length), (this.begun = false), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1);
   },
   /** @param {number} x @param {number} y @param {number} color @param {boolean} cut */
   to(x, y, color, cut) {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
     if (this.ruling) return void (this.measure(x, y), (this.has = true), (this.px = x), (this.py = y), (this.cut = cut));
-    // (A long dashed subpath ended where it's in a gap (nothing drawn there, so no join's missed): the canvas measures a
-    // subpath in single precision, its dashes drifting off ours along a long one (a zoomed-out line's runs, a pixel off
-    // its strips' over some thousands of pixels).)
-    if (this.on && this.period && this.length - this.since > 512 && this.gap()) this.close();
+    // (A dashed subpath ended at a point in a gap (nothing drawn there, so no join's missed) whose segment passed a
+    // multiple of SPLIT along the line, the next begun there: the canvas measures a subpath in single precision, its
+    // dashes drifting off ours along a long one (a zoomed-out line's runs, a pixel off its strips' over some thousands
+    // of pixels). Where, by the line's length alone: a strip and a whole draw end their strokes at the same points.)
+    if (this.on && this.period && Math.floor(this.before / SPLIT) !== Math.floor(this.length / SPLIT) && this.gap()) this.close();
     if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
       if (!this.on) {
         if (this.period) this.dash(g);
@@ -112,9 +116,9 @@ const pen = {
    * @param {CanvasRenderingContext2D} g
    */
   dash(g) {
-    if (this.since === this.since) g.stroke(), g.beginPath();
+    if (this.begun) g.stroke(), g.beginPath();
     g.lineDashOffset = this.length % this.period;
-    this.since = this.length;
+    this.begun = true;
   },
   /** Whether the last point's in a gap between its dashes (the canvas's list repeated twice where it's odd). */
   gap() {
@@ -126,6 +130,7 @@ const pen = {
   },
   /** The path's length to the point at `x`, `y` (from the last, where it's joined to it), a ruler's asks noted there. @param {number} x @param {number} y */
   measure(x, y) {
+    this.before = this.length;
     if (this.has && !this.cut) {
       const dx = x - this.px, dy = y - this.py;
       this.length += Math.sqrt(dx * dx + dy * dy);
@@ -309,9 +314,14 @@ export class Line {
     if (format !== undefined) this.format = format && kept(format);
   }
 
-  /** What it draws can't move with a pan's picture (see Pane's draw): a curve's dashes, from where its path starts. */
+  /** Its picture can't be stretched (see Pane's draw): its dashes would stretch with it. */
   get dashed() {
-    return this.dash !== null && this.stroke && this.curve && !this.steps;
+    return this.dash !== null && this.stroke;
+  }
+
+  /** What it draws can't move with a pan's picture (see Pane's draw): a curve's dashes, from where its path starts. */
+  get immovable() {
+    return this.dashed && this.curve && !this.steps;
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */

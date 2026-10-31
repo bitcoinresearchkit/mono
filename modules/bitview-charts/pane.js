@@ -32,19 +32,20 @@ const TAG = 18;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
- * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be moved by a pan nor
- * stretched by a zoom (a curve's dashes run from where its path starts: drawn whole as the view moves, kept as it is
- * still); `over`, drawn over everything, the crosshair too, on a layer of its own drawn whole each frame (its pane's
- * picture moved without it); `scaled: false`, not read on its side's scale (its grid by the other's); `fit`, how it
- * widens its scale's range in its place (a page's own reading: none of it, a fixed range, its own and 0; none given, its
- * extent); `margins`, room it keeps clear at its scale's ends (CSS pixels over and under the range, by the points'
- * spacing: its marks over bars). How far a point is from it: at index `i` (and `x` CSS pixels into the plot), `y` from
- * the pane's top.
+ * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be stretched by a zoom
+ * (its dashes would stretch with it); `immovable`, nor moved by a pan (a curve's dashes run from where its path starts:
+ * drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
+ * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
+ * (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading: none of it, a
+ * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
+ * over and under the range, by the points' spacing: its marks over bars). How far a point is from it: at index `i` (and
+ * `x` CSS pixels into the plot), `y` from the pane's top.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
  *   fixed?: boolean,
  *   dashed?: boolean,
+ *   immovable?: boolean,
  *   over?: boolean,
  *   scaled?: boolean,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
@@ -511,11 +512,11 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false, dashed = false;
+    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (series.over) overs += series.version;
-      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden));
+      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
     }
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
     if (versions !== this.drawnVersions || overs !== this.drawnOvers || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
@@ -527,8 +528,8 @@ export class Pane {
     const slow = this.wholeCost > SLOW;
     if (slow && same && !moves && !dashed && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
     const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && !dashed && stretch >= 0.5 && stretch <= 2;
-    // (Moved, unless a dashed line can't be: drawn whole.)
-    if (moves && (!by || !dashed)) {
+    // (Moved, unless what it draws can't be: drawn whole.)
+    if (moves && (!by || !immovable)) {
       if (!by) {
         // (Its series over it changed: their tags on its axes drawn again, the plot as it is.)
         if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
