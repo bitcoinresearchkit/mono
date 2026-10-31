@@ -102,6 +102,8 @@ export class Chart {
     this.listening = new AbortController();
     /** A touch's hold waiting to show the crosshair (a timer; 0: none). */
     this.holding = 0;
+    /** A held finger's crosshair going at the next frame (a frame's request; 0: none): see the pointer's lifting. */
+    this.letting = 0;
     // (Its canvases placed in it: a box for them, unless it's one already.)
     if (getComputedStyle(element).position === "static") element.style.position = "relative";
     Object.assign(element.style, { overflow: "hidden", touchAction: "none", userSelect: "none", webkitUserSelect: "none" });
@@ -367,7 +369,8 @@ export class Chart {
       this.glide.speed = 0;
       trailSize = 0;
       clearTimeout(this.holding);
-      this.holding = 0;
+      cancelAnimationFrame(this.letting);
+      this.holding = this.letting = 0;
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
       if (held >= 0) (held = -1), this.setCrosshair(NaN);
       if (down.size > 1) twoFingers = true;
@@ -426,8 +429,9 @@ export class Chart {
       if (!down.size) twoFingers = false;
       clearTimeout(this.holding);
       this.holding = 0;
-      // (The finger holding the crosshair let go: it goes; no glide.)
-      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), this.setCrosshair(NaN));
+      // (The finger holding the crosshair let go: it goes at the next frame (a page's own lifting handled first, as a
+      // touch's end came after it: Studio keeps it there); no glide.)
+      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.setCrosshair(NaN)))));
       // (Let go where it began: a click.)
       if (event.type === "pointerup" && !down.size && !pinched && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
@@ -524,8 +528,9 @@ export class Chart {
 
   destroy() {
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.letting);
     clearTimeout(this.holding);
-    this.frame = this.holding = 0;
+    this.frame = this.holding = this.letting = 0;
     this.glide.speed = 0;
     this.crosshair.canvas.remove();
     this.listening.abort();
