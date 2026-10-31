@@ -141,8 +141,14 @@ export class Pane {
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
     this.tagsTop = [0, 0];
-    /** The view's last point as its axes were drawn (their tags read it). */
+    /**
+     * The view's last point as its axes were drawn (their tags read it); and, as the view's first moves, where its tags
+     * change (a line's last point in view dropping out, one left out back in): the first point a tag was drawn at, the
+     * last one a tag was left out at.
+     */
     this.axesEnd = NaN;
+    this.tagsFrom = Infinity;
+    this.tagsOut = -1;
     this.tagY = new Float64Array(8);
     this.tagPlace = new Float64Array(8);
     /** The least room between two tags as last placed. */
@@ -503,7 +509,8 @@ export class Pane {
     if (moves || stretches) {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
-      if (Math.floor(time.to) !== this.axesEnd && this.#tagged()) this.#axes(time, theme, dpr);
+      const from = this.#from(time);
+      if ((Math.floor(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged()) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -518,6 +525,7 @@ export class Pane {
 
   /** Its axes drawn (each on its own canvas, beside its plot): ticks, tags, separators. @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
   #axes(time, theme, dpr) {
+    (this.tagsFrom = Infinity), (this.tagsOut = -1);
     this.axisG.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.#axis(this.axisG, this.scale, time, theme, dpr, 0, this.width - this.plot, 0);
     if (this.leftG && this.leftWidth) {
@@ -685,7 +693,9 @@ export class Pane {
       const i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view. On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1;
+      if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
       if (i < from || !base || base !== base) continue;
+      if (i < this.tagsFrom) this.tagsFrom = i;
       if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
       this.tagIndex[lines.length] = i;
       lines.push(line);

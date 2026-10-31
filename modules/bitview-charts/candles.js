@@ -7,7 +7,7 @@
 import { Line } from "./line.js";
 
 /** A candle's parts, as #shapes draws them. */
-const WICKS = 1, BODIES = 2, WHOLE = 3;
+const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
 
 export class Candles {
   /**
@@ -105,25 +105,27 @@ export class Candles {
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.close.length) return;
     // (Its outline first, all of them one fill; then the candles that rose, then those that fell: their wicks and
-    // bodies one fill where they're one color (else the wicks, then the bodies), then where a border's another color
-    // than its body, the body a device pixel in, in its own.)
-    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, -1, Math.max(1.5, 1 / dpr), WHOLE), g.fill();
-    const inset = -Math.max(1, Math.round(dpr)) / dpr;
+    // bodies one fill where they're one color (else the wicks, then the bodies); where a border's another color than its
+    // body, the border a ring (filled even-odd: its inside left), its inside a device pixel in, in the body's color
+    // (see-through, where that is: the ground under it, not the border).)
+    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, -1, Math.max(1.5, 1 / dpr), WICKS | BODIES), g.fill();
     for (let pass = 0; pass < 2; pass++) {
       const body = pass ? this.down : this.up, wick = (pass ? this.downWick : this.upWick) ?? body, border = (pass ? this.downBorder : this.upBorder) ?? body;
-      if (wick === border) (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WHOLE), g.fill();
+      const hollow = border !== body, rule = hollow ? "evenodd" : "nonzero", frame = hollow ? RINGS : BODIES;
+      if (wick === border) (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WICKS | frame), g.fill(rule);
       else {
         (g.fillStyle = wick), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WICKS), g.fill();
-        (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, BODIES), g.fill();
+        (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, frame), g.fill(rule);
       }
-      if (border !== body) (g.fillStyle = body), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, inset, BODIES), g.fill();
+      if (hollow) (g.fillStyle = body), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, INSIDES), g.fill();
     }
   }
 
   /**
-   * Its candles from x `x0` to `x1` added to the path: those that rose (`pass` 0), fell (1) or all (-1), their wicks,
-   * bodies or both (`part`), each `pad` pixels wider all round (an outline's; under 0, narrower: a border's inside).
-   * Zoomed out, a pixel column's range its wick and its body.
+   * Its candles from x `x0` to `x1` added to the path: those that rose (`pass` 0), fell (1) or all (-1); their wicks
+   * (above and below their bodies; an outline's, through them), bodies, bodies' rings (each body and its inside, for an
+   * even-odd fill) or insides (a device pixel in) by `part`; each `pad` pixels wider all round (an outline's). Zoomed
+   * out, a pixel column's range its wick, no body.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr @param {number} pass @param {number} pad @param {number} part
    */
@@ -135,14 +137,18 @@ export class Candles {
       for (let i = a; i <= b; i++) {
         const o = open[i], c = close[i], h = high[i], l = low[i];
         if (!(log ? c > 0 && l > 0 : c === c && l === l && h === h && o === o) || (pass >= 0 && (c >= o ? pass : !pass))) continue;
-        const x = Math.round(time.x(i) * dpr) / dpr, top = scale.y(Math.max(o, c)), bottom = scale.y(Math.min(o, c));
-        if (part & WICKS) g.rect(x - wick / 2 - pad, scale.y(h) - pad, wick + 2 * pad, scale.y(l) - scale.y(h) + 2 * pad);
-        if (!(part & BODIES)) continue;
-        const width = Math.round(2 * half * dpr) / dpr + 2 * pad, height = Math.max(wick, bottom - top) + 2 * pad;
-        if (width <= 0 || height <= 0) continue;
-        // (Its body's corners rounded (no more than half its width or its height), an outline's as much more.)
-        if (corner > 0) g.roundRect(Math.round((x - half) * dpr) / dpr - pad, top - pad, width, height, Math.max(0, Math.min(corner + pad, width / 2, height / 2)));
-        else g.rect(Math.round((x - half) * dpr) / dpr - pad, top - pad, width, height);
+        // (Its body as drawn: a wick's width tall at least.)
+        const x = Math.round(time.x(i) * dpr) / dpr, top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
+        if (part & WICKS) {
+          if (pad > 0) g.rect(x - wick / 2 - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
+          else {
+            if (top > hy) g.rect(x - wick / 2, hy, wick, top - hy);
+            if (ly > foot) g.rect(x - wick / 2, foot, wick, ly - foot);
+          }
+        }
+        const left = Math.round((x - half) * dpr) / dpr, width = Math.round(2 * half * dpr) / dpr;
+        if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0);
+        if (part & (RINGS | INSIDES)) this.#body(g, left + wick, top + wick, width - 2 * wick, foot - top - 2 * wick, corner > 0 ? corner - wick : 0);
       }
       return;
     }
@@ -156,9 +162,20 @@ export class Candles {
         if (high[i] > h) h = high[i];
         if (low[i] < l) l = low[i];
       }
-      // (A column's one rect, drawn with its wicks; its insides none.)
-      if (c !== c || (pass >= 0 && (c >= o ? pass : !pass)) || !(part & WICKS) || pad < 0) continue;
+      // (A column's one rect, drawn with its wicks.)
+      if (c !== c || (pass >= 0 && (c >= o ? pass : !pass)) || !(part & WICKS)) continue;
       g.rect(x - pad, scale.y(h) - pad, 1 + 2 * pad, Math.max(wick, scale.y(l) - scale.y(h)) + 2 * pad);
     }
+  }
+
+  /**
+   * A body's shape added to the path (none where it has no room), its corners rounded by `radius` (no more than half
+   * its width or its height).
+   * @param {CanvasRenderingContext2D} g @param {number} x @param {number} y @param {number} width @param {number} height @param {number} radius
+   */
+  #body(g, x, y, width, height, radius) {
+    if (width <= 0 || height <= 0) return;
+    if (radius > 0) g.roundRect(x, y, width, height, Math.min(radius, width / 2, height / 2));
+    else g.rect(x, y, width, height);
   }
 }
