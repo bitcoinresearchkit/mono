@@ -1,8 +1,9 @@
 // @ts-check
 // A column of values summed up by blocks of 4, 8, 16 points and so on (each level's blocks twice the last's): each
-// block's first and last value, its low and high and where they are, and whether it has a point a line can't go
-// through (none; on a log scale, none above zero). Zoomed out, a pixel column of many points reads its few whole blocks
-// that are clean, its ends point by point: a draw's work by its columns, not by its points.
+// block's first and last value, its low and high and where they are, its lowest above zero, and whether it has a point
+// a line can't go through (none; on a log scale, none above zero). Zoomed out, a pixel column of many points reads its
+// few whole blocks that are clean, its ends point by point: a draw's work by its columns, not by its points; a range's
+// lowest and highest alike.
 
 /** The first level's blocks: 4 points (2^2). */
 const FIRST = 2;
@@ -10,15 +11,44 @@ const FIRST = 2;
 export class Summary {
   /** @param {Float64Array} values */
   constructor(values) {
-    /** @type {{ first: Float64Array, last: Float64Array, lo: Float64Array, hi: Float64Array, loAt: Int32Array, hiAt: Int32Array, nan: Uint8Array, low: Uint8Array }[]} */
+    /** @type {{ first: Float64Array, last: Float64Array, lo: Float64Array, hi: Float64Array, loAt: Int32Array, hiAt: Int32Array, pos: Float64Array, nan: Uint8Array, low: Uint8Array }[]} */
     this.levels = [];
     this.values = values;
     for (let size = 1 << FIRST; size <= values.length; size *= 2) {
       const count = Math.floor(values.length / size);
-      this.levels.push({ first: new Float64Array(count), last: new Float64Array(count), lo: new Float64Array(count), hi: new Float64Array(count), loAt: new Int32Array(count), hiAt: new Int32Array(count), nan: new Uint8Array(count), low: new Uint8Array(count) });
+      this.levels.push({ first: new Float64Array(count), last: new Float64Array(count), lo: new Float64Array(count), hi: new Float64Array(count), loAt: new Int32Array(count), hiAt: new Int32Array(count), pos: new Float64Array(count), nan: new Uint8Array(count), low: new Uint8Array(count) });
     }
-    for (let k = 0; k < (this.levels[0]?.first.length ?? 0); k++) this.#update(0, k);
-    for (let level = 1; level < this.levels.length; level++) for (let k = 0; k < this.levels[level].first.length; k++) this.#update(level, k);
+    // (Made in loops of their own, not a call a block: without a JIT, a call costs more than a block's work.)
+    if (!this.levels.length) return;
+    const { first, last, lo, hi, loAt, hiAt, pos, nan, low } = this.levels[0], size = 1 << FIRST;
+    for (let k = 0, from = 0; k < first.length; k++, from += size) {
+      let l = Infinity, h = -Infinity, la = from, ha = from, p = Infinity, na = 0, lw = 0;
+      for (let i = from; i < from + size; i++) {
+        const v = values[i];
+        if (v !== v) (na = 1), (lw = 1);
+        else {
+          if (!(v > 0)) lw = 1;
+          else if (v < p) p = v;
+          if (v < l) (l = v), (la = i);
+          if (v > h) (h = v), (ha = i);
+        }
+      }
+      (first[k] = values[from]), (last[k] = values[from + size - 1]), (lo[k] = l), (hi[k] = h), (loAt[k] = la), (hiAt[k] = ha), (pos[k] = p), (nan[k] = na), (low[k] = lw);
+    }
+    for (let level = 1; level < this.levels.length; level++) {
+      const at = this.levels[level], below = this.levels[level - 1], count = at.first.length;
+      const bFirst = below.first, bLast = below.last, bLo = below.lo, bHi = below.hi, bLoAt = below.loAt, bHiAt = below.hiAt, bPos = below.pos, bNan = below.nan, bLow = below.low;
+      for (let k = 0, a = 0; k < count; k++, a += 2) {
+        const b = a + 1;
+        at.first[k] = bFirst[a];
+        at.last[k] = bLast[b];
+        bLo[b] < bLo[a] ? ((at.lo[k] = bLo[b]), (at.loAt[k] = bLoAt[b])) : ((at.lo[k] = bLo[a]), (at.loAt[k] = bLoAt[a]));
+        bHi[b] > bHi[a] ? ((at.hi[k] = bHi[b]), (at.hiAt[k] = bHiAt[b])) : ((at.hi[k] = bHi[a]), (at.hiAt[k] = bHiAt[a]));
+        at.pos[k] = bPos[b] < bPos[a] ? bPos[b] : bPos[a];
+        at.nan[k] = bNan[a] | bNan[b];
+        at.low[k] = bLow[a] | bLow[b];
+      }
+    }
   }
 
   /** Its blocks over index `i` made again (the value there changed). @param {number} i */
@@ -34,17 +64,18 @@ export class Summary {
     const at = this.levels[level];
     if (level === 0) {
       const values = this.values, from = k << FIRST, to = from + (1 << FIRST);
-      let lo = Infinity, hi = -Infinity, loAt = from, hiAt = from, nan = 0, low = 0;
+      let lo = Infinity, hi = -Infinity, loAt = from, hiAt = from, pos = Infinity, nan = 0, low = 0;
       for (let i = from; i < to; i++) {
         const v = values[i];
         if (v !== v) (nan = 1), (low = 1);
         else {
           if (!(v > 0)) low = 1;
+          else if (v < pos) pos = v;
           if (v < lo) (lo = v), (loAt = i);
           if (v > hi) (hi = v), (hiAt = i);
         }
       }
-      (at.first[k] = values[from]), (at.last[k] = values[to - 1]), (at.lo[k] = lo), (at.hi[k] = hi), (at.loAt[k] = loAt), (at.hiAt[k] = hiAt), (at.nan[k] = nan), (at.low[k] = low);
+      (at.first[k] = values[from]), (at.last[k] = values[to - 1]), (at.lo[k] = lo), (at.hi[k] = hi), (at.loAt[k] = loAt), (at.hiAt[k] = hiAt), (at.pos[k] = pos), (at.nan[k] = nan), (at.low[k] = low);
       return;
     }
     const below = this.levels[level - 1], a = 2 * k, b = a + 1;
@@ -52,6 +83,7 @@ export class Summary {
     at.last[k] = below.last[b];
     below.lo[b] < below.lo[a] ? ((at.lo[k] = below.lo[b]), (at.loAt[k] = below.loAt[b])) : ((at.lo[k] = below.lo[a]), (at.loAt[k] = below.loAt[a]));
     below.hi[b] > below.hi[a] ? ((at.hi[k] = below.hi[b]), (at.hiAt[k] = below.hiAt[b])) : ((at.hi[k] = below.hi[a]), (at.hiAt[k] = below.hiAt[a]));
+    at.pos[k] = below.pos[b] < below.pos[a] ? below.pos[b] : below.pos[a];
     at.nan[k] = below.nan[a] | below.nan[b];
     at.low[k] = below.low[a] | below.low[b];
   }

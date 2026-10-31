@@ -13,7 +13,6 @@ import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
 import { measure, measuring, painted } from "./recorder.js";
 
-const BLOCK = 64;
 /** A curved segment's control points, as #bend writes them (made once). */
 const BEND = new Float64Array(4);
 /** No dashes (made once). */
@@ -28,10 +27,6 @@ function periodOf(dash) {
   return dash.length % 2 ? 2 * sum : sum;
 }
 
-/**
- * A line's path as it's written: each y on a device pixel, and a run at one y one segment (a slow line, zoomed out, is
- * mostly runs: each a segment a pixel column, else). One for every line, drawn one after another.
- */
 /**
  * A line's path as it's written, for one of its colors (`pass`; -1: it has one): each point with its color and whether
  * the line stops after it, a segment drawn from a point in this pass's color to the next; each y on a device pixel, and
@@ -278,14 +273,7 @@ export class Line {
     this.version = 0;
     /** @type {Float64Array} */
     this.values = values;
-    // (Each block's lowest, highest and lowest above zero.)
-    /** @type {Float64Array} */
-    this.blockLo = new Float64Array(0);
-    /** @type {Float64Array} */
-    this.blockHi = new Float64Array(0);
-    /** @type {Float64Array} */
-    this.blockPos = new Float64Array(0);
-    /** Its values summed up by blocks, for drawing zoomed out (see summary.js). @type {Summary | null} */
+    /** Its values summed up by blocks, for drawing zoomed out and fitting (see summary.js). @type {Summary | null} */
     this.summary = null;
     this.setValues(values);
   }
@@ -295,9 +283,6 @@ export class Line {
     this.version++;
     this.values = values;
     this.summary = values.length >= 1 << FIRST ? new Summary(values) : null;
-    const blocks = Math.ceil(values.length / BLOCK);
-    if (this.blockLo.length !== blocks) (this.blockLo = new Float64Array(blocks)), (this.blockHi = new Float64Array(blocks)), (this.blockPos = new Float64Array(blocks));
-    for (let b = 0; b < blocks; b++) this.#block(b);
   }
 
   /** One value set in place (a live point), its block's extremes made again. @param {number} i @param {number} value */
@@ -305,7 +290,6 @@ export class Line {
     this.version++;
     this.values[i] = value;
     this.summary?.set(i);
-    this.#block(Math.floor(i / BLOCK));
   }
 
   /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
@@ -398,21 +382,6 @@ export class Line {
     (BEND[0] = x1 + (x2 - x0) / 6), (BEND[1] = y1 + (y2 - y0) / 6), (BEND[2] = x2 - (x3 - x1) / 6), (BEND[3] = y2 - (y3 - y1) / 6);
   }
 
-  /** @param {number} b */
-  #block(b) {
-    const values = this.values, end = Math.min(values.length, (b + 1) * BLOCK);
-    let lo = Infinity, hi = -Infinity, pos = Infinity;
-    for (let i = b * BLOCK; i < end; i++) {
-      const v = values[i];
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-      if (v > 0 && v < pos) pos = v;
-    }
-    this.blockLo[b] = lo;
-    this.blockHi[b] = hi;
-    this.blockPos[b] = pos;
-  }
-
   /**
    * A plain line (no colors, no breaks) zoomed out: each pixel column's run as #trace's, read from its summary's clean
    * blocks whole and its other points one by one, in one loop of its own (without a JIT, each call costs more than the
@@ -492,22 +461,33 @@ export class Line {
   }
 
   /**
-   * Its lowest and highest from index `a` to `b` (whole blocks read as kept, the ends point by point), written into
+   * Its lowest and highest from index `a` to `b` (its summary's largest whole blocks, the ends point by point), written into
    * `out` widened ([lo, hi]); `positive`: the lowest above zero.
    * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
    */
   extent(a, b, positive, out) {
-    const values = this.values, lows = positive ? this.blockPos : this.blockLo;
+    const values = this.values, levels = this.summary ? this.summary.levels : null;
     a = Math.max(0, a);
     b = Math.min(values.length - 1, b);
     let lo = out[0], hi = out[1], i = a;
     while (i <= b) {
-      if (i % BLOCK === 0 && i + BLOCK - 1 <= b) {
-        const k = i / BLOCK;
-        if (lows[k] < lo) lo = lows[k];
-        if (this.blockHi[k] > hi) hi = this.blockHi[k];
-        i += BLOCK;
-        continue;
+      // (The largest whole block starting at i and ending by b, as #plain reads them.)
+      if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
+        let size = Math.min(i ? i & -i : 1 << 30, 1 << (31 - Math.clz32(b - i + 1)));
+        for (; size >= 1 << FIRST; size >>= 1) {
+          const level = 31 - Math.clz32(size) - FIRST;
+          if (level >= levels.length) continue;
+          const at = levels[level], k = i >> (level + FIRST);
+          if (k >= at.lo.length) continue;
+          const low = positive ? at.pos[k] : at.lo[k];
+          if (low < lo) lo = low;
+          if (at.hi[k] > hi) hi = at.hi[k];
+          break;
+        }
+        if (size >= 1 << FIRST) {
+          i += size;
+          continue;
+        }
       }
       const v = values[i++];
       if (positive ? v > 0 && v < lo : v < lo) lo = v;
