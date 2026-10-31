@@ -1,8 +1,8 @@
 // @ts-check
 // Bars: a histogram from one column (a Float64Array on the timeline), each bar from `base` to its value, rounded at its
-// value's end where it's wide enough. Colored as a line is: one color, or `colors` (a Uint8Array of indices into
-// `palette`), each bar its own. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its point
-// farthest from the base, in that point's color: bars side by side, as they'd show.
+// value's end where it's wide enough. Colored as a line is: one color, or `colors` (a Uint8Array or Uint16Array of
+// indices into `palette`), each bar its own. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its
+// point farthest from the base, in that point's color: bars side by side, as they'd show.
 
 import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
@@ -15,7 +15,7 @@ const OWN = new Float64Array(2);
 export class Bars extends Line {
   /**
    * `radius`, its corners' at their value's end (a number, or one by the spacing of its points).
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | null, palette?: string[], radius?: number | ((spacing: number) => number) }} [options]
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number) }} [options]
    */
   constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2 } = {}) {
     // (No crosshair dot on bars.)
@@ -70,7 +70,7 @@ export class Bars extends Line {
    * Its bars from x `x0` to `x1` added to the path: those of color `pass` (by `colors`; none, all), each `pad` pixels
    * wider all round (an outline's).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | null} colors @param {number} pass @param {number} pad
+   * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | Uint16Array | null} colors @param {number} pass @param {number} pad
    */
   #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
     const values = this.values, n = values.length, log = scale.mode === "log";

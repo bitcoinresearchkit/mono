@@ -54,9 +54,9 @@ export class Band {
    * pane's top), a baseline's `belowFade` from `below` (at its base) to the pane's foot: gradients fixed to the pane,
    * so a pan moves them with its picture. None: one color.
    * `curve`: its edges bowed through their points (zoomed in), as a curved line is (its edge's line alike). `colors`
-   * (a Uint8Array of indices into `palette`, its fills: a color and what it fades to): each segment in its first point's
+   * (a Uint8Array or Uint16Array of indices into `palette`, its fills: a color and what it fades to): each segment in its first point's
    * (a band colored by another series), as a line's.
-   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | null, palette?: { color: string, fade?: string | null }[] }} options
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[] }} options
    */
   constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [] }) {
     /** @type {Float64Array} */
@@ -163,7 +163,7 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | null, palette?: { color: string, fade?: string | null }[] }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[] }} change
    */
   set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette }) {
     this.version++;

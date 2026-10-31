@@ -1,10 +1,11 @@
 // @ts-check
 // A line: its values as one column on the chart's timeline (a Float64Array, an index a time; NaN: none there, the line
-// broken), its color and width. Its lowest and highest kept a block of 64 points (a view's extremes read block by block),
-// the lowest above zero apart (a log scale's). Drawn point to point where a point has a pixel or more; zoomed out, each
-// pixel column as its first, low, high and last values (as many points as the column holds, drawn as the eye sees them).
-// `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a trend's flip, a
-// stretch begun anew). `colors` (a Uint8Array of indices into `palette`): each segment in its first point's color.
+// broken), its color and width. Its lowest and highest kept a block of 64 points (a view's extremes read block by
+// block), the lowest above zero apart (a log scale's). Drawn point to point where a point has a pixel or more; zoomed
+// out, each pixel column as its first, low, high and last values (as many points as the column holds, drawn as the eye
+// sees them). `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a
+// trend's flip, a stretch begun anew). `colors` (a Uint8Array or Uint16Array of indices into `palette`): each segment
+// in its first point's color.
 
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
@@ -121,7 +122,7 @@ const run = {
 
   /**
    * Written at `x`, if it has points; then begun again.
-   * @param {number} x @param {import("./scale.js").Scale} scale @param {Uint8Array | null} colors @param {Uint8Array | null} breaks
+   * @param {number} x @param {import("./scale.js").Scale} scale @param {Uint8Array | Uint16Array | null} colors @param {Uint8Array | null} breaks
    */
   end(x, scale, colors, breaks) {
     const { first, last, lo, hi } = this;
@@ -157,7 +158,7 @@ export class Line {
    * (its picture kept as it is otherwise); `curve`, bowed through its points (zoomed in), as the chart library's
    * curves (each segment's bend from its points' neighbors); `under`, its stroke in another color below a value (a
    * baseline's line: its color changing where it crosses its base).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
    */
   constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null, curve = false, under = null } = {}) {
     this.color = color;
@@ -229,7 +230,7 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
   setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, under = this.under }) {
     this.version++;
     (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.under = under);
@@ -545,7 +546,7 @@ export class Line {
   /**
    * Its points from `x0` to `x1`, written to the pen.
    * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {number} x0 @param {number} x1
-   * @param {Uint8Array | null} colors
+   * @param {Uint8Array | Uint16Array | null} colors
    */
   #trace(time, scale, x0, x1, colors) {
     const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log";

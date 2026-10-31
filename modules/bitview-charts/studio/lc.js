@@ -1012,22 +1012,23 @@ class Series {
       edge.setValues(this.columns);
       // (Rows with colors of their own (an area colored by another layer): its fills' palette (each row's top color and
       // what it fades to) and its edge's (each row's line color), the series' own first, each point an index into them.)
-      if (rows && rows.some((row) => row.topColor || row.lineColor)) {
-        const o = this.opts, fills = [{ color: o.topColor ?? engine.color, fade: o.bottomColor ?? null }], keys = [""], lines = [o.lineColor ?? edge.color];
-        const fillAt = new Uint8Array(times.length), lineAt = new Uint8Array(times.length);
+      if (rows && rows.some((row) => row.topColor || row.bottomColor || row.lineColor)) {
+        // (A row's missing color the series' own, each apart, as the chart library resolved them.)
+        const o = this.opts, top = o.topColor ?? engine.color, foot = o.bottomColor ?? null, fills = [{ color: top, fade: foot }], keys = [`${top}|${foot ?? ""}`], lines = [o.lineColor ?? edge.color];
+        const fillAt = new Uint16Array(times.length), lineAt = new Uint16Array(times.length);
         for (const row of rows) {
           const i = indexOf(times, Number(row.time));
           if (i < 0) continue;
-          if (row.topColor) {
-            const key = `${row.topColor}|${row.bottomColor ?? ""}`;
+          if (row.topColor || row.bottomColor) {
+            const color = row.topColor ?? top, fade = row.bottomColor ?? foot, key = `${color}|${fade ?? ""}`;
             let k = keys.indexOf(key);
-            if (k < 0) (k = keys.length), keys.push(key), fills.push({ color: row.topColor, fade: row.bottomColor ?? null });
-            fillAt[i] = Math.min(k, 255);
+            if (k < 0) (k = keys.length), keys.push(key), fills.push({ color, fade });
+            fillAt[i] = Math.min(k, 65535);
           }
           if (row.lineColor) {
             let k = lines.indexOf(row.lineColor);
             if (k < 0) (k = lines.length), lines.push(row.lineColor);
-            lineAt[i] = Math.min(k, 255);
+            lineAt[i] = Math.min(k, 65535);
           }
         }
         engine.set({ colors: fillAt, palette: fills });
@@ -1039,7 +1040,7 @@ class Series {
     // into it; a transparent one, a break. None: no palette, no breaks, as before.)
     if (engine instanceof Line) {
       if (rows && rows.some((row) => row.color)) {
-        const palette = [this.opts.color ?? this.opts.lineColor ?? engine.color], colors = new Uint8Array(times.length), breaks = new Uint8Array(times.length);
+        const palette = [this.opts.color ?? this.opts.lineColor ?? engine.color], colors = new Uint16Array(times.length), breaks = new Uint8Array(times.length);
         rows.forEach((row) => {
           const i = indexOf(times, Number(row.time));
           if (i < 0) return;
@@ -1047,7 +1048,7 @@ class Series {
           else if (row.color) {
             let k = palette.indexOf(row.color);
             if (k < 0) (k = palette.length), palette.push(row.color);
-            colors[i] = Math.min(k, 255);
+            colors[i] = Math.min(k, 65535);
           }
         });
         engine.setStyle({ colors, palette, breaks });
