@@ -130,6 +130,7 @@ export class Pane {
     this.drawnPlot = NaN;
     // (Its series' versions summed, and the theme, as drawn: either changed, its picture's stale.)
     this.drawnVersions = NaN;
+    this.drawnOvers = NaN;
     // (Its last picture drawn whole (not moved or stretched since), and that picture kept as a zoom began: where it
     // started, its spacing (NaN: none kept).)
     this.sharp = false;
@@ -481,13 +482,14 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
-    // (No more than half the room its shares leave: a small pane's range kept the right way up.)
-    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2;
-    if (above + below > free) {
-      const k = Math.max(0, free) / (above + below);
-      (above *= k), (below *= k);
+    if (auto) (scale.above = above), (scale.below = below);
+    // (No more than half the room its shares leave, its range set by hand too: a small pane's kept the right way up.)
+    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2, room = scale.above + scale.below;
+    if (room > free) {
+      const k = Math.max(0, free) / room;
+      (scale.above *= k), (scale.below *= k);
     }
-    if (auto) (scale.above = above), (scale.below = below), scale.fit(out[0], out[1]);
+    if (auto) scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
 
@@ -500,9 +502,13 @@ export class Pane {
    */
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
-    // (Its series over it drawn apart: theirs never stale its picture.)
-    let versions = 0, fixed = false;
-    for (let k = 0; k < this.series.length; k++) if (!this.series[k].over) (versions += this.series[k].version), (fixed ||= Boolean(this.series[k].fixed && !this.series[k].hidden));
+    // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
+    let versions = 0, overs = 0, fixed = false;
+    for (let k = 0; k < this.series.length; k++) {
+      const series = this.series[k];
+      if (series.over) overs += series.version;
+      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden));
+    }
     const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
@@ -512,7 +518,11 @@ export class Pane {
     if (slow && same && !moves && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
     const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && stretch >= 0.5 && stretch <= 2;
     if (moves) {
-      if (!by) return false;
+      if (!by) {
+        // (Its series over it changed: their tags on its axes drawn again, the plot as it is.)
+        if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
+        return false;
+      }
       // (What stays, copied to where it goes, in device pixels; then the strip come in.)
       const keep = (plot - Math.abs(by)) * dpr, h = this.canvas.height, from = by < 0 ? -by * dpr : 0, to = by > 0 ? by * dpr : 0;
       g.setTransform(1, 0, 0, 1, 0, 0);
@@ -543,7 +553,7 @@ export class Pane {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
       const from = this.#from(time);
-      if ((Math.floor(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged()) this.#axes(time, theme, dpr);
+      if (overs !== this.drawnOvers || ((Math.floor(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -551,6 +561,7 @@ export class Pane {
     this.drawnSpacing = spacing;
     this.drawnPlot = plot;
     this.drawnVersions = versions;
+    this.drawnOvers = overs;
     this.drawnTheme = theme;
     for (let k = 0; k < this.series.length; k++) this.drawnBases[k] = this.bases[k];
     return moves || stretches;
