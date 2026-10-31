@@ -7,7 +7,7 @@
 /** @typedef {"linear" | "log" | "percent" | "indexed"} ScaleMode */
 
 // (A log scale's ticks in a decade, the sparsest first, and each one's least gap (in decades): the densest with room.)
-const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
+const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
 const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
 
 export class Scale {
@@ -184,7 +184,7 @@ export class Scale {
    * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) `every` CSS
    * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale over a decade
    * or more, its powers of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2
-   * and 5; 2 to 6 and 8; all). None where it's empty.
+   * and 5; 2, 3 and 5; 2 to 6 and 8; all). None where it's empty.
    * @param {Float64Array} out @param {number} [every]
    */
   ticks(out, every = 28) {
