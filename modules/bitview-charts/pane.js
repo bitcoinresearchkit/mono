@@ -135,6 +135,8 @@ export class Pane {
     this.tagIndex = new Int32Array(8);
     /** Its series' own tags on the axis being drawn (a drawing's value). */
     this.pageTags = new Tags();
+    /** Each side's lines' tags as last drawn: each one's line and middle, and their height. @type {{ lines: Line[], at: Float64Array, step: number }[]} */
+    this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
     this.tagsTop = [0, 0];
     /** The view's last point as its axes were drawn (their tags read it). */
@@ -370,6 +372,13 @@ export class Pane {
     this.tickWriters[slot] = ticks;
     this.tickValues[slot] = new Float64Array(0);
     this.drawnFrom = NaN;
+  }
+
+  /** The line whose tag on its axis on `side` (0, the right; 1, the left) is at `y` (from its top), as last drawn; none, null. @param {number} side @param {number} y */
+  lineAt(side, y) {
+    const drawn = this.drawnTags[side];
+    for (let k = drawn.lines.length - 1; k >= 0; k--) if (Math.abs(drawn.at[k] - y) <= drawn.step / 2) return drawn.lines[k];
+    return null;
   }
 
   /** A side's tags kept under `top` (CSS pixels from its top: a page's legend over the pane). @param {number} top @param {"right" | "left"} [side] */
@@ -710,8 +719,14 @@ export class Pane {
     g.font = theme.font;
     g.textAlign = side ? "right" : "left";
     g.textBaseline = "middle";
+    // (Where each is drawn kept, for a point on one: see lineAt.)
+    const drawn = this.drawnTags[side];
+    drawn.lines.length = 0;
+    if (drawn.at.length < n) drawn.at = new Float64Array(n * 2);
+    drawn.step = step;
     for (let k = 0; k < n; k++) {
       const line = lines[order[k]], i = index[order[k]], y = at[k];
+      (drawn.lines[k] = line), (drawn.at[k] = y);
       const color = line.colorAt(i);
       g.fillStyle = color;
       g.beginPath();

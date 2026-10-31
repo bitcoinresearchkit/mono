@@ -343,9 +343,10 @@ export class Chart {
       for (let k = 0; k < this.panes.length - 1; k++) if (Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_MOUSE)) return k;
       return -1;
     };
+    // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
     const point = (/** @type {PointerEvent} */ event) => {
-      const box = element.getBoundingClientRect();
-      this.setCrosshair(time.index(event.clientX - box.left - this.left), event.clientY - box.top, true);
+      const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left;
+      this.setCrosshair(x >= 0 && x <= time.width ? time.index(x) : NaN, event.clientY - box.top, true);
     };
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
@@ -456,6 +457,20 @@ export class Chart {
       this.glide.speed = 0;
       this.invalidate();
     }, { passive: false, signal });
+  }
+
+  /**
+   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn), or null.
+   * @param {number} x @param {number} y
+   */
+  tagAt(x, y) {
+    for (const pane of this.panes) {
+      if (y < pane.top || y >= pane.top + pane.height) continue;
+      if (x >= this.left + pane.plot && x < this.left + pane.width) return pane.lineAt(0, y - pane.top);
+      if (x >= 0 && x < this.left) return pane.lineAt(1, y - pane.top);
+      return null;
+    }
+    return null;
   }
 
   /** Whether `target` is one of its canvases (a pane's plot or axes, the time axis). @param {EventTarget | null} target */

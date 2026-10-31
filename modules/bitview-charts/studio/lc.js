@@ -928,9 +928,11 @@ class Series {
 
   removePriceLine() {}
 
-  /** The patches' tag hit (none yet). @param {number} _x @param {number} _y */
-  bvTagHit(_x, _y) {
-    return false;
+  /** Whether a point (in the client's coordinates) is on its tag, as last drawn (LWC patch 51). @param {number} x @param {number} y */
+  bvTagHit(x, y) {
+    if (this.opts.visible === false) return false;
+    const box = this.chart.element.getBoundingClientRect(), line = this.chart.engine.tagAt(x - box.left, y - box.top);
+    return line !== null && (line === this.engine || line === this.edge);
   }
 }
 
