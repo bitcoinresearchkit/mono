@@ -33,13 +33,13 @@ const TAG = 18;
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
  * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be moved by a pan nor
- * stretched by a zoom (its dashes run from where its path starts: drawn whole as the view moves, kept as it is still);
- * `over`, drawn over everything, the crosshair too, on a layer of its own drawn whole each frame (its pane's picture
- * moved without it); `scaled: false`, not read on its side's scale (its grid by the other's); `fit`, how it widens its
- * scale's range in its place (a page's own reading: none of it, a fixed range, its own and 0; none given, its extent);
- * `margins`, room it keeps clear at its scale's ends (CSS pixels over and under the range, by the points' spacing: its
- * marks over bars). How far a point is from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's
- * top.
+ * stretched by a zoom (a curve's dashes run from where its path starts: drawn whole as the view moves, kept as it is
+ * still); `over`, drawn over everything, the crosshair too, on a layer of its own drawn whole each frame (its pane's
+ * picture moved without it); `scaled: false`, not read on its side's scale (its grid by the other's); `fit`, how it
+ * widens its scale's range in its place (a page's own reading: none of it, a fixed range, its own and 0; none given, its
+ * extent); `margins`, room it keeps clear at its scale's ends (CSS pixels over and under the range, by the points'
+ * spacing: its marks over bars). How far a point is from it: at index `i` (and `x` CSS pixels into the plot), `y` from
+ * the pane's top.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,

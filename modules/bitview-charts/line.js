@@ -19,6 +19,13 @@ const BEND = new Float64Array(4);
 /** No dashes (made once). */
 const SOLID = /** @type {number[]} */ ([]);
 
+/** A dash list's period: its sum, twice where it's odd (the canvas repeats it). @param {number[]} dash */
+function periodOf(dash) {
+  let sum = 0;
+  for (let k = 0; k < dash.length; k++) sum += dash[k];
+  return dash.length % 2 ? 2 * sum : sum;
+}
+
 /**
  * A line's path as it's written: each y on a device pixel, and a run at one y one segment (a slow line, zoomed out, is
  * mostly runs: each a segment a pixel column, else). One for every line, drawn one after another.
@@ -45,17 +52,47 @@ const pen = {
   py: 0,
   color: 0,
   cut: false,
-  /** @param {CanvasRenderingContext2D} g @param {number} dpr @param {number} pass */
-  start(g, dpr, pass) {
+  // (A dashed line's (see Line's #stroke): its dashes and their period (0: not kept), its path's length so far from its
+  // dash origin, and where its subpath began (each its own stroke; none yet: NaN); whether it's a ruler's (its length
+  // measured alone, nothing drawn: see Line's #anchor); the point whose vertex is written next (a point's own, zoomed
+  // in; a column's first run's, zoomed out), else -1; a ruler's asks: the length at point `seek`'s vertex (`found`),
+  // and at the first from point `from` on (`first`, its point `firstId`); the last written (`last`, its point
+  // `lastId`).)
+  dashes: SOLID,
+  period: 0,
+  length: 0,
+  since: NaN,
+  ruling: false,
+  id: -1,
+  seek: -1,
+  found: NaN,
+  from: 0,
+  first: NaN,
+  firstId: -1,
+  last: NaN,
+  lastId: -1,
+  /**
+   * Begun on `g`; dashed (`dashes`, their period `period`), its path `length` along from its dash origin where it
+   * starts.
+   * @param {CanvasRenderingContext2D} g @param {number} dpr @param {number} pass @param {number} [length] @param {number[]} [dashes] @param {number} [period]
+   */
+  start(g, dpr, pass, length = 0, dashes = SOLID, period = 0) {
     (this.g = g), (this.dpr = dpr), (this.pass = pass), (this.shown = null);
     (this.on = false), (this.has = false), (this.runX = NaN);
+    (this.dashes = dashes), (this.period = period), (this.length = length), (this.since = NaN), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1);
   },
   /** @param {number} x @param {number} y @param {number} color @param {boolean} cut */
   to(x, y, color, cut) {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
+    if (this.ruling) return void (this.measure(x, y), (this.has = true), (this.px = x), (this.py = y), (this.cut = cut));
+    // (A long dashed subpath ended where it's in a gap (nothing drawn there, so no join's missed): the canvas measures a
+    // subpath in single precision, its dashes drifting off ours along a long one (a zoomed-out line's runs, a pixel off
+    // its strips' over some thousands of pixels).)
+    if (this.on && this.period && this.length - this.since > 512 && this.gap()) this.close();
     if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
       if (!this.on) {
+        if (this.period) this.dash(g);
         g.moveTo(this.px, this.py);
         (this.on = true), (this.y = this.py), (this.runX = NaN);
       }
@@ -66,7 +103,38 @@ const pen = {
         (this.y = y), (this.runX = NaN);
       }
     } else this.close();
+    if (this.period) this.measure(x, y);
     (this.has = true), (this.px = x), (this.py = y), (this.color = color), (this.cut = cut);
+  },
+  /**
+   * A dashed subpath begun at the last point: the one before stroked (each its own stroke), its dashes from its dash
+   * origin, as far along the path as it starts.
+   * @param {CanvasRenderingContext2D} g
+   */
+  dash(g) {
+    if (this.since === this.since) g.stroke(), g.beginPath();
+    g.lineDashOffset = this.length % this.period;
+    this.since = this.length;
+  },
+  /** Whether the last point's in a gap between its dashes (the canvas's list repeated twice where it's odd). */
+  gap() {
+    const dashes = this.dashes;
+    let at = this.length % this.period;
+    if (at < 0) at += this.period;
+    for (let k = 0; k < 2 * dashes.length; k++) if ((at -= dashes[k % dashes.length]) < 0) return (k & 1) === 1;
+    return false;
+  },
+  /** The path's length to the point at `x`, `y` (from the last, where it's joined to it), a ruler's asks noted there. @param {number} x @param {number} y */
+  measure(x, y) {
+    if (this.has && !this.cut) {
+      const dx = x - this.px, dy = y - this.py;
+      this.length += Math.sqrt(dx * dx + dy * dy);
+    }
+    const id = this.id;
+    if (id < 0) return;
+    if (id === this.seek) this.found = this.length;
+    if (this.firstId < 0 && id >= this.from) (this.firstId = id), (this.first = this.length);
+    (this.lastId = id), (this.last = this.length);
   },
   /**
    * As to(), its segment from the last point a curve through two control points (CSS pixels).
@@ -132,6 +200,7 @@ const run = {
     if (first !== first) return;
     const color = colors ? colors[this.firstAt] : 0;
     pen.to(x, scale.y(first), color, false);
+    pen.id = -1;
     const low = lo < first && lo < last, high = hi > first && hi > last;
     if (low && high && this.hiAt < this.loAt) pen.to(x, scale.y(hi), color, false), pen.to(x, scale.y(lo), color, false);
     else {
@@ -151,8 +220,8 @@ export class Line {
    * dot that radius at each point (in its color there; ringed in its outline); `marker`, the crosshair's dot on it that
    * radius (ringed in the ground, 2 pixels; 0: none); `steps`, each value held to the next point (zoomed in: zoomed out,
    * a pixel column holds several points either way); `dash`, its stroke's dashes (CSS pixels, as setLineDash takes
-   * them; none, solid): dashes run along its path from where it starts, so its pane's drawn whole as the view moves
-   * (its picture kept as it is otherwise); `curve`, bowed through its points (zoomed in), as the chart library's
+   * them; none, solid): fixed to its path, so they move with it (curved, its pane's drawn whole as the view moves: its
+   * dashes from where its path starts); `curve`, bowed through its points (zoomed in), as the chart library's
    * curves (each segment's bend from its points' neighbors); `under`, its stroke in another color below a value (a
    * baseline's line: its color changing where it crosses its base).
    * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
@@ -178,6 +247,12 @@ export class Line {
     this.curve = curve;
     /** @type {{ value: number, color: string } | null} */
     this.under = under;
+    // (Its dashes' anchors: the first and last points its last draw drew (-1: none yet), its path's length at each from
+    // its dash origin.)
+    this.dashFirst = -1;
+    this.dashFirstAt = 0;
+    this.dashLast = -1;
+    this.dashLastAt = 0;
     // (Its stroke's style split at its under value, a color pass each, kept till it changes.)
     /** @type {Fill[]} */
     this.splits = [];
@@ -234,9 +309,9 @@ export class Line {
     if (format !== undefined) this.format = format && kept(format);
   }
 
-  /** What it draws can't move with a pan's picture (see Pane's draw): its dashes, from where its path starts. */
+  /** What it draws can't move with a pan's picture (see Pane's draw): a curve's dashes, from where its path starts. */
   get dashed() {
-    return this.dash !== null && this.stroke;
+    return this.dash !== null && this.stroke && this.curve && !this.steps;
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
@@ -346,6 +421,7 @@ export class Line {
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
       const end = Math.ceil(from + ((x + 1) * span) / width - NOISE), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
       start = end;
+      pen.id = a;
       let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a;
       while (i <= b) {
         // (The largest clean block starting at i and ending by b: as large as i's alignment and what's left allow.)
@@ -392,6 +468,7 @@ export class Line {
    */
   #run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log) {
     pen.to(x, bottom - k * ((log ? Math.log10(first) : first * m + c) - ta), 0, false);
+    pen.id = -1;
     const low = lo < first && lo < last, high = hi > first && hi > last;
     // (Flat: its one point written.)
     if (last === first && !low && !high) return;
@@ -453,7 +530,11 @@ export class Line {
     // what reaches in from beside it; dashed as asked.)
     const reach = Math.ceil((this.width * (this.outline ? 3 : 1)) / 2) + 1;
     (x0 -= reach), (x1 += reach);
-    if (this.dash) g.setLineDash(this.dash);
+    // (Dashed, each subpath's dashes as far along from its origin as it starts: a pan's strip draws the dashes its moved
+    // picture has (none of its points there, nothing to draw). Not a curve's: its length the canvas's own.)
+    const dash = this.dash, period = dash && !measuring && !(this.curve && !this.steps) ? periodOf(dash) : 0;
+    const phase = period > 0 && time.x(0) - 1 <= x1 && time.x(this.values.length - 1) + 1 >= x0 ? this.#anchor(g, time, scale, x0, x1, dpr, colors) : 0;
+    if (dash) g.setLineDash(dash);
     // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show);
     // dashed and colored, a color's segments at a time, as its strokes are, so their dashes start where theirs do.)
     if (this.outline) {
@@ -463,7 +544,7 @@ export class Line {
       const passes = this.dash && colors && !measuring ? this.palette.length : 0;
       for (let pass = passes ? 0 : -1; pass < passes; pass++) {
         g.beginPath();
-        pen.start(g, dpr, pass);
+        pen.start(g, dpr, pass, phase, dash ?? SOLID, period);
         this.#trace(time, scale, x0, x1, colors);
         pen.lift();
         g.stroke();
@@ -481,13 +562,44 @@ export class Line {
       const under = this.under, color = colors && measuring ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
       g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
       g.beginPath();
-      pen.start(g, dpr, pass);
+      pen.start(g, dpr, pass, phase, dash ?? SOLID, period);
       pen.shown = shown;
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
     }
-    if (this.dash) g.setLineDash(SOLID);
+    if (dash) g.setLineDash(SOLID), (g.lineDashOffset = 0);
+    if (period > 0) (this.dashLast = pen.lastId), (this.dashLastAt = pen.last);
+  }
+
+  /**
+   * Its path's length from its dash origin to the first point it draws from `x0` to `x1`: from the nearer of its last
+   * draw's first and last points (their lengths known), measured along its path as drawn now (a pan's, as before; a
+   * zoom's, carried on), that point its first from now. Both far (a jump, past two widths) or gone (a zoom out of its
+   * columns): begun there anew.
+   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | Uint16Array | null} colors
+   */
+  #anchor(g, time, scale, x0, x1, dpr, colors) {
+    // (Its first point drawn: the first of its own from where #trace begins.)
+    const from = time.spacing >= 1 ? Math.max(0, Math.floor(time.index(x0)) - 1) : Math.max(0, Math.ceil(time.index(Math.floor(x0) - 1) - NOISE));
+    const a = this.dashFirst, b = this.dashLast, ax = a >= 0 ? time.x(a) : Infinity, bx = b >= 0 ? time.x(b) : Infinity, nearer = Math.abs(ax - x0) <= Math.abs(bx - x0);
+    let origin = nearer ? a : b, ox = nearer ? ax : bx;
+    if (!(Math.abs(ox - x0) <= 2 * time.width)) (origin = -1), (ox = x0);
+    // (Measured from it to that point, on to the draw's end where there's none till then; within its points (a view
+    // far wider than its data has columns of none).)
+    const start = Math.max(Math.min(ox, x0), time.x(0) - 1), last = time.x(this.values.length - 1) + 1;
+    for (let k = 0; k < 2; k++) {
+      pen.start(g, dpr, -1);
+      (pen.ruling = true), (pen.seek = origin), (pen.from = from);
+      this.#trace(time, scale, start, Math.min(Math.max(ox, k ? x1 : x0), last), colors);
+      pen.lift();
+      if (pen.firstId >= 0) break;
+    }
+    if (pen.firstId < 0) return 0;
+    const at = origin >= 0 && pen.found === pen.found ? (nearer ? this.dashFirstAt : this.dashLastAt) + pen.first - pen.found : 0;
+    (this.dashFirst = pen.firstId), (this.dashFirstAt = at);
+    return at;
   }
 
   /**
@@ -535,9 +647,11 @@ export class Line {
         }
         const x = time.x(i), y = scale.y(v), color = colors ? colors[i] : 0, cut = breaks ? breaks[i] === 1 : false;
         if (this.steps && pen.has && !pen.cut) pen.to(x, pen.py, pen.color, false);
+        pen.id = i;
         // (Curved, not stepped: steps take it.)
         if (this.curve && !this.steps && pen.has && !pen.cut) this.#bend(i, time, scale, pen.px, pen.py, x, y), pen.curve(BEND[0], BEND[1], BEND[2], BEND[3], x, y, color, cut);
         else pen.to(x, y, color, cut);
+        pen.id = -1;
       }
       return;
     }
@@ -548,6 +662,7 @@ export class Line {
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
       const a = Math.max(0, Math.ceil(time.index(x) - NOISE)), b = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
       run.start();
+      pen.id = a;
       for (let i = a; i <= b; i++) {
         const v = values[i];
         if (log ? v > 0 : v === v) {
