@@ -173,6 +173,7 @@ function parsed(text) {
     else if (space === "display-p3") channels = rgb(fromXYZ(times(P3, [srgb(x), srgb(y), srgb(z)])));
     else if (space === "a98-rgb") channels = rgb(fromXYZ(times(A98, [x, y, z].map((v) => Math.sign(v) * Math.abs(v) ** (563 / 256)))));
     else if (space === "rec2020") {
+      // (Its curve as browsers draw it (Chromium's pixels match this one, 2026), not the 2.4 gamma CSS Color 4 moved to.)
       const f = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) < 0.081242858298635 ? Math.abs(v) / 4.5 : ((Math.abs(v) + 0.0992968268094) / 1.0992968268094) ** (1 / 0.45));
       channels = rgb(fromXYZ(times(REC2020, [f(x), f(y), f(z)])));
     } else if (space === "prophoto-rgb") {
