@@ -494,7 +494,7 @@ export class Chart {
     }, { signal });
     element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && this.setCrosshair(NaN), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
-      if (sizer === event.pointerId) return void stopSizing();
+      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing());
       const at = down.get(event.pointerId);
       if (!at || !down.delete(event.pointerId)) return;
       const pinched = twoFingers;
