@@ -596,6 +596,7 @@ impl Indexer {
                 inputs,
                 addresses,
                 outputs,
+                analyzed_outputs,
                 analyses,
                 ..
             } = &mut *buffers;
@@ -611,7 +612,14 @@ impl Indexer {
             let input_count = txins.len();
             let output_count = outputs.len();
 
-            processor.analyze_and_finalize_transactions(txs, outputs, txins, addresses, analyses);
+            processor.analyze_and_finalize_transactions(
+                txs,
+                outputs,
+                analyzed_outputs,
+                txins,
+                addresses,
+                analyses,
+            );
 
             processor
                 .lengths

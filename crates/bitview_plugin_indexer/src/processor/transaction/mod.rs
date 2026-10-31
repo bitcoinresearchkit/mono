@@ -65,16 +65,22 @@ impl<'a> BlockProcessor<'a> {
         Err(Error::Internal("Txid prefix collision"))
     }
 
-    /// Analyzes transactions, then finalizes outputs/inputs in parallel with metadata storage.
+    /// Finalizes outputs/inputs while, beside it, the transactions are analyzed and their metadata
+    /// stored. The analysis reads the outputs as resolved, before finalization rewrites them:
+    /// from a copy in `analyzed_outputs`.
     pub fn analyze_and_finalize_transactions(
         &mut self,
         txs: Vec<ComputedTx>,
         txouts: &mut [ProcessedOutput],
+        analyzed_outputs: &mut Vec<ProcessedOutput>,
         txins: &[InputSource],
         addresses: &mut BlockAddresses,
         analyses: &mut Vec<TransactionAnalysis>,
     ) {
-        self.analyze_transactions(&txs, txins, txouts, analyses);
+        analyzed_outputs.clear();
+        analyzed_outputs.extend_from_slice(txouts);
+        let analyzed_outputs = &*analyzed_outputs;
+        let block_first_tx_index = self.lengths.tx_index;
         let lengths = &mut *self.lengths;
         let base_txin_index = lengths.txin_index;
 
@@ -127,7 +133,17 @@ impl<'a> BlockProcessor<'a> {
                     txouts,
                 );
             },
-            || store_tx_metadata(height, txs, analyses, txid_prefixes, &mut tx_metadata),
+            || {
+                Self::analyze_transactions(
+                    height,
+                    block_first_tx_index,
+                    txs,
+                    txins,
+                    analyzed_outputs,
+                    analyses,
+                );
+                store_tx_metadata(height, txs, analyses, txid_prefixes, &mut tx_metadata)
+            },
         );
     }
 }
