@@ -375,7 +375,7 @@ export class Chart {
     }
     this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
-    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
+    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);

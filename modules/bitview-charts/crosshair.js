@@ -50,8 +50,9 @@ export class Crosshair {
    * Drawn for where it is now (nothing, if it's not shown).
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Pane[]} panes @param {number} room the panes' height
    * @param {number} left the left axis' width (the plot after it) @param {import("./pane.js").Theme} theme @param {number} dpr
+   * @param {import("./axis.js").TimeAxis} axis the time axis under it (its labels as drawn)
    */
-  draw(time, panes, room, left, theme, dpr) {
+  draw(time, panes, room, left, theme, dpr, axis) {
     const g = this.g, i = this.index;
     if (i !== i) {
       if (this.shown) g.setTransform(1, 0, 0, 1, 0, 0), g.clearRect(0, 0, this.canvas.width, this.canvas.height), (this.shown = false);
@@ -121,7 +122,14 @@ export class Crosshair {
     if (k >= 0 && k < times.length && x >= 0 && x <= plot) {
       // (Points less than a day apart (the last one's from the one before it): its time too.)
       const fine = times.length > 1 && (k < times.length - 1 ? times[k + 1] - times[k] : times[k] - times[k - 1]) < DAY;
-      pill(g, (fine ? this.fine : this.day)(times[k]), theme.badge, inkOn(theme.badge), x, room + 13, "center");
+      const words = (fine ? this.fine : this.day)(times[k]), half = g.measureText(words).width / 2 + 6;
+      // (The time axis' labels it touches covered with the ground: none shows cut beside it, as none shows under a tag.)
+      g.fillStyle = theme.background;
+      for (let n = 0; n < axis.drawnCount; n++) {
+        const at = axis.drawnX[n], reach = g.measureText(axis.drawnWords[n]).width / 2 + 2;
+        if (Math.abs(at - x) < half + reach) g.fillRect(at - reach, room, 2 * reach, axis.height);
+      }
+      pill(g, words, theme.badge, inkOn(theme.badge), x, room + 13, "center");
     }
   }
 }

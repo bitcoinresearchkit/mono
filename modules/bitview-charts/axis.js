@@ -53,6 +53,11 @@ export class TimeAxis {
     this.g = g;
     this.height = 0;
     this.width = 0;
+    /** Its labels as last drawn: each one's x and words, `drawnCount` of them (the crosshair's date covers those it touches). */
+    this.drawnX = new Float64Array(64);
+    /** @type {string[]} */
+    this.drawnWords = [];
+    this.drawnCount = 0;
     // (Each unit's labels: a month's start is its name among days, its year's among months.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
     // (A time of day as hours and minutes; midnight, its day.)
@@ -96,7 +101,7 @@ export class TimeAxis {
     g.fillStyle = theme.background;
     g.fillRect(0, 0, this.width, this.height);
     g.font = theme.font;
-    page.count = 0;
+    (page.count = 0), (this.drawnCount = 0);
     for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden) pane.series[k].timeTags?.(page.add);
     // (Each tag's half width, measured once a draw.)
     if (this.halves.length < page.count) this.halves = new Float64Array(page.count * 2);
@@ -160,7 +165,12 @@ export class TimeAxis {
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
         // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
         const when = own ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
-        if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(words ?? label(when), x, this.height / 2), (last = x), drawn++);
+        if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
+          const text = words ?? label(when);
+          g.fillText(text, x, this.height / 2);
+          if (this.drawnCount === this.drawnX.length) ((grown) => (grown.set(this.drawnX), (this.drawnX = grown)))(new Float64Array(this.drawnCount * 2));
+          (this.drawnX[this.drawnCount] = x), (this.drawnWords[this.drawnCount++] = text), (last = x), drawn++;
+        }
       }
       t = next;
     }
