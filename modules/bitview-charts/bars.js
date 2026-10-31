@@ -6,6 +6,7 @@
 
 import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
+import { measure } from "./recorder.js";
 
 /** A rounded rect's corners, at its value's end (top or bottom), made once and set at each draw. */
 const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
@@ -25,29 +26,13 @@ export class Bars extends Line {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane; `x` in the plot, past the data's ends) is from it at index `i`
-   * (Infinity: it has nothing there), on `scale` (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
+   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
+   * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
+   * relative). At index `i` the pane's nearest point (unread: its drawing has it).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
   distance(i, y, scale, x, time) {
-    // (As it's drawn: a value there, above zero on a log scale, from its base (the scale's low end where a log scale
-    // can't show its base).)
-    if (!(i >= 0 && i < this.values.length)) return Infinity;
-    const log = scale.mode === "log";
-    let v = this.values[i];
-    if (x !== undefined && x === x && time && time.spacing < 3) {
-      // (Zoomed out: its pixel column's bar as drawn, to its point farthest from its base.)
-      const a = Math.max(0, time.column(x)), b = Math.min(this.values.length - 1, time.columnEnd);
-      let most = -1;
-      for (let k = a; k <= b; k++) {
-        const w = this.values[k];
-        if ((log ? w > 0 : w === w) && Math.abs(w - this.base) > most) (most = Math.abs(w - this.base)), (v = w);
-      }
-      if (most < 0) return Infinity;
-    }
-    if (!(log ? v > 0 : v === v)) return Infinity;
-    const base = log && !(this.base > 0) ? scale.lo : this.base, top = scale.y(Math.max(v, base)), bottom = scale.y(Math.min(v, base));
-    return Math.hypot(x === undefined || !time || time.spacing < 3 ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
+    return measure(this, time, scale, x, y);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */

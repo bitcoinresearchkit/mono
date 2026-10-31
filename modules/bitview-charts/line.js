@@ -11,6 +11,7 @@ import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
 import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
+import { measure } from "./recorder.js";
 
 const BLOCK = 64;
 /** A curved segment's control points, as #bend writes them (made once). */
@@ -139,12 +140,6 @@ const run = {
     this.start();
   },
 };
-
-/** How far a point is from a segment. @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
-function toSegment(x, y, x0, y0, x1, y1) {
-  const dx = x1 - x0, dy = y1 - y0, length = dx * dx + dy * dy, t = length ? Math.min(1, Math.max(0, ((x - x0) * dx + (y - y0) * dy) / length)) : 0;
-  return Math.hypot(x - x0 - t * dx, y - y0 - t * dy);
-}
 
 export class Line {
   /**
@@ -283,92 +278,16 @@ export class Line {
   }
 
   /**
-   * How far a point (`x` across the plot, `y` in its pane: CSS pixels) is from it near index `i` (Infinity: it has
-   * nothing there), on `scale` (its base set already, where it's relative): from its point there and the segments drawn
-   * either side of it (past its last point, from that point: further as the pointer goes). Without `x`, its point's
-   * height alone.
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
+   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
+   * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
+   * relative). At index `i` the pane's nearest point (unread: its drawing has it).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
   distance(i, y, scale, x, time) {
-    // (Where it's drawn alone: in its data, a value there, above zero on a log scale.)
-    const values = this.values, log = scale.mode === "log", breaks = this.breaks;
-    const drawn = (/** @type {number} */ k) => k >= 0 && k < values.length && values[k] === values[k] && (!log || values[k] > 0);
-    if (!drawn(i)) return Infinity;
-    // (Zoomed out: as its columns are drawn.)
-    if (x !== undefined && x === x && time && time.spacing < 1) return this.#columnDistance(x, y, scale, time, i);
-    const yi = scale.y(values[i]);
-    if (x === undefined || x !== x || !time) return Math.abs(yi - y);
-    const xi = time.x(i);
-    let best = Math.hypot(x - xi, y - yi);
-    for (let k = i - 1; k <= i + 1; k += 2) {
-      if (!drawn(k) || (breaks && breaks[Math.min(i, k)])) continue;
-      const xk = time.x(k), yk = scale.y(values[k]);
-      if (this.curve && !this.steps && time.spacing >= 1) {
-        // (Its curve as drawn (zoomed in: zoomed out, its columns straight), measured at eight points along it.)
-        const ax = k < i ? xk : xi, ay = k < i ? yk : yi, bx = k < i ? xi : xk, by = k < i ? yi : yk;
-        this.#bend(Math.max(i, k), time, scale, ax, ay, bx, by);
-        let px = ax, py = ay;
-        for (let t = 1; t <= 8; t++) {
-          const s = t / 8, r = 1 - s, qx = r * r * r * ax + 3 * r * r * s * BEND[0] + 3 * r * s * s * BEND[2] + s * s * s * bx, qy = r * r * r * ay + 3 * r * r * s * BEND[1] + 3 * r * s * s * BEND[3] + s * s * s * by;
-          (best = Math.min(best, toSegment(x, y, px, py, qx, qy))), (px = qx), (py = qy);
-        }
-        continue;
-      }
-      if (!this.steps) {
-        best = Math.min(best, toSegment(x, y, xi, yi, xk, yk));
-        continue;
-      }
-      // (A step: flat at the earlier point's value to the later one's x, then straight to its value.)
-      const ax = k < i ? xk : xi, ay = k < i ? yk : yi, bx = k < i ? xi : xk, by = k < i ? yi : yk;
-      best = Math.min(best, toSegment(x, y, ax, ay, bx, ay), toSegment(x, y, bx, ay, bx, by));
-    }
-    return best;
+    return measure(this, time, scale, x, y);
   }
 
-  /**
-   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it as its columns are drawn zoomed out (a
-   * column's runs upright at its x, from their lowest to their highest; each run joined to the next one's first point,
-   * a column on, unless a gap or a break comes between), measured over the columns either side of the pointer's.
-   * And around the nearest point's own column (`i`: the pointer past the data's end), where that's further.
-   * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {number} i
-   */
-  #columnDistance(x, y, scale, time, i) {
-    const c = Math.floor(x), own = Math.floor(time.x(i) + NOISE), best = this.#columns(x, y, scale, time, c - 1, c + 1);
-    return Math.abs(own - c) > 2 ? Math.min(best, this.#columns(x, y, scale, time, own - 1, own + 1)) : best;
-  }
 
-  /**
-   * How far a point is from its drawing over pixel columns `from` to `to` (see #columnDistance).
-   * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {number} from @param {number} to
-   */
-  #columns(x, y, scale, time, from, to) {
-    const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log";
-    // (The last point drawn, a joint's start (NaN: none, after a gap or a break); the run in the column so far.)
-    let best = Infinity, joinX = NaN, joinY = NaN;
-    for (let col = from; col <= to; col++) {
-      const a = Math.max(0, time.column(col)), b = Math.min(n - 1, time.columnEnd);
-      let top = Infinity, bottom = -Infinity, lastY = NaN, count = 0;
-      for (let k = a; k <= b + 1; k++) {
-        const v = k <= b ? values[k] : NaN, ends = k > b || !(log ? v > 0 : v === v);
-        if (!ends) {
-          const vy = scale.y(v);
-          // (Its first in the run: joined to the last point drawn.)
-          if (lastY !== lastY && joinX === joinX) best = Math.min(best, toSegment(x, y, joinX, joinY, col, vy));
-          (top = Math.min(top, vy)), (bottom = Math.max(bottom, vy)), (lastY = vy), count++;
-        }
-        // (A run's end: at the column's end, a gap, or a break after its point.)
-        if (!ends && !(breaks !== null && breaks[k] === 1)) continue;
-        // (Its upright stroke, where it has two points or more: one alone draws nothing but its joints.)
-        if (count > 1) best = Math.min(best, toSegment(x, y, col, top, col, bottom));
-        // (Joined on from its last point at the column's end (an empty column: from the one before, as drawn); a gap or
-        // a break, not.)
-        if (k <= b) joinX = NaN;
-        else if (lastY === lastY) (joinX = col), (joinY = lastY);
-        (top = Infinity), (bottom = -Infinity), (lastY = NaN), (count = 0);
-      }
-    }
-    return best;
-  }
 
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {

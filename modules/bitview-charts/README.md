@@ -84,6 +84,8 @@ chart.show(365);                                 // the last 365 points in view
   frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
   placed in the plot); `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
+- Hits (`Pane.hit`, the crosshair's and clicks' series) are measured against each series' own drawing near the pointer
+  (recorder.js: a canvas stand-in keeping its strokes, fills and dots), so they match the picture at any zoom.
 
 ## How it draws
 

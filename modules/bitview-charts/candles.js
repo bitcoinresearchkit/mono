@@ -6,6 +6,7 @@
 
 import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
+import { measure } from "./recorder.js";
 
 /** A candle's parts, as #shapes draws them. */
 const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
@@ -80,29 +81,13 @@ export class Candles {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane; `x` in the plot, past the data's ends) is from it at index `i`
-   * (Infinity: it has nothing there), on `scale` (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
+   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
+   * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
+   * relative). At index `i` the pane's nearest point (unread: its drawing has it).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
   distance(i, y, scale, x, time) {
-    // (As it's drawn: a candle there, its close and low above zero on a log scale.)
-    if (!(i >= 0 && i < this.close.length)) return Infinity;
-    const log = scale.mode === "log", highs = this.highs.values, lows = this.lows.values, column = x !== undefined && x === x && time && time.spacing < 3;
-    let h = highs[i], l = lows[i];
-    if (column) {
-      // (Zoomed out: its pixel column as drawn, from its lowest low to its highest high.)
-      const a = Math.max(0, time.column(x)), b = Math.min(this.close.length - 1, time.columnEnd);
-      (h = -Infinity), (l = Infinity);
-      // (As drawn: an extreme missing skipped, not the column.)
-      for (let k = a; k <= b; k++) {
-        if (!(log ? this.close[k] > 0 && lows[k] > 0 : this.close[k] === this.close[k])) continue;
-        if (highs[k] > h) h = highs[k];
-        if (lows[k] < l) l = lows[k];
-      }
-      if (!(l <= h)) return Infinity;
-    } else if (!(log ? this.close[i] > 0 && l > 0 && h > 0 : this.close[i] === this.close[i] && h === h && l === l)) return Infinity;
-    const top = scale.y(h), bottom = scale.y(l);
-    return Math.hypot(column || x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
+    return measure(this, time, scale, x, y);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */

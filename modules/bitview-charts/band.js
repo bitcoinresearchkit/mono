@@ -1,6 +1,7 @@
 // @ts-check
 import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
+import { measure } from "./recorder.js";
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
 // the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
 // stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
@@ -106,25 +107,13 @@ export class Band {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane; `x` in the plot, past the data's ends) is from it at index `i`
-   * (Infinity: it has nothing there), on `scale` (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
+   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
+   * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
+   * relative). At index `i` the pane's nearest point (unread: its drawing has it).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
   distance(i, y, scale, x, time) {
-    // (As it's drawn: both edges there, above zero on a log scale.)
-    if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
-    const log = scale.mode === "log", edge = this.#edge(log);
-    if (x !== undefined && x === x && time && time.spacing < 1) {
-      // (Zoomed out, as filled: from the pointer's column's last point with both edges to the next column's, where no
-      // gap comes between them, its edges across at the pointer; none else (a column alone fills nothing).)
-      // (Either side of the pointer's column; and of the nearest point's, past the data's end, where that's further.)
-      const c = Math.floor(x), own = Math.floor(time.x(i) + NOISE), near = Math.min(this.#span(c - 1, x, y, scale, time, log, edge), this.#span(c, x, y, scale, time, log, edge));
-      return Math.abs(own - c) > 1 ? Math.min(near, this.#span(own - 1, x, y, scale, time, log, edge), this.#span(own, x, y, scale, time, log, edge)) : near;
-    }
-    const hi = this.upper[i], lo = edge ? hi : this.lower[i];
-    if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
-    const up = this.area && this.to === "top", top = up ? 0 : scale.y(edge ? hi : Math.max(lo, hi)), bottom = up ? scale.y(hi) : edge ? scale.height : scale.y(Math.min(lo, hi));
-    return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
+    return measure(this, time, scale, x, y);
   }
 
   /**
@@ -153,35 +142,7 @@ export class Band {
     (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
   }
 
-  /**
-   * How far a point (`x` in the plot, `y` in the pane) is from its fill between pixel columns `c` and `c + 1` as drawn
-   * zoomed out (from column c's last point with both edges to the next point it's joined to there: the last of the
-   * next column's first run, a gap not between them; Infinity: none), past its ends measured across too.
-   * @param {number} c @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {boolean} log @param {boolean} edge
-   */
-  #span(c, x, y, scale, time, log, edge) {
-    const from = this.#lastIn(c, time, log);
-    if (from < 0) return Infinity;
-    const gaps = this.#gaps(log), last = Math.min(this.lower.length, this.upper.length) - 1, a = Math.max(0, time.column(c + 1)), b = Math.min(last, time.columnEnd);
-    // (Joined to: the next column's points up to its first gap after `from`, its last of those.)
-    const to = Math.min(b, gaps[from] - 1);
-    if (to < a) return Infinity;
-    const t = Math.min(Math.max(x - c, 0), 1), u0 = scale.y(this.upper[from]), up = u0 + (scale.y(this.upper[to]) - u0) * t, l0 = edge ? 0 : scale.y(this.lower[from]);
-    const down = edge && this.to === "top" ? 0 : edge ? scale.height : l0 + (scale.y(this.lower[to]) - l0) * t;
-    const top = Math.min(up, down), bottom = Math.max(up, down);
-    return Math.hypot(x < c ? c - x : x > c + 1 ? x - c - 1 : 0, y < top ? top - y : y > bottom ? y - bottom : 0);
-  }
 
-  /**
-   * The last point with both edges in pixel column `c` (as filled zoomed out), or -1: none.
-   * @param {number} c @param {import("./timeline.js").Timeline} time @param {boolean} log
-   */
-  #lastIn(c, time, log) {
-    const lows = this.#edge(log) ? this.upper : this.lower, highs = this.upper, a = Math.max(0, time.column(c));
-    let k = Math.min(lows.length - 1, highs.length - 1, time.columnEnd);
-    while (k >= a && !(log ? lows[k] > 0 && highs[k] > 0 : lows[k] === lows[k] && highs[k] === highs[k])) k--;
-    return k >= a ? k : -1;
-  }
 
   /** Its next gap from each point (the length: none). @param {boolean} log */
   #gaps(log) {

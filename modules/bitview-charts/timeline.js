@@ -25,8 +25,6 @@ export class Timeline {
     this.rightOffset = rightOffset;
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
-    /** The last point of the pixel column column() last found. */
-    this.columnEnd = -1;
     this.minDataShare = minDataShare;
     /** A pan's part of a pixel, kept for the next. */
     this.rest = 0;
@@ -128,25 +126,7 @@ export class Timeline {
     return Math.round(x * dpr + 1e-6) / dpr;
   }
 
-  /**
-   * The points the pixel column at plot x `x` holds (zoomed out, as the series draw them: columns at whole pixels of
-   * the view): its first index returned, its last in `columnEnd` (either past the data where it is).
-   * @param {number} x
-   */
-  column(x) {
-    const c = Math.floor(x);
-    this.columnEnd = Math.ceil(this.index(c + 1) - NOISE) - 1;
-    return Math.ceil(this.index(c) - NOISE);
-  }
 
-  /**
-   * How far `x` (CSS pixels in the plot) is past point `i`'s column (half the spacing each side of it, a pixel at
-   * least): 0 within it. A hit's measure across, where the point under a pointer is clamped to the data's ends.
-   * @param {number} i @param {number} x
-   */
-  beyond(i, x) {
-    return Math.max(0, Math.abs(x - this.x(i)) - Math.max(this.spacing / 2, 1));
-  }
 
   /** A span (points) within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
   within(span) {
