@@ -154,8 +154,8 @@ export class Pane {
     this.tagLines = /** @type {Line[]} */ ([]);
     this.tagAt = new Int32Array(8);
     this.tagIndex = new Int32Array(8);
-    /** Its series' own tags on the axis being drawn (a drawing's value). */
-    this.pageTags = new Tags();
+    /** Its series' own tags on each side's axis (a drawing's value), as last drawn. */
+    this.pageTags = [new Tags(), new Tags()];
     /** Each side's lines' tags as last drawn: each one's line and middle, and their height. @type {{ lines: Line[], at: Float64Array, step: number }[]} */
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
@@ -635,7 +635,7 @@ export class Pane {
     const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8, slot = this.#slot(scale), texts = this.tickWriters[slot] ? this.#tickTexts(slot, count) : null;
     // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
     // 4 pixels: one touching a tag reads cramped against it).)
-    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags;
+    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
     page.count = 0;
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add);
     // (Each where it's drawn: within the pane.)
