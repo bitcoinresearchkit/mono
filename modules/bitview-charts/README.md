@@ -81,6 +81,11 @@ chart.show(365);                                 // the last 365 points in view
   edged; the largest drawn first; `halo`, ringed in it first.
 - `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
   where it holds), a point's slot reaching halfway to its neighbors in its color, a NaN value none; never fitted or hit.
+- `Grid({ edges, column, place, gradient })`: a heatmap's cells, a column a point (zoomed out, a block of points by
+  powers of two), each column's rows the page's (`column(i, step)`: bins and values, null till they come; then
+  `invalidate()`), its bins' bounds `edges`; a cell's color its `place(value)` along `gradient` (stops blended in OKLab,
+  `gradientTable` in color.js). Each column a strip made once and stretched into place; kept while the scale's
+  resolution stays within a power of two. Never fitted or hit.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range

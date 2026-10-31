@@ -25,6 +25,7 @@ export { Bars } from "./bars.js";
 export { Candles } from "./candles.js";
 export { Bubbles } from "./bubbles.js";
 export { Shade } from "./shade.js";
+export { Grid } from "./grid.js";
 export { stack } from "./stack.js";
 export { Custom } from "./custom.js";
 export { picture } from "./picture.js";
