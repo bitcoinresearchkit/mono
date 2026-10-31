@@ -1242,6 +1242,8 @@ class Marks {
     this.at = new Int32Array(0);
     /** How far past its point a mark reaches (its words' half, a shape's), for a strip's. */
     this.reach = 15;
+    /** The marks with words a draw found (each its index and its words' y), drawn after all their shapes (made once, grown). */
+    this.said = new Float64Array(0);
     /** Whether it has marks above bars, below them, in them, and words (its room at the scale's ends: see room). */
     this.over = false;
     this.under = false;
@@ -1338,8 +1340,10 @@ class Marks {
     const theme = chart.engine.theme, tall = 16;
     g.font = theme.font;
     g.textBaseline = "middle";
-    // (Several at one point: each one further from it, above and below apart.)
-    let point = -1, above = 0, below = 0;
+    // (Several at one point: each one further from it, above and below apart. Their words after all their shapes: each
+    // readable where marks crowd (a narrow screen's), a neighbor's arrow under a pill rather than over its words.)
+    let point = -1, above = 0, below = 0, said = 0;
+    if (this.said.length < n * 2) this.said = new Float64Array(n * 2);
     for (let k = 0; k < n; k++) {
       const i = at[k], mark = list[k];
       if (i < 0) continue;
@@ -1357,8 +1361,7 @@ class Marks {
       } else (y = scale.y(values[i])), (textY = y + half + 2 + tall / 2);
       const x = time.x(i);
       if (y !== y || x < x0 - this.reach || x > x1 + this.reach) continue;
-      // (Its words in a pill of the ground, edged in its color: read over any line, the chart's one pill shape.)
-      if (mark.text) pill(g, mark.text, theme.background, mark.textColor ?? mark.color, x, textY, "center", tall, mark.textColor ?? mark.color);
+      if (mark.text) (this.said[said * 2] = k), (this.said[said * 2 + 1] = textY), said++;
       if (!size) continue;
       g.fillStyle = mark.color;
       g.beginPath();
@@ -1377,6 +1380,11 @@ class Marks {
         g.closePath();
       }
       g.fill();
+    }
+    // (Its words in a pill of the ground, edged in its color: read over any line, the chart's one pill shape.)
+    for (let s = 0; s < said; s++) {
+      const k = this.said[s * 2], mark = list[k], color = mark.textColor ?? mark.color;
+      pill(g, mark.text, theme.background, color, time.x(at[k]), this.said[s * 2 + 1], "center", tall, color);
     }
   }
 }
