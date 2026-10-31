@@ -221,28 +221,81 @@ function winding(fills, from, to, x, y) {
 }
 
 /**
- * Whether a fill's edge (at `k` in fills) is retraced by its other edges the other way, all along it (a shape that
- * encloses nothing there: a bar at its base, a band its edges together, a curved area flat on its base, its curve's
- * pieces against its base's one edge), so bounds no paint: the reversed edges on its line (within a millionth of a
- * pixel) covering its length.
+ * The parts of a fill's edge (at `k` in fills) not retraced by its other edges the other way (where it encloses
+ * nothing: a bar at its base, a band its edges together, a curved area flat on its base, a stepped stack's transitions
+ * across the gap between bands): written to PIECES as from, to (0 to 1 along it), their count returned. Retraced: the
+ * reversed edges on its line (within a millionth of a pixel) covering it there.
  * @param {Float64Array} fills @param {number} from @param {number} to @param {number} k
  */
-function retraced(fills, from, to, k) {
+function uncovered(fills, from, to, k) {
   const x0 = fills[k], y0 = fills[k + 1], dx = fills[k + 2] - x0, dy = fills[k + 3] - y0, length = Math.hypot(dx, dy);
-  if (!(length > 1e-9)) return true;
+  if (!(length > 1e-9)) return 0;
   const ux = dx / length, uy = dy / length;
-  let covered = 0;
+  let n = 0;
   for (let j = from * 4; j < to * 4; j += 4) {
     if (j === k) continue;
     const ax = fills[j] - x0, ay = fills[j + 1] - y0, bx = fills[j + 2] - x0, by = fills[j + 3] - y0;
     // (On its line (both ends within a millionth of a pixel of it), the other way.)
     if (Math.abs(ax * uy - ay * ux) > 1e-6 || Math.abs(bx * uy - by * ux) > 1e-6) continue;
-    const a = ax * ux + ay * uy, b = bx * ux + by * uy;
-    if (b >= a) continue;
-    covered += Math.max(0, Math.min(length, a) - Math.max(0, b));
+    const a = (ax * ux + ay * uy) / length, b = (bx * ux + by * uy) / length;
+    if (!(b < a && b < 1 && a > 0)) continue;
+    if (n + 2 > covers.length) covers = grown(covers);
+    (covers[n++] = Math.max(0, b)), (covers[n++] = Math.min(1, a));
   }
-  return covered >= length - 1e-6;
+  // (The covered stretches in order; what's between them its pieces.)
+  for (let p = 2; p < n; p += 2)
+    for (let q = p; q > 0 && covers[q] < covers[q - 2]; q -= 2) {
+      const a = covers[q], b = covers[q + 1];
+      (covers[q] = covers[q - 2]), (covers[q + 1] = covers[q - 1]), (covers[q - 2] = a), (covers[q - 1] = b);
+    }
+  while (pieces.length < n + 2) pieces = grown(pieces);
+  let count = 0, at = 0;
+  for (let p = 0; p < n; p += 2) {
+    if (covers[p] > at + 1e-9) (pieces[count++] = at), (pieces[count++] = covers[p]);
+    at = Math.max(at, covers[p + 1]);
+  }
+  if (at < 1 - 1e-9) (pieces[count++] = at), (pieces[count++] = 1);
+  return count / 2;
 }
+
+/**
+ * How far a point is from a piece of a fill's edge on its clip's border (`a` to `b` along it, `at` across it: a
+ * horizontal border's y (`flat`), else a vertical one's x), its parts the fill paints just inside the clip (`inward`, the
+ * way in) alone: a baseline's base, where its over color paints over it and not where its edge has crossed under. Its
+ * paint there changes only where its other edges cross that line.
+ * @param {Float64Array} fills @param {number} from @param {number} to @param {number} x @param {number} y @param {boolean} flat
+ * @param {number} at @param {number} inward @param {number} a @param {number} b
+ * @param {number} bx0 @param {number} by0 @param {number} bx1 @param {number} by1
+ */
+function bordering(fills, from, to, x, y, flat, at, inward, a, b, bx0, by0, bx1, by1) {
+  const lo = Math.min(a, b), hi = Math.max(a, b), line = at + inward;
+  let n = 0;
+  splits[n++] = lo;
+  for (let j = from * 4; j < to * 4; j += 4) {
+    const p0 = flat ? fills[j + 1] : fills[j], p1 = flat ? fills[j + 3] : fills[j + 2];
+    if (p0 > line === p1 > line) continue;
+    const q0 = flat ? fills[j] : fills[j + 1], q = q0 + ((line - p0) * ((flat ? fills[j + 2] : fills[j + 3]) - q0)) / (p1 - p0);
+    if (!(q > lo && q < hi)) continue;
+    if (n + 2 > splits.length) splits = grown(splits);
+    splits[n++] = q;
+  }
+  splits[n++] = hi;
+  for (let p = 1; p < n; p++)
+    for (let q = p; q > 0 && splits[q] < splits[q - 1]; q--) {
+      const v = splits[q];
+      (splits[q] = splits[q - 1]), (splits[q - 1] = v);
+    }
+  let best = Infinity;
+  for (let p = 0; p + 1 < n; p++) {
+    const s0 = splits[p], s1 = splits[p + 1], m = (s0 + s1) / 2;
+    if (!(s1 - s0 > 1e-9) || winding(fills, from, to, flat ? m : line, flat ? line : m) === 0) continue;
+    best = Math.min(best, flat ? clipped(x, y, s0, at, s1, at, bx0, by0, bx1, by1) : clipped(x, y, at, s0, at, s1, bx0, by0, bx1, by1));
+  }
+  return best;
+}
+
+/** An edge's covered stretches, its uncovered pieces (uncovered() writes them), a border piece's splits (bordering()): grown, never made again. */
+let covers = new Float64Array(64), pieces = new Float64Array(64), splits = new Float64Array(64);
 
 /**
  * How far a point is from a segment's part within a box (Liang and Barsky's clipping; none in it: Infinity).
@@ -304,8 +357,19 @@ export function measure(series, time, scale, x, y, reach = 8) {
       best = Math.min(best, Math.hypot(x - qx, y - qy));
       continue;
     }
-    // (Its edges, but those it retraces: there it encloses nothing, paints nothing.)
-    for (let k = from * 4; k < to * 4; k += 4) if (!retraced(fills, from, to, k)) best = Math.min(best, clipped(x, y, fills[k], fills[k + 1], fills[k + 2], fills[k + 3], bx0, by0, bx1, by1));
+    // (Its edges' parts it doesn't retrace (there it encloses nothing, paints nothing); on its clip's border, those
+    // it paints within the clip.)
+    for (let k = from * 4; k < to * 4; k += 4) {
+      const x0 = fills[k], y0 = fills[k + 1], dx = fills[k + 2] - x0, dy = fills[k + 3] - y0, count = uncovered(fills, from, to, k);
+      for (let p = 0; p < count * 2; p += 2) {
+        const ax = x0 + dx * pieces[p], ay = y0 + dy * pieces[p], bx = x0 + dx * pieces[p + 1], by = y0 + dy * pieces[p + 1];
+        const d =
+          ay === by && (ay === by0 || ay === by1) ? bordering(fills, from, to, x, y, true, ay, ay === by0 ? 1e-3 : -1e-3, ax, bx, bx0, by0, bx1, by1)
+          : ax === bx && (ax === bx0 || ax === bx1) ? bordering(fills, from, to, x, y, false, ax, ax === bx0 ? 1e-3 : -1e-3, ay, by, bx0, by0, bx1, by1)
+          : clipped(x, y, ax, ay, bx, by, bx0, by0, bx1, by1);
+        best = Math.min(best, d);
+      }
+    }
     inside ||= qx === x && qy === y && winding(fills, from, to, x, y) !== 0;
   }
   for (let k = 0; k < dotCount * 3; k += 3) best = Math.min(best, Math.max(0, Math.hypot(x - dots[k], y - dots[k + 1]) - dots[k + 2]));
