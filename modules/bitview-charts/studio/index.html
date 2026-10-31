@@ -16972,7 +16972,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const [, , downPosition, downShape] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
           const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), down = alpha(ink(belowOf(layer)), op), list = marked.get(on) ?? marked.set(on, []).get(on);
           for (const change of changesOf(values)) {
-            const i = change.at, result = layer.results ? stretchResult(change, own) : undefined, text = result === undefined ? {} : { text: resultText(result) };
+            // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark.)
+            const i = change.at, result = layer.results ? stretchResult(change, own) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
             if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
             if (change.to > 0 && !shade) list.push({ time: data.times[i], position, shape, color, id: layer.id, ...text });
             else if (change.to < 0 && !shade) list.push({ time: data.times[i], position: downPosition, shape: downShape, color: down, id: layer.id, ...text });

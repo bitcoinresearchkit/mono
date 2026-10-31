@@ -1228,8 +1228,8 @@ const odd = (x) => ((n) => (n % 2 ? n : n - 1))(Math.ceil(x)), even = (/** @type
  * A series' marks (the chart library's markers plugin: Studio's signals' marks), drawn over its pane's series as the
  * plugin drew them, to its sizes: each at its date, above its point (its candle's high), below it (its low), or on it;
  * an arrow, a circle or a square, as tall as a point is wide (12 to 30 pixels; times its `size`), several at one point
- * stacked away from it; its words (`text`) past it, in a pill of the chart's ground edged in its color (read over any
- * line; the plugin's, edged in a halo: patch 47). In the strips a pan draws, those whose shape or words reach in.
+ * stacked away from it; its words (`text`) past it, in a pill of the chart's ground edged in its color, or their own
+ * (`textColor`: a result's sign's) (read over any line; the plugin's, edged in a halo: patch 47). In the strips a pan draws, those whose shape or words reach in.
  */
 class Marks {
   /** @param {Series} series @param {any[]} list */
@@ -1351,7 +1351,7 @@ class Marks {
       const x = time.x(i);
       if (y !== y || x < x0 - this.reach || x > x1 + this.reach) continue;
       // (Its words in a pill of the ground, edged in its color: read over any line, the chart's one pill shape.)
-      if (mark.text) pill(g, mark.text, theme.background, mark.color, x, textY, "center", tall, mark.color);
+      if (mark.text) pill(g, mark.text, theme.background, mark.textColor ?? mark.color, x, textY, "center", tall, mark.textColor ?? mark.color);
       if (!size) continue;
       g.fillStyle = mark.color;
       g.beginPath();
