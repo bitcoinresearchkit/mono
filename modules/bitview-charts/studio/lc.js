@@ -8,7 +8,7 @@
 // and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint), primitives' axis
 // tags (its drawings' values, a profile's shares) and price lines.
 
-import { createChart as make, picture, compact, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
+import { createChart as make, picture, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
 
 export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
@@ -27,13 +27,6 @@ export function createChart(element, options = {}) {
 const OWN = { priceRange: null }, original = () => OWN;
 /** A fit adding nothing (an edge: its series fitted by its band). */
 const NOTHING = () => {};
-
-/** `b` merged into `a`, the objects in them too (as the chart library merged its options). @param {any} a @param {any} b @returns {any} */
-function merged(a, b) {
-  const out = { ...a };
-  for (const [key, value] of Object.entries(b ?? {})) out[key] = value && typeof value === "object" && !Array.isArray(value) && a?.[key] && typeof a[key] === "object" ? merged(a[key], value) : value;
-  return out;
-}
 
 /** The index of `time` in rising `times`, or -1 (exact), or the nearest one each way (`mismatch`). @param {Float64Array | number[]} times @param {number} time @param {number} [mismatch] */
 function indexOf(times, time, mismatch = 0) {
@@ -56,7 +49,6 @@ class Chart {
     this.element = document.createElement("div");
     Object.assign(this.element.style, { width: options.width ? `${options.width}px` : "100%", height: options.height ? `${options.height}px` : "100%" });
     element.append(this.element);
-    this.options = merged({}, options);
     // (Its look, its time scale's room and spacing, its dates' words: the page's, set on the library.)
     this.engine = make(this.element);
     /** @type {Pane[]} */
@@ -68,20 +60,8 @@ class Chart {
     this.dirty = false;
   }
 
-  /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
-  #percents(pane) {
-    const local = this.options.localization ?? {};
-    if (local.percentageFormatter) pane.engine.setPercentFormat(local.percentageFormatter, local.tickmarksPercentageFormatter ?? null);
-  }
-
   // ── What Studio calls ──
 
-  /** @param {any} options */
-  applyOptions(options) {
-    this.options = merged(this.options, options);
-    if (options.localization) for (const pane of this.panesList) this.#percents(pane);
-    this.engine.invalidate(true);
-  }
 
   /** @param {any} type @param {any} options @param {number} [pane] */
   addSeries(type, options = {}, pane = 0) {
@@ -134,7 +114,6 @@ class Chart {
   #pane(index) {
     while (this.panesList.length <= index) {
       const pane = new Pane(this, this.engine.addPane({ scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } }));
-      this.#percents(pane);
       this.panesList.push(pane);
     }
     return this.panesList[index];
@@ -166,7 +145,7 @@ class Chart {
     const times = this.engine.time.times, fresh = times !== this.times;
     this.times = times;
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
-    for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.formats();
+    for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange();
     this.engine.invalidate(fresh);
   }
 }
@@ -180,10 +159,8 @@ class Pane {
     this.list = [];
     /** @type {Record<string, PriceScale>} */
     this.scales = {};
-    /** A series of its pushed since its stack was set. */
+    /** A series of its pushed (or ordered) since its series were arranged. */
     this.dirty = false;
-    /** Each side's priceFormat as last given the library. @type {Record<string, any>} */
-    this.written = {};
     /**
      * Its series' primitives' views under every series, and over everything (the crosshair too: the library's layer
      * over the pane, drawn whole each frame, as their labels and handles keep to the plot), once one's attached.
@@ -279,18 +256,6 @@ class Pane {
     return (this.scales[id] ??= new PriceScale(this, id));
   }
 
-  /**
-   * Its sides' writers, as the chart library's were: each scale's its first series' (its priceFormat's, a value's and its
-   * ticks'); none, the library's own.
-   */
-  formats() {
-    for (const side of /** @type {const} */ (["right", "left"])) {
-      const format = this.list.find((series) => series.opts.priceScaleId === side)?.opts.priceFormat, was = this.written[side];
-      if (was === format) continue;
-      this.written[side] = format;
-      this.engine.setFormat(format?.formatter ?? compact, format?.tickmarksFormatter ?? null, side);
-    }
-  }
 }
 
 class PriceScale {
@@ -443,7 +408,6 @@ class Series {
     // (Pushed again only where its push reads what changed (its place in a stack): a look alone is set (Studio's
     // bubbles' sizes, as the view moves, a spotlight's fading); a pane's writers or stack set again; shown or hidden,
     // drawn whole.)
-    if ("priceFormat" in options) this.pane.dirty = true;
     if ("visible" in options) this.chart.engine.invalidate(true);
     this.chart.changed();
   }

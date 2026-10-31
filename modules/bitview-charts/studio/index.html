@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Marks, DARK, channels, FAINT } from "/modules/bitview-charts/index.js";
+      import { Marks, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -16247,12 +16247,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
       }
-      /** What the facade still reads of the chart's options: how its percent scales write values. */
-      function chartOptions() {
-        return {
-          localization: { percentageFormatter: (/** @type {number} */ value) => precise(value, "%"), tickmarksPercentageFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%") },
-        };
-      }
+      /**
+       * How a pane's values are written, its tags' and its ticks': as values, or a 100% stack's in percent, 0 to 100 (none
+       * past it: the margin over the top stays blank). (Its ticks short; its latest's tag and the crosshair's, a digit or
+       * so more: see precise.)
+       */
+      const VALUE_FORMAT = { formatter: (/** @type {number} */ value) => precise(value), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values) };
+      const SHARE_FORMAT = { formatter: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
+      /** How a % or indexed scale writes its changes: in percent. */
+      const PERCENT_FORMAT = { formatter: (/** @type {number} */ value) => precise(value, "%"), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%") };
 
       /**
        * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
@@ -16270,7 +16273,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       })().catch(() => false);
       // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
       // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
-      const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
+      const view = LC.createChart($("chart"), { width: $("chart").clientWidth, height: $("chart").clientHeight });
       /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
       const engine = view.engine;
       engine.theme = chartTheme();
@@ -17108,11 +17111,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             lastValueVisible: false,
             priceLineVisible: false,
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
-            // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
-            // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see precise.)
-            priceFormat: shares.has(layer.pane)
-              ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
-              : { type: /** @type {const} */ ("custom"), formatter: (value) => precise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
+            priceFormat: shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT,
           };
           layerFormats.set(layer.id, common.priceFormat.formatter);
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
@@ -17362,9 +17361,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
           // nothing: it has nothing shown.)
+          // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
+          // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
+          const format = shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
+          panes[i].setPercentFormat(PERCENT_FORMAT.formatter, PERCENT_FORMAT.tickmarksFormatter);
           for (const side of /** @type {const} */ (["left", "right"])) {
             panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
             if (!keep) panes[i].setRange(undefined, undefined, side);
+            const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
+            panes[i].setFormat(used ? format.formatter : libraryWords, used ? format.tickmarksFormatter : null, side);
           }
         });
         // (Its right axis where a layer is on that side; none, the plots to the chart's right edge.)
