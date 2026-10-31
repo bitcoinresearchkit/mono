@@ -138,8 +138,8 @@ export class Pane {
     // (Its series' versions summed, and the theme, as drawn: either changed, its picture's stale.)
     this.drawnVersions = NaN;
     this.drawnOvers = NaN;
-    /** Which of its series were shown when drawn, as a signature (a series hidden or shown: a change under a still pointer). */
-    this.drawnShown = NaN;
+    /** Which of its series were hidden when drawn, one each (a series hidden or shown: a change under a still pointer). */
+    this.drawnHidden = new Uint8Array(0);
     /** How many times its scale or series have changed as drawn (see draw): a still pointer's hits read again then. */
     this.changes = 0;
     // (Its last picture drawn whole (not moved or stretched since), and that picture kept as a zoom began: where it
@@ -517,17 +517,17 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, shown = 0;
+    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, shown = this.drawnHidden.length === this.series.length;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
-      if (!series.hidden) shown = (shown * 31 + k + 1) | 0;
+      if (shown && this.drawnHidden[k] !== (series.hidden ? 1 : 0)) shown = false;
       // (Brought up to the view first: what it draws may hang on it (bubbles sized to the largest in view).)
       if (!series.hidden) series.viewed?.(time);
       if (series.over) overs += series.version;
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
     }
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
-    if (versions !== this.drawnVersions || overs !== this.drawnOvers || shown !== this.drawnShown || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
+    if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
     const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
@@ -582,7 +582,7 @@ export class Pane {
     this.drawnPlot = plot;
     this.drawnVersions = versions;
     this.drawnOvers = overs;
-    this.drawnShown = shown;
+    if (!shown) this.drawnHidden = Uint8Array.from(this.series, (series) => (series.hidden ? 1 : 0));
     this.drawnTheme = theme;
     for (let k = 0; k < this.series.length; k++) this.drawnBases[k] = this.bases[k];
     return moves || stretches;

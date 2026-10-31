@@ -2,7 +2,9 @@
 import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
 import { measure } from "./recorder.js";
-import { Line } from "./line.js";
+
+/** Points a block of a band's fitting extremes. */
+const FIT = 64;
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
 // the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
 // stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
@@ -99,7 +101,7 @@ export class Band {
     this.logGaps = null;
     this.gapsVersion = -1;
     // (Its edges' lines for fitting (see #fitted), any scale's and a log one's, and the version they're of.)
-    /** @type {[[Line, Line] | null, [Line, Line] | null]} */
+    /** @type {[{ lows: Float64Array, highs: Float64Array, low: Float64Array, high: Float64Array } | null, { lows: Float64Array, highs: Float64Array, low: Float64Array, high: Float64Array } | null]} */
     this.fits = [null, null];
     this.fitVersion = -1;
   }
@@ -196,27 +198,45 @@ export class Band {
    * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
    */
   extent(a, b, positive, out) {
-    const [lows, highs] = this.#fitted(positive);
-    lows.extent(a, b, false, out);
-    highs.extent(a, b, false, out);
+    const { lows, highs, low, high } = this.#fitted(positive), n = lows.length;
+    a = Math.max(0, a);
+    b = Math.min(n - 1, b);
+    let lo = out[0], hi = out[1], i = a;
+    while (i <= b) {
+      // (A whole block, its kept extremes; else point by point.)
+      if (i % FIT === 0 && i + FIT - 1 <= b) {
+        const k = i / FIT;
+        if (low[k] < lo) lo = low[k];
+        if (high[k] > hi) hi = high[k];
+        i += FIT;
+        continue;
+      }
+      if (lows[i] < lo) lo = lows[i];
+      if (highs[i] > hi) hi = highs[i];
+      i++;
+    }
+    (out[0] = lo), (out[1] = hi);
   }
 
   /**
    * Its low and high edges where it's drawn (both edges there, above zero on a log scale (`positive`); either edge the
-   * lower: a band crossing), as lines: their extents read block by block (a stationary frame's fit no scan of every
-   * point). Made at the first fit of a version, each kind.
+   * lower: a band crossing), and each block of FIT points' lowest and highest: its extent read block by block (a
+   * stationary frame's fit no scan of every point). Made at the first fit of a version, each kind; its edges changed in
+   * place, set() tells it (as a line's set()).
    * @param {boolean} positive
    */
   #fitted(positive) {
     if (this.fitVersion !== this.version) (this.fitVersion = this.version), (this.fits = [null, null]);
     const k = positive ? 1 : 0, had = this.fits[k];
     if (had) return had;
-    const n = Math.min(this.lower.length, this.upper.length), lows = new Float64Array(n), highs = new Float64Array(n);
+    const n = Math.min(this.lower.length, this.upper.length), lows = new Float64Array(n), highs = new Float64Array(n), blocks = Math.ceil(n / FIT), low = new Float64Array(blocks).fill(Infinity), high = new Float64Array(blocks).fill(-Infinity);
     for (let i = 0; i < n; i++) {
       const l = this.area ? this.upper[i] : this.lower[i], u = this.upper[i], drawn = positive ? l > 0 && u > 0 : l === l && u === u;
       (lows[i] = drawn ? (l < u ? l : u) : NaN), (highs[i] = drawn ? (l < u ? u : l) : NaN);
+      if (lows[i] < low[(i / FIT) | 0]) low[(i / FIT) | 0] = lows[i];
+      if (highs[i] > high[(i / FIT) | 0]) high[(i / FIT) | 0] = highs[i];
     }
-    const made = /** @type {[Line, Line]} */ ([new Line({ values: lows }), new Line({ values: highs })]);
+    const made = { lows, highs, low, high };
     this.fits[k] = made;
     return made;
   }

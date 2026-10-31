@@ -127,7 +127,8 @@ export function gradientTable(stops) {
 
 /**
  * A color's sRGB channels and opacity (0 to 255), as the canvas reads it: from the canvas's own writing of it (#rrggbb,
- * rgb() or rgba(), oklch(), oklab(), color(srgb …), color(display-p3 …): any CSS color comes back as one), never from
+ * rgb() or rgba(), oklch(), oklab(), lab(), lch(), color() in any of CSS's spaces: any CSS color comes back as one,
+ * wide-gamut ones clipped to sRGB), never from
  * a pixel drawn and read (a browser resisting fingerprinting, as Mullvad does, gives a read pixel noise). Anything else,
  * black.
  * @param {string} color
@@ -157,18 +158,45 @@ function parsed(text) {
   else if (name === "oklch" || name === "oklab") {
     const l = num(values[0], 1), first = num(values[1], 0.4), second = name === "oklch" ? (num(values[2], 360) * Math.PI) / 180 : num(values[2], 0.4);
     channels = rgb(name === "oklch" ? lin(l, first * Math.cos(second), first * Math.sin(second)) : lin(l, first, second));
+  } else if (name === "lab" || name === "lch") {
+    // (CIE Lab (D50): to XYZ, adapted to D65, to linear sRGB.)
+    const l = num(values[0], 100), first = num(values[1], name === "lab" ? 125 : 150), second = name === "lch" ? (num(values[2], 360) * Math.PI) / 180 : num(values[2], 125);
+    const a = name === "lab" ? first : first * Math.cos(second), b = name === "lab" ? second : first * Math.sin(second), fy = (l + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+    const inv = (/** @type {number} */ t) => (t ** 3 > 216 / 24389 ? t ** 3 : (116 * t - 16) / (24389 / 27));
+    channels = rgb(fromXYZ(d50to65([0.3457 / 0.3585 * inv(fx), l > 8 ? fy ** 3 : l / (24389 / 27), ((1 - 0.3457 - 0.3585) / 0.3585) * inv(fz)])));
   } else if (name === "color") {
     const space = values[0], [x, y, z] = values.slice(1, 4).map((part) => num(part, 1));
+    // (sRGB's curve, and Display P3's and A98's (as sRGB's; A98's a power) undone to linear.)
+    const srgb = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) <= 0.04045 ? Math.abs(v) / 12.92 : ((Math.abs(v) + 0.055) / 1.055) ** 2.4);
     if (space === "srgb") channels = [x * 255, y * 255, z * 255];
     else if (space === "srgb-linear") channels = rgb([x, y, z]);
-    else if (space === "display-p3") {
-      // (Display P3's curve as sRGB's; its primaries to sRGB's, linear.)
-      const f = (/** @type {number} */ v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), [r, g, b] = [f(x), f(y), f(z)];
-      channels = rgb([1.2249401 * r - 0.2249404 * g, -0.0420569 * r + 1.0420571 * g, -0.0196376 * r - 0.0786361 * g + 1.0982735 * b]);
-    }
+    else if (space === "display-p3") channels = rgb(fromXYZ(times(P3, [srgb(x), srgb(y), srgb(z)])));
+    else if (space === "a98-rgb") channels = rgb(fromXYZ(times(A98, [x, y, z].map((v) => Math.sign(v) * Math.abs(v) ** (563 / 256)))));
+    else if (space === "rec2020") {
+      const f = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) < 0.081242858298635 ? Math.abs(v) / 4.5 : ((Math.abs(v) + 0.0992968268094) / 1.0992968268094) ** (1 / 0.45));
+      channels = rgb(fromXYZ(times(REC2020, [f(x), f(y), f(z)])));
+    } else if (space === "prophoto-rgb") {
+      const f = (/** @type {number} */ v) => Math.sign(v) * (Math.abs(v) <= 16 / 512 ? Math.abs(v) / 16 : Math.abs(v) ** 1.8);
+      channels = rgb(fromXYZ(d50to65(times(PROPHOTO, [f(x), f(y), f(z)]))));
+    } else if (space === "xyz" || space === "xyz-d65") channels = rgb(fromXYZ([x, y, z]));
+    else if (space === "xyz-d50") channels = rgb(fromXYZ(d50to65([x, y, z])));
   }
   return [...channels.map((v) => Math.round(Math.min(255, Math.max(0, v)))), Math.round(Math.min(1, Math.max(0, alpha)) * 255)];
 }
+
+// (CSS Color 4's matrices: each space's linear channels to XYZ (D65; ProPhoto's D50), D50 to D65, XYZ to linear sRGB.)
+const P3 = [0.4865709486482162, 0.26566769316909306, 0.1982172852343625, 0.2289745640697488, 0.6917385218365064, 0.079286914093745, 0, 0.04511338185890264, 1.043944368900976];
+const A98 = [0.5766690429101305, 0.1855582379065463, 0.1882286462349947, 0.29734497525053605, 0.6273635662554661, 0.07529145849399788, 0.02703136138641234, 0.07068885253582723, 0.9913375368376388];
+const REC2020 = [0.6369580483012914, 0.14461690358620832, 0.1688809751641721, 0.2627002120112671, 0.6779980715188708, 0.05930171646986196, 0, 0.028072693049087428, 1.060985057710791];
+const PROPHOTO = [0.7977604896723027, 0.13518583717574031, 0.0313493495815248, 0.2880711282292934, 0.7118432178101014, 0.00008565396060525902, 0, 0, 0.8251046025104601];
+const D50TO65 = [0.955473421488075, -0.02309845494876471, 0.06325924320057072, -0.0283697093338637, 1.0099953980813041, 0.021041441191917323, 0.012314014864481998, -0.020507649298898964, 1.330365926242124];
+const TOSRGB = [3.2409699419045226, -1.537383177570094, -0.4986107602930034, -0.9692436362808796, 1.8759675015077202, 0.04155505740717559, 0.05563007969699366, -0.20397695888897652, 1.0569715142428786];
+/** A 3x3 matrix (by rows) times a vector. @param {number[]} m @param {number[]} v */
+const times = (m, v) => [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
+/** XYZ (D50) as XYZ (D65). @param {number[]} v */
+const d50to65 = (v) => times(D50TO65, v);
+/** XYZ (D65) as linear sRGB. @param {number[]} v */
+const fromXYZ = (v) => times(TOSRGB, v);
 
 /** sRGB channels (0 to 255) as OKLab. @param {ArrayLike<number>} rgb */
 function oklab(rgb) {
