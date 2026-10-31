@@ -30,6 +30,7 @@ export { Profile } from "./profile.js";
 export { stack } from "./stack.js";
 export { Custom } from "./custom.js";
 export { Marks } from "./marks.js";
+export { Levels } from "./levels.js";
 export { picture } from "./picture.js";
 export { Scale } from "./scale.js";
 export { compact } from "./format.js";

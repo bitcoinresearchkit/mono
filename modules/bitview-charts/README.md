@@ -112,6 +112,10 @@ chart.show(365);                                 // the last 365 points in view
   pixels noise.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
+- `Levels({ lines, side, format })`: lines across a pane at values (thresholds, a baseline's base), behind every
+  series, each `{ value, color, width, dash, tag, hidden, faint }`, its value tagged on its side's axis where it asks
+  (written by `format`); `set({ lines })` or, a line changed in place, `changed()`; then `chart.invalidate(true)`.
+- Any series' `behind`: drawn behind every series, whatever their order (a backdrop: levels).
 - Any series' `faint`: drawn at a fifth of its opacity, its tag and price line gone (another lit over it); then
   `chart.invalidate(true)`.
 - Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log, fitted to it alone each frame where it has an

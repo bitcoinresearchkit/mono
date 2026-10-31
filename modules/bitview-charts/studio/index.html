@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Marks, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { Marks, Levels, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -16649,16 +16649,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let drawnOrder = "";
       /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
       let spotlit = null;
-      /** The series that carry the lines across (levels, bases): drawn under every other, drawing nothing themselves. */
       /**
-       * Each carrier by its pane and side, with the timeline it was drawn on, its format and its lines: a restyle on the
-       * same data keeps it, its lines drawn again (not a series over every point added and removed at each step of a
-       * color or width scrubbed). @type {Map<string, { series: any, times: number[], lines: any[] }>}
+       * Each pane's and side's lines across (levels, bases: the library's Levels, behind every series), kept from build to
+       * build (their lines set anew: a color or a width scrubbed redraws them, nothing made). @type {Map<string, { levels: Levels, pane: any }>}
        */
-      const carrierKept = new Map();
-      /** The lines across with a tag on the axis, and the layers each is for (shared, several): a spotlight fades the others', their tags hidden. */
-      const levelTags = /** @type {{ line: any, layers: Set<string>, color: string, label: boolean, faint: boolean }[]} */ ([]);
-      const faded = (paint) => Object.fromEntries(Object.entries(paint).map(([key, color]) => [key, color.length === 9 ? `${color.slice(0, 7)}${Math.round(parseInt(color.slice(7), 16) * 0.2).toString(16).padStart(2, "0")}` : alpha(color, 0.18)]));
+      const levelsKept = new Map();
+      /** The lines across shown, and the layers each is for (shared, several): a spotlight fades the others', their tags with them. */
+      const levelTags = /** @type {{ line: import("/modules/bitview-charts/levels.js").Level, layers: Set<string> }[]} */ ([]);
       /**
        * The layers the spotlight has faded: their series faint (the library's: a fifth of their opacity, their tags and
        * price lines gone; their levels' tags too, see levelTags), the lit one's values alone on its scale. Each set again
@@ -16687,12 +16684,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           faint ? fadedNow.add(layerId) : fadedNow.delete(layerId);
           fadeLayer(layerId, faint);
         }
+        let levelsFaded = false;
         for (const tag of levelTags) {
           const faint = Boolean(lighted) && !tag.layers.has(/** @type {string} */ (lighted)) && [...tag.layers].some((layerId) => layerById(layerId)?.pane === pane);
-          if (tag.faint === faint) continue;
-          tag.faint = faint;
-          tag.line.applyOptions({ axisLabelVisible: tag.label && !faint, color: faint ? fadedColor(tag.color) : tag.color });
+          if (Boolean(tag.line.faint) !== faint) (tag.line.faint = faint), (levelsFaded = true);
         }
+        if (levelsFaded) for (const { levels } of levelsKept.values()) levels.changed();
         engine.invalidate(true);
       }
       /**
@@ -17073,9 +17070,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         built.clear();
         // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
         const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series)];
-        // (The carriers drawn before: one of the same pane, side, format and timeline taken up again below; the rest go.)
-        const carriersBefore = new Map(carrierKept);
-        carrierKept.clear();
         let added = false;
         /** @type {{ layer: Layer, value: number, color: string, dash: number, tag: boolean, mode: number, pane: number, format: any }[]} */
         const across = [];
@@ -17293,53 +17287,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stackBands(doc, stacked);
         // Lines across, behind every series, labeled on the axis: one per value on a scale (a pane's side), in its color
         // and style; shared by several layers, gray, in the first one's style; shown while any of its layers is. None in
-        // % and indexed panes: they show changes, not values. The chart draws a series' lines just over it, so these hang
-        // on a carrier: a series of each scale that draws nothing and takes no part in its range, under all the others.
+        // % and indexed panes: they show changes, not values. Each pane's side's the library's Levels.
         const lines = new Map();
         for (const line of across) {
           if (!Number.isFinite(line.value) || (line.mode === 1 && line.value <= 0)) continue;
           const key = `${line.pane}|${line.layer.side}|${line.value}`;
           (lines.get(key) ?? lines.set(key, []).get(key))?.push(line);
         }
-        const carrierOf = new Map();
+        const levelsBefore = new Map(levelsKept), levelLines = new Map();
+        levelsKept.clear();
         for (const [first, ...rest] of lines.values()) {
-          const group = [first, ...rest], key = `${first.pane}|${first.layer.side}`;
-          if (!carrierOf.has(key)) {
-            const before = carriersBefore.get(key);
-            let carrier;
-            if (before && before.times === data.times) {
-              carrier = before.series;
-              for (const line of before.lines) carrier.removePriceLine(line);
-              // (Its format as now: its tags written as its layer's values are.)
-              carrier.applyOptions({ priceFormat: first.format });
-              carriersBefore.delete(key);
-            } else {
-              carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, autoscaleInfoProvider: () => null }, first.pane);
-              setColumn(carrier, new Float64Array(data.times.length).fill(first.value), false);
-            }
-            // (Drawing nothing: no line, no dot, no tag of its own.)
-            styleSeries(carrier, { hidden: false, tag: false, priceLine: false, format: first.format.formatter, outline: null, line: { stroke: false, marker: 0, dots: 0 } });
-            carrier.setSeriesOrder(0);
-            carrierOf.set(key, carrier);
-            carrierKept.set(key, { series: carrier, times: data.times, lines: [] });
-          }
           // (Its value on the axis where one of them asks: a level's is fixed, the axis reads it already.)
-          const shared = group.some((line) => line.layer !== first.layer), shown = group.some((line) => !line.layer.hidden), label = shown && group.some((line) => line.tag);
-          const priceLine = carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: label, title: "" });
-          carrierKept.get(key)?.lines.push(priceLine);
-          if (shown) levelTags.push({ line: priceLine, layers: new Set(group.map((line) => line.layer.id)), color: priceLine.options().color, label, faint: false });
+          const group = [first, ...rest], key = `${first.pane}|${first.layer.side}`, shared = group.some((line) => line.layer !== first.layer), shown = group.some((line) => !line.layer.hidden);
+          const line = { value: first.value, color: shared ? ink("gray") : first.color, width: 1, dash: dashFor(1, first.dash), tag: shown && group.some((line) => line.tag), hidden: !shown };
+          (levelLines.get(key) ?? levelLines.set(key, { first, lines: [] }).get(key)).lines.push(line);
+          if (shown) levelTags.push({ line, layers: new Set(group.map((item) => item.layer.id)) });
         }
+        for (const [key, { first, lines: list }] of levelLines) {
+          const pane = engine.panes[first.pane], was = levelsBefore.get(key);
+          if (!pane) continue;
+          levelsBefore.delete(key);
+          if (was && was.pane !== pane) was.pane.remove(was.levels);
+          const levels = was && was.pane === pane ? was.levels : ((made) => (pane.add(made, first.layer.side), made))(new Levels({ side: first.layer.side }));
+          // (Its tags written as its layer's values are.)
+          levels.set({ lines: list, format: first.format.formatter });
+          levelsKept.set(key, { levels, pane });
+        }
+        for (const { levels, pane } of levelsBefore.values()) pane.remove(levels);
+        engine.invalidate(true);
         markSignals(doc, data, drawn, old);
         for (const series of old) heatSeries.delete(series), view.removeSeries(series);
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
-        for (const { series } of carriersBefore.values()) view.removeSeries(series);
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
         // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first:
         // as a series is added, or the order's another (a layer moved, a pane reversed).
         const order = JSON.stringify([doc.layers.map((layer) => [layer.id, layer.pane]), doc.panes.map((pane) => Boolean(pane.reverse))]);
         if (added || order !== drawnOrder) {
-          const next = new Map([...carrierOf.keys()].map((key) => [Number(key.split("|")[0]), 0]));
-          for (const key of carrierOf.keys()) next.set(Number(key.split("|")[0]), (next.get(Number(key.split("|")[0])) ?? 0) + 1);
+          const next = new Map();
           const reversed = new Set(doc.panes.filter((pane) => pane.reverse).map((pane) => pane.id));
           for (const layer of [...[...doc.layers].reverse().filter((item) => !reversed.has(item.pane)), ...doc.layers.filter((item) => reversed.has(item.pane))]) {
             const pane = paneIndex.get(layer.pane) ?? 0;
@@ -18672,13 +18656,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         painted.colors[at] = k;
         paintSeries(painted.series, painted);
       }
-      const fadedColors = new Map();
-      /** A color faded as the spotlight fades (a line across's: one each). */
-      const fadedColor = (/** @type {string} */ color) => {
-        if (fadedColors.size > 500) fadedColors.clear();
-        if (!fadedColors.has(color)) fadedColors.set(color, faded({ value: color }).value);
-        return fadedColors.get(color);
-      };
       /** Widths measured for the data on screen, forgotten with it. @type {WeakMap<object, Map<string, number>>} */
       const slots = new WeakMap();
       const slotsNow = () => {

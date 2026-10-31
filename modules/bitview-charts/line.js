@@ -26,7 +26,7 @@ const SPLIT = 128;
 const DRIFT = 16 * SPLIT;
 
 /** A dash list's period: its sum, twice where it's odd (the canvas repeats it). @param {number[]} dash */
-function periodOf(dash) {
+export function periodOf(dash) {
   let sum = 0;
   for (let k = 0; k < dash.length; k++) sum += dash[k];
   return dash.length % 2 ? 2 * sum : sum;

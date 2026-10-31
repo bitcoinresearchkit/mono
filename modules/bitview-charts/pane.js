@@ -44,7 +44,8 @@ const TAG = PILL;
  * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
  * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top; `faint`, drawn at a fifth of its
  * opacity, its tag and price line gone (another lit over it: after a change, the chart's invalidate(true)). Drawn with
- * the chart's theme (its ground, its font: words in a pill).
+ * the chart's theme (its ground, its font: words in a pill); `behind`, drawn behind every series whatever their order (a
+ * backdrop: levels across).
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -57,7 +58,8 @@ const TAG = PILL;
  *   overlay?: Scale | null,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
  *   margins?(spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean): void,
- *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
+ *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: Scale): void,
+ *   behind?: boolean,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale, x: number, time: import("./timeline.js").Timeline): number,
@@ -199,8 +201,10 @@ export class Pane {
    * @template {Series} S @param {S} series @param {"right" | "left"} [side]
    */
   add(series, side = "right") {
-    this.series.push(series);
-    this.sides.push(side === "left" ? 1 : 0);
+    // (One behind every series first, after those before it: see order.)
+    const at = series.behind ? this.series.filter((other) => other.behind).length : this.series.length;
+    this.series.splice(at, 0, series);
+    this.sides.splice(at, 0, side === "left" ? 1 : 0);
     if (side === "left" && !this.left) {
       this.left = new Scale(this.leftOptions);
       this.left.height = this.height;
@@ -245,8 +249,9 @@ export class Pane {
 
   /** Its series drawn in `list`'s order (its own, rearranged: the last on top), each on its side; those left out after them, as they were. @param {Series[]} list */
   order(list) {
-    // (The rest after them, as they were.)
-    const all = list.length === this.series.length ? list : [...list, ...this.series.filter((series) => !list.includes(series))];
+    // (The rest after them, as they were; those behind every series first.)
+    const given = list.length === this.series.length ? list : [...list, ...this.series.filter((series) => !list.includes(series))];
+    const all = given.some((series) => series.behind) ? [...given.filter((series) => series.behind), ...given.filter((series) => !series.behind)] : given;
     let same = true;
     for (let k = 0; same && k < all.length; k++) same = all[k] === this.series[k];
     if (same) return;
@@ -728,7 +733,7 @@ export class Pane {
     // 4 pixels: one touching a tag reads cramped against it).)
     const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
     page.count = 0;
-    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add);
+    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add, scale);
     // (Each where it's drawn: within the pane.)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     for (let k = 0; k < count; k++) {

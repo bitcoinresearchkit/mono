@@ -22,7 +22,7 @@
  *   extent?: (a: number, b: number, positive: boolean, out: Float64Array) => void,
  *   first?: (i: number) => number,
  *   distance?: (i: number, y: number, scale: import("./scale.js").Scale, x: number) => number,
- *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void) => void,
+ *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: import("./scale.js").Scale) => void,
  *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
  *   margins?: (spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean) => void,
  * }} Hooks
@@ -71,9 +71,12 @@ export class Custom {
     return this.hooks.distance ? this.hooks.distance(i, y, scale, x) : Infinity;
   }
 
-  /** Its own tags on its pane's axis on `side` (0, the right; 1, the left). @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add */
-  axisTags(side, add) {
-    this.hooks.axisTags?.(side, add);
+  /**
+   * Its own tags on its pane's axis on `side` (0, the right; 1, the left), that side's scale given.
+   * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add @param {import("./scale.js").Scale} scale
+   */
+  axisTags(side, add, scale) {
+    this.hooks.axisTags?.(side, add, scale);
   }
 
   /** Its own tags on the time axis. @param {(x: number, text: string, color: string, ink?: string) => void} add */

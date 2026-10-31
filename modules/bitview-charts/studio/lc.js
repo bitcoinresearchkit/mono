@@ -82,7 +82,6 @@ class Chart {
     series.pane.engine.remove(series.engine);
     if (series.edge) series.pane.engine.remove(series.edge);
     if (series.beside) series.pane.engine.remove(series.beside);
-    if (series.across) series.pane.engine.remove(series.across);
     for (const primitive of series.primitives) primitive.detached?.();
     series.pane.list = series.pane.list.filter((each) => each !== series);
     series.pane.dirty = true;
@@ -244,7 +243,6 @@ class Pane {
     for (const series of this.list) {
       list.push(series.engine);
       if (series.edge) list.push(series.edge);
-      if (series.across) list.push(series.across);
       if (series.beside) list.push(series.beside);
     }
     if (this.over) list.push(this.over);
@@ -294,10 +292,6 @@ class Series {
     this.primitives = [];
     /** Its primitives' views of the "normal" z-order, drawn just over it (made once one's attached). @type {Custom | null} */
     this.beside = null;
-    /** Its lines across (price lines), and the layer they're drawn on, just over it (made with the first). @type {{ opts: any, dash: number[], options: () => any, applyOptions: (more: any) => void }[]} */
-    this.levels = [];
-    /** @type {Custom | null} */
-    this.across = null;
     /** A custom series' view, drawn as the chart library drew it. @type {Painted | null} */
     this.painted = view ? new Painted(this, view) : null;
     // (Its fitting by its autoscaleInfoProvider (see #fit), made once: nothing made a frame but what the provider makes.)
@@ -486,67 +480,6 @@ class Series {
     primitive.detached?.();
     this.chart.engine.invalidate(true);
   }
-
-  /**
-   * A line across at a price (the chart library's price line: Studio's levels, hung on a carrier series): drawn just
-   * over its series, across its pane, in its color, width and style; its value on the axis (`axisLabelVisible`).
-   * @param {any} options
-   */
-  createPriceLine(options) {
-    const line = { opts: { ...options }, dash: dashOf(options), options: () => line.opts, applyOptions: (/** @type {any} */ more) => ((line.opts = { ...line.opts, ...more }), (line.dash = dashOf(line.opts)), this.#leveled()) };
-    this.levels.push(line);
-    this.across ??= this.pane.engine.add(new Custom({ draw: (g, at) => this.#drawLevels(g, at), first: (i) => this.engine.first(i), axisTags: (side, add) => this.#levelTags(side, add) }), this.side);
-    this.pane.dirty = true;
-    this.#leveled();
-    return line;
-  }
-
-  /** @param {any} line */
-  removePriceLine(line) {
-    this.levels = this.levels.filter((each) => each !== line);
-    this.#leveled();
-  }
-
-  /** Its lines across changed: drawn whole. */
-  #leveled() {
-    this.across?.changed();
-    this.chart.changed();
-  }
-
-  /**
-   * Its lines across drawn (from x `x0` to `x1` of the plot), their dashes where they'd be on the timeline (a moved
-   * picture has them where a whole draw does).
-   * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/custom.js").View} at
-   */
-  #drawLevels(g, at) {
-    const { time, scale, x0, x1, dpr } = at;
-    for (const line of this.levels) {
-      const o = line.opts, y = Math.round(scale.y(o.price) * dpr) / dpr + 0.5 / dpr;
-      if (o.lineVisible === false || y !== y) continue;
-      g.strokeStyle = o.color;
-      g.lineWidth = o.lineWidth ?? 1;
-      g.setLineDash(line.dash);
-      g.lineDashOffset = line.dash.length ? (x0 + time.from * time.spacing) % (line.dash[0] + line.dash[1]) : 0;
-      g.beginPath();
-      g.moveTo(x0, y);
-      g.lineTo(x1, y);
-      g.stroke();
-    }
-  }
-
-  /** Its lines across' values on its axis on `side`, each in its color. @param {number} side @param {(y: number, text: string, color: string) => void} add */
-  #levelTags(side, add) {
-    if ((this.side === "left" ? 1 : 0) !== side) return;
-    const format = this.opts.priceFormat?.formatter ?? String;
-    for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(this.chart.engine.y(this.engine, line.opts.price), format(line.opts.price), line.opts.color);
-  }
-
-}
-
-/** A line style's dashes at a width (the chart library's: dotted, dashed, large dashed, sparse dotted; solid, none). @param {any} options */
-function dashOf(options) {
-  const w = options.lineWidth ?? 1;
-  return [[], [w, w], [2 * w, 2 * w], [6 * w, 6 * w], [w, 4 * w]][options.lineStyle ?? 0] ?? [];
 }
 
 /** No views. */
