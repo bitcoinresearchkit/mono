@@ -1274,6 +1274,9 @@ class Painted {
     this.lows = new Float64Array(0);
     this.highs = this.lows;
     this.closes = this.lows;
+    /** Its lows and highs as lines (in no pane): their extents by blocks, not point by point, each frame. */
+    this.lowLine = new Line();
+    this.highLine = new Line();
     this.data = { bars: this.bars, barSpacing: 1, visibleRange: { from: 0, to: 0 } };
     /** The scale it's drawn on now. @type {Scale} */
     this.scale = new Scale();
@@ -1324,6 +1327,8 @@ class Painted {
       if (lo <= hi) (this.lows[i] = lo), (this.highs[i] = hi), (this.closes[i] = prices[prices.length - 1]);
     }
     this.count = m;
+    this.lowLine.setValues(this.lows);
+    this.highLine.setValues(this.highs);
     this.engine.changed();
     return this.closes;
   }
@@ -1360,16 +1365,9 @@ class Painted {
       if (range && range.maxValue > out[1]) out[1] = range.maxValue;
       return;
     }
-    const lows = this.lows, highs = this.highs;
-    a = Math.max(0, a);
-    b = Math.min(lows.length - 1, b);
-    // (On a log scale, its prices above 0: a row's high alone where its low isn't.)
-    for (let i = a; i <= b; i++) {
-      const hi = highs[i], lo = positive && !(lows[i] > 0) ? hi : lows[i];
-      if (positive ? !(lo > 0) : lo !== lo) continue;
-      if (lo < out[0]) out[0] = lo;
-      if (hi > out[1]) out[1] = hi;
-    }
+    // (Its lows' and highs' extremes read block by block, as a line's are: on a log scale, those above 0.)
+    this.lowLine.extent(a, b, positive, out);
+    this.highLine.extent(a, b, positive, out);
   }
 
   /** Its first close at or past `i` (on an overlay, its scale its own: any, 1, so a relative pane draws it). @param {number} i */
