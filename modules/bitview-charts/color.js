@@ -4,7 +4,7 @@
 // a height), kept till it changes.
 
 const ink = new Map();
-/** A canvas a color is read back from (any CSS color: a name, hex, rgb(), oklch()). @type {CanvasRenderingContext2D | null} */
+/** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
 let pen = null;
 
 const solids = new Map();
@@ -17,7 +17,7 @@ const solids = new Map();
 export function solid(color) {
   let full = solids.get(color);
   if (full !== undefined) return full;
-  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true }));
+  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
   // (As a canvas writes it back: #rrggbb opaque, rgba(…) with an alpha, other spaces in their own form with "/ alpha"
   // (oklch, display-p3): that alpha dropped, exactly.)
   pen.fillStyle = "#000";
@@ -125,14 +125,49 @@ export function gradientTable(stops) {
   return table;
 }
 
-/** A color's sRGB channels, 0 to 255, as a canvas reads it. @param {string} color */
+/**
+ * A color's sRGB channels and opacity (0 to 255), as the canvas reads it: from the canvas's own writing of it (#rrggbb,
+ * rgb() or rgba(), oklch(), oklab(), color(srgb …), color(display-p3 …): any CSS color comes back as one), never from
+ * a pixel drawn and read (a browser resisting fingerprinting, as Mullvad does, gives a read pixel noise). Anything else,
+ * black.
+ * @param {string} color
+ */
 function read(color) {
-  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true }));
-  pen.clearRect(0, 0, 1, 1);
+  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
   pen.fillStyle = "#000";
   pen.fillStyle = color;
-  pen.fillRect(0, 0, 1, 1);
-  return pen.getImageData(0, 0, 1, 1).data;
+  return parsed(String(pen.fillStyle));
+}
+
+/** A canvas's writing of a color as its sRGB channels and opacity (0 to 255; see read). @param {string} text */
+function parsed(text) {
+  if (text[0] === "#") {
+    const hex = (/** @type {number} */ at) => parseInt(text.slice(at, at + 2), 16);
+    return [hex(1), hex(3), hex(5), text.length > 7 ? hex(7) : 255];
+  }
+  const call = /^([a-z0-9-]+)\((.*)\)$/.exec(text.trim());
+  if (!call) return [0, 0, 0, 255];
+  const [, name, body] = call, parts = body.replace("/", " / ").split(/[\s,]+/).filter(Boolean), slash = parts.indexOf("/");
+  // (A number, a percentage of `whole`, or none.)
+  const num = (/** @type {string | undefined} */ part, /** @type {number} */ whole) => (part === undefined || part === "none" ? 0 : part.endsWith("%") ? (parseFloat(part) / 100) * whole : parseFloat(part));
+  const values = slash >= 0 ? parts.slice(0, slash) : parts, alpha = slash >= 0 ? num(parts[slash + 1], 1) : (name === "rgba" || name === "rgb") && parts.length === 4 ? num(parts[3], 1) : 1;
+  /** @type {number[]} */
+  let channels = [0, 0, 0];
+  if (name === "rgb" || name === "rgba") channels = values.slice(0, 3).map((part) => num(part, 255));
+  else if (name === "oklch" || name === "oklab") {
+    const l = num(values[0], 1), first = num(values[1], 0.4), second = name === "oklch" ? (num(values[2], 360) * Math.PI) / 180 : num(values[2], 0.4);
+    channels = rgb(name === "oklch" ? lin(l, first * Math.cos(second), first * Math.sin(second)) : lin(l, first, second));
+  } else if (name === "color") {
+    const space = values[0], [x, y, z] = values.slice(1, 4).map((part) => num(part, 1));
+    if (space === "srgb") channels = [x * 255, y * 255, z * 255];
+    else if (space === "srgb-linear") channels = rgb([x, y, z]);
+    else if (space === "display-p3") {
+      // (Display P3's curve as sRGB's; its primaries to sRGB's, linear.)
+      const f = (/** @type {number} */ v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4), [r, g, b] = [f(x), f(y), f(z)];
+      channels = rgb([1.2249401 * r - 0.2249404 * g, -0.0420569 * r + 1.0420571 * g, -0.0196376 * r - 0.0786361 * g + 1.0982735 * b]);
+    }
+  }
+  return [...channels.map((v) => Math.round(Math.min(255, Math.max(0, v)))), Math.round(Math.min(1, Math.max(0, alpha)) * 255)];
 }
 
 /** sRGB channels (0 to 255) as OKLab. @param {ArrayLike<number>} rgb */
