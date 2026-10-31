@@ -110,17 +110,16 @@ function rgb(c) {
 
 /**
  * A gradient's 256 colors (RGBA, 0 to 255, a color each 4), its `stops` (any CSS colors, evenly apart) blended in OKLab
- * (no muddy midpoints: a hue's lightness and chroma move together), their opacities straight (a see-through stop its
- * neighbor's color: a fade not through black).
+ * (no muddy midpoints: a hue's lightness and chroma move together), their opacities straight (a see-through stop the
+ * color of the stop it fades to or from: a fade not through black, nor through another stop's hue); one stop, its color.
  * @param {string[]} stops
  */
 export function gradientTable(stops) {
-  const table = new Uint8ClampedArray(256 * 4), labs = stops.map((stop) => [...oklab(read(stop)), read(stop)[3]]);
-  // (A see-through stop its neighbor's color unseen: a fade not through black.)
-  for (let k = 0; k < labs.length; k++) if (labs[k][3] === 0) { const near = labs[k + 1]?.[3] ? labs[k + 1] : labs[k - 1]; if (near) (labs[k][0] = near[0]), (labs[k][1] = near[1]), (labs[k][2] = near[2]); }
+  const table = new Uint8ClampedArray(256 * 4), labs = stops.map((stop) => [...oklab(read(stop)), read(stop)[3]]), last = labs.length - 1;
   for (let k = 0; k < 256; k++) {
-    const at = (k / 255) * (labs.length - 1), i = Math.min(labs.length - 2, Math.floor(at)), t = labs.length > 1 ? at - i : 0, a = labs[i], b = labs[Math.min(i + 1, labs.length - 1)];
-    const c = rgb(lin(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t));
+    const at = last > 0 ? (k / 255) * last : 0, i = Math.min(Math.max(0, last - 1), Math.floor(at)), t = last > 0 ? at - i : 0, a = labs[i], b = labs[Math.min(i + 1, last)];
+    // (A see-through end of the segment its other end's color: each visible stop fades in its own.)
+    const from = a[3] === 0 ? b : a, to = b[3] === 0 ? a : b, c = rgb(lin(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t));
     (table[k * 4] = c[0]), (table[k * 4 + 1] = c[1]), (table[k * 4 + 2] = c[2]), (table[k * 4 + 3] = a[3] + (b[3] - a[3]) * t);
   }
   return table;

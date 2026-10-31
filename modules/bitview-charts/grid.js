@@ -14,8 +14,8 @@ import { gradientTable } from "./color.js";
 const COLUMN = 2;
 /** A strip's pixels at most. */
 const TALL = 4096;
-/** Strips kept, at most (their canvases reused past that: a canvas a column made anew each time would leave WebKit
- * past its canvas memory, every canvas on the page blank). */
+/** Strips kept, at least (twice the columns in view where that's more): their canvases reused past it (a canvas a column
+ * made anew each time would leave WebKit past its canvas memory, every canvas on the page blank). */
 const KEPT = 768;
 
 export class Grid {
@@ -32,6 +32,8 @@ export class Grid {
     this.table = gradientTable(gradient);
     /** Strips by column, step and resolution, the latest last. @type {Map<string, { canvas: HTMLCanvasElement, t0: number, t1: number }>} */
     this.strips = new Map();
+    /** Strips kept at most, as its last draw needed. */
+    this.kept = KEPT;
     this.hidden = false;
     this.version = 0;
   }
@@ -85,8 +87,10 @@ export class Grid {
     // (Its strips a little taller than their place (up to twice): smoothed, so no cell's dropped.)
     const first = Math.max(0, Math.floor(time.index(x0) / step) - 1), last = Math.min(Math.ceil(n / step) - 1, Math.ceil(time.index(x1) / step) + 1), smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = true;
+    this.kept = Math.max(KEPT, 2 * (last - first + 1));
     for (let block = first; block <= last; block++) {
-      const start = block * step, end = Math.min(n - 1, start + step - 1), strip = this.#strip(end, step, log, resolution);
+      // (The data's last block as long as it is: none of the block before it in it.)
+      const start = block * step, end = Math.min(n - 1, start + step - 1), strip = this.#strip(end, end - start + 1, log, resolution);
       if (!strip) continue;
       const left = time.snap(time.x(start - 0.5), dpr), right = time.snap(time.x(end + 0.5), dpr), top = scale.y(log ? 10 ** strip.t1 : strip.t1), bottom = scale.y(log ? 10 ** strip.t0 : strip.t0);
       g.drawImage(strip.canvas, 0, 0, 1, strip.canvas.height, left, top, right - left, bottom - top);
@@ -105,21 +109,22 @@ export class Grid {
     const column = this.column(owner, step);
     if (!column || !column.rows.length) return null;
     const { rows, values } = column, edges = this.edges, t = (/** @type {number} */ v) => (log ? Math.log10(v) : v);
-    let res = resolution;
-    const tLow = t(edges[rows[0]]), tHigh = t(edges[rows[rows.length - 1] + 1]);
+    // (Its bins the scale can show (a log one, none at or under 0): their span.)
+    let res = resolution, tLow = Infinity, tHigh = -Infinity;
+    for (let k = 0; k < rows.length; k++) if (!log || edges[rows[k]] > 0) (tLow = Math.min(tLow, t(edges[rows[k]]))), (tHigh = Math.max(tHigh, t(edges[rows[k] + 1])));
     if (!(tHigh > tLow)) return null;
     while ((tHigh - tLow) * res > TALL) res /= 2;
     const t0 = Math.floor(tLow * res) / res, t1 = Math.ceil(tHigh * res) / res, height = Math.max(1, Math.round((t1 - t0) * res));
-    // (Each pixel's strongest cell, by its size (its sign aside), its color from it.)
+    // (Each pixel's strongest cell it places on its gradient, by its size (its sign aside), its color from it; none: NaN.)
     if (strongest.length < height) strongest = new Float64Array(height * 2);
-    strongest.fill(0, 0, height);
+    strongest.fill(NaN, 0, height);
     for (let k = 0; k < rows.length; k++) {
       const value = values[k];
-      if (!value || value !== value) continue;
+      if (!(this.place(value) >= 0) || (log && !(edges[rows[k]] > 0))) continue;
       const from = Math.max(0, Math.floor((t1 - t(edges[rows[k] + 1])) * res)), to = Math.min(height - 1, Math.ceil((t1 - t(edges[rows[k]])) * res) - 1);
-      for (let p = from; p <= Math.max(from, to); p++) if (Math.abs(value) > Math.abs(strongest[p])) strongest[p] = value;
+      for (let p = from; p <= Math.max(from, to); p++) if (!(Math.abs(value) <= Math.abs(strongest[p]))) strongest[p] = value;
     }
-    if (this.strips.size >= KEPT) for (const [other, strip] of this.strips) {
+    if (this.strips.size >= this.kept) for (const [other, strip] of this.strips) {
       this.strips.delete(other), spare.push(strip.canvas);
       break;
     }
@@ -127,9 +132,8 @@ export class Grid {
     (canvas.width = 1), (canvas.height = height);
     const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(1, height), pixels = image.data, table = this.table;
     for (let p = 0; p < height; p++) {
-      if (!strongest[p]) continue;
+      if (strongest[p] !== strongest[p]) continue;
       const place = this.place(strongest[p]);
-      if (!(place >= 0)) continue;
       const c = Math.round(Math.min(1, place) * 255) * 4;
       (pixels[p * 4] = table[c]), (pixels[p * 4 + 1] = table[c + 1]), (pixels[p * 4 + 2] = table[c + 2]), (pixels[p * 4 + 3] = table[c + 3]);
     }
