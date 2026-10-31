@@ -343,8 +343,9 @@ class Chart {
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
     if (fresh) for (const pane of this.panesList) for (const marks of pane.marks) marks.place();
     for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.stack(), pane.formats();
+    // (A new timeline draws everything whole; else only the panes whose series changed (their versions) draw anew.)
     if (fresh) this.engine.setTimes(times);
-    this.engine.invalidate(true);
+    else this.engine.invalidate();
   }
 }
 
@@ -716,6 +717,9 @@ class Series {
     this.columns = new Float64Array(0);
     /** @type {any[] | null} */
     this.rows = null;
+    /** Whether its rows are its own copy, and its values (Studio's arrays, given to setData or bvSetColumns, never changed). */
+    this.ownRows = false;
+    this.ownValues = true;
     /** Its data or look changed since it was pushed. */
     this.dirty = true;
     /** @type {any[]} */
@@ -814,6 +818,7 @@ class Series {
   /** @param {any[]} rows */
   setData(rows) {
     this.rows = rows;
+    (this.ownRows = false), (this.ownValues = true);
     this.times = Float64Array.from(rows, (row) => Number(row.time));
     this.values = Float64Array.from(rows, (row) => (row.value ?? row.close ?? NaN));
     this.dirty = true;
@@ -823,6 +828,7 @@ class Series {
   /** The patches' columns: times and values. @param {number[] | Float64Array} times @param {Float64Array | number[]} values */
   bvSetColumns(times, values) {
     this.rows = null;
+    this.ownValues = false;
     this.times = times instanceof Float64Array ? times : Float64Array.from(times);
     this.values = values instanceof Float64Array ? values : Float64Array.from(values);
     this.dirty = true;
@@ -836,11 +842,36 @@ class Series {
 
   /** The last row set, or one added past it. @param {any} row */
   update(row) {
+    if (this.#updateLast(row)) return;
     // (A copy: Studio's own array, given to setData, stays as it gave it.)
     const rows = this.rows ? this.rows.slice() : Array.from(this.times, (time, i) => ({ time, value: this.values[i] }));
     if (rows.length && Number(rows[rows.length - 1].time) === Number(row.time)) rows[rows.length - 1] = row;
     else rows.push(row);
     this.setData(rows);
+    this.ownRows = true;
+  }
+
+  /**
+   * Its last row, at the same time, set in place (a live price within its interval, each second): a line's or candles'
+   * point (no colors of its own), its rows and values its own copies (made once: Studio's arrays never written), nothing
+   * made again but that point; its pane alone drawn anew. Whether it was.
+   * @param {any} row
+   */
+  #updateLast(row) {
+    const n = this.times.length, engine = this.engine, last = n - 1;
+    if (!n || this.dirty || Number(row.time) !== this.times[last] || row.color || this.rows?.[last]?.color || !(engine instanceof Candles || engine.constructor === Line)) return false;
+    const i = indexOf(this.chart.times, this.times[last]);
+    if (i < 0) return false;
+    if (this.rows) {
+      if (!this.ownRows) (this.rows = this.rows.slice()), (this.ownRows = true);
+      this.rows[last] = row;
+    } else if (!this.ownValues) (this.values = this.values.slice()), (this.ownValues = true), this.push(this.chart.times);
+    const value = row.value ?? row.close ?? NaN;
+    (this.values[last] = value), (this.columns[i] = value);
+    if (engine instanceof Candles) engine.set(i, row.open ?? NaN, row.high ?? NaN, row.low ?? NaN, row.close ?? NaN);
+    else engine.set(i, value);
+    this.chart.engine.invalidate();
+    return true;
   }
 
   /** Its values on the chart's timeline, its rows' colors and breaks with them. @param {Float64Array} times */
