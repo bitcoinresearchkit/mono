@@ -52,43 +52,56 @@ export class Bars extends Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
-    const values = this.values, n = values.length, log = scale.mode === "log", colors = this.colors && this.palette.length ? this.colors : null;
-    if (!n) return;
-    const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
-    // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
-    const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide ? Math.min(this.radius, half) : 0;
-    ROUND_UP[0] = ROUND_UP[1] = ROUND_DOWN[2] = ROUND_DOWN[3] = radius;
-    const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
+    if (!this.values.length) return;
+    const colors = this.colors && this.palette.length ? this.colors : null;
+    // (Its outline first (each bar a pixel and a half wider all round), all of them one fill; then one fill a color.)
+    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr)), g.fill();
     for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
       g.fillStyle = pass < 0 ? this.color : this.palette[pass];
       g.beginPath();
-      if (wide) {
-        for (let i = a; i <= b; i++) {
-          const v = values[i];
-          if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
-          const x = time.x(i), y = scale.y(v), up = y < baseY;
-          // (Its edges on device pixels: bars side by side keep even gaps.)
-          const left = Math.round((x - half) * dpr) / dpr, right = Math.round((x + half) * dpr) / dpr;
-          if (radius) g.roundRect(left, up ? y : baseY, right - left, Math.abs(baseY - y), up ? ROUND_UP : ROUND_DOWN);
-          else g.rect(left, up ? y : baseY, right - left, Math.abs(baseY - y));
-        }
-      } else {
-        // (A pixel column each: its point farthest from the base.)
-        for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
-          const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
-          let far = -1, most = -1;
-          for (let i = from; i <= to; i++) {
-            const v = values[i];
-            if (!(log ? v > 0 : v === v)) continue;
-            const off = Math.abs(v - this.base);
-            if (off > most) (most = off), (far = i);
-          }
-          if (far < 0 || (colors && colors[far] !== pass)) continue;
-          const y = scale.y(values[far]);
-          g.rect(x, Math.min(y, baseY), 1, Math.max(1 / dpr, Math.abs(baseY - y)));
-        }
-      }
+      this.#shapes(g, time, scale, x0, x1, dpr, colors, pass, 0);
       g.fill();
+    }
+  }
+
+  /**
+   * Its bars from x `x0` to `x1` added to the path: those of color `pass` (by `colors`; none, all), each `pad` pixels
+   * wider all round (an outline's).
+   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | null} colors @param {number} pass @param {number} pad
+   */
+  #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
+    const values = this.values, n = values.length, log = scale.mode === "log";
+    const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
+    // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
+    const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide ? Math.min(this.radius, half) + (this.radius ? pad : 0) : 0;
+    ROUND_UP[0] = ROUND_UP[1] = ROUND_DOWN[2] = ROUND_DOWN[3] = radius;
+    const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
+    if (wide) {
+      for (let i = a; i <= b; i++) {
+        const v = values[i];
+        if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
+        const x = time.x(i), y = scale.y(v), up = y < baseY;
+        // (Its edges on device pixels: bars side by side keep even gaps.)
+        const left = Math.round((x - half) * dpr) / dpr - pad, right = Math.round((x + half) * dpr) / dpr + pad, top = (up ? y : baseY) - pad, height = Math.abs(baseY - y) + 2 * pad;
+        if (radius) g.roundRect(left, top, right - left, height, up ? ROUND_UP : ROUND_DOWN);
+        else g.rect(left, top, right - left, height);
+      }
+      return;
+    }
+    // (A pixel column each: its point farthest from the base.)
+    for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
+      const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
+      let far = -1, most = -1;
+      for (let i = from; i <= to; i++) {
+        const v = values[i];
+        if (!(log ? v > 0 : v === v)) continue;
+        const off = Math.abs(v - this.base);
+        if (off > most) (most = off), (far = i);
+      }
+      if (far < 0 || (colors && colors[far] !== pass)) continue;
+      const y = scale.y(values[far]);
+      g.rect(x - pad, Math.min(y, baseY) - pad, 1 + 2 * pad, Math.max(1 / dpr, Math.abs(baseY - y)) + 2 * pad);
     }
   }
 }

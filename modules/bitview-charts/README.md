@@ -40,7 +40,8 @@ chart.show(365);                                 // the last 365 points in view
   `"linear"`, `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it);
   `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
   written. `setFormat(format, ticks, side)`: a side's own (`ticks`, its ticks written all at once, their digits alike;
-  an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's.
+  an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `setTagsTop(top, side)`, a
+  side's tags kept under that height (a page's legend over the pane).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
   the last on top), `setRange(lo, hi, side)` (no range: fitted),

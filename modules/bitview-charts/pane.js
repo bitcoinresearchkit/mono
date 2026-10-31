@@ -135,6 +135,8 @@ export class Pane {
     this.tagIndex = new Int32Array(8);
     /** Its series' own tags on the axis being drawn (a drawing's value). */
     this.pageTags = new Tags();
+    /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
+    this.tagsTop = [0, 0];
     /** The view's last point as its axes were drawn (their tags read it). */
     this.axesEnd = NaN;
     this.tagY = new Float64Array(8);
@@ -370,6 +372,12 @@ export class Pane {
     this.drawnFrom = NaN;
   }
 
+  /** A side's tags kept under `top` (CSS pixels from its top: a page's legend over the pane). @param {number} top @param {"right" | "left"} [side] */
+  setTagsTop(top, side = "right") {
+    const k = side === "left" ? 1 : 0;
+    if (this.tagsTop[k] !== top) (this.tagsTop[k] = top), (this.drawnFrom = NaN);
+  }
+
   /** A slot's ticks (`count` of them, in axisTicks) as its writer writes them, written anew only when they change. @param {number} slot @param {number} count */
   #tickTexts(slot, count) {
     const was = this.tickValues[slot], ticks = this.axisTicks;
@@ -542,6 +550,8 @@ export class Pane {
     const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags;
     page.count = 0;
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add);
+    // (Each where it's drawn: within the pane.)
+    for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
       if (!(y > 6 && y < this.height - 6)) continue;
@@ -553,7 +563,7 @@ export class Pane {
     // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane.)
     g.textAlign = side ? "right" : "left";
     for (let k = 0; k < page.count; k++) {
-      const y = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
+      const y = page.at[k];
       g.fillStyle = page.colors[k];
       g.beginPath();
       g.roundRect(x + 2, y - TAG / 2 + 1, width - 4, TAG - 2, 4);
@@ -683,7 +693,7 @@ export class Pane {
         const swap = order[j];
         (order[j] = order[j - 1]), (order[j - 1] = swap);
       }
-    for (let k = 0; k < n; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : step / 2);
+    for (let k = 0; k < n; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : this.tagsTop[side] + step / 2);
     for (let k = n - 1; k >= 0; k--) at[k] = Math.min(at[k], k < n - 1 ? at[k + 1] - step : this.height - step / 2);
     this.tagStep = step;
     return n;

@@ -422,7 +422,7 @@ class Pane {
     this.under = null;
     /** @type {Custom | null} */
     this.over = null;
-    /** Its primitives told the chart moved (see updateAllViews) since its layer over it was drawn. */
+    /** Its primitives told the chart moved this frame (see fresh). */
     this.updated = false;
     /** Its series' markers. @type {Marks[]} */
     this.marks = [];
@@ -447,20 +447,20 @@ class Pane {
   /**
    * Its series' primitives' views of one z-order drawn (Studio's drawings, its halving marks: the chart library's
    * primitives): `owner`'s alone ("normal": just over it), or all of the pane's ("bottom", under every series, drawn
-   * first; "top", over everything, drawn last). Each primitive told the chart moved (see updateAllViews) before its
-   * views are drawn: where its pane's drawn, by the first; else (its picture stretched whole, or only the crosshair
-   * moved) by the last.
+   * first; "top", over everything, drawn last). Each primitive told the chart moved first (see fresh): by the layer
+   * under the series wherever the pane's drawn (each strip), else by whatever reads them first.
    * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/custom.js").View} at @param {string} z @param {Series | null} owner
    */
   paint(g, at, z, owner) {
-    const target = this.target.set(g, at.time.width, at.scale.height, at.dpr), update = z === "bottom" || (z === "top" && !this.updated);
-    if (z !== "normal") this.updated = z === "bottom";
+    const target = this.target.set(g, at.time.width, at.scale.height, at.dpr);
+    if (z === "bottom") (this.updated = false), this.fresh();
+    else if (z === "top") this.fresh(), (this.updated = false);
     for (let k = 0; k < this.list.length; k++) {
       const series = this.list[k];
-      if (owner && series !== owner) continue;
+      // (A hidden series' primitives shown none, as the chart library drew none.)
+      if ((owner && series !== owner) || series.opts.visible === false) continue;
       for (let p = 0; p < series.primitives.length; p++) {
         const primitive = series.primitives[p];
-        if (update) primitive.updateAllViews?.();
         const views = primitive.paneViews?.() ?? NONE;
         for (let v = 0; v < views.length; v++) if ((views[v].zOrder?.() ?? "normal") === z) rendererOf(views[v])?.draw(target);
       }
@@ -468,18 +468,31 @@ class Pane {
   }
 
   /**
+   * Its series' primitives told the chart moved (their updateAllViews), once a frame: by the first of its drawing to read
+   * them (its layer under the series where the pane's drawn, else the time axis' tags or its layer over everything),
+   * the layer over everything last (the next frame's anew).
+   */
+  fresh() {
+    if (this.updated) return;
+    this.updated = true;
+    for (const series of this.list) for (const primitive of series.primitives) primitive.updateAllViews?.();
+  }
+
+  /**
    * Its series' primitives' tags on its axis on `side` (0, the right; 1, the left): their price axis views (a drawing's
-   * value), each on its series' side.
+   * value), each on its series' side; a hidden series' none.
    * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add
    */
   axisTags(side, add) {
+    this.fresh();
     for (const series of this.list)
-      if ((series.side === "left" ? 1 : 0) === side) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
+      if ((series.side === "left" ? 1 : 0) === side && series.opts.visible !== false) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
   }
 
   /** Its series' primitives' tags on the time axis: their time axis views (a drawing's date). @param {(x: number, text: string, color: string, ink?: string) => void} add */
   timeTags(add) {
-    for (const series of this.list) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
+    this.fresh();
+    for (const series of this.list) if (series.opts.visible !== false) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
   }
 
   /**
@@ -600,6 +613,8 @@ class PriceScale {
       if (options.scaleMargins) (scale.top = options.scaleMargins.top), (scale.bottom = options.scaleMargins.bottom);
     }
     // (Fitted again, or held where it is.)
+    // (Its tags under Studio's legend: LWC patch 50.)
+    if (this.side && options.bvTagsTop !== undefined) this.pane.engine.setTagsTop(options.bvTagsTop, this.side);
     if (this.side) {
       if (options.autoScale) this.pane.engine.setRange(undefined, undefined, this.side);
       else if (options.autoScale === false && scale) this.pane.engine.setRange(scale.lo, scale.hi, this.side);
@@ -727,10 +742,10 @@ class Series {
       this.edge.hidden = !shown;
       this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     }
-    if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), engine.version++);
+    if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), (engine.outline = outline), engine.version++);
     if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0 });
-    if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor });
+    if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor, outline });
   }
 
   // ── What Studio calls ──

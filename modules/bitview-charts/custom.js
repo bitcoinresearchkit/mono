@@ -6,9 +6,10 @@
 // `x1`) and the device pixels a CSS pixel (`dpr`). Optional: `extent` (its lowest and highest from index `a` to `b`,
 // widening `out`: the pane fitted to it too), `first` (its first value at or after an index: a relative scale's base)
 // and `distance` (how far a point is from it, in CSS pixels: at index `i`, `x` into the plot, `y` from the pane's top;
-// none, it's never hit), `axisTags` (its own tags on a price axis as it's drawn: its side's, 0 the right, 1 the left;
-// each at a height in its pane, its words, its color) and `timeTags` (on the time axis, at an x in the plot). Its
-// options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
+// none, it's never hit), `axisTags` (its own tags on a price axis: its side's, 0 the right, 1 the left; each at a
+// height in its pane, its words, its color; asked as the axis is drawn: whole, or its tags' view's end moved, so a
+// change of them is a change of it, see changed()) and `timeTags` (on the time axis, at an x in the plot: asked each
+// frame). Its options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
 // edge: its pane drawn whole each frame) or `over` (drawn over everything, the crosshair too, on its pane's layer over
 // it, whole each frame: labels and handles placed in the plot, its pane's picture moved without them). After a change
 // of what it draws, `changed()`, then the chart's invalidate(true).

@@ -81,12 +81,13 @@ export class TimeAxis {
     for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden) pane.series[k].timeTags?.(page.add);
     // (Each tag's half width, measured once a draw.)
     if (this.halves.length < page.count) this.halves = new Float64Array(page.count * 2);
-    for (let k = 0; k < page.count; k++) this.halves[k] = g.measureText(page.texts[k]).width / 2 + 6;
+    // (Each where it's drawn: within the plot.)
+    for (let k = 0; k < page.count; k++) (this.halves[k] = g.measureText(page.texts[k]).width / 2 + 6), (page.at[k] = Math.min(Math.max(page.at[k], this.halves[k]), plot - this.halves[k]));
     this.#labels(time, theme, plot, page);
     g.textAlign = "center";
     g.textBaseline = "middle";
     for (let k = 0; k < page.count; k++) {
-      const half = this.halves[k], x = Math.min(Math.max(page.at[k], half), plot - half);
+      const half = this.halves[k], x = page.at[k];
       g.fillStyle = page.colors[k];
       g.beginPath();
       g.roundRect(x - half, this.height / 2 - 10, half * 2, 20, 4);
