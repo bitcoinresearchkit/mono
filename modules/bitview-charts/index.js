@@ -19,7 +19,7 @@ import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
 export { Timeline, Pane, TimeAxis };
-export { Line } from "./line.js";
+export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars } from "./bars.js";
 export { Candles } from "./candles.js";

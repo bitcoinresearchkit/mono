@@ -58,9 +58,8 @@ chart.show(365);                                 // the last 365 points in view
   legend, a highlight), laid out and stretched with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
-  the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's scale's look, now and a
-  left one made later),
-  `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
+  the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's
+  scale's look, now and a left one made later), `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
 
 ## Series
 
@@ -111,6 +110,8 @@ chart.show(365);                                 // the last 365 points in view
   pixels noise.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
+- Any series' `faint`: drawn at a fifth of its opacity, its tag and price line gone (another lit over it); then
+  `chart.invalidate(true)`.
 - Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log, fitted to it alone each frame where it has an
   extent, else as set: a volume along a price pane's foot, a page's drawing on a range of its own).
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range

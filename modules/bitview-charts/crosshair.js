@@ -4,7 +4,7 @@
 // point's date on the time axis and the height's value on that pane's axis, each in a badge.
 
 import { kept } from "./format.js";
-import { Line } from "./line.js";
+import { Line, FAINT } from "./line.js";
 import { inkOn } from "./color.js";
 import { pill, PILL } from "./tags.js";
 
@@ -97,6 +97,8 @@ export class Crosshair {
           }
           const y = each.top + scale.y(v);
           if (!(y >= each.top && y <= each.top + each.height)) continue;
+          // (A faint line's as faint.)
+          g.globalAlpha = line.faint ? FAINT : 1;
           g.fillStyle = theme.background;
           g.beginPath();
           g.arc(x, y, line.marker + 2, 0, 2 * Math.PI);
@@ -106,6 +108,7 @@ export class Crosshair {
           g.arc(x, y, line.marker, 0, 2 * Math.PI);
           g.fill();
         }
+        g.globalAlpha = 1;
         g.restore();
       }
     }

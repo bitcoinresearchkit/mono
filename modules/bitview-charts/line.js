@@ -224,6 +224,9 @@ const run = {
   },
 };
 
+/** A faint series' opacity (`faint`: another lit over it): a fifth, its tag and price line gone. */
+export const FAINT = 0.2;
+
 export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes

@@ -6,7 +6,7 @@
 // (drawn whole again once the motion stops: no seams left).
 
 import { Scale } from "./scale.js";
-import { Line } from "./line.js";
+import { Line, FAINT } from "./line.js";
 import { Band } from "./band.js";
 import { Bars } from "./bars.js";
 import { Candles } from "./candles.js";
@@ -42,11 +42,13 @@ const TAG = PILL;
  * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
  * over and under the range, by the points' spacing: its marks over bars); `viewed`, brought up to the view before each
  * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
- * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top. Drawn with the chart's theme (its
- * ground, its font: words in a pill).
+ * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top; `faint`, drawn at a fifth of its
+ * opacity, its tag and price line gone (another lit over it: after a change, the chart's invalidate(true)). Drawn with
+ * the chart's theme (its ground, its font: words in a pill).
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
+ *   faint?: boolean,
  *   fixed?: boolean,
  *   dashed?: boolean,
  *   immovable?: boolean,
@@ -431,7 +433,9 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
+      if (series.faint) g.globalAlpha = FAINT;
       series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
+      g.globalAlpha = 1;
     }
   }
 
@@ -699,7 +703,7 @@ export class Pane {
   #tagged() {
     for (let k = 0; k < this.series.length; k++) {
       const line = this.series[k];
-      if (line instanceof Line && line.tag && !line.hidden) return true;
+      if (line instanceof Line && line.tag && !line.hidden && !line.faint) return true;
     }
     return false;
   }
@@ -782,7 +786,9 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
+      if (this.series[k].faint) g.globalAlpha = FAINT;
       this.series[k].draw(g, time, scale, x0, x1, dpr, theme);
+      g.globalAlpha = 1;
     }
     // (Price lines: across at a line's last value, dotted, in its color there; its dots where they'd be on the timeline,
     // so a picture moved by a pan has them where a whole draw does.)
@@ -790,7 +796,7 @@ export class Pane {
     g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
     for (let k = 0; k < this.series.length; k++) {
       const line = this.series[k], scale = this.scaleOf(k);
-      if (!(line instanceof Line) || !line.priceLine || line.hidden) continue;
+      if (!(line instanceof Line) || !line.priceLine || line.hidden || line.faint) continue;
       const i = line.last(scale.mode === "log");
       if (i < 0) continue;
       if (scale.relative) {
@@ -840,7 +846,7 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.hidden || line.overlay) continue;
+      if (!(line instanceof Line) || !line.tag || line.hidden || line.faint || line.overlay) continue;
       const i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view. On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1;
