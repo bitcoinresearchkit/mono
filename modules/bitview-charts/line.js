@@ -473,8 +473,9 @@ export class Line {
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";
     // (One stroke a color: its segments in it. Measured (see recorder.js), all of them in one pass, their union as
-    // drawn: those of its colors that paint (a stroke of some paint for it, its segments chosen by `shown`).)
-    const passes = colors && !measuring ? this.palette.length : 0, shown = colors && measuring && !this.palette.every(painted) ? Uint8Array.from(this.palette, (c) => (painted(c) ? 1 : 0)) : null;
+    // drawn: those of its colors that paint (a stroke of some paint for it, its segments chosen by `shown`; all, where
+    // its under color paints: below its value they show in it).)
+    const passes = colors && !measuring ? this.palette.length : 0, shown = colors && measuring && !this.palette.every(painted) && !(this.under && painted(this.under.color)) ? Uint8Array.from(this.palette, (c) => (painted(c) ? 1 : 0)) : null;
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
       const under = this.under, color = colors && measuring ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
