@@ -2945,41 +2945,6 @@
        * lights its item and brings it into view. It lives inside its pane's plot, over the chart's two canvases, so it
        * moves and resizes with the pane; its marks start where the title's text does.
        */
-      /* The time axis's rule: one line along the last pane's foot, across its price scales too (the chart draws none
-         under them), in the borders' color; under the right scale, at its end, Full screen. */
-      #chart table tr:nth-last-child(2) > td {
-        position: relative;
-
-        &::after {
-          content: "";
-          position: absolute;
-          inset: auto 0 0;
-          z-index: 4;
-          height: 1px;
-          background: var(--line);
-          pointer-events: none;
-        }
-
-        /* (Mid-motion, along the plot as stretched, and with the left scale as moved: see stretchDrawn.) */
-        &:nth-child(1)::after {
-          translate: var(--stretch-left, 0px) 0;
-        }
-
-        &:nth-child(2)::after {
-          left: var(--stretch-left, 0px);
-          right: var(--stretch-right, 0px);
-        }
-      }
-
-      #chart table tr:last-child > td {
-        position: relative;
-      }
-
-      /* (Mid-motion, a separator's cell stretched (a transform: a layer of its own) still over the plots, its handle with
-         it: see stretchDrawn.) */
-      #chart [data-stretching] tr > td[colspan] {
-        position: relative;
-        z-index: 3;
       }
 
       #full {
@@ -16502,7 +16467,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const left = engine.left, right = engine.axisShown, element = view.chartElement();
         // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
         // at the box.)
-        const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
+        const clipped = /** @type {[HTMLElement, string][]} */ ([[element, element.style.overflow]]);
         for (const [item] of clipped) item.style.overflow = "visible";
         // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
         // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
@@ -16539,30 +16504,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {number | null} shown
        */
       function stretchDrawn(shown) {
-        const element = view.chartElement(), canvases = all$("tr > td:nth-child(2) > div > canvas", element), edged = [...all$(".legend", element), ...all$("tr > td:nth-child(1):not([colspan]) > div", element)], rules = all$("tr > td[colspan]", element);
+        // (Its plots' canvases (a pane's layer over it too) and the time axis' stretched; its legends and its left scale's
+        // canvases moved with their edge.)
+        const element = view.chartElement(), canvases = [...engine.panes.flatMap((pane) => [pane.canvas, pane.overCanvas ?? []]).flat(), engine.timeAxis.canvas];
+        const edged = [...all$(".legend", element), ...engine.panes.flatMap((pane) => (pane.leftCanvas ? [pane.leftCanvas] : []))];
         if (shown === null || !drawnStretch) {
           for (const [item, overflow] of drawnStretch?.clipped ?? []) item.style.overflow = overflow;
           drawnStretch = null;
-          for (const item of [...canvases, ...edged, ...rules]) Object.assign(item.style, { transform: "", transformOrigin: "" });
-          for (const side of ["left", "right"]) element.style.removeProperty(`--stretch-${side}`);
+          for (const item of [...canvases, ...edged]) Object.assign(item.style, { transform: "", transformOrigin: "" });
           for (const legend of all$(".legend", element)) legend.style.clipPath = "";
-          delete element.dataset.stretching;
           return;
         }
-        const { to, sides, left, leftAxis, clipped, room, lead, ranged } = drawnStretch, from = Math.max(1, shown - sides);
-        // (A pane's cells new meanwhile, their clipping let go of too.)
-        for (const item of all$("tr > td > div", element)) if (!clipped.some(([held]) => held === item)) (clipped.push([item, item.style.overflow]), (item.style.overflow = "visible"));
+        const { to, sides, left, leftAxis, room, lead, ranged } = drawnStretch, from = Math.max(1, shown - sides);
         // (As it's drawn once the motion's over, nothing moving then: a range's data stretched between Max's room before
         // its first value and the room after its last (as wide as the chart makes it at each width, rightGap), those
         // kept; else all of it.)
         // (Too little between them to stretch (one value: the chart fits it instead), the whole of it.)
         const held = ranged && to - lead - room > 1, gap = held ? rightGap(from) : 0, k = held ? (from - lead - gap) / (to - lead - room) : from / to;
         for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
-        // (The panes' rules (a separator's cell, across the scales' room too) from the chart's pinned edge; the last
-        // pane's, along the plot.)
-        for (const rule of rules) Object.assign(rule.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${(from + sides) / (to + sides)})` });
-        element.style.setProperty(`--stretch-${leftAxis ? "right" : "left"}`, `${to - from}px`);
-        element.dataset.stretching = "";
         // (What's at the plot's moving edge, moved with it: the legends, and a left scale (pinned left, the edge doesn't
         // move).)
         if (!leftAxis) for (const item of left ? edged : all$(".legend", element)) item.style.transform = `translateX(${to - from}px)`;

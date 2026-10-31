@@ -323,7 +323,7 @@ export class Chart {
         if (!pane.overCanvas.parentNode) this.element.append(pane.overCanvas);
         pane.overCanvas.style.left = `${left}px`;
       }
-      pane.separated = k < this.panes.length - 1;
+      pane.separated = true;
       top = bottom;
     }
     // (The time axis under the plot alone: a page stretching the plot stretches it alike. Under the axis, the chart's ground.)

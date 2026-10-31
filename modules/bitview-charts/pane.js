@@ -135,7 +135,7 @@ export class Pane {
     this.shownHeight = 0;
     this.width = 0;
     this.plot = 0;
-    /** A pane under it: its foot a separator's line (see Chart's layout). */
+    /** Its foot a separator's line (between it and the pane under it, or the time axis: see Chart's layout). */
     this.separated = false;
     // (Its picture: the view it shows, for a pan to move it.)
     this.drawnFrom = NaN;
@@ -821,10 +821,10 @@ export class Pane {
       if (relative) scale.setBase(line.first(from));
       // (Its value as a tag writes it, then in its writer's words: see tagValue.)
       const words = relative ? this.axisLabel(tagValue(line.values[i] * scale.m + scale.c), scale) : (line.format ?? this.labels[side])(tagValue(line.values[i]));
-      const look = tint(color, theme.background);
+      const look = tint(color);
       // (Against the plot, a tag's room tall: touching its neighbors, as one column with the lines' ends; 4 pixels from the
       // edge.)
-      this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, words, look.fill, look.ink, side ? x + width : x, y, side ? "right" : "left", Math.max(1, step), look.border) + 4);
+      this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, words, look.fill, look.ink, side ? x + width : x, y, side ? "right" : "left", Math.max(1, step)) + 4);
     }
   }
 

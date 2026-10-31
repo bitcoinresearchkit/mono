@@ -44,63 +44,46 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look for a series in `color`: its fill that very color (the line's); its words white or black, whichever APCA
- * finds reads better on it (WCAG 2's ratio gets mid blues and purples wrong), each given back a whisper of the fill's hue
- * in OKLCH (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there); its edge the
- * fill's hue a step (0.12 in OKLCH lightness) away from `ground` (the axis'): lighter on a dark ground, darker on a light
- * one, a hairline that sets the tag off whatever its fill (a black series on a dark ground, a white one on a light
- * ground). One formula on any ground. A see-through color, none (nothing shown). Each pair worked out once.
- * @param {string} color @param {string} ground
- * @returns {{ fill: string, ink: string, border: string }}
+ * A tag's look for a series in `color`: its fill that very color (the line's); its words white or black by the fill's
+ * lightness (see whiteReads), each given back a whisper of the fill's hue in OKLCH (lightness 0.97 or 0.24, chroma
+ * 0.06 at most, the fill's hue: as much as sRGB allows there). No edge: a series the ground's color is the page's
+ * choice. A see-through color, none (nothing shown). Each color worked out once.
+ * @param {string} color
+ * @returns {{ fill: string, ink: string }}
  */
-export function tint(color, ground) {
-  const key = color + "|" + ground;
-  let look = tints.get(key);
+export function tint(color) {
+  let look = tints.get(color);
   if (look !== undefined) return look;
   const seen = read(color);
-  if (seen[3] === 0) look = { fill: "transparent", ink: "transparent", border: "transparent" };
+  if (seen[3] === 0) look = { fill: "transparent", ink: "transparent" };
   else {
-    const fill = rgb(seen), [l0, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0), light = whiteReads(fill);
-    // (Its hue at a lightness, its chroma the most sRGB allows there, `most` at most.)
-    const at = (/** @type {number} */ l, /** @type {number} */ most) => {
-      let lo = 0, hi = most;
-      if (fits(lin(l, hi * Math.cos(hue), hi * Math.sin(hue)))) lo = hi;
-      else
-        for (let k = 0; k < 24; k++) {
-          const mid = (lo + hi) / 2;
-          if (fits(lin(l, mid * Math.cos(hue), mid * Math.sin(hue)))) lo = mid;
-          else hi = mid;
-        }
-      return hex(rgb(lin(l, lo * Math.cos(hue), lo * Math.sin(hue))));
-    };
-    const away = oklab(read(ground))[0] < 0.5 ? 0.12 : -0.12;
-    look = { fill: hex(fill), ink: at(light ? 0.97 : 0.24, Math.min(0.06, chroma)), border: at(Math.min(1, Math.max(0, l0 + away)), chroma) };
+    const fill = rgb(seen), [, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.min(0.06, Math.hypot(a0, b0)), light = whiteReads(fill);
+    // (Its hue at the ink's lightness, its chroma the most sRGB allows there, 0.06 at most.)
+    const l = light ? 0.97 : 0.24;
+    let lo = 0, hi = chroma;
+    if (fits(lin(l, hi * Math.cos(hue), hi * Math.sin(hue)))) lo = hi;
+    else
+      for (let k = 0; k < 24; k++) {
+        const mid = (lo + hi) / 2;
+        if (fits(lin(l, mid * Math.cos(hue), mid * Math.sin(hue)))) lo = mid;
+        else hi = mid;
+      }
+    look = { fill: hex(fill), ink: hex(rgb(lin(l, lo * Math.cos(hue), lo * Math.sin(hue)))) };
   }
   if (tints.size > 512) tints.clear();
-  tints.set(key, look);
+  tints.set(color, look);
   return look;
 }
 
 /**
- * Whether white words read better than black on `back` (sRGB channels, 0 to 255), as APCA finds (WCAG 2's ratio gets
- * mid blues and purples wrong).
+ * Whether white words read better than black on `back` (sRGB channels, 0 to 255): by its lightness (OKLab), white under
+ * 0.7157 (where APCA turns for a gray, #a4a4a4), so a color of one lightness goes one way whatever its hue (APCA itself
+ * gave a light salmon or lavender white words; WCAG 2's ratio gets mid blues and purples wrong). Studio's own words
+ * on a color the same.
  * @param {number[]} back
  */
 function whiteReads(back) {
-  return apca([255, 255, 255], back) >= apca([0, 0, 0], back);
-}
-
-/**
- * APCA's lightness contrast of words in `text` on `back` (sRGB channels, 0 to 255), as a magnitude (Lc, 0 to ~106): how
- * readable they are, light on dark and dark on light alike (WCAG 2's ratio overstates dark colors' contrast).
- * @param {number[]} text @param {number[]} back
- */
-function apca(text, back) {
-  const y = (/** @type {number[]} */ c) => { const v = 0.2126729 * (c[0] / 255) ** 2.4 + 0.7151522 * (c[1] / 255) ** 2.4 + 0.072175 * (c[2] / 255) ** 2.4; return v > 0.022 ? v : v + (0.022 - v) ** 1.414; };
-  const t = y(text), b = y(back);
-  if (Math.abs(b - t) < 0.0005) return 0;
-  const s = b > t ? (b ** 0.56 - t ** 0.57) * 1.14 : (b ** 0.65 - t ** 0.62) * 1.14;
-  return Math.abs(s) < 0.1 ? 0 : (Math.abs(s) - 0.027) * 100;
+  return oklab(back)[0] < 0.7157;
 }
 
 /** sRGB channels (0 to 255) from linear ones, or a read color's first three. @param {ArrayLike<number>} c */
