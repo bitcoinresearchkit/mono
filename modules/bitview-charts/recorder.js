@@ -221,15 +221,27 @@ function winding(fills, from, to, x, y) {
 }
 
 /**
- * Whether a fill's edge (at `k` in fills) is retraced by another of its edges the other way (a shape that encloses
- * nothing there: a bar at its base, a band its edges together), so bounds no paint.
+ * Whether a fill's edge (at `k` in fills) is retraced by its other edges the other way, all along it (a shape that
+ * encloses nothing there: a bar at its base, a band its edges together, a curved area flat on its base, its curve's
+ * pieces against its base's one edge), so bounds no paint: the reversed edges on its line (within a millionth of a
+ * pixel) covering its length.
  * @param {Float64Array} fills @param {number} from @param {number} to @param {number} k
  */
 function retraced(fills, from, to, k) {
-  const x0 = fills[k], y0 = fills[k + 1], x1 = fills[k + 2], y1 = fills[k + 3];
-  if (x0 === x1 && y0 === y1) return true;
-  for (let j = from * 4; j < to * 4; j += 4) if (j !== k && fills[j] === x1 && fills[j + 1] === y1 && fills[j + 2] === x0 && fills[j + 3] === y0) return true;
-  return false;
+  const x0 = fills[k], y0 = fills[k + 1], dx = fills[k + 2] - x0, dy = fills[k + 3] - y0, length = Math.hypot(dx, dy);
+  if (!(length > 1e-9)) return true;
+  const ux = dx / length, uy = dy / length;
+  let covered = 0;
+  for (let j = from * 4; j < to * 4; j += 4) {
+    if (j === k) continue;
+    const ax = fills[j] - x0, ay = fills[j + 1] - y0, bx = fills[j + 2] - x0, by = fills[j + 3] - y0;
+    // (On its line (both ends within a millionth of a pixel of it), the other way.)
+    if (Math.abs(ax * uy - ay * ux) > 1e-6 || Math.abs(bx * uy - by * ux) > 1e-6) continue;
+    const a = ax * ux + ay * uy, b = bx * ux + by * uy;
+    if (b >= a) continue;
+    covered += Math.max(0, Math.min(length, a) - Math.max(0, b));
+  }
+  return covered >= length - 1e-6;
 }
 
 /**
