@@ -16297,6 +16297,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const box = view.chartElement().getBoundingClientRect();
         return new DOMRect(box.left, box.top + pane.shownTop, engine.left + pane.width, pane.shownHeight);
       };
+      /** Pane `i`'s price scale on a side (its right one, or its left one once a series is on it), or none. @param {number} i @param {string} side */
+      const scaleOn = (i, side) => ((pane) => (pane ? (side === "left" ? pane.left : pane.scale) : null))(engine.panes[i]);
+      /** Whether pane `i`'s scale on a side fits itself to the view (else it's held where it was set). @param {number} i @param {string} side */
+      const scaleFits = (i, side) => ((pane) => !pane || (side === "left" ? pane.leftAuto : pane.auto))(engine.panes[i]);
+      /** What pane `i`'s scale on a side shows, as values; none without it. @param {number} i @param {string} side */
+      const scaleRange = (i, side) => ((scale) => (scale ? { from: scale.lo, to: scale.hi } : null))(scaleOn(i, side));
+      /** Pane `i`'s scale on a side held at a range, or (none) fitted to the view again. @param {number} i @param {string} side @param {{ from: number, to: number } | null} range */
+      const holdScale = (i, side, range) => (engine.panes[i]?.setRange(range?.from, range?.to, /** @type {any} */ (side)), engine.invalidate(true));
+      /** The range pane `i`'s scale on a side would show fitted to the view, where it's held now (it stays held). @param {number} i @param {string} side */
+      const fittedRange = (i, side) => {
+        const pane = engine.panes[i], scale = scaleOn(i, side);
+        if (!pane || !scale) return null;
+        const left = side === "left", auto = left ? pane.leftAuto : pane.auto, was = [scale.lo, scale.hi];
+        left ? (pane.leftAuto = true) : (pane.auto = true);
+        pane.fit(engine.time);
+        const range = { from: scale.lo, to: scale.hi };
+        left ? (pane.leftAuto = auto) : (pane.auto = auto);
+        if (!auto) scale.fit(was[0], was[1]);
+        return range;
+      };
+      /** Pane `i`'s scale's mode on a side, as Studio numbers them (see MODES). @param {number} i @param {string} side */
+      const scaleMode = (i, side) => ["linear", "log", "percent", "indexed"].indexOf(scaleOn(i, side)?.mode ?? "linear");
       const xOfTime = (time) => ((times, i) => (times[i] === time ? engine.time.x(i) : null))(engine.time.times, lowerBound(engine.time.times, time));
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
@@ -16439,7 +16461,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function holdPrices(marks) {
         const boxes = paneBoxes();
         pricesHeld = marks.flatMap(({ i, side, mode, range, series, top, foot }) => {
-          const scale = /** @type {any} */ (view.priceScale(side, i)), now = scale.bvRange(), box = boxes[i];
+          const now = scaleRange(i, side), box = boxes[i];
           const edgeTop = now && box ? series.priceToCoordinate(now.to) : null, edgeFoot = now && box ? series.priceToCoordinate(now.from) : null;
           if (edgeTop === null || edgeFoot === null || !box || !(edgeFoot - edgeTop > 1)) return [];
           // (A log scale's as the chart's own: the logarithm of a price a ten-thousandth up, see LWC's logFormula.)
@@ -16447,10 +16469,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const k = (foot - top) / (f(range.to) - f(range.from)), high = f(range.to) + (top - (box.top + edgeTop)) / k, low = high - (edgeFoot - edgeTop) / k;
           const kept = { from: g(low), to: g(high) };
           if (!(kept.to > kept.from) || !Number.isFinite(kept.to + kept.from)) return [];
-          scale.bvSetRange(kept);
+          holdScale(i, side, kept);
           return [{ i, side, mode, range: kept }];
         });
-        scaleMoves = pricesHeld.map(({ i, side }) => view.priceScale(side, i));
+        scaleMoves = pricesHeld.map(({ i, side }) => ({ i, side }));
       }
       /** The prices holdPrices held, glided from there to where they fit (a press meanwhile already let them go). */
       function letPricesGo() {
@@ -17383,7 +17405,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
           // nothing: it has nothing shown.)
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: marginsOf(doc, pane, i), ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
+          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), scaleMargins: marginsOf(doc, pane, i), ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
         // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again. Laid from the chart, or the
         // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
@@ -17456,7 +17478,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         wasCloses.clear();
         kept.clear();
         showDrawings(doc);
-        fitTags(doc, data);
         if (relit) spotlight(relit);
         legendsDue = true;
         requestAnimationFrame(layOutLegends);
@@ -17658,7 +17679,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         glide(range.to >= last ? { from: to - width, to } : within({ from: center - width / 2, to: center + width / 2 }));
       }
       /** Every price scale back on auto, however it was dragged. */
-      const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
+      const autoScale = () => engine.panes.forEach((_, i) => ["left", "right"].forEach((side) => holdScale(i, side, null)));
       /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
       const presetFits = (/** @type {string} */ id) => id === "max" || rangeDays(id) / INTERVAL_DAYS[chart.index] <= mostBars();
       /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
@@ -17832,77 +17853,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function fitLegends(tags = true) {
         const width = engine.time.width;
         if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < KEY_NARROW), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
+        let moved = false;
         if (tags) chart?.panes.forEach((pane, i) => {
-          if (!view.panes()[i]) return;
+          if (!engine.panes[i]) return;
           // (Under its legend, but two tags' room left at least: a short pane's tags beside it rather than off its foot.)
           const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, view.panes()[i].getHeight() - 44)) : 0;
-          for (const side of ["left", "right"]) if (view.priceScale(side, i).options().bvTagsTop !== top) view.priceScale(side, i).applyOptions({ bvTagsTop: top });
+          for (const side of ["left", "right"]) moved = engine.panes[i].setTagsTop(top, /** @type {any} */ (side)) || moved;
         });
+        if (moved) engine.invalidate(true);
       }
-      /**
-       * Each price scale's tags' room (see LWC patch 50): the widest any of its series' tags can be written, shown or hidden (each
-       * magnitude's least and greatest and its latest, as its tag writes them: a stacked band's own value), so the axis keeps
-       * its width through a pan (a tag wider yet widens it, once); a scale in percent or indexed (its tags against the first
-       * value in view), none.
-       * @param {Chart} doc @param {Resolved} data
-       */
-      function fitTags(doc, data) {
-        const stacked = stackOf(doc, data), widths = new Map();
-        for (const layer of doc.layers) {
-          const series = closes.get(layer.id)?.series ?? drawn.get(layer.id), result = data.results.get(layer.id), key = `${layer.pane}:${layer.side}`;
-          // (A hidden one's too: shown again, the axis as wide, the view where it is.)
-          if (!series || !result?.values || placedOn(layer) || layer.type === "cloud" || widths.get(key) === 0) continue;
-          if (modeOf(doc, layer) >= 2) {
-            widths.set(key, 0);
-            continue;
-          }
-          // (Stacked, or to be once shown again: its tag the stack's sum where it sits, as wide as any of its sums gets, some
-          // of it hidden or not (see stackTagValues); a 100% stack's, a share.)
-          const stack = doc.panes.find((pane) => pane.id === layer.pane)?.stack, banded = stacked.has(layer.id) || Boolean(layer.hidden && stack && !layer.from), percent = stack === "percent";
-          const kind = `own:${percent ? "%" : ""}`, from = !banded ? result.values : percent ? STACK_SHARES : stackTagValues(doc, data, layer);
-          let width = tagsWidths.get(from)?.get(kind);
-          if (width === undefined) {
-            width = widest(magnitudes(from).map((value) => series.priceFormatter().format(value)), 510, 11);
-            if (!tagsWidths.has(from)) tagsWidths.set(from, new Map());
-            tagsWidths.get(from)?.set(kind, width);
-          }
-          widths.set(key, Math.max(widths.get(key) ?? 0, width));
-        }
-        doc.panes.forEach((pane, i) => {
-          if (!view.panes()[i]) return;
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ bvTagsWidth: widths.get(`${pane.id}:${side}`) ?? 0 });
-        });
-      }
-      /** Each series' tags' widest (see fitTags), by its values, by how they're written: made again only for new data. @type {WeakMap<Vector, Map<string, number>>} */
-      const tagsWidths = new WeakMap();
-      /**
-       * What a stack's tags can say, every layer of it shown or some hidden: each one's sum to its top, in the stack's order;
-       * each one's own (one left alone); the sum of its positive ones and of its negative ones (every sum lies between):
-       * each one's values whose written forms bound the others' (see magnitudes). Kept while what it's made of is the same.
-       * @param {Chart} doc @param {Resolved} data @param {Layer} layer @returns {Vector}
-       */
-      function stackTagValues(doc, data, layer) {
-        const pane = doc.panes.find((item) => item.id === layer.pane), layers = doc.layers.filter((item) => item.pane === layer.pane && item.side === layer.side && !item.from && !placedOn(item) && data.results.get(item.id)?.values);
-        const vectors = (pane?.reverse ? layers.reverse() : layers).map((item) => /** @type {Vector} */ (data.results.get(item.id)?.values)), key = vectors.map(idOf).join();
-        let made = stackTags.get(key);
-        if (made) return made;
-        const n = vectors[0]?.length ?? 0, sum = new Float64Array(n), up = new Float64Array(n), down = new Float64Array(n), values = [];
-        for (const own of vectors) {
-          // (Finite by a subtraction: no call each value.)
-          for (let i = 0; i < n; i++) {
-            const value = own[i];
-            if (value - value === 0) (sum[i] += value), value > 0 ? (up[i] += value) : (down[i] += value);
-          }
-          values.push(...magnitudes(own), ...magnitudes(sum));
-        }
-        made = Float64Array.from([...values, ...magnitudes(up), ...magnitudes(down)]);
-        if (stackTags.size > 20) stackTags.clear();
-        stackTags.set(key, made);
-        return made;
-      }
-      const stackTags = /** @type {Map<string, Float64Array>} */ (new Map());
-      /** A 100% stack's band's values, shares: as wide as any is written (every magnitude to 100, decimals as far as written). */
-      const STACK_SHARES = Float64Array.of(0.000012345, 0.00012345, 0.0012345, 0.012345, 0.12345, 1.2345, 12.345, 99.995, 100);
       /**
        * The values whose written forms bound every other's: each order of magnitude's least and greatest, either sign
        * (within one, the digits and the decimals a form has are alike), and the latest.
@@ -19816,19 +19775,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** Each scale's range as it's held, where it follows the plot (auto scaled). */
       function heldScales() {
-        return view.panes().flatMap((_, i) => ["left", "right"].flatMap((side) => {
-          const scale = /** @type {any} */ (view.priceScale(side, i)), options = scale.options(), range = scale.bvRange();
-          return options.autoScale && range ? [{ i, side, mode: options.mode, range }] : [];
+        return engine.panes.flatMap((_, i) => ["left", "right"].flatMap((side) => {
+          const range = scaleRange(i, side);
+          return scaleFits(i, side) && range ? [{ i, side, mode: scaleMode(i, side), range }] : [];
         }));
       }
-      let scaleGlide = 0, scaleMoves = /** @type {any[]} */ ([]), scaleGliding = false;
+      let scaleGlide = 0, scaleMoves = /** @type {{ i: number, side: string }[]} */ ([]), scaleGliding = false;
       /** A glide under way, ended: its scales follow the plot again. */
       function endScaleGlide() {
         cancelAnimationFrame(scaleGlide);
         scaleGliding = false;
         pricesHeld = [];
         if (!scaleMoves.length) return;
-        for (const scale of scaleMoves) scale.setAutoScale(true);
+        for (const { i, side } of scaleMoves) holdScale(i, side, null);
         scaleMoves = [];
       }
       /**
@@ -19841,14 +19800,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function glideScales(held) {
         endScaleGlide();
         const moves = held.flatMap(({ i, side, mode, range }) => {
-          if (i >= view.panes().length) return [];
-          const scale = /** @type {any} */ (view.priceScale(side, i)), options = scale.options();
-          if (!options.autoScale || options.mode !== mode) return [];
-          scale.bvSetRange(range);
-          return [{ scale, range, to: range, log: mode === 1 }];
+          if (!scaleOn(i, side) || !scaleFits(i, side) || scaleMode(i, side) !== mode) return [];
+          holdScale(i, side, range);
+          return [{ i, side, range, to: range, log: mode === 1 }];
         });
         if (!moves.length) return;
-        scaleMoves = moves.map(({ scale }) => scale);
+        scaleMoves = moves.map(({ i, side }) => ({ i, side }));
         /** @param {number} a @param {number} b @param {number} k @param {boolean} log */
         const between = (a, b, k, log) => (log && a > 0 && b > 0 ? 10 ** (Math.log10(a) + (Math.log10(b) - Math.log10(a)) * k) : a + (b - a) * k);
         let started = false;
@@ -19859,15 +19816,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!started) {
               started = true;
               for (const move of moves) {
-                move.to = move.scale.bvAutoRange() ?? move.range;
-                move.scale.bvSetRange(move.range);
+                move.to = fittedRange(move.i, move.side) ?? move.range;
+                holdScale(move.i, move.side, move.range);
               }
               // (From here on, a view moved is moved by something else.)
               scaleGliding = true;
             }
             const t = Math.min(1, now / MOTION.small), k = eased(t);
             if (t >= 1) return endScaleGlide();
-            for (const { scale, range, to, log } of moves) scale.bvSetRange({ from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
+            for (const { i, side, range, to, log } of moves) holdScale(i, side, { from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
             scaleGlide = requestAnimationFrame(step);
           } catch {
             endScaleGlide();

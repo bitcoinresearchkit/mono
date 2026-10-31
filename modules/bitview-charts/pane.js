@@ -436,10 +436,16 @@ export class Pane {
     return null;
   }
 
-  /** A side's tags kept under `top` (CSS pixels from its top: a page's legend over the pane). @param {number} top @param {"right" | "left"} [side] */
+  /**
+   * A side's tags kept under `top` (CSS pixels from its top: a page's legend over the pane); whether that moved them (the
+   * chart to be drawn again).
+   * @param {number} top @param {"right" | "left"} [side]
+   */
   setTagsTop(top, side = "right") {
     const k = side === "left" ? 1 : 0;
-    if (this.tagsTop[k] !== top) (this.tagsTop[k] = top), (this.drawnFrom = NaN);
+    if (this.tagsTop[k] === top) return false;
+    (this.tagsTop[k] = top), (this.drawnFrom = NaN);
+    return true;
   }
 
   /** A slot's ticks (`count` of them, in axisTicks) as its writer writes them, written anew only when they change. @param {number} slot @param {number} count */

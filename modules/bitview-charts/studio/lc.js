@@ -683,7 +683,7 @@ class PriceScale {
     this.pane = pane;
     /** Its side; an overlay's, none (its series drawn on the right one's side, its own scale theirs). @type {"right" | "left" | null} */
     this.side = id === "left" || id === "right" ? id : null;
-    /** @type {{ mode: number, autoScale: boolean, visible: boolean, scaleMargins: { top: number, bottom: number }, bvTagsTop?: number }} */
+    /** @type {{ mode: number, autoScale: boolean, visible: boolean, scaleMargins: { top: number, bottom: number } }} */
     this.opts = { mode: 0, autoScale: true, visible: true, scaleMargins: this.side ? { top: 0.17, bottom: 0.08 } : { top: 0.2, bottom: 0.1 } };
     /** An overlay's own scale: its series' range (their autoscaleInfoProvider's), the pane's height. */
     this.overlay = this.side ? null : new Scale({ top: 0.2, bottom: 0.1 });
@@ -709,8 +709,6 @@ class PriceScale {
       if (options.mode !== undefined) scale.mode = /** @type {any} */ (MODES[options.mode] ?? "linear");
       if (options.scaleMargins) (scale.top = options.scaleMargins.top), (scale.bottom = options.scaleMargins.bottom);
     }
-    // (Its tags under Studio's legend: LWC patch 50.)
-    if (this.side && options.bvTagsTop !== undefined) this.pane.engine.setTagsTop(options.bvTagsTop, this.side);
     if (this.side === "right" && "visible" in options) this.pane.chart.axes();
     // (Fitted again, or held where it is.)
     if (this.side) {
@@ -718,42 +716,6 @@ class PriceScale {
       else if (options.autoScale === false && scale) this.pane.engine.setRange(scale.lo, scale.hi, this.side);
     }
     this.pane.chart.engine.invalidate(true);
-  }
-
-  /** @param {boolean} on */
-  setAutoScale(on) {
-    this.applyOptions({ autoScale: on });
-  }
-
-  width() {
-    return this.side === "left" ? this.pane.chart.engine.left : this.side ? this.pane.chart.engine.axisShown : 0;
-  }
-
-  /** The patches' range: what it shows, as values. */
-  bvRange() {
-    const scale = this.scale;
-    return scale ? { from: scale.lo, to: scale.hi } : null;
-  }
-
-  /** @param {{ from: number, to: number }} range */
-  bvSetRange(range) {
-    if (this.side) this.pane.engine.setRange(range.from, range.to, this.side);
-    else this.overlay?.fit(range.from, range.to);
-    this.pane.chart.engine.invalidate(true);
-  }
-
-  /** What it'd show fitted to its series (an overlay, as it is: its series' own range). */
-  bvAutoRange() {
-    const engine = this.pane.engine, auto = this.side === "left" ? engine.leftAuto : engine.auto, scale = this.scale;
-    if (!scale) return null;
-    if (!this.side) return { from: scale.lo, to: scale.hi };
-    const was = { lo: scale.lo, hi: scale.hi };
-    this.side === "left" ? (engine.leftAuto = true) : (engine.auto = true);
-    engine.fit(this.pane.chart.engine.time);
-    const range = { from: scale.lo, to: scale.hi };
-    this.side === "left" ? (engine.leftAuto = auto) : (engine.auto = auto);
-    if (!auto) scale.fit(was.lo, was.hi);
-    return range;
   }
 }
 
@@ -800,10 +762,10 @@ class Series {
     this.engine = this.#make();
     const hadLeft = Boolean(pane.engine.left);
     pane.engine.add(this.engine, this.side);
-    // (The pane's left scale made by its first series: its look as Studio set it before (its mode, its margins, its tags'
-    // top), its range as it is (fitted, or set by hand).)
+    // (The pane's left scale made by its first series: its look as Studio set it before (its mode, its margins), its range
+    // as it is (fitted, or set by hand).)
     const left = pane.scales.left?.opts;
-    if (this.side === "left" && !hadLeft && left) pane.scales.left?.applyOptions({ mode: left.mode, scaleMargins: left.scaleMargins, ...(left.bvTagsTop !== undefined ? { bvTagsTop: left.bvTagsTop } : {}) });
+    if (this.side === "left" && !hadLeft && left) pane.scales.left?.applyOptions({ mode: left.mode, scaleMargins: left.scaleMargins });
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
     /** @type {Line | null} */
     this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;
