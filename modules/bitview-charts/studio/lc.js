@@ -670,6 +670,7 @@ class PriceScale {
     this.pane = pane;
     /** Its side; an overlay's, none (its series drawn on the right one's side, its own scale theirs). @type {"right" | "left" | null} */
     this.side = id === "left" || id === "right" ? id : null;
+    /** @type {{ mode: number, autoScale: boolean, visible: boolean, scaleMargins: { top: number, bottom: number }, bvTagsTop?: number }} */
     this.opts = { mode: 0, autoScale: true, visible: true, scaleMargins: this.side ? { top: 0.17, bottom: 0.08 } : { top: 0.2, bottom: 0.1 } };
     /** An overlay's own scale: its series' range (their autoscaleInfoProvider's), the pane's height. */
     this.overlay = this.side ? null : new Scale({ top: 0.2, bottom: 0.1 });
@@ -695,10 +696,10 @@ class PriceScale {
       if (options.mode !== undefined) scale.mode = /** @type {any} */ (MODES[options.mode] ?? "linear");
       if (options.scaleMargins) (scale.top = options.scaleMargins.top), (scale.bottom = options.scaleMargins.bottom);
     }
-    // (Fitted again, or held where it is.)
     // (Its tags under Studio's legend: LWC patch 50.)
     if (this.side && options.bvTagsTop !== undefined) this.pane.engine.setTagsTop(options.bvTagsTop, this.side);
     if (this.side === "right" && "visible" in options) this.pane.chart.axes();
+    // (Fitted again, or held where it is.)
     if (this.side) {
       if (options.autoScale) this.pane.engine.setRange(undefined, undefined, this.side);
       else if (options.autoScale === false && scale) this.pane.engine.setRange(scale.lo, scale.hi, this.side);
@@ -786,8 +787,10 @@ class Series {
     this.engine = this.#make();
     const hadLeft = Boolean(pane.engine.left);
     pane.engine.add(this.engine, this.side);
-    // (The pane's left scale made by its first series: its options as Studio set them before (its mode, its margins).)
-    if (this.side === "left" && !hadLeft && pane.scales.left) pane.scales.left.applyOptions(pane.scales.left.opts);
+    // (The pane's left scale made by its first series: its look as Studio set it before (its mode, its margins, its tags'
+    // top), its range as it is (fitted, or set by hand).)
+    const left = pane.scales.left?.opts;
+    if (this.side === "left" && !hadLeft && left) pane.scales.left?.applyOptions({ mode: left.mode, scaleMargins: left.scaleMargins, ...(left.bvTagsTop !== undefined ? { bvTagsTop: left.bvTagsTop } : {}) });
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
     /** @type {Line | null} */
     this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;
