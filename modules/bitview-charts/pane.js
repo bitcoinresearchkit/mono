@@ -12,8 +12,8 @@ import { Bars } from "./bars.js";
 import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
-import { inkOn, solid } from "./color.js";
-import { Tags } from "./tags.js";
+import { solid, tint } from "./color.js";
+import { Tags, pill, PILL } from "./tags.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -27,8 +27,8 @@ const SLOW = 8;
 const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
 /** A series' room at its scale's ends, as its margins write it (made once). */
 const ROOM = new Float64Array(2);
-/** A tag's height, and the least room between two (CSS pixels). */
-const TAG = 18;
+/** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
+const TAG = PILL + 2;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
@@ -637,17 +637,8 @@ export class Pane {
       if (!covered) g.fillText(texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale), at, y);
     }
     this.#tags(g, scale, time, theme, x, width, side, tags);
-    // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane.)
-    g.textAlign = side ? "right" : "left";
-    for (let k = 0; k < page.count; k++) {
-      const y = page.at[k];
-      g.fillStyle = page.colors[k];
-      g.beginPath();
-      g.roundRect(x + 2, y - TAG / 2 + 1, width - 4, TAG - 2, 4);
-      g.fill();
-      g.fillStyle = page.inks[k];
-      g.fillText(page.texts[k], side ? x + width - 8 : x + 8, y);
-    }
+    // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
+    for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width - 2 : x + 2, page.at[k], side ? "right" : "left");
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 
@@ -788,7 +779,6 @@ export class Pane {
   #tags(g, scale, time, theme, x, width, side, n) {
     const relative = scale.relative, from = this.#from(time), lines = this.tagLines, order = this.tagAt, at = this.tagPlace, index = this.tagIndex, step = this.tagStep;
     g.font = theme.font;
-    g.textAlign = side ? "right" : "left";
     g.textBaseline = "middle";
     // (Where each is drawn kept, for a point on one: see lineAt.)
     const drawn = this.drawnTags[side];
@@ -799,16 +789,12 @@ export class Pane {
       const line = lines[order[k]], i = index[order[k]], y = at[k];
       (drawn.lines[k] = line), (drawn.at[k] = y);
       // (In its line's color there without its alpha, as the chart library's: a faint line's tag still reads.)
+      // (Its pill against the plot, as wide as its words (too tight to read: its color alone).)
       const color = solid(line.colorAt(i));
-      g.fillStyle = color;
-      g.beginPath();
-      g.roundRect(x + 2, y - step / 2 + 1, width - 4, Math.max(1, step - 2), Math.max(0, Math.min(4, step / 2 - 1)));
-      g.fill();
-      // (Too tight to read: its color alone.)
-      if (step < 10) continue;
-      g.fillStyle = inkOn(color);
       if (relative) scale.setBase(line.first(from));
-      g.fillText(relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : (line.format ?? this.labels[side])(line.values[i]), side ? x + width - 8 : x + 8, y);
+      const words = relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : (line.format ?? this.labels[side])(line.values[i]);
+      const look = tint(color, theme.background);
+      pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2));
     }
   }
 

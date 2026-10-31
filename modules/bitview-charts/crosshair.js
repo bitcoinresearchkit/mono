@@ -6,6 +6,7 @@
 import { kept } from "./format.js";
 import { Line } from "./line.js";
 import { inkOn } from "./color.js";
+import { pill } from "./tags.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -111,38 +112,22 @@ export class Crosshair {
     g.textBaseline = "middle";
     // (Its value on its pane's axis.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
-      badge(g, theme, pane.axisLabel(pane.scale.value(this.y - pane.top)), plot + 2, this.y, "left");
-      // (Its value on the left axis too, where the pane has a left scale.)
-      if (pane.left && left) badge(g, theme, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), -left + 2, this.y, "left");
+      pill(g, pane.axisLabel(pane.scale.value(this.y - pane.top)), theme.badge, inkOn(theme.badge), plot + 2, this.y, "left");
+      // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
+      if (pane.left && left) pill(g, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), theme.badge, inkOn(theme.badge), -2, this.y, "right");
     }
     // (Its date on the time axis, its point's.)
     const times = time.times, k = Math.round(i);
     if (k >= 0 && k < times.length && x >= 0 && x <= plot) {
       // (Points less than a day apart (the last one's from the one before it): its time too.)
       const fine = times.length > 1 && (k < times.length - 1 ? times[k + 1] - times[k] : times[k] - times[k - 1]) < DAY;
-      badge(g, theme, (fine ? this.fine : this.day)(times[k]), x, room + 13, "center");
+      pill(g, (fine ? this.fine : this.day)(times[k]), theme.badge, inkOn(theme.badge), x, room + 13, "center");
     }
   }
 }
 
 /** A crosshair's dash (its line across), and none (made once). */
 const DASH = [6, 6], NONE = /** @type {number[]} */ ([]);
-
-/**
- * Text in a badge at `x`, `y` (CSS pixels): its left there, or its middle.
- * @param {CanvasRenderingContext2D} g @param {import("./pane.js").Theme} theme @param {string} text @param {number} x @param {number} y
- * @param {"left" | "center"} align
- */
-function badge(g, theme, text, x, y, align) {
-  const width = g.measureText(text).width + 12, left = align === "center" ? x - width / 2 : x;
-  g.fillStyle = theme.badge;
-  g.beginPath();
-  g.roundRect(left, y - 10, width, 20, 4);
-  g.fill();
-  g.fillStyle = inkOn(theme.badge);
-  g.textAlign = "center";
-  g.fillText(text, left + width / 2, y);
-}
 
 /** A point's date (UTC): its day, and its time with `fine`. @param {number} t @param {boolean} fine */
 function dateOf(t, fine) {

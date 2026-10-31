@@ -5,6 +5,29 @@
 
 import { inkOn } from "./color.js";
 
+/** A pill's height (CSS pixels): a tag's, a badge's. */
+export const PILL = 18;
+
+/**
+ * A pill (every tag and badge the chart draws: its series' and a page's on the axes, the crosshair's): `words` on
+ * `color` in `ink`, as wide as its words and 6 pixels each side, `height` tall (its corners 4, less where it's lower), its
+ * middle at `y`; its left at `x` (`align` "left"), its right ("right") or its middle ("center"). Too low to read (under
+ * 10 pixels: crowded tags), its color alone.
+ * @param {CanvasRenderingContext2D} g @param {string} words @param {string} color @param {string} ink @param {number} x
+ * @param {number} y @param {"left" | "right" | "center"} align @param {number} [height]
+ */
+export function pill(g, words, color, ink, x, y, align, height = PILL) {
+  const width = g.measureText(words).width + 12, left = align === "left" ? x : align === "right" ? x - width : x - width / 2;
+  g.fillStyle = color;
+  g.beginPath();
+  g.roundRect(left, y - height / 2, width, height, Math.max(0, Math.min(4, height / 2)));
+  g.fill();
+  if (height < 10) return;
+  g.fillStyle = ink;
+  g.textAlign = "center";
+  g.fillText(words, left + width / 2, y);
+}
+
 export class Tags {
   constructor() {
     /** Each one's place along the axis (CSS pixels), words, color, and its words' (`count` of them). */

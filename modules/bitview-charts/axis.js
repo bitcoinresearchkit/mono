@@ -3,7 +3,7 @@
 // between their labels), each at its first point, its label under it (UTC).
 
 import { kept } from "./format.js";
-import { Tags } from "./tags.js";
+import { Tags, pill } from "./tags.js";
 
 const DAY = 86400;
 /** Labels' least room between them (CSS pixels). */
@@ -103,17 +103,8 @@ export class TimeAxis {
     // (Each where it's drawn: within the plot.)
     for (let k = 0; k < page.count; k++) (this.halves[k] = g.measureText(page.texts[k]).width / 2 + 6), (page.at[k] = Math.min(Math.max(page.at[k], this.halves[k]), plot - this.halves[k]));
     this.#labels(time, theme, plot, page);
-    g.textAlign = "center";
     g.textBaseline = "middle";
-    for (let k = 0; k < page.count; k++) {
-      const half = this.halves[k], x = page.at[k];
-      g.fillStyle = page.colors[k];
-      g.beginPath();
-      g.roundRect(x - half, this.height / 2 - 10, half * 2, 20, 4);
-      g.fill();
-      g.fillStyle = page.inks[k];
-      g.fillText(page.texts[k], x, this.height / 2);
-    }
+    for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], page.at[k], this.height / 2, "center");
   }
 
   /** Whether a label at `x` is under a page's tag (within its half, a label's half and 4 pixels). @param {number} x @param {Tags} page */
