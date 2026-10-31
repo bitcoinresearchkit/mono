@@ -252,16 +252,6 @@ class Chart {
     this.clickListeners.push(listener);
   }
 
-  /** @param {number} price @param {number} time @param {Series} series */
-  setCrosshairPosition(price, time, series) {
-    const i = indexOf(this.times, time, 1), y = series.priceToCoordinate(price);
-    this.engine.setCrosshair(i, y === null ? NaN : series.pane.engine.top + y);
-  }
-
-  clearCrosshairPosition() {
-    this.engine.setCrosshair(NaN);
-  }
-
   takeScreenshot() {
     this.#sync();
     return picture(this.engine);
@@ -807,27 +797,6 @@ class Series {
     if (engine instanceof Line) engine.setValues(this.columns);
   }
 
-  /** Its scale (an overlay's own), read against its own first value in view where it's relative. */
-  #scale() {
-    const overlay = this.scaleApi.overlay;
-    if (overlay) return (overlay.height = this.pane.engine.height), overlay;
-    const pane = this.pane.engine, scale = pane.scaleOf(pane.series.indexOf(this.engine));
-    if (scale.relative) scale.setBase(this.engine.first(Math.max(0, Math.floor(this.chart.engine.time.from))));
-    return scale;
-  }
-
-  /** @param {number} price */
-  priceToCoordinate(price) {
-    const y = this.#scale().y(price);
-    return Number.isFinite(y) ? y : null;
-  }
-
-  /** A height's price (a relative scale's own terms turned back into its price). @param {number} y */
-  coordinateToPrice(y) {
-    const scale = this.#scale(), v = scale.value(y);
-    return scale.relative ? (v - scale.c) / scale.m : v;
-  }
-
   priceScale() {
     return this.scaleApi;
   }
@@ -934,8 +903,8 @@ class Series {
   /** Its lines across' values on its axis on `side`, each in its color. @param {number} side @param {(y: number, text: string, color: string) => void} add */
   #levelTags(side, add) {
     if ((this.side === "left" ? 1 : 0) !== side) return;
-    const scale = this.#scale(), format = this.priceFormatter().format;
-    for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(scale.y(line.opts.price), format(line.opts.price), line.opts.color);
+    const format = this.priceFormatter().format;
+    for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(this.chart.engine.y(this.engine, line.opts.price), format(line.opts.price), line.opts.color);
   }
 
   /** Whether a point (in the client's coordinates) is on its tag, as last drawn (LWC patch 51). @param {number} x @param {number} y */
@@ -1050,8 +1019,8 @@ class Painted {
   style() {
     const o = this.series.opts, overlay = this.series.scaleApi.overlay;
     this.engine.fixed = Boolean(o.bvFixed) || "heatId" in o;
-    // (On an overlay, not read on its side's scale: its pane's grid not that side's for it.)
-    this.engine.scaled = !overlay;
+    // (On an overlay, its scale its own: the library's (fitted by its provider's range, as its extent gives none).)
+    this.engine.overlay = overlay;
     if (overlay) {
       const info = o.autoscaleInfoProvider?.(original);
       if (info?.priceRange) overlay.fit(info.priceRange.minValue, info.priceRange.maxValue);
@@ -1093,8 +1062,8 @@ class Painted {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   #draw(g, time, scale, x0, x1, dpr) {
-    const o = this.series.opts, overlay = this.series.scaleApi.overlay, bars = this.bars;
-    this.scale = overlay ? ((overlay.height = scale.height), overlay) : scale;
+    const o = this.series.opts, bars = this.bars;
+    this.scale = scale;
     // (Its marks' reach past their point: a bubble's radius, its ring. One drawn whole each frame (a heatmap: it keeps
     // the days it draws, asks for those missing), all in view.)
     const all = this.engine.fixed, reach = (o.size ?? 0) / 2 + 4;

@@ -234,6 +234,22 @@ export class Chart {
   }
 
   /**
+   * Where a series draws `value`: CSS pixels from its pane's top, on its scale (a relative one read against its first
+   * value in view: see Pane.y); NaN where it can't.
+   * @param {import("./pane.js").Series} series @param {number} value
+   */
+  y(series, value) {
+    const pane = this.panes.find((pane) => pane.series.includes(series));
+    return pane ? pane.y(series, value, this.time) : NaN;
+  }
+
+  /** A series' value at a height (CSS pixels from its pane's top), in its own terms; NaN where it has none. @param {import("./pane.js").Series} series @param {number} y */
+  value(series, y) {
+    const pane = this.panes.find((pane) => pane.series.includes(series));
+    return pane ? pane.value(series, y, this.time) : NaN;
+  }
+
+  /**
    * The crosshair on a point (a logical index: the nearest whole one) at a height in the chart (CSS pixels from its top),
    * or gone (NaN). Told to the crosshair's listeners (`input`: a pointer moved it, at `x` CSS pixels into the plot).
    * @param {number} index @param {number} [y] @param {boolean} [input] @param {number} [x]

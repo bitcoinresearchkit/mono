@@ -37,7 +37,8 @@ const TAG = PILL;
  * (its dashes would stretch with it); `immovable`, nor moved by a pan (a curve's dashes run from where its path starts:
  * drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
  * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
- * (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading: none of it, a
+ * (its grid by the other's); `overlay`, a scale of its own (unseen, the pane's height, linear or log, fitted to it
+ * alone each frame where it has an extent: a volume along the pane's foot); `fit`, how it widens its scale's range in its place (a page's own reading: none of it, a
  * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
  * over and under the range, by the points' spacing: its marks over bars); `viewed`, brought up to the view before each
  * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
@@ -51,6 +52,7 @@ const TAG = PILL;
  *   immovable?: boolean,
  *   over?: boolean,
  *   scaled?: boolean,
+ *   overlay?: Scale | null,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
  *   margins?(spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean): void,
  *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
@@ -290,9 +292,48 @@ export class Pane {
     return best;
   }
 
-  /** A series' scale: its side's. @param {number} k */
+  /** A series' scale: its own (an overlay's, the pane's height), else its side's. @param {number} k */
   scaleOf(k) {
-    return this.sides[k] && this.left ? this.left : this.scale;
+    const overlay = this.series[k].overlay;
+    if (!overlay) return this.sides[k] && this.left ? this.left : this.scale;
+    if (overlay.height !== this.height) overlay.height = this.height;
+    return overlay;
+  }
+
+  /**
+   * A series' scale as it reads it now: a relative one against its first value in view (none: null).
+   * @param {number} k @param {import("./timeline.js").Timeline} time
+   */
+  #reading(k, time) {
+    if (k < 0) return null;
+    const scale = this.scaleOf(k);
+    if (!scale.relative) return scale;
+    const base = this.series[k].first(this.#from(time));
+    if (!base || base !== base) return null;
+    scale.setBase(base);
+    return scale;
+  }
+
+  /**
+   * Where its series `series` draws `value`: CSS pixels from the pane's top, on its scale (a relative one read against
+   * its first value in view); NaN where it can't (not its, no reading, a log scale's at or under zero).
+   * @param {Series} series @param {number} value @param {import("./timeline.js").Timeline} time
+   */
+  y(series, value, time) {
+    const scale = this.#reading(this.series.indexOf(series), time);
+    return scale ? scale.y(value) : NaN;
+  }
+
+  /**
+   * The value of its series `series` at a height (CSS pixels from the pane's top), in its own terms (a relative scale's
+   * reading turned back into its values); NaN where it has none.
+   * @param {Series} series @param {number} y @param {import("./timeline.js").Timeline} time
+   */
+  value(series, y, time) {
+    const scale = this.#reading(this.series.indexOf(series), time);
+    if (!scale) return NaN;
+    const v = scale.value(y);
+    return scale.relative ? (v - scale.c) / scale.m : v;
   }
 
   /** Drawn whole at the next frame: a series' values or look changed. */
@@ -475,6 +516,17 @@ export class Pane {
     this.basesSame = true;
     this.#fit(time, this.scale, this.auto, 0);
     if (this.left) this.#fit(time, this.left, this.leftAuto, 1);
+    // (An overlay to its series alone, where it has an extent in view: else as it was.)
+    const own = this.own, a = Math.floor(time.from), b = Math.ceil(time.to);
+    for (const series of this.series) {
+      const overlay = series.overlay;
+      if (!overlay || series.hidden) continue;
+      console.assert(!overlay.relative, "bitview-charts: an overlay reads its values as they are (linear or log)");
+      overlay.height = this.height;
+      (own[0] = Infinity), (own[1] = -Infinity);
+      series.fit ? series.fit(a, b, overlay.mode === "log", own) : series.extent(a, b, overlay.mode === "log", own);
+      overlay.fit(own[0], own[1]);
+    }
   }
 
   /**
@@ -491,7 +543,7 @@ export class Pane {
     // (The points at least partly in view, as the chart library's strict range: the one past each edge its line runs to.)
     const a = Math.floor(time.from), b = Math.ceil(time.to);
     for (let k = 0; k < n; k++) {
-      if (this.sides[k] !== side || this.series[k].hidden) continue;
+      if (this.sides[k] !== side || this.series[k].hidden || this.series[k].overlay) continue;
       const series = this.series[k];
       // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
       if (series.margins) {
@@ -536,7 +588,7 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, shown = this.drawnHidden.length === this.series.length;
+    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, overlaid = true, shown = this.drawnHidden.length === this.series.length;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (shown && this.drawnHidden[k] !== (series.hidden ? 1 : 0)) shown = false;
@@ -544,10 +596,12 @@ export class Pane {
       if (!series.hidden) series.viewed?.(time);
       if (series.over) overs += series.version;
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
+      // (An overlay's scale changed: drawn whole, as a side's is.)
+      if (series.overlay && !series.overlay.unchanged) overlaid = false;
     }
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
-    if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
-    const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
+    if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !overlaid || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
+    const same = !whole && !fixed && overlaid && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
@@ -596,6 +650,7 @@ export class Pane {
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
+    for (const series of this.series) series.overlay?.drawnNow();
     this.drawnFrom = time.from;
     this.drawnSpacing = spacing;
     this.drawnPlot = plot;
@@ -692,7 +747,7 @@ export class Pane {
     // (The grid by the right scale's ticks; by the left one's where only it has series read on a scale (a page's own
     // drawn as it likes, none).)
     let right = !this.left;
-    for (let k = 0; !right && k < this.series.length; k++) right = this.sides[k] === 0 && !this.series[k].hidden && this.series[k].scaled !== false;
+    for (let k = 0; !right && k < this.series.length; k++) right = this.sides[k] === 0 && !this.series[k].hidden && this.series[k].scaled !== false && !this.series[k].overlay;
     const grid = right ? this.scale : /** @type {Scale} */ (this.left);
     this.tickCount = grid.ticks(this.ticks);
     g.strokeStyle = theme.grid;
@@ -771,7 +826,7 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.hidden) continue;
+      if (!(line instanceof Line) || !line.tag || line.hidden || line.overlay) continue;
       const i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view. On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1;

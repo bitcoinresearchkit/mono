@@ -16329,6 +16329,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** Pane `i`'s scale's mode on a side, as Studio numbers them (see MODES). @param {number} i @param {string} side */
       const scaleMode = (i, side) => ["linear", "log", "percent", "indexed"].indexOf(scaleOn(i, side)?.mode ?? "linear");
+      /** Where a drawn series draws a value: CSS pixels from its pane's top, on its scale (see the library's chart.y); none, null. @param {any} series @param {number} value */
+      const seriesY = (series, value) => ((y) => (Number.isFinite(y) ? y : null))(series ? engine.y(series.engine, value) : NaN);
+      /** A drawn series' value at a height in its pane (see the library's chart.value); none, NaN. @param {any} series @param {number} y */
+      const seriesValue = (series, y) => (series ? engine.value(series.engine, y) : NaN);
+      /** The crosshair on a drawn series' value at a date (its first point at or after it; past the last, none). @param {number} value @param {number} time @param {any} series */
+      const crossOn = (value, time, series) => {
+        const times = engine.time.times, i = lowerBound(times, time), y = seriesY(series, value), pane = engine.panes.find((pane) => pane.series.includes(series?.engine));
+        engine.setCrosshair(i < times.length ? i : -1, y === null || !pane ? NaN : pane.top + y);
+      };
       const xOfTime = (time) => ((times, i) => (times[i] === time ? engine.time.x(i) : null))(engine.time.times, lowerBound(engine.time.times, time));
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
@@ -16455,7 +16464,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (By the first of its series that maps it: one with no data yet maps nothing.)
           for (const series of view.panes()[scale.i]?.getSeries() ?? []) {
             if (series.options().priceScaleId !== scale.side || series.options().visible === false) continue;
-            const top = series.priceToCoordinate(scale.range.to), foot = series.priceToCoordinate(scale.range.from);
+            const top = seriesY(series, scale.range.to), foot = seriesY(series, scale.range.from);
             if (top !== null && foot !== null && foot - top > 1) return [{ ...scale, series, top: box.top + top, foot: box.top + foot }];
           }
           return [];
@@ -16472,7 +16481,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const boxes = paneBoxes();
         pricesHeld = marks.flatMap(({ i, side, mode, range, series, top, foot }) => {
           const now = scaleRange(i, side), box = boxes[i];
-          const edgeTop = now && box ? series.priceToCoordinate(now.to) : null, edgeFoot = now && box ? series.priceToCoordinate(now.from) : null;
+          const edgeTop = now && box ? seriesY(series, now.to) : null, edgeFoot = now && box ? seriesY(series, now.from) : null;
           if (edgeTop === null || edgeFoot === null || !box || !(edgeFoot - edgeTop > 1)) return [];
           // (A log scale's as the chart's own: the logarithm of a price a ten-thousandth up, see LWC's logFormula.)
           const log = mode === 1, f = (/** @type {number} */ x) => (log ? Math.log10(x + 1e-4) : x), g = (/** @type {number} */ x) => (log ? 10 ** x - 1e-4 : x);
@@ -17862,7 +17871,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let near = null, off = PULL;
           const bands = bandsOf(pane);
           for (const layer of bands) {
-            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at], y = Number.isFinite(value) ? drawn.get(layer.id)?.priceToCoordinate(value) : null;
+            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at], y = Number.isFinite(value) ? seriesY(drawn.get(layer.id), value) : null;
             if (typeof y === "number" && Math.abs(y - param.point.y) <= off) (near = layer.id), (off = Math.abs(y - param.point.y));
           }
           // (None that near: the series the chart finds under it, a candle's wick, a bar's body, a cloud's fill.)
@@ -17871,7 +17880,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         for (const layer of bandsOf(pane)) {
           // (Each on its own scale: a stack's left and right sides are stacked apart.)
-          const price = drawn.get(layer.id)?.coordinateToPrice(param.point.y), made = stacked.get(layer.id), top = made ? made.values[at] : NaN, foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
+          const price = seriesValue(drawn.get(layer.id), param.point.y), made = stacked.get(layer.id), top = made ? made.values[at] : NaN, foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
           if (typeof price === "number" && Number.isFinite(top) && Number.isFinite(foot) && price >= Math.min(foot, top) && price <= Math.max(foot, top)) return layer.id;
         }
         return null;
@@ -18769,12 +18778,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function holdCross(settled = false) {
         const { price, time, layer } = /** @type {NonNullable<typeof crossSet>} */ (crossSet), series = drawn.get(layer), item = layerById(layer), i = indexOfTime(time);
-        if (!series || !item || item.hidden || (item.type === "signal" && !signalShown(item)) || series.priceToCoordinate(price) === null) return dropCross();
+        if (!series || !item || item.hidden || (item.type === "signal" && !signalShown(item)) || seriesY(series, price) === null) return dropCross();
         // (In view as the keys count it: see firstInView.)
         if (i < 0 || i < firstInView() || i > lastShown()) {
           if (settled) return dropCross();
           // (Cleared, said to no one: the legends keep its date meanwhile.)
-          view.clearCrosshairPosition();
+          engine.setCrosshair(NaN);
           lightBubble(null, undefined);
           crossLater ||= requestAnimationFrame(() => ((crossLater = 0), crossSet && holdCross(true)));
           return;
@@ -18782,13 +18791,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         lightBubble(time, series.getPane().paneIndex());
         // (A heatmap reads its price on its line: see heatReading.)
         if (heatLooks.size) valuesSoon();
-        view.setCrosshairPosition(price, /** @type {any} */ (time), series);
+        crossOn(price, time, series);
       }
       /** The crosshair set here let go: none shown, the legends back at the view's end. */
       function dropCross() {
         pinCross(null), (fingerCross.kept = null);
         if (keyTime !== null) keyAway();
-        else view.clearCrosshairPosition();
+        else engine.setCrosshair(NaN);
         crossMoved(NO_CROSS);
       }
       /** @param {LC.MouseEventParams<LC.Time>} param */
@@ -18801,7 +18810,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A finger's kept where it is: on a profile's bars past the data, on the view's last day, the one they show.)
         const kept = time ?? (profiles.length && resolved ? resolved.times[lastShown()] ?? null : null);
         if (fingers.size && param.point && kept !== null && param.paneIndex !== undefined && !tool && !placing) {
-          const series = [...drawn.values()].find((item) => item.options().visible && item.getPane().paneIndex() === param.paneIndex), price = series?.coordinateToPrice(param.point.y);
+          const series = [...drawn.values()].find((item) => item.options().visible && item.getPane().paneIndex() === param.paneIndex), price = seriesValue(series, param.point.y);
           fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time: kept, series } : null;
         } else if (!param.point && fingerCross.at && !fingers.size) {
           const { price, time: at, series } = fingerCross.at, layer = layerOfSeries(series);
@@ -18812,7 +18821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           lightBubble(at, series.getPane().paneIndex());
           // (Read on its day: on a profile's bars past the data, the view's last as it was, not the one it moves to.)
           if (hoverTime !== at) (hoverTime = at), valuesSoon();
-          return view.setCrosshairPosition(price, /** @type {any} */ (at), series);
+          return crossOn(price, at, series);
         } else {
           fingerCross.at = null;
           // (Kept while it's the one shown (drawn again on its date, see crossSet): a pointer's, or none, ends it. One set or
@@ -18862,7 +18871,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const layer of doc.layers) {
             const series = drawn.get(layer.id), row = series && layer.type === "bubbles" && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? series.dataByIndex(i) : null;
             if (!row || x === null) continue;
-            const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? series.priceToCoordinate(row.y) : null;
+            const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? seriesY(series, row.y) : null;
             if (y === null || !(most > 0 && worth > 0 && worth < Infinity && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
             // (A pixel clear of the bubble, and of the crosshair's dot on its layer, a small bubble's under it.)
             lit = { x, y, d: Math.max(size * Math.sqrt(Math.min(1, worth / most)), 2 * (MARKER.radius + MARKER.border)) + 6, color: row.v >= 0 ? upEdge : downEdge };
@@ -18991,8 +19000,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The chart says nothing of a crosshair set or cleared here: a finger's kept one, ended now, see fingerCross.)
         fingerCross.kept = null;
         pinCross(point ? { price: point.value, time, layer: point.layer.id } : null);
-        if (point) view.setCrosshairPosition(point.value, /** @type {any} */ (time), drawn.get(point.layer.id));
-        else view.clearCrosshairPosition();
+        if (point) crossOn(point.value, time, drawn.get(point.layer.id));
+        else engine.setCrosshair(NaN);
         lightBubble(point ? time : null, point ? chart.panes.findIndex((pane) => pane.id === point.layer.pane) : undefined);
         if (point && draft && placing && !placing.held) {
           draft = { ...draft, points: [...draft.points.slice(0, -1), pointOf(time, point.value)] };
@@ -19009,17 +19018,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (keyTime === null) return;
         keyTime = null;
         pinCross(null), (fingerCross.kept = null);
-        view.clearCrosshairPosition();
+        engine.setCrosshair(NaN);
         lightBubble(null, undefined);
         hoverTime = null;
         valuesSoon();
       }
       /** The keys' point moved up or down a step (a hundredth of its pane; with shift, a tenth), off its line. */
       function nudgeKey(/** @type {number} */ i, /** @type {boolean} */ up, /** @type {boolean} */ far) {
-        const point = keyPoint(i), series = point && drawn.get(point.layer.id), y = point && series ? series.priceToCoordinate(point.value) : null;
+        const point = keyPoint(i), series = point && drawn.get(point.layer.id), y = point && series ? seriesY(series, point.value) : null;
         const height = point ? (view.panes()[chart.panes.findIndex((pane) => pane.id === point.layer.pane)]?.getHeight() ?? 0) : 0;
         if (!point || !series || y === null || y === undefined || !height) return;
-        const value = series.coordinateToPrice(clamp(y + ((up ? -1 : 1) * height) / (far ? 10 : 100), 0, height));
+        const value = seriesValue(series, clamp(y + ((up ? -1 : 1) * height) / (far ? 10 : 100), 0, height));
         if (value === null || !Number.isFinite(value)) return;
         keyValue = { layer: point.layer.id, value };
         keyAt(i);
@@ -19646,7 +19655,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
       $("chart").addEventListener("pointerdown", (event) => {
         fingerCross.dismissing = event.pointerType === "touch" && fingerCross.kept !== null && view.chartElement().contains(/** @type {Element} */ (event.target));
-        if (fingerCross.dismissing) (fingerCross.kept = null), pinCross(null), view.clearCrosshairPosition(), lightBubble(null, undefined);
+        if (fingerCross.dismissing) (fingerCross.kept = null), pinCross(null), engine.setCrosshair(NaN), lightBubble(null, undefined);
       }, true);
       // (A mouse on the same date takes it over too.)
       view.chartElement().addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
@@ -20047,7 +20056,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const on = (/** @type {number} */ i) => i >= 0 && i < shown.length && Number.isFinite(shown[i]), ends = [];
         for (let i = Math.max(0, Math.floor(range.from) - 1), to = Math.min(shown.length - 1, Math.ceil(range.to) + 1); i <= to; i++) {
           if (!on(i) || (on(i - 1) && !breaks?.[i - 1] && !breaks?.[i] && on(i + 1))) continue;
-          const y = series.priceToCoordinate(shown[i]);
+          const y = seriesY(series, shown[i]);
           if (y !== null) ends.push({ x: line.at + i * line.step, y, i });
         }
         return ends;
@@ -20064,7 +20073,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A drawing's points on its pane, in pixels (NaN where there's none: a value its scale can't show). */
       function onScreen(drawing, series, line) {
         const bars = pointBars(drawing.points);
-        return drawing.points.map(([, value], i) => ({ x: line.at + bars[i] * line.step, y: series.priceToCoordinate(value) ?? NaN }));
+        return drawing.points.map(([, value], i) => ({ x: line.at + bars[i] * line.step, y: seriesY(series, value) ?? NaN }));
       }
       /**
        * Each point's place across, in bars, kept until the chart's times change (a pan, a zoom need none of it again). A
@@ -21506,7 +21515,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const line = timeLine(), series = drawn.get(layer.id);
         if (!line || !series) return null;
         const exact = (at.x - line.at) / line.step, near = pull ? nearestValue(Math.round(exact), at.y, layer.pane) : null;
-        const value = near && near.layer === layer.id ? near.value : series.coordinateToPrice(near?.y ?? at.y);
+        const value = near && near.layer === layer.id ? near.value : seriesValue(series, near?.y ?? at.y);
         return value === null || !Number.isFinite(value) ? null : pointOf(timeOfBar(free ? exact : Math.round(exact)), value);
       }
       /** The value nearest a height at a bar among a pane's shown layers' as drawn (a candle's four; stacked, its total), within reach. */
@@ -21518,7 +21527,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Not a signal's: its carrier's drawn nowhere.)
           if (layer.pane !== pane || layer.hidden || placedOn(layer) || !made || !series) continue;
           for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]]) {
-            const at = Number.isFinite(value) ? series.priceToCoordinate(value) : null;
+            const at = Number.isFinite(value) ? seriesY(series, value) : null;
             if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
           }
         }
@@ -22317,9 +22326,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
         if (!day?.rows) return null;
         // (Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer.)
-        const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? pinned.priceToCoordinate(crossSet.price) : null;
+        const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
         const at = crossSet ? (pinned && y !== null ? { pane: pinned.getPane().paneIndex(), y } : null) : heatAt;
-        const pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? drawn.get(layer.id)?.coordinateToPrice(at.y) : day.close;
+        const pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? seriesValue(drawn.get(layer.id), at.y) : day.close;
         if (!(Number(price) > 0)) return null;
         const row = grid.cell(Number(price)), rows = day.rows, values = amountsOf(day, look.measure);
         const k = lowerBound(rows, row), value = rows[k] === row ? /** @type {Float32Array} */ (values)[k] : 0;
@@ -22628,7 +22637,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (sharesShown.has(series)) return;
         sharesShown.add(series);
         const view = (/** @type {boolean} */ loss) => ({
-          coordinate: () => ((look) => ((y) => (y === null || y === undefined ? -100 : y + (loss ? -19 : 19)))(look?.shares && series.priceToCoordinate(look.shares.close)))(heatLooks.get(id)),
+          coordinate: () => ((look) => ((y) => (y === null || y === undefined ? -100 : y + (loss ? -19 : 19)))(look?.shares && seriesY(series, look.shares.close)))(heatLooks.get(id)),
           text: () => ((shares) => (shares ? `${loss ? 100 - shares.share : shares.share}%` : ""))(heatLooks.get(id)?.shares),
           textColor: () => ((look) => (loss ? look?.lose : look?.gain) ?? "transparent")(heatLooks.get(id)),
           backColor: () => heatLooks.get(id)?.halo ?? "transparent",
@@ -23045,7 +23054,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sx = from.x === held.x ? 1 : (at.x - held.x) / (from.x - held.x), sy = from.y === held.y ? 1 : (at.y - held.y) / (from.y - held.y);
         return points.flatMap((point) => {
           if (!finite(point)) return [];
-          const value = series.coordinateToPrice(held.y + (point.y - held.y) * sy);
+          const value = seriesValue(series, held.y + (point.y - held.y) * sy);
           return value === null || !Number.isFinite(value) ? [] : [pointOf(timeOfBar((held.x + (point.x - held.x) * sx - line.at) / line.step), value)];
         });
       }
@@ -23056,7 +23065,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function movedBy(drawing, series, line, dx, dy) {
         const bars = drawing.kind === "brush" || drawing.kind === "text" ? dx / line.step : Math.round(dx / line.step);
         return drawing.points.map(([time, value]) => {
-          const y = dy ? series.priceToCoordinate(value) : null, to = y === null ? null : series.coordinateToPrice(y + dy);
+          const y = dy ? seriesY(series, value) : null, to = y === null ? null : seriesValue(series, y + dy);
           return pointOf(timeOfBar(barOf(time) + bars), to !== null && Number.isFinite(to) ? to : value);
         });
       }
@@ -23086,13 +23095,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A pane's together, across its layers' scales: one line they flip about, in its pixels.)
           const paneOf = (/** @type {Drawing} */ drawing) => layerById(drawing.layer)?.pane;
           for (const pane of new Set(drawings.filter(moves).map(paneOf))) {
-            const own = drawings.filter((drawing) => moves(drawing) && paneOf(drawing) === pane), ys = own.flatMap((drawing) => drawing.points.map(([, value]) => drawn.get(drawing.layer)?.priceToCoordinate(value) ?? NaN)).filter(Number.isFinite);
+            const own = drawings.filter((drawing) => moves(drawing) && paneOf(drawing) === pane), ys = own.flatMap((drawing) => drawing.points.map(([, value]) => seriesY(drawn.get(drawing.layer), value) ?? NaN)).filter(Number.isFinite);
             if (!ys.length) continue;
             const sum = Math.min(...ys) + Math.max(...ys);
             for (const drawing of own) {
               const series = drawn.get(drawing.layer);
               if (series) flipped.set(drawing.id, drawing.points.map(([time, value]) => {
-                const y = series.priceToCoordinate(value), to = y === null ? null : series.coordinateToPrice(sum - y);
+                const y = seriesY(series, value), to = y === null ? null : seriesValue(series, sum - y);
                 return pointOf(time, to !== null && Number.isFinite(to) ? to : value);
               }));
             }

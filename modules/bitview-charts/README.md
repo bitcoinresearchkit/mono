@@ -33,6 +33,8 @@ chart.show(365);                                 // the last 365 points in view
   things kept on them; as a separator's dragged, its two panes shown stretched, each pane's `shownTop` and
   `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
+  `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
+  against its first value in view, and back; NaN where it has none),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
   `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
@@ -108,6 +110,8 @@ chart.show(365);                                 // the last 365 points in view
   pixels noise.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
+- Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log, fitted to it alone each frame where it has an
+  extent, else as set: a volume along a price pane's foot, a page's drawing on a range of its own).
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
   from point `a` to `b` widening `out`'s low and high), its own `extent` there to call (a range from zero, a fixed one).
 - `stack(members, { percent })`: a stack's edges from its members' columns.
