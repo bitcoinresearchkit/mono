@@ -1,5 +1,6 @@
 // @ts-check
 import { Fill } from "./color.js";
+import { NOISE } from "./timeline.js";
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
 // the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
 // stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
@@ -253,7 +254,7 @@ export class Band {
       }
       // (A pixel column: its last point with both edges, the band broken at any point without, in it too; no gap in
       // it (most), its last read alone.)
-      const first = Math.max(0, Math.ceil(viewFrom + (k * span) / width)), last = Math.min(n - 1, Math.ceil(viewFrom + ((k + 1) * span) / width) - 1);
+      const first = Math.max(0, Math.ceil(viewFrom + (k * span) / width - NOISE)), last = Math.min(n - 1, Math.ceil(viewFrom + ((k + 1) * span) / width - NOISE) - 1);
       if (last < first) continue;
       if (/** @type {Int32Array} */ (gaps)[first] > last) {
         const hi = upper[last], lo = lower[last];

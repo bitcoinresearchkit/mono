@@ -6,6 +6,12 @@
 // zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). Its
 // newest point in view, a zoom keeps it where it is: the latest data stays in sight at the right.
 
+/**
+ * The float noise a view's moves leave in an index, under which it counts as whole: a pixel column's first point the
+ * same in a pan's strip as in a whole draw (an index 1190.0000000000002 had put point 1190 in the next column).
+ */
+export const NOISE = 1e-9;
+
 export class Timeline {
   /** @param {{ rightOffset?: number, minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
   constructor({ rightOffset = 24, minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {

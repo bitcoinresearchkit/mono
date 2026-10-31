@@ -233,7 +233,9 @@ export class Pane {
     console.assert(sides.every((side) => side !== undefined), "bitview-charts: order() takes the pane's own series");
     this.series.splice(0, this.series.length, ...list);
     this.sides.splice(0, this.sides.length, ...sides);
+    // (Drawn anew; what's on top under a still pointer changed too.)
     this.drawnFrom = NaN;
+    this.changes++;
   }
 
   /** @param {Series} series */

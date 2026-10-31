@@ -9,6 +9,7 @@
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
 import { Fill } from "./color.js";
+import { NOISE } from "./timeline.js";
 
 const BLOCK = 64;
 /** A curved segment's control points, as #bend writes them (made once). */
@@ -372,9 +373,9 @@ export class Line {
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c;
     // (Each column from where the last one ended: its start computed once.)
-    let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width);
+    let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width - NOISE);
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
-      const end = Math.ceil(from + ((x + 1) * span) / width), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
+      const end = Math.ceil(from + ((x + 1) * span) / width - NOISE), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
       start = end;
       let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a;
       while (i <= b) {
@@ -571,7 +572,7 @@ export class Line {
     // the line there, in its column too; a break ends a run after its point. Columns at whole pixels of the view, their
     // points at whole indices: a view moved by whole pixels holds the same columns.)
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
-      const a = Math.max(0, Math.ceil(time.index(x))), b = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
+      const a = Math.max(0, Math.ceil(time.index(x) - NOISE)), b = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
       run.start();
       for (let i = a; i <= b; i++) {
         const v = values[i];

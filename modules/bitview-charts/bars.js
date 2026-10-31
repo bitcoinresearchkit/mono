@@ -5,6 +5,7 @@
 // farthest from the base, in that point's color: bars side by side, as they'd show.
 
 import { Line } from "./line.js";
+import { NOISE } from "./timeline.js";
 
 /** A rounded rect's corners, at its value's end (top or bottom), made once and set at each draw. */
 const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
@@ -93,7 +94,7 @@ export class Bars extends Line {
     }
     // (A pixel column each: its point farthest from the base.)
     for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
-      const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
+      const from = Math.max(0, Math.ceil(time.index(x) - NOISE)), to = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
       let far = -1, most = -1;
       for (let i = from; i <= to; i++) {
         const v = values[i];

@@ -5,6 +5,7 @@
 // its highest high and lowest low, its last close) drawn as its wick alone.
 
 import { Line } from "./line.js";
+import { NOISE } from "./timeline.js";
 
 /** A candle's parts, as #shapes draws them. */
 const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
@@ -156,7 +157,7 @@ export class Candles {
       return;
     }
     for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
-      const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
+      const from = Math.max(0, Math.ceil(time.index(x) - NOISE)), to = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
       let o = NaN, c = NaN, h = -Infinity, l = Infinity;
       for (let i = from; i <= to; i++) {
         if (!(log ? close[i] > 0 && low[i] > 0 : close[i] === close[i])) continue;
