@@ -405,6 +405,8 @@ export class Chart {
     };
     // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
     const point = (/** @type {PointerEvent} */ event) => {
+      // (Told now: a crosshair to be found again (a drag's, see #follow) is found.)
+      this.recrossing = false;
       const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left, over = x >= 0 && x <= time.width;
       this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };

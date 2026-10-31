@@ -11,6 +11,8 @@ import { kept } from "./format.js";
 import { Fill } from "./color.js";
 
 const BLOCK = 64;
+/** A curved segment's control points, as #bend writes them (made once). */
+const BEND = new Float64Array(4);
 /** No dashes (made once). */
 const SOLID = /** @type {number[]} */ ([]);
 
@@ -177,8 +179,9 @@ export class Line {
     this.curve = curve;
     /** @type {{ value: number, color: string } | null} */
     this.under = under;
-    // (Its stroke's style split at its under value, kept till it changes.)
-    this.split = new Fill();
+    // (Its stroke's style split at its under value, a color pass each, kept till it changes.)
+    /** @type {Fill[]} */
+    this.splits = [];
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
@@ -296,6 +299,17 @@ export class Line {
     for (let k = i - 1; k <= i + 1; k += 2) {
       if (!drawn(k) || (breaks && breaks[Math.min(i, k)])) continue;
       const xk = time.x(k), yk = scale.y(values[k]);
+      if (this.curve && !this.steps) {
+        // (Its curve as drawn, measured at eight points along it.)
+        const ax = k < i ? xk : xi, ay = k < i ? yk : yi, bx = k < i ? xi : xk, by = k < i ? yi : yk;
+        this.#bend(Math.max(i, k), time, scale, ax, ay, bx, by);
+        let px = ax, py = ay;
+        for (let t = 1; t <= 8; t++) {
+          const s = t / 8, r = 1 - s, qx = r * r * r * ax + 3 * r * r * s * BEND[0] + 3 * r * s * s * BEND[2] + s * s * s * bx, qy = r * r * r * ay + 3 * r * r * s * BEND[1] + 3 * r * s * s * BEND[3] + s * s * s * by;
+          (best = Math.min(best, toSegment(x, y, px, py, qx, qy))), (px = qx), (py = qy);
+        }
+        continue;
+      }
       if (!this.steps) {
         best = Math.min(best, toSegment(x, y, xi, yi, xk, yk));
         continue;
@@ -309,7 +323,23 @@ export class Line {
 
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {
+    // (Below its under value, that color: a baseline's tag, its dots and its crosshair's dot under its base.)
+    if (this.under && this.values[i] < this.under.value) return this.under.color;
     return this.colors && this.palette.length ? this.palette[this.colors[i]] ?? this.color : this.color;
+  }
+
+  /**
+   * The control points of its curved segment to point `i` from `i - 1` (CSS pixels, into BEND), as the chart library
+   * bent them: each a sixth of the way along its neighbors' chord, those by index within its continuous run (a gap or a
+   * break, the point itself), so a strip's and a whole draw's alike.
+   * @param {number} i @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2
+   */
+  #bend(i, time, scale, x1, y1, x2, y2) {
+    const values = this.values, breaks = this.breaks, log = scale.mode === "log", w = values[i - 2], u = values[i + 1];
+    const before = i >= 2 && (log ? w > 0 : w === w) && !(breaks && breaks[i - 2] === 1), after = i + 1 < values.length && (log ? u > 0 : u === u) && !(breaks && breaks[i] === 1);
+    const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(w) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(u) : y2;
+    (BEND[0] = x1 + (x2 - x0) / 6), (BEND[1] = y1 + (y2 - y0) / 6), (BEND[2] = x2 - (x3 - x1) / 6), (BEND[3] = y2 - (y3 - y1) / 6);
   }
 
   /** @param {number} b */
@@ -473,8 +503,9 @@ export class Line {
     g.lineJoin = "bevel";
     // (One stroke a color: its segments in it.)
     for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
-      const under = this.under, color = pass < 0 ? this.color : this.palette[pass];
-      g.strokeStyle = under ? this.split.splitAt(g, color, under.color, scale.y(under.value), scale.height) : color;
+      // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
+      const under = this.under, color = pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
+      g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, pass);
       this.#trace(time, scale, x0, x1, colors);
@@ -527,13 +558,9 @@ export class Line {
         }
         const x = time.x(i), y = scale.y(v), color = colors ? colors[i] : 0, cut = breaks ? breaks[i] === 1 : false;
         if (this.steps && pen.has && !pen.cut) pen.to(x, pen.py, pen.color, false);
-        if (this.curve && pen.has && !pen.cut) {
-          // (Bowed as the chart library's: each control point a sixth of the way along its neighbors' chord, those by
-          // index (the same whatever's drawn: a strip's and a whole draw's alike); a neighbor missing, the point itself.)
-          const w = values[i - 2], u = values[i + 1], before = i >= 2 && (log ? w > 0 : w === w), after = i + 1 < n && (log ? u > 0 : u === u);
-          const x0 = before ? time.x(i - 2) : pen.px, y0 = before ? scale.y(w) : pen.py, x3 = after ? time.x(i + 1) : x, y3 = after ? scale.y(u) : y;
-          pen.curve(pen.px + (x - x0) / 6, pen.py + (y - y0) / 6, x - (x3 - pen.px) / 6, y - (y3 - pen.py) / 6, x, y, color, cut);
-        } else pen.to(x, y, color, cut);
+        // (Curved, not stepped: steps take it.)
+        if (this.curve && !this.steps && pen.has && !pen.cut) this.#bend(i, time, scale, pen.px, pen.py, x, y), pen.curve(BEND[0], BEND[1], BEND[2], BEND[3], x, y, color, cut);
+        else pen.to(x, y, color, cut);
       }
       return;
     }
