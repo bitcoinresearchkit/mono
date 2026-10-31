@@ -596,7 +596,7 @@ export class Chart {
     element.addEventListener("wheel", (event) => {
       event.preventDefault();
       const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1;
-      if (event.ctrlKey || Math.abs(event.deltaY) >= Math.abs(event.deltaX)) time.zoom(plotX(event.clientX), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.002)));
+      if (event.ctrlKey || Math.abs(event.deltaY) >= Math.abs(event.deltaX)) time.zoom(plotX(event.clientX), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
       else time.pan(-event.deltaX * scale);
       this.glide.speed = 0;
       this.invalidate();
