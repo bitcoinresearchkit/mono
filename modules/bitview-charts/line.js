@@ -458,7 +458,8 @@ export class Line {
       g.lineWidth = this.width * 3;
       g.lineJoin = "round";
       g.strokeStyle = this.outline;
-      for (let pass = this.dash && colors ? 0 : -1; pass < (this.dash && colors ? this.palette.length : 0); pass++) {
+      const passes = this.dash && colors && !measuring ? this.palette.length : 0;
+      for (let pass = passes ? 0 : -1; pass < passes; pass++) {
         g.beginPath();
         pen.start(g, dpr, pass);
         this.#trace(time, scale, x0, x1, colors);
