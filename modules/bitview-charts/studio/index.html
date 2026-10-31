@@ -16191,16 +16191,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (spacing !== engine.time.minSpacing) (engine.time.minSpacing = spacing), engine.invalidate(true);
       }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
-      const yearsOnly = (_time, type) => (type === LC.TickMarkType.Year ? null : "");
+      const yearsOnly = (/** @type {number} */ _time, /** @type {string} */ kind) => (kind === "year" ? null : "");
       /** How the time axis names its ticks now: years only (over several years), or dates. */
       let axisNamed = "";
       function nameAxis() {
         const span = shownDates();
         const by = span && Number(span.to) - Number(span.from) > 3 * 365.25 * 86400 ? "years" : "dates";
-        // The chart keeps labels it has formatted: a new formatter, only when the way changes, starts them over.
+        // (Its labels written again only when the way changes; dates, the library's own words.)
         if (by === axisNamed) return;
         axisNamed = by;
-        view.applyOptions({ timeScale: { tickMarkFormatter: by === "years" ? yearsOnly : () => null } });
+        engine.timeAxis.format = by === "years" ? yearsOnly : null;
+        engine.invalidate(true);
       }
       /**
        * The widest a price scale gets: the longest label an axis writes, as lightweight-charts sizes it (its border,
@@ -16304,7 +16305,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const paneBox = (i) => {
         const pane = engine.panes[i];
         if (!pane) return null;
-        const box = view.chartElement().getBoundingClientRect();
+        const box = engine.element.getBoundingClientRect();
         return new DOMRect(box.left, box.top + pane.shownTop, engine.left + pane.width, pane.shownHeight);
       };
       /** Pane `i`'s price scale on a side (its right one, or its left one once a series is on it), or none. @param {number} i @param {string} side */
@@ -16342,12 +16343,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
       /** The chart's element filling its box (whatever size it's drawn at: see sizeChart). */
-      const fillBox = () => Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+      const fillBox = () => Object.assign(engine.element.style, { width: "100%", height: "100%" });
       // (From the start, as after every resize.)
       fillBox();
       /** The chart drawn at a size, at once (as the library's own watch did: no frame of what it was). */
       // (Its element filling its box after, whatever the library makes it (a pixel short, rounded): no strip under it.)
-      const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && fillBox());
+      const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), (Object.assign(engine.element.style, { width: `${width}px`, height: `${height}px` }), engine.layout()), !sizeHeld && !exporting && fillBox());
       /** The chart drawn at a size, its stretch (the bars it shows across) kept as it was: see keepStretch. */
       const sizeKeeping = (/** @type {number} */ width, /** @type {number} */ height) => {
         const was = (view.bvFlush(), shownSpan());
@@ -16387,7 +16388,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         // (Its box now and the chart's own size: the same, unless a motion before this one's still holding it.)
-        const run = ++motionsSized, at = inMotion.map((motion) => motion.currentTime), now = box.getBoundingClientRect(), own = view.chartElement().getBoundingClientRect();
+        const run = ++motionsSized, at = inMotion.map((motion) => motion.currentTime), now = box.getBoundingClientRect(), own = engine.element.getBoundingClientRect();
         // (Its box at their end: each motion that moves it there for a moment, read, and back where it was; nothing's drawn
         // between. Those inside the sidebar or the panel (their rows' own, many) don't: only the boxes beside the chart's.)
         const moving = inMotion.filter((motion) => ((target) => !target || !target.parentElement?.closest(".sidebar, #panel"))(/** @type {KeyframeEffect | null} */ (motion.effect)?.target));
@@ -16418,7 +16419,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         sizeHeld = true;
         chartHeight = height;
-        Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
+        Object.assign(engine.element.style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
         if (!later && (width !== own.width || height !== own.height)) {
           // (Drawn at its new size now, the motions held at their start meanwhile: they start on the next frame, from
           // their start, not a long frame in.)
@@ -16505,7 +16506,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /** @type {number} */ width) {
         const box = $("chart");
-        const left = engine.left, right = engine.axisShown, element = view.chartElement();
+        const left = engine.left, right = engine.axisShown, element = engine.element;
         // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
         // at the box.)
         const clipped = /** @type {[HTMLElement, string][]} */ ([[element, element.style.overflow]]);
@@ -16532,7 +16533,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stretchKept = chart.id;
         sizeHeld = true;
         chartHeight = chartSize.height;
-        Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "0", bottom: "", [leftAxis ? "left" : "right"]: "0", width: `${chartSize.width}px`, height: `${chartSize.height}px` });
+        Object.assign(engine.element.style, { position: "absolute", left: "", right: "", top: "0", bottom: "", [leftAxis ? "left" : "right"]: "0", width: `${chartSize.width}px`, height: `${chartSize.height}px` });
         stretchAcross(run, $("chart").getBoundingClientRect().width, chartSize.width);
       }
       /** Stretched to its box as laid out now: a grip's frame, its width just set (the stretch's own frame read it before). */
@@ -16547,7 +16548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function stretchDrawn(shown) {
         // (Its plots' canvases (a pane's layer over it too) and the time axis' stretched; its legends and its left scale's
         // canvases moved with their edge.)
-        const element = view.chartElement(), canvases = [...engine.panes.flatMap((pane) => [pane.canvas, pane.overCanvas ?? []]).flat(), engine.timeAxis.canvas];
+        const element = engine.element, canvases = [...engine.panes.flatMap((pane) => [pane.canvas, pane.overCanvas ?? []]).flat(), engine.timeAxis.canvas];
         const edged = [...all$(".legend", element), ...engine.panes.flatMap((pane) => (pane.leftCanvas ? [pane.leftCanvas] : []))];
         if (shown === null || !drawnStretch) {
           for (const [item, overflow] of drawnStretch?.clipped ?? []) item.style.overflow = overflow;
@@ -16588,7 +16589,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stretchDrawn(null);
         // (Back in its box, the whole of it, as the library made it: drawn there now, if the motion only stretched it,
         // its stretch of time kept.)
-        Object.assign(view.chartElement().style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
+        Object.assign(engine.element.style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
         // (Its view as it is now, a pan or a zoom meanwhile kept; another chart opened meanwhile drew itself.)
         const { width, height } = $("chart").getBoundingClientRect();
         if (stretchKept && stretchKept === chart?.id && drawnChart === chart.id) {
@@ -17363,7 +17364,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
         if (!(holding && drawnPanes === panesShape)) sizePanes();
         drawnPanes = panesShape;
-        view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
         nameAxis();
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
@@ -17781,7 +17781,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const width = engine.time.width, gap = rightGap(width), was = engine.time.rightOffset;
         if (width) {
           const range = shownSpan(), last = (resolved?.times.length ?? 0) - 1, base = rightGap(width, /** @type {any} */ (null)), room = gap - base;
-          if (gap !== was) view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
+          if (gap !== was) (engine.time.rightOffset = gap), engine.invalidate(true);
           // (Showing the latest (as zoom has it: its room after it as it was, or its last bar in view with less room than
           // now), its room after it as wide as it is now once a heatmap's profile comes or goes: the chart moved over for
           // it, back as it goes. Elsewhere, or with more room after it already, where it was. A look ⌘K shows (see
@@ -18905,8 +18905,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         lightLegend(tag, false, Boolean(band));
       };
       // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
-      view.chartElement().addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
-      view.chartElement().addEventListener("pointerleave", () => !crossIn && lightTag(null));
+      engine.element.addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
+      engine.element.addEventListener("pointerleave", () => !crossIn && lightTag(null));
       view.subscribeClick((param) => {
         // (A tap letting a finger's crosshair go, that alone: see fingerCross.)
         if (fingerCross.dismissing) return;
@@ -19562,7 +19562,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      new ResizeObserver(() => (holdView(), relayout(), fitLegends())).observe(view.chartElement());
+      new ResizeObserver(() => (holdView(), relayout(), fitLegends())).observe(engine.element);
       /**
        * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
        * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
@@ -19654,11 +19654,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (A finger's crosshair kept where it was lifted: let go at the next touch on the plot, before a drawing's press
       // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
       $("chart").addEventListener("pointerdown", (event) => {
-        fingerCross.dismissing = event.pointerType === "touch" && fingerCross.kept !== null && view.chartElement().contains(/** @type {Element} */ (event.target));
+        fingerCross.dismissing = event.pointerType === "touch" && fingerCross.kept !== null && engine.element.contains(/** @type {Element} */ (event.target));
         if (fingerCross.dismissing) (fingerCross.kept = null), pinCross(null), engine.setCrosshair(NaN), lightBubble(null, undefined);
       }, true);
       // (A mouse on the same date takes it over too.)
-      view.chartElement().addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
+      engine.element.addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
       // (A press on the chart lets a ruler's measure go: the next one, or none.)
       $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
       for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (fingers.delete(id), pressed.delete(id) && !pressed.size && released()))(/** @type {PointerEvent} */ (event).pointerId));
@@ -21122,7 +21122,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function plotBox(boxed = false) {
         const first = paneBox(0), last = paneBox(engine.panes.length - 1);
         if (!first || !last) return null;
-        const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = view.chartElement().getBoundingClientRect();
+        const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = engine.element.getBoundingClientRect();
         // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
         const axis = engine.left, firstTop = first.top, lastBottom = last.bottom;
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
@@ -21480,7 +21480,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         repaintDrawings();
       }
       /** A point of the chart in its pane's plot, where drawings are drawn, in pixels. */
-      const plotPoint = (clientX, clientY, rect) => ({ x: clientX - view.chartElement().getBoundingClientRect().left - engine.left, y: clientY - rect.top });
+      const plotPoint = (clientX, clientY, rect) => ({ x: clientX - engine.element.getBoundingClientRect().left - engine.left, y: clientY - rect.top });
       /** The drawing under a point of the chart: a point of one first, else the last drawn. */
       function drawingAt(clientX, clientY, reach = REACH) {
         const pane = shownDrawings.length ? paneAt(clientY) : null, id = pane && chart.panes[pane.index]?.id;
@@ -23305,7 +23305,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
         const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && paneBox(chart.panes.findIndex((item) => item.id === layer.pane));
         if (!drawing || !series || !line || !pane) return;
-        const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = view.chartElement().getBoundingClientRect().left + engine.left;
+        const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = engine.element.getBoundingClientRect().left + engine.left;
         if (writing.label) {
           // A label: centered where it sits (a trend line's at its angle; its field level).
           const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || field.placeholder);
@@ -38120,7 +38120,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             sizePanes();
             if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
-            if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
+            if (sized) (engine.time.rightOffset = rightGap()), engine.invalidate(true);
             if (sized && logical) showSpan(logical);
             // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
             // picture).)
@@ -38317,7 +38317,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign, faded?: boolean, clip?: number }[]}
        */
       function measureLegends(scale) {
-        const shown = legends(), origin = view.chartElement().getBoundingClientRect();
+        const shown = legends(), origin = engine.element.getBoundingClientRect();
         const box = (element) => {
           const rect = element.getBoundingClientRect();
           return { x: (rect.left - origin.left) * scale, y: (rect.top - origin.top) * scale, width: rect.width * scale, height: rect.height * scale };

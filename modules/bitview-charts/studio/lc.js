@@ -17,7 +17,6 @@ export const ColorType = { Solid: "solid", VerticalGradient: "gradient" };
 export const CrosshairMode = { Normal: 0, Magnet: 1, Hidden: 2, MagnetOHLC: 3 };
 export const TrackingModeExitMode = { OnTouchEnd: 0, OnNextTap: 1 };
 export const MismatchDirection = { NearestLeft: -1, None: 0, NearestRight: 1 };
-export const TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 };
 export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right" };
 
 /** @param {HTMLElement} element @param {any} [options] */
@@ -26,8 +25,6 @@ export function createChart(element, options = {}) {
 }
 
 const MODES = ["linear", "log", "percent", "indexed"];
-/** The time axis' kinds of label as the chart library's TickMarkType. @type {Record<string, number>} */
-const TICK_TYPES = { year: 0, month: 1, day: 2, time: 3 };
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
 /** A fit adding nothing (an edge: its series fitted by its band). */
@@ -74,7 +71,6 @@ class Chart {
     this.engine = make(this.element, { theme: this.#theme(this.options), rightOffset: this.options.timeScale?.rightOffsetPixels ?? 48, dateFormat: this.options.localization?.timeFormatter });
     /** Its right axis' width where it's shown (see axes). */
     this.axisWidth = this.engine.axis;
-    this.#ticks(this.options.timeScale?.tickMarkFormatter);
     // (Zoomed out no further than its points this close (the chart library's 0.5 unless given).)
     this.engine.time.minSpacing = this.options.timeScale?.minBarSpacing ?? 0.5;
     /** @type {Pane[]} */
@@ -144,15 +140,6 @@ class Chart {
     return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
   }
 
-  /**
-   * The time axis' labels by the chart's tickMarkFormatter (Studio's: years alone over several years): told each label's
-   * time and kind as the chart library's TickMarkType; null, the library's own words.
-   * @param {((time: number, type: number) => string | null) | undefined} format
-   */
-  #ticks(format) {
-    this.engine.timeAxis.format = format ? (t, kind) => format(t, TICK_TYPES[kind] ?? 3) : null;
-  }
-
   /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
   #percents(pane) {
     const local = this.options.localization ?? {};
@@ -184,9 +171,6 @@ class Chart {
     if (options.layout && "bvHalo" in options.layout) for (const series of this.all) series.restyle();
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
     if (options.localization?.timeFormatter) this.engine.crosshair.setFormat(options.localization.timeFormatter);
-    if (options.timeScale?.rightOffsetPixels !== undefined) this.engine.time.rightOffset = options.timeScale.rightOffsetPixels;
-    if (options.timeScale && "tickMarkFormatter" in options.timeScale) this.#ticks(options.timeScale.tickMarkFormatter);
-    if (options.timeScale?.minBarSpacing !== undefined) this.engine.time.minSpacing = options.timeScale.minBarSpacing;
     this.engine.invalidate(true);
   }
 
@@ -197,16 +181,6 @@ class Chart {
 
   panes() {
     return this.panesList;
-  }
-
-  chartElement() {
-    return this.element;
-  }
-
-  /** @param {number} width @param {number} height */
-  resize(width, height) {
-    Object.assign(this.element.style, { width: `${width}px`, height: `${height}px` });
-    this.engine.layout();
   }
 
   /** @param {any} type @param {any} options @param {number} [pane] */
@@ -261,11 +235,6 @@ class Chart {
   bvFlush() {
     this.#sync();
     this.engine.render(true);
-  }
-
-  /** @param {string} type @param {any} listener */
-  addEventListener(type, listener) {
-    this.element.addEventListener(type, listener);
   }
 
   remove() {
