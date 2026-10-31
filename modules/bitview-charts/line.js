@@ -89,11 +89,11 @@ const pen = {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
     if (this.ruling) return void (this.measure(x, y), (this.has = true), (this.px = x), (this.py = y), (this.cut = cut));
-    // (A dashed subpath ended at a point in a gap (nothing drawn there, so no join's missed) whose segment passed a
-    // multiple of SPLIT along the line, the next begun there: the canvas measures a subpath in single precision, its
-    // dashes drifting off ours along a long one (a zoomed-out line's runs, a pixel off its strips' over some thousands
-    // of pixels). Where, by the line's length alone: a strip and a whole draw end their strokes at the same points.)
-    if (this.on && this.period && Math.floor(this.before / SPLIT) !== Math.floor(this.length / SPLIT) && this.gap()) this.close();
+    // (A dashed subpath ended at a point in a gap (nothing drawn there, so no join's missed), the next begun there: the
+    // canvas measures a subpath in single precision, its dashes drifting off ours along a long one (a zoomed-out line's
+    // runs, a pixel off its strips' over some thousands of pixels). Where, by the line's length alone (see splits): a
+    // strip and a whole draw end their strokes at the same points.)
+    if (this.on && this.period && this.splits()) this.close();
     if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
       if (!this.on) {
         if (this.period) this.dash(g);
@@ -120,13 +120,14 @@ const pen = {
     g.lineDashOffset = this.length % this.period;
     this.begun = true;
   },
-  /** Whether the last point's in a gap between its dashes (the canvas's list repeated twice where it's odd). */
-  gap() {
-    const dashes = this.dashes;
-    let at = this.length % this.period;
-    if (at < 0) at += this.period;
-    for (let k = 0; k < 2 * dashes.length; k++) if ((at -= dashes[k % dashes.length]) < 0) return (k & 1) === 1;
-    return false;
+  /**
+   * Whether its subpath ends at the last point (see to()): the first point in the gap that ends its dashes' period (the
+   * list's last, a gap however long the list: the canvas repeats an odd one twice), that gap the first to start at or
+   * past a multiple of SPLIT along the line.
+   */
+  splits() {
+    const period = this.period, gap = this.dashes[this.dashes.length - 1], start = period * Math.floor((this.length + gap) / period) - gap;
+    return this.length - start < gap && this.before < start && Math.floor(start / SPLIT) > Math.floor((start - period) / SPLIT);
   },
   /** The path's length to the point at `x`, `y` (from the last, where it's joined to it), a ruler's asks noted there. @param {number} x @param {number} y */
   measure(x, y) {
