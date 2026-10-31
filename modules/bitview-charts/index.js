@@ -345,7 +345,11 @@ export class Chart {
     // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
     // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
     // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
-    if (x === x && crosshair.index === crosshair.index && (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index)) (this.recrossing = false), this.setCrosshair(time.index(x), crosshair.y, true, x);
+    if (x === x && crosshair.index === crosshair.index && (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index)) {
+      // (Found again, told even where its point and height stay: what's under it may not.)
+      if (this.recrossing) (this.recrossing = false), (crosshair.index = NaN);
+      this.setCrosshair(time.index(x), crosshair.y, true, x);
+    }
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
