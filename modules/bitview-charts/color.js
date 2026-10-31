@@ -52,25 +52,26 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look for a series in `color` on `ground` (the axis'): its fill its color (lightness moved away from the ground
- * till it stands 4.5:1 off it: a dark series' lifted on a dark ground, a light one's deepened on a light one) 30% of the
- * way from the ground, a tint as visible for a dark series as a bright one; its words that color moved on till they read
- * 7:1 against the fill. Its hue kept throughout, its chroma lessened only as far as each lightness tried needs to stay in
- * sRGB. Moved lighter on a dark ground, darker on a light one; where that can't read (a mid-grey ground), its words, then
- * its fill too, the other way, whichever reads best. A see-through color, none (nothing shown). Each pair worked out once.
+ * A tag's look for a series in `color`: its fill that very color (the line's); its words white or black, whichever APCA
+ * finds reads better on it (WCAG 2's ratio gets mid blues and purples wrong), each given back a whisper of the fill's hue
+ * in OKLCH (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there); its edge the
+ * fill's hue a step (0.12 in OKLCH lightness) away from `ground` (the axis'): lighter on a dark ground, darker on a light
+ * one, a hairline that sets the tag off whatever its fill (a black series on a dark ground, a white one on a light
+ * ground). One formula on any ground. A see-through color, none (nothing shown). Each pair worked out once.
  * @param {string} color @param {string} ground
+ * @returns {{ fill: string, ink: string, border: string }}
  */
 export function tint(color, ground) {
   const key = color + "|" + ground;
   let look = tints.get(key);
   if (look !== undefined) return look;
   const seen = read(color);
-  if (seen[3] === 0) look = { ink: "transparent", fill: "transparent" };
+  if (seen[3] === 0) look = { fill: "transparent", ink: "transparent", border: "transparent" };
   else {
-    const g = oklab(read(ground)), floor = lin(g[0], g[1], g[2]), [l0, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
-    // (At a lightness, its color: its chroma the most sRGB allows there, its own at most.)
-    const at = (/** @type {number} */ l) => {
-      let lo = 0, hi = chroma;
+    const fill = rgb(seen), [l0, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0), light = apca([255, 255, 255], fill) >= apca([0, 0, 0], fill);
+    // (Its hue at a lightness, its chroma the most sRGB allows there, `most` at most.)
+    const at = (/** @type {number} */ l, /** @type {number} */ most) => {
+      let lo = 0, hi = most;
       if (fits(lin(l, hi * Math.cos(hue), hi * Math.sin(hue)))) lo = hi;
       else
         for (let k = 0; k < 24; k++) {
@@ -78,34 +79,32 @@ export function tint(color, ground) {
           if (fits(lin(l, mid * Math.cos(hue), mid * Math.sin(hue)))) lo = mid;
           else hi = mid;
         }
-      return [l, lo * Math.cos(hue), lo * Math.sin(hue)];
+      return hex(rgb(lin(l, lo * Math.cos(hue), lo * Math.sin(hue))));
     };
-    // (Its lightness moved by `step` from `l` till `reads` it, or as far as it goes.)
-    const away = (/** @type {number} */ l, /** @type {number} */ step, /** @type {(c: number[]) => boolean} */ reads) => {
-      let c = at(l);
-      for (let k = 0; k < 100 && !reads(c) && (step > 0 ? l < 1 : l > 0); k++) (l = Math.min(1, Math.max(0, l + step))), (c = at(l));
-      return c;
-    };
-    // (Its fill, its color moved one way; its words moved on that way, or back the other where that reads better: their
-    // contrast with them.)
-    const made = (/** @type {number} */ step) => {
-      const base = away(l0, step, (c) => contrast(lin(c[0], c[1], c[2]), floor) >= 4.5), fill = lin(g[0] + (base[0] - g[0]) * 0.3, g[1] + (base[1] - g[1]) * 0.3, g[2] + (base[2] - g[2]) * 0.3);
-      const words = (/** @type {number} */ way) => ((c) => lin(c[0], c[1], c[2]))(away(base[0], way, (c) => contrast(lin(c[0], c[1], c[2]), fill) >= 7));
-      const on = words(step), back = contrast(on, fill) >= 7 ? on : words(-step), ink = contrast(back, fill) > contrast(on, fill) ? back : on;
-      return { ink, fill, reads: contrast(ink, fill) };
-    };
-    const first = made(g[0] < 0.5 ? 0.01 : -0.01), other = first.reads >= 7 ? first : made(g[0] < 0.5 ? -0.01 : 0.01), best = other.reads > first.reads ? other : first;
-    look = { ink: hex(best.ink), fill: hex(best.fill) };
+    const away = oklab(read(ground))[0] < 0.5 ? 0.12 : -0.12;
+    look = { fill: hex(fill), ink: at(light ? 0.97 : 0.24, Math.min(0.06, chroma)), border: at(Math.min(1, Math.max(0, l0 + away)), chroma) };
   }
   if (tints.size > 512) tints.clear();
-  tints.set(key, look);
+  tints.set(color, look);
   return look;
 }
 
-/** Two linear sRGB colors' contrast (WCAG's). @param {number[]} x @param {number[]} y */
-function contrast(x, y) {
-  const a = luminance(x), b = luminance(y);
-  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+/**
+ * APCA's lightness contrast of words in `text` on `back` (sRGB channels, 0 to 255), as a magnitude (Lc, 0 to ~106): how
+ * readable they are, light on dark and dark on light alike (WCAG 2's ratio overstates dark colors' contrast).
+ * @param {number[]} text @param {number[]} back
+ */
+function apca(text, back) {
+  const y = (/** @type {number[]} */ c) => { const v = 0.2126729 * (c[0] / 255) ** 2.4 + 0.7151522 * (c[1] / 255) ** 2.4 + 0.072175 * (c[2] / 255) ** 2.4; return v > 0.022 ? v : v + (0.022 - v) ** 1.414; };
+  const t = y(text), b = y(back);
+  if (Math.abs(b - t) < 0.0005) return 0;
+  const s = b > t ? (b ** 0.56 - t ** 0.57) * 1.14 : (b ** 0.65 - t ** 0.62) * 1.14;
+  return Math.abs(s) < 0.1 ? 0 : (Math.abs(s) - 0.027) * 100;
+}
+
+/** sRGB channels (0 to 255) from linear ones, or a read color's first three. @param {ArrayLike<number>} c */
+function rgb(c) {
+  return c.length === 4 ? [c[0], c[1], c[2]] : Array.from(c, (v) => Math.round(255 * (Math.min(1, Math.max(0, v)) <= 0.0031308 ? 12.92 * Math.min(1, Math.max(0, v)) : 1.055 * Math.min(1, Math.max(0, v)) ** (1 / 2.4) - 0.055)));
 }
 
 /** A color's sRGB channels, 0 to 255, as a canvas reads it. @param {string} color */
@@ -136,15 +135,9 @@ function fits(c) {
   return c.every((v) => v >= -1e-4 && v <= 1 + 1e-4);
 }
 
-/** Linear sRGB's relative luminance (WCAG's). @param {number[]} c */
-function luminance(c) {
-  const [r, g, b] = c.map((v) => Math.min(1, Math.max(0, v)));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/** Linear sRGB as #rrggbb. @param {number[]} c */
+/** sRGB channels (0 to 255) as #rrggbb. @param {number[]} c */
 function hex(c) {
-  return "#" + c.map((v) => Math.round(255 * (Math.min(1, Math.max(0, v)) <= 0.0031308 ? 12.92 * Math.min(1, Math.max(0, v)) : 1.055 * Math.min(1, Math.max(0, v)) ** (1 / 2.4) - 0.055)).toString(16).padStart(2, "0")).join("");
+  return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
 /** A fill's or a stroke's style: a color, or a vertical gradient (CSS pixels) kept till its colors or heights change. */

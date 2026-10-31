@@ -14,6 +14,7 @@ import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
 import { solid, tint } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
+import { painted } from "./recorder.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -744,6 +745,8 @@ export class Pane {
       if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
       if (i < from || !base || base !== base) continue;
       if (i < this.tagsFrom) this.tagsFrom = i;
+      // (Its color there see-through: no tag, nor its room.)
+      if (!painted(line.colorAt(i))) continue;
       if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
       this.tagIndex[lines.length] = i;
       lines.push(line);
@@ -794,7 +797,7 @@ export class Pane {
       if (relative) scale.setBase(line.first(from));
       const words = relative ? this.axisLabel(line.values[i] * scale.m + scale.c, scale) : (line.format ?? this.labels[side])(line.values[i]);
       const look = tint(color, theme.background);
-      pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2));
+      pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2), look.border);
     }
   }
 
