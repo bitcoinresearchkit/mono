@@ -79,6 +79,8 @@ chart.show(365);                                 // the last 365 points in view
   put it, its area its size's share of the largest (of those in view, kept up as the view moves, or `scaleTo: "all"`),
   `size` pixels across at the largest, those under `hide` of it left out; above zero in `up`, below in `down`, each
   edged; the largest drawn first; `halo`, ringed in it first.
+- `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
+  where it holds), a point's slot reaching halfway to its neighbors in its color, a NaN value none; never fitted or hit.
 - A series' `viewed(time)`: brought up to the view before each draw, its `version` changed where what it draws hangs on
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
