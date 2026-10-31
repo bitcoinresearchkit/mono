@@ -23,9 +23,15 @@ const recorder = {
   strokeCount: 0,
   fills: new Float64Array(1024),
   fillCount: 0,
-  // (Where each fill's segments end in fills: each one inside or not on its own, as each was painted.)
+  // (Where each fill's segments end in fills: each one inside or not on its own, as each was painted; and the box it
+  // was clipped to then (x0, y0, x1, y1; none: all of it).)
   fillEnds: new Int32Array(64),
+  fillClips: new Float64Array(256),
   fillsMade: 0,
+  // (The clip as set (a box: the path's bounds when clip() was called), and those saved.)
+  clipBox: [-Infinity, -Infinity, Infinity, Infinity],
+  /** @type {number[][]} */
+  saved: [],
   dots: new Float64Array(96),
   dotCount: 0,
   // (What a series sets on a canvas, kept and unread.)
@@ -35,14 +41,13 @@ const recorder = {
   lineJoin: "",
   lineCap: "",
   lineDashOffset: 0,
-  /** Its strokes' dashes, as set (none: solid). @type {number[]} */
-  dash: [],
   globalAlpha: 1,
   font: "",
   textAlign: "",
   textBaseline: "",
   reset() {
     (this.pathCount = 0), (this.strokeCount = 0), (this.fillCount = 0), (this.fillsMade = 0), (this.dotCount = 0), (this.penX = NaN);
+    (this.clipBox = [-Infinity, -Infinity, Infinity, Infinity]), (this.saved.length = 0);
   },
   /** @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
   segment(x0, y0, x1, y1) {
@@ -93,8 +98,12 @@ const recorder = {
    * @param {number} x @param {number} y @param {number} w @param {number} h @param {number | number[]} [radii]
    */
   roundRect(x, y, w, h, radii = 0) {
-    const all = typeof radii === "number" ? [radii] : radii, sx = Math.sign(w) || 1, sy = Math.sign(h) || 1;
-    const r = (/** @type {number} */ k) => Math.max(0, Math.min(all[k] ?? all[0] ?? 0, Math.abs(w) / 2, Math.abs(h) / 2));
+    // (Its radii as the canvas takes them: all scaled down together where two on a side would pass its length.)
+    const all = typeof radii === "number" ? [radii] : radii, sx = Math.sign(w) || 1, sy = Math.sign(h) || 1, aw = Math.abs(w), ah = Math.abs(h);
+    const at = (/** @type {number} */ k) => Math.max(0, all.length === 1 ? all[0] : all.length === 2 ? all[k % 2] : all.length === 3 ? all[[0, 1, 2, 1][k]] : all[k] ?? 0);
+    const fit = (/** @type {number} */ side, /** @type {number} */ a, /** @type {number} */ b) => (a + b > side ? side / (a + b) : 1);
+    const f = Math.min(fit(aw, at(0), at(1)), fit(aw, at(3), at(2)), fit(ah, at(0), at(3)), fit(ah, at(1), at(2)));
+    const r = (/** @type {number} */ k) => at(k) * f;
     // (Round the box from its top left, each corner a quarter turn about its center: top right, bottom right, bottom
     // left, top left, in the box's own directions.)
     const cx = [x + w - sx * r(1), x + w - sx * r(2), x + sx * r(3), x + sx * r(0)], cy = [y + sy * r(1), y + h - sy * r(2), y + h - sy * r(3), y + sy * r(0)];
@@ -113,60 +122,30 @@ const recorder = {
   },
   /** (A dot: kept as a circle.) @param {number} x @param {number} y @param {number} r */
   arc(x, y, r) {
-    if (!(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(r))) return void (this.penX = NaN);
+    // (None for what the canvas wouldn't paint: a point a log scale can't show, a dot in a fully transparent color.)
+    if (!(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(r)) || !painted(this.fillStyle)) return void (this.penX = NaN);
     if (this.dotCount * 3 + 3 > this.dots.length) this.dots = grown(this.dots);
     const k = this.dotCount++ * 3;
     (this.dots[k] = x), (this.dots[k + 1] = y), (this.dots[k + 2] = r);
     this.penX = NaN;
   },
   stroke() {
-    // (Nothing where its paint shows nothing; dashed, its dashes alone.)
+    // (Nothing where its paint shows nothing. Dashed, its whole path: a dashed line's hit along it, its gaps too, as
+    // the chart library measured it: no one aims at a dash.)
     if (!painted(this.strokeStyle)) return;
-    if (this.dash.length) this.dashed();
     this.strokeCount = this.keep("strokes", this.strokeCount);
   },
-  /**
-   * The path cut to its dashes, as the canvas strokes it: the pattern from each subpath's start (a segment not
-   * beginning where the last one ended starts one), shifted by lineDashOffset.
-   */
-  dashed() {
-    const path = this.path, count = this.pathCount, dash = this.dash, period = dash.reduce((sum, d) => sum + d, 0);
-    if (!(period > 0)) return;
-    let n = 0, along = 0, endX = NaN, endY = NaN;
-    const kept = this.cut.length >= count * 8 + 64 ? this.cut : (this.cut = new Float64Array(count * 16 + 64));
-    for (let k = 0; k < count * 4; k += 4) {
-      const x0 = path[k], y0 = path[k + 1], x1 = path[k + 2], y1 = path[k + 3], length = Math.hypot(x1 - x0, y1 - y0);
-      if (x0 !== endX || y0 !== endY) along = ((this.lineDashOffset % period) + period) % period;
-      // (Through the pattern along this segment, each "on" stretch kept.)
-      let at = 0;
-      while (at < length && n + 4 <= kept.length) {
-        let phase = along % period, d = 0;
-        while (phase >= dash[d]) (phase -= dash[d]), (d = (d + 1) % dash.length);
-        const step = Math.min(dash[d] - phase, length - at);
-        if (d % 2 === 0) {
-          const t0 = at / length, t1 = (at + step) / length;
-          (kept[n++] = x0 + (x1 - x0) * t0), (kept[n++] = y0 + (y1 - y0) * t0), (kept[n++] = x0 + (x1 - x0) * t1), (kept[n++] = y0 + (y1 - y0) * t1);
-        }
-        (at += step), (along += step);
-      }
-      (endX = x1), (endY = y1);
-    }
-    if (n > path.length) this.path = new Float64Array(n * 2);
-    this.path.set(kept.subarray(0, n));
-    this.pathCount = n / 4;
-  },
-  /** Its dashed path, as cut (grown, never made again). */
-  cut: new Float64Array(0),
   fill() {
     if (!painted(this.fillStyle)) return void (this.pathCount = 0);
     // (A fill closes each subpath: their segments back to their starts are in it already where it was closed (rects,
     // outlines, bodies always are).)
     this.fillCount = this.keep("fills", this.fillCount);
     if (this.fillsMade >= this.fillEnds.length) {
-      const next = new Int32Array(this.fillEnds.length * 2);
-      next.set(this.fillEnds);
-      this.fillEnds = next;
+      const ends = new Int32Array(this.fillEnds.length * 2), clips = new Float64Array(this.fillClips.length * 2);
+      ends.set(this.fillEnds), clips.set(this.fillClips);
+      (this.fillEnds = ends), (this.fillClips = clips);
     }
+    this.fillClips.set(this.clipBox, this.fillsMade * 4);
     this.fillEnds[this.fillsMade++] = this.fillCount;
   },
   /** The path's segments added to `into` (its count `count`), the new count returned. @param {"strokes" | "fills"} into @param {number} count */
@@ -177,13 +156,20 @@ const recorder = {
     this[into] = buffer;
     return count + this.pathCount;
   },
-  save() {},
-  restore() {},
-  clip() {},
-  /** (Kept as the canvas keeps it: an odd count, twice over.) @param {number[]} dash */
-  setLineDash(dash) {
-    this.dash = dash.length % 2 ? [...dash, ...dash] : dash;
+  save() {
+    this.saved.push(this.clipBox);
   },
+  restore() {
+    this.clipBox = this.saved.pop() ?? [-Infinity, -Infinity, Infinity, Infinity];
+  },
+  /** (The path's bounds, within the clip as it was: a series clips to a box, a baseline's halves.) */
+  clip() {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k < this.pathCount * 4; k += 2) (x0 = Math.min(x0, this.path[k])), (x1 = Math.max(x1, this.path[k])), (y0 = Math.min(y0, this.path[k + 1])), (y1 = Math.max(y1, this.path[k + 1]));
+    const [a, b, c, d] = this.clipBox;
+    this.clipBox = [Math.max(a, x0), Math.max(b, y0), Math.min(c, x1), Math.min(d, y1)];
+  },
+  setLineDash() {},
   setTransform() {},
   /** A real gradient (a fill keeps it for its real draws), its stops unread here. @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
   createLinearGradient(x0, y0, x1, y1) {
@@ -196,7 +182,7 @@ const recorder = {
  * Whether a style paints something (a gradient: yes; a color: not fully transparent), each color read once.
  * @param {any} style
  */
-function painted(style) {
+export function painted(style) {
   if (typeof style !== "string") return true;
   let seen = paints.get(style);
   if (seen === undefined) {
@@ -235,7 +221,6 @@ function toSegment(x, y, x0, y0, x1, y1) {
  */
 export function measure(series, time, scale, x, y, reach = 8) {
   recorder.reset();
-  recorder.dash = [];
   measuring = true;
   try {
     series.draw(/** @type {any} */ (recorder), time, scale, x - reach, x + reach, 1);
@@ -243,9 +228,12 @@ export function measure(series, time, scale, x, y, reach = 8) {
     measuring = false;
   }
   let best = Infinity, inside = false;
-  const { strokes, strokeCount, fills, fillEnds, fillsMade, dots, dotCount } = recorder;
+  const { strokes, strokeCount, fills, fillEnds, fillClips, fillsMade, dots, dotCount } = recorder;
   for (let k = 0; k < strokeCount * 4; k += 4) best = Math.min(best, toSegment(x, y, strokes[k], strokes[k + 1], strokes[k + 2], strokes[k + 3]));
   for (let f = 0, from = 0; f < fillsMade; from = fillEnds[f++]) {
+    // (A fill clipped to a box the point's outside: none of it there.)
+    const c = f * 4;
+    if (x < fillClips[c] || y < fillClips[c + 1] || x > fillClips[c + 2] || y > fillClips[c + 3]) continue;
     // (Inside a fill as the canvas fills it, nonzero: its edges' windings round the point (those a ray to the right
     // crosses, up one way, down the other) not summing to none.)
     let winding = 0;
