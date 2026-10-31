@@ -72,7 +72,7 @@ export class TimeAxis {
    * @param {import("./pane.js").Pane[]} panes
    */
   draw(time, theme, dpr, plot, panes) {
-    const g = this.g, times = time.times, n = times.length, page = this.page;
+    const g = this.g, page = this.page;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = theme.background;
     g.fillRect(0, 0, this.width, this.height);

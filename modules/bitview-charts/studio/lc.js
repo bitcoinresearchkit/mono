@@ -1283,7 +1283,7 @@ class Painted {
       draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1, at.dpr),
       extent: (a, b, positive, out) => this.#extent(a, b, positive, out),
       first: (i) => this.#first(i),
-      distance: (i, y, scale, x) => this.#distance(scale, x, y),
+      distance: (_i, y, scale, x) => this.#distance(scale, x, y),
     });
   }
 
