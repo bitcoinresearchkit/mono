@@ -129,7 +129,13 @@ export class Chart {
     // (Its canvases placed in it: a box for them, unless it's one already.)
     if (getComputedStyle(element).position === "static") element.style.position = "relative";
     Object.assign(element.style, { overflow: "hidden", touchAction: "none", userSelect: "none", webkitUserSelect: "none" });
-    element.append(this.timeAxis.canvas, this.crosshair.canvas);
+    /**
+     * A page's own element in the chart's corner beside the time axis, under its price axis (the right one, else the
+     * left): its buttons (Full screen). Laid out with the chart, as wide as that axis; it takes the pointer.
+     */
+    this.corner = document.createElement("div");
+    this.corner.style.cssText = "position: absolute; display: block";
+    element.append(this.timeAxis.canvas, this.crosshair.canvas, this.corner);
     this.resizer = new ResizeObserver(() => this.layout());
     this.resizer.observe(element);
     this.#input();
@@ -176,8 +182,8 @@ export class Chart {
   addPane(options) {
     const pane = new Pane(options);
     this.panes.push(pane);
-    // (Under the crosshair however they're put in: see its z-index.)
-    this.element.append(pane.canvas, pane.axisCanvas);
+    // (Under the crosshair however they're put in: see its z-index. Its frame over its plot.)
+    this.element.append(pane.canvas, pane.axisCanvas, pane.frame);
     // (Its left scale come or gone, its layer over it come: laid out again.)
     pane.onLayout = () => this.layout();
     this.layout();
@@ -188,6 +194,7 @@ export class Chart {
   removePane(pane) {
     this.panes = this.panes.filter((each) => each !== pane);
     pane.canvas.remove();
+    pane.frame.remove();
     pane.axisCanvas.remove();
     pane.leftCanvas?.remove();
     pane.overCanvas?.remove();
@@ -305,7 +312,7 @@ export class Chart {
     for (const [k, pane] of this.panes.entries()) {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
       pane.place(top, width, bottom - top, axis, this.dpr);
-      pane.canvas.style.left = `${left}px`;
+      pane.canvas.style.left = pane.frame.style.left = `${left}px`;
       pane.axisCanvas.style.left = `${left + pane.plot}px`;
       const had = pane.leftCanvas;
       pane.placeLeft(top, left, this.dpr);
@@ -322,6 +329,8 @@ export class Chart {
     // (The time axis under the plot alone: a page stretching the plot stretches it alike. Under the axis, the chart's ground.)
     this.timeAxis.place(room, Math.max(1, width - axis), this.timeHeight, this.dpr);
     this.timeAxis.canvas.style.left = `${left}px`;
+    const cornerWidth = axis || left;
+    Object.assign(this.corner.style, { left: `${axis ? left + Math.max(1, width - axis) : 0}px`, top: `${room}px`, width: `${cornerWidth}px`, height: `${this.timeHeight}px`, display: cornerWidth ? "block" : "none" });
     this.crosshair.place(box.width, box.height, this.dpr);
     this.time.resize(Math.max(1, width - axis));
     // (The crosshair's pane found again: panes moved, came or went.)
@@ -723,8 +732,9 @@ export class Chart {
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();
-    for (const pane of this.panes) pane.canvas.remove(), pane.axisCanvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove();
+    for (const pane of this.panes) pane.canvas.remove(), pane.axisCanvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove(), pane.frame.remove();
     this.timeAxis.canvas.remove();
+    this.corner.remove();
     this.panes = [];
   }
 }

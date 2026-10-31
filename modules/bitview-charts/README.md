@@ -34,7 +34,9 @@ chart.show(365);                                 // the last 365 points in view
   `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
-  draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`.
+  draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
+  `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
+  pointer).
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the point
   there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
@@ -50,7 +52,8 @@ chart.show(365);                                 // the last 365 points in view
   `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
   written. `setFormat(format, ticks, side)`: a side's own (`ticks`, its ticks written all at once, their digits alike;
   an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `setTagsTop(top, side)`, a
-  side's tags kept under that height (a page's legend over the pane).
+  side's tags kept under that height (a page's legend over the pane); `frame`, a page's own element over its plot (a
+  legend, a highlight), laid out and stretched with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
   the last on top), `setRange(lo, hi, side)` (no range: fitted),

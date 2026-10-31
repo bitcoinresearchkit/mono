@@ -73,6 +73,12 @@ export class Pane {
     // the plot alone.)
     this.canvas = document.createElement("canvas");
     this.canvas.style.cssText = "position: absolute; left: 0; display: block";
+    /**
+     * A page's own element over its plot (a legend, a highlight), laid out with it (stretched with it as a separator's
+     * dragged: its height, not scaled), under the crosshair; it takes no pointer (its children may).
+     */
+    this.frame = document.createElement("div");
+    this.frame.style.cssText = "position: absolute; left: 0; top: 0; pointer-events: none";
     const g = this.canvas.getContext("2d", { alpha: false });
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;
@@ -315,6 +321,7 @@ export class Pane {
     const w = Math.round(this.plot * dpr), h = Math.round(height * dpr), aw = Math.round((width - this.plot) * dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) (this.canvas.width = w), (this.canvas.height = h), (this.drawnFrom = NaN);
     Object.assign(this.canvas.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
+    Object.assign(this.frame.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px` });
     if (this.axisCanvas.width !== aw || this.axisCanvas.height !== h) (this.axisCanvas.width = aw), (this.axisCanvas.height = h), (this.drawnFrom = NaN);
     Object.assign(this.axisCanvas.style, { top: `${top}px`, width: `${width - this.plot}px`, height: `${height}px`, transform: "" });
     this.scale.height = height;
@@ -342,6 +349,7 @@ export class Pane {
     Object.assign(this.canvas.style, style), Object.assign(this.axisCanvas.style, style);
     if (this.leftCanvas) Object.assign(this.leftCanvas.style, style);
     if (this.overCanvas) Object.assign(this.overCanvas.style, style);
+    Object.assign(this.frame.style, { top: `${top}px`, height: `${height}px` });
   }
 
   /**

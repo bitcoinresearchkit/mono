@@ -16322,6 +16322,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         engine.setRange(from, times[after] === span.to ? after : after - 1);
       };
       /** A date's x across the plot (its point's); none where no point has it. @param {number} time */
+      /**
+       * Pane `i`'s box on the page as it shows (its row: its axes and its plot; stretched as a separator's dragged), or
+       * none. @param {number} i
+       */
+      const paneBox = (i) => {
+        const pane = engine.panes[i];
+        if (!pane) return null;
+        const box = view.chartElement().getBoundingClientRect();
+        return new DOMRect(box.left, box.top + pane.shownTop, engine.left + pane.width, pane.shownHeight);
+      };
       const xOfTime = (time) => ((times, i) => (times[i] === time ? engine.time.x(i) : null))(engine.time.times, lowerBound(engine.time.times, time));
       /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
       let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
@@ -16432,7 +16442,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       /** Each pane's box on the screen, top to bottom. */
-      const paneBoxes = () => view.panes().map((pane) => pane.getHTMLElement()?.getBoundingClientRect() ?? null);
+      const paneBoxes = () => engine.panes.map((_, i) => paneBox(i));
       /** The scales holdPrices holds, as it held them: glided to where they fit once the motion's over (see letPricesGo). @type {ReturnType<typeof heldScales>} */
       let pricesHeld = [];
       /**
@@ -17523,7 +17533,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let revealing = 0;
       /** The panes' drawings (their canvases: the legends and the axes beside them stay as they are), masked or not. */
-      const maskPlots = (/** @type {string} */ mask) => view.panes().forEach((pane) => pane.getHTMLElement()?.children[1]?.firstElementChild?.querySelectorAll("canvas").forEach((canvas) => (canvas.style.maskImage = canvas.style.webkitMaskImage = mask)));
+      const maskPlots = (/** @type {string} */ mask) => engine.panes.forEach((pane) => [pane.canvas, pane.overCanvas].forEach((canvas) => canvas && (canvas.style.maskImage = canvas.style.webkitMaskImage = mask)));
       /** The reveal in flight: where its join is (moved with the data as more comes), the way it goes. */
       let inReveal = /** @type {{ join: number, outward: -1 | 1 } | null} */ (null);
       const endReveal = () => (revealing++, (inReveal = null), maskPlots(""));
@@ -17766,8 +17776,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const plotFit = new ResizeObserver(() => fitLegends());
       /** Full screen's button, in the chart's corner under its price scale (the right one's, else the left's). */
       function placeFull() {
-        const row = $("chart").querySelector("table tr:last-child"), button = $("full");
-        const corner = row && [...row.children].reverse().find((cell) => cell !== row.children[1] && /** @type {HTMLElement} */ (cell).offsetWidth >= 24);
+        const corner = engine.corner.offsetWidth >= 24 ? engine.corner : null, button = $("full");
         if (corner && button.parentElement !== corner) corner.append(button);
         button.hidden = !corner;
       }
@@ -17787,8 +17796,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const panes = view.panes(), folded = chart.legend === "off" ? foldedPanes(chart) : null;
           chart.panes.forEach((pane, i) => {
             if (folded && !folded.has(pane.id)) return;
-            // The pane's row holds its left scale, its plot, its right scale; the legend goes in the plot's frame.
-            const plot = panes[i]?.getHTMLElement()?.children[1]?.firstElementChild;
+            // The legend goes in the pane's frame, over its plot.
+            const plot = engine.panes[i]?.frame;
             if (!plot) return;
             let element = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${CSS.escape(pane.id)}"]`));
             if (!element) {
@@ -18959,7 +18968,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             lit = { x, y, d: Math.max(size * Math.sqrt(Math.min(1, worth / most)), 2 * (MARKER.radius + MARKER.border)) + 6, color: row.v >= 0 ? upEdge : downEdge };
           }
         }
-        const plot = lit && view.panes()[/** @type {number} */ (pane)]?.getHTMLElement()?.children[1]?.firstElementChild;
+        const plot = lit && engine.panes[/** @type {number} */ (pane)]?.frame;
         if (!lit || !plot) return void bubbleRing.remove();
         if (bubbleRing.parentElement !== plot) plot.append(bubbleRing);
         Object.assign(bubbleRing.style, { left: `${lit.x}px`, top: `${lit.y}px`, width: `${lit.d}px`, height: `${lit.d}px` });
@@ -19117,7 +19126,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("chart-said").textContent = amountOn(point.layer, value);
       }
       /** Where a layer's pane is on screen now. @param {Layer} layer */
-      const paneRect = (layer) => view.panes()[chart.panes.findIndex((pane) => pane.id === layer.pane)]?.getHTMLElement()?.getBoundingClientRect();
+      const paneRect = (layer) => paneBox(chart.panes.findIndex((pane) => pane.id === layer.pane)) ?? undefined;
       /** With a tool in hand, ↵: a point placed where the keys' crosshair is (a two-point kind's first, then its other: one clicked first too). */
       function placeByKeys(/** @type {number} */ i) {
         const kind = tool, point = keyPoint(i), said = $("chart-said");
@@ -20053,9 +20062,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The pane under a point of the page (its index, its box), or none. */
       function paneAt(clientY) {
-        const panes = view.panes();
-        for (let i = 0; i < panes.length; i++) {
-          const rect = panes[i].getHTMLElement()?.getBoundingClientRect();
+        for (let i = 0; i < engine.panes.length; i++) {
+          const rect = paneBox(i);
           if (rect && clientY >= rect.top && clientY <= rect.bottom) return { index: i, rect };
         }
         return null;
@@ -21206,11 +21214,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * box's own edges less its axes, following the box as it moves; else what shows of it. At rest, the same.
        */
       function plotBox(boxed = false) {
-        const panes = view.panes(), first = panes[0]?.getHTMLElement(), last = panes.at(-1)?.getHTMLElement();
+        const first = paneBox(0), last = paneBox(engine.panes.length - 1);
         if (!first || !last) return null;
         const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = view.chartElement().getBoundingClientRect();
         // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
-        const axis = engine.left, firstTop = first.getBoundingClientRect().top, lastBottom = last.getBoundingClientRect().bottom;
+        const axis = engine.left, firstTop = first.top, lastBottom = last.bottom;
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
         const [left, right, top, bottom] = boxed
           ? [chartBox.left + axis, chartBox.right - (element.width - axis - engine.time.width), chartBox.top + (firstTop - element.top), chartBox.bottom - (element.bottom - lastBottom)]
@@ -23389,18 +23397,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The field over where its text is drawn, as wide and tall as what's typed (nothing yet: its placeholder, what it's for). */
       function placeField() {
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
-        const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && view.panes()[chart.panes.findIndex((item) => item.id === layer.pane)]?.getHTMLElement();
+        const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && paneBox(chart.panes.findIndex((item) => item.id === layer.pane));
         if (!drawing || !series || !line || !pane) return;
         const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = view.chartElement().getBoundingClientRect().left + engine.left;
         if (writing.label) {
           // A label: centered where it sits (a trend line's at its angle; its field level).
           const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || field.placeholder);
           if (!place) return;
-          return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
+          return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
         }
         // A text: its tag around its middle, as wide and tall as what's typed.
         const place = textPlace(drawing, onScreen(drawing, series, line)[0], field.value || field.placeholder);
-        Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
+        Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
       }
       function endTyping() {
         if (!writing) return;
