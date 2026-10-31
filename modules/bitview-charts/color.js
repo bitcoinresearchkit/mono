@@ -158,6 +158,29 @@ function hex(c) {
   return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
+/** Two colors' blends, by the pair. @type {Map<string, string[]>} */
+const blends = new Map();
+
+/**
+ * A fade's stops from `from` to `to`, nine evenly apart, blended in OKLab (see gradientTable): worked out once a pair,
+ * so a gradient made anew (its heights changed: a baseline's base as its scale refits) costs only its stops.
+ * @param {string} from @param {string} to
+ */
+function blended(from, to) {
+  const key = from + "|" + to;
+  let stops = blends.get(key);
+  if (stops === undefined) {
+    const table = gradientTable([from, to]);
+    stops = Array.from({ length: 9 }, (_, k) => {
+      const at = Math.round((k / 8) * 255) * 4;
+      return `rgba(${table[at]}, ${table[at + 1]}, ${table[at + 2]}, ${(table[at + 3] / 255).toFixed(3)})`;
+    });
+    if (blends.size > 256) blends.clear();
+    blends.set(key, stops);
+  }
+  return stops;
+}
+
 /** A fill's or a stroke's style: a color, or a vertical gradient (CSS pixels) kept till its colors or heights change. */
 export class Fill {
   constructor() {
@@ -193,9 +216,12 @@ export class Fill {
   #made(g, from, to, top, bottom, split) {
     if (!this.gradient || this.from !== from || this.to !== to || this.top !== top || this.bottom !== bottom || this.split !== split) {
       const gradient = split ? g.createLinearGradient(0, 0, 0, bottom) : g.createLinearGradient(0, top, 0, bottom);
-      gradient.addColorStop(0, from);
-      if (split) gradient.addColorStop(top, from), gradient.addColorStop(top, to);
-      gradient.addColorStop(1, to);
+      if (split) gradient.addColorStop(0, from), gradient.addColorStop(top, from), gradient.addColorStop(top, to), gradient.addColorStop(1, to);
+      else {
+        // (Blended in OKLab, not the canvas's sRGB: its stops a ninth apart.)
+        const stops = blended(from, to);
+        for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
+      }
       (this.gradient = gradient), (this.from = from), (this.to = to), (this.top = top), (this.bottom = bottom), (this.split = split);
     }
     return this.gradient;
