@@ -16654,6 +16654,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * build (their lines set anew: a color or a width scrubbed redraws them, nothing made). @type {Map<string, { levels: Levels, pane: any }>}
        */
       const levelsKept = new Map();
+      /** A pane's scales' room at their ends: for the tags and the legend over the plot (its left one's too). */
+      const PANE = { scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } };
       /** The lines across shown, and the layers each is for (shared, several): a spotlight fades the others', their tags with them. */
       const levelTags = /** @type {{ line: import("/modules/bitview-charts/levels.js").Level, layers: Set<string> }[]} */ ([]);
       /**
@@ -17054,6 +17056,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its timeline now: what's below reads and moves the view on its dates (the view as it was read above).)
         showTimes(data.times);
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
+        // (A pane on the library for each of the chart's, made as it comes: those past them go once their series have.)
+        while (engine.panes.length < doc.panes.length) engine.addPane(PANE);
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
         // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
@@ -17317,6 +17321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         engine.invalidate(true);
         markSignals(doc, data, drawn, old);
         for (const series of old) heatSeries.delete(series), dropOwnLayers(series), view.removeSeries(series);
+        while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
         // (Each new series' sketch: its drawings, halving marks, a trend's ends.)
         for (const [id, series] of drawn) if (!sketches.has(series)) sketches.set(series, new Sketch(id, series));

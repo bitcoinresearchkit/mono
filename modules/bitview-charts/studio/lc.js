@@ -51,8 +51,8 @@ class Chart {
     element.append(this.element);
     // (Its look, its time scale's room and spacing, its dates' words: the page's, set on the library.)
     this.engine = make(this.element);
-    /** @type {Pane[]} */
-    this.panesList = [];
+    /** Its wrapper of each of the library's panes (made by the page). @type {WeakMap<any, Pane>} */
+    this.panes = new WeakMap();
     /** @type {Series[]} */
     this.all = [];
     /** The timeline its series were last pushed onto (the library's, as the page set it: see #sync). @type {Float64Array} */
@@ -81,9 +81,7 @@ class Chart {
   removeSeries(series) {
     series.pane.engine.remove(series.engine);
     if (series.edge) series.pane.engine.remove(series.edge);
-    series.pane.list = series.pane.list.filter((each) => each !== series);
     this.all = this.all.filter((each) => each !== series);
-    this.#trimPanes();
     this.changed();
   }
 
@@ -105,21 +103,10 @@ class Chart {
 
   // ── Its panes and timeline ──
 
-  /** The pane at `index`, made (and the ones before it) if it's not there. @param {number} index */
+  /** The library's pane at `index` (the page's: made before its series), wrapped. @param {number} index */
   #pane(index) {
-    while (this.panesList.length <= index) {
-      const pane = new Pane(this, this.engine.addPane({ scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } }));
-      this.panesList.push(pane);
-    }
-    return this.panesList[index];
-  }
-
-  /** Panes left with no series at the end go (as the library's did). */
-  #trimPanes() {
-    while (this.panesList.length > 1 && !this.panesList.at(-1)?.list.length) {
-      const pane = /** @type {Pane} */ (this.panesList.pop());
-      this.engine.removePane(pane.engine);
-    }
+    const engine = this.engine.panes[index];
+    return this.panes.get(engine) ?? ((pane) => (this.panes.set(engine, pane), pane))(new Pane(this, engine));
   }
 
   /** A series' data or look changed: brought to the library before the next frame. */
@@ -149,8 +136,6 @@ class Pane {
   constructor(chart, engine) {
     this.chart = chart;
     this.engine = engine;
-    /** @type {Series[]} */
-    this.list = [];
     /** @type {Record<string, PriceScale>} */
     this.scales = {};
   }
@@ -206,7 +191,6 @@ class Series {
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
     /** @type {Line | null} */
     this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;
-    pane.list.push(this);
     this.#style();
   }
 
