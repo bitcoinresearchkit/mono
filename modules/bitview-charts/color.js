@@ -85,7 +85,7 @@ export function tint(color, ground) {
     look = { fill: hex(fill), ink: at(light ? 0.97 : 0.24, Math.min(0.06, chroma)), border: at(Math.min(1, Math.max(0, l0 + away)), chroma) };
   }
   if (tints.size > 512) tints.clear();
-  tints.set(color, look);
+  tints.set(key, look);
   return look;
 }
 
