@@ -16,7 +16,7 @@ const STEPS = /** @type {const} */ ([
 ]);
 
 /** A time's UTC year and month (0 to 11), written here: no Date made each frame (Hinnant's civil from days). */
-let civilYear = 0, civilMonth = 0;
+let civilYear = 0, civilMonth = 0, civilDay = 0;
 /** @param {number} t seconds */
 function civil(t) {
   const z = Math.floor(t / DAY) + 719468, era = Math.floor(z / 146097), doe = z - era * 146097;
@@ -24,6 +24,14 @@ function civil(t) {
   const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100)), mp = Math.floor((5 * doy + 2) / 153), m = mp < 10 ? mp + 3 : mp - 9;
   civilYear = yoe + era * 400 + (m <= 2 ? 1 : 0);
   civilMonth = m - 1;
+  civilDay = doy - Math.floor((153 * mp + 2) / 5) + 1;
+}
+
+/** What a label at `t` starts, as a page's writer is told: a year, a month, a day, or none (a time of day). @param {number} t */
+function kindOf(t) {
+  if ((((t % DAY) + DAY) % DAY) !== 0) return "time";
+  civil(t);
+  return civilDay !== 1 ? "day" : civilMonth ? "month" : "year";
 }
 
 /** The first index whose time is at or past `t` (the length, none). @param {Float64Array} times @param {number} t */
@@ -56,6 +64,12 @@ export class TimeAxis {
       hour: clock,
       minute: clock,
     };
+    /**
+     * A page's own labels: each one's words from its time and what it starts ("year", "month", "day" or "time"); "", no
+     * label there; null, its own. None: its own all along.
+     * @type {((t: number, kind: string) => string | null) | null}
+     */
+    this.format = null;
     /** The panes' series' own tags on it as last drawn, and each one's half width. */
     this.page = new Tags();
     this.halves = new Float64Array(8);
@@ -153,7 +167,9 @@ export class TimeAxis {
       if (i <= b && times[i] < next) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        if (x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(own ? times[i] : t), x, this.height / 2), (last = x), drawn++);
+        // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
+        const when = own ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
+        if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(words ?? label(when), x, this.height / 2), (last = x), drawn++);
       }
       t = next;
     }

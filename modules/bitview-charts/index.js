@@ -321,7 +321,9 @@ export class Chart {
   /** Drawn now (for a measurement: its frames draw it). @param {boolean} [whole] */
   render(whole = false) {
     this.whole = false;
-    const time = this.time;
+    const time = this.time, crosshair = this.crosshair, x = this.pointerX;
+    // (A pointer's crosshair on the point under it as the view moves beneath it: a wheel's scroll, a glide.)
+    if (x === x && crosshair.index === crosshair.index && Math.round(time.index(x)) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
       pane.fit(time);
@@ -381,7 +383,8 @@ export class Chart {
         if (y < pane.top || y >= pane.top + pane.height) continue;
         // (A relative scale's range follows its bases as the view moves: never set by hand, as the chart library's.)
         const side = x >= this.left + pane.plot && pane.width > pane.plot ? "right" : x < this.left && pane.left ? "left" : null, scale = side === "left" ? pane.left : pane.scale;
-        return (foundPane = pane), (foundSide = side ?? "right"), Boolean(side && scale && !scale.relative);
+        // (One fitted to nothing (an empty pane: its range a placeholder) none either.)
+        return (foundPane = pane), (foundSide = side ?? "right"), Boolean(side && scale && !scale.relative && !scale.empty && scale.lo < scale.hi && (scale.mode !== "log" || scale.lo > 0));
       }
       return false;
     };

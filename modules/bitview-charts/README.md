@@ -24,7 +24,9 @@ chart.show(365);                                 // the last 365 points in view
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
   and across, `badge`, `separator`); `axis`, the axis' width at the right (64; 0, none); `leftAxis`, the left one's,
   where a pane has a left scale (as `axis`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
-  past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds).
+  past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
+  page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
+  none there, null for the library's.
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them; as a separator's dragged, its two panes shown stretched, each pane's `shownTop` and
