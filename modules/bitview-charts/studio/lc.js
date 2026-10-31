@@ -40,6 +40,10 @@ const PUSHED = ["color", "lineColor", "bvBandFill"];
 /** A fit adding nothing (an edge: its series fitted by its band). */
 const NOTHING = () => {};
 
+/** Each times array given as columns, as a Float64Array: an array once given taken as never changing (the patches'
+ * contract), so every series set on it shares one (compared by identity, not point by point). */
+const timesOf = new WeakMap();
+
 /** `b` merged into `a`, the objects in them too (as the chart library merged its options). @param {any} a @param {any} b @returns {any} */
 function merged(a, b) {
   const out = { ...a };
@@ -361,8 +365,8 @@ class Chart {
   #sync() {
     if (!this.dirty) return;
     this.dirty = false;
-    // (The timeline: Studio's series share one array of times, mostly; else, all their times as one.)
-    const lists = this.all.map((series) => series.times).filter((times) => times.length);
+    // (The timeline: Studio's series share one array of times, mostly; else, all their times as one. Each array once.)
+    const lists = [...new Set(this.all.map((series) => series.times).filter((times) => times.length))];
     let times = lists[0] ?? new Float64Array(0);
     if (lists.some((list) => !sameTimes(list, times))) {
       const union = new Set();
@@ -374,6 +378,15 @@ class Chart {
     const was = this.times, fresh = !sameTimes(times, was);
     if (fresh) this.times = times;
     else times = was;
+    // (A series' times the same point for point taken as the timeline's own array: compared by identity from here on
+    // (each pushed, each set again), each array read once.)
+    const same = new Map();
+    for (const series of this.all) {
+      const own = series.times;
+      if (!own.length || own === times) continue;
+      if (!same.has(own)) same.set(own, sameTimes(own, times));
+      if (same.get(own)) series.times = times;
+    }
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
     if (fresh) for (const pane of this.panesList) for (const marks of pane.marks) marks.place();
     for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.stack(), pane.formats();
@@ -946,8 +959,9 @@ class Series {
   bvSetColumns(times, values) {
     this.rows = null;
     this.ownValues = false;
-    // (Copied by the constructor: from() walks an iterator, many times as slow without a JIT.)
-    this.times = times instanceof Float64Array ? times : new Float64Array(times);
+    // (Copied once an array, by the constructor: from() walks an iterator, many times as slow without a JIT.)
+    if (times instanceof Float64Array) this.times = times;
+    else if (!(this.times = timesOf.get(times))) timesOf.set(times, (this.times = new Float64Array(times)));
     this.values = values instanceof Float64Array ? values : new Float64Array(values);
     this.dirty = true;
     this.chart.changed();
