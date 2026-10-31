@@ -22,8 +22,9 @@ chart.show(365);                                 // the last 365 points in view
 
 - `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
-  and across, `badge`, `separator`); `axis`, the axis' width at the right (64; 0, none); `leftAxis`, the left one's,
-  where a pane has a left scale (as `axis`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
+  and across, `badge`, `separator`); `axis`, the axis' width at the right (64; 0, none): widened where a tag needs
+  more (`axisShown`, till the times are set again); `leftAxis`, the left one's, where a pane has a left scale (as
+  `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
@@ -37,7 +38,8 @@ chart.show(365);                                 // the last 365 points in view
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
   point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
-  own element over the chart (a legend). Separators between panes drag to share their heights (the two panes shown
+  own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on
+  the axes (none shows cut beside them). Separators between panes drag to share their heights (the two panes shown
   stretched, laid out once let go). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms about the plot's right edge.
 
@@ -119,7 +121,8 @@ chart.show(365);                                 // the last 365 points in view
 - A dashed line's dashes are fixed to it: each subpath its own stroke, its dashes as far along as its length from the
   line's dash origin (measured from the nearer end of its last draw), a long one split in a gap every 128 pixels or so
   (the canvas measures a subpath in single precision); so a pan's strip draws the dashes its moved picture has. A
-  curved one's draws whole as the view moves.
+  curved one's draws whole as the view moves, as does one a whole draw found unsplit over 2,048 pixels (its segments
+  each about a multiple of its dashes' period: no gap to split in).
 - Zoomed out, a line's pixel column is drawn as its first, low, high and last values, read from its summary by blocks
   of 4, 8, 16… points (a draw's work by its columns, not its points); a band's, as its last point (a gap found by an
   index, not a scan); bars' and candles', from their points.
