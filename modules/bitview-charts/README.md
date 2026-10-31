@@ -27,7 +27,8 @@ chart.show(365);                                 // the last 365 points in view
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
-  things kept on them), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
+  things kept on them; as a separator's dragged, its two panes shown stretched, each pane's `shownTop` and
+  `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
   point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`.

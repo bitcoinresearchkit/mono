@@ -113,6 +113,9 @@ export class Pane {
     /** Where it lies in the chart (CSS pixels), and its plot's width (the axis past it). */
     this.top = 0;
     this.height = 0;
+    /** Where it shows (see stretch): where it lies, but while a separator's dragged. */
+    this.shownTop = 0;
+    this.shownHeight = 0;
     this.width = 0;
     this.plot = 0;
     /** A pane under it: its foot a separator's line (see Chart's layout). */
@@ -286,11 +289,12 @@ export class Pane {
     this.width = width;
     this.height = height;
     this.plot = Math.max(1, width - axis);
+    (this.shownTop = top), (this.shownHeight = height);
     const w = Math.round(this.plot * dpr), h = Math.round(height * dpr), aw = Math.round((width - this.plot) * dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) (this.canvas.width = w), (this.canvas.height = h), (this.drawnFrom = NaN);
-    Object.assign(this.canvas.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px` });
+    Object.assign(this.canvas.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
     if (this.axisCanvas.width !== aw || this.axisCanvas.height !== h) (this.axisCanvas.width = aw), (this.axisCanvas.height = h), (this.drawnFrom = NaN);
-    Object.assign(this.axisCanvas.style, { top: `${top}px`, width: `${width - this.plot}px`, height: `${height}px` });
+    Object.assign(this.axisCanvas.style, { top: `${top}px`, width: `${width - this.plot}px`, height: `${height}px`, transform: "" });
     this.scale.height = height;
     if (this.left) this.left.height = height;
     // (Its ticks' room: at most one each 28 pixels (see Scale.ticks), a few more at the ends.)
@@ -301,8 +305,21 @@ export class Pane {
     if (over) {
       const ow = Math.round(this.plot * dpr);
       if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h);
-      Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px` });
+      Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
     }
+  }
+
+  /**
+   * Shown from `top`, `height` tall, laid out as it was (a separator being dragged: its canvases scaled to it, drawn as
+   * laid out; laid out at it once let go, as a canvas just resized is slow to draw into on iOS).
+   * @param {number} top @param {number} height
+   */
+  stretch(top, height) {
+    (this.shownTop = top), (this.shownHeight = height);
+    const style = { top: `${top}px`, transform: height === this.height ? "" : `scaleY(${height / this.height})`, transformOrigin: "0 0" };
+    Object.assign(this.canvas.style, style), Object.assign(this.axisCanvas.style, style);
+    if (this.leftCanvas) Object.assign(this.leftCanvas.style, style);
+    if (this.overCanvas) Object.assign(this.overCanvas.style, style);
   }
 
   /**
@@ -346,7 +363,7 @@ export class Pane {
     const canvas = this.leftCanvas;
     const w = Math.round(width * dpr), h = Math.round(this.height * dpr);
     if (canvas.width !== w || canvas.height !== h) (canvas.width = w), (canvas.height = h), (this.drawnFrom = NaN);
-    Object.assign(canvas.style, { top: `${top}px`, width: `${width}px`, height: `${this.height}px` });
+    Object.assign(canvas.style, { top: `${top}px`, width: `${width}px`, height: `${this.height}px`, transform: "" });
   }
 
   /** A scale's writers' slot: its side's, or its side's as a percent. @param {Scale} scale */

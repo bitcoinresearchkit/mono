@@ -595,7 +595,8 @@ class Pane {
   /** Its row over its pane, the library's canvases of it in its cells (its plot's first in its frame, its layer over it next). */
   place() {
     const engine = this.engine;
-    placeRow(this.row, engine.top, engine.height, this.chart.engine.left, engine.plot, this.chart.engine.axis);
+    // (Where it shows: a separator's drag stretches it, its legend kept on it.)
+    placeRow(this.row, engine.shownTop, engine.shownHeight, this.chart.engine.left, engine.plot, this.chart.engine.axis);
     mount(engine.canvas, this.frame, true);
     if (engine.overCanvas) mount(engine.overCanvas, this.frame, true), engine.canvas.after(engine.overCanvas);
     mount(engine.axisCanvas, /** @type {HTMLElement} */ (this.row.children[2]));

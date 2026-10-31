@@ -224,7 +224,11 @@ export class Chart {
     this.element.style.background = theme.background;
   }
 
-  /** Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them). @param {() => void} listener */
+  /**
+   * Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them), and
+   * as a separator's dragged (two panes shown stretched: each pane's `shownTop` and `shownHeight` where it shows).
+   * @param {() => void} listener
+   */
   onLayout(listener) {
     this.layoutListeners.push(listener);
     return () => void (this.layoutListeners = this.layoutListeners.filter((each) => each !== listener));
@@ -341,7 +345,12 @@ export class Chart {
     let twoFingers = false;
     // (A separator dragged: the panes over and under it, the pointer dragging it (-1: none).)
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
-    const stopSizing = () => void ((sizing = null), (sizer = -1), this.invalidate(true));
+    // (Let go: the panes, shown stretched as it went, laid out at their new heights.)
+    const stopSizing = () => {
+      const was = sizing;
+      (sizing = null), (sizer = -1);
+      was ? this.layout() : this.invalidate(true);
+    };
     /** The separator under a height in the chart (the pane over it), or -1. @param {number} y @param {boolean} touch */
     const separator = (y, touch) => {
       for (let k = 0; k < this.panes.length - 1; k++) if (Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_MOUSE)) return k;
@@ -514,7 +523,8 @@ export class Chart {
 
   /**
    * The separator between `over` and `under` dragged to `y` (CSS pixels in the chart): their shares moved between them,
-   * their total kept, neither under LEAST. Whether they're still next to each other (a pane removed: the drag's over).
+   * their total kept, neither under LEAST; shown stretched to their new heights (see Pane.stretch), laid out once let go.
+   * Whether they're still next to each other (a pane removed: the drag's over).
    * @param {Pane} over @param {Pane} under @param {number} y
    */
   #size(over, under, y) {
@@ -525,7 +535,9 @@ export class Chart {
     const height = Math.min(Math.max(y - over.top, LEAST), both - LEAST), shares = over.share + under.share;
     over.share = (shares * height) / both;
     under.share = shares - over.share;
-    this.layout();
+    over.stretch(over.top, height);
+    under.stretch(over.top + height, both - height);
+    for (let l = 0; l < this.layoutListeners.length; l++) this.layoutListeners[l]();
     return true;
   }
 
