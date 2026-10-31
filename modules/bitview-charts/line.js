@@ -329,14 +329,23 @@ export class Line {
    * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it as its columns are drawn zoomed out (a
    * column's runs upright at its x, from their lowest to their highest; each run joined to the next one's first point,
    * a column on, unless a gap or a break comes between), measured over the columns either side of the pointer's.
-   * Past the columns searched (the pointer past the data's end), from the nearest point (`i`) where it's drawn.
+   * And around the nearest point's own column (`i`: the pointer past the data's end), where that's further.
    * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {number} i
    */
   #columnDistance(x, y, scale, time, i) {
-    const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log", c = Math.floor(x);
+    const c = Math.floor(x), own = Math.floor(time.x(i) + NOISE), best = this.#columns(x, y, scale, time, c - 1, c + 1);
+    return Math.abs(own - c) > 2 ? Math.min(best, this.#columns(x, y, scale, time, own - 1, own + 1)) : best;
+  }
+
+  /**
+   * How far a point is from its drawing over pixel columns `from` to `to` (see #columnDistance).
+   * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {number} from @param {number} to
+   */
+  #columns(x, y, scale, time, from, to) {
+    const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log";
     // (The last point drawn, a joint's start (NaN: none, after a gap or a break); the run in the column so far.)
     let best = Infinity, joinX = NaN, joinY = NaN;
-    for (let col = c - 1; col <= c + 1; col++) {
+    for (let col = from; col <= to; col++) {
       const a = Math.max(0, time.column(col)), b = Math.min(n - 1, time.columnEnd);
       let top = Infinity, bottom = -Infinity, lastY = NaN, count = 0;
       for (let k = a; k <= b + 1; k++) {
@@ -358,7 +367,6 @@ export class Line {
         (top = Infinity), (bottom = -Infinity), (lastY = NaN), (count = 0);
       }
     }
-    if (best === Infinity && i >= 0 && i < n && (log ? values[i] > 0 : values[i] === values[i])) best = Math.hypot(x - Math.floor(time.x(i) + NOISE), y - scale.y(values[i]));
     return best;
   }
 

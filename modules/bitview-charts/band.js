@@ -117,8 +117,9 @@ export class Band {
     if (x !== undefined && x === x && time && time.spacing < 1) {
       // (Zoomed out, as filled: from the pointer's column's last point with both edges to the next column's, where no
       // gap comes between them, its edges across at the pointer; none else (a column alone fills nothing).)
-      const c = Math.floor(x);
-      return Math.min(this.#span(c - 1, x, y, scale, time, log, edge), this.#span(c, x, y, scale, time, log, edge));
+      // (Either side of the pointer's column; and of the nearest point's, past the data's end, where that's further.)
+      const c = Math.floor(x), own = Math.floor(time.x(i) + NOISE), near = Math.min(this.#span(c - 1, x, y, scale, time, log, edge), this.#span(c, x, y, scale, time, log, edge));
+      return Math.abs(own - c) > 1 ? Math.min(near, this.#span(own - 1, x, y, scale, time, log, edge), this.#span(own, x, y, scale, time, log, edge)) : near;
     }
     const hi = this.upper[i], lo = edge ? hi : this.lower[i];
     if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
