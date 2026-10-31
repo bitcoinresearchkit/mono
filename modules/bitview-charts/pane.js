@@ -32,7 +32,8 @@ const TAG = 18;
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
  * moves (its pane drawn whole each frame, its picture never moved); `over`, drawn over everything, the crosshair too,
  * on a layer of its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its
- * side's scale (its grid by the other's). How far a point is from it: at index `i` (and `x` CSS pixels into the plot),
+ * side's scale (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading:
+ * none of it, a fixed range, its own and 0; none given, its extent). How far a point is from it: at index `i` (and `x` CSS pixels into the plot),
  * `y` from the pane's top.
  * @typedef {{
  *   version: number,
@@ -40,6 +41,7 @@ const TAG = 18;
  *   fixed?: boolean,
  *   over?: boolean,
  *   scaled?: boolean,
+ *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
  *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
@@ -429,7 +431,7 @@ export class Pane {
       if (this.sides[k] !== side || this.series[k].hidden) continue;
       const series = this.series[k];
       if (!relative) {
-        if (auto) series.extent(a, b, log, out);
+        if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out);
         continue;
       }
       // (A series with no base (none in view, or 0) has no reading: neither fitted nor drawn.)
@@ -438,7 +440,7 @@ export class Pane {
       if (!Object.is(base, this.drawnBases[k])) same = false;
       if (!auto || !base || base !== base) continue;
       (own[0] = Infinity), (own[1] = -Infinity);
-      series.extent(a, b, false, own);
+      series.fit ? series.fit(a, b, false, own) : series.extent(a, b, false, own);
       if (!(own[0] <= own[1])) continue;
       scale.setBase(base);
       const lo = own[0] * scale.m + scale.c, hi = own[1] * scale.m + scale.c;
@@ -447,6 +449,7 @@ export class Pane {
     }
     if (!same) this.basesSame = false;
     if (auto) scale.fit(out[0], out[1]);
+    scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
 
   /**
@@ -668,8 +671,8 @@ export class Pane {
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
    * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view (as the chart library's
-   * were: they read the view's end as a pan moves it; a price line, its last of all), laid top to bottom where they'd
-   * overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
+   * were: they read the view's end as a pan moves it; a price line, its last of all; one with nothing in view, none),
+   * laid top to bottom where they'd overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -680,9 +683,9 @@ export class Pane {
       const line = this.series[k];
       if (!(line instanceof Line) || !line.tag || line.hidden) continue;
       const i = line.lastBy(end, log);
-      // (On a relative scale, one with no base has no reading: no tag.)
+      // (Its last point before the view: nothing of it in view. On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1;
-      if (i < 0 || !base || base !== base) continue;
+      if (i < from || !base || base !== base) continue;
       if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
       this.tagIndex[lines.length] = i;
       lines.push(line);

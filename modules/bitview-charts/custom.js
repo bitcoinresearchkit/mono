@@ -36,6 +36,8 @@ export class Custom {
     this.fixed = fixed;
     /** Drawn over everything, on its pane's layer over it, whole each frame. */
     this.over = over;
+    /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
+    this.fit = null;
     /** Read on its side's scale: it has an extent (else, drawn as it likes, its pane's grid isn't its side's for it). */
     this.scaled = Boolean(hooks.extent);
     this.version = 0;

@@ -25,6 +25,8 @@ export class Scale {
     this.hi = 1;
     /** The height in CSS pixels. */
     this.height = 1;
+    /** Fitted to nothing (its pane's series show nothing in view): its range kept, no ticks. */
+    this.empty = false;
     // (As drawn: where its picture can be moved, it's unchanged.)
     this.drawnLo = NaN;
     this.drawnHi = NaN;
@@ -32,6 +34,7 @@ export class Scale {
     this.drawnTop = NaN;
     this.drawnBottom = NaN;
     this.drawnMode = "";
+    this.drawnEmpty = false;
   }
 
   /** Fitted to values from `lo` to `hi` (none: as it was). @param {number} lo @param {number} hi */
@@ -90,21 +93,22 @@ export class Scale {
 
   /** Whether it shows what it showed when last drawn. */
   get unchanged() {
-    return this.drawnLo === this.lo && this.drawnHi === this.hi && this.drawnHeight === this.height && this.drawnTop === this.top && this.drawnBottom === this.bottom && this.drawnMode === this.mode;
+    return this.drawnLo === this.lo && this.drawnHi === this.hi && this.drawnHeight === this.height && this.drawnTop === this.top && this.drawnBottom === this.bottom && this.drawnMode === this.mode && this.drawnEmpty === this.empty;
   }
 
   drawnNow() {
-    (this.drawnLo = this.lo), (this.drawnHi = this.hi), (this.drawnHeight = this.height), (this.drawnTop = this.top), (this.drawnBottom = this.bottom), (this.drawnMode = this.mode);
+    (this.drawnLo = this.lo), (this.drawnHi = this.hi), (this.drawnHeight = this.height), (this.drawnTop = this.top), (this.drawnBottom = this.bottom), (this.drawnMode = this.mode), (this.drawnEmpty = this.empty);
   }
 
   /**
    * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) `every` CSS
    * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale over a decade
    * or more, its powers of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2
-   * and 5; 2 to 6 and 8; all).
+   * and 5; 2 to 6 and 8; all). None where it's empty.
    * @param {Float64Array} out @param {number} [every]
    */
   ticks(out, every = 28) {
+    if (this.empty) return 0;
     const lo = this.value(this.height), hi = this.value(0), want = Math.max(2, this.height / every);
     let count = 0;
     // (A log scale over a decade or more: its powers of ten, and their 2s and 5s with room; within one, as a linear

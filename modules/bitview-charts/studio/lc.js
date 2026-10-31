@@ -33,6 +33,10 @@ export function createChart(element, options = {}) {
 const MODES = ["linear", "log", "percent", "indexed"];
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
+/** A series' options its push reads (see Series.applyOptions). */
+const PUSHED = ["color", "lineColor", "topLineColor", "bottomLineColor", "baseValue", "bvBandFill"];
+/** A fit adding nothing (an edge: its series fitted by its band). */
+const NOTHING = () => {};
 
 /** `b` merged into `a`, the objects in them too (as the chart library merged its options). @param {any} a @param {any} b @returns {any} */
 function merged(a, b) {
@@ -73,6 +77,10 @@ class Chart {
     element.append(this.element);
     this.options = merged({}, options);
     this.engine = make(this.element, { theme: this.#theme(this.options), rightOffset: this.options.timeScale?.rightOffsetPixels ?? 48, dateFormat: this.options.localization?.timeFormatter });
+    /** Its right axis' width where it's shown (see axes). */
+    this.axisWidth = this.engine.axis;
+    // (Zoomed out no further than its points this close (the chart library's 0.5 unless given).)
+    this.engine.time.minSpacing = this.options.timeScale?.minBarSpacing ?? 0.5;
     /** @type {Pane[]} */
     this.panesList = [];
     /** @type {Series[]} */
@@ -88,14 +96,16 @@ class Chart {
     // clicks (it selects its layer).)
     this.engine.onCrosshair((index, pane, y, input, x) => {
       const engine = this.engine.panes[pane], hit = input && engine && index === index ? engine.hit(this.engine.time, index, x, y) : -1;
-      const param = { ...this.#param(index, pane, y, input), hoveredSeries: this.#owner(pane, hit) };
+      const param = { ...this.#param(index, pane, x, y, input), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.crosshairListeners) listener(param);
     });
-    this.engine.onClick((index, pane, hit, y) => {
-      const param = { ...this.#param(index, pane, y, true), hoveredSeries: this.#owner(pane, hit) };
+    this.engine.onClick((index, pane, hit, y, x) => {
+      const param = { ...this.#param(index, pane, x, y, true), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.clickListeners) listener(param);
     });
     this.timeScaleApi = new TimeScale(this);
+    /** What watches its size for its time scale's listeners (stopped with it). @type {ResizeObserver[]} */
+    this.watchers = [];
     // (Its DOM as the chart library's was, where Studio looks for it: a table of rows, each pane's (see Pane) and, last,
     // the time axis' (its right corner's cell Studio's Full screen button's, the one cell taking the pointer), kept on
     // them as it's laid out; the library's canvases in their cells (Studio stretches the plots' and the time axis' as
@@ -175,10 +185,12 @@ class Chart {
     return drawn ? this.all.find((each) => each.engine === drawn || each.edge === drawn) : undefined;
   }
 
-  /** An LWC crosshair or click event. @param {number} index @param {number} pane @param {number} y @param {boolean} input */
-  #param(index, pane, y, input) {
+  /**
+   * An LWC crosshair or click event: at point `index`, the pointer's place (`x` across the plot, `y` in pane `pane`).
+   * @param {number} index @param {number} pane @param {number} x @param {number} y @param {boolean} input
+   */
+  #param(index, pane, x, y, input) {
     if (index !== index) return { point: undefined, time: undefined, logical: undefined, paneIndex: undefined, seriesData: new Map(), sourceEvent: input ? {} : undefined };
-    const x = this.engine.time.x(index);
     return { point: { x, y }, time: this.times[index], logical: index, paneIndex: pane >= 0 ? pane : undefined, seriesData: new Map(), sourceEvent: input ? {} : undefined };
   }
 
@@ -193,6 +205,7 @@ class Chart {
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
     if (options.localization?.timeFormatter) this.engine.crosshair.setFormat(options.localization.timeFormatter);
     if (options.timeScale?.rightOffsetPixels !== undefined) this.engine.time.rightOffset = options.timeScale.rightOffsetPixels;
+    if (options.timeScale?.minBarSpacing !== undefined) this.engine.time.minSpacing = options.timeScale.minBarSpacing;
     this.engine.invalidate(true);
   }
 
@@ -290,6 +303,8 @@ class Chart {
   }
 
   remove() {
+    for (const series of this.all) for (const primitive of series.primitives) primitive.detached?.();
+    for (const watcher of this.watchers) watcher.disconnect();
     this.engine.destroy();
     this.element.remove();
   }
@@ -303,8 +318,15 @@ class Chart {
       this.#percents(pane);
       this.panesList.push(pane);
       pane.place();
+      this.axes();
     }
     return this.panesList[index];
+  }
+
+  /** Its right axis shown while any pane's right scale is (none: the plots to its right edge, as the chart library's). */
+  axes() {
+    const width = this.panesList.some((pane) => pane.scales.right?.opts.visible !== false) ? this.axisWidth : 0;
+    if (width !== this.engine.axis) (this.engine.axis = width), this.engine.layout();
   }
 
   /** Panes left with no series at the end go (as the library's did). */
@@ -314,6 +336,7 @@ class Chart {
       this.engine.removePane(pane.engine);
       pane.row.remove();
     }
+    this.axes();
   }
 
   /** A series' data or look changed: brought to the library before the next frame. */
@@ -368,7 +391,7 @@ class TimeScale {
   }
 
   options() {
-    return { rightOffsetPixels: this.time.rightOffset, minBarSpacing: this.chart.options.timeScale?.minBarSpacing ?? 0.5, barSpacing: this.time.spacing, ...this.chart.options.timeScale };
+    return { rightOffsetPixels: this.time.rightOffset, minBarSpacing: this.time.minSpacing, barSpacing: this.time.spacing, ...this.chart.options.timeScale };
   }
 
   /** @param {any} options */
@@ -436,7 +459,9 @@ class TimeScale {
 
   /** @param {(width: number, height: number) => void} listener */
   subscribeSizeChange(listener) {
-    new ResizeObserver(() => listener(this.width(), this.height())).observe(this.chart.element);
+    const watcher = new ResizeObserver(() => listener(this.width(), this.height()));
+    watcher.observe(this.chart.element);
+    this.chart.watchers.push(watcher);
   }
 }
 
@@ -656,6 +681,7 @@ class PriceScale {
     // (Fitted again, or held where it is.)
     // (Its tags under Studio's legend: LWC patch 50.)
     if (this.side && options.bvTagsTop !== undefined) this.pane.engine.setTagsTop(options.bvTagsTop, this.side);
+    if (this.side === "right" && "visible" in options) this.pane.chart.axes();
     if (this.side) {
       if (options.autoScale) this.pane.engine.setRange(undefined, undefined, this.side);
       else if (options.autoScale === false && scale) this.pane.engine.setRange(scale.lo, scale.hi, this.side);
@@ -732,6 +758,12 @@ class Series {
     this.across = null;
     /** A custom series' view, drawn as the chart library drew it. @type {Painted | null} */
     this.painted = view ? new Painted(this, view) : null;
+    // (Its fitting by its autoscaleInfoProvider (see #fit), made once: nothing made a frame but what the provider makes.)
+    this.fitter = (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => this.#fit(a, b, positive, out);
+    this.original = () => this.#own();
+    this.asked = new Float64Array(3);
+    this.range = new Float64Array(2);
+    this.info = { priceRange: { minValue: 0, maxValue: 0 } };
     this.engine = this.#make();
     pane.engine.add(this.engine, this.side);
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
@@ -786,15 +818,48 @@ class Series {
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
+    // (Drawn as steps where its line type is (LineType.WithSteps); curved ones straight.)
+    const steps = o.lineType === 1;
+    // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
+    engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
     if (this.edge) {
       this.edge.hidden = !shown;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
+      this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
+      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
     }
     // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
     if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), (engine.outline = outline), (engine.radius = o.cornerRadius ?? 0), engine.version++);
-    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
-    if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0 });
-    if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor, outline, radius: o.cornerRadius ?? 0 });
+    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
+    // (An area filled up to the pane's top where it's inverted (invertFilledArea).)
+    if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, above: Boolean(o.invertFilledArea), steps });
+    // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
+    if (engine instanceof Candles) {
+      const border = o.borderVisible !== false;
+      engine.setStyle({ up: o.upColor, down: o.downColor, upWick: o.wickUpColor ?? o.wickColor ?? null, downWick: o.wickDownColor ?? o.wickColor ?? null, upBorder: border ? (o.borderUpColor ?? o.borderColor ?? null) : null, downBorder: border ? (o.borderDownColor ?? o.borderColor ?? null) : null, outline, radius: o.cornerRadius ?? 0 });
+    }
+  }
+
+  /**
+   * Its scale's range from it, by its autoscaleInfoProvider (Studio's: a stack's from zero or 0 to 100, a carrier's
+   * none), from point `a` to `b` widening `out`; `original` its own range there, as its engine reads it.
+   * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
+   */
+  #fit(a, b, positive, out) {
+    (this.asked[0] = a), (this.asked[1] = b), (this.asked[2] = positive ? 1 : 0);
+    const range = this.opts.autoscaleInfoProvider(this.original)?.priceRange;
+    if (!range) return;
+    if (range.minValue < out[0]) out[0] = range.minValue;
+    if (range.maxValue > out[1]) out[1] = range.maxValue;
+  }
+
+  /** Its own range where it's being fitted (see #fit), as the chart library's autoscaleInfo: none, null. */
+  #own() {
+    const range = this.range, asked = this.asked;
+    (range[0] = Infinity), (range[1] = -Infinity);
+    this.engine.extent(asked[0], asked[1], asked[2] === 1, range);
+    if (!(range[0] <= range[1])) return null;
+    (this.info.priceRange.minValue = range[0]), (this.info.priceRange.maxValue = range[1]);
+    return this.info;
   }
 
   // ── What Studio calls ──
@@ -811,7 +876,12 @@ class Series {
   applyOptions(options) {
     this.opts = { ...this.opts, ...options };
     this.#style();
-    this.dirty = true;
+    // (Pushed again only where its push reads what changed (its colored rows' or a baseline's line colors, its place
+    // in a stack): a look alone is set (Studio's bubbles' sizes, as the view moves); a pane's writers or stack set
+    // again; shown or hidden, drawn whole.)
+    if (!this.painted && PUSHED.some((key) => key in options)) this.dirty = true;
+    if ("priceFormat" in options || "bvBandFill" in options) this.pane.dirty = true;
+    if ("visible" in options) this.chart.engine.invalidate(true);
     this.chart.changed();
   }
 

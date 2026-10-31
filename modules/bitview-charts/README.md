@@ -20,9 +20,10 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Chart
 
-- `createChart(element, { theme, axis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
+- `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
-  and across, `badge`, `separator`); `axis`, the axis' width at the right (64); `rightOffset`, CSS pixels left empty
+  and across, `badge`, `separator`); `axis`, the axis' width at the right (64; 0, none); `leftAxis`, the left one's,
+  where a pane has a left scale (as `axis`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds).
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
@@ -55,12 +56,17 @@ chart.show(365);                                 // the last 365 points in view
   `Uint8Array`, 1 at a point) stops the line after it; `tag`, its last value in view on the axis (written by `format`,
   else as its side writes values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
-  dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none).
-- `Band({ lower, upper, base, color, below })`: a fill between two columns; without `lower`, an area down to `base`;
-  with `below`, a baseline (under its base in that color).
-- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`: each with
-  an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a number or
-  one by its points' spacing).
+  dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none); `steps`, drawn as steps
+  (each value held flat to the next point, then straight up or down).
+- `Band({ lower, upper, base, color, below, above, steps })`: a fill between two columns (`steps`: its edges steps);
+  without `lower`, an area down to `base` (`above`: up to the pane's top instead); with `below`, a baseline (under its
+  base in that color).
+- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down, upWick,
+  downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
+  each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
+  number or one by its points' spacing).
+- Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
+  from point `a` to `b` widening `out`'s low and high), its own `extent` there to call (a range from zero, a fixed one).
 - `stack(members, { percent })`: a stack's edges from its members' columns.
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate()`.

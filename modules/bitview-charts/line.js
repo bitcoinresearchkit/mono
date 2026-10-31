@@ -127,10 +127,11 @@ export class Line {
    * values); `priceLine`: a dotted line across at it; `stroke: false`, no line drawn (its tag and price line still);
    * `outline`, a color it's edged in (under it, its width each side: over a fill or a line, it stands off it); `dots`, a
    * dot that radius at each point (in its color there; ringed in its outline); `marker`, the crosshair's dot on it that
-   * radius (ringed in the ground, 2 pixels; 0: none).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number }} [options]
+   * radius (ringed in the ground, 2 pixels; 0: none); `steps`, each value held to the next point (zoomed in: zoomed out,
+   * a pixel column holds several points either way).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4 } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -145,6 +146,9 @@ export class Line {
     this.outline = outline;
     this.dots = dots;
     this.marker = marker;
+    this.steps = steps;
+    /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
+    this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
     this.lastAt = NaN;
     this.lastVersion = -1;
@@ -189,10 +193,10 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -252,7 +256,17 @@ export class Line {
     if (x === undefined || x !== x || !time) return Math.abs(yi - y);
     const xi = time.x(i);
     let best = Math.hypot(x - xi, y - yi);
-    for (let k = i - 1; k <= i + 1; k += 2) if (drawn(k) && !(breaks && breaks[Math.min(i, k)])) best = Math.min(best, toSegment(x, y, xi, yi, time.x(k), scale.y(values[k])));
+    for (let k = i - 1; k <= i + 1; k += 2) {
+      if (!drawn(k) || (breaks && breaks[Math.min(i, k)])) continue;
+      const xk = time.x(k), yk = scale.y(values[k]);
+      if (!this.steps) {
+        best = Math.min(best, toSegment(x, y, xi, yi, xk, yk));
+        continue;
+      }
+      // (A step: flat at the earlier point's value to the later one's x, then straight to its value.)
+      const ax = k < i ? xk : xi, ay = k < i ? yk : yi, bx = k < i ? xi : xk, by = k < i ? yi : yk;
+      best = Math.min(best, toSegment(x, y, ax, ay, bx, ay), toSegment(x, y, bx, ay, bx, by));
+    }
     return best;
   }
 
@@ -457,10 +471,16 @@ export class Line {
     if (time.spacing >= 1) {
       // (A pixel or more a point: each point, and one past each end, so the line reaches the edges.)
       const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
+      // (Stepped: each value held to the next point, then up or down to its value there.)
       for (let i = a; i <= b; i++) {
         const v = values[i];
-        if (log ? v > 0 : v === v) pen.to(time.x(i), scale.y(v), colors ? colors[i] : 0, breaks ? breaks[i] === 1 : false);
-        else pen.lift();
+        if (!(log ? v > 0 : v === v)) {
+          pen.lift();
+          continue;
+        }
+        const x = time.x(i);
+        if (this.steps && pen.has && !pen.cut) pen.to(x, pen.py, pen.color, false);
+        pen.to(x, scale.y(v), colors ? colors[i] : 0, breaks ? breaks[i] === 1 : false);
       }
       return;
     }

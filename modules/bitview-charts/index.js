@@ -56,13 +56,14 @@ export class Chart {
 
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, timeHeight = 26, rightOffset, maxSpacing, dateFormat } = {}) {
+  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, rightOffset, maxSpacing, dateFormat } = {}) {
     this.element = element;
     this.theme = theme;
-    /** The axis' width at every pane's right (CSS pixels). */
+    /** The axis' width at every pane's right, and at their left where one has a left scale (CSS pixels; 0, none). Then layout(). */
     this.axis = axis;
+    this.leftAxis = leftAxis;
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -72,7 +73,7 @@ export class Chart {
     this.crosshairListeners = [];
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
-    /** @type {((index: number, pane: number, series: number, y: number) => void)[]} */
+    /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
     this.clickListeners = [];
     /** @type {Pane[]} */
     this.panes = [];
@@ -194,9 +195,9 @@ export class Chart {
 
   /**
    * Told of a click or a tap (a press let go where it began, the crosshair not shown by it): its point (a logical index,
-   * the nearest whole one), its pane (-1: none), the series hit there (its index in the pane, -1: none), and its height
-   * in that pane.
-   * @param {(index: number, pane: number, series: number, y: number) => void} listener
+   * the nearest whole one), its pane (-1: none), the series hit there (its index in the pane, -1: none), its height in
+   * that pane and where across the plot (CSS pixels).
+   * @param {(index: number, pane: number, series: number, y: number, x: number) => void} listener
    */
   onClick(listener) {
     this.clickListeners.push(listener);
@@ -242,9 +243,8 @@ export class Chart {
     this.width = box.width;
     this.height = box.height;
     const room = Math.max(0, box.height - this.timeHeight), shares = this.panes.reduce((sum, pane) => sum + pane.share, 0) || 1;
-    // (An axis at the left too, as wide as the right one, where a pane has a left scale: the plot and the time axis
-    // after it.)
-    const left = (this.left = this.panes.some((pane) => pane.left) ? this.axis : 0), width = Math.max(1, box.width - left);
+    // (An axis at the left too where a pane has a left scale: the plot and the time axis after it.)
+    const left = (this.left = this.panes.some((pane) => pane.left) ? this.leftAxis : 0), width = Math.max(1, box.width - left);
     let top = 0;
     for (const [k, pane] of this.panes.entries()) {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
@@ -509,7 +509,7 @@ export class Chart {
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
     if (pane >= 0 && index === index) series = this.panes[pane].hit(this.time, index, x, y - this.panes[pane].top);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN;
-    for (let l = 0; l < this.clickListeners.length; l++) this.clickListeners[l](index, pane, series, within);
+    for (let l = 0; l < this.clickListeners.length; l++) this.clickListeners[l](index, pane, series, within, x);
   }
 
   /**
