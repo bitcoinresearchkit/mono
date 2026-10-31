@@ -440,7 +440,7 @@ export class Pane {
     if (same) return this.tickTexts[slot];
     const values = new Array(count);
     for (let k = 0; k < count; k++) values[k] = ticks[k];
-    this.tickValues[slot] = Float64Array.from(values);
+    this.tickValues[slot] = new Float64Array(values);
     return (this.tickTexts[slot] = /** @type {(values: number[]) => string[]} */ (this.tickWriters[slot])(values));
   }
 

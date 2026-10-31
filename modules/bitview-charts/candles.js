@@ -55,8 +55,12 @@ export class Candles {
   setValues({ open, high, low, close }) {
     this.version++;
     (this.open = open), (this.close = close);
-    this.lows.setValues(Float64Array.from(low, (v, i) => (close[i] === close[i] ? v : NaN)));
-    this.highs.setValues(Float64Array.from(high, (v, i) => (close[i] === close[i] ? v : NaN)));
+    // (In a loop: without a JIT, from() with a mapping costs several times as much.)
+    const lows = new Float64Array(low.length), highs = new Float64Array(high.length);
+    for (let i = 0; i < lows.length; i++) lows[i] = close[i] === close[i] ? low[i] : NaN;
+    for (let i = 0; i < highs.length; i++) highs[i] = close[i] === close[i] ? high[i] : NaN;
+    this.lows.setValues(lows);
+    this.highs.setValues(highs);
   }
 
   /** One candle set in place (a live one). @param {number} i @param {number} open @param {number} high @param {number} low @param {number} close */

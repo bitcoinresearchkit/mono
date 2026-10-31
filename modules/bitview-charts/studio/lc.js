@@ -367,7 +367,7 @@ class Chart {
     if (lists.some((list) => !sameTimes(list, times))) {
       const union = new Set();
       for (const list of lists) for (const t of list) union.add(t);
-      times = Float64Array.from([...union].sort((a, b) => a - b));
+      times = new Float64Array(union).sort();
     }
     // (Each series changed pushed (all of them on a new timeline: a live price's point pushes the price alone); a
     // pane's stack set again where one of its areas was. The same times, whatever array holds them, the same timeline.)
@@ -935,8 +935,9 @@ class Series {
   setData(rows) {
     this.rows = rows;
     (this.ownRows = false), (this.ownValues = true);
-    this.times = Float64Array.from(rows, (row) => Number(row.time));
-    this.values = Float64Array.from(rows, (row) => (row.value ?? row.close ?? NaN));
+    // (In a loop: without a JIT, from() with a mapping costs several times as much.)
+    (this.times = new Float64Array(rows.length)), (this.values = new Float64Array(rows.length));
+    for (let i = 0; i < rows.length; i++) (this.times[i] = Number(rows[i].time)), (this.values[i] = rows[i].value ?? rows[i].close ?? NaN);
     this.dirty = true;
     this.chart.changed();
   }
@@ -945,8 +946,9 @@ class Series {
   bvSetColumns(times, values) {
     this.rows = null;
     this.ownValues = false;
-    this.times = times instanceof Float64Array ? times : Float64Array.from(times);
-    this.values = values instanceof Float64Array ? values : Float64Array.from(values);
+    // (Copied by the constructor: from() walks an iterator, many times as slow without a JIT.)
+    this.times = times instanceof Float64Array ? times : new Float64Array(times);
+    this.values = values instanceof Float64Array ? values : new Float64Array(values);
     this.dirty = true;
     this.chart.changed();
   }
@@ -999,7 +1001,11 @@ class Series {
     const on = (/** @type {Float64Array} */ column) => (same ? column : ((out) => (own.forEach((t, k) => ((i) => i >= 0 && (out[i] = column[k]))(indexOf(times, t))), out))(new Float64Array(times.length).fill(NaN)));
     this.columns = on(this.values);
     if (engine instanceof Candles && rows) {
-      const column = (/** @type {string} */ key) => on(Float64Array.from(rows, (row) => row[key] ?? NaN));
+      const column = (/** @type {string} */ key) => {
+        const out = new Float64Array(rows.length);
+        for (let i = 0; i < rows.length; i++) out[i] = rows[i][key] ?? NaN;
+        return on(out);
+      };
       engine.setValues({ open: column("open"), high: column("high"), low: column("low"), close: column("close") });
       return;
     }

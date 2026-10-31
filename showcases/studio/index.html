@@ -16059,7 +16059,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
           return kept(layer, key, () => {
             const value = evaluate(node, length, (name, kind) => {
-              if (kind === "date") return Float64Array.from(times);
+              if (kind === "date") return new Float64Array(times);
               if (kind === "series") {
                 const input = bySeries.get(name);
                 if (!input?.values) throw new Error(`${name}: ${input?.error ? quiet(input.error) : "no data"}`);
@@ -18512,7 +18512,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { values: high, low, members, highest, ...(sides ? { sides } : {}) };
       }
       /** A result's values drawn small: a trend's with a gap at each switch (its point there left out: small, no line up or down). */
-      const gapped = (/** @type {Vector | undefined} */ values, /** @type {Result | undefined} */ result) => (values && result?.breaks ? Float64Array.from(values, (value, i) => (result.breaks?.[i] ? NaN : value)) : values);
+      const gapped = (/** @type {Vector | undefined} */ values, /** @type {Result | undefined} */ result) => {
+        const breaks = result?.breaks;
+        if (!values || !breaks) return values;
+        // (In a loop: without a JIT, from() with a mapping costs several times as much.)
+        const out = new Float64Array(values.length);
+        for (let i = 0; i < out.length; i++) out[i] = breaks[i] ? NaN : values[i];
+        return out;
+      };
       /**
        * What a layer paints at each date (its colors' names, its opacity aside): one taking its colors from another, that
        * one's as drawn (a loop of those: its own); with two, the one its value calls for: a baseline's or bars' over or
@@ -23455,7 +23462,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!layers.length) continue;
             const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n), group = `${pane.id}:${side}`;
             for (const [rank, layer] of (pane.reverse ? [...layers].reverse() : layers).entries()) {
-              const own = data.results.get(layer.id).values, values = new Float64Array(n), under = Float64Array.from(total);
+              const own = data.results.get(layer.id).values, values = new Float64Array(n), under = total.slice();
               // (Finite by a subtraction: no call each value.)
               for (let i = 0; i < n; i++) {
                 const value = own[i];

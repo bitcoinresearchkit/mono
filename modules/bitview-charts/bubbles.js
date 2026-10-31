@@ -52,9 +52,12 @@ export class Bubbles {
     this.version++;
     this.sizes = sizes;
     // (Its positions and sizes where a bubble's drawn alone: a position with a size (none of 0), a size with a position.)
-    const drawn = (/** @type {number} */ i) => values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity;
-    this.positions.setValues(Float64Array.from(values, (v, i) => (drawn(i) ? v : NaN)));
-    this.magnitudes.setValues(Float64Array.from(sizes, (v, i) => (drawn(i) ? Math.abs(v) : NaN)));
+    // (In a loop: without a JIT, from() with a mapping costs several times as much.)
+    const positions = new Float64Array(values.length), magnitudes = new Float64Array(sizes.length);
+    for (let i = 0; i < positions.length; i++) positions[i] = values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity ? values[i] : NaN;
+    for (let i = 0; i < magnitudes.length; i++) magnitudes[i] = values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity ? Math.abs(sizes[i]) : NaN;
+    this.positions.setValues(positions);
+    this.magnitudes.setValues(magnitudes);
     if (this.scaleTo === "all") this.most = this.#largest(0, sizes.length - 1);
   }
 
