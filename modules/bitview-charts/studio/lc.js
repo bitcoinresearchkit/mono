@@ -121,7 +121,8 @@ class Chart {
     const layout = options.layout ?? {}, grid = options.grid?.horzLines ?? {}, cross = options.crosshair?.vertLine ?? {}, across = options.crosshair?.horzLine ?? {};
     return {
       ...DARK,
-      ...(layout.background?.color && layout.background.color !== "transparent" ? { background: layout.background.color } : {}),
+      // (A transparent one (Studio's) the page's ground under it: the library's canvases are opaque.)
+      background: layout.background?.color && layout.background.color !== "transparent" ? layout.background.color : this.#ground(),
       ...(layout.textColor ? { text: layout.textColor } : {}),
       ...(grid.color ? { grid: grid.color } : {}),
       ...(cross.color ? { crosshair: cross.color } : {}),
@@ -130,6 +131,15 @@ class Chart {
       ...(layout.panes?.separatorColor ? { separator: layout.panes.separatorColor } : {}),
       font: `${layout.fontSize ?? 11}px ${layout.fontFamily ?? "system-ui, sans-serif"}`,
     };
+  }
+
+  /** The page's ground under the chart: its box's or the nearest ancestor's background that isn't see-through. */
+  #ground() {
+    for (let element = /** @type {HTMLElement | null} */ (this.box); element; element = element.parentElement) {
+      const color = getComputedStyle(element).backgroundColor;
+      if (color && color !== "transparent" && !/,\s*0\)$/.test(color)) return color;
+    }
+    return DARK.background;
   }
 
   /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
