@@ -371,16 +371,25 @@ export class Chart {
       const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left, over = x >= 0 && x <= time.width;
       this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };
-    /** The axis at a point in the chart (CSS pixels from its corner), as a drag from there would scale it, or null. @param {number} x @param {number} y @returns {Axis | null} */
-    const axisAt = (x, y) => {
-      if (y >= this.height - this.timeHeight) return x >= this.left && x <= this.left + time.width ? { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left, moving: false } : null;
+    // (The axis a drag from a point would scale, found without making anything (a mouse's hover asks at each move): its
+    // pane (none: the time axis) and side.)
+    let foundPane = /** @type {Pane | null} */ (null), foundSide = /** @type {"right" | "left"} */ ("right");
+    /** Whether a drag from a point in the chart (CSS pixels from its corner) would scale an axis (see foundPane). @param {number} x @param {number} y */
+    const findAxis = (x, y) => {
+      if (y >= this.height - this.timeHeight) return (foundPane = null), x >= this.left && x <= this.left + time.width;
       for (const pane of this.panes) {
         if (y < pane.top || y >= pane.top + pane.height) continue;
         // (A relative scale's range follows its bases as the view moves: never set by hand, as the chart library's.)
         const side = x >= this.left + pane.plot && pane.width > pane.plot ? "right" : x < this.left && pane.left ? "left" : null, scale = side === "left" ? pane.left : pane.scale;
-        return side && scale && !scale.relative ? { pane, side, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : null;
+        return (foundPane = pane), (foundSide = side ?? "right"), Boolean(side && scale && !scale.relative);
       }
-      return null;
+      return false;
+    };
+    /** The axis a press at a point would drag, as it is now, or null. @param {number} x @param {number} y @returns {Axis | null} */
+    const axisAt = (x, y) => {
+      if (!findAxis(x, y)) return null;
+      const pane = foundPane, scale = foundSide === "left" ? pane?.left : pane?.scale;
+      return pane && scale ? { pane, side: foundSide, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left, moving: false };
     };
     /**
      * An axis dragged to a point (CSS pixels from the chart's corner): a price axis' range scaled about its middle (on a
@@ -455,8 +464,8 @@ export class Chart {
         // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
         if (event.target !== element && !this.#owns(event.target)) return void this.setCrosshair(NaN);
         // (A mouse over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
-        const box = element.getBoundingClientRect(), y = event.clientY - box.top, over = separator(y, false) >= 0, axis = over ? null : axisAt(event.clientX - box.left, y);
-        element.style.cursor = over ? "row-resize" : axis ? (axis.pane ? "ns-resize" : "ew-resize") : "";
+        const box = element.getBoundingClientRect(), y = event.clientY - box.top, over = separator(y, false) >= 0, axis = !over && findAxis(event.clientX - box.left, y);
+        element.style.cursor = over ? "row-resize" : axis ? (foundPane ? "ns-resize" : "ew-resize") : "";
         return void (over ? this.setCrosshair(NaN) : point(event));
       }
       if (!at) return;
