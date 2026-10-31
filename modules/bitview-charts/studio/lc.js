@@ -467,8 +467,9 @@ class Pane {
     else if (z === "top") this.fresh(), (this.updated = false);
     for (let k = 0; k < this.list.length; k++) {
       const series = this.list[k];
-      // (A hidden series' primitives shown none, as the chart library drew none.)
-      if ((owner && series !== owner) || series.opts.visible === false) continue;
+      // (A hidden series' primitives drawn all the same, as the chart library drew them: Studio's drawings on a price
+      // layer ride its candles, hidden while they're too thin to read; Studio leaves out what it hides itself.)
+      if (owner && series !== owner) continue;
       for (let p = 0; p < series.primitives.length; p++) {
         const primitive = series.primitives[p];
         const views = primitive.paneViews?.() ?? NONE;
@@ -490,19 +491,19 @@ class Pane {
 
   /**
    * Its series' primitives' tags on its axis on `side` (0, the right; 1, the left): their price axis views (a drawing's
-   * value), each on its series' side; a hidden series' none.
+   * value), each on its series' side (a hidden one's too, as its views are drawn).
    * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add
    */
   axisTags(side, add) {
     this.fresh();
     for (const series of this.list)
-      if ((series.side === "left" ? 1 : 0) === side && series.opts.visible !== false) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
+      if ((series.side === "left" ? 1 : 0) === side) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
   }
 
   /** Its series' primitives' tags on the time axis: their time axis views (a drawing's date). @param {(x: number, text: string, color: string, ink?: string) => void} add */
   timeTags(add) {
     this.fresh();
-    for (const series of this.list) if (series.opts.visible !== false) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
+    for (const series of this.list) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
   }
 
   /**
