@@ -3,8 +3,8 @@
 // from `from` to `to`, fractions allowed), and where each index is across the plot. A pan moves the view by whole CSS
 // pixels (the rest kept for the next one), so a picture drawn before can be moved instead of drawn again. Its data
 // always holds part of the view (`minDataShare` of its width, or all of the data where it's less), a pan, a flick or a
-// zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). Its
-// newest point in view, a zoom keeps it where it is: the latest data stays in sight at the right.
+// zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). A
+// zoom keeps the point under the pointer where it is (what's looked at stays put).
 
 /**
  * The float noise a view's moves leave in an index, under which it counts as whole: a pixel column's first point the
@@ -102,13 +102,10 @@ export class Timeline {
   }
 
   /**
-   * Zoomed about `x` (CSS pixels across the plot) by `factor` (over 1: out); about the newest point instead, where it's
-   * in view.
+   * Zoomed about `x` (CSS pixels across the plot) by `factor` (over 1: out): the point there stays there.
    * @param {number} x @param {number} factor
    */
   zoom(x, factor) {
-    const last = this.length - 1, newest = last >= 0 && this.x(last) <= this.width;
-    if (newest) x = this.x(last);
     const at = this.index(x), next = this.within((this.to - this.from) * factor);
     this.from = at - (x / this.width) * next;
     this.to = this.from + next;

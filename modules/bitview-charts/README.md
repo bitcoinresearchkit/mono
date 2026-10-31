@@ -22,9 +22,9 @@ chart.show(365);                                 // the last 365 points in view
 
 - `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
-  and across, `badge`, `separator`); `axis`, the axis' width at the right (64; 0, none): widened where a tag needs
-  more (`axisShown`, till the times are set again); `leftAxis`, the left one's, where a pane has a left scale (as
-  `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
+  and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
+  then as narrow as its labels and tags let it (`axisShown`: wider at once, narrower at rest by 8 pixels or more);
+  `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
@@ -35,8 +35,8 @@ chart.show(365);                                 // the last 365 points in view
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`.
-- Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
-  point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
+- Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the point
+  there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on
   the axes (none shows cut beside them). Separators between panes drag to share their heights (the two panes shown

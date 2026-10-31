@@ -44,6 +44,8 @@ const HOLD = 350;
 /** How near a separator between panes a pointer takes it (CSS pixels): a mouse's, a finger's; a pane's least height. */
 const NEAR_MOUSE = 4, NEAR_TOUCH = 12, LEAST = 32;
 
+/** An axis' least width (CSS pixels): a short label's, as "0". */
+const AXIS_LEAST = 28;
 /** A flick's speed kept each millisecond (iOS's lists' rate). */
 const SLOWING = 0.998;
 
@@ -66,11 +68,16 @@ export class Chart {
   constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, rightOffset, maxSpacing, dateFormat } = {}) {
     this.element = element;
     this.theme = theme;
-    /** The axis' width at every pane's right, and at their left where one has a left scale (CSS pixels; 0, none). Then layout(). */
+    /**
+     * Whether an axis is at every pane's right, and at their left where one has a left scale (0: none), and its width till
+     * it's drawn; then as narrow as its labels and tags let it (see fitted). Then layout().
+     */
     this.axis = axis;
     this.leftAxis = leftAxis;
-    /** Each side's axis widened past it where a tag needs more room (right, left; 0: as asked), till the times are set again. */
+    /** Each side's axis as shown, as its labels and tags need it (right, left; 0: not drawn yet, `axis`'s). */
     this.fitted = [0, 0];
+    /** A render drawing again at the axes' new widths: in it they only widen (see render). */
+    this.fitting = false;
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -161,8 +168,6 @@ export class Chart {
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
   setTimes(times) {
     this.time.setTimes(times);
-    // (New data: the axes as asked again, widened anew as its tags need.)
-    if (this.fitted[0] || this.fitted[1]) (this.fitted[0] = this.fitted[1] = 0), this.layout();
     this.#recross();
     this.invalidate(true);
   }
@@ -275,14 +280,14 @@ export class Chart {
     return () => void (this.rangeListeners = this.rangeListeners.filter((each) => each !== listener));
   }
 
-  /** The right axis' width as shown: as asked, or wider where a tag needs it (see fitted). */
+  /** The right axis' width as shown: as its labels and tags need (see fitted). */
   get axisShown() {
-    return this.axis && Math.max(this.axis, this.fitted[0]);
+    return this.axis && (this.fitted[0] || this.axis);
   }
 
   /** The left axis' width as shown (where a pane has a left scale). */
   get leftShown() {
-    return this.leftAxis && Math.max(this.leftAxis, this.fitted[1]);
+    return this.leftAxis && (this.fitted[1] || this.leftAxis);
   }
 
   /** Laid out again at the element's size (watched: needed only for a change it can't see). */
@@ -372,19 +377,33 @@ export class Chart {
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
-    // (A tag wider than its axis (a left one only where its pane has a left scale): the axis widened to it, laid out
-    // and drawn whole again now (a picture taken from this render has it all). Widening only grows: done once.)
-    let right = 0, leftNeed = 0;
-    for (let k = 0; k < this.panes.length; k++) (right = Math.max(right, this.panes[k].tagsNeed[0])), (leftNeed = Math.max(leftNeed, this.panes[k].left ? this.panes[k].tagsNeed[1] : 0));
-    if ((this.axis && right > this.axisShown) || (this.left && leftNeed > this.leftShown)) {
-      (this.fitted[0] = Math.max(this.fitted[0], Math.ceil(right))), (this.fitted[1] = Math.max(this.fitted[1], Math.ceil(leftNeed)));
-      this.layout();
-      return this.render(true);
+    // (Each axis as narrow as its labels and tags let it (4 pixels a step, AXIS_LEAST at least), each side on its own:
+    // wider at once where they need it; narrower once the view's at rest (drawn whole: no plot sliding under a pan), and
+    // only by 8 pixels or more (a narrower plot can bring a wider label into view: no flapping between two widths). Laid
+    // out and drawn whole again now (a picture taken from this render has it all); in that draw, only wider (it ends).)
+    {
+      let right = 0, leftNeed = 0;
+      for (let k = 0; k < this.panes.length; k++) (right = Math.max(right, this.panes[k].axisNeed[0])), (leftNeed = Math.max(leftNeed, this.panes[k].left ? this.panes[k].axisNeed[1] : 0));
+      const fit = (/** @type {number} */ need) => Math.max(AXIS_LEAST, Math.ceil(need / 4) * 4), rest = whole && !this.glide.speed && !this.fitting;
+      const next = (/** @type {number} */ want, /** @type {number} */ shown) => (want > shown || (rest && want <= shown - 8) ? want : shown);
+      const wantRight = this.axis ? next(fit(right), this.axisShown) : 0, wantLeft = this.left ? next(fit(leftNeed), this.leftShown) : 0;
+      if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
+        if (this.axis) this.fitted[0] = wantRight;
+        if (this.left) this.fitted[1] = wantLeft;
+        this.layout();
+        const was = this.fitting;
+        this.fitting = true;
+        try {
+          return this.render(true);
+        } finally {
+          this.fitting = was;
+        }
+      }
     }
     // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
     // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
     // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
-    // (Its pane's scale or series changed under it since it was told (a zoom about the newest point, a live price):
+    // (Its pane's scale or series changed under it since it was told (a zoom, a live price):
     // what it hits read again.)
     const under = this.panes[crosshair.pane], changed = Boolean(under) && under.changes !== this.crossedChanges;
     if (x === x && (this.recrossing || crosshair.index === crosshair.index)) {
@@ -600,7 +619,8 @@ export class Chart {
         return void this.#click(event);
       }
       tapAt = -Infinity;
-      if (down.size || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
+      // (A pinch's end, a finger at a time: no glide (a zoom has no momentum; the finger left lifts as it stops).)
+      if (down.size || pinched || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
       // (Its speed over its last tenth of a second; held still that long, none.)
       const last = (trailEnd + trail.length - 1) % trail.length;
       let first = last;

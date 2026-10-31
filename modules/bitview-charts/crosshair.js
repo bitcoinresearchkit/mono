@@ -116,12 +116,12 @@ export class Crosshair {
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       g.fillStyle = theme.background;
       this.#cover(g, pane, 0, plot, this.width - left - plot);
-      pill(g, pane.axisLabel(pane.scale.value(this.y - pane.top)), theme.badge, inkOn(theme.badge), plot + 2, this.y, "left");
+      pill(g, pane.axisLabel(pane.scale.value(this.y - pane.top)), theme.badge, inkOn(theme.badge), plot, this.y, "left");
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
       if (pane.left && left) {
         g.fillStyle = theme.background;
         this.#cover(g, pane, 1, -left, left);
-        pill(g, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), theme.badge, inkOn(theme.badge), -2, this.y, "right");
+        pill(g, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), theme.badge, inkOn(theme.badge), 0, this.y, "right");
       }
     }
     // (Its date on the time axis, its point's.)
@@ -147,7 +147,7 @@ export class Crosshair {
    * @param {CanvasRenderingContext2D} g @param {import("./pane.js").Pane} pane @param {number} side @param {number} x @param {number} width
    */
   #cover(g, pane, side, x, width) {
-    const drawn = pane.drawnTags[side], half = Math.max(1, Math.min(PILL, drawn.step)) / 2, page = pane.pageTags[side], y = this.y - pane.top;
+    const drawn = pane.drawnTags[side], half = Math.max(1, drawn.step) / 2, page = pane.pageTags[side], y = this.y - pane.top;
     let lo = y - PILL / 2, hi = y + PILL / 2, grown = true, any = false;
     while (grown) {
       grown = false;

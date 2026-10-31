@@ -204,22 +204,22 @@ const run = {
   },
 
   /**
-   * Written at `x`, if it has points; then begun again.
-   * @param {number} x @param {import("./scale.js").Scale} scale @param {Uint8Array | Uint16Array | null} colors @param {Uint8Array | null} breaks
+   * Written, if it has points, each at its own point's x (see Line's #run); then begun again.
+   * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {Uint8Array | Uint16Array | null} colors @param {Uint8Array | null} breaks
    */
-  end(x, scale, colors, breaks) {
+  end(time, scale, colors, breaks) {
     const { first, last, lo, hi } = this;
     if (first !== first) return;
     const color = colors ? colors[this.firstAt] : 0;
-    pen.to(x, scale.y(first), color, false);
+    pen.to(time.x(this.firstAt), scale.y(first), color, false);
     pen.id = -1;
     const low = lo < first && lo < last, high = hi > first && hi > last;
-    if (low && high && this.hiAt < this.loAt) pen.to(x, scale.y(hi), color, false), pen.to(x, scale.y(lo), color, false);
+    if (low && high && this.hiAt < this.loAt) pen.to(time.x(this.hiAt), scale.y(hi), color, false), pen.to(time.x(this.loAt), scale.y(lo), color, false);
     else {
-      if (low) pen.to(x, scale.y(lo), color, false);
-      if (high) pen.to(x, scale.y(hi), color, false);
+      if (low) pen.to(time.x(this.loAt), scale.y(lo), color, false);
+      if (high) pen.to(time.x(this.hiAt), scale.y(hi), color, false);
     }
-    pen.to(x, scale.y(last), colors ? colors[this.lastAt] : 0, breaks ? breaks[this.lastAt] === 1 : false);
+    pen.to(time.x(this.lastAt), scale.y(last), colors ? colors[this.lastAt] : 0, breaks ? breaks[this.lastAt] === 1 : false);
     this.start();
   },
 };
@@ -410,14 +410,14 @@ export class Line {
     // (Its y: bottom - k * (t - ta), t the value as its scale reads it (v * m + c: as it is, or relative), or its log,
     // from the scale's low end: no large terms cancelling.)
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
-    const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c;
+    const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, px = width / span;
     // (Each column from where the last one ended: its start computed once.)
     let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width - NOISE);
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
       const end = Math.ceil(from + ((x + 1) * span) / width - NOISE), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
       start = end;
       pen.id = a;
-      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a;
+      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, firstAt = 0, lastAt = 0, i = a;
       while (i <= b) {
         // (The largest clean block starting at i and ending by b: as large as i's alignment and what's left allow.)
         if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
@@ -427,8 +427,8 @@ export class Line {
             if (level >= levels.length) continue;
             const at = levels[level], k = i >> (level + FIRST);
             if (k >= at.first.length || (log ? at.low[k] : at.nan[k])) continue;
-            if (first !== first) first = at.first[k];
-            last = at.last[k];
+            if (first !== first) (first = at.first[k]), (firstAt = i);
+            (last = at.last[k]), (lastAt = i + size - 1);
             if (at.lo[k] < lo) (lo = at.lo[k]), (loAt = at.loAt[k]);
             if (at.hi[k] > hi) (hi = at.hi[k]), (hiAt = at.hiAt[k]);
             break;
@@ -440,39 +440,40 @@ export class Line {
         }
         const v = values[i];
         if (log ? v > 0 : v === v) {
-          if (first !== first) first = v;
-          last = v;
+          if (first !== first) (first = v), (firstAt = i);
+          (last = v), (lastAt = i);
           if (v < lo) (lo = v), (loAt = i);
           if (v > hi) (hi = v), (hiAt = i);
         } else {
           // (No value: the run so far written, the line broken.)
-          if (first === first) this.#run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log), (first = NaN), (lo = Infinity), (hi = -Infinity);
+          if (first === first) this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log), (first = NaN), (lo = Infinity), (hi = -Infinity);
           pen.lift();
         }
         i++;
       }
-      if (first === first) this.#run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log);
+      if (first === first) this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log);
     }
   }
 
   /**
-   * A run written at `x`: its first, its low and high past its first and last in the order they came, its last.
-   * @param {number} x @param {number} first @param {number} last @param {number} lo @param {number} hi @param {number} loAt
-   * @param {number} hiAt @param {number} bottom @param {number} k @param {number} ta @param {number} m @param {number} c
-   * @param {boolean} log
+   * A run written: its first, its low and high past its first and last in the order they came, its last, each at its
+   * own point's x (as Timeline.x: `from`, `px` pixels a point): a trend through a column drawn as one slope, not a stroke
+   * down the column and a step to the next (stairs, on a screen of two or three pixels a CSS pixel).
+   * @param {number} from @param {number} px @param {number} first @param {number} last @param {number} lo @param {number} hi
+   * @param {number} firstAt @param {number} lastAt @param {number} loAt @param {number} hiAt @param {number} bottom
+   * @param {number} k @param {number} ta @param {number} m @param {number} c @param {boolean} log
    */
-  #run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log) {
-    pen.to(x, bottom - k * ((log ? Math.log10(first) : first * m + c) - ta), 0, false);
+  #run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log) {
+    pen.to((firstAt - from) * px, bottom - k * ((log ? Math.log10(first) : first * m + c) - ta), 0, false);
     pen.id = -1;
     const low = lo < first && lo < last, high = hi > first && hi > last;
-    // (Flat: its one point written.)
-    if (last === first && !low && !high) return;
-    if (low && high && hiAt < loAt) pen.to(x, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false), pen.to(x, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
+    // (Flat: its first and last written (the pen runs them as one segment), its plateau to its last point's x.)
+    if (low && high && hiAt < loAt) pen.to((hiAt - from) * px, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false), pen.to((loAt - from) * px, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
     else {
-      if (low) pen.to(x, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
-      if (high) pen.to(x, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false);
+      if (low) pen.to((loAt - from) * px, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
+      if (high) pen.to((hiAt - from) * px, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false);
     }
-    pen.to(x, bottom - k * ((log ? Math.log10(last) : last * m + c) - ta), 0, false);
+    pen.to((lastAt - from) * px, bottom - k * ((log ? Math.log10(last) : last * m + c) - ta), 0, false);
   }
 
   /**
@@ -674,12 +675,12 @@ export class Line {
         const v = values[i];
         if (log ? v > 0 : v === v) {
           // (A color changing in the column: a run each, so each segment keeps its own.)
-          if (colors && run.first === run.first && colors[i] !== colors[run.firstAt]) run.end(x, scale, colors, breaks);
+          if (colors && run.first === run.first && colors[i] !== colors[run.firstAt]) run.end(time, scale, colors, breaks);
           run.add(v, i);
-          if (breaks && breaks[i] === 1) run.end(x, scale, colors, breaks);
-        } else run.end(x, scale, colors, breaks), pen.lift();
+          if (breaks && breaks[i] === 1) run.end(time, scale, colors, breaks);
+        } else run.end(time, scale, colors, breaks), pen.lift();
       }
-      run.end(x, scale, colors, breaks);
+      run.end(time, scale, colors, breaks);
     }
   }
 

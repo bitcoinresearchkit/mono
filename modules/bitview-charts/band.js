@@ -333,13 +333,13 @@ export class Band {
         if (!mine) outline.close();
         continue;
       }
-      // (A pixel column: its last point with both edges, the band broken at any point without, in it too; no gap in
-      // it (most), its last read alone.)
+      // (A pixel column: its last point with both edges, at that point's x (as a line's zoomed out: its edge there), the
+      // band broken at any point without, in it too; no gap in it (most), its last read alone.)
       const first = Math.max(0, Math.ceil(viewFrom + (k * span) / width - NOISE)), last = Math.min(n - 1, Math.ceil(viewFrom + ((k + 1) * span) / width - NOISE) - 1);
       if (last < first) continue;
       if (/** @type {Int32Array} */ (gaps)[first] > last) {
         const hi = upper[last], lo = lower[last];
-        this.#put(k, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta), !colors || colors[last] === pass);
+        this.#put(((last - viewFrom) * width) / span, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta), !colors || colors[last] === pass);
         continue;
       }
       let at = -1;
@@ -347,12 +347,12 @@ export class Band {
         const lo = toEdge ? upper[i] : lower[i], hi = upper[i];
         if (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) at = i;
         else {
-          if (at >= 0) this.#put(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
+          if (at >= 0) this.#put(time.x(at), scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
           outline.close();
           at = -1;
         }
       }
-      if (at >= 0) this.#put(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
+      if (at >= 0) this.#put(time.x(at), scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
     }
     outline.close();
     g.fill();

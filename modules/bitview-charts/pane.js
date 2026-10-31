@@ -29,7 +29,7 @@ const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
 /** A series' room at its scale's ends, as its margins write it (made once). */
 const ROOM = new Float64Array(2);
 /** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
-const TAG = PILL + 2;
+const TAG = PILL;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
@@ -160,8 +160,8 @@ export class Pane {
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
     this.tagsTop = [0, 0];
-    /** Each side's widest tag as last drawn, its gaps from the plot and the edge in (CSS pixels): what its axis needs (see the chart's). */
-    this.tagsNeed = [0, 0];
+    /** What each side's axis needs as last drawn (CSS pixels): its widest tick label or tag, with their room (see the chart's). */
+    this.axisNeed = [0, 0];
     /**
      * The view's last point as its axes were drawn (their tags read it); and, as the view's first moves, where its tags
      * change (a line's last point in view dropping out, one left out back in): the first point a tag was drawn at, the
@@ -632,6 +632,7 @@ export class Pane {
     g.font = theme.font;
     g.textBaseline = "middle";
     g.textAlign = side ? "right" : "left";
+    let need = 0;
     const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8, slot = this.#slot(scale), texts = this.tickWriters[slot] ? this.#tickTexts(slot, count) : null;
     // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
     // 4 pixels: one touching a tag reads cramped against it).)
@@ -645,12 +646,16 @@ export class Pane {
       if (!(y > 6 && y < this.height - 6)) continue;
       let covered = page.covers(y, TAG / 2 + 10);
       for (let t = 0; !covered && t < tags; t++) covered = Math.abs(place[t] - y) < near;
-      if (!covered) g.fillText(texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale), at, y);
+      if (covered) continue;
+      const words = texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale);
+      g.fillText(words, at, y);
+      // (A label 8 pixels from the plot and from the edge.)
+      need = Math.max(need, g.measureText(words).width + 16);
     }
-    this.tagsNeed[side] = 0;
+    this.axisNeed[side] = need;
     this.#tags(g, scale, time, theme, x, width, side, tags);
     // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
-    for (let k = 0; k < page.count; k++) this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width - 2 : x + 2, page.at[k], side ? "right" : "left") + 4);
+    for (let k = 0; k < page.count; k++) this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width : x, page.at[k], side ? "right" : "left") + 4);
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 
@@ -809,8 +814,9 @@ export class Pane {
       // (Its value as a tag writes it, then in its writer's words: see tagValue.)
       const words = relative ? this.axisLabel(tagValue(line.values[i] * scale.m + scale.c), scale) : (line.format ?? this.labels[side])(tagValue(line.values[i]));
       const look = tint(color, theme.background);
-      // (A pill a tag's room, 2 pixels between two; crowded, that gap gone first (full size, touching), then smaller.)
-      this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, Math.min(PILL, step)), look.border) + 4);
+      // (Against the plot, a tag's room tall: touching its neighbors, as one column with the lines' ends; 4 pixels from the
+      // edge.)
+      this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, words, look.fill, look.ink, side ? x + width : x, y, side ? "right" : "left", Math.max(1, step), look.border) + 4);
     }
   }
 
