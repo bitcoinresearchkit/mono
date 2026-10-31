@@ -7,7 +7,7 @@
 // ground's color: overlapping bubbles stand apart).
 
 import { Line } from "./line.js";
-import { measure } from "./recorder.js";
+import { measure, measuring } from "./recorder.js";
 
 /** The bubbles a draw puts down: their x, y, radius (CSS pixels), whether above zero, and their order (made once, grown). */
 let xs = new Float64Array(64), ys = new Float64Array(64), radii = new Float64Array(64), ups = new Uint8Array(64), order = new Int32Array(64);
@@ -101,8 +101,9 @@ export class Bubbles {
   draw(g, time, scale, x0, x1, dpr) {
     const most = this.most, values = this.positions.values, sizes = this.sizes, R = this.size / 2, log = scale.mode === "log";
     if (!(most > 0)) return;
-    // (Its bubbles reaching into the strip: the largest's radius past each end.)
-    const a = Math.max(0, Math.floor(time.index(x0 - R)) - 1), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + R)) + 1), least = this.hide * most;
+    // (Its bubbles reaching into the strip: the largest's radius, its halo and its edge past each end.)
+    const ring = Math.max(1, Math.round(1.5 * dpr)) / dpr, reach = R + ring + 1, least = this.hide * most;
+    const a = Math.max(0, Math.floor(time.index(x0 - reach)) - 1), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)) + 1);
     if (radii.length < b - a + 1) (xs = new Float64Array((b - a + 1) * 2)), (ys = new Float64Array((b - a + 1) * 2)), (radii = new Float64Array((b - a + 1) * 2)), (ups = new Uint8Array((b - a + 1) * 2)), (order = new Int32Array((b - a + 1) * 2));
     let n = 0;
     for (let i = a; i <= b; i++) {
@@ -110,14 +111,15 @@ export class Bubbles {
       if (!(log ? v > 0 : v === v) || !(m > 0 && m < Infinity && m >= least)) continue;
       (xs[n] = time.x(i)), (ys[n] = scale.y(v)), (radii[n] = R * Math.sqrt(Math.min(1, m / most))), (ups[n] = s >= 0 ? 1 : 0), (order[n] = n), n++;
     }
-    const sorted = order.subarray(0, n).sort(largest), ring = Math.max(1, Math.round(1.5 * dpr)) / dpr;
+    const sorted = order.subarray(0, n).sort(largest);
     g.lineWidth = Math.max(1, Math.floor(dpr)) / dpr;
     for (let k = 0; k < n; k++) {
       const j = sorted[k], up = ups[j] === 1;
-      if (this.halo) (g.fillStyle = this.halo), g.beginPath(), g.arc(xs[j], ys[j], radii[j] + ring, 0, Math.PI * 2), g.fill();
+      // (Its halo the ground's: not what's hit.)
+      if (this.halo && !measuring) (g.fillStyle = this.halo), g.beginPath(), g.arc(xs[j], ys[j], radii[j] + ring, 0, Math.PI * 2), g.fill();
+      g.fillStyle = up ? this.up : this.down;
       g.beginPath();
       g.arc(xs[j], ys[j], radii[j], 0, Math.PI * 2);
-      g.fillStyle = up ? this.up : this.down;
       g.fill();
       g.strokeStyle = up ? this.upEdge : this.downEdge;
       g.stroke();
