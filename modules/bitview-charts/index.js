@@ -344,12 +344,12 @@ export class Chart {
   // past a slop of 6 pixels (a hold, else, would move the chart a little).
   #input() {
     /**
-     * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, moving: boolean }} Axis
+     * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number }} Axis
      * An axis pressed, as it was then: a pane's price axis on `side` (its range, `a` to `b`; the press's height in the
      * pane, `at`), or the time axis (`pane` null: the spacing `a`, the view's right end `b`, the press's x in the plot
-     * `at`); `moving`, once the press has moved as far as a click can't (a click on a tag scales nothing).
+     * `at`). Scaled once the press has moved as far as a click can't (a click on a tag scales nothing).
      */
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, axis: Axis | null }>} */ (new Map());
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null }>} */ (new Map());
     let held = -1;
     // (Two fingers down in this gesture: its end no click.)
     let twoFingers = false;
@@ -389,7 +389,7 @@ export class Chart {
     const axisAt = (x, y) => {
       if (!findAxis(x, y)) return null;
       const pane = foundPane, scale = foundSide === "left" ? pane?.left : pane?.scale;
-      return pane && scale ? { pane, side: foundSide, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left, moving: false };
+      return pane && scale ? { pane, side: foundSide, a: scale.lo, b: scale.hi, at: y - pane.top } : { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left };
     };
     /**
      * An axis dragged to a point (CSS pixels from the chart's corner): a price axis' range scaled about its middle (on a
@@ -429,7 +429,7 @@ export class Chart {
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.glide.speed = 0), this.setCrosshair(NaN));
       const touch = event.pointerType === "touch", box = element.getBoundingClientRect();
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, axis: down.size ? null : axisAt(event.clientX - box.left, y) });
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis: down.size ? null : axisAt(event.clientX - box.left, y) });
       this.glide.speed = 0;
       trailSize = 0;
       clearTimeout(this.holding);
@@ -469,14 +469,16 @@ export class Chart {
         return void (over ? this.setCrosshair(NaN) : point(event));
       }
       if (!at) return;
+      // (Gone as far as a click can't, once: a drag back to where it began is no click.)
+      at.moved ||= Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6;
       if (held === event.pointerId) return void ((at.x = event.clientX), (at.y = event.clientY), point(event));
       if (!at.panning) {
         if (Math.hypot(event.clientX - at.startX, event.clientY - at.startY) <= 6) return;
         (at.panning = true), clearTimeout(this.holding), (this.holding = 0);
       }
-      // (An axis pressed: scaled once it's moved as far as a click can't, no glide after.)
+      // (An axis pressed: scaled once the press has moved as far as a click can't, no glide after.)
       if (down.size === 1 && at.axis) {
-        if (!at.axis.moving && !(at.axis.moving = Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6)) return;
+        if (!at.moved) return;
         const box = element.getBoundingClientRect();
         scaleAxis(at.axis, event.clientX - box.left, event.clientY - box.top);
         (at.x = event.clientX), (at.y = event.clientY), (trailSize = 0);
@@ -514,7 +516,7 @@ export class Chart {
       // touch's end came after it: Studio keeps it there); no glide.)
       if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.setCrosshair(NaN)))));
       // (Let go where it began: a click.)
-      if (event.type === "pointerup" && !down.size && !pinched && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
+      if (event.type === "pointerup" && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
         const axis = at.axis?.pane ? at.axis : null;
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
