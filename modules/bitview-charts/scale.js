@@ -202,6 +202,19 @@ export class Scale {
           const v = steps[k] * 10 ** p;
           if (v >= lo && v <= hi && count < out.length) out[count++] = v;
         }
+      // (Its top, where it's room for more past its last power or step (where the price often is: 100K to 150K), filled
+      // with round numbers a step apart, as a linear scale's there, each `every` pixels from its ticks and half that from
+      // its edge: 120K, 140K, as the chart library marked them. Elsewhere its decades' steps alone: even.)
+      let filled = 0;
+      {
+        const a = count ? out[count - 1] : lo, b = hi, fromA = count ? every : every / 2, fromB = every / 2;
+        const raw = (every * b * Math.LN10) / perDecade, power = 10 ** Math.floor(Math.log10(raw)), unit = raw / power;
+        const step = (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 5 ? 5 : 10) * power;
+        // (Its tries counted: a range too narrow for a step to move (a number's last digit) ends them.)
+        for (let k = 0, v = Math.ceil(a / step) * step; k < out.length && v < b && count + filled < out.length; k++, v += step)
+          if (Math.log10(v / a) * perDecade >= fromA && Math.log10(b / v) * perDecade >= fromB) out[count + filled++] = v;
+      }
+      count += filled;
       if (decades >= 1) return count;
     }
     // (Round numbers a step apart: a log scale's (under a decade) closest at its top, where a value takes fewest pixels.)
