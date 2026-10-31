@@ -86,8 +86,8 @@ class Chart {
     this.clickListeners = [];
     // (Each with the series under the point, as the chart library's: a pointer's moves (Studio lights a line's item) and
     // clicks (it selects its layer).)
-    this.engine.onCrosshair((index, pane, y, input) => {
-      const engine = this.engine.panes[pane], hit = input && engine && index === index ? engine.hit(this.engine.time, index, this.engine.time.x(index), y) : -1;
+    this.engine.onCrosshair((index, pane, y, input, x) => {
+      const engine = this.engine.panes[pane], hit = input && engine && index === index ? engine.hit(this.engine.time, index, x, y) : -1;
       const param = { ...this.#param(index, pane, y, input), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.crosshairListeners) listener(param);
     });
@@ -135,13 +135,32 @@ class Chart {
     };
   }
 
-  /** The page's ground under the chart: its box's or the nearest ancestor's background that isn't see-through. */
+  /**
+   * The page's ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first one that
+   * isn't see-through, laid over each other (a translucent card over the page's ground: the color it makes).
+   */
   #ground() {
+    /** @type {string[]} */
+    const layers = [];
     for (let element = /** @type {HTMLElement | null} */ (this.box); element; element = element.parentElement) {
-      const color = getComputedStyle(element).backgroundColor;
-      if (color && color !== "transparent" && !/,\s*0\)$/.test(color)) return color;
+      const color = getComputedStyle(element).backgroundColor, alpha = alphaOf(color);
+      if (!color || !alpha) continue;
+      layers.push(color);
+      if (alpha >= 1) break;
     }
-    return DARK.background;
+    if (!layers.length) return DARK.background;
+    const ground = alphaOf(layers[layers.length - 1]) >= 1;
+    if (layers.length === 1 && ground) return layers[0];
+    // (Laid over each other on a pixel of a canvas, from the page's ground in (none opaque: the library's dark one);
+    // that pixel read back.)
+    const g = (ink ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true })));
+    g.globalCompositeOperation = "copy";
+    g.fillStyle = ground ? layers[layers.length - 1] : DARK.background;
+    g.fillRect(0, 0, 1, 1);
+    g.globalCompositeOperation = "source-over";
+    for (let k = layers.length - (ground ? 2 : 1); k >= 0; k--) (g.fillStyle = layers[k]), g.fillRect(0, 0, 1, 1);
+    const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
+    return `rgb(${r}, ${gr}, ${b})`;
   }
 
   /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
@@ -219,6 +238,7 @@ class Chart {
     series.pane.engine.remove(series.engine);
     if (series.edge) series.pane.engine.remove(series.edge);
     if (series.beside) series.pane.engine.remove(series.beside);
+    if (series.across) series.pane.engine.remove(series.across);
     for (const primitive of series.primitives) primitive.detached?.();
     for (const marks of series.pane.marks.filter((each) => each.series === series)) marks.detach();
     series.pane.list = series.pane.list.filter((each) => each !== series);
@@ -525,6 +545,7 @@ class Pane {
     for (const series of this.list) {
       list.push(series.engine);
       if (series.edge) list.push(series.edge);
+      if (series.across) list.push(series.across);
       if (series.beside) list.push(series.beside);
     }
     for (const marks of this.marks) list.push(marks.engine);
@@ -701,6 +722,10 @@ class Series {
     this.primitives = [];
     /** Its primitives' views of the "normal" z-order, drawn just over it (made once one's attached). @type {Custom | null} */
     this.beside = null;
+    /** Its lines across (price lines), and the layer they're drawn on, just over it (made with the first). @type {{ opts: any, dash: number[], options: () => any, applyOptions: (more: any) => void }[]} */
+    this.levels = [];
+    /** @type {Custom | null} */
+    this.across = null;
     /** A custom series' view, drawn as the chart library drew it. @type {Painted | null} */
     this.painted = view ? new Painted(this, view) : null;
     this.engine = this.#make();
@@ -941,12 +966,59 @@ class Series {
     this.chart.engine.invalidate(true);
   }
 
-  /** @param {any} options */
+  /**
+   * A line across at a price (the chart library's price line: Studio's levels, hung on a carrier series): drawn just
+   * over its series, across its pane, in its color, width and style; its value on the axis (`axisLabelVisible`).
+   * @param {any} options
+   */
   createPriceLine(options) {
-    return { options: () => options, applyOptions() {} };
+    const line = { opts: { ...options }, dash: dashOf(options), options: () => line.opts, applyOptions: (/** @type {any} */ more) => ((line.opts = { ...line.opts, ...more }), (line.dash = dashOf(line.opts)), this.#leveled()) };
+    this.levels.push(line);
+    this.across ??= this.pane.engine.add(new Custom({ draw: (g, at) => this.#drawLevels(g, at), first: (i) => this.engine.first(i), axisTags: (side, add) => this.#levelTags(side, add) }), this.side);
+    this.pane.dirty = true;
+    this.#leveled();
+    return line;
   }
 
-  removePriceLine() {}
+  /** @param {any} line */
+  removePriceLine(line) {
+    this.levels = this.levels.filter((each) => each !== line);
+    this.#leveled();
+  }
+
+  /** Its lines across changed: drawn whole. */
+  #leveled() {
+    this.across?.changed();
+    this.chart.changed();
+  }
+
+  /**
+   * Its lines across drawn (from x `x0` to `x1` of the plot), their dashes where they'd be on the timeline (a moved
+   * picture has them where a whole draw does).
+   * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/custom.js").View} at
+   */
+  #drawLevels(g, at) {
+    const { time, scale, x0, x1, dpr } = at;
+    for (const line of this.levels) {
+      const o = line.opts, y = Math.round(scale.y(o.price) * dpr) / dpr + 0.5 / dpr;
+      if (o.lineVisible === false || y !== y) continue;
+      g.strokeStyle = o.color;
+      g.lineWidth = o.lineWidth ?? 1;
+      g.setLineDash(line.dash);
+      g.lineDashOffset = line.dash.length ? (x0 + time.from * time.spacing) % (line.dash[0] + line.dash[1]) : 0;
+      g.beginPath();
+      g.moveTo(x0, y);
+      g.lineTo(x1, y);
+      g.stroke();
+    }
+  }
+
+  /** Its lines across' values on its axis on `side`, each in its color. @param {number} side @param {(y: number, text: string, color: string) => void} add */
+  #levelTags(side, add) {
+    if ((this.side === "left" ? 1 : 0) !== side) return;
+    const scale = this.#scale(), format = this.priceFormatter().format;
+    for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(scale.y(line.opts.price), format(line.opts.price), line.opts.color);
+  }
 
   /** Whether a point (in the client's coordinates) is on its tag, as last drawn (LWC patch 51). @param {number} x @param {number} y */
   bvTagHit(x, y) {
@@ -954,6 +1026,12 @@ class Series {
     const box = this.chart.element.getBoundingClientRect(), line = this.chart.engine.tagAt(x - box.left, y - box.top);
     return line !== null && (line === this.engine || line === this.edge);
   }
+}
+
+/** A line style's dashes at a width (the chart library's: dotted, dashed, large dashed, sparse dotted; solid, none). @param {any} options */
+function dashOf(options) {
+  const w = options.lineWidth ?? 1;
+  return [[], [w, w], [2 * w, 2 * w], [6 * w, 6 * w], [w, 4 * w]][options.lineStyle ?? 0] ?? [];
 }
 
 /** A number rounded up, then down to an odd one, or an even one (as the chart library sized its marks). @param {number} x */
@@ -1160,6 +1238,16 @@ function lowerBound(places, n, at) {
 
 /** A canvas a hit's drawing goes to (its marks found, not seen). @type {CanvasRenderingContext2D | null} */
 let unseen = null;
+
+/** A pixel's canvas the page's ground is found on (see Chart's ground). @type {CanvasRenderingContext2D | null} */
+let ink = null;
+
+/** A computed color's alpha, 0 to 1 (rgba's last, a color function's after "/"; none, 1; "transparent", 0). @param {string} color */
+function alphaOf(color) {
+  if (color === "transparent") return 0;
+  const alpha = /(?:rgba\(.*,|\/)\s*([\d.]+%?)\s*\)$/.exec(color)?.[1];
+  return alpha === undefined ? 1 : alpha.endsWith("%") ? parseFloat(alpha) / 100 : parseFloat(alpha);
+}
 
 /**
  * A custom series' view (Studio's clouds, heatmaps, bubbles: the chart library's custom series), drawn by a Custom of

@@ -68,8 +68,10 @@ export class Chart {
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);
-    /** @type {((index: number, pane: number, y: number, input: boolean) => void)[]} */
+    /** @type {((index: number, pane: number, y: number, input: boolean, x: number) => void)[]} */
     this.crosshairListeners = [];
+    /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
+    this.pointerX = NaN;
     /** @type {((index: number, pane: number, series: number, y: number) => void)[]} */
     this.clickListeners = [];
     /** @type {Pane[]} */
@@ -176,17 +178,17 @@ export class Chart {
 
   /**
    * The crosshair on a point (a logical index: the nearest whole one) at a height in the chart (CSS pixels from its top),
-   * or gone (NaN). Told to the crosshair's listeners (`input`: a pointer moved it).
-   * @param {number} index @param {number} [y] @param {boolean} [input]
+   * or gone (NaN). Told to the crosshair's listeners (`input`: a pointer moved it, at `x` CSS pixels into the plot).
+   * @param {number} index @param {number} [y] @param {boolean} [input] @param {number} [x]
    */
-  setCrosshair(index, y = NaN, input = false) {
+  setCrosshair(index, y = NaN, input = false, x = NaN) {
     const k = index === index && this.time.length ? Math.min(Math.max(Math.round(index), 0), this.time.length - 1) : NaN, crosshair = this.crosshair;
     let pane = -1;
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
-    const moved = (k !== crosshair.index || y !== crosshair.y) && !(k !== k && crosshair.index !== crosshair.index);
-    (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane);
-    const within = pane >= 0 ? y - this.panes[pane].top : NaN;
-    if (moved) for (let l = 0; l < this.crosshairListeners.length; l++) this.crosshairListeners[l](k, pane, within, input);
+    const moved = (k !== crosshair.index || y !== crosshair.y || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
+    (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.pointerX = x);
+    const within = pane >= 0 ? y - this.panes[pane].top : NaN, at = x === x ? x : k === k ? this.time.x(k) : NaN;
+    if (moved) for (let l = 0; l < this.crosshairListeners.length; l++) this.crosshairListeners[l](k, pane, within, input, at);
     this.invalidate();
   }
 
@@ -202,9 +204,9 @@ export class Chart {
   }
 
   /**
-   * Told each time the crosshair moves: its point (NaN: gone), the pane it's in (-1: none), its height in that pane, and
-   * whether a pointer moved it.
-   * @param {(index: number, pane: number, y: number, input: boolean) => void} listener
+   * Told each time the crosshair moves: its point (NaN: gone), the pane it's in (-1: none), its height in that pane,
+   * whether a pointer moved it, and where across the plot (CSS pixels: the pointer's, else the point's).
+   * @param {(index: number, pane: number, y: number, input: boolean, x: number) => void} listener
    */
   onCrosshair(listener) {
     this.crosshairListeners.push(listener);
@@ -347,8 +349,8 @@ export class Chart {
     };
     // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
     const point = (/** @type {PointerEvent} */ event) => {
-      const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left;
-      this.setCrosshair(x >= 0 && x <= time.width ? time.index(x) : NaN, event.clientY - box.top, true);
+      const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left, over = x >= 0 && x <= time.width;
+      this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
@@ -369,7 +371,8 @@ export class Chart {
       this.glide.speed = 0;
       trailSize = 0;
       clearTimeout(this.holding);
-      cancelAnimationFrame(this.letting);
+      // (A held finger's crosshair going at the next frame: gone now.)
+      if (this.letting) cancelAnimationFrame(this.letting), this.setCrosshair(NaN);
       this.holding = this.letting = 0;
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
       if (held >= 0) (held = -1), this.setCrosshair(NaN);
@@ -382,7 +385,7 @@ export class Chart {
           if (!at || at.panning || down.size !== 1) return;
           held = id;
           const box = element.getBoundingClientRect();
-          this.setCrosshair(time.index(at.x - box.left - this.left), at.y - box.top, true);
+          this.setCrosshair(time.index(at.x - box.left - this.left), at.y - box.top, true, at.x - box.left - this.left);
         }, HOLD);
       }
     }, { signal });

@@ -43,7 +43,7 @@ const TAG = 18;
  *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
- *   distance(i: number, y: number, scale: Scale, x: number): number,
+ *   distance(i: number, y: number, scale: Scale, x: number, time: import("./timeline.js").Timeline): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number): void,
  * }} Series
@@ -242,7 +242,7 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      const d = this.series[k].distance(i, y, scale, x);
+      const d = this.series[k].distance(i, y, scale, x, time);
       if (d < nearest) (nearest = d), (best = k);
     }
     return best;

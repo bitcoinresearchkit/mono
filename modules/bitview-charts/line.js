@@ -115,6 +115,12 @@ const run = {
   },
 };
 
+/** How far a point is from a segment. @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
+function toSegment(x, y, x0, y0, x1, y1) {
+  const dx = x1 - x0, dy = y1 - y0, length = dx * dx + dy * dy, t = length ? Math.min(1, Math.max(0, ((x - x0) * dx + (y - y0) * dy) / length)) : 0;
+  return Math.hypot(x - x0 - t * dx, y - y0 - t * dy);
+}
+
 export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
@@ -231,15 +237,23 @@ export class Line {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
-   * (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   * How far a point (`x` across the plot, `y` in its pane: CSS pixels) is from it near index `i` (Infinity: it has
+   * nothing there), on `scale` (its base set already, where it's relative): from its point there and the segments drawn
+   * either side of it (past its last point, from that point: further as the pointer goes). Without `x`, its point's
+   * height alone.
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
    */
-  distance(i, y, scale) {
+  distance(i, y, scale, x, time) {
     // (Where it's drawn alone: in its data, a value there, above zero on a log scale.)
-    if (!(i >= 0 && i < this.values.length)) return Infinity;
-    const v = this.values[i];
-    return v === v && (scale.mode !== "log" || v > 0) ? Math.abs(scale.y(v) - y) : Infinity;
+    const values = this.values, log = scale.mode === "log", breaks = this.breaks;
+    const drawn = (/** @type {number} */ k) => k >= 0 && k < values.length && values[k] === values[k] && (!log || values[k] > 0);
+    if (!drawn(i)) return Infinity;
+    const yi = scale.y(values[i]);
+    if (x === undefined || x !== x || !time) return Math.abs(yi - y);
+    const xi = time.x(i);
+    let best = Math.hypot(x - xi, y - yi);
+    for (let k = i - 1; k <= i + 1; k += 2) if (drawn(k) && !(breaks && breaks[Math.min(i, k)])) best = Math.min(best, toSegment(x, y, xi, yi, time.x(k), scale.y(values[k])));
+    return best;
   }
 
   /** Its color at a point: its own, or its palette's there. @param {number} i */
