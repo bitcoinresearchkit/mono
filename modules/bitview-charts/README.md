@@ -92,7 +92,11 @@ chart.show(365);                                 // the last 365 points in view
 - A pan moves each pane's picture by whole pixels and draws only the strip come into view; drawn whole at the first
   frame nothing moves.
 - A zoom draws whole, or, where a pane takes more than 8 ms to draw whole (a CPU-drawn canvas at a large size),
-  stretches its last sharp picture till it's still.
+  stretches its last sharp picture till it's still (not where it has a dashed line: its dashes would stretch).
+- A dashed line's dashes are fixed to it: each subpath its own stroke, its dashes as far along as its length from the
+  line's dash origin (measured from the nearer end of its last draw), a long one split in a gap every 128 pixels or so
+  (the canvas measures a subpath in single precision); so a pan's strip draws the dashes its moved picture has. A
+  curved one's draws whole as the view moves.
 - Zoomed out, a line's pixel column is drawn as its first, low, high and last values, read from its summary by blocks
   of 4, 8, 16… points (a draw's work by its columns, not its points); a band's, as its last point (a gap found by an
   index, not a scan); bars' and candles', from their points.
