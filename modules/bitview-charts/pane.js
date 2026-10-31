@@ -32,8 +32,8 @@ const TAG = 18;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
- * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be moved by a pan (its
- * dashes run from where its path starts: drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too,
+ * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be moved by a pan nor
+ * stretched by a zoom (its dashes run from where its path starts: drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too,
  * on a layer of its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its
  * side's scale (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading:
  * none of it, a fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends
@@ -515,8 +515,8 @@ export class Pane {
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
     // where that's quick: sharp all along.)
     const slow = this.wholeCost > SLOW;
-    if (slow && same && !moves && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
-    const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && stretch >= 0.5 && stretch <= 2;
+    if (slow && same && !moves && !dashed && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
+    const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && !dashed && stretch >= 0.5 && stretch <= 2;
     // (Moved, unless a dashed line can't be: drawn whole.)
     if (moves && (!by || !dashed)) {
       if (!by) {
