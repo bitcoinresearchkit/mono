@@ -742,10 +742,11 @@ class Series {
       this.edge.hidden = !shown;
       this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     }
-    if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), (engine.outline = outline), engine.version++);
+    // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
+    if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), (engine.outline = outline), (engine.radius = o.cornerRadius ?? 0), engine.version++);
     if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots });
     if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0 });
-    if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor, outline });
+    if (engine instanceof Candles) return void engine.setStyle({ up: o.upColor, down: o.downColor, outline, radius: o.cornerRadius ?? 0 });
   }
 
   // ── What Studio calls ──

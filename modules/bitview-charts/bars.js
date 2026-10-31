@@ -13,7 +13,8 @@ const OWN = new Float64Array(2);
 
 export class Bars extends Line {
   /**
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | null, palette?: string[], radius?: number }} [options]
+   * `radius`, its corners' at their value's end (a number, or one by the spacing of its points).
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | null, palette?: string[], radius?: number | ((spacing: number) => number) }} [options]
    */
   constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2 } = {}) {
     // (No crosshair dot on bars.)
@@ -74,7 +75,8 @@ export class Bars extends Line {
     const values = this.values, n = values.length, log = scale.mode === "log";
     const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
     // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
-    const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide ? Math.min(this.radius, half) + (this.radius ? pad : 0) : 0;
+    const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
+    const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide && corner > 0 ? Math.min(corner, half) + pad : 0;
     ROUND_UP[0] = ROUND_UP[1] = ROUND_DOWN[2] = ROUND_DOWN[3] = radius;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     if (wide) {
@@ -90,7 +92,7 @@ export class Bars extends Line {
       return;
     }
     // (A pixel column each: its point farthest from the base.)
-    for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
+    for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
       const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
       let far = -1, most = -1;
       for (let i = from; i <= to; i++) {

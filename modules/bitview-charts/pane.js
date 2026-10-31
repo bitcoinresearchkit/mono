@@ -696,7 +696,7 @@ export class Pane {
     }
     // (Top to bottom, each at least a tag below the one over it (less, where they'd not all fit: the axis shared); then,
     // past the foot, each back up.)
-    const step = Math.min(TAG, this.height / n);
+    const step = Math.min(TAG, (this.height - this.tagsTop[side]) / n);
     for (let k = 1; k < n; k++)
       for (let j = k; j > 0 && ys[order[j]] < ys[order[j - 1]]; j--) {
         const swap = order[j];

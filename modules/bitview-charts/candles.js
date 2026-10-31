@@ -15,6 +15,8 @@ export class Candles {
     this.down = down;
     /** A color it's edged in: each candle's body and wick a pixel and a half wider all round, under them. @type {string | null} */
     this.outline = null;
+    /** Its bodies' corners' radius (a number, or one by the spacing of its points). @type {number | ((spacing: number) => number)} */
+    this.radius = 0;
     // (Its lows' and highs' extremes kept as a line's are: a view's read block by block.)
     this.lows = new Line();
     this.highs = new Line();
@@ -55,10 +57,10 @@ export class Candles {
     this.highs.set(i, close === close ? high : NaN);
   }
 
-  /** @param {{ up?: string, down?: string, outline?: string | null }} look */
-  setStyle({ up = this.up, down = this.down, outline = this.outline }) {
+  /** @param {{ up?: string, down?: string, outline?: string | null, radius?: number | ((spacing: number) => number) }} look */
+  setStyle({ up = this.up, down = this.down, outline = this.outline, radius = this.radius }) {
     this.version++;
-    (this.up = up), (this.down = down), (this.outline = outline);
+    (this.up = up), (this.down = down), (this.outline = outline), (this.radius = radius);
   }
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
@@ -108,18 +110,21 @@ export class Candles {
   #shapes(g, time, scale, x0, x1, dpr, pass, pad) {
     const { open, close } = this, high = this.highs.values, low = this.lows.values, n = close.length, log = scale.mode === "log";
     const spacing = time.spacing, wide = spacing >= 3, half = Math.max(0.5, (spacing * 0.7) / 2), wick = Math.max(1, Math.round(dpr)) / dpr;
-    const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
+    const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1), corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     if (wide) {
       for (let i = a; i <= b; i++) {
         const o = open[i], c = close[i], h = high[i], l = low[i];
         if (!(log ? c > 0 && l > 0 : c === c && l === l && h === h && o === o) || (pass >= 0 && (c >= o ? pass : !pass))) continue;
         const x = Math.round(time.x(i) * dpr) / dpr, top = scale.y(Math.max(o, c)), bottom = scale.y(Math.min(o, c));
         g.rect(x - wick / 2 - pad, scale.y(h) - pad, wick + 2 * pad, scale.y(l) - scale.y(h) + 2 * pad);
-        g.rect(Math.round((x - half) * dpr) / dpr - pad, top - pad, Math.round(2 * half * dpr) / dpr + 2 * pad, Math.max(wick, bottom - top) + 2 * pad);
+        const width = Math.round(2 * half * dpr) / dpr + 2 * pad, height = Math.max(wick, bottom - top) + 2 * pad;
+        // (Its body's corners rounded (no more than half its width or its height), an outline's as much more.)
+        if (corner > 0) g.roundRect(Math.round((x - half) * dpr) / dpr - pad, top - pad, width, height, Math.min(corner + pad, width / 2, height / 2));
+        else g.rect(Math.round((x - half) * dpr) / dpr - pad, top - pad, width, height);
       }
       return;
     }
-    for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
+    for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
       const from = Math.max(0, Math.ceil(time.index(x))), to = Math.min(n - 1, Math.ceil(time.index(x + 1)) - 1);
       let o = NaN, c = NaN, h = -Infinity, l = Infinity;
       for (let i = from; i <= to; i++) {
