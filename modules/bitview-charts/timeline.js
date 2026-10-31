@@ -111,6 +111,16 @@ export class Timeline {
   }
 
   /**
+   * `x` (CSS pixels) on a device pixel at `dpr`, the same whatever float noise the view's moves leave in it: a tie (a
+   * point's x on a half pixel, as a spacing's halves put it) broken a millionth of a pixel early, so a pan's strip and a
+   * whole draw round it alike (else a candle there drew a pixel off in a moved picture).
+   * @param {number} x @param {number} dpr
+   */
+  snap(x, dpr) {
+    return Math.round(x * dpr + 1e-6) / dpr;
+  }
+
+  /**
    * How far `x` (CSS pixels in the plot) is past point `i`'s column (half the spacing each side of it, a pixel at
    * least): 0 within it. A hit's measure across, where the point under a pointer is clamped to the data's ends.
    * @param {number} i @param {number} x

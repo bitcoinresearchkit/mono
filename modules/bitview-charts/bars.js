@@ -85,7 +85,7 @@ export class Bars extends Line {
         if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
         const x = time.x(i), y = scale.y(v), up = y < baseY;
         // (Its edges on device pixels: bars side by side keep even gaps.)
-        const left = Math.round((x - half) * dpr) / dpr - pad, right = Math.round((x + half) * dpr) / dpr + pad, top = (up ? y : baseY) - pad, height = Math.abs(baseY - y) + 2 * pad;
+        const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad, top = (up ? y : baseY) - pad, height = Math.abs(baseY - y) + 2 * pad;
         if (radius) g.roundRect(left, top, right - left, height, up ? ROUND_UP : ROUND_DOWN);
         else g.rect(left, top, right - left, height);
       }

@@ -139,7 +139,7 @@ export class Candles {
         const o = open[i], c = close[i], h = high[i], l = low[i];
         if (!(log ? c > 0 && l > 0 : c === c && l === l && h === h && o === o) || (pass >= 0 && (c >= o ? pass : !pass))) continue;
         // (Its body as drawn: a wick's width tall at least.)
-        const x = Math.round(time.x(i) * dpr) / dpr, top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
+        const x = time.snap(time.x(i), dpr), top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
         if (part & WICKS) {
           if (pad > 0) g.rect(x - wick / 2 - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
           else {
@@ -147,7 +147,7 @@ export class Candles {
             if (ly > foot) g.rect(x - wick / 2, foot, wick, ly - foot);
           }
         }
-        const left = Math.round((x - half) * dpr) / dpr, width = Math.round(2 * half * dpr) / dpr;
+        const left = time.snap(x - half, dpr), width = Math.round(2 * half * dpr) / dpr;
         if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0, false);
         if (!(part & (RINGS | INSIDES))) continue;
         const inTop = Math.round((top + wick) * dpr) / dpr, inFoot = Math.round((foot - wick) * dpr) / dpr;
