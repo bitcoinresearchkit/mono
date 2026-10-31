@@ -134,6 +134,8 @@ export class Pane {
     // (Its series' versions summed, and the theme, as drawn: either changed, its picture's stale.)
     this.drawnVersions = NaN;
     this.drawnOvers = NaN;
+    /** How many times its scale or series have changed as drawn (see draw): a still pointer's hits read again then. */
+    this.changes = 0;
     // (Its last picture drawn whole (not moved or stretched since), and that picture kept as a zoom began: where it
     // started, its spacing (NaN: none kept).)
     this.sharp = false;
@@ -511,6 +513,8 @@ export class Pane {
       if (series.over) overs += series.version;
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden));
     }
+    // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
+    if (versions !== this.drawnVersions || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
     const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last

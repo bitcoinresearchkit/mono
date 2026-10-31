@@ -784,7 +784,10 @@ class Series {
     /** Its markers (the plugin's, attached to it: see Marks), their room part of its autoscale info. @type {Marks | null} */
     this.marks = null;
     this.engine = this.#make();
+    const hadLeft = Boolean(pane.engine.left);
     pane.engine.add(this.engine, this.side);
+    // (The pane's left scale made by its first series: its options as Studio set them before (its mode, its margins).)
+    if (this.side === "left" && !hadLeft && pane.scales.left) pane.scales.left.applyOptions(pane.scales.left.opts);
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
     /** @type {Line | null} */
     this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;

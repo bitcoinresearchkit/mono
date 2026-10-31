@@ -73,8 +73,9 @@ export class Chart {
     this.crosshairListeners = [];
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
-    /** A pointer's crosshair to be found again at the next frame (see #recross). */
+    /** A pointer's crosshair to be found again at the next frame (see #recross); its pane's changes as it was told. */
     this.recrossing = false;
+    this.crossedChanges = -1;
     /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
     this.resizing = false;
     /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
@@ -355,15 +356,19 @@ export class Chart {
     // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
     // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
     // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
+    // (Its pane's scale or series changed under it since it was told (a zoom about the newest point, a live price):
+    // what it hits read again.)
+    const under = this.panes[crosshair.pane], changed = Boolean(under) && under.changes !== this.crossedChanges;
     if (x === x && (this.recrossing || crosshair.index === crosshair.index)) {
       // (Over an axis now (one come under it): gone, as a pointer over an axis has none.)
       if (!(x >= 0 && x <= time.width)) (this.recrossing = false), this.setCrosshair(NaN);
-      else if (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) {
+      else if (this.recrossing || changed || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) {
         // (Found again, told even where its point and height stay: what's under it may not.)
-        if (this.recrossing) (this.recrossing = false), (crosshair.index = NaN);
+        if (this.recrossing || changed) (this.recrossing = false), (crosshair.index = NaN);
         this.setCrosshair(time.index(x), crosshair.y, true, x);
       }
     }
+    this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
