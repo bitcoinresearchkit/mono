@@ -210,12 +210,15 @@ impl AddrStateVecs {
             mut primaries,
             funded_updates,
             funded_pushes,
-            funded_deletes,
+            mut funded_deletes,
             extended_updates,
             extended_pushes,
-            extended_deletes,
+            mut extended_deletes,
         } = AddrUpdates::stage(cache, changed);
 
+        // In index order, not the cache's: each delete reads its record and marks a hole.
+        funded_deletes.sort_unstable();
+        extended_deletes.sort_unstable();
         self.funded.delete_many(funded_deletes);
         self.extended_empty.delete_many(extended_deletes);
 

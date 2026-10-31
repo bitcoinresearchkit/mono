@@ -1,7 +1,9 @@
+use std::sync::LazyLock;
+
 use bitview_primitives::{ByAddrType, DecodedAddrState, TypeIndex};
 use brk_error::Result;
 use brk_types::OutputType;
-use rayon::prelude::*;
+use rayon::{ThreadPool, ThreadPoolBuilder, current_num_threads, prelude::*};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -64,6 +66,17 @@ impl AddressKey {
     }
 }
 
+// A cold address is read through page faults, one at a time per thread: more workers than cores
+// keep more of them in flight, as the global pool also serves the plugins computing beside this
+// one. If those workers cannot be created, the global pool loads.
+static LOAD_POOL: LazyLock<Option<ThreadPool>> = LazyLock::new(|| {
+    ThreadPoolBuilder::new()
+        .num_threads(current_num_threads() * 3)
+        .thread_name(|index| format!("addresses-load-{index}"))
+        .build()
+        .ok()
+});
+
 /// Cache for address data within a flush interval. Emptied addresses stay in
 /// place: their UTXO count tells funded and empty apart at flush.
 #[derive(Default)]
@@ -99,17 +112,24 @@ impl AddrCache {
         let shards = &self.shards;
 
         // Keep cold reads concurrent without scheduling tiny tasks; the cached check runs there too.
-        self.addresses
-            .par_iter()
-            .with_min_len(32)
-            .copied()
-            .map(|address| {
-                (!shards[shard_of(address.type_index())]
-                    .get_unwrap(address.addr_type())
-                    .contains_key(&address.type_index()))
-                .then(|| address.load(state_readers, state))
-            })
-            .collect_into_vec(&mut self.sources);
+        let (addresses, sources) = (&self.addresses, &mut self.sources);
+        let mut load = || {
+            addresses
+                .par_iter()
+                .with_min_len(32)
+                .copied()
+                .map(|address| {
+                    (!shards[shard_of(address.type_index())]
+                        .get_unwrap(address.addr_type())
+                        .contains_key(&address.type_index()))
+                    .then(|| address.load(state_readers, state))
+                })
+                .collect_into_vec(sources);
+        };
+        match LOAD_POOL.as_ref() {
+            Some(pool) => pool.install(load),
+            None => load(),
+        }
 
         for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
             if let Some(source) = source {

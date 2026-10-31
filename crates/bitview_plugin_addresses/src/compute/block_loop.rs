@@ -325,7 +325,7 @@ fn process_shard(
         }
         lookup.update_tx_counts(&received, sent_txs);
         transfers.prepare(received.keys().copied());
-        let mut cohorts = CohortLog::default();
+        let mut cohorts = CohortLog::with_capacity(received.len() + spends.len());
         process_received(
             received,
             &mut cohorts,
