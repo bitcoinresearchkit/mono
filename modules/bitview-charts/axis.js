@@ -1,6 +1,6 @@
 // @ts-check
-// The time axis under the panes: the starts of years, months, days or hours (whichever leave room enough between their
-// labels), each at its first point, its label under it (UTC).
+// The time axis under the panes: the starts of years, months, days, hours or minutes (whichever leave room enough
+// between their labels), each at its first point, its label under it (UTC).
 
 import { kept } from "./format.js";
 import { Tags } from "./tags.js";
@@ -11,7 +11,7 @@ const ROOM = 72;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** Each unit's steps, from the finest: [seconds a step (about), step in its unit, its unit]. */
 const STEPS = /** @type {const} */ ([
-  [3600, 1, "hour"], [6 * 3600, 6, "hour"], [DAY, 1, "day"], [7 * DAY, 7, "day"], [30 * DAY, 1, "month"],
+  [600, 10, "minute"], [1800, 30, "minute"], [3600, 1, "hour"], [6 * 3600, 6, "hour"], [DAY, 1, "day"], [7 * DAY, 7, "day"], [30 * DAY, 1, "month"],
   [91 * DAY, 3, "month"], [182 * DAY, 6, "month"], [365 * DAY, 1, "year"], [2 * 365 * DAY, 2, "year"], [5 * 365 * DAY, 5, "year"], [10 * 365 * DAY, 10, "year"],
 ]);
 
@@ -52,6 +52,7 @@ export class TimeAxis {
       month: kept((t) => (date(t).getUTCMonth() ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCFullYear()))),
       day: kept((t) => (date(t).getUTCDate() === 1 ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCDate()))),
       hour: kept((t) => (date(t).getUTCHours() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:00` : String(date(t).getUTCDate()))),
+      minute: kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : String(date(t).getUTCDate()))),
     };
     /** The panes' series' own tags on it as last drawn, and each one's half width. */
     this.page = new Tags();
@@ -128,12 +129,13 @@ export class TimeAxis {
 
   /**
    * Its labels from point `a` to `b` by `step`, at least ROOM apart, each at the first point within a step (none
-   * where the data skips a whole step: a weekend's days not named on the Monday): how many it drew.
+   * where the data skips a whole step: a weekend's days not named on the Monday), named as the step (a month's name at
+   * its first trading day) or, by hours and minutes, as the point's own time (points at :05 named so): how many it drew.
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
    */
   #row(time, theme, plot, page, a, b, step) {
-    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit];
+    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit], own = unit === "hour" || unit === "minute";
     let drawn = 0;
     g.fillStyle = theme.text;
     g.textAlign = "center";
@@ -149,7 +151,7 @@ export class TimeAxis {
       if (i <= b && times[i] < next) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        if (x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(t), x, this.height / 2), (last = x), drawn++);
+        if (x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(own ? times[i] : t), x, this.height / 2), (last = x), drawn++);
       }
       t = next;
     }
