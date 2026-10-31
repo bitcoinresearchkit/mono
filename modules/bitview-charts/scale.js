@@ -9,6 +9,8 @@
 // (A log scale's ticks in a decade, the sparsest first, and each one's least gap (in decades): the densest with room.)
 const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
 const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
+/** Round numbers a log scale's ticks might be instead, made once (grown). */
+let ROUND = new Float64Array(24);
 
 export class Scale {
   // (What it shows, behind accessors: any change marks its mapping stale, made again at the next y().)
@@ -176,19 +178,19 @@ export class Scale {
 
   /**
    * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) `every` CSS
-   * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale over a decade
-   * or more, its powers of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2
-   * and 5; 2, 3 and 5; 2 to 6 and 8; all). None where it's empty.
+   * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale, its powers
+   * of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2 and 5; 2, 3 and 5; 2
+   * to 6 and 8; all); within a decade, those or round numbers, whichever marks it more evenly. None where it's empty.
    * @param {Float64Array} out @param {number} [every]
    */
   ticks(out, every = 28) {
     if (this.empty) return 0;
     const lo = this.value(this.height), hi = this.value(0), want = Math.max(2, this.height / every);
     let count = 0;
-    // (A log scale over a decade or more: its powers of ten, and their 2s and 5s with room; within one, as a linear
-    // scale's: round numbers, else it'd show one or none.)
+    // (A log scale: its powers of ten, and their 2s and 5s with room; within a decade, those or round numbers a step apart
+    // as a linear scale's, whichever marks it more evenly (0.6 to 5: 1, 2, 3, 5; 60K to 80K: 62K, 64K… 80K).)
     const decades = this.mode === "log" ? Math.log10(hi / lo) : 0;
-    if (decades >= 1) {
+    if (decades > 0) {
       const perDecade = this.height / decades;
       let set = 0;
       while (set + 1 < DECADE.length && DECADE_GAP[set + 1] * perDecade >= every) set++;
@@ -200,17 +202,28 @@ export class Scale {
           const v = steps[k] * 10 ** p;
           if (v >= lo && v <= hi && count < out.length) out[count++] = v;
         }
-      return count;
+      if (decades >= 1) return count;
     }
     // (Round numbers a step apart: a log scale's (under a decade) closest at its top, where a value takes fewest pixels.)
     const raw = this.mode === "log" ? (every * hi * Math.LN10 * decades) / this.height : (hi - lo) / want, power = 10 ** Math.floor(Math.log10(raw)), unit = raw / power;
-    const step = (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 5 ? 5 : 10) * power;
-    for (let v = Math.ceil(lo / step) * step; v <= hi && count < out.length; v += step) out[count++] = Math.abs(v) < step * 1e-9 ? 0 : v;
+    const step = (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 5 ? 5 : 10) * power, round = ROUND.length < out.length ? (ROUND = new Float64Array(out.length)) : ROUND;
+    let rounds = 0;
+    for (let v = Math.ceil(lo / step) * step; v <= hi && rounds < out.length; v += step) round[rounds++] = Math.abs(v) < step * 1e-9 ? 0 : v;
     // (Too short for two steps of it (a log scale's few pixels): one round number in view at least.)
-    if (!count && out.length) {
+    if (!rounds && out.length) {
       const one = 10 ** Math.floor(Math.log10(hi - lo || Math.abs(hi) || 1)), v = Math.ceil(lo / one) * one;
-      if (v <= hi) out[count++] = v;
+      if (v <= hi) round[rounds++] = v;
     }
-    return count;
+    // (A log scale's: whichever leaves the least of it unmarked (its widest gap, its ends' too), its decades' on a tie.)
+    if (decades > 0) {
+      const widest = (/** @type {Float64Array} */ list, /** @type {number} */ n) => {
+        let most = 0, at = lo;
+        for (let k = 0; k < n; k++) (most = Math.max(most, list[k] / at)), (at = list[k]);
+        return Math.max(most, hi / at);
+      };
+      if (!rounds || widest(round, rounds) >= widest(out, count)) return count;
+    }
+    for (let k = 0; k < rounds; k++) out[k] = round[k];
+    return rounds;
   }
 }

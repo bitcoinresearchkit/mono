@@ -10,7 +10,7 @@
 //   pane.addLine({ values, color: "#f7931a" });              // Float64Array, an index a time
 //   chart.show(365);                                         // the last year in view
 //
-// Dragged, a pane pans (a finger's flick glides on, slowing as iOS's lists do); pinched or wheeled, it zooms about that point;
+// Dragged, a pane pans (a finger's flick glides on, slowing as a list does, a little sooner); pinched or wheeled, it zooms about that point;
 // a trackpad's sideways scroll pans.
 
 import { Timeline } from "./timeline.js";
@@ -40,15 +40,15 @@ export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 2
 /** @type {import("./pane.js").Theme} */
 export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", across: "rgba(14, 15, 17, 0.2)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)" };
 
-/** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart. */
-const HOLD = 350;
+/** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart (as Lightweight Charts' long tap). */
+const HOLD = 240;
 /** How near a separator between panes a pointer takes it (CSS pixels): a mouse's, a finger's; a pane's least height. */
 const NEAR_MOUSE = 4, NEAR_TOUCH = 12, LEAST = 32;
 
 /** An axis' least width (CSS pixels): a short label's, as "0". */
 const AXIS_LEAST = 28;
-/** A flick's speed kept each millisecond (iOS's lists' rate). */
-const SLOWING = 0.998;
+/** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for. */
+const SLOWING = 0.997;
 /** A flick's speed (CSS pixels a millisecond) as its finger's over its last moments (this many milliseconds); slower, none (a drag let go where it stopped). */
 const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
 
@@ -114,13 +114,15 @@ export class Chart {
     this.seams = false;
     /**
      * A flick gliding on: its speed (CSS pixels a millisecond), its last frame's time, its speed kept each millisecond
-     * (iOS's lists' rate; more where it'd pass an end: it eases into it, see #fling), and its way left to that end.
+     * (SLOWING; more where it'd pass an end: it eases into it, see #fling), and its way left to that end.
      */
     this.glide = { speed: 0, at: 0, slowing: SLOWING, left: Infinity };
     /** @type {((from: number, to: number) => void)[]} */
     this.rangeListeners = [];
     /** @type {(() => void)[]} */
     this.layoutListeners = [];
+    /** @type {(() => void)[]} */
+    this.timeResetListeners = [];
     this.drawnFrom = NaN;
     this.drawnTo = NaN;
     // (Its frame's callback, made once: none made each frame.)
@@ -306,6 +308,12 @@ export class Chart {
     return () => void (this.layoutListeners = this.layoutListeners.filter((each) => each !== listener));
   }
 
+  /** Told of a double-click or a double tap on the time axis: the page's view to come back to (the library's own: none). @param {() => void} listener */
+  onTimeReset(listener) {
+    this.timeResetListeners.push(listener);
+    return () => void (this.timeResetListeners = this.timeResetListeners.filter((each) => each !== listener));
+  }
+
   /** Told each frame the view changed in. @param {(from: number, to: number) => void} listener */
   onRange(listener) {
     this.rangeListeners.push(listener);
@@ -475,10 +483,11 @@ export class Chart {
   // past a slop of 6 pixels (a hold, else, would move the chart a little).
   #input() {
     /**
-     * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number }} Axis
+     * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, held?: number }} Axis
      * An axis pressed, as it was then: a pane's price axis on `side` (its range, `a` to `b`; the press's height in the
-     * pane, `at`), or the time axis (`pane` null: the spacing `a`, the view's right end `b`, the press's x in the plot
-     * `at`). Scaled once the press has moved as far as a click can't (a click on a tag scales nothing).
+     * pane, `at`), or the time axis (`pane` null: the spacing `a`, the point it holds `b` (its latest, else the view's
+     * right end) at `held` of the plot's width, the press's x in the plot `at`). Scaled once the press has moved as far
+     * as a click can't (a click on a tag scales nothing).
      */
     const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null }>} */ (new Map());
     let held = -1;
@@ -524,20 +533,25 @@ export class Chart {
     const axisAt = (x, y) => {
       if (!findAxis(x, y)) return null;
       const pane = foundPane, scale = foundSide === "left" ? pane?.left : pane?.scale;
-      return pane && scale ? { pane, side: foundSide, a: scale.lo, b: scale.hi, at: y - pane.top } : { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left };
+      if (pane && scale) return { pane, side: foundSide, a: scale.lo, b: scale.hi, at: y - pane.top };
+      // (The time axis': its latest point held where it is (its room after it as it is), where it's in view; else the plot's
+      // right edge. As a share of the plot's width: an axis widening meanwhile keeps it in the plot.)
+      const last = time.length - 1, held = last >= 0 && time.x(last) >= 0 && time.x(last) <= time.width ? time.x(last) / time.width : 1;
+      return { pane: null, side: "right", a: time.spacing, b: held < 1 ? last : time.to, held, at: x - this.left };
     };
     /**
      * An axis dragged to a point (CSS pixels from the chart's corner): a price axis' range scaled about its middle (on a
      * log scale, its logarithms') by how far the press has come down its height, as the chart library's (a tenth of it
-     * at least); the time axis' spacing by how far the press has come towards the plot's right edge, that edge held.
+     * at least); the time axis' spacing by how far the press has come towards the plot's right edge, its latest point
+     * held where it is (where it's in view: its room after it the same in pixels), else that edge.
      * @param {Axis} axis @param {number} x @param {number} y
      */
     const scaleAxis = (axis, x, y) => {
       const pane = axis.pane;
       if (!pane) {
         const width = time.width, start = width - axis.at, now = Math.min(Math.max(width - (x - this.left), 0), width);
-        // (Its span within the zoom's bounds first: its right edge held at them too.)
-        if (start > 0 && now > 0) time.setRange(axis.b - time.within(width / ((axis.a * now) / start)), axis.b);
+        // (Its span within the zoom's bounds first: what it holds held at them too.)
+        if (start > 0 && now > 0) ((span, at) => time.setRange(axis.b - at * span, axis.b + (1 - at) * span))(time.within(width / ((axis.a * now) / start)), /** @type {number} */ (axis.held));
         return;
       }
       const scale = axis.side === "left" ? pane.left : pane.scale, h = pane.height;
@@ -654,10 +668,12 @@ export class Chart {
       // (Let go where it began: a click.)
       if (event.type === "pointerup" && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
-        const axis = at.axis?.pane ? at.axis : null;
+        const axis = at.axis;
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
         (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");
-        if (again) axis.pane?.setRange(undefined, undefined, axis.side), this.invalidate();
+        // (A price axis' second: fitted again; the time axis': its page's to say what the view comes back to.)
+        if (again && axis.pane) axis.pane.setRange(undefined, undefined, axis.side), this.invalidate();
+        else if (again) for (const listener of this.timeResetListeners) listener();
         return void this.#click(event);
       }
       tapAt = -Infinity;
@@ -714,7 +730,7 @@ export class Chart {
   }
 
   /**
-   * A flick let go at `speed` (CSS pixels a millisecond): it glides on, slowing as iOS's lists do (its travel `speed /
+   * A flick let go at `speed` (CSS pixels a millisecond): it glides on, slowing by SLOWING a millisecond (its travel `speed /
    * -ln(SLOWING)`); where that would pass an end, slowing faster to come to rest there (held at it, it stopped dead).
    * @param {number} speed
    */

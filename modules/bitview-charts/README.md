@@ -39,13 +39,15 @@ chart.show(365);                                 // the last 365 points in view
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
   `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
   pointer).
-- Input: a drag pans (a finger's flick glides on, as iOS's lists do; a mouse's drag stops where it's let go), a pinch or the wheel zooms about that point (the point
+- Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse's drag stops where it's
+  let go), a pinch or the wheel zooms about that point (the point
   there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
-  finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
+  finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on
   the axes (none shows cut beside them). Separators between panes drag to share their heights (the two panes shown
   stretched, laid out once let go). A drag on a price axis scales it about its middle (its range then set by hand; a
-  double-click fits it again), on the time axis zooms about the plot's right edge.
+  double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
+  right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
 
 ## Panes
 

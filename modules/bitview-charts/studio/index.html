@@ -37241,6 +37241,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (resolved && drawnChart === chart.id) applyRange(chart, resolved, true);
       }
+      // (A double-click or a double tap on the time axis: the chart's range shown again, as its button does: the view back
+      // to it, at the latest.)
+      engine.onTimeReset(() => !home && drawnChart === chart.id && setRange(chart.range));
       $("ranges").addEventListener("click", (event) => {
         const button = closest(event, "[data-range]");
         // (One that doesn't fit says why, as its key does: a tap, a finger's only way to ask.)
