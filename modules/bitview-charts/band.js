@@ -113,7 +113,15 @@ export class Band {
   distance(i, y, scale, x, time) {
     // (As it's drawn: both edges there, above zero on a log scale.)
     if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
-    const log = scale.mode === "log", edge = this.#edge(log), hi = this.upper[i], lo = edge ? hi : this.lower[i];
+    const log = scale.mode === "log", edge = this.#edge(log);
+    if (x !== undefined && x === x && time && time.spacing < 1) {
+      // (Zoomed out: its pixel column as drawn, at its last point with both edges.)
+      const a = Math.max(0, time.column(x)), lows = edge ? this.upper : this.lower, highs = this.upper;
+      let k = Math.min(lows.length - 1, highs.length - 1, time.columnEnd);
+      while (k >= a && !(log ? lows[k] > 0 && highs[k] > 0 : lows[k] === lows[k] && highs[k] === highs[k])) k--;
+      if (k >= a) (i = k), (x = undefined);
+    }
+    const hi = this.upper[i], lo = edge ? hi : this.lower[i];
     if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
     const up = this.area && this.to === "top", top = up ? 0 : scale.y(edge ? hi : Math.max(lo, hi)), bottom = up ? scale.y(hi) : edge ? scale.height : scale.y(Math.min(lo, hi));
     return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);

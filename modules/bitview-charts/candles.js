@@ -87,10 +87,17 @@ export class Candles {
   distance(i, y, scale, x, time) {
     // (As it's drawn: a candle there, its close and low above zero on a log scale.)
     if (!(i >= 0 && i < this.close.length)) return Infinity;
-    const h = this.highs.values[i], l = this.lows.values[i], c = this.close[i];
-    if (!(scale.mode === "log" ? c > 0 && l > 0 && h > 0 : c === c && h === h && l === l)) return Infinity;
+    const log = scale.mode === "log", highs = this.highs.values, lows = this.lows.values, column = x !== undefined && x === x && time && time.spacing < 3;
+    let h = highs[i], l = lows[i];
+    if (column) {
+      // (Zoomed out: its pixel column as drawn, from its lowest low to its highest high.)
+      const a = Math.max(0, time.column(x)), b = Math.min(this.close.length - 1, time.columnEnd);
+      (h = -Infinity), (l = Infinity);
+      for (let k = a; k <= b; k++) if (log ? this.close[k] > 0 && lows[k] > 0 : this.close[k] === this.close[k]) (h = Math.max(h, highs[k])), (l = Math.min(l, lows[k]));
+      if (!(l <= h)) return Infinity;
+    } else if (!(log ? this.close[i] > 0 && l > 0 && h > 0 : this.close[i] === this.close[i] && h === h && l === l)) return Infinity;
     const top = scale.y(h), bottom = scale.y(l);
-    return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
+    return Math.hypot(column || x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */

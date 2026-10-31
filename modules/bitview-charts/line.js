@@ -294,6 +294,16 @@ export class Line {
     const values = this.values, log = scale.mode === "log", breaks = this.breaks;
     const drawn = (/** @type {number} */ k) => k >= 0 && k < values.length && values[k] === values[k] && (!log || values[k] > 0);
     if (!drawn(i)) return Infinity;
+    if (x !== undefined && x === x && time && time.spacing < 1) {
+      // (Zoomed out: its pixel column under the pointer as drawn, from its lowest to its highest; none in it, as below.)
+      const a = Math.max(0, time.column(x)), b = Math.min(values.length - 1, time.columnEnd);
+      let lo = Infinity, hi = -Infinity;
+      for (let k = a; k <= b; k++) if (drawn(k)) (lo = Math.min(lo, values[k])), (hi = Math.max(hi, values[k]));
+      if (lo <= hi) {
+        const top = scale.y(hi), bottom = scale.y(lo);
+        return y < top ? top - y : y > bottom ? y - bottom : 0;
+      }
+    }
     const yi = scale.y(values[i]);
     if (x === undefined || x !== x || !time) return Math.abs(yi - y);
     const xi = time.x(i);

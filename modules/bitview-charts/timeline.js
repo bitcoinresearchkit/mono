@@ -25,6 +25,8 @@ export class Timeline {
     this.rightOffset = rightOffset;
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
+    /** The last point of the pixel column column() last found. */
+    this.columnEnd = -1;
     this.minDataShare = minDataShare;
     /** A pan's part of a pixel, kept for the next. */
     this.rest = 0;
@@ -124,6 +126,17 @@ export class Timeline {
    */
   snap(x, dpr) {
     return Math.round(x * dpr + 1e-6) / dpr;
+  }
+
+  /**
+   * The points the pixel column at plot x `x` holds (zoomed out, as the series draw them: columns at whole pixels of
+   * the view): its first index returned, its last in `columnEnd` (either past the data where it is).
+   * @param {number} x
+   */
+  column(x) {
+    const c = Math.floor(x);
+    this.columnEnd = Math.ceil(this.index(c + 1) - NOISE) - 1;
+    return Math.ceil(this.index(c) - NOISE);
   }
 
   /**

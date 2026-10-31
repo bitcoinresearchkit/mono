@@ -33,10 +33,21 @@ export class Bars extends Line {
     // (As it's drawn: a value there, above zero on a log scale, from its base (the scale's low end where a log scale
     // can't show its base).)
     if (!(i >= 0 && i < this.values.length)) return Infinity;
-    const v = this.values[i], log = scale.mode === "log";
+    const log = scale.mode === "log";
+    let v = this.values[i];
+    if (x !== undefined && x === x && time && time.spacing < 3) {
+      // (Zoomed out: its pixel column's bar as drawn, to its point farthest from its base.)
+      const a = Math.max(0, time.column(x)), b = Math.min(this.values.length - 1, time.columnEnd);
+      let most = -1;
+      for (let k = a; k <= b; k++) {
+        const w = this.values[k];
+        if ((log ? w > 0 : w === w) && Math.abs(w - this.base) > most) (most = Math.abs(w - this.base)), (v = w);
+      }
+      if (most < 0) return Infinity;
+    }
     if (!(log ? v > 0 : v === v)) return Infinity;
     const base = log && !(this.base > 0) ? scale.lo : this.base, top = scale.y(Math.max(v, base)), bottom = scale.y(Math.min(v, base));
-    return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
+    return Math.hypot(x === undefined || !time || time.spacing < 3 ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */

@@ -244,7 +244,9 @@ export class Pane {
     if (k < 0) return;
     this.series.splice(k, 1);
     this.sides.splice(k, 1);
+    // (Drawn anew; what's under a still pointer changed too.)
     this.drawnFrom = NaN;
+    this.changes++;
     // (Its last left series gone: its left scale with it, and its axis' room.)
     if (this.left && !this.sides.includes(1)) (this.left = null), this.onLayout();
   }
@@ -516,7 +518,7 @@ export class Pane {
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden));
     }
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
-    if (versions !== this.drawnVersions || overs !== this.drawnOvers || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
+    if (versions !== this.drawnVersions || overs !== this.drawnOvers || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
     const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
