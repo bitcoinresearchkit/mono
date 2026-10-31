@@ -64,30 +64,36 @@ export class Profile {
       if (bottom >= 0 && top <= scale.height && bottom - top > 0) shortest = Math.min(shortest, bottom - top);
     }
     if (!(shortest < Infinity)) return;
-    const rows = 2 ** Math.max(0, Math.ceil(Math.log2(this.bin / shortest))), bins = Math.ceil(count / rows), n = groups.length;
+    // (On a log scale, the rows from the first it can show: a bin's foot there at the lowest.)
+    let shown = 0;
+    while (log && shown < count && !(edges[shown] > 0)) shown++;
+    const rows = 2 ** Math.max(0, Math.ceil(Math.log2(this.bin / shortest))), bins = Math.ceil(count / rows), n = groups.length, gap = 1 / dpr;
+    const topOf = (/** @type {number} */ b) => y(Math.min(count, (b + 1) * rows)), footOf = (/** @type {number} */ b) => y(Math.max(shown, b * rows));
+    // (A bin drawn: within the plot (not only touching it), taller than the hair between two.)
+    const drawn = (/** @type {number} */ top, /** @type {number} */ bottom) => bottom > 0 && top < scale.height && bottom - top > gap;
     if (totals.length < bins * n) totals = new Float64Array(bins * n * 2);
     totals.fill(0, 0, bins * n);
     for (let k = 0; k < n; k++) {
       const group = groups[k];
       for (let j = 0; j < group.rows.length; j++) {
         const v = group.values[j];
-        if (v > 0) totals[Math.floor(group.rows[j] / rows) * n + k] += v;
+        if (v > 0 && group.rows[j] >= shown) totals[Math.floor(group.rows[j] / rows) * n + k] += v;
       }
     }
     // (The largest bin in view, all groups: the longest bar.)
     let most = 0;
     for (let b = 0; b < bins; b++) {
-      const top = y(Math.min(count, (b + 1) * rows)), bottom = y(b * rows);
-      if (!(bottom >= 0 && top <= scale.height)) continue;
+      if (!drawn(topOf(b), footOf(b))) continue;
       let sum = 0;
       for (let k = 0; k < n; k++) sum += totals[b * n + k];
       most = Math.max(most, sum);
     }
     if (!(most > 0)) return;
-    const right = time.width - 2, longest = time.width * this.width, line = this.at === this.at ? scale.y(this.at) : -Infinity, gap = 1 / dpr;
+    // (Its line: none, all of it in color; one a log scale can't show (at or under 0), under every bin: all of it dim.)
+    const right = time.width - 2, longest = time.width * this.width, line = this.at !== this.at ? -Infinity : log && !(this.at > 0) ? Infinity : scale.y(this.at);
     for (let b = 0; b < bins; b++) {
-      const top = y(Math.min(count, (b + 1) * rows)), bottom = y(b * rows);
-      if (!(bottom >= 0 && top <= scale.height) || !(bottom - top > gap)) continue;
+      const top = topOf(b), bottom = footOf(b);
+      if (!drawn(top, bottom)) continue;
       // (Its groups from the edge leftwards; its part under the line (in profit) in each one's color, over it dim.)
       let x = right;
       for (let k = 0; k < n; k++) {
