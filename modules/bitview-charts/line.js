@@ -299,8 +299,8 @@ export class Line {
     for (let k = i - 1; k <= i + 1; k += 2) {
       if (!drawn(k) || (breaks && breaks[Math.min(i, k)])) continue;
       const xk = time.x(k), yk = scale.y(values[k]);
-      if (this.curve && !this.steps) {
-        // (Its curve as drawn, measured at eight points along it.)
+      if (this.curve && !this.steps && time.spacing >= 1) {
+        // (Its curve as drawn (zoomed in: zoomed out, its columns straight), measured at eight points along it.)
         const ax = k < i ? xk : xi, ay = k < i ? yk : yi, bx = k < i ? xi : xk, by = k < i ? yi : yk;
         this.#bend(Math.max(i, k), time, scale, ax, ay, bx, by);
         let px = ax, py = ay;
@@ -523,14 +523,16 @@ export class Line {
   #dots(g, time, scale, x0, x1) {
     const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
     const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
-    const colors = this.colors && this.palette.length ? this.colors : null;
-    for (let pass = ring ? -2 : colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
+    const colors = this.colors && this.palette.length ? this.colors : null, under = this.under;
+    // (Its rings, then a fill a color; those below its under value last, in that color.)
+    for (let pass = ring ? -2 : colors ? 0 : -1; pass < (colors ? this.palette.length : 0) + (under ? 1 : 0); pass++) {
       if (pass === -1 && colors) continue;
-      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : pass < 0 ? this.color : this.palette[pass];
+      const below = Boolean(under) && pass === (colors ? this.palette.length : 0);
+      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : below ? /** @type {{ color: string }} */ (under).color : pass < 0 ? this.color : this.palette[pass];
       g.beginPath();
       for (let i = a; i <= b; i++) {
         const v = values[i];
-        if (v !== v || (colors && pass >= 0 && colors[i] !== pass)) continue;
+        if (v !== v || (pass !== -2 && (under ? v < under.value : false) !== below) || (colors && pass >= 0 && !below && colors[i] !== pass)) continue;
         const x = time.x(i), y = scale.y(v), size = pass === -2 ? ring : r;
         g.moveTo(x + size, y);
         g.arc(x, y, size, 0, 2 * Math.PI);

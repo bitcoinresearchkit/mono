@@ -18,14 +18,13 @@ export function solid(color) {
   let full = solids.get(color);
   if (full !== undefined) return full;
   pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true }));
-  // (Painted alone on a clear pixel and read back, in any CSS form (oklch, display-p3 too): opaque, as it is; else its
-  // red, green and blue.)
-  pen.clearRect(0, 0, 1, 1);
+  // (As a canvas writes it back: #rrggbb opaque, rgba(…) with an alpha, other spaces in their own form with "/ alpha"
+  // (oklch, display-p3): that alpha dropped, exactly.)
   pen.fillStyle = "#000";
   pen.fillStyle = color;
-  pen.fillRect(0, 0, 1, 1);
-  const [r, g, b, a] = pen.getImageData(0, 0, 1, 1).data;
-  full = a === 255 || a === 0 ? color : `rgb(${r}, ${g}, ${b})`;
+  // (None at all (transparent): as it is, nothing to show.)
+  const read = String(pen.fillStyle), m = /^rgba\((\d+), (\d+), (\d+), ([^)]+)\)$/.exec(read);
+  full = m ? (Number(m[4]) > 0 ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : color) : read.replace(/\s*\/\s*[^)/]+\)$/, ")");
   if (solids.size > 512) solids.clear();
   solids.set(color, full);
   return full;

@@ -405,9 +405,10 @@ export class Chart {
     };
     // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
     const point = (/** @type {PointerEvent} */ event) => {
-      // (Told now: a crosshair to be found again (a drag's, see #follow) is found.)
-      this.recrossing = false;
       const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left, over = x >= 0 && x <= time.width;
+      // (A drag's crosshair still to be found (see #follow): found at the next frame where the pointer is then, on the
+      // panes fitted to the view it moved to, told once.)
+      if (this.recrossing) return void ((this.pointerX = x), (this.crosshair.y = event.clientY - box.top), this.invalidate());
       this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };
     // (The axis a drag from a point would scale, found without making anything (a mouse's hover asks at each move): its
