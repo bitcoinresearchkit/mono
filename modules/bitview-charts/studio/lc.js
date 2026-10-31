@@ -5,11 +5,10 @@
 // one: the chart, its panes and scales, the view, the crosshair and clicks, pictures, and the standard series (lines,
 // areas (stacked ones' fills to the line under them), histograms, baselines, candles), rows or columns onto one
 // timeline (the page's: see Chart.#sync). Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted), overlay scales, its scales'
-// and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint) and markers (its
-// signals' marks: see Marks), primitives' axis tags (its drawings' values, a profile's shares) and price lines.
+// and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint), primitives' axis
+// tags (its drawings' values, a profile's shares) and price lines.
 
 import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale, channels } from "/modules/bitview-charts/index.js";
-import { pill } from "/modules/bitview-charts/tags.js";
 
 export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
@@ -20,11 +19,6 @@ export const TrackingModeExitMode = { OnTouchEnd: 0, OnNextTap: 1 };
 export const MismatchDirection = { NearestLeft: -1, None: 0, NearestRight: 1 };
 export const TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 };
 export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right" };
-
-/** Markers (a plugin of the library's): a series' marks at dates, drawn over its pane's series (see Marks). @param {Series} series @param {any[]} [markers] */
-export function createSeriesMarkers(series, markers = []) {
-  return new Marks(series, markers);
-}
 
 /** @param {HTMLElement} element @param {any} [options] */
 export function createChart(element, options = {}) {
@@ -236,7 +230,6 @@ class Chart {
     if (series.beside) series.pane.engine.remove(series.beside);
     if (series.across) series.pane.engine.remove(series.across);
     for (const primitive of series.primitives) primitive.detached?.();
-    for (const marks of series.pane.marks.filter((each) => each.series === series)) marks.detach();
     series.pane.list = series.pane.list.filter((each) => each !== series);
     series.pane.dirty = true;
     this.all = this.all.filter((each) => each !== series);
@@ -337,7 +330,6 @@ class Chart {
     const times = this.engine.time.times, fresh = times !== this.times;
     this.times = times;
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
-    if (fresh) for (const pane of this.panesList) for (const marks of pane.marks) marks.place();
     for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.stack(), pane.formats();
     this.engine.invalidate(fresh);
   }
@@ -366,8 +358,6 @@ class Pane {
     this.over = null;
     /** Its primitives told the chart moved this frame (see fresh). */
     this.updated = false;
-    /** Its series' markers. @type {Marks[]} */
-    this.marks = [];
     this.target = new Target();
   }
 
@@ -444,7 +434,6 @@ class Pane {
       if (series.across) list.push(series.across);
       if (series.beside) list.push(series.beside);
     }
-    for (const marks of this.marks) list.push(marks.engine);
     if (this.over) list.push(this.over);
     this.engine.order(list);
   }
@@ -584,9 +573,7 @@ class Series {
     this.original = () => this.#own();
     this.asked = new Float64Array(3);
     this.range = new Float64Array(2);
-    this.info = { priceRange: { minValue: 0, maxValue: 0 }, margins: /** @type {{ above: number, below: number } | null} */ (null) };
-    /** Its markers (the plugin's, attached to it: see Marks), their room part of its autoscale info. @type {Marks | null} */
-    this.marks = null;
+    this.info = { priceRange: { minValue: 0, maxValue: 0 } };
     this.engine = this.#make();
     const hadLeft = Boolean(pane.engine.left);
     pane.engine.add(this.engine, this.side);
@@ -677,8 +664,8 @@ class Series {
   }
 
   /**
-   * Its autoscale info from point `a` to `b`, as the chart library's: its own range there (none: null) with its
-   * markers' room, through its autoscaleInfoProvider where it has one (Studio's: a stack's from zero or 0 to 100, a
+   * Its autoscale info from point `a` to `b`, as the chart library's: its own range there (none: null), through its
+   * autoscaleInfoProvider where it has one (Studio's: a stack's from zero or 0 to 100, a
    * carrier's none), `original` its own.
    * @param {number} a @param {number} b @param {boolean} positive
    */
@@ -699,14 +686,13 @@ class Series {
     if (range.maxValue > out[1]) out[1] = range.maxValue;
   }
 
-  /** Its own autoscale info where it's asked (see autoscale): its range there and its markers' room; no range, null. */
+  /** Its own autoscale info where it's asked (see autoscale): its range there; no range, null. */
   #own() {
     const range = this.range, asked = this.asked;
     (range[0] = Infinity), (range[1] = -Infinity);
     this.engine.extent(asked[0], asked[1], asked[2] === 1, range);
     if (!(range[0] <= range[1])) return null;
     (this.info.priceRange.minValue = range[0]), (this.info.priceRange.maxValue = range[1]);
-    this.info.margins = this.marks ? this.marks.room(this.chart.engine.time.spacing) : null;
     return this.info;
   }
 
@@ -964,173 +950,6 @@ class Series {
 function dashOf(options) {
   const w = options.lineWidth ?? 1;
   return [[], [w, w], [2 * w, 2 * w], [6 * w, 6 * w], [w, 4 * w]][options.lineStyle ?? 0] ?? [];
-}
-
-/** A number rounded up, then down to an odd one, or an even one (as the chart library sized its marks). @param {number} x */
-const odd = (x) => ((n) => (n % 2 ? n : n - 1))(Math.ceil(x)), even = (/** @type {number} */ x) => ((n) => (n % 2 ? n - 1 : n))(Math.ceil(x));
-
-/**
- * A series' marks (the chart library's markers plugin: Studio's signals' marks), drawn over its pane's series as the
- * plugin drew them, to its sizes: each at its date, above its point (its candle's high), below it (its low), or on it;
- * an arrow, a circle or a square, as tall as a point is wide (12 to 30 pixels; times its `size`), several at one point
- * stacked away from it; its words (`text`) past it, in a pill of the chart's ground edged in its color, or their own
- * (`textColor`: a result's sign's) (read over any line; the plugin's, edged in a halo: patch 47). In the strips a pan draws, those whose shape or words reach in.
- */
-class Marks {
-  /** @param {Series} series @param {any[]} list */
-  constructor(series, list) {
-    this.series = series;
-    /** @type {any[]} */
-    this.list = [];
-    /** Each mark's point on the timeline (-1: none). */
-    this.at = new Int32Array(0);
-    /** How far past its point a mark reaches (its words' half, a shape's), for a strip's. */
-    this.reach = 15;
-    /** The marks with words a draw found (each its index and its words' y), drawn after all their shapes (made once, grown). */
-    this.said = new Float64Array(0);
-    /** Whether it has marks above bars, below them, in them, and words (its room at the scale's ends: see room). */
-    this.over = false;
-    this.under = false;
-    this.inside = false;
-    this.words = false;
-    this.margins = { above: 0, below: 0 };
-    this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i), margins: (_spacing, out) => this.#margins(out) }), series.side);
-    series.pane.marks.push(this);
-    series.marks = this;
-    series.pane.dirty = true;
-    series.chart.changed();
-    this.setMarkers(list);
-  }
-
-  /** @param {any[]} list */
-  setMarkers(list) {
-    this.list = list;
-    this.place();
-  }
-
-  markers() {
-    return this.list;
-  }
-
-  detach() {
-    const pane = this.series.pane;
-    pane.engine.remove(this.engine);
-    pane.marks = pane.marks.filter((each) => each !== this);
-    if (this.series.marks === this) this.series.marks = null;
-    this.series.chart.engine.invalidate(true);
-  }
-
-  /** Each mark's point on the chart's timeline, its words measured (the widest: its reach); drawn anew. */
-  place() {
-    const times = this.series.chart.times, list = this.list, g = (unseen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d")));
-    g.font = this.series.chart.engine.theme.font;
-    this.at = new Int32Array(list.length);
-    let widest = 0;
-    (this.over = false), (this.under = false), (this.inside = false), (this.words = false);
-    for (let k = 0; k < list.length; k++) {
-      const mark = list[k];
-      this.at[k] = indexOf(times, Number(mark.time));
-      if (mark.text) (this.words = true), (widest = Math.max(widest, g.measureText(mark.text).width));
-      if (mark.position === "aboveBar") this.over = true;
-      else if (mark.position === "belowBar") this.under = true;
-      else if (mark.position === "inBar") this.inside = true;
-    }
-    this.reach = 18 + widest / 2;
-    this.engine.changed();
-    this.series.chart.engine.invalidate(true);
-  }
-
-  /**
-   * The room its marks keep clear at its scale's ends (its series' autoscale info carries it): a mark's height and a
-   * margin (by `spacing`), and its words' pill and gap where it has words, over the range where it has marks above
-   * bars, under it where below, half where only in them; none without marks.
-   * @param {number} spacing
-   */
-  room(spacing) {
-    if (!this.list.length) return null;
-    // (Its shape, its margin, and where it has words their pill (16 pixels) 2 from it: see #draw.)
-    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.words ? 18 : 0);
-    (this.margins.above = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (this.margins.below = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
-    return this.margins;
-  }
-
-  /**
-   * Its series' room at the scale's ends, by its autoscale info as the chart library read it: none where it has no
-   * range in view, or its provider gives none (Studio's 100% stacks: a range alone); none while it's hidden.
-   * @param {Float64Array} out
-   */
-  #margins(out) {
-    const series = this.series;
-    if (series.marks !== this || series.engine.hidden) return;
-    const time = series.chart.engine.time, info = series.autoscale(Math.ceil(time.from), Math.floor(time.to), series.scaleApi.scale?.mode === "log");
-    const margins = info?.priceRange ? info.margins : null;
-    if (margins) (out[0] = margins.above), (out[1] = margins.below);
-  }
-
-  /**
-   * Its marks from x `x0` to `x1` (and those reaching in) drawn on `g`.
-   * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/index.js").Timeline} time @param {Scale} scale
-   * @param {number} x0 @param {number} x1
-   */
-  #draw(g, time, scale, x0, x1) {
-    const engine = this.series.engine, list = this.list, at = this.at, n = list.length;
-    // (Its series hidden: none shown, as the plugin drew none.)
-    if (engine.hidden) return;
-    // (Its points' heights: a candle's high and low, else its value; an area's, its top.)
-    const values = engine instanceof Candles ? engine.close : engine instanceof Band ? engine.upper : /** @type {Line} */ (engine).values;
-    const highs = engine instanceof Candles ? engine.high : values, lows = engine instanceof Candles ? engine.low : values;
-    const unit = Math.min(Math.max(time.spacing, 12), 30), height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3), chart = this.series.chart;
-    // (Its words' pill: 16 pixels tall, 2 from its shape.)
-    const theme = chart.engine.theme, tall = 16;
-    g.font = theme.font;
-    g.textBaseline = "middle";
-    // (Several at one point: each one further from it, above and below apart. Their words after all their shapes: each
-    // readable where marks crowd (a narrow screen's), a neighbor's arrow under a pill rather than over its words.)
-    let point = -1, above = 0, below = 0, said = 0;
-    if (this.said.length < n * 2) this.said = new Float64Array(n * 2);
-    for (let k = 0; k < n; k++) {
-      const i = at[k], mark = list[k];
-      if (i < 0) continue;
-      if (i !== point) (point = i), (above = margin), (below = margin);
-      const size = height * (mark.size ?? 1), half = size / 2, position = mark.position;
-      let y, textY;
-      if (position === "aboveBar") {
-        y = scale.y(highs[i]) - half - above;
-        textY = y - half - 2 - tall / 2;
-        above += size + margin + (mark.text ? tall + 2 : 0);
-      } else if (position === "belowBar") {
-        y = scale.y(lows[i]) + half + below;
-        textY = y + half + 2 + tall / 2;
-        below += size + margin + (mark.text ? tall + 2 : 0);
-      } else (y = scale.y(values[i])), (textY = y + half + 2 + tall / 2);
-      const x = time.x(i);
-      if (y !== y || x < x0 - this.reach || x > x1 + this.reach) continue;
-      if (mark.text) (this.said[said * 2] = k), (this.said[said * 2 + 1] = textY), said++;
-      if (!size) continue;
-      g.fillStyle = mark.color;
-      g.beginPath();
-      if (mark.shape === "circle") g.arc(x, y, (odd(Math.max(size, 12) * 0.8) - 1) / 2, 0, Math.PI * 2);
-      else if (mark.shape === "square") ((side) => g.rect(x - side / 2, y - side / 2, side, side))(odd(Math.max(size, 12) * 0.7));
-      else {
-        // (An arrow: its head toward its point, its stem half as wide behind it.)
-        const up = mark.shape === "arrowUp" ? 1 : -1, head = (odd(Math.max(size, 12)) - 1) / 2, stem = (odd(size / 2) - 1) / 2;
-        g.moveTo(x - head, y);
-        g.lineTo(x, y - up * head);
-        g.lineTo(x + head, y);
-        g.lineTo(x + stem, y);
-        g.lineTo(x + stem, y + up * head);
-        g.lineTo(x - stem, y + up * head);
-        g.lineTo(x - stem, y);
-        g.closePath();
-      }
-      g.fill();
-    }
-    // (Its words in a pill of the ground, edged in its color: read over any line, the chart's one pill shape.)
-    for (let s = 0; s < said; s++) {
-      const k = this.said[s * 2], mark = list[k], color = mark.textColor ?? mark.color;
-      pill(g, mark.text, theme.background, color, time.x(at[k]), this.said[s * 2 + 1], "center", tall, color);
-    }
-  }
 }
 
 /** No views. */

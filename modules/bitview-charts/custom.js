@@ -3,7 +3,7 @@
 // of its pane's picture, in the order added (the last on top): a pan moves it with the rest, a zoom draws it anew.
 // `draw` is given the canvas (in CSS pixels, clipped to the strip being drawn) and the pane's view: its timeline
 // (`x(i)`, `index(x)`, `spacing`, `from`, `to`, `times`), its scale (`y(v)`, `value(y)`, its mode, its range), the
-// strip (`x0`, `x1`) and the device pixels a CSS pixel (`dpr`). Optional: `extent` (its lowest and highest from index
+// strip (`x0`, `x1`), the device pixels a CSS pixel (`dpr`) and the chart's theme (`theme`: its ground, its font). Optional: `extent` (its lowest and highest from index
 // `a` to `b`, widening `out`: the pane fitted to it too), `first` (its first value at or after an index: a relative
 // scale's base) and `distance` (how far a point is from it, in CSS pixels: at index `i`, `x` into the plot, `y` from
 // the pane's top; none, it's never hit), `axisTags` (its own tags on a price axis: its side's, 0 the right, 1 the left;
@@ -16,7 +16,7 @@
 // picture moved without them). After a change of what it draws, `changed()`, then the chart's invalidate().
 
 /**
- * @typedef {{ time: import("./timeline.js").Timeline, scale: import("./scale.js").Scale, x0: number, x1: number, dpr: number }} View
+ * @typedef {{ time: import("./timeline.js").Timeline, scale: import("./scale.js").Scale, x0: number, x1: number, dpr: number, theme: import("./pane.js").Theme }} View
  * @typedef {{
  *   draw: (g: CanvasRenderingContext2D, view: View) => void,
  *   extent?: (a: number, b: number, positive: boolean, out: Float64Array) => void,
@@ -24,7 +24,7 @@
  *   distance?: (i: number, y: number, scale: import("./scale.js").Scale, x: number) => number,
  *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void) => void,
  *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
- *   margins?: (spacing: number, out: Float64Array) => void,
+ *   margins?: (spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean) => void,
  * }} Hooks
  */
 
@@ -45,7 +45,7 @@ export class Custom {
     this.version = 0;
     // (Its view, filled at each draw: none made a frame.)
     /** @type {View} */
-    this.view = { time: /** @type {any} */ (null), scale: /** @type {any} */ (null), x0: 0, x1: 0, dpr: 1 };
+    this.view = { time: /** @type {any} */ (null), scale: /** @type {any} */ (null), x0: 0, x1: 0, dpr: 1, theme: /** @type {any} */ (null) };
   }
 
   /** What it draws changed: its pane's picture drawn whole at the next frame. */
@@ -58,9 +58,12 @@ export class Custom {
     this.hooks.extent?.(a, b, positive, out);
   }
 
-  /** The room it keeps clear at its scale's ends (its hook's: none, none). @param {number} spacing @param {Float64Array} out */
-  margins(spacing, out) {
-    this.hooks.margins?.(spacing, out);
+  /**
+   * The room it keeps clear at its scale's ends (its hook's: none, none).
+   * @param {number} spacing @param {Float64Array} out @param {import("./timeline.js").Timeline} time @param {boolean} positive
+   */
+  margins(spacing, out, time, positive) {
+    this.hooks.margins?.(spacing, out, time, positive);
   }
 
   /** How far a point is from it (its hook's; none: it's never hit). @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x */
@@ -85,11 +88,11 @@ export class Custom {
 
   /**
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {number} dpr
+   * @param {number} x0 @param {number} x1 @param {number} dpr @param {import("./pane.js").Theme} theme
    */
-  draw(g, time, scale, x0, x1, dpr) {
+  draw(g, time, scale, x0, x1, dpr, theme) {
     const view = this.view;
-    (view.time = time), (view.scale = scale), (view.x0 = x0), (view.x1 = x1), (view.dpr = dpr);
+    (view.time = time), (view.scale = scale), (view.x0 = x0), (view.x1 = x1), (view.dpr = dpr), (view.theme = theme);
     g.save();
     this.hooks.draw(g, view);
     g.restore();

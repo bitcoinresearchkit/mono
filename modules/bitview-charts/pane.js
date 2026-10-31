@@ -41,7 +41,8 @@ const TAG = PILL;
  * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
  * over and under the range, by the points' spacing: its marks over bars); `viewed`, brought up to the view before each
  * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
- * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top.
+ * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top. Drawn with the chart's theme (its
+ * ground, its font: words in a pill).
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -51,14 +52,14 @@ const TAG = PILL;
  *   over?: boolean,
  *   scaled?: boolean,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
- *   margins?(spacing: number, out: Float64Array): void,
+ *   margins?(spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean): void,
  *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale, x: number, time: import("./timeline.js").Timeline): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
  *   viewed?(time: import("./timeline.js").Timeline): void,
- *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number): void,
+ *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
  * }} Series
  */
 
@@ -238,14 +239,16 @@ export class Pane {
     return this.add(new Custom(hooks), side);
   }
 
-  /** Its series drawn in `list`'s order (the same series, rearranged: the last on top), each on its side. @param {Series[]} list */
+  /** Its series drawn in `list`'s order (its own, rearranged: the last on top), each on its side; those left out after them, as they were. @param {Series[]} list */
   order(list) {
-    let same = list.length === this.series.length;
-    for (let k = 0; same && k < list.length; k++) same = list[k] === this.series[k];
+    // (The rest after them, as they were.)
+    const all = list.length === this.series.length ? list : [...list, ...this.series.filter((series) => !list.includes(series))];
+    let same = true;
+    for (let k = 0; same && k < all.length; k++) same = all[k] === this.series[k];
     if (same) return;
-    const sides = list.map((series) => this.sides[this.series.indexOf(series)]);
+    const sides = all.map((series) => this.sides[this.series.indexOf(series)]);
     console.assert(sides.every((side) => side !== undefined), "bitview-charts: order() takes the pane's own series");
-    this.series.splice(0, this.series.length, ...list);
+    this.series.splice(0, this.series.length, ...all);
     this.sides.splice(0, this.sides.length, ...sides);
     // (Drawn anew; what's on top under a still pointer changed too.)
     this.drawnFrom = NaN;
@@ -373,7 +376,7 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      series.draw(g, time, scale, 0, this.plot, dpr);
+      series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
     }
   }
 
@@ -492,7 +495,7 @@ export class Pane {
       const series = this.series[k];
       // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
       if (series.margins) {
-        (ROOM[0] = 0), (ROOM[1] = 0), series.margins(time.spacing, ROOM);
+        (ROOM[0] = 0), (ROOM[1] = 0), series.margins(time.spacing, ROOM, time, log);
         if (ROOM[0] > above) above = ROOM[0];
         if (ROOM[1] > below) below = ROOM[1];
       }
@@ -710,7 +713,7 @@ export class Pane {
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      this.series[k].draw(g, time, scale, x0, x1, dpr);
+      this.series[k].draw(g, time, scale, x0, x1, dpr, theme);
     }
     // (Price lines: across at a line's last value, dotted, in its color there; its dots where they'd be on the timeline,
     // so a picture moved by a pan has them where a whole draw does.)

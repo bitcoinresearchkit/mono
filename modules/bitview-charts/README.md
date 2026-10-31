@@ -96,6 +96,13 @@ chart.show(365);                                 // the last 365 points in view
   bars from the plot's right edge, stacked, as long as a bin's total against the largest in view (`width` of the plot at
   most), bins of rows gathered by powers of two `bin` pixels tall at least; under `at` in each group's color, over it
   dim. On its pane's own layer over everything, drawn whole each frame. Never fitted or hit.
+- `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
+  each `{ at, position, shape, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
+  `"below"` it (its low) or `"on"` it; an arrow (`"up"`, `"down"`), a `"circle"` or a `"square"` as tall as a point is
+  wide (12 to 30 pixels, times `size`; 0: none), several at a point stacked away from it; its words in a pill of the
+  ground edged in its color (or `textColor`), only where they have room at the zoom (from the latest back, one running
+  into the next one's goes without them). Their room kept at the scale's ends while its series has values in view
+  (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.
