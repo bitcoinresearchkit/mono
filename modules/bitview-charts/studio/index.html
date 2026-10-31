@@ -22586,9 +22586,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (line === null || share === null) return shown(undefined);
         shown({ close, share });
         profileBars(scope, toY, heat, days, line);
+        // (An older day's: its close dashed across it.)
+        if (g === heat.days.length - 1) return;
         context.save();
         context.scale(h, v);
-        paintProfileMarks(context, mediaSize, heat, { line, older: g !== heat.days.length - 1 });
+        paintProfileClose(context, mediaSize, heat, line);
         context.restore();
       }
       /**
@@ -22689,24 +22691,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       /**
-       * A profile's close over its bars (in pixels as the page's): an older day's dashed across it (its shares each side
-       * of it on the axis: see profileShares).
-       * @param {CanvasRenderingContext2D} context @param {{ width: number, height: number }} size @param {HeatLook} look @param {{ line: number, older: boolean }} marks
+       * An older day's profile's close, dashed across its bars (in pixels as the page's; its shares on the axis: see
+       * profileShares).
+       * @param {CanvasRenderingContext2D} context @param {{ width: number, height: number }} size @param {HeatLook} look @param {number} line
        */
-      function paintProfileMarks(context, size, look, marks) {
-        const { line } = marks, width = profileWidth(size.width), right = size.width - 2, left = right - width, y = Math.round(line) + 0.5;
-        context.save();
-        if (marks.older) {
-          context.strokeStyle = alpha(look.mark, 0.6);
-          context.lineWidth = 1;
-          context.setLineDash([3, 3]);
-          context.beginPath();
-          context.moveTo(left, y);
-          context.lineTo(right, y);
-          context.stroke();
-          context.setLineDash([]);
-        }
-        context.restore();
+      function paintProfileClose(context, size, look, line) {
+        const right = size.width - 2, left = right - profileWidth(size.width), y = Math.round(line) + 0.5;
+        context.strokeStyle = alpha(look.mark, 0.6);
+        context.lineWidth = 1;
+        context.setLineDash([3, 3]);
+        context.beginPath();
+        context.moveTo(left, y);
+        context.lineTo(right, y);
+        context.stroke();
+        context.setLineDash([]);
       }
       /** The profiles' series given their shares on the axis (see profileShares): each once. */
       const sharesShown = new WeakSet();
