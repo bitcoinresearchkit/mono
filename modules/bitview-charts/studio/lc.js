@@ -764,7 +764,9 @@ class Series {
     this.original = () => this.#own();
     this.asked = new Float64Array(3);
     this.range = new Float64Array(2);
-    this.info = { priceRange: { minValue: 0, maxValue: 0 } };
+    this.info = { priceRange: { minValue: 0, maxValue: 0 }, margins: /** @type {{ above: number, below: number } | null} */ (null) };
+    /** Its markers (the plugin's, attached to it: see Marks), their room part of its autoscale info. @type {Marks | null} */
+    this.marks = null;
     this.engine = this.#make();
     pane.engine.add(this.engine, this.side);
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
@@ -841,25 +843,36 @@ class Series {
   }
 
   /**
-   * Its scale's range from it, by its autoscaleInfoProvider (Studio's: a stack's from zero or 0 to 100, a carrier's
-   * none), from point `a` to `b` widening `out`; `original` its own range there, as its engine reads it.
+   * Its autoscale info from point `a` to `b`, as the chart library's: its own range there (none: null) with its
+   * markers' room, through its autoscaleInfoProvider where it has one (Studio's: a stack's from zero or 0 to 100, a
+   * carrier's none), `original` its own.
+   * @param {number} a @param {number} b @param {boolean} positive
+   */
+  autoscale(a, b, positive) {
+    (this.asked[0] = a), (this.asked[1] = b), (this.asked[2] = positive ? 1 : 0);
+    const provider = this.opts.autoscaleInfoProvider;
+    return provider ? provider(this.original) : this.#own();
+  }
+
+  /**
+   * Its scale's range from it by its autoscaleInfoProvider, from point `a` to `b` widening `out`.
    * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
    */
   #fit(a, b, positive, out) {
-    (this.asked[0] = a), (this.asked[1] = b), (this.asked[2] = positive ? 1 : 0);
-    const range = this.opts.autoscaleInfoProvider(this.original)?.priceRange;
+    const range = this.autoscale(a, b, positive)?.priceRange;
     if (!range) return;
     if (range.minValue < out[0]) out[0] = range.minValue;
     if (range.maxValue > out[1]) out[1] = range.maxValue;
   }
 
-  /** Its own range where it's being fitted (see #fit), as the chart library's autoscaleInfo: none, null. */
+  /** Its own autoscale info where it's asked (see autoscale): its range there and its markers' room; no range, null. */
   #own() {
     const range = this.range, asked = this.asked;
     (range[0] = Infinity), (range[1] = -Infinity);
     this.engine.extent(asked[0], asked[1], asked[2] === 1, range);
     if (!(range[0] <= range[1])) return null;
     (this.info.priceRange.minValue = range[0]), (this.info.priceRange.maxValue = range[1]);
+    this.info.margins = this.marks ? this.marks.room(this.chart.engine.time.spacing) : null;
     return this.info;
   }
 
@@ -1157,12 +1170,14 @@ class Marks {
     this.widths = new Float64Array(0);
     /** How far past its point a mark reaches (its words' half, a shape's), for a strip's. */
     this.reach = 15;
-    /** Whether it has marks above bars, below them, in them (its room at the scale's ends: see #margins). */
+    /** Whether it has marks above bars, below them, in them (its room at the scale's ends: see room). */
     this.over = false;
     this.under = false;
     this.inside = false;
-    this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i), margins: (spacing, out) => this.#margins(spacing, out) }), series.side);
+    this.margins = { above: 0, below: 0 };
+    this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i), margins: (_spacing, out) => this.#margins(out) }), series.side);
     series.pane.marks.push(this);
+    series.marks = this;
     series.pane.dirty = true;
     series.chart.changed();
     this.setMarkers(list);
@@ -1182,6 +1197,7 @@ class Marks {
     const pane = this.series.pane;
     pane.engine.remove(this.engine);
     pane.marks = pane.marks.filter((each) => each !== this);
+    if (this.series.marks === this) this.series.marks = null;
     this.series.chart.engine.invalidate(true);
   }
 
@@ -1200,15 +1216,29 @@ class Marks {
   }
 
   /**
-   * The room its marks keep clear at its scale's ends, as the plugin's: a mark's height and a half and two margins
-   * (by the spacing) over the range where it has marks above bars, under it where below, half where only in them; none
-   * while its series is hidden.
-   * @param {number} spacing @param {Float64Array} out
+   * The room its marks keep clear at its scale's ends, as the plugin's (its series' autoscale info carries it): a
+   * mark's height and a half and two margins (by `spacing`) over the range where it has marks above bars, under it
+   * where below, half where only in them; none without marks.
+   * @param {number} spacing
    */
-  #margins(spacing, out) {
-    if (!this.list.length || this.series.engine.hidden) return;
+  room(spacing) {
+    if (!this.list.length) return null;
     const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) * 1.5 + Math.max(odd(unit * 0.1), 3) * 2;
-    (out[0] = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (out[1] = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
+    (this.margins.above = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (this.margins.below = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
+    return this.margins;
+  }
+
+  /**
+   * Its series' room at the scale's ends, by its autoscale info as the chart library read it: none where it has no
+   * range in view, or its provider gives none (Studio's 100% stacks: a range alone); none while it's hidden.
+   * @param {Float64Array} out
+   */
+  #margins(out) {
+    const series = this.series;
+    if (series.marks !== this || series.engine.hidden) return;
+    const time = series.chart.engine.time, info = series.autoscale(Math.ceil(time.from), Math.floor(time.to), series.scaleApi.scale?.mode === "log");
+    const margins = info?.priceRange ? info.margins : null;
+    if (margins) (out[0] = margins.above), (out[1] = margins.below);
   }
 
   /**

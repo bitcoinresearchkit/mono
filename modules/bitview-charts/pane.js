@@ -481,6 +481,12 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
+    // (No more than half the room its shares leave: a small pane's range kept the right way up.)
+    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2;
+    if (above + below > free) {
+      const k = Math.max(0, free) / (above + below);
+      (above *= k), (below *= k);
+    }
     if (auto) (scale.above = above), (scale.below = below), scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
