@@ -816,14 +816,15 @@ class Series {
   }
 
   /**
-   * Its last row, at the same time, set in place (a live price within its interval, each second): a line's or candles'
-   * point (no colors of its own), its rows and values its own copies (made once: Studio's arrays never written), nothing
-   * made again but that point; its pane alone drawn anew. Whether it was.
+   * Its last row, at the same time, set in place (a live price within its interval, each second): a line's, bars', an
+   * area's (its edge's: their values one array; not a stacked one's, the band over it on it too) or candles' point, its
+   * rows and values its own copies (made once: Studio's arrays never written), nothing made again but that point; its
+   * pane alone drawn anew. Whether it was.
    * @param {any} row
    */
   #updateLast(row) {
     const n = this.times.length, engine = this.engine, last = n - 1;
-    if (!n || this.dirty || Number(row.time) !== this.times[last] || !(engine instanceof Candles || engine.constructor === Line)) return false;
+    if (!n || this.dirty || Number(row.time) !== this.times[last] || this.painted || this.opts.bvBandFill) return false;
     const i = indexOf(this.chart.times, this.times[last]);
     if (i < 0) return false;
     if (this.rows) {
@@ -833,6 +834,7 @@ class Series {
     const value = row.value ?? row.close ?? NaN;
     (this.values[last] = value), (this.columns[i] = value);
     if (engine instanceof Candles) engine.set(i, row.open ?? NaN, row.high ?? NaN, row.low ?? NaN, row.close ?? NaN);
+    else if (engine instanceof Band) /** @type {Line} */ (this.edge).set(i, value), engine.set({});
     else engine.set(i, value);
     this.chart.engine.invalidate();
     return true;
