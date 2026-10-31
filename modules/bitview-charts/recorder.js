@@ -298,7 +298,8 @@ function bordering(fills, from, to, x, y, flat, at, inward, a, b, bx0, by0, bx1,
 let covers = new Float64Array(64), pieces = new Float64Array(64), splits = new Float64Array(64);
 
 /**
- * How far a point is from a segment's part within a box (Liang and Barsky's clipping; none in it: Infinity).
+ * How far a point is from a segment's part within a box (Liang and Barsky's clipping; none in it, or a point of it
+ * alone (an edge touching the box: what it bounds is outside it): Infinity).
  * @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
  * @param {number} bx0 @param {number} by0 @param {number} bx1 @param {number} by1
  */
@@ -306,7 +307,7 @@ function clipped(x, y, x0, y0, x1, y1, bx0, by0, bx1, by1) {
   const dx = x1 - x0, dy = y1 - y0;
   span[0] = 0;
   span[1] = 1;
-  if (!within(-dx, x0 - bx0) || !within(dx, bx1 - x0) || !within(-dy, y0 - by0) || !within(dy, by1 - y0)) return Infinity;
+  if (!within(-dx, x0 - bx0) || !within(dx, bx1 - x0) || !within(-dy, y0 - by0) || !within(dy, by1 - y0) || !(span[0] < span[1])) return Infinity;
   return toSegment(x, y, x0 + span[0] * dx, y0 + span[0] * dy, x0 + span[1] * dx, y0 + span[1] * dy);
 }
 
@@ -351,9 +352,9 @@ export function measure(series, time, scale, x, y, reach = 8) {
     // (Clipped to nothing: nothing painted.)
     if (!(bx1 > bx0 && by1 > by0)) continue;
     // (Clipped to a box (a baseline's half): the point outside it, measured to the nearest point of the box where
-    // that's painted; else, as inside, to its edges within the box.)
+    // it's painted just inside (not its outline past the box); else, as inside, to its edges within the box.)
     const qx = Math.min(Math.max(x, bx0), bx1), qy = Math.min(Math.max(y, by0), by1);
-    if ((qx !== x || qy !== y) && winding(fills, from, to, qx, qy) !== 0) {
+    if ((qx !== x || qy !== y) && winding(fills, from, to, qx + (x < bx0 ? 1e-3 : x > bx1 ? -1e-3 : 0), qy + (y < by0 ? 1e-3 : y > by1 ? -1e-3 : 0)) !== 0) {
       best = Math.min(best, Math.hypot(x - qx, y - qy));
       continue;
     }
