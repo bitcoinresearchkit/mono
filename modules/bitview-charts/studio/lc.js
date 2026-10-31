@@ -16,7 +16,6 @@ export const LineType = { Simple: 0, WithSteps: 1, Curved: 2 };
 export const ColorType = { Solid: "solid", VerticalGradient: "gradient" };
 export const CrosshairMode = { Normal: 0, Magnet: 1, Hidden: 2, MagnetOHLC: 3 };
 export const TrackingModeExitMode = { OnTouchEnd: 0, OnNextTap: 1 };
-export const MismatchDirection = { NearestLeft: -1, None: 0, NearestRight: 1 };
 export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right" };
 
 /** @param {HTMLElement} element @param {any} [options] */
@@ -697,11 +696,6 @@ class Series {
     return this.scaleApi;
   }
 
-  priceFormatter() {
-    const format = this.opts.priceFormat?.formatter;
-    return { format: (/** @type {number} */ v) => (format ? format(v) : String(v)) };
-  }
-
   /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */
   dataByIndex(index, mismatch = 0) {
     const times = this.chart.times, columns = this.columns;
@@ -795,7 +789,7 @@ class Series {
   /** Its lines across' values on its axis on `side`, each in its color. @param {number} side @param {(y: number, text: string, color: string) => void} add */
   #levelTags(side, add) {
     if ((this.side === "left" ? 1 : 0) !== side) return;
-    const format = this.priceFormatter().format;
+    const format = this.opts.priceFormat?.formatter ?? String;
     for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(this.chart.engine.y(this.engine, line.opts.price), format(line.opts.price), line.opts.color);
   }
 

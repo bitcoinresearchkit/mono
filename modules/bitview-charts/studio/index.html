@@ -16340,6 +16340,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const seriesValue = (series, y) => (series ? engine.value(series.engine, y) : NaN);
       /** The pane a drawn series is in (its index; none, -1). @param {any} series */
       const seriesPane = (series) => engine.panes.findIndex((pane) => pane.series.includes(series?.engine));
+      /** The scale a drawn series is on (its side's, or its own); none, undefined. @param {any} series */
+      const seriesScale = (series) => ((pane) => pane?.scaleOf(pane.series.indexOf(series.engine)))(engine.panes[seriesPane(series)]);
+      /** How each layer's values are written, as its scale writes them (a 100% stack's in percent), as last built. @type {Map<string, (value: number) => string>} */
+      const layerFormats = new Map();
       /** The crosshair on a drawn series' value at a date (its first point at or after it; past the last, none). @param {number} value @param {number} time @param {any} series */
       const crossOn = (value, time, series) => {
         const times = engine.time.times, i = lowerBound(times, time), y = seriesY(series, value), pane = engine.panes.find((pane) => pane.series.includes(series?.engine));
@@ -16737,9 +16741,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function tintClose(id) {
         const close = closes.get(id);
         if (!close || close.dated) return;
-        const n = engine.time.length, at = n ? clamp(Math.ceil(engine.time.to), 0, n - 1) : null;
-        const bar = close.candles.dataByIndex(at ?? Number.MAX_SAFE_INTEGER, LC.MismatchDirection.NearestLeft);
-        const color = candlesFit && bar && "close" in bar && bar.close < bar.open ? close.fall : close.rise;
+        // (Its last candle at or before the view's end: the library's columns.)
+        const candles = close.candles.engine;
+        let i = Math.min(Math.ceil(engine.time.to), candles.close.length - 1);
+        while (i >= 0 && !(candles.close[i] === candles.close[i])) i--;
+        const color = candlesFit && i >= 0 && candles.close[i] < candles.open[i] ? close.fall : close.rise;
         if (color === close.paint.color) return;
         close.paint = { color };
         // (Faded, as it'll be once lit again: see spotlight.)
@@ -17127,6 +17133,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ? { type: /** @type {const} */ ("custom"), formatter: (value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)), minMove: 1e-9 }
               : { type: /** @type {const} */ ("custom"), formatter: (value) => precise(value), tickmarksFormatter: (values) => axisTicks(values), minMove: 1e-9 },
           };
+          layerFormats.set(layer.id, common.priceFormat.formatter);
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
@@ -20685,14 +20692,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          * as the chart's own labels do (its percent from it, or 100 at it).
          */
         valueText() {
-          const series = this.series, mode = series.priceScale().options().mode;
-          if (mode < 2) return (/** @type {number} */ value) => series.priceFormatter().format(value);
-          const from = shownSpan()?.from, row = from === undefined ? null : series.dataByIndex(Math.floor(from), LC.MismatchDirection.NearestRight);
-          const base = row?.close ?? row?.value;
+          const series = this.series, scale = seriesScale(series), write = layerFormats.get(this.layer) ?? precise;
+          if (!scale?.relative) return write;
+          // (Its first value in view: what its scale reads against.)
+          const from = shownSpan()?.from, base = from === undefined ? NaN : series.engine.first(Math.floor(from));
           return (/** @type {number} */ value) => {
             if (!base) return "";
             const change = (100 * (value - base)) / Math.abs(base);
-            return mode === 2 ? precise(change, "%") : precise(base < 0 ? change - 100 : change + 100);
+            return scale.mode === "percent" ? precise(change, "%") : precise(base < 0 ? change - 100 : change + 100);
           };
         }
         timeAxisViews() {
