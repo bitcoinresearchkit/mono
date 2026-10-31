@@ -82,9 +82,12 @@ where
             .filter_block_partitioning_policy(PartitioningPolicy::new([false, false, true]))
             .index_block_partitioning_policy(PartitioningPolicy::new([false, false, true]));
 
+        // Random and Recent serve point reads of hashed keys, which LZ4 barely shrinks:
+        // decompressing every block they read was about a fifth of the indexer's lookup CPU.
         match kind {
             Kind::Random => {
                 options = options
+                    .data_block_compression(CompressionType::None)
                     .filter_block_pinning_policy(PinningPolicy::new([true, true, true, false]))
                     .filter_policy(FilterPolicy::new([
                         FilterPolicyEntry::Bloom(BloomConstructionPolicy::FalsePositiveRate(
@@ -97,6 +100,7 @@ where
             }
             Kind::Recent => {
                 options = options
+                    .data_block_compression(CompressionType::None)
                     .expect_point_read_hits(true)
                     .filter_policy(FilterPolicy::new([
                         FilterPolicyEntry::Bloom(BloomConstructionPolicy::FalsePositiveRate(

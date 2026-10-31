@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use lsm_tree::{Config, RecordBytes, Result as TreeResult, Tree};
+use lsm_tree::{CompressionType, Config, RecordBytes, Result as TreeResult, Tree};
 
 use crate::{
     config::{
@@ -14,6 +14,7 @@ use crate::{
 pub struct CreateOptions {
     pub(super) compaction: fn(&Tree) -> TreeResult<()>,
     data_block_restart_interval_policy: RestartIntervalPolicy,
+    data_block_compression: CompressionType,
     index_block_pinning_policy: PinningPolicy,
     filter_block_pinning_policy: PinningPolicy,
     filter_block_partitioning_policy: PartitioningPolicy,
@@ -28,6 +29,7 @@ impl Default for CreateOptions {
             compaction: Tree::compact,
             // Shorter scans in recent tables; keep denser indexes in deeper levels.
             data_block_restart_interval_policy: RestartIntervalPolicy::new([4, 4, 16]),
+            data_block_compression: CompressionType::Lz4,
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
             index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
@@ -56,6 +58,13 @@ impl CreateOptions {
     #[must_use]
     pub fn data_block_restart_interval_policy(mut self, policy: RestartIntervalPolicy) -> Self {
         self.data_block_restart_interval_policy = policy;
+        self
+    }
+
+    /// Sets the compression of new tables' data blocks (LZ4 by default).
+    #[must_use]
+    pub fn data_block_compression(mut self, compression: CompressionType) -> Self {
+        self.data_block_compression = compression;
         self
     }
 
@@ -109,6 +118,7 @@ impl CreateOptions {
             .use_cache(database.cache.clone())
             .use_descriptor_table(database.descriptor_table.clone())
             .data_block_restart_interval_policy(self.data_block_restart_interval_policy)
+            .data_block_compression(self.data_block_compression)
             .index_block_pinning_policy(self.index_block_pinning_policy)
             .filter_block_pinning_policy(self.filter_block_pinning_policy)
             .index_block_partitioning_policy(self.index_block_partitioning_policy)
