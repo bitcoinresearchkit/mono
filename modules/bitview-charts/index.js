@@ -73,6 +73,8 @@ export class Chart {
     this.crosshairListeners = [];
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
+    /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
+    this.resizing = false;
     /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
     this.clickListeners = [];
     /** @type {Pane[]} */
@@ -348,7 +350,7 @@ export class Chart {
     // (Let go: the panes, shown stretched as it went, laid out at their new heights.)
     const stopSizing = () => {
       const was = sizing;
-      (sizing = null), (sizer = -1);
+      (sizing = null), (sizer = -1), (this.resizing = false);
       was ? this.layout() : this.invalidate(true);
     };
     /** The separator under a height in the chart (the pane over it), or -1. @param {number} y @param {boolean} touch */
@@ -374,7 +376,7 @@ export class Chart {
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.glide.speed = 0), this.setCrosshair(NaN));
+      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.glide.speed = 0), this.setCrosshair(NaN));
       const touch = event.pointerType === "touch";
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch });
       this.glide.speed = 0;
@@ -400,6 +402,8 @@ export class Chart {
     }, { signal });
     element.addEventListener("pointermove", (event) => {
       if (sizer === event.pointerId) return void (sizing && !this.#size(sizing[0], sizing[1], event.clientY - element.getBoundingClientRect().top) && stopSizing());
+      // (Another pointer meanwhile (a mouse beside a finger): nothing, its panes shown stretched.)
+      if (this.resizing) return;
       const at = down.get(event.pointerId);
       if (!at && event.pointerType === "mouse") {
         // (A mouse over a separator: it shows it can be dragged, no crosshair there.)
@@ -476,10 +480,12 @@ export class Chart {
   }
 
   /**
-   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn), or null.
+   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn), or null (none
+   * while a separator's dragged: its panes shown stretched).
    * @param {number} x @param {number} y
    */
   tagAt(x, y) {
+    if (this.resizing) return null;
     for (const pane of this.panes) {
       if (y < pane.top || y >= pane.top + pane.height) continue;
       if (x >= this.left + pane.plot && x < this.left + pane.width) return pane.lineAt(0, y - pane.top);

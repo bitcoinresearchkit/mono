@@ -108,7 +108,7 @@ export class TimeAxis {
   /**
    * Its labels for the view, none under a page's tag: by the finest step leaving room between them; where that one
    * has no start in view (a few days of data in a narrow stretch: no month begins in them), the finer ones in turn, down
-   * to its points' own spacing (finer would label no more).
+   * to its closest points' spacing in view (finer would name no more).
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    */
   #labels(time, theme, plot, page) {
@@ -120,12 +120,15 @@ export class TimeAxis {
     const perPx = (times[b] - times[a]) / Math.max(1, time.x(b) - time.x(a));
     let k = 0;
     while (k < STEPS.length - 1 && STEPS[k][0] / perPx < ROOM) k++;
-    const apart = (times[b] - times[a]) / (b - a);
-    while (!this.#row(time, theme, plot, page, a, b, STEPS[k]) && k > 0 && STEPS[k - 1][0] >= apart) k--;
+    if (this.#row(time, theme, plot, page, a, b, STEPS[k])) return;
+    let gap = Infinity;
+    for (let i = a + 1; i <= b; i++) if (times[i] - times[i - 1] < gap) gap = times[i] - times[i - 1];
+    while (k > 0 && STEPS[k - 1][0] >= gap && !this.#row(time, theme, plot, page, a, b, STEPS[--k]));
   }
 
   /**
-   * Its labels from point `a` to `b` by `step`, at least ROOM apart: how many it drew.
+   * Its labels from point `a` to `b` by `step`, at least ROOM apart, each at the first point within a step (none
+   * where the data skips a whole step: a weekend's days not named on the Monday): how many it drew.
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
    */
@@ -142,15 +145,13 @@ export class TimeAxis {
     let y = unit === "year" ? Math.floor(civilYear / size) * size : civilYear, m = unit === "month" ? Math.floor(civilMonth / size) * size : 0;
     let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity;
     for (let guard = 0; guard < 400 && t <= times[b]; guard++) {
-      const i = at(times, t);
-      if (i <= b) {
+      const i = at(times, t), next = unit === "year" ? Date.UTC((y += size), 0, 1) / 1000 : unit === "month" ? Date.UTC(y, (m += size), 1) / 1000 : t + seconds;
+      if (i <= b && times[i] < next) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
         if (x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(t), x, this.height / 2), (last = x), drawn++);
       }
-      if (unit === "year") t = Date.UTC((y += size), 0, 1) / 1000;
-      else if (unit === "month") t = Date.UTC(y, (m += size), 1) / 1000;
-      else t += seconds;
+      t = next;
     }
     return drawn;
   }
