@@ -221,6 +221,18 @@ function winding(fills, from, to, x, y) {
 }
 
 /**
+ * Whether a fill's edge (at `k` in fills) bounds what it paints: its winding nonzero just beside its middle, either
+ * side (a hundredth of a pixel off: a thin band's too).
+ * @param {Float64Array} fills @param {number} from @param {number} to @param {number} k
+ */
+function bounds(fills, from, to, k) {
+  const x0 = fills[k], y0 = fills[k + 1], dx = fills[k + 2] - x0, dy = fills[k + 3] - y0, length = Math.hypot(dx, dy);
+  if (!(length > 0)) return false;
+  const mx = x0 + dx / 2, my = y0 + dy / 2, nx = (-dy / length) * 0.01, ny = (dx / length) * 0.01;
+  return winding(fills, from, to, mx + nx, my + ny) !== 0 || winding(fills, from, to, mx - nx, my - ny) !== 0;
+}
+
+/**
  * How far a point is from a segment's part within a box (Liang and Barsky's clipping; none in it: Infinity).
  * @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
  * @param {number} bx0 @param {number} by0 @param {number} bx1 @param {number} by1
@@ -271,10 +283,6 @@ export function measure(series, time, scale, x, y, reach = 8) {
   for (let k = 0; k < strokeCount * 4; k += 4) best = Math.min(best, toSegment(x, y, strokes[k], strokes[k + 1], strokes[k + 2], strokes[k + 3]));
   for (let f = 0, from = 0; f < fillsMade; from = fillEnds[f++]) {
     const to = fillEnds[f], c = f * 4, bx0 = fillClips[c], by0 = fillClips[c + 1], bx1 = fillClips[c + 2], by1 = fillClips[c + 3];
-    // (One that encloses nothing (a bar at its base, a band its edges together) paints nothing.)
-    let area = 0;
-    for (let k = from * 4; k < to * 4; k += 4) area += fills[k] * fills[k + 3] - fills[k + 2] * fills[k + 1];
-    if (Math.abs(area) < 1e-9) continue;
     // (Clipped to a box (a baseline's half): the point outside it, measured to the nearest point of the box where
     // that's painted; else, as inside, to its edges within the box.)
     const qx = Math.min(Math.max(x, bx0), bx1), qy = Math.min(Math.max(y, by0), by1);
@@ -282,7 +290,9 @@ export function measure(series, time, scale, x, y, reach = 8) {
       best = Math.min(best, Math.hypot(x - qx, y - qy));
       continue;
     }
-    for (let k = from * 4; k < to * 4; k += 4) best = Math.min(best, clipped(x, y, fills[k], fills[k + 1], fills[k + 2], fills[k + 3], bx0, by0, bx1, by1));
+    // (Its edges where paint lies beside them: one that encloses nothing (a bar at its base, a band its edges
+    // together) paints nothing there.)
+    for (let k = from * 4; k < to * 4; k += 4) if (bounds(fills, from, to, k)) best = Math.min(best, clipped(x, y, fills[k], fills[k + 1], fills[k + 2], fills[k + 3], bx0, by0, bx1, by1));
     inside ||= qx === x && qy === y && winding(fills, from, to, x, y) !== 0;
   }
   for (let k = 0; k < dotCount * 3; k += 3) best = Math.min(best, Math.max(0, Math.hypot(x - dots[k], y - dots[k + 1]) - dots[k + 2]));
