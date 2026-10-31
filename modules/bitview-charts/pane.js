@@ -25,6 +25,8 @@ import { Tags } from "./tags.js";
 const SLOW = 8;
 /** A price line's dots; none (made once). */
 const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
+/** A series' room at its scale's ends, as its margins write it (made once). */
+const ROOM = new Float64Array(2);
 /** A tag's height, and the least room between two (CSS pixels). */
 const TAG = 18;
 /**
@@ -33,8 +35,9 @@ const TAG = 18;
  * moves (its pane drawn whole each frame, its picture never moved); `over`, drawn over everything, the crosshair too,
  * on a layer of its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its
  * side's scale (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading:
- * none of it, a fixed range, its own and 0; none given, its extent). How far a point is from it: at index `i` (and `x` CSS pixels into the plot),
- * `y` from the pane's top.
+ * none of it, a fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends
+ * (CSS pixels over and under the range, by the points' spacing: its marks over bars). How far a point is from it: at
+ * index `i` (and `x` CSS pixels into the plot), `y` from the pane's top.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -42,6 +45,7 @@ const TAG = 18;
  *   over?: boolean,
  *   scaled?: boolean,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
+ *   margins?(spacing: number, out: Float64Array): void,
  *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
@@ -448,11 +452,17 @@ export class Pane {
     out[1] = -Infinity;
     // (Not relative: each read as it is (a relative mode left, its reading gone too).)
     if (!relative) scale.setBase(NaN);
-    let same = true;
+    let same = true, above = 0, below = 0;
     const a = Math.ceil(time.from), b = Math.floor(time.to);
     for (let k = 0; k < n; k++) {
       if (this.sides[k] !== side || this.series[k].hidden) continue;
       const series = this.series[k];
+      // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
+      if (series.margins) {
+        (ROOM[0] = 0), (ROOM[1] = 0), series.margins(time.spacing, ROOM);
+        if (ROOM[0] > above) above = ROOM[0];
+        if (ROOM[1] > below) below = ROOM[1];
+      }
       if (!relative) {
         if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out);
         continue;
@@ -471,7 +481,7 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
-    if (auto) scale.fit(out[0], out[1]);
+    if (auto) (scale.above = above), (scale.below = below), scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
 

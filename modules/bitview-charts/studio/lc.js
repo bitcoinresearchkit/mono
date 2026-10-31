@@ -1157,7 +1157,11 @@ class Marks {
     this.widths = new Float64Array(0);
     /** How far past its point a mark reaches (its words' half, a shape's), for a strip's. */
     this.reach = 15;
-    this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i) }), series.side);
+    /** Whether it has marks above bars, below them, in them (its room at the scale's ends: see #margins). */
+    this.over = false;
+    this.under = false;
+    this.inside = false;
+    this.engine = series.pane.engine.add(new Custom({ draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1), first: (i) => series.engine.first(i), margins: (spacing, out) => this.#margins(spacing, out) }), series.side);
     series.pane.marks.push(this);
     series.pane.dirty = true;
     series.chart.changed();
@@ -1188,8 +1192,23 @@ class Marks {
     this.at = Int32Array.from(list, (mark) => indexOf(times, Number(mark.time)));
     this.widths = Float64Array.from(list, (mark) => (mark.text ? g.measureText(mark.text).width : 0));
     this.reach = 18 + Math.max(0, ...this.widths) / 2;
+    this.over = list.some((mark) => mark.position === "aboveBar");
+    this.under = list.some((mark) => mark.position === "belowBar");
+    this.inside = list.some((mark) => mark.position === "inBar");
     this.engine.changed();
     this.series.chart.engine.invalidate(true);
+  }
+
+  /**
+   * The room its marks keep clear at its scale's ends, as the plugin's: a mark's height and a half and two margins
+   * (by the spacing) over the range where it has marks above bars, under it where below, half where only in them; none
+   * while its series is hidden.
+   * @param {number} spacing @param {Float64Array} out
+   */
+  #margins(spacing, out) {
+    if (!this.list.length || this.series.engine.hidden) return;
+    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) * 1.5 + Math.max(odd(unit * 0.1), 3) * 2;
+    (out[0] = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (out[1] = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
   }
 
   /**

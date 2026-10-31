@@ -302,7 +302,7 @@ export class Line {
     const from = time.from, span = time.to - time.from, width = time.width;
     // (Its y: bottom - k * (t - ta), t the value as its scale reads it (v * m + c: as it is, or relative), or its log,
     // from the scale's low end: no large terms cancelling.)
-    const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height, room = scale.height - top - scale.bottom * scale.height;
+    const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c;
     // (Each column from where the last one ended: its start computed once.)
     let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width);

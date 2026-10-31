@@ -1,18 +1,19 @@
 // @ts-check
-// A series of a page's own: what it draws (bubbles, a heatmap, a drawing, marks at dates), drawn by its hooks as part of
-// its pane's picture, in the order added (the last on top): a pan moves it with the rest, a zoom draws it anew. `draw`
-// is given the canvas (in CSS pixels, clipped to the strip being drawn) and the pane's view: its timeline (`x(i)`,
-// `index(x)`, `spacing`, `from`, `to`, `times`), its scale (`y(v)`, `value(y)`, its mode, its range), the strip (`x0`,
-// `x1`) and the device pixels a CSS pixel (`dpr`). Optional: `extent` (its lowest and highest from index `a` to `b`,
-// widening `out`: the pane fitted to it too), `first` (its first value at or after an index: a relative scale's base)
-// and `distance` (how far a point is from it, in CSS pixels: at index `i`, `x` into the plot, `y` from the pane's top;
-// none, it's never hit), `axisTags` (its own tags on a price axis: its side's, 0 the right, 1 the left; each at a
-// height in its pane, its words, its color; asked as the axis is drawn: whole, or its tags' view's end moved, so a
-// change of them is a change of it, see changed()) and `timeTags` (on the time axis, at an x in the plot: asked each
-// frame). Its options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
-// edge: its pane drawn whole each frame) or `over` (drawn over everything, the crosshair too, on its pane's layer over
-// it, whole each frame: labels and handles placed in the plot, its pane's picture moved without them). After a change
-// of what it draws, `changed()`, then the chart's invalidate().
+// A series of a page's own: what it draws (bubbles, a heatmap, a drawing, marks at dates), drawn by its hooks as part
+// of its pane's picture, in the order added (the last on top): a pan moves it with the rest, a zoom draws it anew.
+// `draw` is given the canvas (in CSS pixels, clipped to the strip being drawn) and the pane's view: its timeline
+// (`x(i)`, `index(x)`, `spacing`, `from`, `to`, `times`), its scale (`y(v)`, `value(y)`, its mode, its range), the
+// strip (`x0`, `x1`) and the device pixels a CSS pixel (`dpr`). Optional: `extent` (its lowest and highest from index
+// `a` to `b`, widening `out`: the pane fitted to it too), `first` (its first value at or after an index: a relative
+// scale's base) and `distance` (how far a point is from it, in CSS pixels: at index `i`, `x` into the plot, `y` from
+// the pane's top; none, it's never hit), `axisTags` (its own tags on a price axis: its side's, 0 the right, 1 the left;
+// each at a height in its pane, its words, its color; asked as the axis is drawn: whole, or its tags' view's end moved,
+// so a change of them is a change of it, see changed()), `timeTags` (on the time axis, at an x in the plot: asked each
+// frame) and `margins` (room it keeps clear at its scale's ends, by the points' spacing: CSS pixels over its highest
+// and under its lowest, into `out`: its marks over and under bars). Its options: `fixed` (what it draws holds its place
+// as the view moves, a mark at the plot's edge: its pane drawn whole each frame) or `over` (drawn over everything, the
+// crosshair too, on its pane's layer over it, whole each frame: labels and handles placed in the plot, its pane's
+// picture moved without them). After a change of what it draws, `changed()`, then the chart's invalidate().
 
 /**
  * @typedef {{ time: import("./timeline.js").Timeline, scale: import("./scale.js").Scale, x0: number, x1: number, dpr: number }} View
@@ -23,6 +24,7 @@
  *   distance?: (i: number, y: number, scale: import("./scale.js").Scale, x: number) => number,
  *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void) => void,
  *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
+ *   margins?: (spacing: number, out: Float64Array) => void,
  * }} Hooks
  */
 
@@ -54,6 +56,11 @@ export class Custom {
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
   extent(a, b, positive, out) {
     this.hooks.extent?.(a, b, positive, out);
+  }
+
+  /** The room it keeps clear at its scale's ends (its hook's: none, none). @param {number} spacing @param {Float64Array} out */
+  margins(spacing, out) {
+    this.hooks.margins?.(spacing, out);
   }
 
   /** How far a point is from it (its hook's; none: it's never hit). @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x */

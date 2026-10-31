@@ -17,9 +17,11 @@ export class Scale {
     // (A relative scale's reading of the series drawn now: t = v * m + c.)
     this.m = 1;
     this.c = 0;
-    /** Room kept at the top and the bottom, as shares of the height. */
+    /** Room kept at the top and the bottom, as shares of the height; and more, in CSS pixels (its series' marks over their points: see Pane's fit). */
     this.top = top;
     this.bottom = bottom;
+    this.above = 0;
+    this.below = 0;
     /** The range shown, as values. */
     this.lo = 0;
     this.hi = 1;
@@ -33,6 +35,8 @@ export class Scale {
     this.drawnHeight = NaN;
     this.drawnTop = NaN;
     this.drawnBottom = NaN;
+    this.drawnAbove = NaN;
+    this.drawnBelow = NaN;
     this.drawnMode = "";
     this.drawnEmpty = false;
   }
@@ -74,30 +78,30 @@ export class Scale {
 
   /** The y of a value (NaN for none, or one a log scale can't show). @param {number} v */
   y(v) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
     return top + (1 - (this.#t(v) - a) / (b - a)) * room;
   }
 
   /** The y of a value in its own terms (a tick's, a relative scale's percent or index: not read against a base). @param {number} t */
   own(t) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
     return top + (1 - (this.#end(t) - a) / (b - a)) * room;
   }
 
   /** The value at a y, in its own terms. @param {number} y */
   value(y) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
     const t = a + (1 - (y - top) / room) * (b - a);
     return this.mode === "log" ? 10 ** t : t;
   }
 
   /** Whether it shows what it showed when last drawn. */
   get unchanged() {
-    return this.drawnLo === this.lo && this.drawnHi === this.hi && this.drawnHeight === this.height && this.drawnTop === this.top && this.drawnBottom === this.bottom && this.drawnMode === this.mode && this.drawnEmpty === this.empty;
+    return this.drawnLo === this.lo && this.drawnHi === this.hi && this.drawnHeight === this.height && this.drawnTop === this.top && this.drawnBottom === this.bottom && this.drawnAbove === this.above && this.drawnBelow === this.below && this.drawnMode === this.mode && this.drawnEmpty === this.empty;
   }
 
   drawnNow() {
-    (this.drawnLo = this.lo), (this.drawnHi = this.hi), (this.drawnHeight = this.height), (this.drawnTop = this.top), (this.drawnBottom = this.bottom), (this.drawnMode = this.mode), (this.drawnEmpty = this.empty);
+    (this.drawnLo = this.lo), (this.drawnHi = this.hi), (this.drawnHeight = this.height), (this.drawnTop = this.top), (this.drawnBottom = this.bottom), (this.drawnAbove = this.above), (this.drawnBelow = this.below), (this.drawnMode = this.mode), (this.drawnEmpty = this.empty);
   }
 
   /**
