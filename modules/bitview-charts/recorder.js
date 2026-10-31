@@ -206,6 +206,45 @@ function grown(buffer) {
   return next;
 }
 
+/**
+ * A fill's winding round a point as the canvas fills it, nonzero: its edges a ray to the right crosses, up one way,
+ * down the other (none: outside it).
+ * @param {Float64Array} fills @param {number} from @param {number} to @param {number} x @param {number} y
+ */
+function winding(fills, from, to, x, y) {
+  let sum = 0;
+  for (let k = from * 4; k < to * 4; k += 4) {
+    const x0 = fills[k], y0 = fills[k + 1], x1 = fills[k + 2], y1 = fills[k + 3];
+    if (y0 > y !== y1 > y && x < x0 + ((y - y0) * (x1 - x0)) / (y1 - y0)) sum += y1 > y0 ? 1 : -1;
+  }
+  return sum;
+}
+
+/**
+ * How far a point is from a segment's part within a box (Liang and Barsky's clipping; none in it: Infinity).
+ * @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1
+ * @param {number} bx0 @param {number} by0 @param {number} bx1 @param {number} by1
+ */
+function clipped(x, y, x0, y0, x1, y1, bx0, by0, bx1, by1) {
+  const dx = x1 - x0, dy = y1 - y0;
+  span[0] = 0;
+  span[1] = 1;
+  if (!within(-dx, x0 - bx0) || !within(dx, bx1 - x0) || !within(-dy, y0 - by0) || !within(dy, by1 - y0)) return Infinity;
+  return toSegment(x, y, x0 + span[0] * dx, y0 + span[0] * dy, x0 + span[1] * dx, y0 + span[1] * dy);
+}
+
+/** The part of a segment kept by the box's sides so far (from, to: 0 to 1), as clipped() narrows it (made once). */
+const span = new Float64Array(2);
+
+/** One of the box's sides narrowing `span` (p, q as Liang and Barsky write them): whether any of it is left. @param {number} p @param {number} q */
+function within(p, q) {
+  if (p === 0) return q >= 0;
+  const r = q / p;
+  if (p < 0) span[0] = Math.max(span[0], r);
+  else span[1] = Math.min(span[1], r);
+  return span[0] <= span[1];
+}
+
 /** How far a point is from a segment. @param {number} x @param {number} y @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
 function toSegment(x, y, x0, y0, x1, y1) {
   const dx = x1 - x0, dy = y1 - y0, length = dx * dx + dy * dy, t = length ? Math.min(1, Math.max(0, ((x - x0) * dx + (y - y0) * dy) / length)) : 0;
@@ -231,18 +270,20 @@ export function measure(series, time, scale, x, y, reach = 8) {
   const { strokes, strokeCount, fills, fillEnds, fillClips, fillsMade, dots, dotCount } = recorder;
   for (let k = 0; k < strokeCount * 4; k += 4) best = Math.min(best, toSegment(x, y, strokes[k], strokes[k + 1], strokes[k + 2], strokes[k + 3]));
   for (let f = 0, from = 0; f < fillsMade; from = fillEnds[f++]) {
-    // (A fill clipped to a box the point's outside: none of it there.)
-    const c = f * 4;
-    if (x < fillClips[c] || y < fillClips[c + 1] || x > fillClips[c + 2] || y > fillClips[c + 3]) continue;
-    // (Inside a fill as the canvas fills it, nonzero: its edges' windings round the point (those a ray to the right
-    // crosses, up one way, down the other) not summing to none.)
-    let winding = 0;
-    for (let k = from * 4; k < fillEnds[f] * 4; k += 4) {
-      const x0 = fills[k], y0 = fills[k + 1], x1 = fills[k + 2], y1 = fills[k + 3];
-      best = Math.min(best, toSegment(x, y, x0, y0, x1, y1));
-      if (y0 > y !== y1 > y && x < x0 + ((y - y0) * (x1 - x0)) / (y1 - y0)) winding += y1 > y0 ? 1 : -1;
+    const to = fillEnds[f], c = f * 4, bx0 = fillClips[c], by0 = fillClips[c + 1], bx1 = fillClips[c + 2], by1 = fillClips[c + 3];
+    // (One that encloses nothing (a bar at its base, a band its edges together) paints nothing.)
+    let area = 0;
+    for (let k = from * 4; k < to * 4; k += 4) area += fills[k] * fills[k + 3] - fills[k + 2] * fills[k + 1];
+    if (Math.abs(area) < 1e-9) continue;
+    // (Clipped to a box (a baseline's half): the point outside it, measured to the nearest point of the box where
+    // that's painted; else, as inside, to its edges within the box.)
+    const qx = Math.min(Math.max(x, bx0), bx1), qy = Math.min(Math.max(y, by0), by1);
+    if ((qx !== x || qy !== y) && winding(fills, from, to, qx, qy) !== 0) {
+      best = Math.min(best, Math.hypot(x - qx, y - qy));
+      continue;
     }
-    inside ||= winding !== 0;
+    for (let k = from * 4; k < to * 4; k += 4) best = Math.min(best, clipped(x, y, fills[k], fills[k + 1], fills[k + 2], fills[k + 3], bx0, by0, bx1, by1));
+    inside ||= qx === x && qy === y && winding(fills, from, to, x, y) !== 0;
   }
   for (let k = 0; k < dotCount * 3; k += 3) best = Math.min(best, Math.max(0, Math.hypot(x - dots[k], y - dots[k + 1]) - dots[k + 2]));
   return inside ? 0 : best;

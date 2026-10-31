@@ -33,6 +33,8 @@ const pen = {
   g: /** @type {CanvasRenderingContext2D | null} */ (null),
   dpr: 1,
   pass: -1,
+  /** Which colors' segments it draws, where not all (a measure's one pass: those that paint), else null. @type {Uint8Array | null} */
+  shown: null,
   // (The path drawn: on it, its last y, a run's end not written yet (NaN: none).)
   on: false,
   y: NaN,
@@ -45,14 +47,14 @@ const pen = {
   cut: false,
   /** @param {CanvasRenderingContext2D} g @param {number} dpr @param {number} pass */
   start(g, dpr, pass) {
-    (this.g = g), (this.dpr = dpr), (this.pass = pass);
+    (this.g = g), (this.dpr = dpr), (this.pass = pass), (this.shown = null);
     (this.on = false), (this.has = false), (this.runX = NaN);
   },
   /** @param {number} x @param {number} y @param {number} color @param {boolean} cut */
   to(x, y, color, cut) {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
-    if (this.has && !this.cut && (this.pass < 0 || this.color === this.pass)) {
+    if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
       if (!this.on) {
         g.moveTo(this.px, this.py);
         (this.on = true), (this.y = this.py), (this.runX = NaN);
@@ -73,7 +75,7 @@ const pen = {
   curve(c1x, c1y, c2x, c2y, x, y, color, cut) {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
-    if (this.has && !this.cut && (this.pass < 0 || this.color === this.pass)) {
+    if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
       if (!this.on) {
         g.moveTo(this.px, this.py);
         (this.on = true), (this.y = this.py), (this.runX = NaN);
@@ -458,7 +460,7 @@ export class Line {
       g.lineWidth = this.width * 3;
       g.lineJoin = "round";
       g.strokeStyle = this.outline;
-      const passes = this.dash && colors && !(measuring && this.palette.every(painted) && painted(this.color)) ? this.palette.length : 0;
+      const passes = this.dash && colors && !measuring ? this.palette.length : 0;
       for (let pass = passes ? 0 : -1; pass < passes; pass++) {
         g.beginPath();
         pen.start(g, dpr, pass);
@@ -470,15 +472,16 @@ export class Line {
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";
-    // (One stroke a color: its segments in it. Measured (see recorder.js), all of them in one, their union as drawn,
-    // where every color paints.)
-    const passes = colors && !(measuring && this.palette.every(painted) && painted(this.color)) ? this.palette.length : 0;
+    // (One stroke a color: its segments in it. Measured (see recorder.js), all of them in one pass, their union as
+    // drawn: those of its colors that paint (a stroke of some paint for it, its segments chosen by `shown`).)
+    const passes = colors && !measuring ? this.palette.length : 0, shown = colors && measuring && !this.palette.every(painted) ? Uint8Array.from(this.palette, (c) => (painted(c) ? 1 : 0)) : null;
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
-      const under = this.under, color = pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
+      const under = this.under, color = colors && measuring ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
       g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, pass);
+      pen.shown = shown;
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
