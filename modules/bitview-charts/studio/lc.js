@@ -8,7 +8,7 @@
 // and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint) and markers (its
 // signals' marks: see Marks). Not yet: primitives' axis tags, price lines of its own.
 
-import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
+import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale, channels } from "/modules/bitview-charts/index.js";
 
 export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
@@ -156,24 +156,22 @@ class Chart {
     /** @type {string[]} */
     const layers = [];
     for (let element = /** @type {HTMLElement | null} */ (this.box); element; element = element.parentElement) {
-      const color = getComputedStyle(element).backgroundColor, alpha = alphaOf(color);
+      const color = getComputedStyle(element).backgroundColor, alpha = channels(color)[3] / 255;
       if (!color || !alpha) continue;
       layers.push(color);
       if (alpha >= 1) break;
     }
     if (!layers.length) return DARK.background;
-    const ground = alphaOf(layers[layers.length - 1]) >= 1;
+    const ground = channels(layers[layers.length - 1])[3] >= 255;
     if (layers.length === 1 && ground) return layers[0];
-    // (Laid over each other on a pixel of a canvas, from the page's ground in (none opaque: the library's dark one);
-    // that pixel read back.)
-    const g = (ink ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true })));
-    g.globalCompositeOperation = "copy";
-    g.fillStyle = ground ? layers[layers.length - 1] : DARK.background;
-    g.fillRect(0, 0, 1, 1);
-    g.globalCompositeOperation = "source-over";
-    for (let k = layers.length - (ground ? 2 : 1); k >= 0; k--) (g.fillStyle = layers[k]), g.fillRect(0, 0, 1, 1);
-    const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
-    return `rgb(${r}, ${gr}, ${b})`;
+    // (Laid over each other as a canvas lays them, from the page's ground in (none opaque: the library's dark one),
+    // worked out, not drawn and read back: a browser resisting fingerprinting (Mullvad) gives a read pixel noise.)
+    const made = channels(ground ? layers[layers.length - 1] : DARK.background);
+    for (let k = layers.length - (ground ? 2 : 1); k >= 0; k--) {
+      const layer = channels(layers[k]), a = layer[3] / 255;
+      for (let c = 0; c < 3; c++) made[c] = layer[c] * a + made[c] * (1 - a);
+    }
+    return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
   }
 
   /**
@@ -1442,16 +1440,6 @@ function lowerBound(places, n, at) {
 
 /** A canvas a hit's drawing goes to (its marks found, not seen). @type {CanvasRenderingContext2D | null} */
 let unseen = null;
-
-/** A pixel's canvas the page's ground is found on (see Chart's ground). @type {CanvasRenderingContext2D | null} */
-let ink = null;
-
-/** A computed color's alpha, 0 to 1 (rgba's last, a color function's after "/"; none, 1; "transparent", 0). @param {string} color */
-function alphaOf(color) {
-  if (color === "transparent") return 0;
-  const alpha = /(?:rgba\(.*,|\/)\s*([\d.]+%?)\s*\)$/.exec(color)?.[1];
-  return alpha === undefined ? 1 : alpha.endsWith("%") ? parseFloat(alpha) / 100 : parseFloat(alpha);
-}
 
 /**
  * A custom series' view (Studio's clouds, heatmaps, bubbles: the chart library's custom series), drawn by a Custom of

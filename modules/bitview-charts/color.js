@@ -133,6 +133,11 @@ export function gradientTable(stops) {
  * black.
  * @param {string} color
  */
+export function channels(color) {
+  return read(color);
+}
+
+/** @param {string} color */
 function read(color) {
   pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
   pen.fillStyle = "#000";
