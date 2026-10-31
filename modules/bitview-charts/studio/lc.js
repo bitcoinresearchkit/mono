@@ -87,8 +87,6 @@ class Chart {
   /** @param {any} options */
   applyOptions(options) {
     this.options = merged(this.options, options);
-    // (Its halo come or changed: the outlined series edged in it.)
-    if (options.layout && "bvHalo" in options.layout) for (const series of this.all) series.restyle();
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
     this.engine.invalidate(true);
   }
@@ -408,47 +406,15 @@ class Series {
     }
   }
 
-  /** Its look in the library again (the chart's halo changed). */
-  restyle() {
-    this.#style();
-  }
-
-  /** Its look in the library, from its options; outlined (`bvOutline`, LWC patch 53), in the chart's halo. */
+  /**
+   * Its fitting by its autoscaleInfoProvider where it has one (a stack's: its edge then not fitted to, the series' range
+   * its band's); a custom series' look from its options. (A standard series' look is the page's: the library's styles.)
+   */
   #style() {
-    const o = this.opts, engine = this.engine, shown = o.visible !== false, outline = (o.bvOutline && this.chart.options.layout?.bvHalo) || null;
-    // (The crosshair's dot on its line, and its dots at each point, as the chart library's options give them.)
-    const marker = o.crosshairMarkerVisible === false ? 0 : (o.crosshairMarkerRadius ?? 3), dots = o.pointMarkersVisible ? (o.pointMarkersRadius ?? 3) : 0;
-    engine.hidden = !shown;
-    if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
-    const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
-    // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (an area's and a baseline's
-    // edge and fill alike). Dashed as its line style asks, the chart library's dashes by its width.)
-    const steps = o.lineType === 1, curve = o.lineType === 2, dash = dashOf(o);
-    // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
+    const o = this.opts, engine = this.engine;
+    if (engine instanceof Custom) return void ((engine.hidden = o.visible === false), /** @type {Painted} */ (this.painted).style());
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
-    if (this.edge) {
-      this.edge.hidden = !shown;
-      this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
-      // (A baseline's line in its top color over its base, its bottom one under it: changing where it crosses it, as the
-      // chart library's.)
-      const under = this.type === "Baseline" && o.bottomLineColor ? { value: o.baseValue?.price ?? 0, color: o.bottomLineColor } : null;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, under, curve });
-    }
-    // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
-    // (Their tag and price line as a line's: the last bar's value, in its color.)
-    if (engine instanceof Bars) return void ((engine.base = o.base ?? 0), (engine.radius = o.cornerRadius ?? 0), engine.setStyle({ color: o.color ?? engine.color, tag, priceLine, format: this.format, outline }));
-    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, curve });
-    // (An area filled down to the pane's foot, as the chart library's (whatever its values' sign), or up to its top where
-    // it's inverted (invertFilledArea); a baseline to its base.)
-    // (Their fills fading as the chart library's: an area's from its top color at the pane's top to its bottom color at
-    // its foot; a baseline's to their base, and from it.)
-    const baseline = this.type === "Baseline";
-    if (engine instanceof Band) return void engine.set({ color: (baseline ? o.topFillColor1 : o.topColor) ?? o.color ?? engine.color, fade: (baseline ? o.topFillColor2 : o.bottomColor) ?? null, below: baseline ? o.bottomFillColor1 ?? null : null, belowFade: baseline ? o.bottomFillColor2 ?? null : null, base: baseline ? o.baseValue?.price ?? 0 : 0, to: baseline ? "base" : o.invertFilledArea ? "top" : "foot", steps, curve });
-    // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
-    if (engine instanceof Candles) {
-      const border = o.borderVisible !== false;
-      engine.setStyle({ up: o.upColor, down: o.downColor, upWick: o.wickUpColor ?? o.wickColor ?? null, downWick: o.wickDownColor ?? o.wickColor ?? null, upBorder: border ? (o.borderUpColor ?? o.borderColor ?? null) : null, downBorder: border ? (o.borderDownColor ?? o.borderColor ?? null) : null, outline, radius: o.cornerRadius ?? 0 });
-    }
+    if (this.edge) this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
   }
 
   /**

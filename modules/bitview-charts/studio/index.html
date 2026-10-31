@@ -16247,10 +16247,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return `rgb(${Math.round(made[0])}, ${Math.round(made[1])}, ${Math.round(made[2])})`;
       }
-      /** What the facade still reads of the chart's options: the halo outlined lines are edged in (the card's), and how its percent scales write values. */
+      /** What the facade still reads of the chart's options: how its percent scales write values. */
       function chartOptions() {
         return {
-          layout: { bvHalo: css("--card") },
           localization: { percentageFormatter: (/** @type {number} */ value) => precise(value, "%"), tickmarksPercentageFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%") },
         };
       }
@@ -16697,7 +16696,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
        * a bar has no room for a hollow body (under 2.5px, where the chart library stops drawing one), the layer
        * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
-       * @type {Map<string, { candles: any, series: any, paint: Record<string, string>, rise: string, fall: string, dated: boolean }>}
+       * @type {Map<string, { candles: any, series: any, color: string, rise: string, fall: string, dated: boolean }>}
        */
       const closes = new Map();
       let candlesFit = true;
@@ -16714,8 +16713,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (fit === candlesFit) return void closes.forEach((_, id) => tintClose(id));
         candlesFit = fit;
         for (const [id, close] of closes) {
-          close.candles.applyOptions({ visible: !layerById(id)?.hidden && fit });
-          close.series.applyOptions({ lineVisible: !fit, crosshairMarkerVisible: !fit });
+          close.candles.engine.hidden = Boolean(layerById(id)?.hidden) || !fit;
+          close.series.engine.setStyle({ stroke: !fit, marker: fit ? 0 : MARKER.radius });
+          engine.invalidate(true);
           tintClose(id);
         }
         // (A signal on candles: its marks on what's seen of them now.)
@@ -16736,10 +16736,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let i = Math.min(Math.ceil(engine.time.to), candles.close.length - 1);
         while (i >= 0 && !(candles.close[i] === candles.close[i])) i--;
         const color = candlesFit && i >= 0 && candles.close[i] < candles.open[i] ? close.fall : close.rise;
-        if (color === close.paint.color) return;
-        close.paint = { color };
-        // (Faded, as it'll be once lit again: see spotlight.)
-        close.series.applyOptions(close.paint);
+        if (color === close.color) return;
+        close.color = color;
+        close.series.engine.setStyle({ color });
+        engine.invalidate(true);
       }
       /**
        * Dots as on Bitview: their radius follows the zoom, 1px when points crowd to 3px with room around them (by pixels
@@ -16760,7 +16760,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         dotSpacing = engine.time.width / Math.max(1, range.to - range.from);
         for (const dots of dotted.values()) {
           const radius = dotRadius(dots.width);
-          if (radius !== dots.radius) dots.series.applyOptions({ pointMarkersRadius: (dots.radius = radius) });
+          if (radius !== dots.radius) dots.series.engine.setStyle({ dots: (dots.radius = radius) }), engine.invalidate(true);
         }
       }
       /** The layer a series on the chart draws, candles or their close line. */
@@ -17105,17 +17105,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
           const common = {
-            // (Its line drawn without the points it'd pass within a quarter of a pixel of: Firefox draws it three times as
-            // fast, the same to the eye; see LWC patch 29.)
-            bvSimplify: true,
-            // (Edged in the chart's background, its layout.bvHalo: see LWC patch 53.)
-            bvOutline: Boolean(layer.outline) && OUTLINED.has(layer.type),
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
-            priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
-            // (Its value's tag, reading the axis where it sits: a stacked band's, its sum there, at its top (its own amount,
-            // the legend's and the panel's).)
-            lastValueVisible: !layer.hidden && !signal,
+            lastValueVisible: false,
+            priceLineVisible: false,
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see precise.)
@@ -17125,6 +17118,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
           layerFormats.set(layer.id, common.priceFormat.formatter);
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
+          // (A standard series' look, the library's: shown or not; its value's tag reading the axis where it sits (a
+          // stacked band's, its sum there, at its top: its own amount the legend's and the panel's); its line across; its
+          // values' writer; edged in the card's color where it's outlined (over a heatmap, a cloud, another line).)
+          const shown = !layer.hidden && !signal;
+          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: common.priceFormat.formatter, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
+          // (Its line's: width, dashes (by its width as set), steps or curved, its crosshair dot.)
+          const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LC.LineType.WithSteps, curve: lineTypeOf(layer) === LC.LineType.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
@@ -17148,8 +17148,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
             : stackedLine ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
             : { color };
-          const marker = { crosshairMarkerRadius: MARKER.radius, crosshairMarkerBorderWidth: MARKER.border, crosshairMarkerBorderColor: css("--card") };
-          const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
           let series;
           // (Drawn as before, the series as it was.)
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
@@ -17206,23 +17204,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
-            const options = { ...common, ...paint, borderVisible: true, cornerRadius: BAR_CORNER, lastValueVisible: false, priceLineVisible: false, visible: !layer.hidden && candlesFit };
-            const close = { color }, closeOptions = { ...common, ...close, ...marker, lineWidth, lineVisible: !candlesFit, crosshairMarkerVisible: !candlesFit };
             const closeAgain = again && wasCloses.get(layer.id)?.series;
-            series = madeOrKept(() => view.addSeries(LC.CandlestickSeries, options, pane), options);
-            if (closeAgain) closeAgain.applyOptions(lookOf(closeOptions));
-            closes.set(layer.id, { candles: series, series: closeAgain || tracked(view.addSeries(LC.LineSeries, closeOptions, pane)), paint: close, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
+            series = madeOrKept(() => view.addSeries(LC.CandlestickSeries, common, pane), common);
+            styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { up: paint.upColor, down: paint.downColor, upWick: paint.wickUpColor, downWick: paint.wickDownColor, upBorder: paint.borderUpColor, downBorder: paint.borderDownColor, radius: BAR_CORNER } });
+            const closeSeries = closeAgain || tracked(view.addSeries(LC.LineSeries, common, pane));
+            if (closeAgain) closeAgain.applyOptions(lookOf(common));
+            styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
+            closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
             tintClose(layer.id);
           } else {
-            const radius = dotRadius(layer.width);
-            const [kind, options] = layer.type === "dots" ? [LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }]
-              // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (patch 41).)
-              : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above", bvBandFill: stack && layer.fill !== "above" ? layer.side : undefined }]
-              : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: baseOf(layer), cornerRadius: stack ? 0 : BAR_CORNER }]
-              : stackedLine ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, bvBandFill: layer.side }]
-              : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: /** @type {const} */ ("price"), price: baseOf(layer) } }]
-              : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
+            const radius = dotRadius(layer.width), base = baseOf(layer);
+            // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see the facade's
+            // stack). An area's fill to the pane's foot, or its top where it's filled above its line.)
+            const [kind, options, look] = layer.type === "dots" ? [LC.LineSeries, common, { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
+              : layer.type === "area" || stackedLine ? [LC.AreaSeries, { ...common, bvBandFill: stackedLine || (stack && layer.fill !== "above") ? layer.side : undefined }, { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "histogram" ? [LC.HistogramSeries, common, { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
+              : layer.type === "baseline" ? [LC.BaselineSeries, common, { line: { ...stroke, color: paint.topLineColor, under: { value: base, color: paint.bottomLineColor } }, band: { color: paint.topFillColor1, fade: paint.topFillColor2, below: paint.bottomFillColor1, belowFade: paint.bottomFillColor2, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
+              : [LC.LineSeries, common, { line: { ...stroke, color: paint.color } }];
             series = madeOrKept(() => view.addSeries(/** @type {any} */ (kind), options, pane), options);
+            styleSeries(series, { ...tags, ...look });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           built.set(layer.id, { shape: layerShape(layer), shown: stack?.values ?? result?.values, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
@@ -17316,9 +17316,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               carrier.applyOptions({ priceFormat: first.format });
               carriersBefore.delete(key);
             } else {
-              carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, lineVisible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null }, first.pane);
+              carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, autoscaleInfoProvider: () => null }, first.pane);
               carrier.setData(data.times.map((time) => ({ time, value: first.value })));
             }
+            // (Drawing nothing: no line, no dot, no tag of its own.)
+            styleSeries(carrier, { hidden: false, tag: false, priceLine: false, format: first.format.formatter, outline: null, line: { stroke: false, marker: 0, dots: 0 } });
             carrier.setSeriesOrder(0);
             carrierOf.set(key, carrier);
             carrierKept.set(key, { series: carrier, times: data.times, lines: [] });
@@ -18573,6 +18575,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return { colors, palette };
       }
+      /**
+       * A standard layer's series styled as the library takes it: its line (a line's, dots', a trend's, a candle layer's
+       * close line, an area's or a baseline's edge), an area's or a baseline's band, bars, candles; shown or hidden, its
+       * value's tag and its line across where it shows, its values' writer, its outline. (Its colors date by date and its
+       * breaks: see paintSeries and the build.)
+       * @param {any} series @param {{ hidden: boolean, tag: boolean, priceLine: boolean, format: (value: number) => string, outline: string | null, line?: Record<string, any>, band?: Record<string, any>, bars?: Record<string, any>, candles?: Record<string, any> }} look
+       */
+      function styleSeries(series, look) {
+        const own = series.engine, edge = series.edge, shows = !look.hidden, tags = { tag: look.tag && shows, priceLine: look.priceLine && shows, format: look.format, outline: look.outline };
+        own.hidden = look.hidden;
+        if (edge) edge.hidden = look.hidden;
+        if (look.band) own.set(look.band), edge.setStyle({ ...tags, ...look.line });
+        else if (look.bars) own.setStyle({ ...tags, ...look.bars });
+        else if (look.candles) own.setStyle({ outline: look.outline, ...look.candles });
+        else own.setStyle({ ...tags, ...look.line });
+        engine.invalidate(true);
+      }
+      /** A line's dashes by its width as set (none: 1) and its style (dotted, dashed, large dashed, sparse dotted; solid, none). @param {number | undefined} width @param {number | undefined} style */
+      const dashFor = (width = 1, style = 0) => [[], [width, width], [2 * width, 2 * width], [6 * width, 6 * width], [width, 4 * width]][style] ?? [];
       /**
        * A layer's colors date by date onto its series, as the library takes them (each point an index into a palette: a
        * line's, dots' and bars' colors; an area's fills and its edge's), faded as a spotlight fades the others; none, its
@@ -27405,7 +27426,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           pickedAt.clear();
           document.documentElement.dataset.theme = prefs.theme;
           hexCache.clear();
-          view.applyOptions({ layout: { bvHalo: css("--card") } });
           engine.theme = chartTheme();
           refresh();
           // (Its chart recolored inside the crossfade, not a frame after it: see buildSoon.)
