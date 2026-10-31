@@ -11,27 +11,33 @@ const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6
 const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
 
 export class Scale {
+  // (What it shows, behind accessors: any change marks its mapping stale, made again at the next y().)
+  #mode = /** @type {ScaleMode} */ ("linear");
+  #m = 1;
+  #c = 0;
+  #top = 0;
+  #bottom = 0;
+  #above = 0;
+  #below = 0;
+  #lo = 0;
+  #hi = 1;
+  #height = 1;
+  // (Its mapping, as y() reads it: y = foot - (t - ta) / span * room, t a value as it reads it (v * m + c, or its log),
+  // ta its range's low end so read: no large terms cancelling; the offset divided by the span first (a slope
+  // room / span overflows over the narrowest ranges).)
+  #stale = true;
+  #log = false;
+  #ta = 0;
+  #span = 1;
+  #room = 1;
+  #foot = 1;
+
   /** @param {{ mode?: ScaleMode, top?: number, bottom?: number }} [options] */
   constructor({ mode = "linear", top = 0.1, bottom = 0.08 } = {}) {
-    this.mode = mode;
-    // (A relative scale's reading of the series drawn now: t = v * m + c.)
-    this.m = 1;
-    this.c = 0;
-    /**
-     * Room kept at the top and the bottom, as shares of the height; and more, in CSS pixels (its series' marks over
-     * their points, as asked, and as kept: see Pane's fit).
-     */
-    this.top = top;
-    this.bottom = bottom;
+    (this.#mode = mode), (this.#top = top), (this.#bottom = bottom);
+    // (Room asked for above and below, in CSS pixels: see above and below.)
     this.askedAbove = 0;
     this.askedBelow = 0;
-    this.above = 0;
-    this.below = 0;
-    /** The range shown, as values. */
-    this.lo = 0;
-    this.hi = 1;
-    /** The height in CSS pixels. */
-    this.height = 1;
     /** Fitted to nothing (its pane's series show nothing in view): its range kept, no ticks. */
     this.empty = false;
     // (As drawn: where its picture can be moved, it's unchanged.)
@@ -44,6 +50,68 @@ export class Scale {
     this.drawnBelow = NaN;
     this.drawnMode = "";
     this.drawnEmpty = false;
+  }
+
+  get mode() {
+    return this.#mode;
+  }
+  set mode(mode) {
+    (this.#mode = mode), (this.#stale = true);
+  }
+  /** A relative scale's reading of the series drawn now: t = v * m + c (see setBase). */
+  get m() {
+    return this.#m;
+  }
+  get c() {
+    return this.#c;
+  }
+  /**
+   * Room kept at the top and the bottom, as shares of the height (top, bottom); and more, in CSS pixels (above, below:
+   * its series' marks over their points, as asked, and as kept: see Pane's fit).
+   */
+  get top() {
+    return this.#top;
+  }
+  set top(top) {
+    (this.#top = top), (this.#stale = true);
+  }
+  get bottom() {
+    return this.#bottom;
+  }
+  set bottom(bottom) {
+    (this.#bottom = bottom), (this.#stale = true);
+  }
+  get above() {
+    return this.#above;
+  }
+  set above(above) {
+    (this.#above = above), (this.#stale = true);
+  }
+  get below() {
+    return this.#below;
+  }
+  set below(below) {
+    (this.#below = below), (this.#stale = true);
+  }
+  /** The range shown, as values. */
+  get lo() {
+    return this.#lo;
+  }
+  set lo(lo) {
+    (this.#lo = lo), (this.#stale = true);
+  }
+  get hi() {
+    return this.#hi;
+  }
+  set hi(hi) {
+    (this.#hi = hi), (this.#stale = true);
+  }
+  /** The height in CSS pixels. */
+  get height() {
+    return this.#height;
+  }
+  set height(height) {
+    (this.#height = height), (this.#stale = true);
   }
 
   /** Fitted to values from `lo` to `hi` (none: as it was). @param {number} lo @param {number} hi */
@@ -65,10 +133,11 @@ export class Scale {
    * @param {number} base
    */
   setBase(base) {
-    if (!this.relative || !base || base !== base) return void ((this.m = 1), (this.c = 0));
+    this.#stale = true;
+    if (!this.relative || !base || base !== base) return void ((this.#m = 1), (this.#c = 0));
     const size = Math.abs(base);
-    this.m = 100 / size;
-    this.c = (-100 * base) / size + (this.mode === "indexed" ? (base < 0 ? -100 : 100) : 0);
+    this.#m = 100 / size;
+    this.#c = (-100 * base) / size + (this.mode === "indexed" ? (base < 0 ? -100 : 100) : 0);
   }
 
   /** An end of its range as it maps (its range is in its own terms: a relative one's already read). @param {number} v */
@@ -76,15 +145,17 @@ export class Scale {
     return this.mode === "log" ? Math.log10(v) : v;
   }
 
-  /** @param {number} v */
-  #t(v) {
-    return this.mode === "log" ? Math.log10(v) : v * this.m + this.c;
+  /** Its mapping made again (see #foot). */
+  #remap() {
+    const log = this.#mode === "log", ta = log ? Math.log10(this.#lo) : this.#lo, tb = log ? Math.log10(this.#hi) : this.#hi;
+    const top = this.#top * this.#height + this.#above, room = this.#height - top - this.#bottom * this.#height - this.#below;
+    (this.#log = log), (this.#ta = ta), (this.#span = tb - ta), (this.#room = room), (this.#foot = top + room), (this.#stale = false);
   }
 
   /** The y of a value (NaN for none, or one a log scale can't show). @param {number} v */
   y(v) {
-    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height + this.above, room = this.height - top - this.bottom * this.height - this.below;
-    return top + (1 - (this.#t(v) - a) / (b - a)) * room;
+    if (this.#stale) this.#remap();
+    return this.#foot - (((this.#log ? Math.log10(v) : v * this.#m + this.#c) - this.#ta) / this.#span) * this.#room;
   }
 
   /** The y of a value in its own terms (a tick's, a relative scale's percent or index: not read against a base). @param {number} t */
