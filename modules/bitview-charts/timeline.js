@@ -110,6 +110,15 @@ export class Timeline {
     this.limit();
   }
 
+  /**
+   * How far `x` (CSS pixels in the plot) is past point `i`'s column (half the spacing each side of it, a pixel at
+   * least): 0 within it. A hit's measure across, where the point under a pointer is clamped to the data's ends.
+   * @param {number} i @param {number} x
+   */
+  beyond(i, x) {
+    return Math.max(0, Math.abs(x - this.x(i)) - Math.max(this.spacing / 2, 1));
+  }
+
   /** A span (points) within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
   within(span) {
     const least = this.width / this.maxSpacing, most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;

@@ -1,11 +1,11 @@
 // @ts-check
-// A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there, the
-// band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see stack.js).
-// Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0 or under)
-// is its foot: the area down to the pane's foot), or with `above`, up to the pane's top; fitted to its values alone;
-// with `below` too, a baseline: under its base, in that color. With `steps`, its edges steps (each value held to the
-// next point). Zoomed out, each pixel column takes each edge's last value in it: bands sharing an edge meet exactly, no
-// gap or overlap between them, whatever the zoom.
+// A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
+// the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
+// stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
+// or under) is its foot: the area down to the pane's foot), or `to` the pane's "top" or its "foot"; fitted to its
+// values alone; with `below` too, a baseline: under its base, in that color. With `steps`, its edges steps (each value
+// held to the next point). Zoomed out, each pixel column takes each edge's last value in it: bands sharing an edge meet
+// exactly, no gap or overlap between them, whatever the zoom.
 
 /**
  * A band's outline as it's written: each point's x and its edges' ys kept for the way back along the lower edge (grown,
@@ -42,8 +42,8 @@ const outline = {
 };
 
 export class Band {
-  /** @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, below?: string | null, above?: boolean, steps?: boolean }} options */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", below = null, above = false, steps = false }) {
+  /** @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, below?: string | null, to?: "base" | "top" | "foot", steps?: boolean }} options */
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", below = null, to = "base", steps = false }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
@@ -52,7 +52,7 @@ export class Band {
     /** Its color under its base (a baseline), or none: one color. */
     this.below = below;
     /** An area filled up from its values to the pane's top (else down to its base). */
-    this.above = above;
+    this.to = to;
     this.steps = steps;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
@@ -80,17 +80,17 @@ export class Band {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
-   * (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   * How far a point (`y`, CSS pixels in its pane; `x` in the plot, past the data's ends) is from it at index `i`
+   * (Infinity: it has nothing there), on `scale` (its base set already, where it's relative).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
    */
-  distance(i, y, scale) {
+  distance(i, y, scale, x, time) {
     // (As it's drawn: both edges there, above zero on a log scale.)
     if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
     const log = scale.mode === "log", edge = this.#edge(log), hi = this.upper[i], lo = edge ? hi : this.lower[i];
     if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
-    const top = this.above ? 0 : scale.y(edge ? hi : Math.max(lo, hi)), bottom = this.above ? scale.y(hi) : edge ? scale.height : scale.y(Math.min(lo, hi));
-    return y < top ? top - y : y > bottom ? y - bottom : 0;
+    const up = this.area && this.to === "top", top = up ? 0 : scale.y(edge ? hi : Math.max(lo, hi)), bottom = up ? scale.y(hi) : edge ? scale.height : scale.y(Math.min(lo, hi));
+    return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
   /** Its next gap from each point (the length: none). @param {boolean} log */
@@ -110,10 +110,10 @@ export class Band {
 
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
-   * `above`, up to the pane's top).
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, below?: string | null, base?: number, above?: boolean, steps?: boolean }} change
+   * `to` the pane's "top" or "foot").
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, below?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean }} change
    */
-  set({ lower, upper = this.upper, color = this.color, below = this.below, base = this.base, above = this.above, steps = this.steps }) {
+  set({ lower, upper = this.upper, color = this.color, below = this.below, base = this.base, to = this.to, steps = this.steps }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -122,15 +122,15 @@ export class Band {
     const kept = wasArea && this.lower.length === upper.length && base === this.base;
     this.base = base;
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
-    (this.upper = upper), (this.color = color), (this.below = below), (this.above = above), (this.steps = steps);
+    (this.upper = upper), (this.color = color), (this.below = below), (this.to = to), (this.steps = steps);
   }
 
   /**
-   * Whether it's an area filled to an edge of the pane, its lower edge none: up to its top (`above`), or, on a log
+   * Whether it's an area filled to an edge of the pane, its lower edge none: `to` its top or its foot, or, on a log
    * scale, down to its foot where its base can't show. @param {boolean} log
    */
   #edge(log) {
-    return this.area && (this.above || (log && !(this.base > 0)));
+    return this.area && (this.to !== "base" || (log && !(this.base > 0)));
   }
 
   /**
@@ -190,7 +190,7 @@ export class Band {
     // a JIT a call costs more than its work. Its columns' points as Timeline.index has them, to the bit.)
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     // (An area to an edge of the pane: its values against that edge, its top or its foot.)
-    const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, toEdge = this.#edge(log), edgeY = this.above ? 0 : scale.height;
+    const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, toEdge = this.#edge(log), edgeY = this.to === "top" ? 0 : scale.height;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     // (A point each, zoomed in; a pixel column each, its last, zoomed out.)
     const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1, steps = zoomedIn && this.steps;

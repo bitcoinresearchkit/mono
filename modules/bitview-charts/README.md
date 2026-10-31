@@ -63,9 +63,9 @@ chart.show(365);                                 // the last 365 points in view
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down).
-- `Band({ lower, upper, base, color, below, above, steps })`: a fill between two columns (`steps`: its edges steps);
-  without `lower`, an area down to `base` (`above`: up to the pane's top instead); with `below`, a baseline (under its
-  base in that color).
+- `Band({ lower, upper, base, color, below, to, steps })`: a fill between two columns (`steps`: its edges steps);
+  without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with `below`, a
+  baseline (under its base in that color).
 - `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a

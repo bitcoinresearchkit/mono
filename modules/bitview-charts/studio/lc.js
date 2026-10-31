@@ -850,8 +850,9 @@ class Series {
     // (Their tag and price line as a line's: the last bar's value, in its color.)
     if (engine instanceof Bars) return void ((engine.base = o.base ?? 0), (engine.radius = o.cornerRadius ?? 0), engine.setStyle({ color: o.color ?? engine.color, tag, priceLine, format: this.format, outline }));
     if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
-    // (An area filled up to the pane's top where it's inverted (invertFilledArea).)
-    if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, above: Boolean(o.invertFilledArea), steps });
+    // (An area filled down to the pane's foot, as the chart library's (whatever its values' sign), or up to its top where
+    // it's inverted (invertFilledArea); a baseline to its base.)
+    if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, to: this.type === "Baseline" ? "base" : o.invertFilledArea ? "top" : "foot", steps });
     // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
     if (engine instanceof Candles) {
       const border = o.borderVisible !== false;

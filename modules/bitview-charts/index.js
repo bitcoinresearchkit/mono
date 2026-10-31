@@ -130,7 +130,7 @@ export class Chart {
   setTimes(times) {
     this.time.setTimes(times);
     // (The crosshair kept on a point there is, or gone.)
-    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y);
+    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y, this.pointerX === this.pointerX, this.pointerX);
     this.invalidate(true);
   }
 
@@ -275,7 +275,7 @@ export class Chart {
     this.crosshair.place(box.width, box.height, this.dpr);
     this.time.resize(Math.max(1, width - this.axis));
     // (The crosshair's pane found again: panes moved, came or went.)
-    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y);
+    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y, this.pointerX === this.pointerX, this.pointerX);
     this.invalidate(true);
     for (let k = 0; k < this.layoutListeners.length; k++) this.layoutListeners[k]();
   }
@@ -322,14 +322,15 @@ export class Chart {
   render(whole = false) {
     this.whole = false;
     const time = this.time, crosshair = this.crosshair, x = this.pointerX;
-    // (A pointer's crosshair on the point under it as the view moves beneath it: a wheel's scroll, a glide. That point
-    // within the data, as setCrosshair has it: past its end, its last, so a still pointer there asks for no frame.)
-    if (x === x && crosshair.index === crosshair.index && Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
+    // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide), its
+    // listeners told with the panes fitted to the view: that point within the data, as setCrosshair has it (past its
+    // end, its last), so a still pointer there asks for no frame.)
+    if (x === x && crosshair.index === crosshair.index && Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);

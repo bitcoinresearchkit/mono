@@ -79,17 +79,17 @@ export class Candles {
   }
 
   /**
-   * How far a point (`y`, CSS pixels in its pane) is from it at index `i` (Infinity: it has nothing there), on `scale`
-   * (its base set already, where it's relative).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale
+   * How far a point (`y`, CSS pixels in its pane; `x` in the plot, past the data's ends) is from it at index `i`
+   * (Infinity: it has nothing there), on `scale` (its base set already, where it's relative).
+   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} [x] @param {import("./timeline.js").Timeline} [time]
    */
-  distance(i, y, scale) {
+  distance(i, y, scale, x, time) {
     // (As it's drawn: a candle there, its close and low above zero on a log scale.)
     if (!(i >= 0 && i < this.close.length)) return Infinity;
     const h = this.highs.values[i], l = this.lows.values[i], c = this.close[i];
     if (!(scale.mode === "log" ? c > 0 && l > 0 && h > 0 : c === c && h === h && l === l)) return Infinity;
     const top = scale.y(h), bottom = scale.y(l);
-    return y < top ? top - y : y > bottom ? y - bottom : 0;
+    return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
