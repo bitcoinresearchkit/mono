@@ -667,7 +667,9 @@ class PriceScale {
     return this.side === "left" ? this.pane.engine.left : this.pane.engine.scale;
   }
 
+  /** Its options; auto scaled as the library's side is (a range set by hand: an axis dragged, bvSetRange). */
   options() {
+    if (this.side) this.opts.autoScale = this.side === "left" ? this.pane.engine.leftAuto : this.pane.engine.auto;
     return this.opts;
   }
 

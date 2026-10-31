@@ -337,11 +337,19 @@ export class Chart {
   }
 
   // Pointers: one drags (a pan, gliding on once let go), two pinch (a zoom about their middle, and a pan as it moves);
-  // the wheel zooms about the pointer, a trackpad's sideways scroll pans. The crosshair: where a mouse is; a finger
+  // the wheel zooms about the pointer, a trackpad's sideways scroll pans. On an axis, a drag scales it: a price axis
+  // about its middle (its range then set by hand, fitted again by a double-click), the time axis about the plot's right
+  // edge. The crosshair: where a mouse is; a finger
   // held still (HOLD) shows it, moving it then instead of the chart, till it's let go. A finger pans once it's moved
   // past a slop of 6 pixels (a hold, else, would move the chart a little).
   #input() {
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean }>} */ (new Map());
+    /**
+     * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, moving: boolean }} Axis
+     * An axis pressed, as it was then: a pane's price axis on `side` (its range, `a` to `b`; the press's height in the
+     * pane, `at`), or the time axis (`pane` null: the spacing `a`, the view's right end `b`, the press's x in the plot
+     * `at`); `moving`, once the press has moved past a slop (a click on a tag scales nothing).
+     */
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, axis: Axis | null }>} */ (new Map());
     let held = -1;
     // (Two fingers down in this gesture: its end no click.)
     let twoFingers = false;
@@ -363,6 +371,35 @@ export class Chart {
       const box = element.getBoundingClientRect(), x = event.clientX - box.left - this.left, over = x >= 0 && x <= time.width;
       this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };
+    /** The axis at a point in the chart (CSS pixels from its corner), as a drag from there would scale it, or null. @param {number} x @param {number} y @returns {Axis | null} */
+    const axisAt = (x, y) => {
+      if (y >= this.height - this.timeHeight) return x >= this.left && x <= this.left + time.width ? { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left, moving: false } : null;
+      for (const pane of this.panes) {
+        if (y < pane.top || y >= pane.top + pane.height) continue;
+        const side = x >= this.left + pane.plot && pane.width > pane.plot ? "right" : x < this.left && pane.left ? "left" : null, scale = side === "left" ? pane.left : pane.scale;
+        return side && scale ? { pane, side, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : null;
+      }
+      return null;
+    };
+    /**
+     * An axis dragged to a point (CSS pixels from the chart's corner): a price axis' range scaled about its middle (on a
+     * log scale, its logarithms') by how far the press has come down its height, as the chart library's (a tenth of it
+     * at least); the time axis' spacing by how far the press has come towards the plot's right edge, that edge held.
+     * @param {Axis} axis @param {number} x @param {number} y
+     */
+    const scaleAxis = (axis, x, y) => {
+      const pane = axis.pane;
+      if (!pane) {
+        const width = time.width, start = width - axis.at, now = Math.min(Math.max(width - (x - this.left), 0), width);
+        if (start > 0 && now > 0) time.setRange(axis.b - width / ((axis.a * now) / start), axis.b);
+        return;
+      }
+      const scale = axis.side === "left" ? pane.left : pane.scale, h = pane.height;
+      if (!scale) return;
+      const k = Math.max(0.1, (h - axis.at + (h - 1) * 0.2) / (Math.max(0, h - (y - pane.top)) + (h - 1) * 0.2)), log = scale.mode === "log";
+      const a = log ? Math.log10(axis.a) : axis.a, b = log ? Math.log10(axis.b) : axis.b, middle = (a + b) / 2, half = ((b - a) / 2) * k;
+      pane.setRange(log ? 10 ** (middle - half) : middle - half, log ? 10 ** (middle + half) : middle + half, axis.side);
+    };
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
     let trailEnd = 0, trailSize = 0;
@@ -377,8 +414,8 @@ export class Chart {
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.glide.speed = 0), this.setCrosshair(NaN));
-      const touch = event.pointerType === "touch";
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch });
+      const touch = event.pointerType === "touch", box = element.getBoundingClientRect();
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, axis: down.size ? null : axisAt(event.clientX - box.left, y) });
       this.glide.speed = 0;
       trailSize = 0;
       clearTimeout(this.holding);
@@ -388,7 +425,7 @@ export class Chart {
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
       if (held >= 0) (held = -1), this.setCrosshair(NaN);
       if (down.size > 1) twoFingers = true;
-      if (touch && down.size === 1) {
+      if (touch && down.size === 1 && !down.get(event.pointerId)?.axis) {
         const id = event.pointerId;
         this.holding = setTimeout(() => {
           const at = down.get(id);
@@ -408,9 +445,9 @@ export class Chart {
       if (!at && event.pointerType === "mouse") {
         // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
         if (event.target !== element && !this.#owns(event.target)) return void this.setCrosshair(NaN);
-        // (A mouse over a separator: it shows it can be dragged, no crosshair there.)
-        const over = separator(event.clientY - element.getBoundingClientRect().top, false) >= 0;
-        element.style.cursor = over ? "row-resize" : "";
+        // (A mouse over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
+        const box = element.getBoundingClientRect(), y = event.clientY - box.top, over = separator(y, false) >= 0, axis = over ? null : axisAt(event.clientX - box.left, y);
+        element.style.cursor = over ? "row-resize" : axis ? (axis.pane ? "ns-resize" : "ew-resize") : "";
         return void (over ? this.setCrosshair(NaN) : point(event));
       }
       if (!at) return;
@@ -418,6 +455,14 @@ export class Chart {
       if (!at.panning) {
         if (Math.hypot(event.clientX - at.startX, event.clientY - at.startY) <= 6) return;
         (at.panning = true), clearTimeout(this.holding), (this.holding = 0);
+      }
+      // (An axis pressed: scaled once it's moved past the slop, no glide after.)
+      if (down.size === 1 && at.axis) {
+        if (!at.axis.moving && !(at.axis.moving = Math.hypot(event.clientX - at.startX, event.clientY - at.startY) > 4)) return;
+        const box = element.getBoundingClientRect();
+        scaleAxis(at.axis, event.clientX - box.left, event.clientY - box.top);
+        (at.x = event.clientX), (at.y = event.clientY), (trailSize = 0);
+        return void this.invalidate();
       }
       if (down.size === 1) {
         time.pan(event.clientX - at.x);
@@ -469,6 +514,11 @@ export class Chart {
       if (ms > 0 && !stale) this.#fling((trail[last] - trail[first]) / ms);
     };
     element.addEventListener("pointerup", up, { signal });
+    // (A price axis double-clicked: fitted to its series again.)
+    element.addEventListener("dblclick", (event) => {
+      const box = element.getBoundingClientRect(), axis = axisAt(event.clientX - box.left, event.clientY - box.top);
+      if (axis?.pane) axis.pane.setRange(undefined, undefined, axis.side), this.invalidate();
+    }, { signal });
     element.addEventListener("lostpointercapture", (event) => event.pointerId === sizer && stopSizing(), { signal });
     element.addEventListener("pointercancel", up, { signal });
     element.addEventListener("wheel", (event) => {

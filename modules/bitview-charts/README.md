@@ -28,14 +28,16 @@ chart.show(365);                                 // the last 365 points in view
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them; as a separator's dragged, its two panes shown stretched, each pane's `shownTop` and
-  `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a tap: its
-  point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
+  `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
+  tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`.
 - Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
   point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
-  finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels. Separators between
-  panes drag to share their heights.
+  finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
+  own element over the chart (a legend). Separators between panes drag to share their heights (the two panes shown
+  stretched, laid out once let go). A drag on a price axis scales it about its middle (its range then set by hand; a
+  double-click fits it again), on the time axis zooms about the plot's right edge.
 
 ## Panes
 
