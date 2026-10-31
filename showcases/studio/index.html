@@ -17211,6 +17211,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
             series = madeOrKept(() => view.addCustomSeries(heatView(), options, pane), options, () => ({ heatTick: ++heatTicks }));
+            if (layer.type === "profile") profileShares(layer.id, series);
             // (Kept up with live only where drawn: see movePrice.)
             if (known) heatSeries.add(series);
             else heatSeries.delete(series);
@@ -22241,9 +22242,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
        * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
        * A profile's (`kind`, see drawProfile): its holder groups and their colors, each one's day last shown (`last`), its
-       * shares' colors (in profit, in loss), its close's line's (`mark`) and its words' halo; its bars as last drawn
-       * (`bars`, see profileHit).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, bars?: { edges: number[], starts: number[], sums: Float64Array, count: number, most: number, width: number, right: number, ids: string[] }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * shares' colors (in profit, in loss), its close's line's (`mark`) and the card's (`halo`); its bars as last drawn
+       * (`bars`, see profileHit) and its close and share in profit (`shares`, see profileShares).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, bars?: { edges: number[], starts: number[], sums: Float64Array, count: number, most: number, width: number, right: number, ids: string[] }, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -22544,7 +22545,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat
        */
       function drawProfile(scope, toY, heat) {
-        const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
+        const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined), shown(undefined));
+        // (Its shares as drawn, for its axis (see profileShares): where they change, drawn again (the chart paints its axes
+        // before its series: theirs read on the next frame).)
+        const shown = (/** @type {{ close: number, share: number } | undefined} */ next) => {
+          const was = heat.shares;
+          if (was?.close === next?.close && was?.share === next?.share) return;
+          heat.shares = next;
+          queueMicrotask(() => drawn.get(heat.id)?.applyOptions({ heatTick: ++heatTicks }));
+        };
         heat.bars = undefined;
         if (!grid || !resolved || !heat.cohorts.length) return none();
         Object.assign(heat, heatCalendar(resolved.times));
@@ -22556,18 +22565,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           keep.add(key);
           if (!heatDayHeld(key)) wanted.push({ key, cohort: id, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank: Number.MAX_SAFE_INTEGER });
         }
-        const shown = profileDays(heat, g), close = profileClose(shown);
-        for (const item of shown) if (item) keep.add(item.key);
+        const days = profileDays(heat, g), close = profileClose(days);
+        for (const item of days) if (item) keep.add(item.key);
         heat.keep = keep;
         if (wanted.length) (heatWants.set(heat.id, wanted), heatPumping || ((heatPumping = true), queueMicrotask(heatPump)));
         else heatWants.delete(heat.id);
-        if (!(close > 0)) return;
-        const line = toY(close), share = profileShare(shown, grid, close), { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
-        if (line === null || share === null) return;
-        profileBars(scope, toY, heat, shown, line);
+        if (!(close > 0)) return shown(undefined);
+        const line = toY(close), share = profileShare(days, grid, close), { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+        if (line === null || share === null) return shown(undefined);
+        shown({ close, share });
+        profileBars(scope, toY, heat, days, line);
         context.save();
         context.scale(h, v);
-        paintProfileMarks(context, mediaSize, heat, { line, share, older: g !== heat.days.length - 1 });
+        paintProfileMarks(context, mediaSize, heat, { line, older: g !== heat.days.length - 1 });
         context.restore();
       }
       /**
@@ -22668,12 +22678,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       /**
-       * A profile's close and shares, over its bars (in pixels as the page's): an older day's close dashed across it; the
-       * share of its coins each side of it (`share`, in profit), at its start, haloed.
-       * @param {CanvasRenderingContext2D} context @param {{ width: number, height: number }} size @param {HeatLook} look @param {{ line: number, share: number, older: boolean }} marks
+       * A profile's close over its bars (in pixels as the page's): an older day's dashed across it (its shares each side
+       * of it on the axis: see profileShares).
+       * @param {CanvasRenderingContext2D} context @param {{ width: number, height: number }} size @param {HeatLook} look @param {{ line: number, older: boolean }} marks
        */
       function paintProfileMarks(context, size, look, marks) {
-        const { line, share } = marks, width = profileWidth(size.width), right = size.width - 2, left = right - width, y = Math.round(line) + 0.5;
+        const { line } = marks, width = profileWidth(size.width), right = size.width - 2, left = right - width, y = Math.round(line) + 0.5;
         context.save();
         if (marks.older) {
           context.strokeStyle = alpha(look.mark, 0.6);
@@ -22685,20 +22695,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.stroke();
           context.setLineDash([]);
         }
-        context.font = `510 11px ${chartSans}`;
-        context.lineJoin = "round";
-        context.lineWidth = 3;
-        context.strokeStyle = look.halo;
-        const say = (/** @type {string} */ text, /** @type {string} */ color, /** @type {number} */ at) => {
-          context.strokeText(text, left + 4, at);
-          context.fillStyle = color;
-          context.fillText(text, left + 4, at);
-        };
-        // (Too narrow for its words, a phone's: its shares alone, in their colors.)
-        const words = context.measureText(`${share}% in profit`).width <= width - 8;
-        if (line > 14) say(`${100 - share}%${words ? " in loss" : ""}`, look.lose, Math.round(line - 5));
-        if (line < size.height - 14) say(`${share}%${words ? " in profit" : ""}`, look.gain, Math.round(line + 14));
         context.restore();
+      }
+      /** The profiles' series given their shares on the axis (see profileShares): each once. */
+      const sharesShown = new WeakSet();
+      /**
+       * A profile's shares on its axis, where its plot has no room for them (over its bars or the price): in loss just
+       * over its close's tag, in profit just under it, in their colors on the card's (as text beside the tag); none
+       * where it isn't drawn. A primitive on its series (its axis views).
+       * @param {string} id @param {any} series
+       */
+      function profileShares(id, series) {
+        if (sharesShown.has(series)) return;
+        sharesShown.add(series);
+        const view = (/** @type {boolean} */ loss) => ({
+          coordinate: () => ((look) => ((y) => (y === null || y === undefined ? -100 : y + (loss ? -19 : 19)))(look?.shares && series.priceToCoordinate(look.shares.close)))(heatLooks.get(id)),
+          text: () => ((shares) => (shares ? `${loss ? 100 - shares.share : shares.share}%` : ""))(heatLooks.get(id)?.shares),
+          textColor: () => ((look) => (loss ? look?.lose : look?.gain) ?? "transparent")(heatLooks.get(id)),
+          backColor: () => heatLooks.get(id)?.halo ?? "transparent",
+          visible: () => Boolean(heatLooks.get(id)?.shares),
+          tickVisible: () => false,
+        });
+        const views = [view(true), view(false)];
+        series.attachPrimitive({ updateAllViews() {}, paneViews: () => NONE, priceAxisViews: () => views });
       }
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
       function simplify(points, tolerance) {
