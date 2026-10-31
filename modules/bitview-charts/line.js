@@ -295,7 +295,7 @@ export class Line {
     const drawn = (/** @type {number} */ k) => k >= 0 && k < values.length && values[k] === values[k] && (!log || values[k] > 0);
     if (!drawn(i)) return Infinity;
     // (Zoomed out: as its columns are drawn.)
-    if (x !== undefined && x === x && time && time.spacing < 1) return this.#columnDistance(x, y, scale, time);
+    if (x !== undefined && x === x && time && time.spacing < 1) return this.#columnDistance(x, y, scale, time, i);
     const yi = scale.y(values[i]);
     if (x === undefined || x !== x || !time) return Math.abs(yi - y);
     const xi = time.x(i);
@@ -329,33 +329,36 @@ export class Line {
    * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it as its columns are drawn zoomed out (a
    * column's runs upright at its x, from their lowest to their highest; each run joined to the next one's first point,
    * a column on, unless a gap or a break comes between), measured over the columns either side of the pointer's.
-   * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time
+   * Past the columns searched (the pointer past the data's end), from the nearest point (`i`) where it's drawn.
+   * @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {number} i
    */
-  #columnDistance(x, y, scale, time) {
+  #columnDistance(x, y, scale, time, i) {
     const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log", c = Math.floor(x);
     // (The last point drawn, a joint's start (NaN: none, after a gap or a break); the run in the column so far.)
     let best = Infinity, joinX = NaN, joinY = NaN;
     for (let col = c - 1; col <= c + 1; col++) {
       const a = Math.max(0, time.column(col)), b = Math.min(n - 1, time.columnEnd);
-      let top = Infinity, bottom = -Infinity, lastY = NaN;
+      let top = Infinity, bottom = -Infinity, lastY = NaN, count = 0;
       for (let k = a; k <= b + 1; k++) {
         const v = k <= b ? values[k] : NaN, ends = k > b || !(log ? v > 0 : v === v);
         if (!ends) {
           const vy = scale.y(v);
           // (Its first in the run: joined to the last point drawn.)
           if (lastY !== lastY && joinX === joinX) best = Math.min(best, toSegment(x, y, joinX, joinY, col, vy));
-          (top = Math.min(top, vy)), (bottom = Math.max(bottom, vy)), (lastY = vy);
+          (top = Math.min(top, vy)), (bottom = Math.max(bottom, vy)), (lastY = vy), count++;
         }
         // (A run's end: at the column's end, a gap, or a break after its point.)
         if (!ends && !(breaks !== null && breaks[k] === 1)) continue;
-        if (lastY === lastY) best = Math.min(best, toSegment(x, y, col, top, col, bottom));
+        // (Its upright stroke, where it has two points or more: one alone draws nothing but its joints.)
+        if (count > 1) best = Math.min(best, toSegment(x, y, col, top, col, bottom));
         // (Joined on from its last point at the column's end (an empty column: from the one before, as drawn); a gap or
         // a break, not.)
         if (k <= b) joinX = NaN;
         else if (lastY === lastY) (joinX = col), (joinY = lastY);
-        (top = Infinity), (bottom = -Infinity), (lastY = NaN);
+        (top = Infinity), (bottom = -Infinity), (lastY = NaN), (count = 0);
       }
     }
+    if (best === Infinity && i >= 0 && i < n && (log ? values[i] > 0 : values[i] === values[i])) best = Math.hypot(x - Math.floor(time.x(i) + NOISE), y - scale.y(values[i]));
     return best;
   }
 

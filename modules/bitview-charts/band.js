@@ -117,12 +117,8 @@ export class Band {
     if (x !== undefined && x === x && time && time.spacing < 1) {
       // (Zoomed out, as filled: from the pointer's column's last point with both edges to the next column's, where no
       // gap comes between them, its edges across at the pointer; none else (a column alone fills nothing).)
-      const c = Math.floor(x), from = this.#lastIn(c, time, log), to = this.#lastIn(c + 1, time, log), gaps = this.#gaps(log);
-      if (from < 0 || to < 0 || gaps[from] <= to) return Infinity;
-      const t = x - c, u0 = scale.y(this.upper[from]), up = u0 + (scale.y(this.upper[to]) - u0) * t, l0 = edge ? 0 : scale.y(this.lower[from]);
-      const down = edge && this.to === "top" ? 0 : edge ? scale.height : l0 + (scale.y(this.lower[to]) - l0) * t;
-      const top = Math.min(up, down), bottom = Math.max(up, down);
-      return y < top ? top - y : y > bottom ? y - bottom : 0;
+      const c = Math.floor(x);
+      return Math.min(this.#span(c - 1, x, y, scale, time, log, edge), this.#span(c, x, y, scale, time, log, edge));
     }
     const hi = this.upper[i], lo = edge ? hi : this.lower[i];
     if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
@@ -154,6 +150,25 @@ export class Band {
     const after = u < n && (log ? lows[u] > 0 && highs[u] > 0 : lows[u] === lows[u] && highs[u] === highs[u]);
     const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(edge[i - 2]) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(edge[i + 1]) : y2;
     (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
+  }
+
+  /**
+   * How far a point (`x` in the plot, `y` in the pane) is from its fill between pixel columns `c` and `c + 1` as drawn
+   * zoomed out (from column c's last point with both edges to the next point it's joined to there: the last of the
+   * next column's first run, a gap not between them; Infinity: none), past its ends measured across too.
+   * @param {number} c @param {number} x @param {number} y @param {import("./scale.js").Scale} scale @param {import("./timeline.js").Timeline} time @param {boolean} log @param {boolean} edge
+   */
+  #span(c, x, y, scale, time, log, edge) {
+    const from = this.#lastIn(c, time, log);
+    if (from < 0) return Infinity;
+    const gaps = this.#gaps(log), last = Math.min(this.lower.length, this.upper.length) - 1, a = Math.max(0, time.column(c + 1)), b = Math.min(last, time.columnEnd);
+    // (Joined to: the next column's points up to its first gap after `from`, its last of those.)
+    const to = Math.min(b, gaps[from] - 1);
+    if (to < a) return Infinity;
+    const t = Math.min(Math.max(x - c, 0), 1), u0 = scale.y(this.upper[from]), up = u0 + (scale.y(this.upper[to]) - u0) * t, l0 = edge ? 0 : scale.y(this.lower[from]);
+    const down = edge && this.to === "top" ? 0 : edge ? scale.height : l0 + (scale.y(this.lower[to]) - l0) * t;
+    const top = Math.min(up, down), bottom = Math.max(up, down);
+    return Math.hypot(x < c ? c - x : x > c + 1 ? x - c - 1 : 0, y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
   /**
