@@ -6,6 +6,8 @@ import { kept } from "./format.js";
 import { Tags } from "./tags.js";
 
 const DAY = 86400;
+/** Labels' least room between them (CSS pixels). */
+const ROOM = 72;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** Each unit's steps, from the finest: [seconds a step (about), step in its unit, its unit]. */
 const STEPS = /** @type {const} */ ([
@@ -104,23 +106,30 @@ export class TimeAxis {
   }
 
   /**
-   * Its labels for the view, none under a page's tag.
+   * Its labels for the view, none under a page's tag: by the finest step leaving room between them; where that one
+   * has no start in view (a few days of data in a narrow stretch: no month begins in them), the next finer one.
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    */
   #labels(time, theme, plot, page) {
-    const g = this.g, times = time.times, n = times.length;
+    const times = time.times, n = times.length;
     if (n < 2) return;
     const a = Math.max(0, Math.floor(time.from)), b = Math.min(n - 1, Math.ceil(time.to));
     if (b <= a) return;
     // (Seconds a pixel, over what's in view; labels at least 72 pixels apart.)
-    const perPx = (times[b] - times[a]) / Math.max(1, time.x(b) - time.x(a)), room = 72;
-    let step = STEPS[STEPS.length - 1];
-    for (let k = 0; k < STEPS.length; k++)
-      if (STEPS[k][0] / perPx >= room) {
-        step = STEPS[k];
-        break;
-      }
-    const [seconds, size, unit] = step, label = this.labels[unit];
+    const perPx = (times[b] - times[a]) / Math.max(1, time.x(b) - time.x(a));
+    let k = 0;
+    while (k < STEPS.length - 1 && STEPS[k][0] / perPx < ROOM) k++;
+    if (!this.#row(time, theme, plot, page, a, b, STEPS[k]) && k > 0) this.#row(time, theme, plot, page, a, b, STEPS[k - 1]);
+  }
+
+  /**
+   * Its labels from point `a` to `b` by `step`, at least ROOM apart: how many it drew.
+   * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
+   * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
+   */
+  #row(time, theme, plot, page, a, b, step) {
+    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit];
+    let drawn = 0;
     g.fillStyle = theme.text;
     g.textAlign = "center";
     g.textBaseline = "middle";
@@ -135,11 +144,12 @@ export class TimeAxis {
       if (i <= b) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        if (x - last >= room && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(t), x, this.height / 2), (last = x));
+        if (x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(t), x, this.height / 2), (last = x), drawn++);
       }
       if (unit === "year") t = Date.UTC((y += size), 0, 1) / 1000;
       else if (unit === "month") t = Date.UTC(y, (m += size), 1) / 1000;
       else t += seconds;
     }
+    return drawn;
   }
 }
