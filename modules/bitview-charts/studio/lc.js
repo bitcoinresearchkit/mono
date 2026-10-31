@@ -831,7 +831,8 @@ class Series {
       this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
     }
     // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
-    if (engine instanceof Bars) return void ((engine.color = o.color ?? engine.color), (engine.base = o.base ?? 0), (engine.outline = outline), (engine.radius = o.cornerRadius ?? 0), engine.version++);
+    // (Their tag and price line as a line's: the last bar's value, in its color.)
+    if (engine instanceof Bars) return void ((engine.base = o.base ?? 0), (engine.radius = o.cornerRadius ?? 0), engine.setStyle({ color: o.color ?? engine.color, tag, priceLine, format: this.format, outline }));
     if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
     // (An area filled up to the pane's top where it's inverted (invertFilledArea).)
     if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, above: Boolean(o.invertFilledArea), steps });
