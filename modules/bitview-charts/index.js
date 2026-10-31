@@ -73,6 +73,8 @@ export class Chart {
     this.crosshairListeners = [];
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
+    /** A pointer's crosshair to be found again at the next frame (see #recross). */
+    this.recrossing = false;
     /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
     this.resizing = false;
     /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
@@ -126,11 +128,22 @@ export class Chart {
     query.addEventListener("change", () => (this.layout(), this.#watchDpr()), { once: true, signal: this.listening.signal });
   }
 
+  /**
+   * The crosshair found again after the data or the layout changed: a pointer's at the next frame, on the point under it
+   * once the panes are fitted (told once, see render); else kept on its point (one there is, or gone), its pane found
+   * again.
+   */
+  #recross() {
+    const crosshair = this.crosshair;
+    if (crosshair.index !== crosshair.index) return;
+    if (this.pointerX === this.pointerX) this.recrossing = true;
+    else this.setCrosshair(crosshair.index, crosshair.y);
+  }
+
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
   setTimes(times) {
     this.time.setTimes(times);
-    // (The crosshair kept on a point there is, or gone.)
-    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y, this.pointerX === this.pointerX, this.pointerX);
+    this.#recross();
     this.invalidate(true);
   }
 
@@ -244,13 +257,15 @@ export class Chart {
 
   /** Laid out again at the element's size (watched: needed only for a change it can't see). */
   layout() {
-    const box = this.element.getBoundingClientRect();
+    const box = this.element.getBoundingClientRect(), wasLeft = this.left;
     this.dpr = devicePixelRatio || 1;
     this.width = box.width;
     this.height = box.height;
     const room = Math.max(0, box.height - this.timeHeight), shares = this.panes.reduce((sum, pane) => sum + pane.share, 0) || 1;
     // (An axis at the left too where a pane has a left scale: the plot and the time axis after it.)
     const left = (this.left = this.panes.some((pane) => pane.left) ? this.leftAxis : 0), width = Math.max(1, box.width - left);
+    // (A pointer's place kept where it is on the chart: the plot moved under it as a left axis comes or goes.)
+    if (this.pointerX === this.pointerX) this.pointerX += wasLeft - left;
     let top = 0;
     for (const [k, pane] of this.panes.entries()) {
       const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
@@ -275,7 +290,7 @@ export class Chart {
     this.crosshair.place(box.width, box.height, this.dpr);
     this.time.resize(Math.max(1, width - this.axis));
     // (The crosshair's pane found again: panes moved, came or went.)
-    if (this.crosshair.index === this.crosshair.index) this.setCrosshair(this.crosshair.index, this.crosshair.y, this.pointerX === this.pointerX, this.pointerX);
+    this.#recross();
     this.invalidate(true);
     for (let k = 0; k < this.layoutListeners.length; k++) this.layoutListeners[k]();
   }
@@ -327,10 +342,10 @@ export class Chart {
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
-    // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide), its
-    // listeners told with the panes fitted to the view: that point within the data, as setCrosshair has it (past its
-    // end, its last), so a still pointer there asks for no frame.)
-    if (x === x && crosshair.index === crosshair.index && Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
+    // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
+    // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
+    // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
+    if (x === x && crosshair.index === crosshair.index && (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index)) (this.recrossing = false), this.setCrosshair(time.index(x), crosshair.y, true, x);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
