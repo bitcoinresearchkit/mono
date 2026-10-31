@@ -253,20 +253,35 @@ export class Band {
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     // (A point each, zoomed in; a pixel column each, its last, zoomed out.)
     const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1, steps = zoomedIn && this.steps, curve = zoomedIn && this.curve && !steps;
-    outline.start(g, (to - from + 2) * (steps ? 2 : 1));
+    outline.start(g, (to - from + 2) * 2);
     g.fillStyle = color;
     g.beginPath();
+    // (Zoomed in, the last point with both edges: where, its edges, its color (-1: none).)
+    let px = 0, pu = 0, pd = 0, pc = -1;
     for (let k = from; k <= to; k++) {
       if (zoomedIn) {
         const lo = toEdge ? upper[k] : lower[k], hi = upper[k];
         if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) {
           outline.close();
+          pc = -1;
           continue;
         }
+        const x = time.x(k), up = scale.y(hi), down = toEdge ? edgeY : scale.y(lo), color = colors ? colors[k] : 0;
+        // (Colored, its edges crossing on the way from a point in another color (straight, not stepped or curved): its
+        // color changes where they cross, the pinch both segments' end, each in its own (a cloud between two lines, in
+        // the color of the one over).)
+        const d0 = pu - pd, d1 = up - down, crossing = colors !== null && pc >= 0 && pc !== color && !steps && !curve && d0 * d1 < 0, last = pc;
+        const t = crossing ? d0 / (d0 - d1) : 0, cx = px + t * (x - px), cy = pu + t * (up - pu);
+        (px = x), (pu = up), (pd = down), (pc = color);
+        if (crossing && last === pass) {
+          outline.add(cx, cy, cy), outline.close();
+          continue;
+        }
+        if (crossing && color === pass) outline.close(), outline.add(cx, cy, cy);
         // (Another color's point: the end of this color's segment to it, if one comes to it, else none.)
-        const mine = !colors || colors[k] === pass;
+        const mine = !colors || color === pass;
         if (!mine && !outline.count) continue;
-        const x = time.x(k), at = outline.count - 1, up = scale.y(hi), down = toEdge ? edgeY : scale.y(lo);
+        const at = outline.count - 1;
         // (A step: its edges held at the last point's to here, then straight to this one's.)
         if (steps && at >= 0) outline.add(x, outline.ups[at], outline.downs[at]);
         outline.add(x, up, down);
