@@ -47,7 +47,8 @@ export class Grid {
   /** @param {{ edges?: Float64Array, place?: (value: number) => number, gradient?: string[] }} look */
   setStyle({ edges = this.edges, place = this.place, gradient = this.gradient }) {
     (this.edges = edges), (this.place = place);
-    if (gradient !== this.gradient) (this.gradient = gradient), (this.table = gradientTable(gradient));
+    // (Its table made anew whatever's given: the same array, its stops changed, too.)
+    (this.gradient = gradient), (this.table = gradientTable(gradient));
     this.invalidate();
   }
 
