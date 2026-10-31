@@ -852,7 +852,10 @@ class Series {
     if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
     // (An area filled down to the pane's foot, as the chart library's (whatever its values' sign), or up to its top where
     // it's inverted (invertFilledArea); a baseline to its base.)
-    if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, to: this.type === "Baseline" ? "base" : o.invertFilledArea ? "top" : "foot", steps });
+    // (Their fills fading as the chart library's: an area's from its top color at the pane's top to its bottom color at
+    // its foot; a baseline's to their base, and from it.)
+    const baseline = this.type === "Baseline";
+    if (engine instanceof Band) return void engine.set({ color: (baseline ? o.topFillColor1 : o.topColor) ?? o.color ?? engine.color, fade: (baseline ? o.topFillColor2 : o.bottomColor) ?? null, below: baseline ? o.bottomFillColor1 ?? null : null, belowFade: baseline ? o.bottomFillColor2 ?? null : null, base: baseline ? o.baseValue?.price ?? 0 : 0, to: baseline ? "base" : o.invertFilledArea ? "top" : "foot", steps });
     // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
     if (engine instanceof Candles) {
       const border = o.borderVisible !== false;

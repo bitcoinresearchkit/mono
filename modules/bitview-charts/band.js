@@ -41,16 +41,53 @@ const outline = {
   },
 };
 
+/** A fill's style: a color, or a vertical gradient from one color to another between two heights, kept till they change. */
+class Fill {
+  constructor() {
+    /** @type {CanvasGradient | null} */
+    this.gradient = null;
+    this.from = "";
+    this.to = "";
+    this.top = NaN;
+    this.bottom = NaN;
+  }
+
+  /**
+   * `color`, or where it fades to `fade` (none: none), a gradient from height `top` to `bottom` (CSS pixels).
+   * @param {CanvasRenderingContext2D} g @param {string} color @param {string | null} fade @param {number} top @param {number} bottom
+   */
+  style(g, color, fade, top, bottom) {
+    if (!fade || fade === color || !(bottom > top)) return color;
+    if (!this.gradient || this.from !== color || this.to !== fade || this.top !== top || this.bottom !== bottom) {
+      const gradient = g.createLinearGradient(0, top, 0, bottom);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, fade);
+      (this.gradient = gradient), (this.from = color), (this.to = fade), (this.top = top), (this.bottom = bottom);
+    }
+    return this.gradient;
+  }
+}
+
 export class Band {
-  /** @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, below?: string | null, to?: "base" | "top" | "foot", steps?: boolean }} options */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", below = null, to = "base", steps = false }) {
+  /**
+   * `fade`, its fill's color at its far end (a baseline's base, else the pane's foot) where it fades from `color` (at the
+   * pane's top), a baseline's `belowFade` from `below` (at its base) to the pane's foot: gradients fixed to the pane,
+   * so a pan moves them with its picture. None: one color.
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean }} options
+   */
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
     /** An area: its lower edge its base, made to its values' length. */
     this.area = !lower;
-    /** Its color under its base (a baseline), or none: one color. */
+    /** Its color under its base (a baseline), or none: one color; each fading to another, or none. */
     this.below = below;
+    this.fade = fade;
+    this.belowFade = belowFade;
+    // (Its gradients, made again only as their colors or ends change: nothing made a frame.)
+    this.overFill = new Fill();
+    this.underFill = new Fill();
     /** An area filled up from its values to the pane's top (else down to its base). */
     this.to = to;
     this.steps = steps;
@@ -111,9 +148,9 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, below?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean }} change
    */
-  set({ lower, upper = this.upper, color = this.color, below = this.below, base = this.base, to = this.to, steps = this.steps }) {
+  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -122,7 +159,7 @@ export class Band {
     const kept = wasArea && this.lower.length === upper.length && base === this.base;
     this.base = base;
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
-    (this.upper = upper), (this.color = color), (this.below = below), (this.to = to), (this.steps = steps);
+    (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps);
   }
 
   /**
@@ -158,29 +195,30 @@ export class Band {
    * @param {number} x0 @param {number} x1
    */
   draw(g, time, scale, x0, x1) {
-    if (!this.below) return this.#fill(g, time, scale, x0, x1, this.color);
+    if (!this.below) return this.#fill(g, time, scale, x0, x1, this.overFill.style(g, this.color, this.fade, 0, scale.height));
     // (A baseline: over its base in its color, under it in the other; the same outline filled twice, clipped at it (at
-    // the foot where its scale can't show it: a log scale's base of zero).)
+    // the foot where its scale can't show it: a log scale's base of zero), each fading towards its base.)
     let at = scale.y(this.base);
     at = at < 0 ? 0 : at < scale.height ? at : scale.height;
+    const over = this.overFill.style(g, this.color, this.fade, 0, at), under = this.underFill.style(g, this.below, this.belowFade, at, scale.height);
     g.save();
     g.beginPath();
     g.rect(x0, 0, x1 - x0, at);
     g.clip();
-    this.#fill(g, time, scale, x0, x1, this.color);
+    this.#fill(g, time, scale, x0, x1, over);
     g.restore();
     g.save();
     g.beginPath();
     g.rect(x0, at, x1 - x0, scale.height - at);
     g.clip();
-    this.#fill(g, time, scale, x0, x1, this.below);
+    this.#fill(g, time, scale, x0, x1, under);
     g.restore();
   }
 
   /**
-   * Its outline from x `x0` to `x1` filled in `color`.
+   * Its outline from x `x0` to `x1` filled in `color` (a gradient's too).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {string} color
+   * @param {number} x0 @param {number} x1 @param {string | CanvasGradient} color
    */
   #fill(g, time, scale, x0, x1, color) {
     const lower = this.lower, upper = this.upper, n = Math.min(lower.length, upper.length), log = scale.mode === "log";
