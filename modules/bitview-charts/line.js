@@ -131,7 +131,8 @@ export class Line {
    * dot that radius at each point (in its color there; ringed in its outline); `marker`, the crosshair's dot on it that
    * radius (ringed in the ground, 2 pixels; 0: none); `steps`, each value held to the next point (zoomed in: zoomed out,
    * a pixel column holds several points either way); `dash`, its stroke's dashes (CSS pixels, as setLineDash takes
-   * them; none, solid): dashes run along its path from where it starts, so its pane's drawn whole as the view moves.
+   * them; none, solid): dashes run along its path from where it starts, so its pane's drawn whole as the view moves
+   * (its picture kept as it is otherwise).
    * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null }} [options]
    */
   constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null } = {}) {
@@ -206,7 +207,7 @@ export class Line {
   }
 
   /** What it draws can't move with a pan's picture (see Pane's draw): its dashes, from where its path starts. */
-  get fixed() {
+  get dashed() {
     return this.dash !== null && this.stroke;
   }
 
@@ -427,16 +428,19 @@ export class Line {
     const reach = Math.ceil((this.width * (this.outline ? 3 : 1)) / 2) + 1;
     (x0 -= reach), (x1 += reach);
     if (this.dash) g.setLineDash(this.dash);
-    // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show).)
+    // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show);
+    // dashed and colored, a color's segments at a time, as its strokes are, so their dashes start where theirs do.)
     if (this.outline) {
       g.lineWidth = this.width * 3;
       g.lineJoin = "round";
       g.strokeStyle = this.outline;
-      g.beginPath();
-      pen.start(g, dpr, -1);
-      this.#trace(time, scale, x0, x1, colors);
-      pen.lift();
-      g.stroke();
+      for (let pass = this.dash && colors ? 0 : -1; pass < (this.dash && colors ? this.palette.length : 0); pass++) {
+        g.beginPath();
+        pen.start(g, dpr, pass);
+        this.#trace(time, scale, x0, x1, colors);
+        pen.lift();
+        g.stroke();
+      }
     }
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)

@@ -47,12 +47,14 @@ export class TimeAxis {
     this.width = 0;
     // (Each unit's labels: a month's start is its name among days, its year's among months.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
+    // (A time of day as hours and minutes; midnight, its day.)
+    const clock = kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : String(date(t).getUTCDate())));
     this.labels = {
       year: kept((t) => String(date(t).getUTCFullYear())),
       month: kept((t) => (date(t).getUTCMonth() ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCFullYear()))),
       day: kept((t) => (date(t).getUTCDate() === 1 ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCDate()))),
-      hour: kept((t) => (date(t).getUTCHours() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:00` : String(date(t).getUTCDate()))),
-      minute: kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : String(date(t).getUTCDate()))),
+      hour: clock,
+      minute: clock,
     };
     /** The panes' series' own tags on it as last drawn, and each one's half width. */
     this.page = new Tags();

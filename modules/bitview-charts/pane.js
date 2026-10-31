@@ -32,7 +32,8 @@ const TAG = 18;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
- * moves (its pane drawn whole each frame, its picture never moved); `over`, drawn over everything, the crosshair too,
+ * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be moved by a pan (its
+ * dashes run from where its path starts: drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too,
  * on a layer of its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its
  * side's scale (its grid by the other's); `fit`, how it widens its scale's range in its place (a page's own reading:
  * none of it, a fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends
@@ -42,6 +43,7 @@ const TAG = 18;
  *   version: number,
  *   hidden?: boolean,
  *   fixed?: boolean,
+ *   dashed?: boolean,
  *   over?: boolean,
  *   scaled?: boolean,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
@@ -482,13 +484,11 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
-    if (auto) (scale.above = above), (scale.below = below);
-    // (No more than half the room its shares leave, its range set by hand too: a small pane's kept the right way up.)
-    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2, room = scale.above + scale.below;
-    if (room > free) {
-      const k = Math.max(0, free) / room;
-      (scale.above *= k), (scale.below *= k);
-    }
+    if (auto) (scale.askedAbove = above), (scale.askedBelow = below);
+    // (What's asked, kept to half the room its shares leave, its range set by hand too: a small pane's the right way up,
+    // the room it asked back once it's taller.)
+    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2, asked = scale.askedAbove + scale.askedBelow, k = asked > free ? Math.max(0, free) / asked : 1;
+    (scale.above = scale.askedAbove * k), (scale.below = scale.askedBelow * k);
     if (auto) scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
@@ -503,11 +503,11 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false;
+    let versions = 0, overs = 0, fixed = false, dashed = false;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (series.over) overs += series.version;
-      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden));
+      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden));
     }
     const same = !whole && !fixed && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
     const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
@@ -517,7 +517,8 @@ export class Pane {
     const slow = this.wholeCost > SLOW;
     if (slow && same && !moves && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
     const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && stretch >= 0.5 && stretch <= 2;
-    if (moves) {
+    // (Moved, unless a dashed line can't be: drawn whole.)
+    if (moves && (!by || !dashed)) {
       if (!by) {
         // (Its series over it changed: their tags on its axes drawn again, the plot as it is.)
         if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);

@@ -17,9 +17,14 @@ export class Scale {
     // (A relative scale's reading of the series drawn now: t = v * m + c.)
     this.m = 1;
     this.c = 0;
-    /** Room kept at the top and the bottom, as shares of the height; and more, in CSS pixels (its series' marks over their points: see Pane's fit). */
+    /**
+     * Room kept at the top and the bottom, as shares of the height; and more, in CSS pixels (its series' marks over
+     * their points, as asked, and as kept: see Pane's fit).
+     */
     this.top = top;
     this.bottom = bottom;
+    this.askedAbove = 0;
+    this.askedBelow = 0;
     this.above = 0;
     this.below = 0;
     /** The range shown, as values. */
