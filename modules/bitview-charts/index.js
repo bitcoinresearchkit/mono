@@ -10,7 +10,7 @@
 //   pane.addLine({ values, color: "#f7931a" });              // Float64Array, an index a time
 //   chart.show(365);                                         // the last year in view
 //
-// Dragged, a pane pans (a flick glides on, slowing as iOS's lists do); pinched or wheeled, it zooms about that point;
+// Dragged, a pane pans (a finger's flick glides on, slowing as iOS's lists do); pinched or wheeled, it zooms about that point;
 // a trackpad's sideways scroll pans.
 
 import { Timeline } from "./timeline.js";
@@ -48,6 +48,8 @@ const NEAR_MOUSE = 4, NEAR_TOUCH = 12, LEAST = 32;
 const AXIS_LEAST = 28;
 /** A flick's speed kept each millisecond (iOS's lists' rate). */
 const SLOWING = 0.998;
+/** A flick's speed (CSS pixels a millisecond) as its finger's over its last moments (this many milliseconds); slower, none (a drag let go where it stopped). */
+const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
 
 /**
  * @param {HTMLElement} element
@@ -78,6 +80,8 @@ export class Chart {
     this.fitted = [0, 0];
     /** A render drawing again at the axes' new widths: in it they only widen (see render). */
     this.fitting = false;
+    /** The view set anew since the last frame (a timeline, the latest shown): unseen, its axes fitted keep its right end. */
+    this.placed = true;
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -174,6 +178,7 @@ export class Chart {
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
   setTimes(times) {
     this.time.setTimes(times);
+    this.placed = true;
     this.#recross();
     this.invalidate(true);
   }
@@ -204,6 +209,7 @@ export class Chart {
   /** The last `span` points in view. @param {number} span */
   show(span) {
     this.time.show(span);
+    this.placed = true;
     this.invalidate(true);
   }
 
@@ -297,8 +303,13 @@ export class Chart {
     return this.leftAxis && (this.fitted[1] || this.leftAxis);
   }
 
-  /** Laid out again at the element's size (watched: needed only for a change it can't see). */
-  layout() {
+  /**
+   * Laid out again at the element's size (watched: needed only for a change it can't see); `kept`, every point where it
+   * is on the screen (an axis fitted to its labels: it grows over the plot's edge or gives it back, nothing under it
+   * moving), else the view's right end (a box resized).
+   * @param {boolean} [kept]
+   */
+  layout(kept = false) {
     const box = this.element.getBoundingClientRect(), wasLeft = this.left;
     this.dpr = devicePixelRatio || 1;
     this.width = box.width;
@@ -332,7 +343,7 @@ export class Chart {
     const cornerWidth = axis || left;
     Object.assign(this.corner.style, { left: `${axis ? left + Math.max(1, width - axis) : 0}px`, top: `${room}px`, width: `${cornerWidth}px`, height: `${this.timeHeight}px`, display: cornerWidth ? "block" : "none" });
     this.crosshair.place(box.width, box.height, this.dpr);
-    this.time.resize(Math.max(1, width - axis));
+    this.time.resize(Math.max(1, width - axis), kept ? left - wasLeft : NaN);
     // (The crosshair's pane found again: panes moved, came or went.)
     this.#recross();
     this.invalidate(true);
@@ -386,8 +397,10 @@ export class Chart {
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
-    // (Each axis as narrow as its labels and tags let it (4 pixels a step, AXIS_LEAST at least), each side on its own:
-    // wider at once where they need it; narrower once the view's at rest (drawn whole: no plot sliding under a pan), and
+    // (Each axis as narrow as its labels and tags let it (4 pixels a step, AXIS_LEAST at least), each side on its own,
+    // every point kept where it is on the screen (the axis over the plot's edge, not the plot shifted; a view set anew,
+    // not seen yet, its right end and the room after its latest point as set): wider at once
+    // where they need it; narrower once the view's at rest (drawn whole: no plot sliding under a pan), and
     // only by 8 pixels or more (a narrower plot can bring a wider label into view: no flapping between two widths). Laid
     // out and drawn whole again now (a picture taken from this render has it all); in that draw, only wider (it ends).)
     {
@@ -399,7 +412,7 @@ export class Chart {
       if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
         if (this.axis) this.fitted[0] = wantRight;
         if (this.left) this.fitted[1] = wantLeft;
-        this.layout();
+        this.layout(!this.placed);
         const was = this.fitting;
         this.fitting = true;
         try {
@@ -428,6 +441,7 @@ export class Chart {
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
+    this.placed = false;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
       for (let k = 0; k < this.rangeListeners.length; k++) this.rangeListeners[k](time.from, time.to);
@@ -516,7 +530,7 @@ export class Chart {
     // (A price axis' last click or tap: when, where and which, for a second one on it (a double-click, a double tap: iOS
     // sends no dblclick) fitting it again; forgotten at any release that isn't a click.)
     let tapAt = -Infinity, tapX = 0, tapY = 0, tapPane = /** @type {Pane | null} */ (null), tapSide = "";
-    // (The last tenth of a second of a drag: its speed as it's let go.)
+    // (A drag's last moves: its speed as it's let go (see FLICK_SPAN).)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
     let trailEnd = 0, trailSize = 0;
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
@@ -628,19 +642,21 @@ export class Chart {
         return void this.#click(event);
       }
       tapAt = -Infinity;
-      // (A pinch's end, a finger at a time: no glide (a zoom has no momentum; the finger left lifts as it stops).)
-      if (down.size || pinched || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
-      // (Its speed over its last tenth of a second; held still that long, none.)
+      // (A pinch's end, a finger at a time: no glide (a zoom has no momentum; the finger left lifts as it stops). A
+      // mouse's or a pen's drag: none either, as a desktop's charts (a finger's flick alone glides on).)
+      if (down.size || pinched || event.type === "pointercancel" || event.pointerType !== "touch" || trailSize < 2) return void (trailSize = 0);
+      // (Its speed as it was let go: over its last moves alone (a finger slowing to a stop lets go slow), and only if it
+      // was still moving then (held still a moment, none); too slow, none.)
       const last = (trailEnd + trail.length - 1) % trail.length;
       let first = last;
       for (let k = 1; k < trailSize; k++) {
         const i = (last - k + trail.length) % trail.length;
-        if (trailAt[last] - trailAt[i] > 100) break;
+        if (trailAt[last] - trailAt[i] > FLICK_SPAN) break;
         first = i;
       }
-      const ms = trailAt[last] - trailAt[first], stale = event.timeStamp - trailAt[last] > 60;
+      const ms = trailAt[last] - trailAt[first], speed = ms > 0 ? (trail[last] - trail[first]) / ms : 0, stale = event.timeStamp - trailAt[last] >= FLICK_SPAN;
       trailSize = 0;
-      if (ms > 0 && !stale) this.#fling((trail[last] - trail[first]) / ms);
+      if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed);
     };
     element.addEventListener("pointerup", up, { signal });
     element.addEventListener("lostpointercapture", (event) => event.pointerId === sizer && stopSizing(), { signal });

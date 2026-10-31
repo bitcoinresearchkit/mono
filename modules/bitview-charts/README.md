@@ -23,7 +23,7 @@ chart.show(365);                                 // the last 365 points in view
 - `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
   and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
-  then as narrow as its labels and tags let it (`axisShown`: wider at once, narrower at rest by 8 pixels or more);
+  then as narrow as its labels and tags let it (`axisShown`: wider at once, narrower at rest by 8 pixels or more; every point kept where it is on the screen, the axis growing over the plot's edge);
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
@@ -37,7 +37,7 @@ chart.show(365);                                 // the last 365 points in view
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
   `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
   pointer).
-- Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the point
+- Input: a drag pans (a finger's flick glides on, as iOS's lists do; a mouse's drag stops where it's let go), a pinch or the wheel zooms about that point (the point
   there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on

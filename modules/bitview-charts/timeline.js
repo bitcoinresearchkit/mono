@@ -75,13 +75,21 @@ export class Timeline {
     this.limit();
   }
 
-  /** The plot's width changed: the view's right end and its spacing kept. @param {number} width */
-  resize(width) {
-    if (width === this.width) return;
-    const spacing = this.spacing;
+  /**
+   * The plot's width changed: the view's right end and its spacing kept; or (`moved`: its left edge moved that many CSS
+   * pixels on the screen) every point kept where it is on the screen, its spacing too, unless that'd take its latest
+   * point out of view (one in view stays: the view follows it as more come, see setTimes).
+   * @param {number} width @param {number} [moved]
+   */
+  resize(width, moved = NaN) {
+    if (width === this.width && !moved) return;
+    const spacing = this.spacing, to = this.to, last = this.length - 1, following = last >= 0 && this.x(last) <= this.width;
     this.width = width;
-    this.from = this.to - width / spacing;
-    this.limit();
+    if (moved === moved) {
+      (this.from += moved / spacing), (this.to = this.from + width / spacing), this.limit();
+      if (!(following && this.x(last) > width)) return;
+    }
+    (this.to = to), (this.from = to - width / spacing), this.limit();
   }
 
   /**
