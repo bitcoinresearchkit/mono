@@ -16273,6 +16273,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
       const engine = view.engine;
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
+      /** Studio's dates as the chart's timeline: a Float64Array, made once an array (an interval's data keeps its own). */
+      const timelines = /** @type {WeakMap<number[], Float64Array>} */ (new WeakMap());
+      const timelineOf = (/** @type {number[]} */ times) => timelines.get(times) ?? ((line) => (timelines.set(times, line), line))(new Float64Array(times));
+      /**
+       * The chart on `times`, at once (its view read and moved on them from here on, as a build places it): its series
+       * given their data on them before the next frame (see LC's Chart.#sync).
+       * @param {number[]} times
+       */
+      const showTimes = (times) => ((line) => engine.time.times !== line && (engine.setTimes(line), view.changed()))(timelineOf(times));
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
       /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
       const showSpan = (span) => engine.setRange(span.from, span.to);
@@ -16904,7 +16913,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return true;
       }
 
-      /** @param {Chart} doc @param {Resolved} data */
       /**
        * What each series holding a layer's data was last set to (by any way: its rows, a spotlight's faded ones), to tell
        * rows set again from the same with older ones before them; its last point updated (a live tick), unknown. Only at
@@ -16917,7 +16925,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function tracked(series) {
         const setData = series.setData.bind(series), update = series.update.bind(series), bvSetColumns = series.bvSetColumns.bind(series);
         // (Set as columns (see the chart library's patch 57): never at a fine interval, its rows unknown.)
-        series.bvSetColumns = (/** @type {ArrayLike<number>} */ times, /** @type {ArrayLike<number>} */ values) => (rowsOf.delete(series), bvSetColumns(times, values));
+        series.bvSetColumns = (/** @type {Float64Array} */ times, /** @type {ArrayLike<number>} */ values) => (rowsOf.delete(series), bvSetColumns(times, values));
         series.setData = (/** @type {any[]} */ rows) => {
           setData(rows);
           // (By the chart being built: a look's, mid-switch, at the old interval.)
@@ -17085,6 +17093,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         spotlit = null;
         fadedNow.clear();
         levelTags.length = 0;
+        // (Its timeline now: what's below reads and moves the view on its dates (the view as it was read above).)
+        showTimes(data.times);
         const paneIndex = new Map(doc.panes.map((pane, i) => [pane.id, i]));
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
         // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
@@ -17311,7 +17321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // its value finite by a subtraction: no call each point, thousands a series.)
             const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, breaks = result.breaks, close = closes.get(layer.id)?.series;
             if (!breaks && !paintAt && !candles && !close && !(layer.type === "histogram" && layer.colors !== 1) && !FINE.has(doc.index) && VALUED.has(series.seriesType())) {
-              series.bvSetColumns(times, times.length ? (log ? shown.map((/** @type {number} */ value) => (value > 0 ? value : NaN)) : shown) : []);
+              series.bvSetColumns(timelineOf(times), times.length ? (log ? shown.map((/** @type {number} */ value) => (value > 0 ? value : NaN)) : shown) : []);
             } else {
               const points = new Array(times.length);
               for (let i = 0; i < times.length; i++) {
@@ -39660,6 +39670,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = latest + 1; i <= current; i++) added.push(timeAt(index, i));
         if (added.length) {
           resolved = widened(resolved, added);
+          showTimes(resolved.times);
           dataRevision++;
           // What's drawn now (a build from it is the same timeline, not one that grew).
           drawnTimes = resolved.times;

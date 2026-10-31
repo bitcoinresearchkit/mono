@@ -4,7 +4,7 @@
 // with the library (its options, its patches' calls: bv*), mapped onto bitview-charts' panes, scales and series. Phase
 // one: the chart, its panes and scales, the view, the crosshair and clicks, pictures, and the standard series (lines,
 // areas (stacked ones' fills to the line under them), histograms, baselines, candles), rows or columns onto one
-// timeline. Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted), overlay scales, its scales'
+// timeline (the page's: see Chart.#sync). Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted), overlay scales, its scales'
 // and series' writers, primitives (its drawings, halving marks: their pane views, see Pane.paint) and markers (its
 // signals' marks: see Marks), primitives' axis tags (its drawings' values, a profile's shares) and price lines.
 
@@ -40,10 +40,6 @@ const OWN = { priceRange: null }, original = () => OWN;
 const PUSHED = ["color", "lineColor", "bvBandFill"];
 /** A fit adding nothing (an edge: its series fitted by its band). */
 const NOTHING = () => {};
-
-/** Each times array given as columns, as a Float64Array: an array once given taken as never changing (the patches'
- * contract), so every series set on it shares one (compared by identity, not point by point). */
-const timesOf = new WeakMap();
 
 /** `b` merged into `a`, the objects in them too (as the chart library merged its options). @param {any} a @param {any} b @returns {any} */
 function merged(a, b) {
@@ -111,9 +107,6 @@ class Chart {
       const param = { ...this.#param(index, pane, x, y, true), hoveredSeries: this.#owner(pane, hit) };
       for (const listener of this.clickListeners) listener(param);
     });
-    this.timeScaleApi = new TimeScale(this);
-    /** What watches its size for its time scale's listeners (stopped with it). @type {ResizeObserver[]} */
-    this.watchers = [];
     // (Its DOM as the chart library's was, where Studio looks for it: a table of rows, each pane's (see Pane) and, last,
     // the time axis' (its right corner's cell Studio's Full screen button's, the one cell taking the pointer), kept on
     // them as it's laid out; the library's canvases in their cells (Studio stretches the plots' and the time axis' as
@@ -225,10 +218,6 @@ class Chart {
     this.engine.invalidate(true);
   }
 
-  timeScale() {
-    return this.timeScaleApi;
-  }
-
   /** @param {string} id @param {number} [pane] */
   priceScale(id, pane = 0) {
     return this.#pane(pane).scaleApi(id);
@@ -320,7 +309,6 @@ class Chart {
 
   remove() {
     for (const series of this.all) for (const primitive of series.primitives) primitive.detached?.();
-    for (const watcher of this.watchers) watcher.disconnect();
     this.engine.destroy();
     this.element.remove();
   }
@@ -362,133 +350,20 @@ class Chart {
     queueMicrotask(() => this.#sync());
   }
 
-  /** Every series' data onto one timeline, each one's columns on it, stacks' fills to the line under them; drawn whole. */
+  /**
+   * Every series' data onto the timeline the page set (the library's), each one's columns on it, stacks' fills to the
+   * line under them. A new timeline pushes every series and draws whole; else each one changed alone (a live price's
+   * point pushes the price alone), only the panes whose series changed (their versions) drawn anew.
+   */
   #sync() {
     if (!this.dirty) return;
     this.dirty = false;
-    // (The timeline: Studio's series share one array of times, mostly; else, all their times as one. Each array once.)
-    const lists = [...new Set(this.all.map((series) => series.times).filter((times) => times.length))];
-    let times = lists[0] ?? new Float64Array(0);
-    const alike = !lists.some((list) => !sameTimes(list, times));
-    if (!alike) {
-      const union = new Set();
-      for (const list of lists) for (const t of list) union.add(t);
-      times = new Float64Array(union).sort();
-    }
-    // (Each series changed pushed (all of them on a new timeline: a live price's point pushes the price alone); a
-    // pane's stack set again where one of its areas was. The same times, whatever array holds them, the same timeline.)
-    const was = this.times, fresh = !sameTimes(times, was);
-    if (fresh) this.times = times;
-    else times = was;
-    // (A series' times the same point for point taken as the timeline's own array: compared by identity from here on
-    // (each pushed, each set again). All alike, all of them, compared above; else each array read once.)
-    const same = new Map();
-    for (const series of this.all) {
-      const own = series.times;
-      if (!own.length || own === times) continue;
-      if (!alike && !same.has(own)) same.set(own, sameTimes(own, times));
-      if (alike || same.get(own)) series.times = times;
-    }
+    const times = this.engine.time.times, fresh = times !== this.times;
+    this.times = times;
     for (const series of this.all) if (fresh || series.dirty) (series.dirty = false), series.push(times), series.pane.dirty = true;
     if (fresh) for (const pane of this.panesList) for (const marks of pane.marks) marks.place();
     for (const pane of this.panesList) if (pane.dirty) (pane.dirty = false), pane.arrange(), pane.stack(), pane.formats();
-    // (A new timeline draws everything whole; else only the panes whose series changed (their versions) draw anew.)
-    if (fresh) this.engine.setTimes(times);
-    else this.engine.invalidate();
-  }
-}
-
-class TimeScale {
-  /** @param {Chart} chart */
-  constructor(chart) {
-    this.chart = chart;
-  }
-
-  get time() {
-    return this.chart.engine.time;
-  }
-
-  width() {
-    return this.time.width;
-  }
-
-  height() {
-    return this.chart.engine.timeHeight;
-  }
-
-  options() {
-    return { rightOffsetPixels: this.time.rightOffset, minBarSpacing: this.time.minSpacing, barSpacing: this.time.spacing, ...this.chart.options.timeScale };
-  }
-
-  /** @param {any} options */
-  applyOptions(options) {
-    this.chart.applyOptions({ timeScale: options });
-  }
-
-  getVisibleLogicalRange() {
-    return this.time.length ? { from: this.time.from, to: this.time.to } : null;
-  }
-
-  /** @param {{ from: number, to: number }} range */
-  setVisibleLogicalRange(range) {
-    this.chart.engine.setRange(range.from, range.to);
-  }
-
-  getVisibleRange() {
-    const times = this.chart.times, n = times.length;
-    if (!n) return null;
-    // (Its points at least partly in view, as the chart library's strict range.)
-    const at = (/** @type {number} */ i) => times[Math.min(Math.max(i, 0), n - 1)];
-    return { from: at(Math.floor(this.time.from)), to: at(Math.ceil(this.time.to)) };
-  }
-
-  /** @param {{ from: number, to: number }} range */
-  setVisibleRange(range) {
-    const times = this.chart.times;
-    this.chart.engine.setRange(indexOf(times, range.from, 1), indexOf(times, range.to, -1));
-  }
-
-  /** @param {number} time */
-  timeToCoordinate(time) {
-    const i = indexOf(this.chart.times, time);
-    return i < 0 ? null : this.time.x(i);
-  }
-
-  /** @param {number} time @param {boolean} [nearest] */
-  timeToIndex(time, nearest = false) {
-    const i = indexOf(this.chart.times, time, nearest ? -1 : 0);
-    return i < 0 ? null : i;
-  }
-
-  /** @param {number} logical */
-  logicalToCoordinate(logical) {
-    return this.time.x(logical);
-  }
-
-  /** @param {number} x */
-  coordinateToLogical(x) {
-    return this.time.index(x);
-  }
-
-  /** How far the view's right end is past the last point, in points. */
-  scrollPosition() {
-    return this.time.to - (this.time.length - 1);
-  }
-
-  fitContent() {
-    this.chart.engine.show(this.time.length);
-  }
-
-  /** @param {(range: any) => void} listener */
-  subscribeVisibleLogicalRangeChange(listener) {
-    this.chart.engine.onRange((from, to) => listener({ from, to }));
-  }
-
-  /** @param {(width: number, height: number) => void} listener */
-  subscribeSizeChange(listener) {
-    const watcher = new ResizeObserver(() => listener(this.width(), this.height()));
-    watcher.observe(this.chart.element);
-    this.chart.watchers.push(watcher);
+    this.engine.invalidate(fresh);
   }
 }
 
@@ -919,13 +794,11 @@ class Series {
     this.chart.changed();
   }
 
-  /** The patches' columns: times and values. @param {number[] | Float64Array} times @param {Float64Array | number[]} values */
+  /** The patches' columns: times (the page's timeline, or none) and values. @param {Float64Array} times @param {Float64Array | number[]} values */
   bvSetColumns(times, values) {
     this.rows = null;
     this.ownValues = false;
-    // (Copied once an array, by the constructor: from() walks an iterator, many times as slow without a JIT.)
-    if (times instanceof Float64Array) this.times = times;
-    else if (!(this.times = timesOf.get(times))) timesOf.set(times, (this.times = new Float64Array(times)));
+    this.times = times;
     this.values = values instanceof Float64Array ? values : new Float64Array(values);
     this.dirty = true;
     this.chart.changed();
