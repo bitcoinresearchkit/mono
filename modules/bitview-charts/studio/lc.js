@@ -9,6 +9,7 @@
 // signals' marks: see Marks). Not yet: primitives' axis tags, price lines of its own.
 
 import { createChart as make, DARK, picture, compact, Line, Band, Bars, Candles, Custom, Scale, channels } from "/modules/bitview-charts/index.js";
+import { pill } from "/modules/bitview-charts/tags.js";
 
 export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
@@ -1227,8 +1228,8 @@ const odd = (x) => ((n) => (n % 2 ? n : n - 1))(Math.ceil(x)), even = (/** @type
  * A series' marks (the chart library's markers plugin: Studio's signals' marks), drawn over its pane's series as the
  * plugin drew them, to its sizes: each at its date, above its point (its candle's high), below it (its low), or on it;
  * an arrow, a circle or a square, as tall as a point is wide (12 to 30 pixels; times its `size`), several at one point
- * stacked away from it; its words (`text`) past it, in its color, edged in the chart's halo (`layout.bvHalo`, its
- * patch 47). In the strips a pan draws, those whose shape or words reach in.
+ * stacked away from it; its words (`text`) past it, in a pill of the chart's ground edged in its color (read over any
+ * line; the plugin's, edged in a halo: patch 47). In the strips a pan draws, those whose shape or words reach in.
  */
 class Marks {
   /** @param {Series} series @param {any[]} list */
@@ -1294,7 +1295,8 @@ class Marks {
    */
   room(spacing) {
     if (!this.list.length) return null;
-    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) * 1.5 + Math.max(odd(unit * 0.1), 3) * 2;
+    // (Its shape, its margin, and where it has words their pill (16 pixels) 2 from it: see #draw.)
+    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.list.some((mark) => mark.text) ? 18 : 0);
     (this.margins.above = this.over ? room : this.inside ? Math.ceil(room / 2) : 0), (this.margins.below = this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
     return this.margins;
   }
@@ -1325,12 +1327,10 @@ class Marks {
     const values = engine instanceof Candles ? engine.close : engine instanceof Band ? engine.upper : /** @type {Line} */ (engine).values;
     const highs = engine instanceof Candles ? engine.high : values, lows = engine instanceof Candles ? engine.low : values;
     const unit = Math.min(Math.max(time.spacing, 12), 30), height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3), chart = this.series.chart;
-    const font = chart.engine.theme.font, words = parseFloat(font) || 11, halo = chart.options.layout?.bvHalo;
-    g.font = font;
-    g.textAlign = "center";
+    // (Its words' pill: 16 pixels tall, 2 from its shape.)
+    const theme = chart.engine.theme, tall = 16;
+    g.font = theme.font;
     g.textBaseline = "middle";
-    g.lineWidth = 3;
-    g.lineJoin = "round";
     // (Several at one point: each one further from it, above and below apart.)
     let point = -1, above = 0, below = 0;
     for (let k = 0; k < n; k++) {
@@ -1341,20 +1341,17 @@ class Marks {
       let y, textY;
       if (position === "aboveBar") {
         y = scale.y(highs[i]) - half - above;
-        textY = y - half - words * 0.6;
-        above += size + margin + (mark.text ? words * 1.2 : 0);
+        textY = y - half - 2 - tall / 2;
+        above += size + margin + (mark.text ? tall + 2 : 0);
       } else if (position === "belowBar") {
         y = scale.y(lows[i]) + half + below;
-        textY = y + half + margin + words * 0.6;
-        below += size + margin + (mark.text ? words * 1.2 : 0);
-      } else (y = scale.y(values[i])), (textY = y + half + margin + words * 0.6);
+        textY = y + half + 2 + tall / 2;
+        below += size + margin + (mark.text ? tall + 2 : 0);
+      } else (y = scale.y(values[i])), (textY = y + half + 2 + tall / 2);
       const x = time.x(i);
       if (y !== y || x < x0 - this.reach || x > x1 + this.reach) continue;
-      if (mark.text) {
-        g.fillStyle = mark.color;
-        if (halo) (g.strokeStyle = halo), g.strokeText(mark.text, x, textY);
-        g.fillText(mark.text, x, textY);
-      }
+      // (Its words in a pill of the ground, edged in its color: read over any line, the chart's one pill shape.)
+      if (mark.text) pill(g, mark.text, theme.background, mark.color, x, textY, "center", tall, mark.color);
       if (!size) continue;
       g.fillStyle = mark.color;
       g.beginPath();
