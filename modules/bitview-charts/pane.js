@@ -13,6 +13,7 @@ import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
 import { inkOn } from "./color.js";
+import { Tags } from "./tags.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -39,6 +40,8 @@ const TAG = 18;
  *   fixed?: boolean,
  *   over?: boolean,
  *   scaled?: boolean,
+ *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void): void,
+ *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale, x: number): number,
  *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
@@ -130,6 +133,8 @@ export class Pane {
     this.tagLines = /** @type {Line[]} */ ([]);
     this.tagAt = new Int32Array(8);
     this.tagIndex = new Int32Array(8);
+    /** Its series' own tags on the axis being drawn (a drawing's value). */
+    this.pageTags = new Tags();
     /** The view's last point as its axes were drawn (their tags read it). */
     this.axesEnd = NaN;
     this.tagY = new Float64Array(8);
@@ -534,15 +539,28 @@ export class Pane {
     const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8, slot = this.#slot(scale), texts = this.tickWriters[slot] ? this.#tickTexts(slot, count) : null;
     // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
     // 4 pixels: one touching a tag reads cramped against it).)
-    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10;
+    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags;
+    page.count = 0;
+    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add);
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
       if (!(y > 6 && y < this.height - 6)) continue;
-      let covered = false;
+      let covered = page.covers(y, TAG / 2 + 10);
       for (let t = 0; !covered && t < tags; t++) covered = Math.abs(place[t] - y) < near;
       if (!covered) g.fillText(texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale), at, y);
     }
     this.#tags(g, scale, time, theme, x, width, side, tags);
+    // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane.)
+    g.textAlign = side ? "right" : "left";
+    for (let k = 0; k < page.count; k++) {
+      const y = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
+      g.fillStyle = page.colors[k];
+      g.beginPath();
+      g.roundRect(x + 2, y - TAG / 2 + 1, width - 4, TAG - 2, 4);
+      g.fill();
+      g.fillStyle = page.inks[k];
+      g.fillText(page.texts[k], side ? x + width - 8 : x + 8, y);
+    }
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 

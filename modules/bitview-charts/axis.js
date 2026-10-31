@@ -3,6 +3,7 @@
 // labels), each at its first point, its label under it (UTC).
 
 import { kept } from "./format.js";
+import { Tags } from "./tags.js";
 
 const DAY = 86400;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -50,6 +51,9 @@ export class TimeAxis {
       day: kept((t) => (date(t).getUTCDate() === 1 ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCDate()))),
       hour: kept((t) => (date(t).getUTCHours() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:00` : String(date(t).getUTCDate()))),
     };
+    /** The panes' series' own tags on it as last drawn, and each one's half width. */
+    this.page = new Tags();
+    this.halves = new Float64Array(8);
   }
 
   /** @param {number} top @param {number} width @param {number} height @param {number} dpr */
@@ -62,13 +66,48 @@ export class TimeAxis {
   }
 
   /**
+   * Drawn for the view: its labels, and the panes' series' own tags (a drawing's date, see Custom's timeTags) over them,
+   * a label none where one covers it.
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} dpr @param {number} plot
+   * @param {import("./pane.js").Pane[]} panes
    */
-  draw(time, theme, dpr, plot) {
-    const g = this.g, times = time.times, n = times.length;
+  draw(time, theme, dpr, plot, panes) {
+    const g = this.g, times = time.times, n = times.length, page = this.page;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = theme.background;
     g.fillRect(0, 0, this.width, this.height);
+    g.font = theme.font;
+    page.count = 0;
+    for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden) pane.series[k].timeTags?.(page.add);
+    // (Each tag's half width, measured once a draw.)
+    if (this.halves.length < page.count) this.halves = new Float64Array(page.count * 2);
+    for (let k = 0; k < page.count; k++) this.halves[k] = g.measureText(page.texts[k]).width / 2 + 6;
+    this.#labels(time, theme, plot, page);
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    for (let k = 0; k < page.count; k++) {
+      const half = this.halves[k], x = Math.min(Math.max(page.at[k], half), plot - half);
+      g.fillStyle = page.colors[k];
+      g.beginPath();
+      g.roundRect(x - half, this.height / 2 - 10, half * 2, 20, 4);
+      g.fill();
+      g.fillStyle = page.inks[k];
+      g.fillText(page.texts[k], x, this.height / 2);
+    }
+  }
+
+  /** Whether a label at `x` is under a page's tag (within its half, a label's half and 4 pixels). @param {number} x @param {Tags} page */
+  #covered(x, page) {
+    for (let k = 0; k < page.count; k++) if (Math.abs(page.at[k] - x) < this.halves[k] + 22) return true;
+    return false;
+  }
+
+  /**
+   * Its labels for the view, none under a page's tag.
+   * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
+   */
+  #labels(time, theme, plot, page) {
+    const g = this.g, times = time.times, n = times.length;
     if (n < 2) return;
     const a = Math.max(0, Math.floor(time.from)), b = Math.min(n - 1, Math.ceil(time.to));
     if (b <= a) return;
@@ -82,7 +121,6 @@ export class TimeAxis {
       }
     const [seconds, size, unit] = step, label = this.labels[unit];
     g.fillStyle = theme.text;
-    g.font = theme.font;
     g.textAlign = "center";
     g.textBaseline = "middle";
     // (Years and months by the calendar, from a multiple of the step; days and hours by whole steps since 1970: the
@@ -96,7 +134,7 @@ export class TimeAxis {
       if (i <= b) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        if (x - last >= room && x > 18 && x < plot - 18) (g.fillText(label(t), x, this.height / 2), (last = x));
+        if (x - last >= room && x > 18 && x < plot - 18 && !this.#covered(x, page)) (g.fillText(label(t), x, this.height / 2), (last = x));
       }
       if (unit === "year") t = Date.UTC((y += size), 0, 1) / 1000;
       else if (unit === "month") t = Date.UTC(y, (m += size), 1) / 1000;

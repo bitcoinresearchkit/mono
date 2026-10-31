@@ -317,7 +317,7 @@ export class Chart {
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
-    this.timeAxis.draw(time, this.theme, this.dpr, time.width);
+    this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {

@@ -441,7 +441,7 @@ class Pane {
   layers() {
     const pane = this.engine, first = () => 1;
     this.under ??= pane.add(new Custom({ draw: (g, at) => this.paint(g, at, "bottom", null), first }));
-    this.over ??= pane.add(new Custom({ draw: (g, at) => this.paint(g, at, "top", null), first }, { over: true }));
+    this.over ??= pane.add(new Custom({ draw: (g, at) => this.paint(g, at, "top", null), first, axisTags: (side, add) => this.axisTags(side, add), timeTags: (add) => this.timeTags(add) }, { over: true }));
   }
 
   /**
@@ -465,6 +465,21 @@ class Pane {
         for (let v = 0; v < views.length; v++) if ((views[v].zOrder?.() ?? "normal") === z) rendererOf(views[v])?.draw(target);
       }
     }
+  }
+
+  /**
+   * Its series' primitives' tags on its axis on `side` (0, the right; 1, the left): their price axis views (a drawing's
+   * value), each on its series' side.
+   * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add
+   */
+  axisTags(side, add) {
+    for (const series of this.list)
+      if ((series.side === "left" ? 1 : 0) === side) for (const primitive of series.primitives) for (const view of primitive.priceAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
+  }
+
+  /** Its series' primitives' tags on the time axis: their time axis views (a drawing's date). @param {(x: number, text: string, color: string, ink?: string) => void} add */
+  timeTags(add) {
+    for (const series of this.list) for (const primitive of series.primitives) for (const view of primitive.timeAxisViews?.() ?? NONE) if (view.visible?.() !== false) add(view.coordinate(), view.text(), view.backColor(), view.textColor?.());
   }
 
   /**

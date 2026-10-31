@@ -6,7 +6,9 @@
 // `x1`) and the device pixels a CSS pixel (`dpr`). Optional: `extent` (its lowest and highest from index `a` to `b`,
 // widening `out`: the pane fitted to it too), `first` (its first value at or after an index: a relative scale's base)
 // and `distance` (how far a point is from it, in CSS pixels: at index `i`, `x` into the plot, `y` from the pane's top;
-// none, it's never hit). Its options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
+// none, it's never hit), `axisTags` (its own tags on a price axis as it's drawn: its side's, 0 the right, 1 the left;
+// each at a height in its pane, its words, its color) and `timeTags` (on the time axis, at an x in the plot). Its
+// options: `fixed` (what it draws holds its place as the view moves, a mark at the plot's
 // edge: its pane drawn whole each frame) or `over` (drawn over everything, the crosshair too, on its pane's layer over
 // it, whole each frame: labels and handles placed in the plot, its pane's picture moved without them). After a change
 // of what it draws, `changed()`, then the chart's invalidate(true).
@@ -18,6 +20,8 @@
  *   extent?: (a: number, b: number, positive: boolean, out: Float64Array) => void,
  *   first?: (i: number) => number,
  *   distance?: (i: number, y: number, scale: import("./scale.js").Scale, x: number) => number,
+ *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void) => void,
+ *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
  * }} Hooks
  */
 
@@ -52,6 +56,16 @@ export class Custom {
   /** How far a point is from it (its hook's; none: it's never hit). @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x */
   distance(i, y, scale, x) {
     return this.hooks.distance ? this.hooks.distance(i, y, scale, x) : Infinity;
+  }
+
+  /** Its own tags on its pane's axis on `side` (0, the right; 1, the left). @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add */
+  axisTags(side, add) {
+    this.hooks.axisTags?.(side, add);
+  }
+
+  /** Its own tags on the time axis. @param {(x: number, text: string, color: string, ink?: string) => void} add */
+  timeTags(add) {
+    this.hooks.timeTags?.(add);
   }
 
   /** @param {number} i */
