@@ -67,7 +67,7 @@ chart.show(365);                                 // the last 365 points in view
 - `Band({ lower, upper, base, color, fade, below, belowFade, to, steps })`: a fill between two columns (`steps`: its
   edges steps); without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with
   `below`, a baseline (under its base in that color); `fade`, `belowFade`, the colors they fade to (gradients fixed to
-  the pane: from its top to its foot, a baseline's to its base and from it).
+  the pane: from its top to its foot, a baseline's to its base and from it); `curve`, its edges bowed as a curved line.
 - `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a

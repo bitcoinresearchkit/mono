@@ -840,9 +840,8 @@ class Series {
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
-    // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (a line's: an area's and a
-    // baseline's edges straight, their fills straight). Dashed as its line style asks, the chart library's dashes by its
-    // width.)
+    // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (an area's and a baseline's
+    // edge and fill alike). Dashed as its line style asks, the chart library's dashes by its width.)
     const steps = o.lineType === 1, curve = o.lineType === 2, dash = dashOf(o);
     // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
@@ -852,7 +851,7 @@ class Series {
       // (A baseline's line in its top color over its base, its bottom one under it: changing where it crosses it, as the
       // chart library's.)
       const under = this.type === "Baseline" && o.bottomLineColor ? { value: o.baseValue?.price ?? 0, color: o.bottomLineColor } : null;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, under });
+      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, under, curve });
     }
     // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
     // (Their tag and price line as a line's: the last bar's value, in its color.)
@@ -863,7 +862,7 @@ class Series {
     // (Their fills fading as the chart library's: an area's from its top color at the pane's top to its bottom color at
     // its foot; a baseline's to their base, and from it.)
     const baseline = this.type === "Baseline";
-    if (engine instanceof Band) return void engine.set({ color: (baseline ? o.topFillColor1 : o.topColor) ?? o.color ?? engine.color, fade: (baseline ? o.topFillColor2 : o.bottomColor) ?? null, below: baseline ? o.bottomFillColor1 ?? null : null, belowFade: baseline ? o.bottomFillColor2 ?? null : null, base: baseline ? o.baseValue?.price ?? 0 : 0, to: baseline ? "base" : o.invertFilledArea ? "top" : "foot", steps });
+    if (engine instanceof Band) return void engine.set({ color: (baseline ? o.topFillColor1 : o.topColor) ?? o.color ?? engine.color, fade: (baseline ? o.topFillColor2 : o.bottomColor) ?? null, below: baseline ? o.bottomFillColor1 ?? null : null, belowFade: baseline ? o.bottomFillColor2 ?? null : null, base: baseline ? o.baseValue?.price ?? 0 : 0, to: baseline ? "base" : o.invertFilledArea ? "top" : "foot", steps, curve });
     // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
     if (engine instanceof Candles) {
       const border = o.borderVisible !== false;

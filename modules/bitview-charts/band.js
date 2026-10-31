@@ -10,32 +10,37 @@ import { Fill } from "./color.js";
 
 /**
  * A band's outline as it's written: each point's x and its edges' ys kept for the way back along the lower edge (grown,
- * never made again); a stretch closed at a gap. One for every band, drawn one after another.
+ * never made again), and where it's curved, the control points of the segments to it (`bends`: the upper edge's two,
+ * then the lower's; `bent`: 1, the upper edge's segment curved, 2, the lower's); a stretch closed at a gap. One for every
+ * band, drawn one after another.
  */
 const outline = {
   g: /** @type {CanvasRenderingContext2D | null} */ (null),
   xs: new Float64Array(0),
   ups: new Float64Array(0),
   downs: new Float64Array(0),
+  bends: new Float64Array(0),
+  bent: new Uint8Array(0),
   count: 0,
   /** @param {CanvasRenderingContext2D} g @param {number} room */
   start(g, room) {
-    if (this.xs.length < room) (this.xs = new Float64Array(room * 2)), (this.ups = new Float64Array(room * 2)), (this.downs = new Float64Array(room * 2));
+    if (this.xs.length < room) (this.xs = new Float64Array(room * 2)), (this.ups = new Float64Array(room * 2)), (this.downs = new Float64Array(room * 2)), (this.bends = new Float64Array(room * 16)), (this.bent = new Uint8Array(room * 2));
     this.g = g;
     this.count = 0;
   },
   /** @param {number} x @param {number} up @param {number} down */
   add(x, up, down) {
-    (this.xs[this.count] = x), (this.ups[this.count] = up), (this.downs[this.count] = down);
+    (this.xs[this.count] = x), (this.ups[this.count] = up), (this.downs[this.count] = down), (this.bent[this.count] = 0);
     this.count++;
   },
-  /** The stretch so far: up its upper edge, back along its lower. */
+  /** The stretch so far: up its upper edge, back along its lower (each segment curved where it's bent). */
   close() {
-    const g = /** @type {CanvasRenderingContext2D} */ (this.g), { xs, ups, downs, count } = this;
+    const g = /** @type {CanvasRenderingContext2D} */ (this.g), { xs, ups, downs, bends, bent, count } = this;
     if (count > 1) {
       g.moveTo(xs[0], ups[0]);
-      for (let k = 1; k < count; k++) g.lineTo(xs[k], ups[k]);
-      for (let k = count - 1; k >= 0; k--) g.lineTo(xs[k], downs[k]);
+      for (let k = 1; k < count; k++) bent[k] & 1 ? g.bezierCurveTo(bends[8 * k], bends[8 * k + 1], bends[8 * k + 2], bends[8 * k + 3], xs[k], ups[k]) : g.lineTo(xs[k], ups[k]);
+      g.lineTo(xs[count - 1], downs[count - 1]);
+      for (let k = count - 1; k > 0; k--) bent[k] & 2 ? g.bezierCurveTo(bends[8 * k + 6], bends[8 * k + 7], bends[8 * k + 4], bends[8 * k + 5], xs[k - 1], downs[k - 1]) : g.lineTo(xs[k - 1], downs[k - 1]);
       g.closePath();
     }
     this.count = 0;
@@ -47,9 +52,10 @@ export class Band {
    * `fade`, its fill's color at its far end (a baseline's base, else the pane's foot) where it fades from `color` (at the
    * pane's top), a baseline's `belowFade` from `below` (at its base) to the pane's foot: gradients fixed to the pane,
    * so a pan moves them with its picture. None: one color.
-   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean }} options
+   * `curve`: its edges bowed through their points (zoomed in), as a curved line is (its edge's line alike).
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean }} options
    */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false }) {
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
@@ -65,6 +71,7 @@ export class Band {
     /** An area filled up from its values to the pane's top (else down to its base). */
     this.to = to;
     this.steps = steps;
+    this.curve = curve;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** @type {Float64Array} */
@@ -104,6 +111,21 @@ export class Band {
     return Math.hypot(x === undefined || !time ? 0 : time.beyond(i, x), y < top ? top - y : y > bottom ? y - bottom : 0);
   }
 
+  /**
+   * The control points of an edge's curved segment to point `i` from `i - 1` (CSS pixels, into the outline's bends from
+   * `out`), as a curved line's: each a sixth of the way along its neighbors' chord, those by index where the band's drawn
+   * (else the point itself), so a strip's and a whole draw's alike.
+   * @param {Float64Array} edge @param {number} i @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {boolean} log @param {boolean} toEdge @param {number} x1 @param {number} y1 @param {number} x2 @param {number} y2 @param {number} out
+   */
+  #bend(edge, i, time, scale, log, toEdge, x1, y1, x2, y2, out) {
+    const lows = toEdge ? this.upper : this.lower, highs = this.upper, n = Math.min(lows.length, highs.length), w = i - 2, u = i + 1, b = outline.bends;
+    const before = w >= 0 && (log ? lows[w] > 0 && highs[w] > 0 : lows[w] === lows[w] && highs[w] === highs[w]);
+    const after = u < n && (log ? lows[u] > 0 && highs[u] > 0 : lows[u] === lows[u] && highs[u] === highs[u]);
+    const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(edge[i - 2]) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(edge[i + 1]) : y2;
+    (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
+  }
+
   /** Its next gap from each point (the length: none). @param {boolean} log */
   #gaps(log) {
     if (this.gapsVersion !== this.version) (this.gaps = this.logGaps = null), (this.gapsVersion = this.version);
@@ -122,9 +144,9 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean }} change
    */
-  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps }) {
+  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -133,7 +155,7 @@ export class Band {
     const kept = wasArea && this.lower.length === upper.length && base === this.base;
     this.base = base;
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
-    (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps);
+    (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps), (this.curve = curve);
   }
 
   /**
@@ -205,7 +227,7 @@ export class Band {
     const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, toEdge = this.#edge(log), edgeY = this.to === "top" ? 0 : scale.height;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     // (A point each, zoomed in; a pixel column each, its last, zoomed out.)
-    const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1, steps = zoomedIn && this.steps;
+    const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1, steps = zoomedIn && this.steps, curve = zoomedIn && this.curve && !steps;
     outline.start(g, (to - from + 2) * (steps ? 2 : 1));
     g.fillStyle = color;
     g.beginPath();
@@ -216,10 +238,17 @@ export class Band {
           outline.close();
           continue;
         }
-        const x = time.x(k), at = outline.count - 1;
+        const x = time.x(k), at = outline.count - 1, up = scale.y(hi), down = toEdge ? edgeY : scale.y(lo);
         // (A step: its edges held at the last point's to here, then straight to this one's.)
         if (steps && at >= 0) outline.add(x, outline.ups[at], outline.downs[at]);
-        outline.add(x, scale.y(hi), toEdge ? edgeY : scale.y(lo));
+        outline.add(x, up, down);
+        // (Curved: its segment to here bowed as a curved line's, its upper edge's and (a band's) its lower's.)
+        if (curve && at >= 0) {
+          const ox = outline.xs[at];
+          this.#bend(upper, k, time, scale, log, toEdge, ox, outline.ups[at], x, up, 8 * (at + 1));
+          outline.bent[at + 1] = 1;
+          if (!toEdge && !this.area) this.#bend(lower, k, time, scale, log, toEdge, ox, outline.downs[at], x, down, 8 * (at + 1) + 4), (outline.bent[at + 1] |= 2);
+        }
         continue;
       }
       // (A pixel column: its last point with both edges, the band broken at any point without, in it too; no gap in
