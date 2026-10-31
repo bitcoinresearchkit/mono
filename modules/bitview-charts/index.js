@@ -406,6 +406,8 @@ export class Chart {
       if (this.resizing) return;
       const at = down.get(event.pointerId);
       if (!at && event.pointerType === "mouse") {
+        // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
+        if (event.target !== element && !this.#owns(event.target)) return void this.setCrosshair(NaN);
         // (A mouse over a separator: it shows it can be dragged, no crosshair there.)
         const over = separator(event.clientY - element.getBoundingClientRect().top, false) >= 0;
         element.style.cursor = over ? "row-resize" : "";
