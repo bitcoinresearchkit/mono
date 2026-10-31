@@ -16338,6 +16338,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const seriesY = (series, value) => ((y) => (Number.isFinite(y) ? y : null))(series ? engine.y(series.engine, value) : NaN);
       /** A drawn series' value at a height in its pane (see the library's chart.value); none, NaN. @param {any} series @param {number} y */
       const seriesValue = (series, y) => (series ? engine.value(series.engine, y) : NaN);
+      /** The pane a drawn series is in (its index; none, -1). @param {any} series */
+      const seriesPane = (series) => engine.panes.findIndex((pane) => pane.series.includes(series?.engine));
       /** The crosshair on a drawn series' value at a date (its first point at or after it; past the last, none). @param {number} value @param {number} time @param {any} series */
       const crossOn = (value, time, series) => {
         const times = engine.time.times, i = lowerBound(times, time), y = seriesY(series, value), pane = engine.panes.find((pane) => pane.series.includes(series?.engine));
@@ -16467,8 +16469,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const box = boxes[scale.i];
           if (!box || scale.mode > 1 || (scale.mode === 1 && !(scale.range.from > 0))) return [];
           // (By the first of its series that maps it: one with no data yet maps nothing.)
-          for (const series of view.panes()[scale.i]?.getSeries() ?? []) {
-            if (series.options().priceScaleId !== scale.side || series.options().visible === false) continue;
+          // (A candle layer's close line too, shown as its candles are zoomed out; an overlay's scale its own, none of its side's.)
+          for (const series of [...drawn.values(), ...[...closes.values()].map((close) => close.series)]) {
+            const pane = engine.panes[scale.i], k = pane?.series.indexOf(series.engine) ?? -1;
+            if (k < 0 || (pane.sides[k] ? "left" : "right") !== scale.side || series.engine.hidden || series.engine.overlay) continue;
             const top = seriesY(series, scale.range.to), foot = seriesY(series, scale.range.from);
             if (top !== null && foot !== null && foot - top > 1) return [{ ...scale, series, top: box.top + top, foot: box.top + foot }];
           }
@@ -17354,7 +17358,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         drawnOrder = order;
-        const panes = view.panes();
+        const panes = engine.panes;
         // (A pane's shade is on a scale of its own: no side's.)
         const sides = new Set(doc.layers.flatMap((layer) => (edgesOf(layer).length > 1 ? [] : [layer.side])));
         const folded = foldedPanes(doc);
@@ -17512,7 +17516,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
       function paneFactors(/** @type {Chart} */ doc) {
-        const folded = foldedPanes(doc), count = view.panes().length;
+        const folded = foldedPanes(doc), count = engine.panes.length;
         // (Its legend's names: hidden, its layers have no values under them; an error, if one has one.)
         const strip = (pane) => {
           const legend = $("chart").querySelector(`.legend[data-pane="${pane.id}"]`), top = legend?.parentElement?.getBoundingClientRect().top ?? 0;
@@ -17533,12 +17537,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let panesLaid = { doc: /** @type {Chart | null} */ (null), meant: "", panes: /** @type {any[]} */ ([]), factors: /** @type {number[]} */ ([]) };
       function sizePanes(doc = lookDoc ?? chart, again = false) {
-        const panes = view.panes();
+        const panes = engine.panes;
         if (!doc || panes.length !== doc.panes.length) return;
         const factors = paneFactors(doc), meant = `${doc.panes.map((pane) => pane.id).join()}|${factors.join()}`;
         if (doc === panesLaid.doc && meant === panesLaid.meant && panes.every((pane, i) => pane === panesLaid.panes[i]) && !again) return;
-        panesLaid = { doc, meant, panes, factors };
-        factors.forEach((factor, i) => Math.abs(panes[i].getStretchFactor() - factor) > 1e-6 && panes[i].setStretchFactor(factor));
+        panesLaid = { doc, meant, panes: [...panes], factors };
+        if (!factors.some((factor, i) => Math.abs(panes[i].share - factor) > 1e-6)) return;
+        factors.forEach((factor, i) => (panes[i].share = factor));
+        engine.layout();
       }
       /** The first date anything shown has a value at (an index's first dates can hold none: the price's start in 2010). */
       let firstOf = { data: /** @type {Resolved | null} */ (null), key: "", first: 0 };
@@ -17730,7 +17736,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const kept = new Set(), made = /** @type {HTMLElement[]} */ ([]);
         if (chart && drawnChart === chart.id) {
           // (Turned off, none; but a folded pane's, its names all it shows.)
-          const panes = view.panes(), folded = chart.legend === "off" ? foldedPanes(chart) : null;
+          const panes = engine.panes, folded = chart.legend === "off" ? foldedPanes(chart) : null;
           chart.panes.forEach((pane, i) => {
             if (folded && !folded.has(pane.id)) return;
             // The legend goes in the pane's frame, over its plot.
@@ -17814,7 +17820,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (tags) chart?.panes.forEach((pane, i) => {
           if (!engine.panes[i]) return;
           // (Under its legend, but two tags' room left at least: a short pane's tags beside it rather than off its foot.)
-          const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, view.panes()[i].getHeight() - 44)) : 0;
+          const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, engine.panes[i].height - 44)) : 0;
           for (const side of ["left", "right"]) moved = engine.panes[i].setTagsTop(top, /** @type {any} */ (side)) || moved;
         });
         if (moved) engine.invalidate(true);
@@ -18793,7 +18799,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           crossLater ||= requestAnimationFrame(() => ((crossLater = 0), crossSet && holdCross(true)));
           return;
         }
-        lightBubble(time, series.getPane().paneIndex());
+        lightBubble(time, seriesPane(series));
         // (A heatmap reads its price on its line: see heatReading.)
         if (heatLooks.size) valuesSoon();
         crossOn(price, time, series);
@@ -18815,7 +18821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A finger's kept where it is: on a profile's bars past the data, on the view's last day, the one they show.)
         const kept = time ?? (profiles.length && resolved ? resolved.times[lastShown()] ?? null : null);
         if (fingers.size && param.point && kept !== null && param.paneIndex !== undefined && !tool && !placing) {
-          const series = [...drawn.values()].find((item) => item.options().visible && item.getPane().paneIndex() === param.paneIndex), price = seriesValue(series, param.point.y);
+          const series = [...drawn.values()].find((item) => !item.engine.hidden && seriesPane(item) === param.paneIndex), price = seriesValue(series, param.point.y);
           fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time: kept, series } : null;
         } else if (!param.point && fingerCross.at && !fingers.size) {
           const { price, time: at, series } = fingerCross.at, layer = layerOfSeries(series);
@@ -18823,7 +18829,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fingerCross.at = null;
           fingerCross.kept = at;
           // (Set here, said by the chart to no one: its bubble lit as a moved one's is.)
-          lightBubble(at, series.getPane().paneIndex());
+          lightBubble(at, seriesPane(series));
           // (Read on its day: on a profile's bars past the data, the view's last as it was, not the one it moves to.)
           if (hoverTime !== at) (hoverTime = at), valuesSoon();
           return crossOn(price, at, series);
@@ -18889,11 +18895,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         bubbleRing.style.setProperty("--c", lit.color);
       }
       /**
-       * The layer whose last value's tag is under a point (the client's coordinates), on its axis (see LWC patch 51); its
-       * legend's item lit as a line pointed at lights it.
+       * The layer whose last value's tag is under a point (the client's coordinates), on its axis (the library's tagAt:
+       * its line, or an area's edge; a candle layer's, its close line's); its legend's item lit as a line pointed at lights it.
        */
       function tagAt(/** @type {number} */ x, /** @type {number} */ y) {
-        for (const [id, series] of drawn) if (/** @type {any} */ (closes.get(id)?.series ?? series).bvTagHit(x, y)) return id;
+        const box = engine.element.getBoundingClientRect(), line = engine.tagAt(x - box.left, y - box.top);
+        if (line) for (const [id, series] of drawn) if (((own) => line === own.engine || line === own.edge)(closes.get(id)?.series ?? series)) return id;
         return null;
       }
       /** Whether a layer's in a keyed pane: its item kept in sight as it's lit (see lightLegend). */
@@ -19031,7 +19038,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The keys' point moved up or down a step (a hundredth of its pane; with shift, a tenth), off its line. */
       function nudgeKey(/** @type {number} */ i, /** @type {boolean} */ up, /** @type {boolean} */ far) {
         const point = keyPoint(i), series = point && drawn.get(point.layer.id), y = point && series ? seriesY(series, point.value) : null;
-        const height = point ? (view.panes()[chart.panes.findIndex((pane) => pane.id === point.layer.pane)]?.getHeight() ?? 0) : 0;
+        const height = point ? (engine.panes[chart.panes.findIndex((pane) => pane.id === point.layer.pane)]?.height ?? 0) : 0;
         if (!point || !series || y === null || y === undefined || !height) return;
         const value = seriesValue(series, clamp(y + ((up ? -1 : 1) * height) / (far ? 10 : 100), 0, height));
         if (value === null || !Number.isFinite(value)) return;
@@ -19166,7 +19173,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * floor). @param {Chart} doc @param {Pane} pane @param {number} i
        */
       function marginsOf(doc, pane, i) {
-        const height = view.panes()[i]?.getHeight() || chartHeight / Math.max(1, doc.panes.length) || 400;
+        const height = engine.panes[i]?.height || chartHeight / Math.max(1, doc.panes.length) || 400;
         const legend = /** @type {HTMLElement | null} */ ($("chart").querySelector(`.legend[data-pane="${pane.id}"]`));
         // (A pane new to this build has no legend yet, placed a frame later: the room one took, every legend being one
         // row, so its lines don't start under it and move down.)
@@ -19206,15 +19213,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // let go (a moment later: the library's last move in), wherever: a release lost, the next one keeps them. Only the
       // open chart's, drawn, no look on it: the panes on screen are its.
       const keepPaneSizes = () => setTimeout(() => {
-        const panes = view.panes(), laid = panesLaid.factors;
+        const panes = engine.panes, laid = panesLaid.factors;
         if (lookDoc || !settled() || panesLaid.doc !== chart || panes.length !== chart.panes.length || panes.length !== laid.length || panes.some((pane, i) => pane !== panesLaid.panes[i])) return;
         // (None dragged: as laid on.)
-        if (panes.every((pane, i) => Math.abs(pane.getStretchFactor() - laid[i]) <= 1e-6)) return;
+        if (panes.every((pane, i) => Math.abs(pane.share - laid[i]) <= 1e-6)) return;
         // (A folded pane dragged open goes back: it opens when a layer in it shows.)
         const folded = foldedPanes(chart);
-        if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].getStretchFactor() - laid[i]) > 1e-6)) return sizePanes(chart, true);
+        if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].share - laid[i]) > 1e-6)) return sizePanes(chart, true);
         // (To a thousandth: laid on again, a size kept rounder would move the separator a pixel from where it was let go.)
-        const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 1000) / 1000);
+        const sizes = chart.panes.map((_, i) => Math.round(panes[i].share * 1000) / 1000);
         if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 1000) / 1000)) return;
         commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
         // (Laid on as kept: what an undo puts back is then another size, laid on in its turn.)
@@ -20647,7 +20654,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (this.ends.length && own) {
             // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
             const painted = paintedLayers.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
-            this.endsLook = { color: /** @type {any} */ (series?.options()).color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (painted?.faint ? faded({ value: op < 1 ? alpha(dated(i), op) : dated(i) }).value : op < 1 ? alpha(dated(i), op) : dated(i)) : null };
+            this.endsLook = { color: series?.engine.color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (painted?.faint ? faded({ value: op < 1 ? alpha(dated(i), op) : dated(i) }).value : op < 1 ? alpha(dated(i), op) : dated(i)) : null };
           }
           this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
             const points = onScreen(drawing, series, line);
@@ -22332,7 +22339,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!day?.rows) return null;
         // (Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer.)
         const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
-        const at = crossSet ? (pinned && y !== null ? { pane: pinned.getPane().paneIndex(), y } : null) : heatAt;
+        const at = crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
         const pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? seriesValue(drawn.get(layer.id), at.y) : day.close;
         if (!(Number(price) > 0)) return null;
         const row = grid.cell(Number(price)), rows = day.rows, values = amountsOf(day, look.measure);

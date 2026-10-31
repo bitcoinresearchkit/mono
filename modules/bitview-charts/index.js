@@ -691,17 +691,17 @@ export class Chart {
   }
 
   /**
-   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn), or null (none
-   * while a separator's dragged: its panes shown stretched).
+   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn; not one hidden
+   * since), or null (none while a separator's dragged: its panes shown stretched).
    * @param {number} x @param {number} y
    */
   tagAt(x, y) {
     if (this.resizing) return null;
     for (const pane of this.panes) {
       if (y < pane.top || y >= pane.top + pane.height) continue;
-      if (x >= this.left + pane.plot && x < this.left + pane.width) return pane.lineAt(0, y - pane.top);
-      if (x >= 0 && x < this.left) return pane.lineAt(1, y - pane.top);
-      return null;
+      // (As last drawn: one hidden since, none.)
+      const line = x >= this.left + pane.plot && x < this.left + pane.width ? pane.lineAt(0, y - pane.top) : x >= 0 && x < this.left ? pane.lineAt(1, y - pane.top) : null;
+      return line && !line.hidden ? line : null;
     }
     return null;
   }

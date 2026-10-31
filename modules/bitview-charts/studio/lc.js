@@ -132,10 +132,6 @@ class Chart {
     return this.#pane(pane).scaleApi(id);
   }
 
-  panes() {
-    return this.panesList;
-  }
-
   /** @param {any} type @param {any} options @param {number} [pane] */
   addSeries(type, options = {}, pane = 0) {
     const series = new Series(this, String(type), options, this.#pane(pane));
@@ -353,28 +349,6 @@ class Pane {
   /** Its scale of that id: its right one, its left one, or an overlay (any other id: its series' own, unseen). @param {string} id */
   scaleApi(id) {
     return (this.scales[id] ??= new PriceScale(this, id));
-  }
-
-  paneIndex() {
-    return this.chart.panesList.indexOf(this);
-  }
-
-  getHeight() {
-    return this.engine.height;
-  }
-
-  getStretchFactor() {
-    return this.engine.share;
-  }
-
-  /** @param {number} share */
-  setStretchFactor(share) {
-    this.engine.share = share;
-    this.chart.engine.layout();
-  }
-
-  getSeries() {
-    return this.list;
   }
 
   /**
@@ -746,10 +720,6 @@ class Series {
     return { time: times[i], value: columns[i] };
   }
 
-  getPane() {
-    return this.pane;
-  }
-
   /** Its place among its pane's series (theirs in the library arranged so at the next sync). @param {number} order */
   setSeriesOrder(order) {
     this.pane.list = this.pane.list.filter((each) => each !== this);
@@ -829,12 +799,6 @@ class Series {
     for (const line of this.levels) if (line.opts.axisLabelVisible !== false) add(this.chart.engine.y(this.engine, line.opts.price), format(line.opts.price), line.opts.color);
   }
 
-  /** Whether a point (in the client's coordinates) is on its tag, as last drawn (LWC patch 51). @param {number} x @param {number} y */
-  bvTagHit(x, y) {
-    if (this.opts.visible === false) return false;
-    const box = this.chart.element.getBoundingClientRect(), line = this.chart.engine.tagAt(x - box.left, y - box.top);
-    return line !== null && (line === this.engine || line === this.edge);
-  }
 }
 
 /** A line style's dashes at a width (the chart library's: dotted, dashed, large dashed, sparse dotted; solid, none). @param {any} options */
