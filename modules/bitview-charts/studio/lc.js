@@ -846,6 +846,9 @@ class Series {
     // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (an area's and a baseline's
     // edge and fill alike). Dashed as its line style asks, the chart library's dashes by its width.)
     const steps = o.lineType === 1, curve = o.lineType === 2, dash = dashOf(o);
+    // (Colored point by point: its own colors, its palettes' first, as they're restyled (Studio's spotlight fading it).)
+    if (engine instanceof Band && engine.colors && engine.palette.length) engine.palette[0] = { color: o.topColor ?? o.color ?? engine.color, fade: o.bottomColor ?? null };
+    if (this.edge?.colors && this.edge.palette.length) this.edge.palette[0] = o.lineColor ?? o.color ?? this.edge.color;
     // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
     if (this.edge) {
@@ -1007,6 +1010,29 @@ class Series {
       engine.set({ upper: this.columns, ...(this.opts.bvBandFill ? {} : { lower: null }) });
       const edge = /** @type {Line} */ (this.edge);
       edge.setValues(this.columns);
+      // (Rows with colors of their own (an area colored by another layer): its fills' palette (each row's top color and
+      // what it fades to) and its edge's (each row's line color), the series' own first, each point an index into them.)
+      if (rows && rows.some((row) => row.topColor || row.lineColor)) {
+        const o = this.opts, fills = [{ color: o.topColor ?? engine.color, fade: o.bottomColor ?? null }], keys = [""], lines = [o.lineColor ?? edge.color];
+        const fillAt = new Uint8Array(times.length), lineAt = new Uint8Array(times.length);
+        for (const row of rows) {
+          const i = indexOf(times, Number(row.time));
+          if (i < 0) continue;
+          if (row.topColor) {
+            const key = `${row.topColor}|${row.bottomColor ?? ""}`;
+            let k = keys.indexOf(key);
+            if (k < 0) (k = keys.length), keys.push(key), fills.push({ color: row.topColor, fade: row.bottomColor ?? null });
+            fillAt[i] = Math.min(k, 255);
+          }
+          if (row.lineColor) {
+            let k = lines.indexOf(row.lineColor);
+            if (k < 0) (k = lines.length), lines.push(row.lineColor);
+            lineAt[i] = Math.min(k, 255);
+          }
+        }
+        engine.set({ colors: fillAt, palette: fills });
+        edge.setStyle({ colors: lineAt, palette: lines });
+      } else if (engine.colors) engine.set({ colors: null, palette: [] }), edge.setStyle({ colors: null, palette: [] });
       return;
     }
     // (Rows with colors of their own: a palette, the series' own color first (a row without one), each point an index

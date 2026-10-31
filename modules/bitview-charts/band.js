@@ -53,10 +53,12 @@ export class Band {
    * `fade`, its fill's color at its far end (a baseline's base, else the pane's foot) where it fades from `color` (at the
    * pane's top), a baseline's `belowFade` from `below` (at its base) to the pane's foot: gradients fixed to the pane,
    * so a pan moves them with its picture. None: one color.
-   * `curve`: its edges bowed through their points (zoomed in), as a curved line is (its edge's line alike).
-   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean }} options
+   * `curve`: its edges bowed through their points (zoomed in), as a curved line is (its edge's line alike). `colors`
+   * (a Uint8Array of indices into `palette`, its fills: a color and what it fades to): each segment in its first point's
+   * (a band colored by another series), as a line's.
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | null, palette?: { color: string, fade?: string | null }[] }} options
    */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false }) {
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [] }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
@@ -73,6 +75,11 @@ export class Band {
     this.to = to;
     this.steps = steps;
     this.curve = curve;
+    this.colors = colors;
+    this.palette = palette;
+    // (Its palette's fills, made once each.)
+    /** @type {Fill[]} */
+    this.fills = [];
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** @type {Float64Array} */
@@ -113,6 +120,17 @@ export class Band {
   }
 
   /**
+   * A pixel column's point added to the outline of the fill being drawn: its own (`mine`), or another color's, as the end
+   * of this color's segment to it (if one comes to it), closing it.
+   * @param {number} x @param {number} up @param {number} down @param {boolean} mine
+   */
+  #put(x, up, down, mine) {
+    if (!mine && !outline.count) return;
+    outline.add(x, up, down);
+    if (!mine) outline.close();
+  }
+
+  /**
    * The control points of an edge's curved segment to point `i` from `i - 1` (CSS pixels, into the outline's bends from
    * `out`), as a curved line's: each a sixth of the way along its neighbors' chord, those by index where the band's drawn
    * (else the point itself), so a strip's and a whole draw's alike.
@@ -145,9 +163,9 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | null, palette?: { color: string, fade?: string | null }[] }} change
    */
-  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve }) {
+  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -156,7 +174,7 @@ export class Band {
     const kept = wasArea && this.lower.length === upper.length && base === this.base;
     this.base = base;
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
-    (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps), (this.curve = curve);
+    (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps), (this.curve = curve), (this.colors = colors), (this.palette = palette);
   }
 
   /**
@@ -192,7 +210,13 @@ export class Band {
    * @param {number} x0 @param {number} x1
    */
   draw(g, time, scale, x0, x1) {
-    if (!this.below) return this.#fill(g, time, scale, x0, x1, this.overFill.style(g, this.color, this.fade, 0, scale.height));
+    if (!this.below) {
+      // (Colored point by point: a fill a color, its segments in it.)
+      const palette = this.colors ? this.palette : [];
+      for (let k = 0; k < palette.length; k++) this.#fill(g, time, scale, x0, x1, (this.fills[k] ??= new Fill()).style(g, palette[k].color, palette[k].fade ?? null, 0, scale.height), k);
+      if (!palette.length) this.#fill(g, time, scale, x0, x1, this.overFill.style(g, this.color, this.fade, 0, scale.height), -1);
+      return;
+    }
     // (A baseline: over its base in its color, under it in the other; the same outline filled twice, clipped at it (at
     // the foot where its scale can't show it: a log scale's base of zero), each fading towards its base.)
     let at = scale.y(this.base);
@@ -202,23 +226,24 @@ export class Band {
     g.beginPath();
     g.rect(x0, 0, x1 - x0, at);
     g.clip();
-    this.#fill(g, time, scale, x0, x1, over);
+    this.#fill(g, time, scale, x0, x1, over, -1);
     g.restore();
     g.save();
     g.beginPath();
     g.rect(x0, at, x1 - x0, scale.height - at);
     g.clip();
-    this.#fill(g, time, scale, x0, x1, under);
+    this.#fill(g, time, scale, x0, x1, under, -1);
     g.restore();
   }
 
   /**
-   * Its outline from x `x0` to `x1` filled in `color` (a gradient's too).
+   * Its outline from x `x0` to `x1` filled in `color` (a gradient's too): all of it, or (`pass`, an index into its
+   * palette) its segments colored so, each to the point after it.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {string | CanvasGradient} color
+   * @param {number} x0 @param {number} x1 @param {string | CanvasGradient} color @param {number} pass
    */
-  #fill(g, time, scale, x0, x1, color) {
-    const lower = this.lower, upper = this.upper, n = Math.min(lower.length, upper.length), log = scale.mode === "log";
+  #fill(g, time, scale, x0, x1, color, pass) {
+    const lower = this.lower, upper = this.upper, n = Math.min(lower.length, upper.length), log = scale.mode === "log", colors = pass >= 0 ? this.colors : null;
     if (!n) return;
     const per = 1 / time.spacing, zoomedIn = per <= 1, viewFrom = time.from, span = time.to - time.from, width = time.width, gaps = zoomedIn ? null : this.#gaps(log);
     // (Zoomed out, its y as bottom - k * (t - ta) (t the value, or its log, from the scale's low end), inline: without
@@ -239,6 +264,9 @@ export class Band {
           outline.close();
           continue;
         }
+        // (Another color's point: the end of this color's segment to it, if one comes to it, else none.)
+        const mine = !colors || colors[k] === pass;
+        if (!mine && !outline.count) continue;
         const x = time.x(k), at = outline.count - 1, up = scale.y(hi), down = toEdge ? edgeY : scale.y(lo);
         // (A step: its edges held at the last point's to here, then straight to this one's.)
         if (steps && at >= 0) outline.add(x, outline.ups[at], outline.downs[at]);
@@ -250,6 +278,7 @@ export class Band {
           outline.bent[at + 1] = 1;
           if (!toEdge && !this.area) this.#bend(lower, k, time, scale, log, toEdge, ox, outline.downs[at], x, down, 8 * (at + 1) + 4), (outline.bent[at + 1] |= 2);
         }
+        if (!mine) outline.close();
         continue;
       }
       // (A pixel column: its last point with both edges, the band broken at any point without, in it too; no gap in
@@ -258,7 +287,7 @@ export class Band {
       if (last < first) continue;
       if (/** @type {Int32Array} */ (gaps)[first] > last) {
         const hi = upper[last], lo = lower[last];
-        outline.add(k, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta));
+        this.#put(k, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta), !colors || colors[last] === pass);
         continue;
       }
       let at = -1;
@@ -266,12 +295,12 @@ export class Band {
         const lo = toEdge ? upper[i] : lower[i], hi = upper[i];
         if (log ? lo > 0 && hi > 0 : lo === lo && hi === hi) at = i;
         else {
-          if (at >= 0) outline.add(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]));
+          if (at >= 0) this.#put(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
           outline.close();
           at = -1;
         }
       }
-      if (at >= 0) outline.add(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]));
+      if (at >= 0) this.#put(k, scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
     }
     outline.close();
     g.fill();
