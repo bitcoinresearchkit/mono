@@ -400,6 +400,9 @@ export class Chart {
       const a = log ? Math.log10(axis.a) : axis.a, b = log ? Math.log10(axis.b) : axis.b, middle = (a + b) / 2, half = ((b - a) / 2) * k;
       pane.setRange(log ? 10 ** (middle - half) : middle - half, log ? 10 ** (middle + half) : middle + half, axis.side);
     };
+    // (A price axis' last click or tap: when and where, for a second one (a double-click, a double tap: iOS sends no
+    // dblclick) fitting it again.)
+    let tapAt = -Infinity, tapX = 0, tapY = 0;
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
     let trailEnd = 0, trailSize = 0;
@@ -498,6 +501,9 @@ export class Chart {
       // (Let go where it began: a click.)
       if (event.type === "pointerup" && !down.size && !pinched && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
+        const axis = at.axis?.pane ? at.axis : null, again = axis && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
+        (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY);
+        if (again) axis.pane?.setRange(undefined, undefined, axis.side), this.invalidate();
         return void this.#click(event);
       }
       if (down.size || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
@@ -514,11 +520,6 @@ export class Chart {
       if (ms > 0 && !stale) this.#fling((trail[last] - trail[first]) / ms);
     };
     element.addEventListener("pointerup", up, { signal });
-    // (A price axis double-clicked: fitted to its series again.)
-    element.addEventListener("dblclick", (event) => {
-      const box = element.getBoundingClientRect(), axis = axisAt(event.clientX - box.left, event.clientY - box.top);
-      if (axis?.pane) axis.pane.setRange(undefined, undefined, axis.side), this.invalidate();
-    }, { signal });
     element.addEventListener("lostpointercapture", (event) => event.pointerId === sizer && stopSizing(), { signal });
     element.addEventListener("pointercancel", up, { signal });
     element.addEventListener("wheel", (event) => {
