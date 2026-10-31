@@ -23,7 +23,6 @@ export function createChart(element, options = {}) {
   return new Chart(element, options);
 }
 
-const MODES = ["linear", "log", "percent", "indexed"];
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
 /** A fit adding nothing (an edge: its series fitted by its band). */
@@ -68,8 +67,6 @@ class Chart {
     this.options = merged({}, options);
     // (Its look, its time scale's room and spacing, its dates' words: the page's, set on the library.)
     this.engine = make(this.element);
-    /** Its right axis' width where it's shown (see axes). */
-    this.axisWidth = this.engine.axis;
     /** @type {Pane[]} */
     this.panesList = [];
     /** @type {Series[]} */
@@ -94,11 +91,6 @@ class Chart {
     if (options.layout && "bvHalo" in options.layout) for (const series of this.all) series.restyle();
     if (options.localization) for (const pane of this.panesList) this.#percents(pane);
     this.engine.invalidate(true);
-  }
-
-  /** @param {string} id @param {number} [pane] */
-  priceScale(id, pane = 0) {
-    return this.#pane(pane).scaleApi(id);
   }
 
   /** @param {any} type @param {any} options @param {number} [pane] */
@@ -154,15 +146,8 @@ class Chart {
       const pane = new Pane(this, this.engine.addPane({ scale: { top: 0.17, bottom: 0.08 }, left: { top: 0.17, bottom: 0.08 } }));
       this.#percents(pane);
       this.panesList.push(pane);
-      this.axes();
     }
     return this.panesList[index];
-  }
-
-  /** Its right axis shown while any pane's right scale is (none: the plots to its right edge, as the chart library's). */
-  axes() {
-    const width = this.panesList.some((pane) => pane.scales.right?.opts.visible !== false) ? this.axisWidth : 0;
-    if (width !== this.engine.axis) (this.engine.axis = width), this.engine.layout();
   }
 
   /** Panes left with no series at the end go (as the library's did). */
@@ -171,7 +156,6 @@ class Chart {
       const pane = /** @type {Pane} */ (this.panesList.pop());
       this.engine.removePane(pane.engine);
     }
-    this.axes();
   }
 
   /** A series' data or look changed: brought to the library before the next frame. */
@@ -340,39 +324,8 @@ class PriceScale {
     this.pane = pane;
     /** Its side; an overlay's, none (its series drawn on the right one's side, its own scale theirs). @type {"right" | "left" | null} */
     this.side = id === "left" || id === "right" ? id : null;
-    /** @type {{ mode: number, autoScale: boolean, visible: boolean, scaleMargins: { top: number, bottom: number } }} */
-    this.opts = { mode: 0, autoScale: true, visible: true, scaleMargins: this.side ? { top: 0.17, bottom: 0.08 } : { top: 0.2, bottom: 0.1 } };
     /** An overlay's own scale: its series' range (their autoscaleInfoProvider's), the pane's height. */
     this.overlay = this.side ? null : new Scale({ top: 0.2, bottom: 0.1 });
-  }
-
-  /** The library's scale: the right one, the left one once a series is on it, or an overlay's own (its pane's height). */
-  get scale() {
-    if (this.overlay) return (this.overlay.height = this.pane.engine.height), this.overlay;
-    return this.side === "left" ? this.pane.engine.left : this.pane.engine.scale;
-  }
-
-  /** Its options; auto scaled as the library's side is (a range set by hand: an axis dragged, bvSetRange). */
-  options() {
-    if (this.side) this.opts.autoScale = this.side === "left" ? this.pane.engine.leftAuto : this.pane.engine.auto;
-    return this.opts;
-  }
-
-  /** @param {any} options */
-  applyOptions(options) {
-    this.opts = { ...this.opts, ...options };
-    const scale = this.scale;
-    if (scale) {
-      if (options.mode !== undefined) scale.mode = /** @type {any} */ (MODES[options.mode] ?? "linear");
-      if (options.scaleMargins) (scale.top = options.scaleMargins.top), (scale.bottom = options.scaleMargins.bottom);
-    }
-    if (this.side === "right" && "visible" in options) this.pane.chart.axes();
-    // (Fitted again, or held where it is.)
-    if (this.side) {
-      if (options.autoScale) this.pane.engine.setRange(undefined, undefined, this.side);
-      else if (options.autoScale === false && scale) this.pane.engine.setRange(scale.lo, scale.hi, this.side);
-    }
-    this.pane.chart.engine.invalidate(true);
   }
 }
 
@@ -415,12 +368,7 @@ class Series {
     this.range = new Float64Array(2);
     this.info = { priceRange: { minValue: 0, maxValue: 0 } };
     this.engine = this.#make();
-    const hadLeft = Boolean(pane.engine.left);
     pane.engine.add(this.engine, this.side);
-    // (The pane's left scale made by its first series: its look as Studio set it before (its mode, its margins), its range
-    // as it is (fitted, or set by hand).)
-    const left = pane.scales.left?.opts;
-    if (this.side === "left" && !hadLeft && left) pane.scales.left?.applyOptions({ mode: left.mode, scaleMargins: left.scaleMargins });
     // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
     /** @type {Line | null} */
     this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;
@@ -645,10 +593,6 @@ class Series {
       return;
     }
     if (engine instanceof Line) engine.setValues(this.columns);
-  }
-
-  priceScale() {
-    return this.scaleApi;
   }
 
   /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */

@@ -342,6 +342,20 @@ export class Pane {
   }
 
   /**
+   * A side's scale's look (its mode, its margins: shares of the height kept clear at its top and bottom): now, and (its
+   * left one) as one is made later, by its first left series.
+   * @param {"right" | "left"} side @param {{ mode?: import("./scale.js").ScaleMode, top?: number, bottom?: number }} look
+   */
+  setScale(side, look) {
+    if (side === "left") this.leftOptions = { ...this.leftOptions, ...look };
+    const scale = side === "left" ? this.left : this.scale;
+    if (!scale) return;
+    if (look.mode !== undefined) scale.mode = look.mode;
+    if (look.top !== undefined) scale.top = look.top;
+    if (look.bottom !== undefined) scale.bottom = look.bottom;
+  }
+
+  /**
    * A scale set by hand (`lo`, `hi`), or fitted to its series again (no range): its right one, or its left.
    * @param {number} [lo] @param {number} [hi] @param {"right" | "left"} [side]
    */

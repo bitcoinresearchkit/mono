@@ -16182,7 +16182,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (By the chart's own width, its price scales at their widest: not the plot's, narrower or wider as a scale's
         // labels are, which would set it again as the view moves, the library then moving the view: a spacing set again
         // is applied a frame later, as it was when set, undoing a zoom made since.)
-        const sides = ["left", "right"].filter((side) => view.priceScale(side, 0).options().visible).length;
+        const sides = (engine.axis ? 1 : 0) + (engine.panes.some((pane) => pane.left) ? 1 : 0);
         const width = engine.time.width ? chartWidth() - sides * axisWidth() : 0;
         const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
         // (Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`:
@@ -16275,6 +16275,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
       const engine = view.engine;
       engine.theme = chartTheme();
+      /** The right axis' width till it's drawn (then as its labels need: the library's), where a layer's on that side. */
+      const RIGHT_AXIS = engine.axis;
+      /** Studio's scale modes (a pane's `mode`) as the library's. @type {import("/modules/bitview-charts/scale.js").ScaleMode[]} */
+      const SCALE_MODES = ["linear", "log", "percent", "indexed"];
       engine.time.rightOffset = 48;
       engine.time.minSpacing = MIN_BAR_SPACING;
       engine.crosshair.setFormat((time) => pointLabel(time));
@@ -16333,7 +16337,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return range;
       };
       /** Pane `i`'s scale's mode on a side, as Studio numbers them (see MODES). @param {number} i @param {string} side */
-      const scaleMode = (i, side) => ["linear", "log", "percent", "indexed"].indexOf(scaleOn(i, side)?.mode ?? "linear");
+      const scaleMode = (i, side) => SCALE_MODES.indexOf(scaleOn(i, side)?.mode ?? "linear");
       /** Where a drawn series draws a value: CSS pixels from its pane's top, on its scale (see the library's chart.y); none, null. @param {any} series @param {number} value */
       const seriesY = (series, value) => ((y) => (Number.isFinite(y) ? y : null))(series ? engine.y(series.engine, value) : NaN);
       /** A drawn series' value at a height in its pane (see the library's chart.value); none, NaN. @param {any} series @param {number} y */
@@ -17212,7 +17216,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "", hitTestTolerance: 0, ...(on ? {} : { priceScaleId: `bubbles:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) }) };
             series = madeOrKept(() => view.addCustomSeries(bubbleView(), options, pane), options);
             // (On none: its scale's middle the pane's, its margins even.)
-            if (!on) series.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.1 } });
+            if (!on && series.engine.overlay) (series.engine.overlay.top = 0.1), (series.engine.overlay.bottom = 0.1);
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -17374,8 +17378,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
           // nothing: it has nothing shown.)
-          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), scaleMargins: marginsOf(doc, pane, i), ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
+          for (const side of /** @type {const} */ (["left", "right"])) {
+            panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
+            if (!keep) panes[i].setRange(undefined, undefined, side);
+          }
         });
+        // (Its right axis where a layer is on that side; none, the plots to the chart's right edge.)
+        const axis = sides.has("right") ? RIGHT_AXIS : 0;
+        if (engine.axis !== axis) (engine.axis = axis), engine.layout();
+        engine.invalidate(true);
         // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again. Laid from the chart, or the
         // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
         if (!(holding && drawnPanes === panesShape)) sizePanes();
@@ -19214,7 +19225,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const all = chart.panes.map((pane, i) => marginsOf(chart, pane, i)), key = JSON.stringify(all.map(({ top, bottom }) => [top.toFixed(3), bottom.toFixed(3)]));
         if (key === marginsSet) return;
         marginsSet = key;
-        all.forEach((margins, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ scaleMargins: margins })));
+        all.forEach((margins, i) => (["left", "right"]).forEach((side) => engine.panes[i]?.setScale(/** @type {"left" | "right"} */ (side), margins)));
+        engine.invalidate(true);
       }
       const resized = new ResizeObserver((entries) => {
         // (Its size held through a layout's motion: the chart's own height, not its box's, till it follows it again.)

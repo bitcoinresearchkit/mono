@@ -58,7 +58,8 @@ chart.show(365);                                 // the last 365 points in view
   legend, a highlight), laid out and stretched with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
-  the last on top), `setRange(lo, hi, side)` (no range: fitted),
+  the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's scale's look, now and a
+  left one made later),
   `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
 
 ## Series
