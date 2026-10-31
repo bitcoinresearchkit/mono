@@ -347,7 +347,7 @@ export class Chart {
      * @typedef {{ pane: Pane | null, side: "right" | "left", a: number, b: number, at: number, moving: boolean }} Axis
      * An axis pressed, as it was then: a pane's price axis on `side` (its range, `a` to `b`; the press's height in the
      * pane, `at`), or the time axis (`pane` null: the spacing `a`, the view's right end `b`, the press's x in the plot
-     * `at`); `moving`, once the press has moved past a slop (a click on a tag scales nothing).
+     * `at`); `moving`, once the press has moved as far as a click can't (a click on a tag scales nothing).
      */
     const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, axis: Axis | null }>} */ (new Map());
     let held = -1;
@@ -376,8 +376,9 @@ export class Chart {
       if (y >= this.height - this.timeHeight) return x >= this.left && x <= this.left + time.width ? { pane: null, side: "right", a: time.spacing, b: time.to, at: x - this.left, moving: false } : null;
       for (const pane of this.panes) {
         if (y < pane.top || y >= pane.top + pane.height) continue;
+        // (A relative scale's range follows its bases as the view moves: never set by hand, as the chart library's.)
         const side = x >= this.left + pane.plot && pane.width > pane.plot ? "right" : x < this.left && pane.left ? "left" : null, scale = side === "left" ? pane.left : pane.scale;
-        return side && scale ? { pane, side, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : null;
+        return side && scale && !scale.relative ? { pane, side, a: scale.lo, b: scale.hi, at: y - pane.top, moving: false } : null;
       }
       return null;
     };
@@ -391,7 +392,8 @@ export class Chart {
       const pane = axis.pane;
       if (!pane) {
         const width = time.width, start = width - axis.at, now = Math.min(Math.max(width - (x - this.left), 0), width);
-        if (start > 0 && now > 0) time.setRange(axis.b - width / ((axis.a * now) / start), axis.b);
+        // (Its span within the zoom's bounds first: its right edge held at them too.)
+        if (start > 0 && now > 0) time.setRange(axis.b - time.within(width / ((axis.a * now) / start)), axis.b);
         return;
       }
       const scale = axis.side === "left" ? pane.left : pane.scale, h = pane.height;
@@ -427,7 +429,11 @@ export class Chart {
       this.holding = this.letting = 0;
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
       if (held >= 0) (held = -1), this.setCrosshair(NaN);
-      if (down.size > 1) twoFingers = true;
+      // (A second finger: a pinch, no axis dragged after it, the one finger left panning.)
+      if (down.size > 1) {
+        twoFingers = true;
+        for (const each of down.values()) each.axis = null;
+      }
       if (touch && down.size === 1 && !down.get(event.pointerId)?.axis) {
         const id = event.pointerId;
         this.holding = setTimeout(() => {
@@ -459,9 +465,9 @@ export class Chart {
         if (Math.hypot(event.clientX - at.startX, event.clientY - at.startY) <= 6) return;
         (at.panning = true), clearTimeout(this.holding), (this.holding = 0);
       }
-      // (An axis pressed: scaled once it's moved past the slop, no glide after.)
+      // (An axis pressed: scaled once it's moved as far as a click can't, no glide after.)
       if (down.size === 1 && at.axis) {
-        if (!at.axis.moving && !(at.axis.moving = Math.hypot(event.clientX - at.startX, event.clientY - at.startY) > 4)) return;
+        if (!at.axis.moving && !(at.axis.moving = Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6)) return;
         const box = element.getBoundingClientRect();
         scaleAxis(at.axis, event.clientX - box.left, event.clientY - box.top);
         (at.x = event.clientX), (at.y = event.clientY), (trailSize = 0);

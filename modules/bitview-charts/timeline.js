@@ -103,15 +103,15 @@ export class Timeline {
   zoom(x, factor) {
     const last = this.length - 1, newest = last >= 0 && this.x(last) <= this.width;
     if (newest) x = this.x(last);
-    const at = this.index(x), next = this.#span((this.to - this.from) * factor);
+    const at = this.index(x), next = this.within((this.to - this.from) * factor);
     this.from = at - (x / this.width) * next;
     this.to = this.from + next;
     // (A pan's part of a pixel kept: a pinch pans as it zooms.)
     this.limit();
   }
 
-  /** A span within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
-  #span(span) {
+  /** A span (points) within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
+  within(span) {
     const least = this.width / this.maxSpacing, most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
@@ -125,7 +125,7 @@ export class Timeline {
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */
   limit() {
     let span = this.to - this.from;
-    const fits = this.#span(span);
+    const fits = this.within(span);
     if (fits !== span) {
       const middle = (this.from + this.to) / 2;
       (span = fits), (this.from = middle - span / 2), (this.to = middle + span / 2);
