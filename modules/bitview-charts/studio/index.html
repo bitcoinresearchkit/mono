@@ -12270,20 +12270,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function axisTicks(/** @type {number[]} */ values, suffix = "") {
         const labels = values.map((value) => axisLabel(value, suffix));
-        let gap = Infinity;
-        for (let i = 1; i < values.length; i++) gap = Math.min(gap, Math.abs(values[i] - values[i - 1]));
+        let gap = Infinity, most = 0;
+        for (let i = 1; i < values.length; i++) (gap = Math.min(gap, Math.abs(values[i] - values[i - 1]))), (most = Math.max(most, Math.abs(values[i] - values[i - 1])));
         if (!gap) return labels;
         const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
         const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.replace(/^−/, "").length <= AXIS_CHARS && !text.includes("e"));
-        // (A letter's decimals alike: 2.50M beside 2.75M, not 2.5M; 1.0K beside 1.1K. Each one's own letter: 900 under
-        // 1.0K, not 0.9K.)
+        // (Ticks evenly apart (a linear scale's), a letter's decimals alike: 2.50M beside 2.75M, not 2.5M; 1.0K beside
+        // 1.1K. Each one's own letter: 900 under 1.0K, not 0.9K. A log scale's decades each as they are: 300, 30, 0.3.)
         const evened = (/** @type {string[]} */ texts) => {
           const parts = texts.map((text) => /^(−?)(\d+)(?:\.(\d+))?([A-Z]?)(.*)$/.exec(text)), places = /** @type {Map<string, number>} */ (new Map());
           if (parts.some((part) => !part)) return texts;
           for (const part of /** @type {RegExpExecArray[]} */ (parts)) places.set(part[4], Math.max(places.get(part[4]) ?? 0, (part[3] ?? "").length));
           return /** @type {RegExpExecArray[]} */ (parts).map(([, sign, whole, decimals = "", letter, rest]) => `${sign}${whole}${places.get(letter) ? `.${decimals.padEnd(/** @type {number} */ (places.get(letter)), "0")}` : ""}${letter}${rest}`);
         };
-        if (near(labels.map(readLabel))) return ((even) => (fit(even) ? even : labels))(evened(labels));
+        if (near(labels.map(readLabel))) return most - gap <= gap / 100 ? ((even) => (fit(even) ? even : labels))(evened(labels)) : labels;
         for (let digits = 4; digits <= 9; digits++) {
           // (With letters, as axisLabel's; where those are too long (12.345K), in plain digits (12345).)
           for (const lettered of [true, false]) {
