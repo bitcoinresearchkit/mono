@@ -36,7 +36,7 @@ const TICK_TYPES = { year: 0, month: 1, day: 2, time: 3 };
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
 /** A series' options its push reads (see Series.applyOptions). */
-const PUSHED = ["color", "lineColor", "topLineColor", "bottomLineColor", "baseValue", "bvBandFill"];
+const PUSHED = ["color", "lineColor", "bvBandFill"];
 /** A fit adding nothing (an edge: its series fitted by its band). */
 const NOTHING = () => {};
 
@@ -424,8 +424,9 @@ class TimeScale {
   getVisibleRange() {
     const times = this.chart.times, n = times.length;
     if (!n) return null;
-    const at = (/** @type {number} */ i) => times[Math.min(Math.max(Math.round(i), 0), n - 1)];
-    return { from: at(this.time.from), to: at(this.time.to) };
+    // (Its points at least partly in view, as the chart library's strict range.)
+    const at = (/** @type {number} */ i) => times[Math.min(Math.max(i, 0), n - 1)];
+    return { from: at(Math.floor(this.time.from)), to: at(Math.ceil(this.time.to)) };
   }
 
   /** @param {{ from: number, to: number }} range */
@@ -836,20 +837,24 @@ class Series {
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
-    // (Drawn as steps where its line type is (LineType.WithSteps); curved ones straight. Dashed as its line style asks,
-    // the chart library's dashes by its width.)
-    const steps = o.lineType === 1, dash = dashOf(o);
+    // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (a line's: an area's and a
+    // baseline's edges straight, their fills straight). Dashed as its line style asks, the chart library's dashes by its
+    // width.)
+    const steps = o.lineType === 1, curve = o.lineType === 2, dash = dashOf(o);
     // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
     if (this.edge) {
       this.edge.hidden = !shown;
       this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
+      // (A baseline's line in its top color over its base, its bottom one under it: changing where it crosses it, as the
+      // chart library's.)
+      const under = this.type === "Baseline" && o.bottomLineColor ? { value: o.baseValue?.price ?? 0, color: o.bottomLineColor } : null;
+      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, under });
     }
     // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
     // (Their tag and price line as a line's: the last bar's value, in its color.)
     if (engine instanceof Bars) return void ((engine.base = o.base ?? 0), (engine.radius = o.cornerRadius ?? 0), engine.setStyle({ color: o.color ?? engine.color, tag, priceLine, format: this.format, outline }));
-    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
+    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash, curve });
     // (An area filled down to the pane's foot, as the chart library's (whatever its values' sign), or up to its top where
     // it's inverted (invertFilledArea); a baseline to its base.)
     // (Their fills fading as the chart library's: an area's from its top color at the pane's top to its bottom color at
@@ -911,8 +916,8 @@ class Series {
   applyOptions(options) {
     this.opts = { ...this.opts, ...options };
     this.#style();
-    // (Pushed again only where its push reads what changed (its colored rows' or a baseline's line colors, its place
-    // in a stack): a look alone is set (Studio's bubbles' sizes, as the view moves); a pane's writers or stack set
+    // (Pushed again only where its push reads what changed (its colored rows' line colors, its place in a stack): a
+    // look alone is set (Studio's bubbles' sizes, as the view moves); a pane's writers or stack set
     // again; shown or hidden, drawn whole.)
     if (!this.painted && PUSHED.some((key) => key in options)) this.dirty = true;
     if ("priceFormat" in options || "bvBandFill" in options) this.pane.dirty = true;
@@ -997,11 +1002,6 @@ class Series {
       engine.set({ upper: this.columns, ...(this.opts.bvBandFill ? {} : { lower: null }) });
       const edge = /** @type {Line} */ (this.edge);
       edge.setValues(this.columns);
-      // (A baseline's line in its top color over its base, its bottom one under it.)
-      if (this.type === "Baseline") {
-        const base = this.opts.baseValue?.price ?? 0, colors = Uint8Array.from(this.columns, (v) => (v >= base ? 0 : 1));
-        edge.setStyle({ colors, palette: [this.opts.topLineColor ?? edge.color, this.opts.bottomLineColor ?? edge.color] });
-      }
       return;
     }
     // (Rows with colors of their own: a palette, the series' own color first (a row without one), each point an index

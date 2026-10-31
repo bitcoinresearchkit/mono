@@ -12,7 +12,7 @@ import { Bars } from "./bars.js";
 import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
-import { inkOn } from "./color.js";
+import { inkOn, solid } from "./color.js";
 import { Tags } from "./tags.js";
 
 /**
@@ -457,7 +457,8 @@ export class Pane {
     // (Not relative: each read as it is (a relative mode left, its reading gone too).)
     if (!relative) scale.setBase(NaN);
     let same = true, above = 0, below = 0;
-    const a = Math.ceil(time.from), b = Math.floor(time.to);
+    // (The points at least partly in view, as the chart library's strict range: the one past each edge its line runs to.)
+    const a = Math.floor(time.from), b = Math.ceil(time.to);
     for (let k = 0; k < n; k++) {
       if (this.sides[k] !== side || this.series[k].hidden) continue;
       const series = this.series[k];
@@ -555,7 +556,7 @@ export class Pane {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
       const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((Math.floor(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      if (overs !== this.drawnOvers || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -585,7 +586,7 @@ export class Pane {
         this.drawnTags[1].lines.length = 0;
       }
     }
-    this.axesEnd = Math.floor(time.to);
+    this.axesEnd = Math.ceil(time.to);
   }
 
   /** Whether it has a tag shown (a line's, with one). */
@@ -724,13 +725,14 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view (as the chart library's
-   * were: they read the view's end as a pan moves it; a price line, its last of all; one with nothing in view, none),
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it
+   * counted (as the chart library's were: they read the view's end, its strict range's, as a pan moves it; a price
+   * line, its last of all; one with nothing in view, none),
    * laid top to bottom where they'd overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.floor(time.to);
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.ceil(time.to);
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
@@ -787,7 +789,8 @@ export class Pane {
     for (let k = 0; k < n; k++) {
       const line = lines[order[k]], i = index[order[k]], y = at[k];
       (drawn.lines[k] = line), (drawn.at[k] = y);
-      const color = line.colorAt(i);
+      // (In its line's color there without its alpha, as the chart library's: a faint line's tag still reads.)
+      const color = solid(line.colorAt(i));
       g.fillStyle = color;
       g.beginPath();
       g.roundRect(x + 2, y - step / 2 + 1, width - 4, Math.max(1, step - 2), Math.max(0, Math.min(4, step / 2 - 1)));

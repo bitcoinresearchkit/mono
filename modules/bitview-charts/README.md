@@ -62,7 +62,8 @@ chart.show(365);                                 // the last 365 points in view
   else as its side writes values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 4; 0: none); `steps`, drawn as steps
-  (each value held flat to the next point, then straight up or down).
+  (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
+  `under`, `{ value, color }`: its stroke in that color below that value (a baseline's line); `dash`, its dashes.
 - `Band({ lower, upper, base, color, fade, below, belowFade, to, steps })`: a fill between two columns (`steps`: its
   edges steps); without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with
   `below`, a baseline (under its base in that color); `fade`, `belowFade`, the colors they fade to (gradients fixed to

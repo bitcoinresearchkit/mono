@@ -8,6 +8,7 @@
 
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
+import { Fill } from "./color.js";
 
 const BLOCK = 64;
 /** No dashes (made once). */
@@ -57,6 +58,24 @@ const pen = {
         g.lineTo(x, y);
         (this.y = y), (this.runX = NaN);
       }
+    } else this.close();
+    (this.has = true), (this.px = x), (this.py = y), (this.color = color), (this.cut = cut);
+  },
+  /**
+   * As to(), its segment from the last point a curve through two control points (CSS pixels).
+   * @param {number} c1x @param {number} c1y @param {number} c2x @param {number} c2y @param {number} x @param {number} y @param {number} color @param {boolean} cut
+   */
+  curve(c1x, c1y, c2x, c2y, x, y, color, cut) {
+    const g = /** @type {CanvasRenderingContext2D} */ (this.g);
+    y = Math.round(y * this.dpr) / this.dpr;
+    if (this.has && !this.cut && (this.pass < 0 || this.color === this.pass)) {
+      if (!this.on) {
+        g.moveTo(this.px, this.py);
+        (this.on = true), (this.y = this.py), (this.runX = NaN);
+      }
+      if (this.runX === this.runX) g.lineTo(this.runX, this.y);
+      g.bezierCurveTo(c1x, c1y, c2x, c2y, x, y);
+      (this.y = y), (this.runX = NaN);
     } else this.close();
     (this.has = true), (this.px = x), (this.py = y), (this.color = color), (this.cut = cut);
   },
@@ -132,10 +151,12 @@ export class Line {
    * radius (ringed in the ground, 2 pixels; 0: none); `steps`, each value held to the next point (zoomed in: zoomed out,
    * a pixel column holds several points either way); `dash`, its stroke's dashes (CSS pixels, as setLineDash takes
    * them; none, solid): dashes run along its path from where it starts, so its pane's drawn whole as the view moves
-   * (its picture kept as it is otherwise).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null }} [options]
+   * (its picture kept as it is otherwise); `curve`, bowed through its points (zoomed in), as the chart library's
+   * curves (each segment's bend from its points' neighbors); `under`, its stroke in another color below a value (a
+   * baseline's line: its color changing where it crosses its base).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null, curve = false, under = null } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -153,6 +174,11 @@ export class Line {
     this.steps = steps;
     /** @type {number[] | null} */
     this.dash = dash && dash.length ? dash : null;
+    this.curve = curve;
+    /** @type {{ value: number, color: string } | null} */
+    this.under = under;
+    // (Its stroke's style split at its under value, kept till it changes.)
+    this.split = new Fill();
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
@@ -199,10 +225,10 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, under = this.under }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.under = under);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -447,7 +473,8 @@ export class Line {
     g.lineJoin = "bevel";
     // (One stroke a color: its segments in it.)
     for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
-      g.strokeStyle = pass < 0 ? this.color : this.palette[pass];
+      const under = this.under, color = pass < 0 ? this.color : this.palette[pass];
+      g.strokeStyle = under ? this.split.splitAt(g, color, under.color, scale.y(under.value), scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, pass);
       this.#trace(time, scale, x0, x1, colors);
@@ -498,9 +525,15 @@ export class Line {
           pen.lift();
           continue;
         }
-        const x = time.x(i);
+        const x = time.x(i), y = scale.y(v), color = colors ? colors[i] : 0, cut = breaks ? breaks[i] === 1 : false;
         if (this.steps && pen.has && !pen.cut) pen.to(x, pen.py, pen.color, false);
-        pen.to(x, scale.y(v), colors ? colors[i] : 0, breaks ? breaks[i] === 1 : false);
+        if (this.curve && pen.has && !pen.cut) {
+          // (Bowed as the chart library's: each control point a sixth of the way along its neighbors' chord, those by
+          // index (the same whatever's drawn: a strip's and a whole draw's alike); a neighbor missing, the point itself.)
+          const w = values[i - 2], u = values[i + 1], before = i >= 2 && (log ? w > 0 : w === w), after = i + 1 < n && (log ? u > 0 : u === u);
+          const x0 = before ? time.x(i - 2) : pen.px, y0 = before ? scale.y(w) : pen.py, x3 = after ? time.x(i + 1) : x, y3 = after ? scale.y(u) : y;
+          pen.curve(pen.px + (x - x0) / 6, pen.py + (y - y0) / 6, x - (x3 - pen.px) / 6, y - (y3 - pen.py) / 6, x, y, color, cut);
+        } else pen.to(x, y, color, cut);
       }
       return;
     }

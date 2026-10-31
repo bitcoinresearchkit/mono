@@ -1,4 +1,5 @@
 // @ts-check
+import { Fill } from "./color.js";
 // A band: a fill between two columns on the timeline (`lower` and `upper`, Float64Arrays; NaN in either: none there,
 // the band broken), in one color. A cloud between two lines is one; a stack is one between each two edges (see
 // stack.js). Without `lower`, an area: filled down to `base` (0 if not given; on a log scale, a base it can't show (0
@@ -40,33 +41,6 @@ const outline = {
     this.count = 0;
   },
 };
-
-/** A fill's style: a color, or a vertical gradient from one color to another between two heights, kept till they change. */
-class Fill {
-  constructor() {
-    /** @type {CanvasGradient | null} */
-    this.gradient = null;
-    this.from = "";
-    this.to = "";
-    this.top = NaN;
-    this.bottom = NaN;
-  }
-
-  /**
-   * `color`, or where it fades to `fade` (none: none), a gradient from height `top` to `bottom` (CSS pixels).
-   * @param {CanvasRenderingContext2D} g @param {string} color @param {string | null} fade @param {number} top @param {number} bottom
-   */
-  style(g, color, fade, top, bottom) {
-    if (!fade || fade === color || !(bottom > top)) return color;
-    if (!this.gradient || this.from !== color || this.to !== fade || this.top !== top || this.bottom !== bottom) {
-      const gradient = g.createLinearGradient(0, top, 0, bottom);
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(1, fade);
-      (this.gradient = gradient), (this.from = color), (this.to = fade), (this.top = top), (this.bottom = bottom);
-    }
-    return this.gradient;
-  }
-}
 
 export class Band {
   /**

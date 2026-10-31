@@ -140,6 +140,16 @@ export class Chart {
     else this.setCrosshair(crosshair.index, crosshair.y);
   }
 
+  /**
+   * A mouse dragging the view: its crosshair found again at the next frame where it is then (see render), its listeners
+   * told once the panes are fitted to the view it moved to (not on the scale before).
+   * @param {PointerEvent} event
+   */
+  #follow(event) {
+    const box = this.element.getBoundingClientRect();
+    (this.pointerX = event.clientX - box.left - this.left), (this.crosshair.y = event.clientY - box.top), (this.recrossing = true);
+  }
+
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
   setTimes(times) {
     this.time.setTimes(times);
@@ -345,10 +355,14 @@ export class Chart {
     // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
     // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
     // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
-    if (x === x && crosshair.index === crosshair.index && (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index)) {
-      // (Found again, told even where its point and height stay: what's under it may not.)
-      if (this.recrossing) (this.recrossing = false), (crosshair.index = NaN);
-      this.setCrosshair(time.index(x), crosshair.y, true, x);
+    if (x === x && (this.recrossing || crosshair.index === crosshair.index)) {
+      // (Over an axis now (one come under it): gone, as a pointer over an axis has none.)
+      if (!(x >= 0 && x <= time.width)) (this.recrossing = false), this.setCrosshair(NaN);
+      else if (this.recrossing || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) {
+        // (Found again, told even where its point and height stay: what's under it may not.)
+        if (this.recrossing) (this.recrossing = false), (crosshair.index = NaN);
+        this.setCrosshair(time.index(x), crosshair.y, true, x);
+      }
     }
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr);
@@ -524,7 +538,8 @@ export class Chart {
       }
       (at.x = event.clientX), (at.y = event.clientY);
       // (A mouse's crosshair where it is now, the chart moved under it.)
-      if (event.pointerType === "mouse") point(event);
+      // (Its listeners told once the panes are fitted to the view it moved to: see render.)
+      if (event.pointerType === "mouse") this.#follow(event);
       this.invalidate();
     }, { signal });
     element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && this.setCrosshair(NaN), { signal });

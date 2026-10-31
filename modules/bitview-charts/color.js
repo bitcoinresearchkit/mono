@@ -1,10 +1,32 @@
 // @ts-check
 // Words on a color: black or white by its lightness as OKLab measures it (black from L 0.7157, where APCA flips for a
-// grey: a hue then reads as a grey of its lightness does), each color measured once.
+// grey: a hue then reads as a grey of its lightness does), each color measured once. And a fill's or a stroke's style
+// as a vertical gradient (a fade, or a color split at a height), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is read back from (any CSS color: a name, hex, rgb(), oklch()). @type {CanvasRenderingContext2D | null} */
 let pen = null;
+
+const solids = new Map();
+
+/**
+ * `color` without its alpha (a tag's ground, as the chart library's: a line drawn at half opacity tagged in its full
+ * color), each color read once.
+ * @param {string} color
+ */
+export function solid(color) {
+  let full = solids.get(color);
+  if (full !== undefined) return full;
+  pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d", { willReadFrequently: true }));
+  pen.fillStyle = "#000";
+  pen.fillStyle = color;
+  // (A canvas writes a color back as #rrggbb, or rgba(…) where it has an alpha below 1.)
+  const read = String(pen.fillStyle), m = /^rgba\((\d+), (\d+), (\d+), [\d.]+\)$/.exec(read);
+  full = m ? `rgb(${m[1]}, ${m[2]}, ${m[3]})` : read;
+  if (solids.size > 512) solids.clear();
+  solids.set(color, full);
+  return full;
+}
 
 /** Black or white, whichever reads on `color`. @param {string} color */
 export function inkOn(color) {
@@ -22,4 +44,48 @@ export function inkOn(color) {
   if (ink.size > 512) ink.clear();
   ink.set(color, text);
   return text;
+}
+
+/** A fill's or a stroke's style: a color, or a vertical gradient (CSS pixels) kept till its colors or heights change. */
+export class Fill {
+  constructor() {
+    /** @type {CanvasGradient | null} */
+    this.gradient = null;
+    this.from = "";
+    this.to = "";
+    this.top = NaN;
+    this.bottom = NaN;
+    this.split = false;
+  }
+
+  /**
+   * `color`, or where it fades to `fade` (none: none), a gradient from height `top` to `bottom`.
+   * @param {CanvasRenderingContext2D} g @param {string} color @param {string | null} fade @param {number} top @param {number} bottom
+   */
+  style(g, color, fade, top, bottom) {
+    if (!fade || fade === color || !(bottom > top)) return color;
+    return this.#made(g, color, fade, top, bottom, false);
+  }
+
+  /**
+   * `color` above height `at` and `under` below it, of a canvas `height` tall (a baseline's line: its color changing
+   * where it crosses its base).
+   * @param {CanvasRenderingContext2D} g @param {string} color @param {string} under @param {number} at @param {number} height
+   */
+  splitAt(g, color, under, at, height) {
+    if (under === color || !(height > 0)) return color;
+    return this.#made(g, color, under, Math.min(Math.max(at / height, 0), 1), height, true);
+  }
+
+  /** @param {CanvasRenderingContext2D} g @param {string} from @param {string} to @param {number} top @param {number} bottom @param {boolean} split */
+  #made(g, from, to, top, bottom, split) {
+    if (!this.gradient || this.from !== from || this.to !== to || this.top !== top || this.bottom !== bottom || this.split !== split) {
+      const gradient = split ? g.createLinearGradient(0, 0, 0, bottom) : g.createLinearGradient(0, top, 0, bottom);
+      gradient.addColorStop(0, from);
+      if (split) gradient.addColorStop(top, from), gradient.addColorStop(top, to);
+      gradient.addColorStop(1, to);
+      (this.gradient = gradient), (this.from = from), (this.to = to), (this.top = top), (this.bottom = bottom), (this.split = split);
+    }
+    return this.gradient;
+  }
 }
