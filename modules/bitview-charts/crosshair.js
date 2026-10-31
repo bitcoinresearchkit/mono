@@ -147,7 +147,7 @@ export class Crosshair {
    * @param {CanvasRenderingContext2D} g @param {import("./pane.js").Pane} pane @param {number} side @param {number} x @param {number} width
    */
   #cover(g, pane, side, x, width) {
-    const drawn = pane.drawnTags[side], half = Math.max(1, drawn.step - 2) / 2, page = pane.pageTags[side], y = this.y - pane.top;
+    const drawn = pane.drawnTags[side], half = Math.max(1, Math.min(PILL, drawn.step)) / 2, page = pane.pageTags[side], y = this.y - pane.top;
     let lo = y - PILL / 2, hi = y + PILL / 2, grown = true, any = false;
     while (grown) {
       grown = false;

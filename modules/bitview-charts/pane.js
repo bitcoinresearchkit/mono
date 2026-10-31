@@ -809,7 +809,8 @@ export class Pane {
       // (Its value as a tag writes it, then in its writer's words: see tagValue.)
       const words = relative ? this.axisLabel(tagValue(line.values[i] * scale.m + scale.c), scale) : (line.format ?? this.labels[side])(tagValue(line.values[i]));
       const look = tint(color, theme.background);
-      this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, step - 2), look.border) + 4);
+      // (A pill a tag's room, 2 pixels between two; crowded, that gap gone first (full size, touching), then smaller.)
+      this.tagsNeed[side] = Math.max(this.tagsNeed[side], pill(g, words, look.fill, look.ink, side ? x + width - 2 : x + 2, y, side ? "right" : "left", Math.max(1, Math.min(PILL, step)), look.border) + 4);
     }
   }
 
