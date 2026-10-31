@@ -6,6 +6,10 @@
 
 /** A curve's segments, as kept. */
 const CURVE = 8;
+/** A real canvas' context, for the gradients a series makes (a fill keeps them for its real draws too). @type {CanvasRenderingContext2D | null} */
+let real = null;
+/** Whether a series is being drawn into the recorder (its geometry wanted: a line's colors in one pass, as their union). */
+export let measuring = false;
 
 const recorder = {
   // (The path being written: its segments (x0, y0, x1, y1), each subpath's start; the strokes' and fills' kept.)
@@ -40,6 +44,8 @@ const recorder = {
   },
   /** @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
   segment(x0, y0, x1, y1) {
+    // (Nothing for what the canvas wouldn't paint: a point a log scale can't show.)
+    if (!(Number.isFinite(x0) && Number.isFinite(y0) && Number.isFinite(x1) && Number.isFinite(y1))) return;
     if (this.pathCount * 4 + 4 > this.path.length) this.path = grown(this.path);
     const k = this.pathCount++ * 4;
     (this.path[k] = x0), (this.path[k + 1] = y0), (this.path[k + 2] = x1), (this.path[k + 3] = y1);
@@ -79,12 +85,13 @@ const recorder = {
   rect(x, y, w, h) {
     this.moveTo(x, y), this.lineTo(x + w, y), this.lineTo(x + w, y + h), this.lineTo(x, y + h), this.closePath();
   },
-  /** (Its corners as square: a hit's measure within them.) @param {number} x @param {number} y @param {number} w @param {number} h */
+  /** (Its corners as square: a hit's measure within them. Wound as drawn: a negative width, the other way, a hole.) @param {number} x @param {number} y @param {number} w @param {number} h */
   roundRect(x, y, w, h) {
-    this.rect(Math.min(x, x + w), y, Math.abs(w), h);
+    this.rect(x, y, w, h);
   },
   /** (A dot: kept as a circle.) @param {number} x @param {number} y @param {number} r */
   arc(x, y, r) {
+    if (!(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(r))) return void (this.penX = NaN);
     if (this.dotCount * 3 + 3 > this.dots.length) this.dots = grown(this.dots);
     const k = this.dotCount++ * 3;
     (this.dots[k] = x), (this.dots[k + 1] = y), (this.dots[k + 2] = r);
@@ -94,8 +101,8 @@ const recorder = {
     this.strokeCount = this.keep("strokes", this.strokeCount);
   },
   fill() {
-    // (A fill closes each subpath: their segments back to their starts are in it already where it was closed; an
-    // outline (a band's) always is.)
+    // (A fill closes each subpath: their segments back to their starts are in it already where it was closed (rects,
+    // outlines, bodies always are).)
     this.fillCount = this.keep("fills", this.fillCount);
     if (this.fillsMade >= this.fillEnds.length) {
       const next = new Int32Array(this.fillEnds.length * 2);
@@ -117,9 +124,10 @@ const recorder = {
   clip() {},
   setLineDash() {},
   setTransform() {},
-  /** (A gradient's place: its stops unread.) */
-  createLinearGradient() {
-    return { addColorStop() {} };
+  /** A real gradient (a fill keeps it for its real draws), its stops unread here. @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
+  createLinearGradient(x0, y0, x1, y1) {
+    real ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
+    return real.createLinearGradient(x0, y0, x1, y1);
   },
 };
 
@@ -145,19 +153,25 @@ function toSegment(x, y, x0, y0, x1, y1) {
  */
 export function measure(series, time, scale, x, y, reach = 8) {
   recorder.reset();
-  series.draw(/** @type {any} */ (recorder), time, scale, x - reach, x + reach, 1);
+  measuring = true;
+  try {
+    series.draw(/** @type {any} */ (recorder), time, scale, x - reach, x + reach, 1);
+  } finally {
+    measuring = false;
+  }
   let best = Infinity, inside = false;
   const { strokes, strokeCount, fills, fillEnds, fillsMade, dots, dotCount } = recorder;
   for (let k = 0; k < strokeCount * 4; k += 4) best = Math.min(best, toSegment(x, y, strokes[k], strokes[k + 1], strokes[k + 2], strokes[k + 3]));
   for (let f = 0, from = 0; f < fillsMade; from = fillEnds[f++]) {
-    // (Inside a fill: an odd number of its edges crossed by a ray to the right.)
-    let odd = false;
+    // (Inside a fill as the canvas fills it, nonzero: its edges' windings round the point (those a ray to the right
+    // crosses, up one way, down the other) not summing to none.)
+    let winding = 0;
     for (let k = from * 4; k < fillEnds[f] * 4; k += 4) {
       const x0 = fills[k], y0 = fills[k + 1], x1 = fills[k + 2], y1 = fills[k + 3];
       best = Math.min(best, toSegment(x, y, x0, y0, x1, y1));
-      if (y0 > y !== y1 > y && x < x0 + ((y - y0) * (x1 - x0)) / (y1 - y0)) odd = !odd;
+      if (y0 > y !== y1 > y && x < x0 + ((y - y0) * (x1 - x0)) / (y1 - y0)) winding += y1 > y0 ? 1 : -1;
     }
-    inside ||= odd;
+    inside ||= winding !== 0;
   }
   for (let k = 0; k < dotCount * 3; k += 3) best = Math.min(best, Math.max(0, Math.hypot(x - dots[k], y - dots[k + 1]) - dots[k + 2]));
   return inside ? 0 : best;

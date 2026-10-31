@@ -11,7 +11,7 @@ import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
 import { Fill } from "./color.js";
 import { NOISE } from "./timeline.js";
-import { measure } from "./recorder.js";
+import { measure, measuring } from "./recorder.js";
 
 const BLOCK = 64;
 /** A curved segment's control points, as #bend writes them (made once). */
@@ -469,8 +469,9 @@ export class Line {
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";
-    // (One stroke a color: its segments in it.)
-    for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
+    // (One stroke a color: its segments in it. Measured (see recorder.js), all of them in one: their union, as drawn.)
+    const passes = colors && !measuring ? this.palette.length : 0;
+    for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
       const under = this.under, color = pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
       g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
