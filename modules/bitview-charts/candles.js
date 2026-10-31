@@ -106,16 +106,16 @@ export class Candles {
     if (!this.close.length) return;
     // (Its outline first, all of them one fill; then the candles that rose, then those that fell: their wicks and
     // bodies one fill where they're one color (else the wicks, then the bodies); where a border's another color than its
-    // body, the border a ring (filled even-odd: its inside left), its inside a device pixel in, in the body's color
-    // (see-through, where that is: the ground under it, not the border).)
+    // body, the border a ring (its inside wound the other way: a hole), its inside a device pixel in, in the body's
+    // color (see-through, where that is: the ground under it, not the border).)
     if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, -1, Math.max(1.5, 1 / dpr), WICKS | BODIES), g.fill();
     for (let pass = 0; pass < 2; pass++) {
       const body = pass ? this.down : this.up, wick = (pass ? this.downWick : this.upWick) ?? body, border = (pass ? this.downBorder : this.upBorder) ?? body;
-      const hollow = border !== body, rule = hollow ? "evenodd" : "nonzero", frame = hollow ? RINGS : BODIES;
-      if (wick === border) (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WICKS | frame), g.fill(rule);
+      const hollow = border !== body, frame = hollow ? RINGS : BODIES;
+      if (wick === border) (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WICKS | frame), g.fill();
       else {
         (g.fillStyle = wick), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, WICKS), g.fill();
-        (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, frame), g.fill(rule);
+        (g.fillStyle = border), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, frame), g.fill();
       }
       if (hollow) (g.fillStyle = body), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, pass, 0, INSIDES), g.fill();
     }
@@ -123,9 +123,10 @@ export class Candles {
 
   /**
    * Its candles from x `x0` to `x1` added to the path: those that rose (`pass` 0), fell (1) or all (-1); their wicks
-   * (above and below their bodies; an outline's, through them), bodies, bodies' rings (each body and its inside, for an
-   * even-odd fill) or insides (a device pixel in) by `part`; each `pad` pixels wider all round (an outline's). Zoomed
-   * out, a pixel column's range its wick, no body.
+   * (above and below their bodies; an outline's, through them), bodies, bodies' rings (each body, its inside wound the
+   * other way) or insides (a device pixel in, their top and foot on device pixels: no anti-aliasing where they meet
+   * their rings) by `part`; each `pad` pixels wider all round (an outline's). Zoomed out, a pixel column's range its
+   * wick, no body.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr @param {number} pass @param {number} pad @param {number} part
    */
@@ -147,8 +148,10 @@ export class Candles {
           }
         }
         const left = Math.round((x - half) * dpr) / dpr, width = Math.round(2 * half * dpr) / dpr;
-        if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0);
-        if (part & (RINGS | INSIDES)) this.#body(g, left + wick, top + wick, width - 2 * wick, foot - top - 2 * wick, corner > 0 ? corner - wick : 0);
+        if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0, false);
+        if (!(part & (RINGS | INSIDES))) continue;
+        const inTop = Math.round((top + wick) * dpr) / dpr, inFoot = Math.round((foot - wick) * dpr) / dpr;
+        this.#body(g, left + wick, inTop, width - 2 * wick, inFoot - inTop, corner > 0 ? corner - wick : 0, (part & RINGS) !== 0);
       }
       return;
     }
@@ -170,12 +173,15 @@ export class Candles {
 
   /**
    * A body's shape added to the path (none where it has no room), its corners rounded by `radius` (no more than half
-   * its width or its height).
-   * @param {CanvasRenderingContext2D} g @param {number} x @param {number} y @param {number} width @param {number} height @param {number} radius
+   * its width or its height); `back`, wound the other way (a hole in what it's within: a roundRect drawn from its right,
+   * as both Chromium and WebKit wind it, where WebKit's rect isn't).
+   * @param {CanvasRenderingContext2D} g @param {number} x @param {number} y @param {number} width @param {number} height @param {number} radius @param {boolean} back
    */
-  #body(g, x, y, width, height, radius) {
+  #body(g, x, y, width, height, radius, back) {
     if (width <= 0 || height <= 0) return;
-    if (radius > 0) g.roundRect(x, y, width, height, Math.min(radius, width / 2, height / 2));
+    const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+    if (back) g.roundRect(x + width, y, -width, height, r);
+    else if (r > 0) g.roundRect(x, y, width, height, r);
     else g.rect(x, y, width, height);
   }
 }

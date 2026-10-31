@@ -107,7 +107,8 @@ export class TimeAxis {
 
   /**
    * Its labels for the view, none under a page's tag: by the finest step leaving room between them; where that one
-   * has no start in view (a few days of data in a narrow stretch: no month begins in them), the next finer one.
+   * has no start in view (a few days of data in a narrow stretch: no month begins in them), the finer ones in turn, down
+   * to its points' own spacing (finer would label no more).
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    */
   #labels(time, theme, plot, page) {
@@ -119,7 +120,8 @@ export class TimeAxis {
     const perPx = (times[b] - times[a]) / Math.max(1, time.x(b) - time.x(a));
     let k = 0;
     while (k < STEPS.length - 1 && STEPS[k][0] / perPx < ROOM) k++;
-    if (!this.#row(time, theme, plot, page, a, b, STEPS[k]) && k > 0) this.#row(time, theme, plot, page, a, b, STEPS[k - 1]);
+    const apart = (times[b] - times[a]) / (b - a);
+    while (!this.#row(time, theme, plot, page, a, b, STEPS[k]) && k > 0 && STEPS[k - 1][0] >= apart) k--;
   }
 
   /**
