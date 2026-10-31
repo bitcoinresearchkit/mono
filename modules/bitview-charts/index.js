@@ -402,9 +402,9 @@ export class Chart {
       const a = log ? Math.log10(axis.a) : axis.a, b = log ? Math.log10(axis.b) : axis.b, middle = (a + b) / 2, half = ((b - a) / 2) * k;
       pane.setRange(log ? 10 ** (middle - half) : middle - half, log ? 10 ** (middle + half) : middle + half, axis.side);
     };
-    // (A price axis' last click or tap: when and where, for a second one (a double-click, a double tap: iOS sends no
-    // dblclick) fitting it again.)
-    let tapAt = -Infinity, tapX = 0, tapY = 0;
+    // (A price axis' last click or tap: when, where and which, for a second one on it (a double-click, a double tap: iOS
+    // sends no dblclick) fitting it again; forgotten at any release that isn't a click.)
+    let tapAt = -Infinity, tapX = 0, tapY = 0, tapPane = /** @type {Pane | null} */ (null), tapSide = "";
     // (The last tenth of a second of a drag: its speed as it's let go.)
     const trail = new Float64Array(16), trailAt = new Float64Array(16);
     let trailEnd = 0, trailSize = 0;
@@ -507,11 +507,13 @@ export class Chart {
       // (Let go where it began: a click.)
       if (event.type === "pointerup" && !down.size && !pinched && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
-        const axis = at.axis?.pane ? at.axis : null, again = axis && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
-        (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY);
+        const axis = at.axis?.pane ? at.axis : null;
+        const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
+        (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");
         if (again) axis.pane?.setRange(undefined, undefined, axis.side), this.invalidate();
         return void this.#click(event);
       }
+      tapAt = -Infinity;
       if (down.size || event.type === "pointercancel" || trailSize < 2) return void (trailSize = 0);
       // (Its speed over its last tenth of a second; held still that long, none.)
       const last = (trailEnd + trail.length - 1) % trail.length;
