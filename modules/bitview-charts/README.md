@@ -68,7 +68,7 @@ chart.show(365);                                 // the last 365 points in view
 - `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline, dots, marker })`:
   `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
   `Uint8Array`, 1 at a point) stops the line after it; `tag`, its last value in view on the axis (to three
-  significant digits, a whole number under a million all its digits: `tagValue` in tags.js; then written by `format`,
+  significant digits, from 1 to 10 three decimals, a whole number under a million all its digits: `tagValue` in tags.js; then written by `format`,
   else as its side writes values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
