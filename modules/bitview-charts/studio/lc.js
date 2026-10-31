@@ -74,45 +74,15 @@ class Chart {
     this.panesList = [];
     /** @type {Series[]} */
     this.all = [];
-    /** The timeline: every series' times as one (Studio's are one already, mostly). @type {Float64Array} */
+    /** The timeline its series were last pushed onto (the library's, as the page set it: see #sync). @type {Float64Array} */
     this.times = new Float64Array(0);
     this.dirty = false;
-    /** @type {((param: any) => void)[]} */
-    this.crosshairListeners = [];
-    /** @type {((param: any) => void)[]} */
-    this.clickListeners = [];
-    // (Each with the series under the point, as the chart library's: a pointer's moves (Studio lights a line's item) and
-    // clicks (it selects its layer).)
-    this.engine.onCrosshair((index, pane, y, input, x) => {
-      const engine = this.engine.panes[pane], hit = input && engine && index === index ? engine.hit(this.engine.time, index, x, y) : -1;
-      const param = { ...this.#param(index, pane, x, y, input), hoveredSeries: this.#owner(pane, hit) };
-      for (const listener of this.crosshairListeners) listener(param);
-    });
-    this.engine.onClick((index, pane, hit, y, x) => {
-      const param = { ...this.#param(index, pane, x, y, true), hoveredSeries: this.#owner(pane, hit) };
-      for (const listener of this.clickListeners) listener(param);
-    });
   }
 
   /** A pane's percent scales written as the chart's localization writes percents (none: the library's). @param {Pane} pane */
   #percents(pane) {
     const local = this.options.localization ?? {};
     if (local.percentageFormatter) pane.engine.setPercentFormat(local.percentageFormatter, local.tickmarksPercentageFormatter ?? null);
-  }
-
-  /** The series (Studio's) that drew a pane's library series `hit` (-1: none): its own, or its edge. @param {number} pane @param {number} hit */
-  #owner(pane, hit) {
-    const drawn = hit >= 0 ? this.engine.panes[pane]?.series[hit] : null;
-    return drawn ? this.all.find((each) => each.engine === drawn || each.edge === drawn) : undefined;
-  }
-
-  /**
-   * An LWC crosshair or click event: at point `index`, the pointer's place (`x` across the plot, `y` in pane `pane`).
-   * @param {number} index @param {number} pane @param {number} x @param {number} y @param {boolean} input
-   */
-  #param(index, pane, x, y, input) {
-    if (index !== index) return { point: undefined, time: undefined, logical: undefined, paneIndex: undefined, seriesData: new Map(), sourceEvent: input ? {} : undefined };
-    return { point: { x, y }, time: this.times[index], logical: index, paneIndex: pane >= 0 ? pane : undefined, seriesData: new Map(), sourceEvent: input ? {} : undefined };
   }
 
   // ── What Studio calls ──
@@ -157,21 +127,6 @@ class Chart {
     this.all = this.all.filter((each) => each !== series);
     this.#trimPanes();
     this.changed();
-  }
-
-  /** @param {(param: any) => void} listener */
-  subscribeCrosshairMove(listener) {
-    this.crosshairListeners.push(listener);
-  }
-
-  /** @param {(param: any) => void} listener */
-  unsubscribeCrosshairMove(listener) {
-    this.crosshairListeners = this.crosshairListeners.filter((each) => each !== listener);
-  }
-
-  /** @param {(param: any) => void} listener */
-  subscribeClick(listener) {
-    this.clickListeners.push(listener);
   }
 
   takeScreenshot() {

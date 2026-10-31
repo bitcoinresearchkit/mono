@@ -17878,7 +17878,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The band of a keyed pane under a point on the chart (the crosshair's, a click's): the one whose foot and top, as
        * stacked at its date, hold the price there. The library names a series only near its line, not across its fill.
-       * @param {any} param
+       * @param {ChartPoint} param
        */
       function bandAt(param) {
         const pane = param?.point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
@@ -17893,7 +17893,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (typeof y === "number" && Math.abs(y - param.point.y) <= off) (near = layer.id), (off = Math.abs(y - param.point.y));
           }
           // (None that near: the series the chart finds under it, a candle's wick, a bar's body, a cloud's fill.)
-          const under = param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null;
+          const under = param.layer;
           return near ?? (under && bands.some((layer) => layer.id === under) ? under : null);
         }
         for (const layer of bandsOf(pane)) {
@@ -18783,7 +18783,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let crossHeld = false;
       /** A crosshair move with none: the chart's readout at rest (see dropCross). */
-      const NO_CROSS = /** @type {LC.MouseEventParams<LC.Time>} */ ({ seriesData: new Map() });
+      /**
+       * Where the crosshair is, or a click: its point (`logical`, its index on the timeline; `time`, its date: none where
+       * it's gone), its pane and its place there (`point`: x across the plot, y down the pane), whether a pointer put it
+       * there (`input`), and the layer drawn under it (`layer`: the library's hit, a candle layer's close line or an
+       * area's edge its own). Made from the library's crosshair and clicks.
+       * @typedef {{ point?: { x: number, y: number }, time?: number, logical?: number, paneIndex?: number, input: boolean, layer: string | null }} ChartPoint
+       */
+      /** @param {number} index @param {number} pane @param {number} x @param {number} y @param {boolean} input @param {number} hit @returns {ChartPoint} */
+      function chartPoint(index, pane, x, y, input, hit) {
+        if (index !== index) return { input, layer: null };
+        const line = hit >= 0 ? engine.panes[pane]?.series[hit] : null;
+        const layer = !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? [...closes].find(([, close]) => close.series.engine === line || close.series.edge === line)?.[0] ?? null;
+        return { point: { x, y }, time: engine.time.times[index], logical: index, paneIndex: pane >= 0 ? pane : undefined, input, layer };
+      }
+      /** @type {ChartPoint} */
+      const NO_CROSS = { input: false, layer: null };
       /** A frame asked for to judge the crosshair set here, its date out of view (see holdCross). */
       let crossLater = 0;
       /** The crosshair set here from now on (none: null), the judging of the one before let go of (see holdCross). @param {typeof crossSet} pin */
@@ -18818,9 +18833,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else engine.setCrosshair(NaN);
         crossMoved(NO_CROSS);
       }
-      /** @param {LC.MouseEventParams<LC.Time>} param */
+      /** @param {ChartPoint} param */
       function crossMoved(param) {
-        if (param.sourceEvent || !param.point) pinCross(null);
+        if (param.input || !param.point) pinCross(null);
         else if (crossSet) return void (!crossHeld && !exporting && holdCross());
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
         // (The profiles whose bars it's among: not a picture's, see presentLegends.)
@@ -18863,13 +18878,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Its item kept in sight, a band's or a line's: not a line's under a finger swept across lines, the legend sliding
         // under it.)
-        lightLegend(band ?? profileLit?.layer ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band) || !fingers.size);
+        lightLegend(band ?? profileLit?.layer ?? (param.point ? param.layer : null), false, Boolean(band) || !fingers.size);
         lightBubble(param.point ? time : null, param.paneIndex);
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
       }
-      view.subscribeCrosshairMove(crossMoved);
+      engine.onCrosshair((index, pane, y, input, x) => crossMoved(chartPoint(index, pane, x, y, input, input && index === index && engine.panes[pane] ? engine.panes[pane].hit(engine.time, index, x, y) : -1)));
       /** The ring about the bubble under the crosshair (see lightBubble), and where that was. */
       const bubbleRing = Object.assign(document.createElement("span"), { className: "bubble-lit" });
       let bubbleAt = /** @type {{ time: number | null, pane: number | undefined }} */ ({ time: null, pane: undefined });
@@ -18926,11 +18941,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
       engine.element.addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
       engine.element.addEventListener("pointerleave", () => !crossIn && lightTag(null));
-      view.subscribeClick((param) => {
+      engine.onClick((index, pane, hit, y, x) => {
         // (A tap letting a finger's crosshair go, that alone: see fingerCross.)
         if (fingerCross.dismissing) return;
         // (A band of a keyed pane, anywhere in it; else a line, near it.)
-        const id = bandAt(param) ?? (param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null);
+        const param = chartPoint(index, pane, x, y, true, hit), id = bandAt(param) ?? param.layer;
         if (id) select(id);
       });
 
@@ -22292,7 +22307,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The profiles whose bars the pointer's among (on their pane, at the plot's right edge, as wide as they're drawn: see
        * profileWidth), the frontmost first (its first layer, else its last: see Pane): a pointer's or a finger's, not the
-       * keys'. @param {LC.MouseEventParams<LC.Time>} param @returns {Layer[]}
+       * keys'. @param {ChartPoint} param @returns {Layer[]}
        */
       function profilesUnder(param) {
         if (keyTime !== null || !param.point || param.paneIndex === undefined) return [];
