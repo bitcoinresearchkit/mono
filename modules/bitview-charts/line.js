@@ -227,7 +227,7 @@ export class Line {
    * baseline's line: its color changing where it crosses its base).
    * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null, curve = false, under = null } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, under = null } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;

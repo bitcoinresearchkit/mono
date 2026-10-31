@@ -851,7 +851,7 @@ class Series {
   #style() {
     const o = this.opts, engine = this.engine, shown = o.visible !== false, outline = (o.bvOutline && this.chart.options.layout?.bvHalo) || null;
     // (The crosshair's dot on its line, and its dots at each point, as the chart library's options give them.)
-    const marker = o.crosshairMarkerVisible === false ? 0 : (o.crosshairMarkerRadius ?? 4), dots = o.pointMarkersVisible ? (o.pointMarkersRadius ?? 3) : 0;
+    const marker = o.crosshairMarkerVisible === false ? 0 : (o.crosshairMarkerRadius ?? 3), dots = o.pointMarkersVisible ? (o.pointMarkersRadius ?? 3) : 0;
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
