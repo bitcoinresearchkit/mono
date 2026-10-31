@@ -115,11 +115,14 @@ export class Band {
     if (!(i >= 0 && i < this.lower.length && i < this.upper.length)) return Infinity;
     const log = scale.mode === "log", edge = this.#edge(log);
     if (x !== undefined && x === x && time && time.spacing < 1) {
-      // (Zoomed out: its pixel column as drawn, at its last point with both edges.)
-      const a = Math.max(0, time.column(x)), lows = edge ? this.upper : this.lower, highs = this.upper;
-      let k = Math.min(lows.length - 1, highs.length - 1, time.columnEnd);
-      while (k >= a && !(log ? lows[k] > 0 && highs[k] > 0 : lows[k] === lows[k] && highs[k] === highs[k])) k--;
-      if (k >= a) (i = k), (x = undefined);
+      // (Zoomed out, as filled: from the pointer's column's last point with both edges to the next column's, where no
+      // gap comes between them, its edges across at the pointer; none else (a column alone fills nothing).)
+      const c = Math.floor(x), from = this.#lastIn(c, time, log), to = this.#lastIn(c + 1, time, log), gaps = this.#gaps(log);
+      if (from < 0 || to < 0 || gaps[from] <= to) return Infinity;
+      const t = x - c, u0 = scale.y(this.upper[from]), up = u0 + (scale.y(this.upper[to]) - u0) * t, l0 = edge ? 0 : scale.y(this.lower[from]);
+      const down = edge && this.to === "top" ? 0 : edge ? scale.height : l0 + (scale.y(this.lower[to]) - l0) * t;
+      const top = Math.min(up, down), bottom = Math.max(up, down);
+      return y < top ? top - y : y > bottom ? y - bottom : 0;
     }
     const hi = this.upper[i], lo = edge ? hi : this.lower[i];
     if (!(log ? lo > 0 && hi > 0 : lo === lo && hi === hi)) return Infinity;
@@ -151,6 +154,17 @@ export class Band {
     const after = u < n && (log ? lows[u] > 0 && highs[u] > 0 : lows[u] === lows[u] && highs[u] === highs[u]);
     const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(edge[i - 2]) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(edge[i + 1]) : y2;
     (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
+  }
+
+  /**
+   * The last point with both edges in pixel column `c` (as filled zoomed out), or -1: none.
+   * @param {number} c @param {import("./timeline.js").Timeline} time @param {boolean} log
+   */
+  #lastIn(c, time, log) {
+    const lows = this.#edge(log) ? this.upper : this.lower, highs = this.upper, a = Math.max(0, time.column(c));
+    let k = Math.min(lows.length - 1, highs.length - 1, time.columnEnd);
+    while (k >= a && !(log ? lows[k] > 0 && highs[k] > 0 : lows[k] === lows[k] && highs[k] === highs[k])) k--;
+    return k >= a ? k : -1;
   }
 
   /** Its next gap from each point (the length: none). @param {boolean} log */

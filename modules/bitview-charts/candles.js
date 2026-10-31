@@ -93,7 +93,12 @@ export class Candles {
       // (Zoomed out: its pixel column as drawn, from its lowest low to its highest high.)
       const a = Math.max(0, time.column(x)), b = Math.min(this.close.length - 1, time.columnEnd);
       (h = -Infinity), (l = Infinity);
-      for (let k = a; k <= b; k++) if (log ? this.close[k] > 0 && lows[k] > 0 : this.close[k] === this.close[k]) (h = Math.max(h, highs[k])), (l = Math.min(l, lows[k]));
+      // (As drawn: an extreme missing skipped, not the column.)
+      for (let k = a; k <= b; k++) {
+        if (!(log ? this.close[k] > 0 && lows[k] > 0 : this.close[k] === this.close[k])) continue;
+        if (highs[k] > h) h = highs[k];
+        if (lows[k] < l) l = lows[k];
+      }
       if (!(l <= h)) return Infinity;
     } else if (!(log ? this.close[i] > 0 && l > 0 && h > 0 : this.close[i] === this.close[i] && h === h && l === l)) return Infinity;
     const top = scale.y(h), bottom = scale.y(l);
