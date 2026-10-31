@@ -36,8 +36,6 @@ const MODES = ["linear", "log", "percent", "indexed"];
 const TICK_TYPES = { year: 0, month: 1, day: 2, time: 3 };
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
-/** A series' options its push reads (see Series.applyOptions). */
-const PUSHED = ["color", "lineColor", "bvBandFill"];
 /** A fit adding nothing (an edge: its series fitted by its band). */
 const NOTHING = () => {};
 
@@ -696,9 +694,6 @@ class Series {
     // (Drawn as steps where its line type is (LineType.WithSteps), curved where it's Curved (an area's and a baseline's
     // edge and fill alike). Dashed as its line style asks, the chart library's dashes by its width.)
     const steps = o.lineType === 1, curve = o.lineType === 2, dash = dashOf(o);
-    // (Colored point by point: its own colors, its palettes' first, as they're restyled (Studio's spotlight fading it).)
-    if (engine instanceof Band && engine.colors && engine.palette.length) engine.palette[0] = { color: o.topColor ?? o.color ?? engine.color, fade: o.bottomColor ?? null };
-    if (this.edge?.colors && this.edge.palette.length) this.edge.palette[0] = o.lineColor ?? o.color ?? this.edge.color;
     // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
     if (this.edge) {
@@ -774,10 +769,10 @@ class Series {
   applyOptions(options) {
     this.opts = { ...this.opts, ...options };
     this.#style();
-    // (Pushed again only where its push reads what changed (its colored rows' line colors, its place in a stack): a
-    // look alone is set (Studio's bubbles' sizes, as the view moves); a pane's writers or stack set
-    // again; shown or hidden, drawn whole.)
-    if (!this.painted && PUSHED.some((key) => key in options)) this.dirty = true;
+    // (Pushed again only where its push reads what changed (its place in a stack): a look alone is set (Studio's
+    // bubbles' sizes, as the view moves, a spotlight's fading); a pane's writers or stack set again; shown or hidden,
+    // drawn whole.)
+    if (!this.painted && "bvBandFill" in options) this.dirty = true;
     if ("priceFormat" in options || "bvBandFill" in options) this.pane.dirty = true;
     if ("visible" in options) this.chart.engine.invalidate(true);
     this.chart.changed();
@@ -828,7 +823,7 @@ class Series {
    */
   #updateLast(row) {
     const n = this.times.length, engine = this.engine, last = n - 1;
-    if (!n || this.dirty || Number(row.time) !== this.times[last] || row.color || this.rows?.[last]?.color || !(engine instanceof Candles || engine.constructor === Line)) return false;
+    if (!n || this.dirty || Number(row.time) !== this.times[last] || !(engine instanceof Candles || engine.constructor === Line)) return false;
     const i = indexOf(this.chart.times, this.times[last]);
     if (i < 0) return false;
     if (this.rows) {
@@ -843,7 +838,7 @@ class Series {
     return true;
   }
 
-  /** Its values on the chart's timeline, its rows' colors and breaks with them. @param {Float64Array} times */
+  /** Its values on the chart's timeline (its colors and breaks the page's: set on its library series). @param {Float64Array} times */
   push(times) {
     // (A custom series' rows its bars; its "closes" its values, its rows read by them.)
     if (this.painted) return void (this.columns = this.painted.push(times));
@@ -863,53 +858,10 @@ class Series {
     if (engine instanceof Band) {
       // (Stacked: its lower edge its stack's (see Pane.stack); else an area, to its base.)
       engine.set({ upper: this.columns, ...(this.opts.bvBandFill ? {} : { lower: null }) });
-      const edge = /** @type {Line} */ (this.edge);
-      edge.setValues(this.columns);
-      // (Rows with colors of their own (an area colored by another layer): its fills' palette (each row's top color and
-      // what it fades to) and its edge's (each row's line color), the series' own first, each point an index into them.)
-      if (rows && rows.some((row) => row.topColor || row.bottomColor || row.lineColor)) {
-        // (A row's missing color the series' own, each apart, as the chart library resolved them.)
-        const o = this.opts, top = o.topColor ?? engine.color, foot = o.bottomColor ?? null, fills = [{ color: top, fade: foot }], keys = [`${top}|${foot ?? ""}`], lines = [o.lineColor ?? edge.color];
-        const fillAt = new Uint16Array(times.length), lineAt = new Uint16Array(times.length);
-        for (const row of rows) {
-          const i = indexOf(times, Number(row.time));
-          if (i < 0) continue;
-          if (row.topColor || row.bottomColor) {
-            const color = row.topColor ?? top, fade = row.bottomColor ?? foot, key = `${color}|${fade ?? ""}`;
-            let k = keys.indexOf(key);
-            if (k < 0) (k = keys.length), keys.push(key), fills.push({ color, fade });
-            fillAt[i] = Math.min(k, 65535);
-          }
-          if (row.lineColor) {
-            let k = lines.indexOf(row.lineColor);
-            if (k < 0) (k = lines.length), lines.push(row.lineColor);
-            lineAt[i] = Math.min(k, 65535);
-          }
-        }
-        engine.set({ colors: fillAt, palette: fills });
-        edge.setStyle({ colors: lineAt, palette: lines });
-      } else if (engine.colors) engine.set({ colors: null, palette: [] }), edge.setStyle({ colors: null, palette: [] });
+      /** @type {Line} */ (this.edge).setValues(this.columns);
       return;
     }
-    // (Rows with colors of their own: a palette, the series' own color first (a row without one), each point an index
-    // into it; a transparent one, a break. None: no palette, no breaks, as before.)
-    if (engine instanceof Line) {
-      if (rows && rows.some((row) => row.color)) {
-        const palette = [this.opts.color ?? this.opts.lineColor ?? engine.color], colors = new Uint16Array(times.length), breaks = new Uint8Array(times.length);
-        rows.forEach((row) => {
-          const i = indexOf(times, Number(row.time));
-          if (i < 0) return;
-          if (row.color === "transparent") breaks[i] = 1;
-          else if (row.color) {
-            let k = palette.indexOf(row.color);
-            if (k < 0) (k = palette.length), palette.push(row.color);
-            colors[i] = Math.min(k, 65535);
-          }
-        });
-        engine.setStyle({ colors, palette, breaks });
-      } else if (engine.colors || engine.breaks) engine.setStyle({ colors: null, palette: [], breaks: null });
-      engine.setValues(this.columns);
-    }
+    if (engine instanceof Line) engine.setValues(this.columns);
   }
 
   /** Its scale (an overlay's own), read against its own first value in view where it's relative. */

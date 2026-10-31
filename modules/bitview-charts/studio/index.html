@@ -16634,8 +16634,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const carrierKept = new Map();
       /** The lines across with a tag on the axis, and the layers each is for (shared, several): a spotlight fades the others', their tags hidden. */
       const levelTags = /** @type {{ line: any, layers: Set<string>, color: string, label: boolean, faint: boolean }[]} */ ([]);
-      /** Bars below their base, each colored on its own: their data, and their color as is and faded. */
-      const barsBelow = new Map();
       const faded = (paint) => Object.fromEntries(Object.entries(paint).map(([key, color]) => [key, color.length === 9 ? `${color.slice(0, 7)}${Math.round(parseInt(color.slice(7), 16) * 0.2).toString(16).padStart(2, "0")}` : alpha(color, 0.18)]));
       /**
        * The layers the spotlight has faded, with their tags as they were (their last value's, their price line). Each is
@@ -16672,13 +16670,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tag.faint = faint;
           tag.line.applyOptions({ axisLabelVisible: tag.label && !faint, color: faint ? fadedColor(tag.color) : tag.color });
         }
-        for (const [layerId, bars] of barsBelow) {
+        for (const [layerId, painted] of paintedLayers) {
           const faint = among(layerId);
-          if (bars.faint === faint) continue;
-          bars.faint = faint;
-          drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: faint ? bars.faded : bars.color } : point)));
+          if (painted.faint === faint) continue;
+          painted.faint = faint;
+          paintSeries(painted.series, painted);
         }
-        for (const [layerId, painted] of paintedPoints) {
+        for (const [layerId, painted] of paintedRows) {
           const faint = among(layerId);
           if (painted.faint === faint) continue;
           painted.faint = faint;
@@ -16919,8 +16917,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a fine interval, the one that reaches back (elsewhere, rows kept would only take memory).
        */
       const rowsOf = /** @type {WeakMap<object, object[]>} */ (new WeakMap());
-      /** The chart library's series of values, which take theirs as columns too (its patch 57). */
-      const VALUED = new Set(["Line", "Area", "Baseline", "Histogram"]);
       /** A series holding a layer's data, its data followed (see rowsOf). @param {any} series @returns {any} */
       function tracked(series) {
         const setData = series.setData.bind(series), update = series.update.bind(series), bvSetColumns = series.bvSetColumns.bind(series);
@@ -17084,9 +17080,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawn.clear();
         closes.clear();
         dotted.clear();
-        barsBelow.clear();
-        const wasPainted = new Map(paintedPoints);
-        paintedPoints.clear();
+        const wasPainted = new Map([...paintedRows, ...paintedLayers]);
+        paintedRows.clear();
+        paintedLayers.clear();
         paints.clear();
         // (The layer lit, lit again once its series are drawn anew.)
         const relit = spotlit;
@@ -17281,14 +17277,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
             // (Faded by a spotlight the build ends: given back.)
-            if (carried?.faint) (carried.faint = false), series.setData(carried.points);
-            if (carried) paintedPoints.set(layer.id, carried);
+            if (carried?.faint) (carried.faint = false), "points" in carried ? series.setData(carried.points) : paintSeries(series, carried);
+            if (carried) "points" in carried ? paintedRows.set(layer.id, carried) : paintedLayers.set(layer.id, /** @type {Painted} */ (carried));
             linesAcross(layer, pane, common.priceFormat, op);
           }
           else if (result?.values && signal && layer.place === "shade") {
             const shown = result.values, rows = data.times.map((time, i) => (Number.isFinite(shown[i]) && shown[i] !== 0 ? { time, low: 0, high: 0, ...(shown[i] < 0 ? { color: shadeDown } : {}) } : { time }));
             setRows(series, rows);
-            paintedPoints.set(layer.id, { points: rows, faint: false });
+            paintedRows.set(layer.id, { points: rows, faint: false });
           } else if (result?.values && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. Which of its two is over: where that
             // changes, they cross. Of its pane's two edges alone, every date, its values none. By its layers: each one's
@@ -17302,7 +17298,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const bandRow = (/** @type {number} */ time, /** @type {number} */ i) => ((at) => (at.order.length && at.order.length + edgesOf(layer).length >= 2 ? { time, low: at.values[at.order[0]], high: at.values[at.order[at.order.length - 1]], ...at } : { time }))(bandsAt(i));
             const rows = fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (whole ? { time, low: 0, high: 0, ...(dated ? { color: alpha(dated(i), op) } : {}) } : banded ? bandRow(time, i) : Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i], ...(sides ? { side: sides[i] } : {}), ...(dated ? { color: alpha(dated(i), op) } : {}) } : { time }));
             setRows(series, rows);
-            if (dated) paintedPoints.set(layer.id, { points: rows, faint: false, paintWith: (/** @type {string} */ c) => ({ color: alpha(c, op) }) });
+            if (dated) paintedRows.set(layer.id, { points: rows, faint: false, paintWith: (/** @type {string} */ c) => ({ color: alpha(c, op) }) });
           } else if (result?.values) {
             const shown = stack?.values ?? result.values;
             // A stacked candle: its open, high, low and close on the ones before it too.
@@ -17310,39 +17306,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
-            // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
+            // (Its colors another layer's, they say something: its fill stronger, as a regime's.) (A baseline's two its own.)
             const fill = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
-            const paintWith = !dated ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
+            const look = !dated || layer.type === "baseline" ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
-            const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
-            // (Plain values (no breaks, no colors of their own, a series of values), at a day or coarser: no row a date,
-            // its values handed over as a column (none where not finite, or not over zero on a log scale), its dates
-            // converted once for every layer on them: see the chart library's patch 57. Else a row each date, by index,
-            // its value finite by a subtraction: no call each point, thousands a series.)
-            const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, breaks = result.breaks, close = closes.get(layer.id)?.series;
-            if (!breaks && !paintAt && !candles && !close && !(layer.type === "histogram" && layer.colors !== 1) && !FINE.has(doc.index) && VALUED.has(series.seriesType())) {
-              series.bvSetColumns(timelineOf(times), times.length ? (log ? shown.map((/** @type {number} */ value) => (value > 0 ? value : NaN)) : shown) : []);
-            } else {
-              const points = new Array(times.length);
-              for (let i = 0; i < times.length; i++) {
-                const time = times[i], value = shown[i];
-                points[i] = value - value === 0 && (!log || value > 0) ? (breaks?.[i] ? { time, value, color: "transparent" } : paintAt ? { time, value, ...paintAt(i) } : { time, value }) : { time };
-              }
-              if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
-              if (layer.type === "histogram" && !paintAt && layer.colors !== 1) {
-                // Bars below their base take the second color, each its own (the rest take the series').
-                const tint = alpha(under, 0.75 * op), from = baseOf(layer);
-                const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
-                if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
-                setRows(series, bars);
-              } else setRows(series, candles
-                ? data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time }))
-                : points);
-              if (close) {
-                setRows(close, points);
-                tintClose(layer.id);
-              }
-            }
+            // (Its values as a column on the timeline (none where not finite (a formula's division by zero), or not over zero
+            // on a log scale: copied only then), its colors and a trend's breaks as columns too: no row a date. Candles as
+            // rows, their close line as a column.)
+            const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, close = closes.get(layer.id)?.series;
+            const drawable = (/** @type {number} */ value) => (value - value === 0 && (!log || value > 0) ? value : NaN);
+            const values = times.length ? (log || shown.some((/** @type {number} */ value) => value === Infinity || value === -Infinity) ? shown.map(drawable) : shown) : [];
+            if (candles) setRows(series, data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time })));
+            else series.bvSetColumns(timelineOf(times), values);
+            if (close) close.bvSetColumns(timelineOf(times), values), tintClose(layer.id);
+            const traced = close ?? (candles ? null : series);
+            (traced?.edge ?? traced?.engine)?.setStyle({ breaks: result.breaks ?? null });
+            // (Bars below their base each in its second color, the rest in its own: two colors.)
+            const tint = alpha(under, 0.75 * op), from = baseOf(layer), belowBase = !look && layer.type === "histogram" && layer.colors !== 1 && values.some((/** @type {number} */ value) => value < from);
+            const colored = look && !candles ? paletteOf(times.length, dated) : belowBase ? paletteOf(times.length, (i) => (values[i] < from ? tint : paint.color)) : null;
+            const painted = colored && { series, ...colored, look: look ?? ((/** @type {string} */ c) => ({ color: c })), faint: false };
+            if (painted) paintedLayers.set(layer.id, painted);
+            if (!candles) paintSeries(series, painted);
             linesAcross(layer, pane, common.priceFormat, op);
           }
           drawn.set(layer.id, series);
@@ -18595,11 +18579,50 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return pieces;
       }
       /**
-       * Layers painted date by date, as their points were last set (the spotlight fades them, and gives them back), and
-       * how a point is painted in a color (the live price paints its own).
+       * Layers painted date by date, as columns (a line's, dots', bars' and an area's: see paintSeries): their series,
+       * each point an index into their colors (each once), what one color paints (`look`), and whether a spotlight
+       * fades them (the live price paints its own point, see paintPoint).
+       * @typedef {{ series: any, colors: Uint16Array, palette: string[], look: (color: string) => Record<string, string>, faint: boolean }} Painted
+       * @type {Map<string, Painted>}
+       */
+      const paintedLayers = new Map();
+      /**
+       * Clouds and shades painted date by date, as their rows were last set (their series the page's own drawing: see
+       * cloudView), and how a row is painted in a color.
        * @type {Map<string, { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }>}
        */
-      const paintedPoints = new Map();
+      const paintedRows = new Map();
+      /** Colors date by date as columns: each of `n` points an index into its colors, each once. @param {number} n @param {(i: number) => string} colorAt */
+      function paletteOf(n, colorAt) {
+        const colors = new Uint16Array(n), palette = /** @type {string[]} */ ([]), index = new Map();
+        for (let i = 0; i < n; i++) {
+          const color = colorAt(i);
+          let k = index.get(color);
+          if (k === undefined) index.set(color, (k = palette.length)), palette.push(color);
+          colors[i] = k;
+        }
+        return { colors, palette };
+      }
+      /**
+       * A layer's colors date by date onto its series, as the library takes them (each point an index into a palette: a
+       * line's, dots' and bars' colors; an area's fills and its edge's), faded as a spotlight fades the others; none, its
+       * own color throughout.
+       * @param {any} series @param {Painted | null} painted
+       */
+      function paintSeries(series, painted) {
+        const colors = painted?.colors ?? null, looks = painted ? painted.palette.map((color) => ((look) => (painted.faint ? faded(look) : look))(painted.look(color))) : [];
+        if (series.edge) series.engine.set({ colors, palette: looks.map((look) => ({ color: look.topColor, fade: look.bottomColor })) }), series.edge.setStyle({ colors, palette: looks.map((look) => look.lineColor) });
+        else series.engine.setStyle({ colors, palette: looks.map((look) => look.color) });
+        engine.invalidate(true);
+      }
+      /** A painted layer's point `at` in `color` (the live price's): its colors grown to it, painted again. @param {Painted} painted @param {number} at @param {string} color */
+      function paintPoint(painted, at, color) {
+        let k = painted.palette.indexOf(color);
+        if (k < 0) (k = painted.palette.length), painted.palette.push(color);
+        if (painted.colors.length <= at) painted.colors = ((out) => (out.set(painted.colors), out))(new Uint16Array(at + 1));
+        painted.colors[at] = k;
+        paintSeries(painted.series, painted);
+      }
       /** A point's colors, faded as a spotlight fades the others. */
       const fadedPoint = (/** @type {Record<string, any>} */ point) => {
         const out = { ...point };
@@ -20661,7 +20684,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.ends = trend ? segmentEnds(trend, /** @type {{ at: number, step: number }} */ (line), series) : [];
           if (this.ends.length && own) {
             // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
-            const painted = paintedPoints.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
+            const painted = paintedLayers.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
             this.endsLook = { color: /** @type {any} */ (series?.options()).color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (painted?.faint ? faded({ value: op < 1 ? alpha(dated(i), op) : dated(i) }).value : op < 1 ? alpha(dated(i), op) : dated(i)) : null };
           }
           this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
@@ -39684,7 +39707,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         liveLast = key;
         dataRevision++;
         let moved = false, regrade = false;
-        /** @type {{ id: string, series: any, painted: { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }, point: Record<string, any> }[]} */
+        /** @type {{ id: string, series: any, rows: { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> } | null, point: Record<string, any> | null }[]} */
         const toPaint = [];
         for (const layer of layers) {
           const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
@@ -39713,15 +39736,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           for (const gap of added.slice(0, -1)) series?.update({ time: gap });
           // (Painted date by date: its point once every live value is in, from the colors as they are then; kept with the
-          // others.)
-          const painted = paintedPoints.get(layer.id);
-          if (painted) for (const gap of added.slice(0, -1)) painted.points.push({ time: gap });
+          // others. Rows (a cloud's), the dates opened meanwhile empty.)
+          const rows = paintedRows.get(layer.id);
+          if (rows) for (const gap of added.slice(0, -1)) rows.points.push({ time: gap });
           data.results.set(layer.id, { ...result, values, ohlc });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
-          if (painted?.paintWith) toPaint.push({ id: layer.id, series, painted, point: { time, value } });
+          if (rows?.paintWith) toPaint.push({ id: layer.id, series, rows, point: { time, value } });
           else series?.update({ time, value });
+          if (paintedLayers.has(layer.id)) toPaint.push({ id: layer.id, series, rows: null, point: null });
           if (close) tintClose(layer.id);
           moved = true;
         }
@@ -39738,20 +39762,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const on = inDoc(layer.ref), y = on ? /** @type {Vector | undefined} */ (built.get(on.id)?.shown)?.[at] ?? NaN : 0.5;
           series.update({ time, v: data.results.get(layer.id)?.values?.[at] ?? NaN, y: on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y });
         }
-        for (const [id, painted] of paintedPoints) {
-          const layer = inDoc(id), last = painted.points[at];
-          if (!layer || painting.has(id) || !painted.paintWith || painted.points.length !== at + 1 || !last || !("value" in last || "high" in last)) continue;
+        for (const id of new Set([...paintedLayers.keys(), ...paintedRows.keys()])) {
+          // (Its point there: a value, or a cloud's band.)
+          const layer = inDoc(id), rows = paintedRows.get(id), last = rows?.points[at];
+          const has = rows ? Boolean(rows.paintWith && last && rows.points.length === at + 1 && ("value" in last || "high" in last)) : paintedLayers.get(id)?.colors.length === at + 1 && Number.isFinite(built.get(id)?.shown?.[at]);
+          if (!layer || painting.has(id) || !has) continue;
           let source = inDoc(layer.colorFrom);
           for (const seen = new Set([id]); source && !seen.has(source.id) && !movedIds.has(source.id); source = inDoc(source.colorFrom)) seen.add(source.id);
-          if (source && movedIds.has(source.id)) toPaint.push({ id, series: drawn.get(id), painted, point: last });
+          if (source && movedIds.has(source.id)) toPaint.push({ id, series: drawn.get(id), rows: rows ?? null, point: last ?? null });
         }
-        for (const { id, series, painted, point: base } of toPaint) {
-          const layer = inDoc(id);
+        for (const { id, series, rows, point: base } of toPaint) {
+          const layer = inDoc(id), painted = paintedLayers.get(id);
           if (!layer) continue;
-          const name = paintOf(doc, layer, data)?.(at);
-          const point = { ...base, .../** @type {(color: string) => Record<string, string>} */ (painted.paintWith)(ink(name ?? layer.color)) };
-          painted.points[at] = point;
-          series?.update(painted.faint ? fadedPoint(point) : point);
+          const color = ink(paintOf(doc, layer, data)?.(at) ?? layer.color);
+          if (!rows) {
+            if (painted) paintPoint(painted, at, color);
+            continue;
+          }
+          const point = { ...base, .../** @type {(color: string) => Record<string, string>} */ (rows.paintWith)(color) };
+          rows.points[at] = point;
+          series?.update(rows.faint ? fadedPoint(point) : point);
         }
         if (lensAt) lookAt(lensAt);
         if (!moved) return;
