@@ -10,6 +10,8 @@ import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
 
 const BLOCK = 64;
+/** No dashes (made once). */
+const SOLID = /** @type {number[]} */ ([]);
 
 /**
  * A line's path as it's written: each y on a device pixel, and a run at one y one segment (a slow line, zoomed out, is
@@ -128,10 +130,11 @@ export class Line {
    * `outline`, a color it's edged in (under it, its width each side: over a fill or a line, it stands off it); `dots`, a
    * dot that radius at each point (in its color there; ringed in its outline); `marker`, the crosshair's dot on it that
    * radius (ringed in the ground, 2 pixels; 0: none); `steps`, each value held to the next point (zoomed in: zoomed out,
-   * a pixel column holds several points either way).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean }} [options]
+   * a pixel column holds several points either way); `dash`, its stroke's dashes (CSS pixels, as setLineDash takes
+   * them; none, solid): dashes run along its path from where it starts, so its pane's drawn whole as the view moves.
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 4, steps = false, dash = null } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -147,6 +150,8 @@ export class Line {
     this.dots = dots;
     this.marker = marker;
     this.steps = steps;
+    /** @type {number[] | null} */
+    this.dash = dash && dash.length ? dash : null;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
@@ -193,11 +198,16 @@ export class Line {
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null);
     if (format !== undefined) this.format = format && kept(format);
+  }
+
+  /** What it draws can't move with a pan's picture (see Pane's draw): its dashes, from where its path starts. */
+  get fixed() {
+    return this.dash !== null && this.stroke;
   }
 
   /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
@@ -412,6 +422,11 @@ export class Line {
    */
   #stroke(g, time, scale, x0, x1, dpr) {
     const colors = this.colors && this.palette.length ? this.colors : null;
+    // (Its points as far past the strip as its stroke reaches (its outline's, three times as wide), so a strip draws
+    // what reaches in from beside it; dashed as asked.)
+    const reach = Math.ceil((this.width * (this.outline ? 3 : 1)) / 2) + 1;
+    (x0 -= reach), (x1 += reach);
+    if (this.dash) g.setLineDash(this.dash);
     // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show).)
     if (this.outline) {
       g.lineWidth = this.width * 3;
@@ -435,6 +450,7 @@ export class Line {
       pen.lift();
       g.stroke();
     }
+    if (this.dash) g.setLineDash(SOLID);
   }
 
   /**

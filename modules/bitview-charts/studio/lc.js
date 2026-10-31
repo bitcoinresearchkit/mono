@@ -823,19 +823,20 @@ class Series {
     engine.hidden = !shown;
     if (engine instanceof Custom) return /** @type {Painted} */ (this.painted).style();
     const tag = o.lastValueVisible !== false && shown, priceLine = o.priceLineVisible !== false && shown;
-    // (Drawn as steps where its line type is (LineType.WithSteps); curved ones straight.)
-    const steps = o.lineType === 1;
+    // (Drawn as steps where its line type is (LineType.WithSteps); curved ones straight. Dashed as its line style asks,
+    // the chart library's dashes by its width.)
+    const steps = o.lineType === 1, dash = dashOf(o);
     // (Fitted by its autoscaleInfoProvider where it has one: its edge then not fitted to, the series' range its band's.)
     engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
     if (this.edge) {
       this.edge.hidden = !shown;
       this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
-      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
+      this.edge.setStyle({ color: o.lineColor ?? o.topLineColor ?? o.color ?? this.edge.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
     }
     // (Bars' and candles' corners as Studio rounds them (cornerRadius, by the spacing: LWC patch 7), else square.)
     // (Their tag and price line as a line's: the last bar's value, in its color.)
     if (engine instanceof Bars) return void ((engine.base = o.base ?? 0), (engine.radius = o.cornerRadius ?? 0), engine.setStyle({ color: o.color ?? engine.color, tag, priceLine, format: this.format, outline }));
-    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps });
+    if (engine instanceof Line) return void engine.setStyle({ color: o.color ?? o.lineColor ?? engine.color, width: o.lineWidth ?? 1.5, tag, priceLine, stroke: o.lineVisible !== false, format: this.format, outline, marker, dots, steps, dash });
     // (An area filled up to the pane's top where it's inverted (invertFilledArea).)
     if (engine instanceof Band) return void engine.set({ color: o.topColor ?? o.topFillColor1 ?? o.color ?? engine.color, below: this.type === "Baseline" ? o.bottomFillColor1 ?? null : null, base: this.type === "Baseline" ? o.baseValue?.price ?? 0 : 0, above: Boolean(o.invertFilledArea), steps });
     // (Its wicks and borders their own colors where given (Studio's hollow rising candles: a body in the card's color).)
