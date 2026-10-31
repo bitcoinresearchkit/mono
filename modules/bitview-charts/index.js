@@ -322,8 +322,9 @@ export class Chart {
   render(whole = false) {
     this.whole = false;
     const time = this.time, crosshair = this.crosshair, x = this.pointerX;
-    // (A pointer's crosshair on the point under it as the view moves beneath it: a wheel's scroll, a glide.)
-    if (x === x && crosshair.index === crosshair.index && Math.round(time.index(x)) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
+    // (A pointer's crosshair on the point under it as the view moves beneath it: a wheel's scroll, a glide. That point
+    // within the data, as setCrosshair has it: past its end, its last, so a still pointer there asks for no frame.)
+    if (x === x && crosshair.index === crosshair.index && Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) this.setCrosshair(time.index(x), crosshair.y, true, x);
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
       pane.fit(time);
