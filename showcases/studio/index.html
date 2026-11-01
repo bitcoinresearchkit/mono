@@ -2999,6 +2999,15 @@
         overflow: hidden;
         pointer-events: none;
 
+        /* (Every layer hidden: each named, its eye there to show it again, on as many lines as their names take, none
+           cut off: a folded pane as tall as they are, see paneFactors. One shown keeps its line: a profile's key beside
+           it never wraps over the plot.) */
+        &:not([data-chip]):not(:has(> button:not(.hidden))) {
+          flex-wrap: wrap;
+          row-gap: 2px;
+          height: auto;
+        }
+
         &[data-chip] {
           right: auto;
           align-items: center;
