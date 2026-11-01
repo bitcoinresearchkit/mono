@@ -83,14 +83,43 @@
   let launching = false;
   const paint = () => {
     if (launching) return;
-    const meta = /** @type {HTMLMetaElement[]} */ ([...document.querySelectorAll('meta[name="theme-color"]')]).find((tag) => !tag.media || matchMedia(tag.media).matches);
-    // (No theme-color: its ground, the body's, else the root's; none at all (a page all canvas), black: a strip see-through
+    // (The page's own ground, the body's, else the root's: what's under the bar, exactly (a theme-color can drift from
+    // it: Calendar's grey over its beige); none (a page all canvas), its theme-color, else black: a strip see-through
     // would leave iOS its blur.)
+    const meta = /** @type {HTMLMetaElement[]} */ ([...document.querySelectorAll('meta[name="theme-color"]')]).find((tag) => !tag.media || matchMedia(tag.media).matches);
     const ground = [document.body, root].map((element) => (element ? getComputedStyle(element).backgroundColor : "")).find((color) => color && color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color));
-    const color = meta?.content || ground || "#000";
+    const color = ground || meta?.content || "#000";
     if (color) strip(color);
+    // (Its edge in the same color: after this script's run, once the edge is made.)
+    queueMicrotask(() => edge.isConnected && edged());
   };
   paint();
+  // Under it, what scrolls up to it dissolves, not cut: a soft edge 28px tall, the page blurred more and more toward the
+  // top (four layers) and its color over it, as iOS's own bars end. In by how far the page has scrolled (none at its
+  // top, where nothing's cut: over a header's words none), whole by 28px; none on a page that doesn't scroll (an app's
+  // own frame: Studio, Trail), nor while the page's own bar (fixed or sticky) is up there, its edge its own.
+  const edge = document.createElement("div");
+  edge.setAttribute("aria-hidden", "true");
+  edge.style.cssText = "position: fixed; inset: 0 0 auto; z-index: 2147483000; height: 28px; pointer-events: none";
+  edge.innerHTML = [1, 2, 4, 8].map((px, k) => `<i style="position: absolute; inset: 0; backdrop-filter: blur(${px}px); -webkit-backdrop-filter: blur(${px}px); mask-image: linear-gradient(#000 ${k * 18}%, transparent ${40 + k * 20}%); -webkit-mask-image: linear-gradient(#000 ${k * 18}%, transparent ${40 + k * 20}%); opacity: 0"></i>`).join("") + '<i class="tint" style="position: absolute; inset: 0; opacity: 0"></i>';
+  const tint = /** @type {HTMLElement} */ (edge.lastElementChild);
+  const edged = () => {
+    tint.style.background = `linear-gradient(${striped}, color-mix(in srgb, ${striped} 70%, transparent) 30%, color-mix(in srgb, ${striped} 25%, transparent) 65%, transparent)`;
+    // (The page's own bar at the top: its edge is its own.)
+    let own = false;
+    for (let element = document.elementFromPoint(innerWidth / 2, 12); element && element !== document.body && element !== root; element = element.parentElement) {
+      const position = getComputedStyle(element).position;
+      if (position === "fixed" || position === "sticky") (own = element !== status && element !== edge), (element = null);
+      if (!element) break;
+    }
+    const shown = own || document.documentElement.scrollHeight <= innerHeight + 1 ? 0 : Math.min(1, Math.max(0, scrollY / 28));
+    // (On each layer: an opacity on the whole would cut them off from the page behind, nothing to blur till it's 1.)
+    const opacity = String(Math.round(shown * 100) / 100);
+    for (const layer of /** @type {HTMLElement[]} */ ([...edge.children])) if (layer.style.opacity !== opacity) layer.style.opacity = opacity;
+  };
+  let edging = 0;
+  addEventListener("scroll", () => (edging ||= requestAnimationFrame(() => ((edging = 0), edged()))), { passive: true });
+  addEventListener("load", () => (root.append(edge), edged()), { once: true });
   addEventListener("DOMContentLoaded", paint, { once: true });
   addEventListener("load", paint, { once: true });
   new MutationObserver(paint).observe(document.head ?? root, { subtree: true, childList: true, attributes: true, attributeFilter: ["content", "media"] });

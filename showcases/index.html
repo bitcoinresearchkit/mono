@@ -4,9 +4,6 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
-    <!-- (Installed from a home screen, the page under the status bar too, the billboard's art up under the clock: else
-         iOS fills that strip itself, flat or with the page blurred, as it chooses. Read when the page is added.) -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
@@ -88,15 +85,8 @@
         --gutter: 16px;
         --lift: cubic-bezier(0.2, 0.7, 0.2, 1);
         --radius: 10px;
-        /* (Where the bar's line starts, under the status bar: installed on iOS, a little lower, out of the worst of the
-           blur iOS lays over an app's top some 40 pt down from its status bar, the bar's words in it else.) */
+        /* (Where the bar's line starts: under the status bar where the page runs under it (Safari's, a notch's).) */
         --bar-top: env(safe-area-inset-top);
-
-        @supports (-webkit-touch-callout: none) {
-          @media (display-mode: standalone) {
-            --bar-top: calc(env(safe-area-inset-top) + 12px);
-          }
-        }
 
         @media (min-width: 720px) {
           --gutter: 40px;
@@ -147,9 +137,10 @@
          passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
          a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
          bar's own: the status bar dark in either scheme, the bottom bar still the page's (the bar easing from it: see
-         .top). Installed from a home screen, no strip: the page runs up under the status bar (see the head), iOS's blur
-         at the screen's edge tinted with the body's colour; so the body's colour the billboard's dark, the page painted
-         paper over it, the root paper (where the page is pulled past either end).) */
+         .top). Installed from a home screen, no strip: iOS paints its status bar in the body's colour after a load, and
+         after a launch blurs the page up into it, tinted with that colour (its choice, not the page's); so the body's
+         colour the billboard's dark, the page painted paper over it, the root paper (where the page is pulled past
+         either end).) */
       @supports (-webkit-touch-callout: none) {
         .edge {
           position: fixed;
@@ -224,32 +215,48 @@
         gap: 12px;
         height: calc(64px + var(--bar-top));
         padding: var(--bar-top) var(--gutter) 0;
-        background: linear-gradient(to bottom, rgb(13 12 11 / 0.7), transparent);
-        transition: background-color 0.3s, box-shadow 0.3s;
+        /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
+           progressive blur. Ten layers behind its contents, each blurring twice as much as the one
+           under it and stopping a little higher, so the blur builds smoothly toward the top (its contents over the
+           strongest), past its foot none: no slab, no line, as iOS's own bars end. A tint of its ground fades out with it,
+           for its words.) */
+        > .glass {
+          position: absolute;
+          inset: 0 0 -96px;
+          z-index: -1;
+          pointer-events: none;
 
-        /* (In Safari on iOS, under the status bar's flat dark (the .edge strip): from that dark, easing into the
-           billboard, no line where the two meet.) */
-        @supports (-webkit-touch-callout: none) {
-          @media not (display-mode: standalone) {
-            background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.85) 20px, rgb(13 12 11 / 0.6) 56px, transparent);
+          > i {
+            position: absolute;
+            inset: 0;
+            mask-image: linear-gradient(#000 var(--to), transparent var(--off));
+            -webkit-mask-image: linear-gradient(#000 var(--to), transparent var(--off));
           }
-        }
 
-        /* (Past the billboard: solid, the page under it blurred.) */
-        &.solid {
-          background: rgb(13 12 11 / 0.94);
-          box-shadow: 0 1px 0 rgb(246 243 238 / 0.06);
-          backdrop-filter: blur(20px) saturate(1.4);
-          -webkit-backdrop-filter: blur(20px) saturate(1.4);
+          /* (Lengths fixed from its foot, whatever its height (the installed app's, no status bar over it, is 62px
+             shorter than Safari's): over its words all ten (the page frosted through); from its pills' middle (24px
+             over its foot) to 96px past it, one fewer each 12px, each one's fade overlapping the next's two: a
+             long, even ease, no step to see. Each blur written out: Safari takes none through a custom property.) */
+          > i:nth-child(1) { backdrop-filter: blur(0.5px); -webkit-backdrop-filter: blur(0.5px); --to: calc(100% - 30px); --off: calc(100% - 0px); }
+          > i:nth-child(2) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); --to: calc(100% - 42px); --off: calc(100% - 12px); }
+          > i:nth-child(3) { backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); --to: calc(100% - 54px); --off: calc(100% - 24px); }
+          > i:nth-child(4) { backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px); --to: calc(100% - 66px); --off: calc(100% - 36px); }
+          > i:nth-child(5) { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); --to: calc(100% - 78px); --off: calc(100% - 48px); }
+          > i:nth-child(6) { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); --to: calc(100% - 90px); --off: calc(100% - 60px); }
+          > i:nth-child(7) { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); --to: calc(100% - 102px); --off: calc(100% - 72px); }
+          > i:nth-child(8) { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); --to: calc(100% - 114px); --off: calc(100% - 84px); }
+          > i:nth-child(9) { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); --to: calc(100% - 126px); --off: calc(100% - 96px); }
+          > i:nth-child(10) { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); --to: calc(100% - 138px); --off: calc(100% - 108px); }
 
-          /* (On iOS, glass: installed, under the clock as well, the page blurred under both alike; in Safari, from the
-             status bar's flat dark.) */
-          @supports (-webkit-touch-callout: none) {
-            background: rgb(13 12 11 / 0.55);
-
-            @media not (display-mode: standalone) {
-              background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.55) 28px);
-            }
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            /* (From the status bar's own color at its top, solid: the bar and the glass one piece, no seam where the
+               page's art would meet the bar; under its contents enough for its words over anything; past its foot,
+               easing out with the blur over 120px from its pills' middle (an ease-out curve's stops): a long, even fall,
+               begun under its contents, not after them.) */
+            background: linear-gradient(#0d0c0b 14px, rgb(13 12 11 / 0.88) calc(100% - 120px), rgb(13 12 11 / 0.752) calc(100% - 110px), rgb(13 12 11 / 0.634) calc(100% - 100px), rgb(13 12 11 / 0.524) calc(100% - 90px), rgb(13 12 11 / 0.424) calc(100% - 80px), rgb(13 12 11 / 0.334) calc(100% - 70px), rgb(13 12 11 / 0.253) calc(100% - 60px), rgb(13 12 11 / 0.182) calc(100% - 50px), rgb(13 12 11 / 0.122) calc(100% - 40px), rgb(13 12 11 / 0.073) calc(100% - 30px), rgb(13 12 11 / 0.035) calc(100% - 20px), rgb(13 12 11 / 0.010) calc(100% - 10px), rgb(13 12 11 / 0.000) calc(100% - 0px));
           }
         }
 
@@ -2167,6 +2174,7 @@
 
     <div class="edge" aria-hidden="true"></div>
     <header class="top">
+      <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <nav aria-label="Sections">
         <a href="#apps-title">Apps</a>
@@ -2990,11 +2998,6 @@
         if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
         else update();
       }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
-      // (The bar solid as soon as the page moves, as a streaming home's: what slides under it blurred, glass on iOS.)
-      const bar = /** @type {HTMLElement} */ (document.querySelector(".top"));
-      const solid = () => bar.classList.toggle("solid", scrollY > 4);
-      addEventListener("scroll", solid, { passive: true });
-      solid();
       // (The section lit: the one crossing a line just under the bar, where a section jumped to lands; between two, the
       // last one lit stays. The chip lit, on a phone, slid into view.)
       let sections = /** @type {IntersectionObserver | null} */ (null);
