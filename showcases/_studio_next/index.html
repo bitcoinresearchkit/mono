@@ -11083,7 +11083,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     <div class="top-strip" aria-hidden="true"></div>
 
 
-    <script type="module">
+    <!-- (Its modules failed to load (the server lost mid-load): said, as offline at load, Try again its way out.) -->
+    <script type="module" onerror="document.body.toggleAttribute('data-offline', true)">
       // @ts-check
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
