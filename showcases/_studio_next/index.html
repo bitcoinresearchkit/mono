@@ -1585,7 +1585,7 @@
 
         /* Off (hidden, a marker not shown): its mark faded, its words a grey a step down, still read (its eye says off). */
         &.hidden .row-main {
-          > :is(.letter, .marker-mark) {
+          > :is(.letter, .marker-mark, .row-mark) {
             opacity: 0.4;
           }
 
@@ -1639,6 +1639,37 @@
           grid-area: 1 / 1 / 3 / 2;
           align-self: center;
           margin-right: 10px;
+        }
+
+        /* (A layer's: its mark, as the chart's legend draws it: the panel is the legend while it shows. Its letter, the
+           name formulas know it by, heads its second line.) */
+        > .row-mark {
+          display: grid;
+          grid-area: 1 / 1 / 3 / 2;
+          align-self: center;
+          place-items: center;
+          width: 22px;
+          margin-right: 10px;
+
+          > .series-mark {
+            width: 20px;
+            height: 15px;
+          }
+        }
+      }
+
+      /* (Its letter in its color, bold, one column down the list: as the formulas write it.) */
+      .row-text .sub-letter {
+        margin-right: 6px;
+
+        > .letter {
+          display: inline;
+          min-width: 0;
+          height: auto;
+          padding: 0;
+          background: none;
+          box-shadow: none;
+          font: 650 11px/16px var(--mono);
         }
       }
 
@@ -24001,7 +24032,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function updateMark(doc) {
         for (const mark of all$(`:is([data-open-chart="${doc.id}"], [data-open-recent="${doc.id}"]) .chart-mark`)) mark.outerHTML = chartMark(doc);
         if (doc !== chart) return;
-        for (const element of all$(".legend .series-mark")) {
+        // (Its legends' and its panel rows' marks, drawn from it.)
+        for (const element of all$(".legend .series-mark, .layer-row .row-mark > .series-mark")) {
           const layer = layerById(/** @type {HTMLElement} */ (element.closest("[data-select]")).dataset.select);
           if (layer) element.outerHTML = seriesMark(layer);
         }
@@ -29996,11 +30028,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
               // its tip, under its name, when either's cut short.)
               const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : heatLike(layer) ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
-              const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(subText)}</span>`;
+              // (Its letter heading its second line, its mark leading the row: see .row-mark.)
+              const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escape(subText)}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
-                  ${letterChip(layer)}
+                  <span class="row-mark">${seriesMark(layer)}</span>
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
@@ -38518,7 +38551,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A tip of two lines, a row's name and its second line: repeating only while both are shown whole.)
         const name = target.querySelector(".name, .label, .head-name, .tile-name"), sub = target.querySelector(".sub"), [head, ...more] = (target.dataset.tip ?? "").split("\n");
         const whole = (/** @type {Element | null} */ words) => Boolean(words) && /** @type {Element} */ (words).scrollWidth <= /** @type {Element} */ (words).clientWidth;
-        const repeats = whole(name) && name?.textContent?.trim() === head && (!more.length || (whole(sub) && sub?.textContent?.trim() === more.join("\n")));
+        // (Its second line's words as its tip has them: a layer row's letter, heading it, not among them.)
+        const subText = sub ? [...sub.childNodes].filter((node) => !(node instanceof Element && node.classList.contains("sub-letter"))).map((node) => node.textContent).join("").trim() : "";
+        const repeats = whole(name) && name?.textContent?.trim() === head && (!more.length || (whole(sub) && subText === more.join("\n")));
         const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
         return !repeats || (target.closest(".sidebar") ? railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
       }
