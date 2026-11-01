@@ -229,12 +229,21 @@ export class Band {
     if (this.fitVersion !== this.version) (this.fitVersion = this.version), (this.fits = [null, null]);
     const k = positive ? 1 : 0, had = this.fits[k];
     if (had) return had;
-    const n = Math.min(this.lower.length, this.upper.length), lows = new Float64Array(n), highs = new Float64Array(n), blocks = Math.ceil(n / FIT), low = new Float64Array(blocks).fill(Infinity), high = new Float64Array(blocks).fill(-Infinity);
-    for (let i = 0; i < n; i++) {
-      const l = this.area ? this.upper[i] : this.lower[i], u = this.upper[i], drawn = positive ? l > 0 && u > 0 : l === l && u === u;
-      (lows[i] = drawn ? (l < u ? l : u) : NaN), (highs[i] = drawn ? (l < u ? u : l) : NaN);
-      if (lows[i] < low[(i / FIT) | 0]) low[(i / FIT) | 0] = lows[i];
-      if (highs[i] > high[(i / FIT) | 0]) high[(i / FIT) | 0] = highs[i];
+    const upper = this.upper, lower = this.area ? upper : this.lower, n = Math.min(this.lower.length, upper.length), lows = new Float64Array(n), highs = new Float64Array(n), blocks = Math.ceil(n / FIT), low = new Float64Array(blocks), high = new Float64Array(blocks);
+    // (Block by block, its extremes kept as it goes: without a JIT, an index divided at each point costs more than the
+    // point's own work.)
+    for (let k = 0, from = 0; k < blocks; k++, from += FIT) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = from, to = from + FIT < n ? from + FIT : n; i < to; i++) {
+        const l = lower[i], u = upper[i];
+        if (positive ? l > 0 && u > 0 : l === l && u === u) {
+          const a = l < u ? l : u, b = l < u ? u : l;
+          (lows[i] = a), (highs[i] = b);
+          if (a < lo) lo = a;
+          if (b > hi) hi = b;
+        } else (lows[i] = NaN), (highs[i] = NaN);
+      }
+      (low[k] = lo), (high[k] = hi);
     }
     const made = { lows, highs, low, high };
     this.fits[k] = made;
