@@ -874,8 +874,8 @@ export class Pane {
       }
     // (Top to bottom, each at its line, or just under the one over it where they'd overlap (as the chart library laid
     // them): the first always at its line, each moving only as its own line or one over it does; past the axis' foot,
-    // cut off there (more under it, said), none starting under it. One where lines meet (an empty band's top on the next
-    // one's). A line out of the pane (its scale dragged past it), none: a tag reads where its line is. A pane too short
+    // cut off there (more under it, said), none starting under it. One where lines read the same (an empty band's top on
+    // the next one's); lines a hair apart, each its own (two prices a dollar apart). A line out of the pane (its scale dragged past it), none: a tag reads where its line is. A pane too short
     // for one, none.)
     const top = TAG / 2, foot = this.height - TAG / 2;
     this.tagStep = TAG;
@@ -884,11 +884,10 @@ export class Pane {
     for (let k = 0; k < n; k++) {
       const y0 = ys[order[k]];
       if (!(y0 > -0.5 && y0 < this.height + 0.5)) continue;
-      const line = Math.min(Math.max(y0, top), foot);
-      if (Math.abs(line - last) < 0.5) continue;
-      const y = m ? Math.max(line, at[m - 1] + TAG) : line;
+      if (Math.abs(y0 - last) < 1e-6) continue;
+      const line = Math.min(Math.max(y0, top), foot), y = m ? Math.max(line, at[m - 1] + TAG) : line;
       if (y - TAG / 2 >= this.height) break;
-      (order[m] = order[k]), (at[m++] = y), (last = line);
+      (order[m] = order[k]), (at[m++] = y), (last = y0);
     }
     return m;
   }
