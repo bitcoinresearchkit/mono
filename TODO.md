@@ -79,8 +79,12 @@ Only what's left. An item done is removed: its history is in the commits and log
 - Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out).
   Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
   as-of date. (1) committed after (focus restored after Legend.set). (5) committed after (every layer hidden: the
-  legend wraps). Left: (4) (a UX call: see below), and the
-  repeated work (measure first). As found:
+  legend wraps). A percent stack's readout reading the stacks once (not once a band; bandAt only for a stacked pane):
+  committed. Left: (4), a question for you: moving the pointer onto
+  a named chip unnames it (the library names from the crosshair, gone over page elements), and hovering an axis tag
+  can't name its series. Mine: the chip keeps the name it had while the pointer is on it or on a tag (Studio sets
+  crosshair.pointed; the library names from pointed even with no crosshair point). Then the rest of the repeated
+  work (measure first: the bench must count the legend's value writes, which run on their own frame). As found:
   - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
     every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
     (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;

@@ -17812,7 +17812,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function bandAt(param) {
         const point = param?.point, pane = point && param.pane !== undefined ? chart.panes[param.pane] : undefined;
         if (!point || !pane || !resolved || param.logical === undefined) return null;
-        const stacked = stackOf(chart, resolved), at = Math.round(param.logical);
+        const at = Math.round(param.logical);
         // (Lines, not stacked: the one nearest the pointer at that date, a line's reach away at most.)
         if (!pane.stack) {
           let near = null, off = PULL;
@@ -17825,6 +17825,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const under = param.layer;
           return near ?? (under && bands.some((layer) => layer.id === under) ? under : null);
         }
+        const stacked = stackOf(chart, resolved);
         for (const layer of bandsOf(pane)) {
           // (Each on its own scale: a stack's left and right sides are stacked apart.)
           const price = seriesValue(drawn.get(layer.id), point.y), made = stacked.get(layer.id), top = made ? made.values[at] : NaN, foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
@@ -17836,8 +17837,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A band's share of its stack at a point (a 100% pane's), as drawn: its top less its foot; at rest, at its value's
        * own point (see valuePointOf: the share and the amount of one date, none where the stack's total is none).
        */
-      function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
-        const made = resolved ? stackOf(chart, resolved).get(layer.id) : undefined, at = valuePointOf(layer, point);
+      function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point, stacked = resolved ? stackOf(chart, resolved) : null) {
+        const made = stacked?.get(layer.id), at = valuePointOf(layer, point);
         if (!made?.scale || at < 0) return NaN;
         return made.values[at] - made.under[at] * made.scale[at];
       }
@@ -18240,8 +18241,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             else element.style.removeProperty("--c");
           }
         }
+        // (The stacks read once, not once a band.)
+        const stacked = resolved ? stackOf(chart, resolved) : null;
         for (const element of all$("[data-band-share]", $("chart"))) {
-          const layer = layerById(element.dataset.bandShare ?? ""), text = layer ? format(shareAt(layer, point), "percent") : "";
+          const layer = layerById(element.dataset.bandShare ?? ""), text = layer ? format(shareAt(layer, point, stacked), "percent") : "";
           if (element.textContent !== text) element.textContent = text;
         }
       }
