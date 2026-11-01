@@ -4,8 +4,8 @@
 // section it links to in Studio's sitemap, every series it draws on the server. With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
-// featured app's banner with Bitview's mark and name; and every app's icon (assets/favicon/apps/). Run it after changing
-// an app, and before a release:
+// featured app's banner with Bitview's mark and name; and every app's icon (assets/favicon/apps/, Bitview's the MCP
+// server's too). Run it after changing an app, and before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
@@ -88,7 +88,8 @@ for (const name of folders) if (![...apps, ...dev].includes(`/${name}/`)) proble
 
 // (Each app's, the front page's "bitview": Bitview's cube (assets/favicon/app-icon.svg) in its launch tag's colour
 // (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
-// screen takes one best. Made with --pictures or --icons.)
+// screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons.)
+const MCP_ICON = join(HERE, "..", "crates", "bitview_mcp", "assets", "logo.png");
 const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
   ["bitview", undefined],
   ...folders.map((name) => [name, tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-color"]]),
@@ -234,6 +235,8 @@ async function makePictures() {
         const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
         writeFileSync(join(HERE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
         console.log(`made apps/${name}.png`);
+        // (Bitview's is the MCP server's icon too: its page's and the MCP registry's.)
+        if (name === "bitview") writeFileSync(MCP_ICON, Buffer.from(shot.data, "base64")), console.log("made bitview_mcp's logo.png");
       } finally {
         await tab.close();
       }

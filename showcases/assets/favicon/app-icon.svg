@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 2 2" style="--color: #e65b00">
-  <!-- Bitview's app icon (the home screen's, the manifest's: apps/, each made from this by showcases/home.mjs --icons):
+  <!-- Bitview's app icon (the home screen's, the manifest's: apps/, each made from this by showcases/home.mjs --icons; the MCP server's, its logo.png):
        the logo's cube, pressed into its ground, full bleed (each platform rounds its corners). One colour (the style's),
        its shades made from it as Bitview's orange makes them: the ground lighter at the top, deeper at the foot, the cube
        deeper still. A showcase's app has its own colour, its design's (`data-color` on its launch tag). -->
