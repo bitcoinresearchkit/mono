@@ -25,10 +25,12 @@ export class Crosshair {
     this.pane = -1;
     /**
      * The line pointed at, its dot drawn larger and ringed (over the others): a page's (null: none), else (undefined)
-     * the one its pane hits at the crosshair (see Pane's hit).
+     * the one a pointer's on (`hit`).
      * @type {import("./line.js").Line | null | undefined}
      */
     this.pointed = undefined;
+    /** The series a pointer's on at it (found once by the chart as it moves: see setCrosshair), or null. @type {any} */
+    this.hit = null;
     this.width = 0;
     this.height = 0;
     // (As drawn: nothing to clear when it's gone already.)
@@ -95,8 +97,7 @@ export class Crosshair {
     // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground, within its pane's plot; the
     // line pointed at's larger, in a ring of its color, over the others: which one the crosshair reads.)
     if (x >= 0 && x <= plot) {
-      const from = Math.max(0, Math.floor(time.from)), under = panes[this.pane];
-      const pointed = this.pointed !== undefined ? this.pointed : under ? under.series[under.hit(time, i, x, this.y - under.top)] ?? null : null;
+      const from = Math.max(0, Math.floor(time.from)), pointed = this.pointed !== undefined ? this.pointed : this.hit;
       let focus = NaN, focusY = NaN, focusColor = "", focusMarker = 0;
       for (let p = 0; p < panes.length; p++) {
         const each = panes[p];

@@ -89,13 +89,15 @@ export class Chart {
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);
-    /** @type {((index: number, pane: number, y: number, input: boolean, x: number) => void)[]} */
+    /** @type {((index: number, pane: number, y: number, input: boolean, x: number, series: number) => void)[]} */
     this.crosshairListeners = [];
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
     /** A pointer's crosshair to be found again at the next frame (see #recross); its pane's changes as it was told. */
     this.recrossing = false;
     this.crossedChanges = -1;
+    /** The view as the crosshair's series was last found under it (see render). */
+    (this.crossedFrom = NaN), (this.crossedSpacing = NaN);
     /** The separator pointed at or dragged (the pane over it; none, null): drawn in the theme's active color. @type {Pane | null} */
     this.separatorLit = null;
     /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
@@ -266,7 +268,11 @@ export class Chart {
     const moved = (k !== crosshair.index || y !== crosshair.y || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
     (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.pointerX = x);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN, at = x === x ? x : k === k ? this.time.x(k) : NaN;
-    if (moved) for (let l = 0; l < this.crosshairListeners.length; l++) this.crosshairListeners[l](k, pane, within, input, at);
+    // (A pointer's: the series it's on, found once (at the pointer, not the point), told and its dot marked by it.)
+    if (!moved) return void this.invalidate();
+    const hit = input && k === k && pane >= 0 ? this.panes[pane].hit(this.time, k, at, within) : -1;
+    crosshair.hit = hit >= 0 ? this.panes[pane].series[hit] : null;
+    for (let l = 0; l < this.crosshairListeners.length; l++) this.crosshairListeners[l](k, pane, within, input, at, hit);
     this.invalidate();
   }
 
@@ -283,8 +289,9 @@ export class Chart {
 
   /**
    * Told each time the crosshair moves: its point (NaN: gone), the pane it's in (-1: none), its height in that pane,
-   * whether a pointer moved it, and where across the plot (CSS pixels: the pointer's, else the point's).
-   * @param {(index: number, pane: number, y: number, input: boolean, x: number) => void} listener
+   * whether a pointer moved it, where across the plot (CSS pixels: the pointer's, else the point's), and the series a
+   * pointer's on there (its index in the pane, as Pane's hit finds it; -1: none, or not a pointer's).
+   * @param {(index: number, pane: number, y: number, input: boolean, x: number, series: number) => void} listener
    */
   onCrosshair(listener) {
     this.crosshairListeners.push(listener);
@@ -459,7 +466,12 @@ export class Chart {
     // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
     // (Its pane's scale or series changed under it since it was told (a zoom, a live price):
     // what it hits read again.)
-    const under = this.panes[crosshair.pane], changed = Boolean(under) && under.changes !== this.crossedChanges;
+    const under = this.panes[crosshair.pane];
+    // (The view moved under a still pointer (a zoom, a pan within a point): the series it's on found again, told where
+    // that's another.)
+    let changed = Boolean(under) && under.changes !== this.crossedChanges;
+    if (under && !changed && x === x && crosshair.index === crosshair.index && (time.from !== this.crossedFrom || time.spacing !== this.crossedSpacing) && crosshair.hit !== (under.series[under.hit(time, crosshair.index, x, crosshair.y - under.top)] ?? null)) changed = true;
+    (this.crossedFrom = time.from), (this.crossedSpacing = time.spacing);
     if (x === x && (this.recrossing || crosshair.index === crosshair.index)) {
       // (Over an axis now (one come under it): gone, as a pointer over an axis has none.)
       if (!(x >= 0 && x <= time.width)) (this.recrossing = false), this.setCrosshair(NaN);

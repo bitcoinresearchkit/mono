@@ -19262,7 +19262,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hoverTime = time;
         valuesSoon();
       }
-      engine.onCrosshair((index, pane, y, input, x) => crossMoved(chartPoint(index, pane, x, y, input, input && index === index && engine.panes[pane] ? engine.panes[pane].hit(engine.time, index, x, y) : -1)));
+      engine.onCrosshair((index, pane, y, input, x, series) => crossMoved(chartPoint(index, pane, x, y, input, series)));
       /** The ring about the bubble under the crosshair (see lightBubble), and where that was. */
       const bubbleRing = Object.assign(document.createElement("span"), { className: "bubble-lit" });
       let bubbleAt = /** @type {{ time: number | null, pane: number | undefined }} */ ({ time: null, pane: undefined });

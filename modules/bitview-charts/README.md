@@ -30,7 +30,7 @@ chart.show(365);                                 // the last 365 points in view
   none there, null for the library's.
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
-  things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
+  things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
@@ -46,8 +46,8 @@ chart.show(365);                                 // the last 365 points in view
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
   covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
-  pointed at's larger, ringed in its color (`crosshair.pointed`: a page's line, null none; left undefined, the one its
-  pane hits there). Separators between panes drag to share their heights (laid out and drawn at
+  pointed at's larger, ringed in its color (`crosshair.pointed`: a page's line, null none; left undefined, the one a
+  pointer's on, as its listeners are told). Separators between panes drag to share their heights (laid out and drawn at
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
