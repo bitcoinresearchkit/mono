@@ -18908,11 +18908,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.closes = EMPTY;
           /** Its closes as a line (in no pane): their extents by blocks, each frame. */
           this.line = new Line();
-          /** Its days with a close (their places on the timeline, rising), each as drawn (its x): drawHeat's bars. @type {{ x: number, time: number }[]} */
-          this.bars = [];
-          this.places = new Int32Array(0);
-          /** What drawHeat reads: its bars, their spacing and those in view (`from` to `to`, of `bars`); the canvas, in device pixels. */
-          this.data = { bars: this.bars, barSpacing: 1, visibleRange: { from: 0, to: 0 } };
+          /** The canvas drawHeat draws on, in device pixels. */
           this.scope = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), mediaSize: { width: 0, height: 0 }, horizontalPixelRatio: 1, verticalPixelRatio: 1 };
           /** The scale it's drawn on now, and a price's height on it (made once). */
           this.scale = new Scale();
@@ -18932,10 +18928,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         set(closes) {
           this.closes = closes;
           this.line.setValues(closes);
-          const bars = (this.bars = this.data.bars = []), places = (this.places = new Int32Array(closes.length));
-          let m = 0;
-          for (let i = 0; i < closes.length; i++) if (closes[i] === closes[i]) bars.push({ x: 0, time: i }), (places[m++] = i);
-          this.places = places.subarray(0, m);
           this.redraw();
         }
 
@@ -18953,18 +18945,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
 
         /**
-         * Its days in view (and one past each edge) placed, drawn by drawHeat on the canvas in device pixels.
+         * Drawn by drawHeat on the canvas in device pixels.
          * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} dpr
          */
         #draw(g, time, scale, dpr) {
-          const bars = this.bars, places = this.places, data = this.data, scope = this.scope;
-          const from = lowerBound(places, Math.floor(time.from - 1)), to = lowerBound(places, Math.ceil(time.to + 1) + 1);
-          for (let k = from; k < to; k++) bars[k].x = time.x(bars[k].time);
-          (data.barSpacing = time.spacing), (data.visibleRange.from = from), (data.visibleRange.to = to);
+          const scope = this.scope;
           g.setTransform(1, 0, 0, 1, 0, 0);
           (scope.context = g), (scope.horizontalPixelRatio = scope.verticalPixelRatio = dpr), (scope.mediaSize.width = time.width), (scope.mediaSize.height = scale.height);
           this.scale = scale;
-          drawHeat(scope, this.toY, data, heatLooks.get(this.id) ?? null);
+          drawHeat(scope, this.toY, time, this.closes, heatLooks.get(this.id) ?? null);
         }
       }
       /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
@@ -22592,15 +22581,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { amount: format(value, look.measure === "supply" ? "btc" : "usd"), at: format(grid.price(row), "usd") };
       }
       /**
-       * A heatmap's columns in view: each bar's day (`g`, by the bar's place on the timeline (its `time`, a date without
-       * a close none): its day's count from the first; `days`, each one's date), a
-       * block of `step` days drawn as its last day's (the coarser block's while it hasn't come); the days missing,
-       * wanted (the coarsest first).
-       * @param {any} scope @param {(price: number) => number | null} toY @param {any} data
-       * @param {HeatLook | null} heat
+       * A heatmap's columns in view (and one past each edge): each date's day (`g`, by its place on the timeline; a date
+       * without a close (`closes`), none: its day's count from the first; `days`, each one's date), a block of `step` days
+       * drawn as its last day's (the coarser block's while it hasn't come); the days missing, wanted (the coarsest first).
+       * @param {any} scope @param {(price: number) => number | null} toY @param {import("/modules/bitview-charts/timeline.js").Timeline} time
+       * @param {Float64Array} closes @param {HeatLook | null} heat
        */
-      function drawHeat(scope, toY, data, heat) {
-        const range = data?.visibleRange, grid = heat?.grid;
+      function drawHeat(scope, toY, time, closes, heat) {
+        const grid = heat?.grid;
         if (!heat) return;
         // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
         heat.drawn = true;
@@ -22608,17 +22596,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (heat.kind === "profile") return drawProfile(scope, toY, heat);
         // (Nothing drawn: nothing wanted, nothing kept for it.)
         const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
-        if (!grid || !range || !data.bars.length || !resolved) return none();
+        if (!grid || !resolved) return none();
         // (The timeline's days as it is now: a live tick's new bar its own.)
         Object.assign(heat, heatCalendar(resolved.times));
-        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, bars = data.bars;
-        // (The bars the library draws, its range's, the edges' partly in view among them; one past them has an x of a
-        // layout gone, its day drawn a second time wherever that was.)
-        const from = Math.max(0, range.from), to = Math.min(bars.length, range.to);
-        if (from >= to) return none();
-        const first = heat.g[bars[from].time], lastShown = heat.g[bars[to - 1].time];
+        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+        // (Its dates in view with a close, the edges' partly in view among them and one past each.)
+        let from = -1, to = -1, count = 0;
+        for (let i = Math.max(0, Math.floor(time.from - 1)), b = Math.min(closes.length - 1, Math.ceil(time.to + 1)); i <= b; i++) if (closes[i] === closes[i]) (from < 0 && (from = i)), (to = i), count++;
+        if (!count) return none();
+        const first = heat.g[from], lastShown = heat.g[to];
         // (A block of days a column `HEAT_COLUMN` wide at least: by powers of two, the same days at any pan.)
-        const perDay = (data.barSpacing * (to - from)) / Math.max(1, lastShown - first + 1);
+        const perDay = (time.spacing * count) / Math.max(1, lastShown - first + 1);
         let step = 1;
         while (step * perDay < HEAT_COLUMN && step < 1 << 14) step *= 2;
         heat.step = step;
@@ -22665,10 +22653,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.imageSmoothingEnabled = y1 - y0 < strip.height;
           context.drawImage(strip.canvas, x, y0, w, Math.max(1, y1 - y0));
         };
-        const half = data.barSpacing / 2;
+        const half = time.spacing / 2;
         let owner = -1, x0 = 0, x1 = 0;
-        for (let i = from; i < to; i++) {
-          const { x, time } = bars[i], here = ownerAt(heat.g[time], step);
+        for (let i = from; i <= to; i++) {
+          if (closes[i] !== closes[i]) continue;
+          const x = time.x(i), here = ownerAt(heat.g[i], step);
           if (here !== owner) {
             if (owner >= 0) column(owner, x0, x1);
             (owner = here), (x0 = x - half);
