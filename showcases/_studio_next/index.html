@@ -1626,6 +1626,9 @@
         flex: 1;
         /* (Its mark, its words, the date, what its change takes past its value's column, its value.) */
         grid-template-columns: auto minmax(0, 1fr) minmax(var(--date-room, 0px), auto) minmax(var(--change-room, 0px), auto) minmax(var(--value-room, 0px), auto);
+        /* (Its two lines as tall as their words', whatever's on them: its series' monospace beside its change's chip, on one
+           baseline, made the second a pixel taller, and a layer hidden (no change) a pixel shorter.) */
+        grid-template-rows: 20px 16px;
         /* (The date's letters and the change's on one line, at their own sizes.) */
         align-items: baseline;
         min-width: 0;
