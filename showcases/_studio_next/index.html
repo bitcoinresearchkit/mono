@@ -19590,6 +19590,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         all.forEach((margins, i) => SIDES.forEach((side) => engine.panes[i]?.setScale(side, margins)));
         engine.invalidate(true);
       }
+      // (A separator dragged, the panes laid out at each move: their room over their lines with them, as tall as their
+      // legends, not a share of the height they had (the lines moving when let go).)
+      engine.onLayout(() => engine.resizing && fitMargins());
       const resized = new ResizeObserver((entries) => {
         // (Its size held through a layout's motion: the chart's own height, not its box's, till it follows it again.)
         // (The chart at its box's size, as the library's own watch would (see `view`): not while a motion holds it, nor
