@@ -44,6 +44,8 @@ export class Bubbles {
     this.faint = false;
     /** A scale of its own (see the pane's Series), none: its side's. @type {import("./scale.js").Scale | null} */
     this.overlay = null;
+    /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
+    this.fit = null;
     this.version = 0;
     this.setValues({ values, sizes });
   }

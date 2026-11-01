@@ -18511,9 +18511,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         constructor(kind, pane, side) {
           const on = engine.panes[pane];
           this.side = side;
-          /** @type {any} */
           this.engine = on.add(kind === "band" ? new Band({ upper: EMPTY }) : kind === "bars" ? new Bars({}) : kind === "candles" ? new Candles({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY }) : new Line(), side);
-          /** @type {any} */
           this.edge = kind === "band" ? on.add(new Line(), side) : null;
         }
       }
@@ -18528,13 +18526,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.side = side;
           /** Its sizes and places on the timeline (a live date's set in place, see place). */
           (this.v = EMPTY), (this.y = EMPTY);
-          /** @type {any} */
           this.engine = new LibraryBubbles({ values: EMPTY, sizes: EMPTY });
           // (On none: along its pane's middle, its margins even.)
           if (own) (this.engine.overlay = new Scale({ top: 0.1, bottom: 0.1 })), (this.engine.fit = fitMiddle);
           // (Hit where a bubble's drawn, no other way: not near one, as a line is.)
           const near = this.engine.distance.bind(this.engine);
-          this.engine.distance = (/** @type {any[]} */ ...at) => (near(...at) === 0 ? 0 : Infinity);
+          this.engine.distance = (i, y, scale, x, time) => (near(i, y, scale, x, time) === 0 ? 0 : Infinity);
           engine.panes[pane].add(this.engine, side);
         }
 
