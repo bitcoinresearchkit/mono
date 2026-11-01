@@ -66,20 +66,34 @@ Only what's left. An item done is removed: its history is in the commits and log
     library's hit puts a fill under the pointer at distance 0, so preferring it would let an area's fill beat a line
     3 px away; Studio prefers the nearby line on purpose. A better fix measures each line's y at the pointer's x
     (steps, curves) in the nearest-line scan: not done.
-  - Batch 3, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
+  - Batch 3 measured first (2026-11-01), left as is: a crosshair move costs 0.045 ms median in Chromium over 48
+    presets (worst the profiles: Supply profile by age band 0.31, by holder group 0.24), on the phone 0.2 ms (the
+    price) to 0.87 (the 24-band stack): what (15)–(17) could save is a part of that, a few percent of a frame
+    (scratchpad n437/cross.mjs, phone-cross.mjs; cross-before.txt).
+  - Batch 3 as found, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
     drawings, trends' gradient colors (~21012); (16) Heat `fixed` (~18787) redraws its pane at every crosshair move,
     profile bins rebuilt each time (~22652); (17) profileShare summed twice a move (~22356, ~22598) though its day is
     the view's last.
   - Not to do now: Cloud, Heat, stackOf duplicate parts of the library's Band, Grid/Profile, stack (11–13): the
     question above (one should go).
-- Going live: **you said yes (2026-11-01)**, once Codex's review of Studio's chart code is done and its bugs fixed:
-  push next, `fleet update` the next servers (next.bitview.space), check it there (Chromium, Mullvad, the phone),
-  then prod. How it deploys (read 2026-11-01): all four servers are in mode `prod` (dots/pc/fleet.conf), which
-  follows the remote branch `prod` (fleet's resolve: ls-remote refs/heads/prod), and they serve both tunnels (next
-  and prod): there are no separate next servers. origin's next and prod are both 4f961b7f. So: push next, push
-  next to prod (`git push origin next next:prod`, a fast-forward), `fleet update` (one server at a time, each serving
-  again before the next), then check bitview.space/studio and next.bitview.space/studio in Chromium, Mullvad and on
-  the phone.
+- Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out). Made,
+  uncommitted: the two leftovers gone, (2) a picture clears the spotlight (spotlight(null), lit again after), (3) a
+  picture writes a value's as-of date after it (its ::after measured by a Range, in its color). Left for them: a
+  picture checked (studio.png with a layer selected, a series ending early), sweep, Codex, commit; then (1), (4), (5).
+  To fix:
+  - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
+    every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
+    (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;
+    fadeLayer ~16701); (3) a picture drops a resting value's as-of date (CSS content attr(data-as-of) ~6000, the
+    picture reads textContent ~38464); (4) on a named chip, moving onto it loses its caption, and hovering an axis
+    tag can't name it (the library names from crosshair.pointed/hit, cleared over page elements: index.js ~652, ~496;
+    lightTag ~19257 lights classes only); (5) a folded pane's legend with all hidden lists every item on one clipped
+    line (~2998 height 22px overflow hidden, ~17528).
+  - Leftovers: the "pane-layers" click branch (~39264) has no producer; profile captions call fitSoon on legends
+    (~17856), whose strip classes legends no longer have.
+  - Repeated work (measure first): profileShare per crosshair move (~22350, ~22553); a percent stack's readout
+    builds stackOf's key once a band (~18235, ~17832; bandAt calls stackOf before checking the pane is stacked,
+    ~17807); figuresRoom each move (~19638); readouts found and written for hidden legends (~18207).
 - Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
   whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
   (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js

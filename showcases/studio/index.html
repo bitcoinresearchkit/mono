@@ -17852,7 +17852,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if ((button.dataset.lit ?? "") === lit) continue;
           lit ? (button.dataset.lit = lit) : delete button.dataset.lit;
           writeHtml(named, lit ? legendNameHtml(layer, `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${profileMark([ink(profileColor(layer, lit))])}</svg>`, cohortName(lit)) : legendNameHtml(layer));
-          fitSoon(/** @type {HTMLElement} */ (button.closest(".legend")));
         }
       }
       /**
@@ -38460,8 +38459,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!element?.textContent?.trim() || !element.getClientRects().length) continue;
               // (Its words where they're drawn: past its padding; a value beside its name.)
               const style = getComputedStyle(element), inset = parseFloat(style.paddingLeft) * scale, at = box(element);
-              const text = element.textContent.trim();
-              pieces.push({ ...at, x: at.x + inset, width: at.width - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
+              const text = element.textContent.trim(), after = getComputedStyle(element, "::after");
+              // (A value older than the view's end: its date after it as the page shows it (its ::after, not in its text,
+              // where a rule shows it), quieter; the value's words up to where they end.)
+              const asOf = element.dataset.asOf && after.content !== "none" && after.display !== "none" ? element.dataset.asOf : "";
+              const range = asOf ? document.createRange() : null;
+              range?.selectNodeContents(element);
+              const end = range ? ((words) => words.x + words.width)(box(range)) : at.x + at.width;
+              pieces.push({ ...at, x: at.x + inset, width: end - at.x - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
+              if (asOf) {
+                pieces.push({ ...at, x: end, width: at.x + at.width - end, faded, text: ` · ${asOf}`, font: `${after.fontWeight} ${parseFloat(after.fontSize) * scale}px ${after.fontFamily}`, color: after.color, align: /** @type {CanvasTextAlign} */ ("left") });
+              }
             }
           }
         }
@@ -38483,6 +38491,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const legend of laid) legend.setWhole(true);
         // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
         if (lit) (profileLit = null), paintProfileItems();
+        // (Every layer as it is, none faded by the spotlight: lit again after.)
+        const spot = spotlit;
+        spotlight(null);
         for (const [legend] of strips) Object.assign(legend.style, { display: "flex", flexWrap: "wrap", overflow: "visible", rowGap: "2px", height: "auto" });
         // (A profile's key onto more lines where it's longer than its pane is wide.)
         for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
@@ -38496,6 +38507,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const [key, cssText] of keys) key.style.cssText = cssText;
           for (const legend of laid) legend.setWhole(false);
           if (lit && !profileLit) (profileLit = lit), paintProfileItems();
+          spotlight(spot);
         };
       }
       /** The legends' marks, drawn from their own drawings (one that fails is left out). */
@@ -39260,7 +39272,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (action === "full") setFull();
         else if (action === "draw") toggleBelt();
-        else if (action === "pane-layers") paneLayers(/** @type {string} */ (target.dataset.pane));
         else if (action === "close-palette") dismissPalette(true);
         else if (action === "close-shortcuts") leave($("shortcuts"));
         else if (action === "close-guide") leave($("guide"));
