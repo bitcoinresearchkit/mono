@@ -152,8 +152,6 @@ class Series {
     this.times = new Float64Array(0);
     /** @type {Float64Array} */
     this.values = new Float64Array(0);
-    /** @type {Float64Array} */
-    this.columns = new Float64Array(0);
     /** @type {any[] | null} */
     this.rows = null;
     /** Whether its rows are its own copy (Studio's arrays, given to setData, never changed). */
@@ -185,17 +183,11 @@ class Series {
 
   // ── What Studio calls ──
 
-  options() {
-    return this.opts;
-  }
-
   /** @param {any} options */
   applyOptions(options) {
     this.opts = { ...this.opts, ...options };
     this.#style();
-    // (Pushed again only where its push reads what changed (its place in a stack): a look alone is set (Studio's
-    // bubbles' sizes, as the view moves, a spotlight's fading); a pane's writers or stack set again; shown or hidden,
-    // drawn whole.)
+    // (A look alone set; shown or hidden, drawn whole.)
     if ("visible" in options) this.chart.engine.invalidate(true);
     this.chart.changed();
   }
@@ -228,25 +220,7 @@ class Series {
 
   /** Its rows onto the timeline (its bars; its closes its values: see Painted). @param {Float64Array} times */
   push(times) {
-    this.columns = this.painted.push(times);
-  }
-
-  /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */
-  dataByIndex(index, mismatch = 0) {
-    const times = this.chart.times, columns = this.columns;
-    const has = (/** @type {number} */ k) => k >= 0 && k < columns.length && columns[k] === columns[k];
-    // (From outside the timeline, a way toward it: from its nearer end.)
-    let i = mismatch > 0 ? Math.max(0, Math.round(index)) : mismatch < 0 ? Math.min(columns.length - 1, Math.round(index)) : Math.round(index);
-    if (!has(i)) {
-      if (!mismatch) return null;
-      while (i >= 0 && i < columns.length && !has(i)) i += mismatch > 0 ? 1 : -1;
-      if (!has(i)) return null;
-    }
-    if (this.rows) {
-      const k = indexOf(this.times, times[i]);
-      if (k >= 0) return this.rows[k];
-    }
-    return { time: times[i], value: columns[i] };
+    this.painted.push(times);
   }
 }
 
@@ -285,17 +259,13 @@ function lowerBound(places, n, at) {
   return lo;
 }
 
-/** A canvas a hit's drawing goes to (its marks found, not seen). @type {CanvasRenderingContext2D | null} */
-let unseen = null;
-
 /**
- * A custom series' view (Studio's clouds, heatmaps, bubbles: the chart library's custom series), drawn by a Custom of
- * bitview-charts as the chart library drew it: its rows its bars (each its place on the timeline, `time`, and as drawn
- * its x; whitespace, by its view, none), the strip being drawn its range (and the bars whose marks reach into it: a
- * bubble's radius; a heatmap's, all in view: what it draws, it keeps), its renderer given the canvas in device pixels
- * (or CSS ones) and its scale's y. Fitted to its rows' prices (its priceValueBuilder's) or by its
- * autoscaleInfoProvider; on an overlay, its scale its own (fixed by it). Hit where its renderer's hitTest says, its
- * marks around the point drawn unseen first (only the strips' are kept as drawn). Nothing made a frame.
+ * A custom series' view (Studio's clouds, shades, heatmaps, profiles: the chart library's custom series), drawn by a
+ * Custom of bitview-charts as the chart library drew it: its rows its bars (each its place on the timeline, `time`, and
+ * as drawn its x; whitespace, by its view, none), the strip being drawn its range (and the bars reaching into it; a
+ * heatmap's, all in view: what it draws, it keeps), its renderer given the canvas in device pixels (or CSS ones) and
+ * its scale's y. Fitted to its rows' prices (its priceValueBuilder's) or by its autoscaleInfoProvider; on an overlay,
+ * its scale its own (fixed by it). Never hit. Nothing made a frame.
  */
 class Painted {
   /** @param {Series} series @param {any} view */
@@ -325,7 +295,6 @@ class Painted {
       draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1, at.dpr),
       extent: (a, b, positive, out) => this.#extent(a, b, positive, out),
       first: (i) => this.#first(i),
-      distance: (_i, y, scale, x) => this.#distance(scale, x, y),
     });
   }
 
@@ -381,9 +350,9 @@ class Painted {
   #draw(g, time, scale, x0, x1, dpr) {
     const o = this.series.opts, bars = this.bars;
     this.scale = scale;
-    // (Its marks' reach past their point: a bubble's radius, its ring. One drawn whole each frame (a heatmap: it keeps
-    // the days it draws, asks for those missing), all in view.)
-    const all = this.engine.fixed, reach = (o.size ?? 0) / 2 + 4;
+    // (Its marks' reach past their point. One drawn whole each frame (a heatmap: it keeps the days it draws, asks for
+    // those missing), all in view.)
+    const all = this.engine.fixed, reach = 4;
     const a = all ? time.from - 1 : time.index(x0 - reach) - 1, b = all ? time.to + 1 : time.index(x1 + reach) + 1;
     const from = lowerBound(this.places, this.count, Math.floor(a)), to = lowerBound(this.places, this.count, Math.ceil(b) + 1);
     for (let k = from; k < to; k++) bars[k].x = time.x(bars[k].time);
@@ -415,18 +384,5 @@ class Painted {
     const closes = this.closes;
     for (let k = Math.max(0, i); k < closes.length; k++) if (closes[k] === closes[k]) return closes[k];
     return NaN;
-  }
-
-  /**
-   * How far a point is from it: none (0) where its renderer's hitTest finds one of its marks, its marks around the point
-   * drawn unseen first; else never hit.
-   * @param {Scale} scale @param {number} x @param {number} y
-   */
-  #distance(scale, x, y) {
-    if (!this.renderer.hitTest) return Infinity;
-    unseen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-    const chart = this.series.chart.engine;
-    this.#draw(unseen, chart.time, scale, x, x, chart.dpr);
-    return this.renderer.hitTest(x, y) ? 0 : Infinity;
   }
 }

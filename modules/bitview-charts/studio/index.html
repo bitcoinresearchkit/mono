@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Line, Band, Bars, Candles, Marks, Levels, Custom, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { Line, Band, Bars, Candles, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -13190,7 +13190,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   stretchResult).
        *   Bubbles ("bubbles"): its values as bubbles on another layer (`ref`, the first that can carry them if none;
        *   none, "": along its pane's middle), each date's at that layer's value there, its area its own value's size (see
-       *   bubbleView): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
+       *   Bubbles): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
        *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
        *   (`colorBelow`, red unset; `colors` 1, its one).
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
@@ -17191,14 +17191,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             else heatSeries.delete(series);
           } else if (layer.type === "bubbles") {
             // (On the layer they're on, at its scale (see normalize: its pane, its side); on none, along their pane's middle,
-            // on a scale of their own. Sized against the largest in view, or of all their history: see bubbleView.)
+            // on a scale of their own. Sized against the largest in view, or of all their history: see Bubbles.)
             const on = doc.layers.some((other) => other.id === layer.ref), values = result?.values;
             // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
             const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : shownSpan()) : 0;
-            const options = { ...common, lastValueVisible: false, priceLineVisible: false, up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "", hitTestTolerance: 0, ...(on ? {} : { priceScaleId: `bubbles:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) }) };
-            series = madeOrKept(() => view.addCustomSeries(bubbleView(), options, pane), options);
-            // (On none: its scale's middle the pane's, its margins even.)
-            if (!on && series.engine.overlay) (series.engine.overlay.top = 0.1), (series.engine.overlay.bottom = 0.1);
+            series = again ?? new Bubbles(pane, layer.side, !on);
+            series.engine.hidden = !common.visible;
+            series.style({ up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "" });
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -17229,9 +17228,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
           if (heatLike(layer)) setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
-          // (Bubbles' rows: each date's own value (its size) and where it sits, the value there of the layer it's on, as
-          // drawn (a stack's, its total); on none, its pane's middle.)
-          else if (layer.type === "bubbles") setRows(series, result?.values ? bubbleRows(doc, data, layer, stacked) : []);
+          // (Bubbles' sizes, each date's own value, and places, the value there of the layer they're on, as drawn (a
+          // stack's, its total); on none, its pane's middle.)
+          else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
           else if (!result?.values && again && before?.shown) {
             customKind(layer) ? series.setData([]) : setColumn(series, EMPTY, false);
             const close = closes.get(layer.id);
@@ -17324,7 +17323,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         markSignals(doc, data, drawn, old);
         for (const series of old) {
           heatSeries.delete(series), dropOwnLayers(series);
-          if (!(series instanceof Standard)) view.removeSeries(series);
+          if (!(series instanceof Standard || series instanceof Bubbles)) view.removeSeries(series);
           else ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
         }
         while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
@@ -18597,6 +18596,126 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.edge = kind === "band" ? on.add(new Line(), side) : null;
         }
       }
+      /**
+       * A bubbles layer on the library (see Layer): a bubble a date, at its place there (`y`: the value there of the
+       * layer it's on; on none, its pane's middle, on a scale of its own), its area its own value's size (`v`): the
+       * largest `most` (of what's in view, kept by sizeBubbles; of all its history) `size` across, each other by the
+       * square root of its share of it (area for size, as read), those under `hide` of it left out (a date without its own
+       * value, none: there all the same, so its places start where the layer's do, a percent or an indexed scale's base
+       * the same). Above zero in its color, below in its second, each filled faintly and edged (`up`, `upEdge`, `down`,
+       * `downEdge`); the largest drawn first, the smallest on top, none hidden behind a big one; outlined (`halo`), each
+       * ringed in the chart's background first. Fitted to its places (on none, its own scale 0 to 1); hit where a bubble's
+       * drawn.
+       */
+      class Bubbles {
+        /** @param {number} pane @param {"left" | "right"} side @param {boolean} own */
+        constructor(pane, side, own) {
+          this.side = side;
+          /** Its sizes and places on the timeline. */
+          (this.v = EMPTY), (this.y = EMPTY);
+          this.look = { up: "", upEdge: "", down: "", downEdge: "", size: BUBBLE_SIZE, hide: BUBBLE_HIDE, most: 0, halo: "" };
+          /** Its places as a line (in no pane): their extents by blocks, not point by point, each frame. */
+          this.places = new Line();
+          this.engine = new Custom({
+            draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1, at.dpr),
+            extent: (a, b, positive, out) => void (!this.engine.overlay && this.places.extent(a, b, positive, out)),
+            first: (i) => (this.engine.overlay ? 1 : this.places.first(i)),
+            distance: (_i, y, scale, x) => this.#distance(scale, x, y),
+          });
+          // (On none: along its pane's middle, its margins even.)
+          if (own) ((this.engine.overlay = new Scale({ top: 0.1, bottom: 0.1 })), this.engine.overlay.fit(0, 1));
+          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+        }
+
+        /** Its sizes and places, on the timeline. @param {Float64Array} v @param {Float64Array} y */
+        set(v, y) {
+          (this.v = v), (this.y = y);
+          this.places.setValues(y);
+          this.#changed();
+        }
+
+        /** What it draws changed: its pane drawn whole at the next frame, asked for (a live tick, the view's range). */
+        #changed() {
+          this.engine.changed();
+          engine.invalidate();
+        }
+
+        /** One date's size and place, in place (the timeline grown to it: the dates opened meanwhile empty). @param {number} at @param {number} v @param {number} y */
+        place(at, v, y) {
+          if (this.v.length <= at) {
+            const grow = (/** @type {Float64Array} */ from) => ((out) => (out.set(from), out))(new Float64Array(at + 1).fill(NaN));
+            (this.v = grow(this.v)), (this.y = grow(this.y));
+            this.places.setValues(this.y);
+          }
+          (this.v[at] = v), (this.y[at] = y);
+          this.places.set(at, y);
+          this.#changed();
+        }
+
+        /** Its look (see the class). @param {Partial<Bubbles["look"]>} look */
+        style(look) {
+          Object.assign(this.look, look);
+          this.#changed();
+        }
+
+        /**
+         * Each bubble from x `x0` to `x1` (and those reaching in) as `each` takes it: its middle, its radius (CSS pixels),
+         * above zero or not; none where it has no size or place, or is too small.
+         * @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
+         * @param {number} x0 @param {number} x1 @param {(x: number, y: number, r: number, up: boolean) => void} each
+         */
+        #each(time, scale, x0, x1, each) {
+          const { most, hide, size } = this.look, v = this.v, y = this.y, R = size / 2, reach = R + 4;
+          if (!(most > 0)) return;
+          const least = hide * most, a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(v.length - 1, Math.ceil(time.index(x1 + reach)));
+          for (let i = a; i <= b; i++) {
+            const worth = Math.abs(v[i]), at = worth > 0 && worth < Infinity && worth >= least ? scale.y(y[i]) : NaN;
+            if (at === at) each(time.x(i), at, R * Math.sqrt(Math.min(1, worth / most)), v[i] >= 0);
+          }
+        }
+
+        /**
+         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
+         * @param {number} x0 @param {number} x1 @param {number} dpr
+         */
+        #draw(g, time, scale, x0, x1, dpr) {
+          // (Found, then drawn largest first: kept between frames, grown, nothing made anew each.)
+          let n = 0;
+          this.#each(time, scale, x0, x1, (x, y, r, up) => {
+            if (BUBBLE.r.length <= n) for (const key of /** @type {const} */ (["x", "y", "r", "up", "order"])) BUBBLE[key] = ((out) => (out.set(BUBBLE[key]), out))(new (key === "order" ? Int32Array : key === "up" ? Uint8Array : Float64Array)(n * 2 + 64));
+            (BUBBLE.x[n] = x), (BUBBLE.y[n] = y), (BUBBLE.r[n] = r), (BUBBLE.up[n] = up ? 1 : 0), (BUBBLE.order[n] = n), n++;
+          });
+          if (!n) return;
+          const look = this.look, radii = BUBBLE.r, sorted = BUBBLE.order.subarray(0, n).sort((a, b) => radii[b] - radii[a]);
+          // (Device pixels whole: a ring and an edge as the chart library drew them.)
+          g.lineWidth = Math.max(1, Math.floor(dpr)) / dpr;
+          const ring = Math.max(1, Math.round(1.5 * dpr)) / dpr;
+          for (const k of sorted) {
+            const up = BUBBLE.up[k] === 1, x = BUBBLE.x[k], y = BUBBLE.y[k], r = radii[k];
+            if (look.halo) {
+              g.beginPath();
+              g.arc(x, y, r + ring, 0, Math.PI * 2);
+              g.fillStyle = look.halo;
+              g.fill();
+            }
+            g.beginPath();
+            g.arc(x, y, r, 0, Math.PI * 2);
+            g.fillStyle = up ? look.up : look.down;
+            g.fill();
+            g.strokeStyle = up ? look.upEdge : look.downEdge;
+            g.stroke();
+          }
+        }
+
+        /** None (0) where a bubble's drawn under the point, else never hit. @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} x @param {number} y */
+        #distance(scale, x, y) {
+          let hit = false;
+          this.#each(engine.time, scale, x, x, (cx, cy, r) => void (hit ||= Math.hypot(x - cx, y - cy) <= r));
+          return hit ? 0 : Infinity;
+        }
+      }
+      /** The bubbles a draw found (their middles, radii, sides, and order by size), kept and grown. */
+      const BUBBLE = { x: new Float64Array(64), y: new Float64Array(64), r: new Float64Array(64), up: new Uint8Array(64), order: new Int32Array(64) };
       /** A stack's range from zero: its own (`out` widened by it and zero), none in view nothing. (Made once.) */
       const SPAN = new Float64Array(2);
       /**
@@ -18998,9 +19117,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (time !== null && pane !== undefined && resolved && doc.layers.some((layer) => layer.type === "bubbles")) {
           const x = xOfTime(time), i = lowerBound(resolved.times, time);
           for (const layer of doc.layers) {
-            const series = drawn.get(layer.id), row = series && layer.type === "bubbles" && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? series.dataByIndex(i) : null;
+            const series = drawn.get(layer.id), row = series instanceof Bubbles && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? { v: series.v[i], y: series.y[i] } : null;
             if (!row || x === null) continue;
-            const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? seriesY(series, row.y) : null;
+            const { most, hide, size, upEdge, downEdge } = series.look, worth = Math.abs(row.v), y = Number.isFinite(row.y) ? seriesY(series, row.y) : null;
             if (y === null || !(most > 0 && worth > 0 && worth < Infinity && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
             // (A pixel clear of the bubble, and of the crosshair's dot on its layer, a small bubble's under it.)
             lit = { x, y, d: Math.max(size * Math.sqrt(Math.min(1, worth / most)), 2 * (MARKER.radius + MARKER.border)) + 6, color: row.v >= 0 ? upEdge : downEdge };
@@ -21866,25 +21985,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Bubbles: a series' sizes on another layer ───────────────────────────────
 
       /**
-       * Bubbles as the chart draws them (a "bubbles" layer, see Layer): a bubble a date, on the value there of the layer
-       * it's on (a row's `y`), its area its own value's size (`v`): the largest `most` (of what's in view, kept by
-       * sizeBubbles; of all its history) `size` across, each other by the square root of its share of it (area for size,
-       * as read), those under `hide` of it left out (a date without its own value, none: there all the same, so its
-       * values start where the layer's do, a percent or an indexed scale's base the same). Above zero in its color, below
-       * in its second, each filled faintly and edged (`up`, `upEdge`, `down`, `downEdge`); the largest drawn first, the
-       * smallest on top, none hidden behind a big one; outlined (`halo`), each ringed in the chart's background first.
-       * One of the chart's own series, on the layer's scale: hit where a bubble's drawn, no other way (see its
-       * hitTestTolerance).
-       */
-      /**
-       * Bubbles' rows: each date's own value (its size) and where it sits, the value there of the layer it's on as drawn (a
-       * stack's, its total; on a log scale, none at 0 or under, as it draws none); on none, its pane's middle.
+       * Bubbles' sizes, each date's own value, and places, the value there of the layer they're on as drawn (a stack's,
+       * its total; on a log scale, none at 0 or under, as it draws none); on none, its pane's middle. On the timeline.
        * @param {Chart} doc @param {Resolved} data @param {Layer} layer @param {Map<string, { values: Vector }>} stacked
+       * @returns {[Float64Array, Float64Array]}
        */
-      function bubbleRows(doc, data, layer, stacked) {
+      function bubbleColumns(doc, data, layer, stacked) {
         const own = /** @type {Vector} */ (data.results.get(layer.id)?.values), on = doc.layers.find((other) => other.id === layer.ref);
         const at = on && (stacked.get(on.id)?.values ?? data.results.get(on.id)?.values), log = Boolean(on) && modeOf(doc, /** @type {Layer} */ (on)) === 1;
-        return data.times.map((time, i) => ({ time, v: own?.[i] ?? NaN, y: !on ? 0.5 : ((value) => (Number.isFinite(value) && (!log || value > 0) ? value : NaN))(at?.[i] ?? NaN) }));
+        const n = data.times.length, v = new Float64Array(n), y = new Float64Array(n);
+        for (let i = 0; i < n; i++) (v[i] = own?.[i] ?? NaN), (y[i] = !on ? 0.5 : ((value) => (Number.isFinite(value) && (!log || value > 0) ? value : NaN))(at?.[i] ?? NaN));
+        return [v, y];
       }
       /**
        * Bubbles' largest in view, kept as the view moves (theirs sized to it, not to all of their history): set where it
@@ -21896,7 +22007,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const series = drawn.get(layer.id), values = resolved.results.get(layer.id)?.values;
           if (layer.type !== "bubbles" || layer.scaleTo === "all" || !series || !values) continue;
           const most = mostIn(values, shownSpan());
-          if (series.options().most !== most) series.applyOptions({ most });
+          if (series.look.most !== most) series.style({ most });
         }
       }
       /** Values' largest size (in all of them, without a range), 0 for none. @param {Vector} values @param {{ from: number, to: number } | null} [range] */
@@ -21906,61 +22017,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (range) for (let i = Math.max(0, Math.ceil(range.from)); i <= Math.min(values.length - 1, Math.floor(range.to)); i++) if (Math.abs(values[i]) > most && Math.abs(values[i]) < Infinity) most = Math.abs(values[i]);
         return most;
       };
-      function bubbleView() {
-        /** @type {any} */
-        let data = null, options = /** @type {any} */ ({});
-        // The bubbles drawn, by size, kept between frames, nothing made anew each: their bars, and as drawn (CSS pixels)
-        // their middles and radii, for what's hit.
-        let order = new Int32Array(0), ups = new Uint8Array(0), radii = new Float64Array(0), xs = radii, ys = radii, drawn = 0;
-        return {
-          renderer: () => ({
-            draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => {
-              drawn = 0;
-              const range = data?.visibleRange, most = options.most;
-              if (!range || !data.bars.length || !(most > 0)) return;
-              const { context, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
-              const from = Math.max(0, range.from), to = Math.min(data.bars.length, range.to);
-              if (order.length < to - from) (order = new Int32Array((to - from) * 2)), (ups = new Uint8Array((to - from) * 2)), ([radii, xs, ys] = [0, 0, 0].map(() => new Float64Array((to - from) * 2)));
-              const least = options.hide * most, R = options.size / 2;
-              let n = 0;
-              for (let i = from; i < to; i++) {
-                const { x, originalData: row } = data.bars[i], size = Math.abs(row.v), at = size > 0 && size < Infinity && size >= least ? toY(row.y) : null;
-                if (at === null) continue;
-                (order[n] = n), (ups[n] = row.v >= 0 ? 1 : 0), (xs[n] = x), (ys[n] = at), (radii[n++] = R * Math.sqrt(Math.min(1, size / most)));
-              }
-              const sorted = order.subarray(0, n).sort((a, b) => radii[b] - radii[a]);
-              context.lineWidth = Math.max(1, Math.floor(h));
-              for (const k of sorted) {
-                const up = ups[k] === 1, cx = xs[k] * h, cy = ys[k] * v, r = radii[k] * h;
-                if (options.halo) {
-                  context.beginPath();
-                  context.arc(cx, cy, r + Math.max(1, Math.round(1.5 * h)), 0, Math.PI * 2);
-                  context.fillStyle = options.halo;
-                  context.fill();
-                }
-                context.beginPath();
-                context.arc(cx, cy, r, 0, Math.PI * 2);
-                context.fillStyle = up ? options.up : options.down;
-                context.fill();
-                context.strokeStyle = up ? options.upEdge : options.downEdge;
-                context.stroke();
-              }
-              drawn = n;
-            }),
-            // (A point in a bubble, the topmost: drawn last, the smallest.)
-            hitTest: (/** @type {number} */ x, /** @type {number} */ y) => {
-              let best = -1;
-              for (let k = 0; k < drawn; k++) if (Math.hypot(x - xs[k], y - ys[k]) <= radii[k] && (best < 0 || radii[k] < radii[best])) best = k;
-              return best < 0 ? null : { distance: 0, type: /** @type {const} */ ("point") };
-            },
-          }),
-          update: (/** @type {any} */ next, /** @type {LC.CustomSeriesOptions} */ given) => ((data = next), (options = given)),
-          priceValueBuilder: (/** @type {any} */ row) => [row.y],
-          /** @param {any} row @returns {row is LC.CustomSeriesWhitespaceData<LC.Time>} */
-          isWhitespace: (row) => !Number.isFinite(row.y),
-          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, up: "transparent", upEdge: "transparent", down: "transparent", downEdge: "transparent", size: BUBBLE_SIZE, hide: BUBBLE_HIDE, most: 0, halo: "", hitTestTolerance: 0 }),
-        };
-      }
 
       // ── Heatmaps: the URPD, a day a column ──────────────────────────────────────
 
@@ -24558,7 +24614,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             // (A layer bubbles ride, its values as they ride it, its line's breaks not theirs: the chart's scale reads them, see
-            // bubbleView.)
+            // Bubbles.)
             for (const item of shaped) {
               const values = carried.has(item.layer.id) ? stacked.get(item.layer.id)?.values ?? data.results.get(item.layer.id)?.values : null;
               for (let i = first; values && i <= last; i++) ((value) => Number.isFinite(value) && ((lo = Math.min(lo, value)), (hi = Math.max(hi, value))))(item.scaled(values[i]));
@@ -32905,7 +32961,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
             : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? `${named.length} series` : undefined, page: () => listPage("Turn into a series", () => seriesChoices(id), "Turn") }]
             : []),
-          // (Its values as bubbles on another layer, picked: see bubbleView.)
+          // (Its values as bubbles on another layer, picked: see Bubbles.)
           ...(layer.from || placedOn(layer) || heatLike(layer) || !markable(chart).some((other) => other.id !== id) ? [] : [{ key: "bubbles", icon: glyph("bubbles"), label: "As bubbles on…", aside: inPalette ? "Sized by its values" : undefined, page: () => choicePage("As bubbles on", () => markable(chart).filter((other) => other.id !== id).map((other) => ({ key: other.id, icon: letterChip(other), label: labelOf(other), run: () => editById(id, (item) => reshape(item, (one) => Object.assign(one, { type: "bubbles", ref: other.id }))) }))) }]),
           // (Its settings', by its name: its eye there.)
           ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
@@ -39850,7 +39906,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (own && own.close.length > at) own.set(at, candle[0], candle[1], candle[2], value), engine.invalidate();
             else if (own) own.setValues(candleColumns(ohlc, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
           }
-          const custom = customKind(layer);
+          // (Bubbles' own below, with their places.)
+          const custom = customKind(layer) && layer.type !== "bubbles";
           if (custom) for (const gap of added.slice(0, -1)) series?.update({ time: gap });
           // (Painted date by date: its point once every live value is in, from the colors as they are then; kept with the
           // others. Rows (a cloud's), the dates opened meanwhile empty.)
@@ -39862,7 +39919,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
           if (rows?.paintWith) toPaint.push({ id: layer.id, series, rows, point: { time, value } });
           else if (custom) series?.update({ time, value });
-          else if (series) liveColumn(series, values, at, value);
+          else if (series instanceof Standard) liveColumn(series, values, at, value);
           if (paintedLayers.has(layer.id)) toPaint.push({ id: layer.id, series, rows: null, point: null });
           if (close) tintClose(layer.id);
           moved = true;
@@ -39876,9 +39933,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           const series = drawn.get(layer.id);
           if (layer.type !== "bubbles" || !series || !(movedIds.has(layer.id) || movedIds.has(layer.ref ?? ""))) continue;
-          if (!movedIds.has(layer.id)) for (const gap of added.slice(0, -1)) series.update({ time: gap });
           const on = inDoc(layer.ref), y = on ? /** @type {Vector | undefined} */ (built.get(on.id)?.shown)?.[at] ?? NaN : 0.5;
-          series.update({ time, v: data.results.get(layer.id)?.values?.[at] ?? NaN, y: on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y });
+          series.place(at, data.results.get(layer.id)?.values?.[at] ?? NaN, on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y);
         }
         for (const id of new Set([...paintedLayers.keys(), ...paintedRows.keys()])) {
           // (Its point there: a value, or a cloud's band.)
