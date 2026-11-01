@@ -7,7 +7,7 @@
 import { kept } from "./format.js";
 import { Line, FAINT } from "./line.js";
 import { inkOn } from "./color.js";
-import { pill, PILL } from "./tags.js";
+import { pill } from "./tags.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -124,14 +124,14 @@ export class Crosshair {
     }
     g.font = theme.font;
     g.textBaseline = "middle";
-    // (Its value on its pane's axis, the tags it touches there covered with the ground: none shows cut beside it, as
-    // no time label does by its date. Written as nothing (a page's writer for a pane showing nothing): no badge.)
+    // (Its value on its pane's axis, over its tags (none hidden by it: each still read beside it). Written as nothing (a
+    // page's writer for a pane showing nothing): no badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       const value = pane.scale.value(this.y - pane.top), words = pane.axisLabel(value, pane.scale, pane.stepAt(value));
-      if (words) (g.fillStyle = theme.background), this.#cover(g, pane, 0, plot, this.width - left - plot), pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left");
+      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left");
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
-      if (leftWords) (g.fillStyle = theme.background), this.#cover(g, pane, 1, -left, left), pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
+      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
     }
     // (Its date on the time axis, its point's.)
     const times = time.times, k = Math.round(i);
@@ -147,28 +147,6 @@ export class Crosshair {
       }
       pill(g, words, theme.badge, inkOn(theme.badge), x, room + 13, "center");
     }
-  }
-
-  /**
-   * A pane's tags on one side (its lines' and its series' own) its value's badge touches, filled with the current
-   * style (the ground) across the axis, from `x`, `width` wide: the band they make taken in whole (a tag over one
-   * covered, its own: page tags may overlap), each tag by its pill's height.
-   * @param {CanvasRenderingContext2D} g @param {import("./pane.js").Pane} pane @param {number} side @param {number} x @param {number} width
-   */
-  #cover(g, pane, side, x, width) {
-    const drawn = pane.drawnTags[side], half = Math.max(1, drawn.step) / 2, page = pane.pageTags[side], y = this.y - pane.top;
-    let lo = y - PILL / 2, hi = y + PILL / 2, grown = true, any = false;
-    while (grown) {
-      grown = false;
-      for (let k = 0; k < drawn.lines.length + page.count; k++) {
-        const at = k < drawn.lines.length ? drawn.at[k] : page.at[k - drawn.lines.length], reach = k < drawn.lines.length ? half : PILL / 2;
-        // (Within the pixel the fill reaches past the band: any it would cut taken in whole.)
-        if (!(at - reach < hi + 1 && at + reach > lo - 1)) continue;
-        any = true;
-        if (at - reach < lo || at + reach > hi) (lo = Math.min(lo, at - reach)), (hi = Math.max(hi, at + reach)), (grown = true);
-      }
-    }
-    if (any) g.fillRect(x, pane.top + lo - 1, width, hi - lo + 2);
   }
 }
 
