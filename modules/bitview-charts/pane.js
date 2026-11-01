@@ -741,11 +741,12 @@ export class Pane {
     this.axesEnd = Math.ceil(time.to);
   }
 
-  /** Whether it has a tag shown (a line's, with one). */
+  /** Whether it has a tag shown that may read the view (a line's, with one; a page's own, asked each time: its axis tags). */
   #tagged() {
     for (let k = 0; k < this.series.length; k++) {
-      const line = this.series[k];
-      if (line instanceof Line && line.tag && !line.hidden && !line.faint) return true;
+      const series = this.series[k];
+      if (series.hidden || series.faint) continue;
+      if (series instanceof Line ? series.tag : series instanceof Custom && series.hooks.axisTags) return true;
     }
     return false;
   }

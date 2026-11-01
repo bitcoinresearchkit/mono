@@ -92,6 +92,8 @@ export class Chart {
     if (dateFormat) this.crosshair.setFormat(dateFormat);
     /** @type {((index: number, pane: number, y: number, input: boolean, x: number, series: number) => void)[]} */
     this.crosshairListeners = [];
+    /** The pane the crosshair was last in (null: none). @type {Pane | null} */
+    this.crossedPane = null;
     /** The pointer's x across the plot as the crosshair was last set by it (NaN: none). */
     this.pointerX = NaN;
     /** A pointer's crosshair to be found again at the next frame (see #recross); its pane's changes as it was told. */
@@ -209,12 +211,7 @@ export class Chart {
   /** @param {Pane} pane */
   removePane(pane) {
     this.panes = this.panes.filter((each) => each !== pane);
-    pane.canvas.remove();
-    pane.frame.remove();
-    pane.legend?.remove();
-    pane.axisCanvas.remove();
-    pane.leftCanvas?.remove();
-    pane.overCanvas?.remove();
+    detach(pane);
     this.layout();
   }
 
@@ -267,14 +264,19 @@ export class Chart {
     const k = index === index && this.time.length ? Math.min(Math.max(Math.round(index), 0), this.time.length - 1) : NaN, crosshair = this.crosshair;
     let pane = -1;
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
-    const moved = (k !== crosshair.index || y !== crosshair.y || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
-    (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.pointerX = x);
+    // (Its pane by itself, not its place: one removed, the next in its place is another.)
+    const inPane = pane >= 0 ? this.panes[pane] : null;
+    const moved = (k !== crosshair.index || y !== crosshair.y || inPane !== this.crossedPane || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
+    (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.crossedPane = inPane), (this.pointerX = x);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN, at = x === x ? x : k === k ? this.time.x(k) : NaN;
     // (A pointer's: the series it's on, found once (at the pointer, not the point), told and its dot marked by it.)
     if (!moved) return void this.invalidate();
     const hit = input && k === k && pane >= 0 ? this.panes[pane].hit(this.time, k, at, within) : -1;
     crosshair.hit = hit >= 0 ? this.panes[pane].series[hit] : null;
-    for (let l = 0; l < this.crosshairListeners.length; l++) this.crosshairListeners[l](k, pane, within, input, at, hit);
+    // (Its listeners as they were: their list never changed in place (one added or leaving makes a new one), so one
+    // leaving as it's told skips no other, one added isn't told this time.)
+    const listeners = this.crosshairListeners;
+    for (let l = 0; l < listeners.length; l++) listeners[l](k, pane, within, input, at, hit);
     this.invalidate();
   }
 
@@ -285,7 +287,7 @@ export class Chart {
    * @param {(index: number, pane: number, series: number, y: number, x: number) => void} listener
    */
   onClick(listener) {
-    this.clickListeners.push(listener);
+    this.clickListeners = [...this.clickListeners, listener];
     return () => void (this.clickListeners = this.clickListeners.filter((each) => each !== listener));
   }
 
@@ -296,7 +298,7 @@ export class Chart {
    * @param {(index: number, pane: number, y: number, input: boolean, x: number, series: number) => void} listener
    */
   onCrosshair(listener) {
-    this.crosshairListeners.push(listener);
+    this.crosshairListeners = [...this.crosshairListeners, listener];
     return () => void (this.crosshairListeners = this.crosshairListeners.filter((each) => each !== listener));
   }
 
@@ -316,19 +318,19 @@ export class Chart {
    * @param {() => void} listener
    */
   onLayout(listener) {
-    this.layoutListeners.push(listener);
+    this.layoutListeners = [...this.layoutListeners, listener];
     return () => void (this.layoutListeners = this.layoutListeners.filter((each) => each !== listener));
   }
 
   /** Told of a double-click or a double tap on the time axis: the page's view to come back to (the library's own: none). @param {() => void} listener */
   onTimeReset(listener) {
-    this.timeResetListeners.push(listener);
+    this.timeResetListeners = [...this.timeResetListeners, listener];
     return () => void (this.timeResetListeners = this.timeResetListeners.filter((each) => each !== listener));
   }
 
   /** Told each frame the view changed in. @param {(from: number, to: number) => void} listener */
   onRange(listener) {
-    this.rangeListeners.push(listener);
+    this.rangeListeners = [...this.rangeListeners, listener];
     return () => void (this.rangeListeners = this.rangeListeners.filter((each) => each !== listener));
   }
 
@@ -386,7 +388,8 @@ export class Chart {
     // (The crosshair's pane found again: panes moved, came or went.)
     this.#recross();
     this.invalidate(true);
-    for (let k = 0; k < this.layoutListeners.length; k++) this.layoutListeners[k]();
+    const listeners = this.layoutListeners;
+    for (let k = 0; k < listeners.length; k++) listeners[k]();
   }
 
   /**
@@ -496,7 +499,8 @@ export class Chart {
     this.placed = false;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
-      for (let k = 0; k < this.rangeListeners.length; k++) this.rangeListeners[k](time.from, time.to);
+      const listeners = this.rangeListeners;
+      for (let k = 0; k < listeners.length; k++) listeners[k](time.from, time.to);
     }
   }
 
@@ -790,7 +794,8 @@ export class Chart {
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
     if (pane >= 0 && index === index) series = this.panes[pane].hit(this.time, index, x, y - this.panes[pane].top);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN;
-    for (let l = 0; l < this.clickListeners.length; l++) this.clickListeners[l](index, pane, series, within, x);
+    const listeners = this.clickListeners;
+    for (let l = 0; l < listeners.length; l++) listeners[l](index, pane, series, within, x);
   }
 
   /**
@@ -820,9 +825,15 @@ export class Chart {
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();
-    for (const pane of this.panes) pane.canvas.remove(), pane.axisCanvas.remove(), pane.leftCanvas?.remove(), pane.overCanvas?.remove(), pane.frame.remove();
+    for (const pane of this.panes) detach(pane);
     this.timeAxis.canvas.remove();
     this.corner.remove();
     this.panes = [];
   }
+}
+
+/** A pane taken off its chart: its canvases and frame (its legend in it) gone, its chart no longer told of it (a page keeping it keeps no chart). @param {Pane} pane */
+function detach(pane) {
+  for (const element of [pane.canvas, pane.axisCanvas, pane.leftCanvas, pane.overCanvas, pane.frame]) element?.remove();
+  pane.onLayout = () => {};
 }

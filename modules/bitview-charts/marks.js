@@ -12,6 +12,8 @@ import { pill } from "./tags.js";
 
 /** A number rounded up, then down to an odd one, or an even one (as Lightweight Charts sized its markers). @param {number} x */
 const odd = (x) => ((n) => (n % 2 ? n : n - 1))(Math.ceil(x)), even = (/** @type {number} */ x) => ((n) => (n % 2 ? n - 1 : n))(Math.ceil(x));
+/** A mark's shape's height drawn at `size` (a small one no smaller than at 12 pixels). @param {string} shape @param {number} size */
+const shapeHeight = (shape, size) => (shape === "circle" ? odd(Math.max(size, 12) * 0.8) - 1 : shape === "square" ? odd(Math.max(size, 12) * 0.7) : odd(Math.max(size, 12)) - 1);
 /** Its words' pill: as tall as a tag's, 2 pixels from its shape. */
 const TALL = 16, GAP = 2;
 /** Words as wide as drawn in a font, each measured once (cleared when large). @type {Map<string, number>} */
@@ -39,8 +41,6 @@ export class Marks {
     this.said = new Uint8Array(0);
     this.saidAt = NaN;
     this.saidFont = "";
-    /** Whether it has marks above points, below them, on them, and words (its room at the scale's ends). */
-    (this.above = false), (this.below = false), (this.on = false), (this.words = false);
     /** How far past its point a mark reaches (its words' half, a shape's): drawn into the strips it reaches. */
     this.reach = 18;
     this.set(marks);
@@ -50,13 +50,6 @@ export class Marks {
   set(marks) {
     this.version++;
     this.marks = marks;
-    (this.above = false), (this.below = false), (this.on = false), (this.words = false);
-    for (const mark of marks) {
-      if (mark.text) this.words = true;
-      if (mark.position === "above") this.above = true;
-      else if (mark.position === "below") this.below = true;
-      else this.on = true;
-    }
     this.saidAt = NaN;
   }
 
@@ -84,9 +77,20 @@ export class Marks {
     (SPAN[0] = Infinity), (SPAN[1] = -Infinity);
     this.series.extent(Math.ceil(time.from), Math.floor(time.to), positive, SPAN);
     if (!(SPAN[0] <= SPAN[1])) return;
-    const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.words ? TALL + GAP : 0);
-    out[0] = Math.max(out[0], this.above ? room : this.on ? Math.ceil(room / 2) : 0);
-    out[1] = Math.max(out[1], this.below ? room : this.on ? Math.ceil(room / 2) : 0);
+    // (The tallest stack at a point, as drawn: each mark as tall as its shape is, a margin, its words' pill where it has
+    // words.)
+    const unit = Math.min(Math.max(spacing, 12), 30), height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3), marks = this.marks;
+    let point = -1, above = 0, below = 0, top = 0, foot = 0;
+    for (let k = 0; k < marks.length; k++) {
+      const mark = marks[k], size = height * (mark.size ?? 1), shape = Math.max(size, size && shapeHeight(mark.shape, size)) + margin, words = mark.text ? TALL + GAP : 0;
+      if (mark.at !== point) (point = mark.at), (above = below = 0);
+      if (mark.position === "above") top = Math.max(top, (above += shape + words));
+      else if (mark.position === "below") foot = Math.max(foot, (below += shape + words));
+      // (On its point: half its shape each way, its words under it.)
+      else (top = Math.max(top, shape / 2)), (foot = Math.max(foot, shape / 2 + words));
+    }
+    out[0] = Math.max(out[0], Math.ceil(top));
+    out[1] = Math.max(out[1], Math.ceil(foot));
   }
 
   /** Which marks show their words at `spacing`: from the latest back, each clear of the one after it (3 pixels apart). @param {CanvasRenderingContext2D} g @param {number} spacing */
@@ -149,11 +153,11 @@ export class Marks {
       if (!size) continue;
       g.fillStyle = mark.color;
       g.beginPath();
-      if (mark.shape === "circle") g.arc(x, y, (odd(Math.max(size, 12) * 0.8) - 1) / 2, 0, Math.PI * 2);
-      else if (mark.shape === "square") ((side) => g.rect(x - side / 2, y - side / 2, side, side))(odd(Math.max(size, 12) * 0.7));
+      if (mark.shape === "circle") g.arc(x, y, shapeHeight("circle", size) / 2, 0, Math.PI * 2);
+      else if (mark.shape === "square") ((side) => g.rect(x - side / 2, y - side / 2, side, side))(shapeHeight("square", size));
       else {
         // (An arrow: its head toward its point, its stem half as wide behind it.)
-        const up = mark.shape === "up" ? 1 : -1, head = (odd(Math.max(size, 12)) - 1) / 2, stem = (odd(size / 2) - 1) / 2;
+        const up = mark.shape === "up" ? 1 : -1, head = shapeHeight(mark.shape, size) / 2, stem = (odd(size / 2) - 1) / 2;
         g.moveTo(x - head, y);
         g.lineTo(x, y - up * head);
         g.lineTo(x + head, y);

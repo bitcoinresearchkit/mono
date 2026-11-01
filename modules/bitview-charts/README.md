@@ -132,8 +132,8 @@ chart.show(365);                                 // the last 365 points in view
   (written by `format`, else as a scale writes values: by its axis's ticks); `set({ lines })` or, a line changed in
   place, `changed()`; then `chart.invalidate(true)`.
 - Any series' `behind`: drawn behind every series, whatever their order (a backdrop: levels).
-- Any series' `faint`: drawn at a fifth of its opacity, its tag and price line gone (another lit over it); then
-  `chart.invalidate(true)`.
+- Any series' `faint`: drawn at a fifth of its opacity (`FAINT`, for a page's own layers to match), its tag and
+  price line gone (another lit over it); then `chart.invalidate(true)`.
 - Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log, fitted to it alone each frame where it has an
   extent, else as set: a volume along a price pane's foot, a page's drawing on a range of its own).
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
@@ -148,6 +148,9 @@ chart.show(365);                                 // the last 365 points in view
   frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
   placed in the plot); `behind`, behind every series; `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
+- `compact(v, step)`: a value as a scale writes it unless told otherwise (four significant digits at most, thousands as
+  K, M, B, T; given `step`, its ticks' around it, a decimal past theirs); `decimalsOf(step)`, the decimals a step's
+  written with: for a page's own words to read as the axis's.
 - Hits (`Pane.hit`, the crosshair's and clicks' series) are measured against each series' own drawing near the pointer
   (recorder.js: a canvas stand-in keeping its strokes, fills and dots), so they match the picture at any zoom.
 

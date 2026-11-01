@@ -8,6 +8,7 @@ import { kept } from "./format.js";
 import { Line, FAINT } from "./line.js";
 import { inkOn } from "./color.js";
 import { pill } from "./tags.js";
+import { painted } from "./recorder.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -109,7 +110,8 @@ export class Crosshair {
           const line = each.series[s];
           if (!(line instanceof Line) || !line.marker || line.hidden) continue;
           const v = line.values[i], scale = each.scaleOf(s);
-          if (v !== v) continue;
+          // (None where its color there paints nothing: an unseen line's ring would cover what's under it.)
+          if (v !== v || !painted(line.colorAt(i))) continue;
           if (scale.relative) {
             const base = line.first(from);
             if (!base || base !== base) continue;
