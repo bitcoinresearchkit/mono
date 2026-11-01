@@ -10,6 +10,17 @@
       content="{{PAGE_DESCRIPTION}}"
     />
     <link rel="canonical" href="{{CANONICAL_URL}}" />
+    <!-- (How a shared link previews: the page named and described, with the server's icon, the one it serves.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{CANONICAL_URL}}" />
+    <meta property="og:site_name" content="{{DISPLAY_NAME}} MCP" />
+    <meta property="og:title" content="{{PAGE_TITLE}}" />
+    <meta property="og:description" content="{{PAGE_DESCRIPTION}}" />
+    <meta property="og:image" content="{{PUBLIC_URL}}{{LOGO_PATH}}" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="{{DISPLAY_NAME}}'s icon: its cube pressed into orange" />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" href="{{PUBLIC_URL}}{{LOGO_PATH}}" type="image/png" sizes="512x512" />
     <title>{{PAGE_TITLE}}</title>
     <style>
