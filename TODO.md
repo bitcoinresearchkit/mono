@@ -12,6 +12,28 @@ Only what's left. An item done is removed: its history is in the commits and log
     - do the same at the latest bar;
     - turn the phone and back.
 
+- Decisions from the nights' work (2026-10-30 to 11-01; each with its numbers in
+  _notes/overnight-20261030/DECISIONS.md), mine noted:
+  - Charts saved with lag(…) now say "unknown function lag" (shift replaced it): Studio could rewrite lag( to shift(
+    in stored formulas as it reads them (one line). Mine: yes.
+  - Opening Studio at a preset's address: its data is asked for only once the presets are read (~80 ms after them in
+    Chromium, ~130 in Mullvad, more on the phone). Option: the last preset opened kept with its chart, its data
+    fetched at once, checked once the presets are read. It changes how Studio starts.
+  - Mullvad, the layers panel toggled on the 24-band stack: one frame of 50–67 ms at each toggle (2026-11-01; was
+    83–133 plus one of 50–67 with Lightweight Charts), the chart redrawn at its new width at the motion's end. Drawn
+    at its start instead, the long frame comes before the panel moves: a motion choice.
+  - Mullvad, the 24-band stack panned: ~20 ms a step (a whole draw each, the scale refitting: decision 12, as now),
+    ~12 of it the 24 lines' strokes, rasterized by Firefox's CPU canvas (~0.9 µs a segment at 1.5 px; their paths'
+    making is near nothing). Lines one device pixel wide take its hairline path and cost almost nothing, but that's
+    a third as wide as today on a 2x screen; strokes split in pieces gain ~10% and change the joins. Mine: leave it.
+
+## bitview-charts: raised by you, still open
+
+- OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
+  every color in the app written and derived in OKLCH; contrast judged by APCA (the best perceptual formula there is:
+  WCAG 3 has left its own undecided; CSS's contrast-color() uses WCAG 2's). Done in the library: the axis tags (tint()), heatmap gradients (gradientTable()), fades (Fill's stops); left:
+  Studio's own colors written in OKLCH (its palettes, CSS tokens: ~30 hex and ~80 rgb() left, 2026-11-01).
+
 ## Studio: raised by you, still open
 
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
