@@ -21,12 +21,13 @@
          out below the status bar (a chart's header out of the fade iOS 26 lays over a page's top under it), Home's lists
          softened where they scroll up to its top. -->
     <script src="/assets/launch/launch.js" data-wait data-below-status data-edge=".home-scroll"></script>
-    <!-- Studio on bitview-charts, a copy to test the library in, apart from Studio: its own storage (bitview-charts-studio:),
-         seeded once from Studio's (read, never written), so it opens on your charts; never installed as Studio. -->
+    <!-- Studio next: Studio on bitview-charts, to try before it replaces Studio (unlisted: an underscore folder). Its own
+         storage (bitview-studio-next:), seeded once from Studio's (read, never written), so it opens on your charts;
+         never installed as Studio. -->
     <script>
       for (const key of ["v2", "recent", "prefs", "preview", "unread", "views", "viewed", "thumbs", "preset-marks", "previews", "side-presets", "used"]) {
         try {
-          const own = `bitview-charts-studio:${key}`, studio = localStorage.getItem(`bitview-studio:${key}`);
+          const own = `bitview-studio-next:${key}`, studio = localStorage.getItem(`bitview-studio:${key}`);
           if (localStorage.getItem(own) === null && studio !== null) localStorage.setItem(own, studio);
         } catch {}
       }
@@ -34,7 +35,7 @@
     <meta name="description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <meta name="theme-color" content="#08090a" />
-    <title>Studio · bitview-charts</title>
+    <title>Studio · next</title>
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
     <link rel="alternate" type="text/markdown" href="https://bitview.space/studio/llms.txt" title="Bitview Studio, for assistants" />
@@ -10554,7 +10555,7 @@
       // Before the first paint, the page as it was left: the sidebar, the layers panel, the grid or a chart (the module
       // settles it, later, by the same rules); else they'd be seen moving into place.
       try {
-        const prefs = JSON.parse(localStorage.getItem("bitview-charts-studio:prefs") ?? "{}") ?? {};
+        const prefs = JSON.parse(localStorage.getItem("bitview-studio-next:prefs") ?? "{}") ?? {};
         // (A tablet's starts as a rail, its room the chart's, unless one was chosen.)
         if (prefs.sidebar === "collapsed" || (prefs.sidebar === undefined && matchMedia("(max-width: 1100px)").matches)) document.body.dataset.sidebar = "collapsed";
         // (The panel the same: a tablet's starts closed unless one was chosen; else it'd be seen sliding away.)
@@ -10574,10 +10575,10 @@
         // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
         // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
-        const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-charts-studio:v2") ?? "") || localStorage.getItem("bitview-charts-studio:preview") !== null;
+        const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio-next:v2") ?? "") || localStorage.getItem("bitview-studio-next:preview") !== null;
         // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
         // chart (an old one's, /chart/, too).)
-        const routed = /^\/modules\/bitview-charts\/studio\/presets(?:\/.*)?\/$|^\/modules\/bitview-charts\/studio\/presets$/.test(location.pathname) ? true : /^\/modules\/bitview-charts\/studio\/(?:presets|chart)\//.test(location.pathname) ? false : null;
+        const routed = /^\/_studio_next\/presets(?:\/.*)?\/$|^\/_studio_next\/presets$/.test(location.pathname) ? true : /^\/_studio_next\/(?:presets|chart)\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
@@ -13593,11 +13594,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Library, saving, undo ─────────────────────────────────────────────────
 
-      const STORE = "bitview-charts-studio:v2";
-      const RECENT = "bitview-charts-studio:recent";
-      const PREFS = "bitview-charts-studio:prefs";
+      const STORE = "bitview-studio-next:v2";
+      const RECENT = "bitview-studio-next:recent";
+      const PREFS = "bitview-studio-next:prefs";
       /** The previews edited and not yet kept or closed (every tab's): previews again at the next start. */
-      const PREVIEW_ASIDE = "bitview-charts-studio:preview";
+      const PREVIEW_ASIDE = "bitview-studio-next:preview";
       const storage = {
         get(key, fallback) {
           try {
@@ -13660,7 +13661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       library.deleted = deletedOf(library.deleted);
       /** Saved charts this version couldn't read, kept aside as they were: never lost to the next save. */
-      const UNREAD = "bitview-charts-studio:unread";
+      const UNREAD = "bitview-studio-next:unread";
       /** A stored chart, validated like any import but keeping its identity; throws if it isn't one. @returns {Chart} */
       function read(stored) {
         const doc = validate(stored, true);
@@ -14599,7 +14600,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * time and how many bars it lies from that point, so it holds as new points come in, and past either end of the data.
        * On its preset, a chart keeps nothing: the preset follows the newest data.
        */
-      const VIEWS = "bitview-charts-studio:views";
+      const VIEWS = "bitview-studio-next:views";
       /**
        * The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another
        * tab's write, read again. `viewsBase`: as read, to tell another tab's writes since from this one's. `viewsUnkept`: one
@@ -15099,7 +15100,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What adding a series offers first, after those added lately: the series most charts start from. */
       const SUGGESTED = ["price", "realized_price", "mvrv", "market_cap", "supply_in_profit", "hashrate"];
       /** The charts last opened, most recent first: kept on their own, so viewing reorders and edits nothing. */
-      const VIEWED = "bitview-charts-studio:viewed";
+      const VIEWED = "bitview-studio-next:viewed";
       const viewed = () => {
         const ids = storage.get(VIEWED, []);
         return Array.isArray(ids) ? ids.filter((id) => typeof id === "string" && /^[a-z0-9]{1,16}$/.test(id)) : [];
@@ -23803,9 +23804,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // own interval. Only the drawings are kept, by chart, with what they were drawn from and the day; a change, or a
       // new day, redraws them.
 
-      const THUMBS = "bitview-charts-studio:thumbs";
+      const THUMBS = "bitview-studio-next:thumbs";
       /** The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first (as a chart's, see THUMBS); let go of first, as the thumbs are, when storage is full. */
-      const PRESET_MARKS = "bitview-charts-studio:preset-marks";
+      const PRESET_MARKS = "bitview-studio-next:preset-marks";
       const THUMB_POINTS = 28;
       const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
       const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
@@ -24091,7 +24092,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // it as its type (see previewSvg), over the view the chart was left at (else its range), a point per few pixels. Drawn
       // from the chart's own data, which is then at hand when it opens.
 
-      const PREVIEWS = "bitview-charts-studio:previews";
+      const PREVIEWS = "bitview-studio-next:previews";
       const PREVIEW = { width: 320, height: 200, points: 120 };
       /**
        * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, one of
@@ -27295,7 +27296,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): kept in this
        * browser, the first to go when it's full, as a picture's are.
        */
-      const SIDE_PRESETS = "bitview-charts-studio:side-presets";
+      const SIDE_PRESETS = "bitview-studio-next:side-presets";
       let sidePresets = ((kept) => (typeof kept?.open === "string" && Array.isArray(kept.parts) && kept.parts.every((part) => Array.isArray(part) && part.length === 2 && part.every((text) => typeof text === "string")) ? /** @type {{ open: string, parts: [string, string][] }} */ (kept) : null))(storage.get(SIDE_PRESETS, null));
       const saveSidePresets = writeSoon(() => storage.set(SIDE_PRESETS, sidePresets));
       /** The presets' rows drawn, kept if they're new. @param {[string, string][]} parts */
@@ -28876,7 +28877,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Nothing to keep them in: made in the worker, but here while the page waits for them (an address or a link
           // being read, see presetsWaited): ~150 ms sooner on a phone in Lockdown Mode, the client here already read.)
           if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse(/** @type {string} */ ((await made(null)).text));
-          const store = await caches.open("bitview-charts-studio:presets");
+          const store = await caches.open("bitview-studio-next:presets");
           // (What they're made from: the presets, the palette they're colored by, the client.)
           const texts = await Promise.all([presetsUrl, new URL("/studio/palette.js", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
           const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -29131,9 +29132,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /* /addresses */
       /** Where Studio's served on a domain: DOMAIN/studio/, its own addresses (the presets') under it. */
-      const BASE = "/modules/bitview-charts/studio";
+      const BASE = "/_studio_next";
       /** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts; elsewhere (a file, another server's), none. */
-      const ROUTED = /^\/modules\/bitview-charts\/studio\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+      const ROUTED = /^\/_studio_next\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
       let addressBook = /** @type {{ for: Preset[] | null, steps: ReturnType<typeof addressSteps> | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, steps: null, book: null });
       /** The presets' addresses as they are now: those made already, else the rest made at once. */
@@ -29193,7 +29194,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The address the page is known by: the live one's (next's, any other, point there). */
       // (The copy's links its own: Studio's would open it, and its storage.)
-      const ORIGIN = `${location.origin}/modules/bitview-charts/studio`;
+      const ORIGIN = `${location.origin}/_studio_next`;
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
@@ -29216,7 +29217,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const list = (/** @type {string[]} */ names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "");
         document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
         // (The copy's tab told apart from Studio's.)
-        document.title += " · bitview-charts";
+        document.title += " · next";
         const as = `${address}|${home}|${i >= 0 ? chart.updated : ""}|${presets?.length ?? 0}`;
         const said = as === saidFor ? saidThen : i >= 0 && presets
           ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
@@ -35000,7 +35001,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── ⌘K remembers what you use ────────────────────────────────────────────
 
       /** What's picked from ⌘K's search, how often and when: what's used most, lately, comes first. */
-      const USED = "bitview-charts-studio:used";
+      const USED = "bitview-studio-next:used";
       let used = /** @type {Record<string, { n: number, at: number }>} */ (Object.fromEntries(Object.entries(storage.get(USED, {})).filter(([, use]) => Number.isFinite(use?.n) && Number.isFinite(use?.at))));
       /** A pick's weight: its count, fading over days (three days on, it counts half). */
       const useScore = (key) => (used[key] ? used[key].n / (1 + (Date.now() - used[key].at) / (3 * 86_400_000)) : 0);
