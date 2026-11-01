@@ -16,11 +16,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
+    <script src="/assets/launch/launch.js" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). Installed on an iPhone, laid
-         out below the status bar (a chart's header out of the fade iOS 26 lays over a page's top under it), Home's lists
-         softened where they scroll up to its top. -->
-    <script src="/assets/launch/launch.js" data-wait data-below-status data-edge=".home-scroll"></script>
     <!-- Studio next: Studio on bitview-charts, to try before it replaces Studio (unlisted: an underscore folder). Its own
          storage (bitview-studio-next:), seeded once from Studio's (read, never written), so it opens on your charts;
          never installed as Studio. -->
@@ -85,9 +83,6 @@
         --sheet-whole: 0.88;
         /* (What an installed app's status bar takes at the top, for the script to read.) */
         --safe-top: env(safe-area-inset-top);
-        /* (What its foot takes, --safe-bottom: the launcher's (laid out below the status bar, see the head). Home's edge
-           on its ground.) */
-        --edge-ground: var(--app);
         --sheet-half: 0.56;
         /* (Their heights on whole pixels: a sheet's top between two, Safari can leave a pixel's row of it unpainted, the
            page behind showing through under its handle.) */
@@ -233,16 +228,6 @@
         overscroll-behavior: none;
         /* (Wrapped text, everywhere, no word left alone on its last line.) */
         text-wrap-style: pretty;
-      }
-
-      /* Installed on an iPhone: iOS starts the page a status bar's height short of the screen and gives it the rest only
-         once the page is taller than that; laid out to its viewport, it never was, the screen's foot a black strip under
-         the tab bar for good. At least the screen's height, it's given the screen (and is then that tall: nothing to
-         scroll). Elsewhere the large viewport is the viewport (or a browser's, its bars down): nothing. */
-      @media (display-mode: standalone) {
-        html {
-          min-height: 100lvh;
-        }
       }
 
       /* A finger's: no grey flash on a tap (over a whole list either); a control's, no wait for a second (a double tap
@@ -2327,7 +2312,7 @@
           border-color: transparent;
           border-radius: 0;
           /* (On a phone, what the header and the tab bar kept clear: the notch, the home indicator.) */
-          padding: env(safe-area-inset-top) 0 var(--safe-bottom);
+          padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
         .card-head {
@@ -6978,9 +6963,9 @@
 
       /* (Centered in what the screen leaves: on a phone, clear of its status bar and home indicator, its notch on its side.) */
       .shortcuts {
-        inset: env(safe-area-inset-top) env(safe-area-inset-right) var(--safe-bottom) env(safe-area-inset-left);
+        inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         width: min(780px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
-        max-height: min(760px, calc(100dvh - 96px - env(safe-area-inset-top) - var(--safe-bottom)));
+        max-height: min(760px, calc(100dvh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
 
         .dialog-head {
           position: sticky;
@@ -8749,6 +8734,20 @@
           background: var(--card);
         }
 
+        .home {
+          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
+             bar is its own; no room there, nothing). */
+          &::after {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 5;
+            height: env(safe-area-inset-top);
+            background: var(--app);
+            pointer-events: none;
+          }
+        }
+
         .sidebar,
         #redo,
         #add,
@@ -8761,7 +8760,7 @@
            measured in Photos, iOS 27.2); 12px with none. */
         :root {
           --bar-h: 58px;
-          --bar-y: max(12px, calc(var(--safe-bottom) - 13px));
+          --bar-y: max(12px, calc(env(safe-area-inset-bottom) - 13px));
           --bar-room: calc(var(--bar-y) + var(--bar-h) + 8px);
         }
 
@@ -9085,7 +9084,7 @@
           left: 0;
           max-height: 70dvh;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + var(--safe-bottom)) calc(6px + env(safe-area-inset-left));
+          padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
           /* (In and out from the foot, as the layers sheet: put away, it slides down (a copy of it, see fadeOut).) */
           transition: transform var(--dur-layout) var(--ease-layout);
           animation: none;
@@ -9546,7 +9545,7 @@
 
         /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
         .app[data-full] .card {
-          padding: env(safe-area-inset-top) 0 var(--safe-bottom);
+          padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
         /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
@@ -9566,7 +9565,7 @@
 
           .card {
             padding-right: env(safe-area-inset-right);
-            padding-bottom: var(--safe-bottom);
+            padding-bottom: env(safe-area-inset-bottom);
             padding-left: calc(var(--rail) + env(safe-area-inset-left));
           }
 
@@ -9691,7 +9690,7 @@
 
           .pick-bar {
             right: auto;
-            bottom: calc(10px + var(--safe-bottom));
+            bottom: calc(10px + env(safe-area-inset-bottom));
             left: 50%;
             width: auto;
             max-width: calc(100% - 24px);
@@ -9703,7 +9702,7 @@
           }
 
           .toast {
-            bottom: calc(12px + var(--safe-bottom));
+            bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
           /* (The rail: the capsule's room at the left. The column as wide as leaves the chart 280px beside it, past the rail:
@@ -9746,19 +9745,19 @@
           /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows. Its lists to the
              screen's foot, the home indicator's room the end of their scroll, as ⌘K's: none cut short above it.) */
           #inspector::after {
-            height: calc(12px + var(--safe-bottom));
+            height: calc(12px + env(safe-area-inset-bottom));
           }
 
           .panel .layer-list {
-            padding-bottom: calc(12px + var(--safe-bottom));
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
 
             &:has(+ .layers-bar:not([hidden])) {
-              padding-bottom: calc(var(--bar-h) + 22px + var(--safe-bottom));
+              padding-bottom: calc(var(--bar-h) + 22px + env(safe-area-inset-bottom));
             }
           }
 
           .panel .layers-bar {
-            bottom: calc(12px + var(--safe-bottom));
+            bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
           /* (At the right, the left inset is the capsule's, not theirs.) */
@@ -9799,14 +9798,6 @@
           --home-top: calc(var(--home-room) + env(safe-area-inset-top));
           --gutter: 12px;
           padding: var(--home-top) var(--gutter) calc(var(--bar-room) + 12px);
-        }
-
-        /* Installed, below the status bar (see the head): its room small (a phone's screen is small), what scrolls up
-           softened under the page's top by the launcher's edge (data-edge). */
-        @media (display-mode: standalone) {
-          .home-scroll {
-            --home-room: 16px;
-          }
         }
 
         .empty-inner > h1 + p {
@@ -9893,7 +9884,7 @@
           inset: auto 0 0;
           height: auto;
           max-height: var(--sheet-whole-height);
-          padding: 0 env(safe-area-inset-right) var(--safe-bottom) env(safe-area-inset-left);
+          padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 
           /* (From the very top, held there.) */
           > .menu-handle {
@@ -10006,8 +9997,8 @@
         }
 
         .palette-list {
-          padding-bottom: calc(6px + var(--safe-bottom));
-          scroll-padding-bottom: calc(6px + var(--safe-bottom));
+          padding-bottom: calc(6px + env(safe-area-inset-bottom));
+          scroll-padding-bottom: calc(6px + env(safe-area-inset-bottom));
         }
 
         /* A sheet's handle, a menu's, ⌘K's, the shortcuts', as the layers sheet's: dragged down, it goes (no scroll takes the drag). */

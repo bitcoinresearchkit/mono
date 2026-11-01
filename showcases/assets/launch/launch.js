@@ -17,9 +17,6 @@
 //   blurring what's behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status
 //   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
 // - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
-// - A page's own choices, installed: laid out below the status bar (`data-below-status`, its viewport tag before this
-//   script, its foot's room `--safe-bottom`), and its scrolling list softened under the page's top (`data-edge`, the
-//   list's selector; `--edge-ground`, the page's ground). Studio's both, so far: each app's to try on a phone.
 (() => {
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
@@ -62,75 +59,42 @@
       document.head.append(link);
     });
   }
-  // A page that asks (`data-below-status`), installed upright on an iPhone, laid out below the status bar, not under it:
-  // iOS 26 on lays a fade over a page's top under it, some 16px past it, whatever's drawn there. Decided before the page
-  // is drawn: its viewport tag (put before this script) replaced without viewport-fit=cover (one edited isn't read
-  // again). Its foot's inset read first, while under it, and kept: below it, iOS says none though the page still reaches
-  // under the home indicator. `--safe-bottom` is the foot's room to keep, wherever the page is: its own CSS uses it, not
-  // env(safe-area-inset-bottom). Started on its side (no inset said there either way): under it till turned upright.
-  const below = script?.hasAttribute("data-below-status"), edge = script?.dataset.edge;
-  if (below) {
-    const sheet = document.createElement("style");
-    sheet.textContent = `
-      :root { --safe-bottom: env(safe-area-inset-bottom); }
-      @media (orientation: portrait) { :root[data-kept-bottom] { --safe-bottom: var(--kept-bottom); } }`;
-    document.head.append(sheet);
-    if (standalone === true) {
-      const upright = matchMedia("(orientation: portrait)");
-      const lay = () => {
-        const probe = document.createElement("div");
-        probe.style.cssText = "position: fixed; height: env(safe-area-inset-bottom); visibility: hidden";
-        root.append(probe);
-        root.style.setProperty("--kept-bottom", `${probe.getBoundingClientRect().height}px`);
-        probe.remove();
-        root.toggleAttribute("data-kept-bottom", true);
-        const tag = document.querySelector('meta[name="viewport"]');
-        tag?.replaceWith(Object.assign(document.createElement("meta"), { name: "viewport", content: (tag.getAttribute("content") ?? "").replace(/,\s*viewport-fit=cover/, "") }));
-      };
-      if (upright.matches) lay();
-      else upright.addEventListener("change", function turned() {
-        if (upright.matches) upright.removeEventListener("change", turned), lay();
-      });
-    }
-  }
-  // Installed, a page's scrolling list (`data-edge`, its selector) softened where it scrolls up to the page's top, as an
-  // app's list goes under its bar: a progressive blur, as iOS's own, six layers each blurring twice the one under it,
-  // each masked to a band, the strongest at the top (no variable blur in CSS: bands of it, overlapping), under the
-  // page's ground (`--edge-ground`) fading out downward. None at the list's top; all there once it's scrolled 32px, each
-  // layer by the scroll's own timeline (a layer under a container's opacity would blur nothing, its backdrop cut there),
-  // under reduced motion too (it follows the scroll: no motion of its own). Over the page's own (z-index 5).
-  if (edge && matchMedia("(display-mode: standalone)").matches) {
-    const sheet = document.createElement("style");
-    sheet.textContent = `
-      ${edge} { scroll-timeline: --bitview-edge block; }
-      .bitview-edge { position: fixed; inset: 0 0 auto; z-index: 5; height: 44px; pointer-events: none; }
-      .bitview-edge > i { position: absolute; inset: 0; -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); -webkit-mask-image: linear-gradient(to top, var(--band)); mask-image: linear-gradient(to top, var(--band)); opacity: 0; }
-      .bitview-edge > i:nth-child(1) { --blur: 0.5px; --band: transparent 0%, black 14%, black 29%, transparent 43%; }
-      .bitview-edge > i:nth-child(2) { --blur: 1px; --band: transparent 14%, black 29%, black 43%, transparent 57%; }
-      .bitview-edge > i:nth-child(3) { --blur: 2px; --band: transparent 29%, black 43%, black 57%, transparent 71%; }
-      .bitview-edge > i:nth-child(4) { --blur: 4px; --band: transparent 43%, black 57%, black 71%, transparent 86%; }
-      .bitview-edge > i:nth-child(5) { --blur: 8px; --band: transparent 57%, black 71%, black 86%, transparent 100%; }
-      .bitview-edge > i:nth-child(6) { --blur: 16px; --band: transparent 71%, black 86%; }
-      .bitview-edge > i:nth-child(7) { background: linear-gradient(var(--edge-ground), color-mix(in srgb, var(--edge-ground) 55%, transparent) 35%, color-mix(in srgb, var(--edge-ground) 0%, transparent)); -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; }
-      @supports (animation-timeline: scroll()) {
-        .bitview-edge > i { animation: bitview-edge linear both !important; animation-timeline: --bitview-edge !important; animation-range: 0 32px !important; }
-      }
-      @keyframes bitview-edge { to { opacity: 1; } }`;
-    document.head.append(sheet);
-    document.addEventListener("DOMContentLoaded", () => {
-      for (const list of document.querySelectorAll(edge)) {
-        const layers = document.createElement("div");
-        layers.className = "bitview-edge";
-        layers.setAttribute("aria-hidden", "true");
-        layers.innerHTML = "<i></i>".repeat(7);
-        list.prepend(layers);
-      }
-    });
-  }
   /** Said by a page that waits (`data-wait`): it's ready. Else as it loads. */
   const api = { ready: () => {} };
   /** @type {any} */ (window).bitviewLaunch = api;
   if (!standalone) return;
+  // Installed, its status bar solid in the page's own color, never blurred: iOS (26 on) colors it from the first fixed
+  // box at the screen's top edge, and finding the launch's full-screen blur there (its closing step) kept a blur of the
+  // page under the status bar up to the first reload. That box here, a few pixels tall, over everything (the launch's
+  // layers too): the launch's orange while it runs, then the page's theme-color for its color scheme (else its
+  // ground), followed as the page changes it (Studio's theme).
+  // (iOS reads its color as the box comes: a new one for each color, the old one's kept else (tried on an iPhone: a
+  // color changed in place left the launch's orange there).)
+  let status = document.createElement("div"), striped = "";
+  const strip = (/** @type {string} */ color) => {
+    if (color === striped) return;
+    striped = color;
+    const next = document.createElement("div");
+    next.style.cssText = "position: fixed; inset: 0 0 auto; z-index: 2147483647; height: 8px; pointer-events: none";
+    next.style.background = color;
+    status.isConnected ? status.replaceWith(next) : root.append(next);
+    status = next;
+  };
+  let launching = false;
+  const paint = () => {
+    if (launching) return;
+    const meta = /** @type {HTMLMetaElement[]} */ ([...document.querySelectorAll('meta[name="theme-color"]')]).find((tag) => !tag.media || matchMedia(tag.media).matches);
+    // (No theme-color: its ground, the body's, else the root's; none at all (a page all canvas), black: a strip see-through
+    // would leave iOS its blur.)
+    const ground = [document.body, root].map((element) => (element ? getComputedStyle(element).backgroundColor : "")).find((color) => color && color !== "transparent" && !/rgba\(.*,\s*0\)$/.test(color));
+    const color = meta?.content || ground || "#000";
+    if (color) strip(color);
+  };
+  paint();
+  addEventListener("DOMContentLoaded", paint, { once: true });
+  addEventListener("load", paint, { once: true });
+  new MutationObserver(paint).observe(document.head ?? root, { subtree: true, childList: true, attributes: true, attributeFilter: ["content", "media"] });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paint);
   // The app's launch only, not each page it goes to after: once a session, as its sessionStorage says.
   try {
     if (sessionStorage.getItem("bitview-launched") !== null) return;
@@ -151,15 +115,13 @@
     }
     html[data-launch="out"]::after { inset: auto; top: 50%; left: 50%; width: 400px; aspect-ratio: 1.26 / 1.4622; translate: -50% -50%; transform-origin: 50% 60.26%; background: var(--bitview-launch-cube) center / 100% 100% no-repeat; animation: none; }
     html[data-launch="out"]::before { content: ""; position: fixed; inset: 0; z-index: ${top - 1}; pointer-events: none; }
-    .bitview-launch-bar { position: fixed; inset: 0 0 auto; z-index: ${top + 1}; height: calc(env(safe-area-inset-top) + 12px); background: ${ORANGE}; pointer-events: none; }
     @keyframes bitview-launch-out { to { opacity: 0; } }`;
   document.head.append(style);
-  // The status bar's: iOS colors it from the first fixed box at the top edge's middle, a pseudo-element found as the
-  // page itself (passed over): an element of its own, over the cover.
-  const bar = document.createElement("div");
-  bar.className = "bitview-launch-bar";
-  root.append(bar);
-  const gone = () => (delete root.dataset.launch, bar.remove());
+  // (The status bar the launch's orange meanwhile: the strip's, see status.)
+  launching = true;
+  strip(ORANGE);
+  const pageBar = () => ((launching = false), paint());
+  const gone = () => (delete root.dataset.launch, pageBar());
   // (Faded by itself, the page never ready: the root its own as the fade starts (the page's size long settled), gone at
   // its end.)
   root.addEventListener("animationstart", (event) => event.target === root && event.pseudoElement === "::after" && (root.dataset.launch = "fade"));
@@ -204,14 +166,14 @@
       const blur = (/** @type {number} */ px, /** @type {number} */ offset) => ({ backdropFilter: `blur(${px}px)`, webkitBackdropFilter: `blur(${px}px)`, offset });
       root.animate([blur(24, 0), blur(24, 0.2), blur(0, 1)], { ...timing, pseudoElement: "::before", easing: "cubic-bezier(.3, 0, .2, 1)" });
       drawn.finished.then(gone, gone);
-      // The bar the page's own (its ground, all but clear over it, as iOS reads a strip) once the page shows at the top
-      // edge's middle, where iOS reads it: the cube's top face come down past it (its unit's 0.08 above the point it's
-      // drawn back to, 0.15 under its middle), read as it goes.
-      const perUnit = 400 / 1.26, page = `color-mix(in srgb, ${getComputedStyle(document.body).backgroundColor} 1%, transparent)`;
+      // The status bar the page's own once the page shows at the top edge's middle, where iOS reads it: the cube's top
+      // face come down past it (its unit's 0.08 above the point it's drawn back to, 0.15 under its middle), read as it
+      // goes.
+      const perUnit = 400 / 1.26;
       const follow = () => {
         if (!("launch" in root.dataset)) return;
         const scale = new DOMMatrix(getComputedStyle(root, "::after").transform).a;
-        if (0.15 - (innerHeight / 2 - 4) / (perUnit * scale) < -0.0804) bar.style.background = page;
+        if (0.15 - (innerHeight / 2 - 4) / (perUnit * scale) < -0.0804) pageBar();
         else requestAnimationFrame(follow);
       };
       requestAnimationFrame(follow);
