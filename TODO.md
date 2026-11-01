@@ -34,6 +34,32 @@ Only what's left. An item done is removed: its history is in the commits and log
   WCAG 3 has left its own undecided; CSS's contrast-color() uses WCAG 2's). Done in the library: the axis tags (tint()), heatmap gradients (gradientTable()), fades (Fill's stops); left:
   Studio's own colors written in OKLCH (its palettes, CSS tokens: ~30 hex and ~80 rgb() left, 2026-11-01).
 
+## In progress (my own work, picked up from here)
+
+- bitview-charts, Codex's review of the whole library (2026-11-01; its report:
+  /private/tmp/claude-501/-Users-k-Developer-mono/7484960b-c137-482b-bd83-479b12916bd1/scratchpad/codex/lib1/out, summarized here). Being fixed, uncommitted in modules/bitview-charts/ (index.js, pane.js,
+  marks.js, crosshair.js, README.md): range/crosshair/layout/click listeners iterated from the list as it was (one
+  unsubscribing skipped the next); a crosshair moved into another pane at the same point and height now told; a
+  removed or destroyed pane detached (`detach`: canvases gone, its onLayout no longer the chart's); a page's Custom
+  axis tags redrawn as the view's end moves, as a tagged line's are (`#tagged`); marks keep room for their tallest stack
+  at one point (`stacks`, their sizes, counts and words; was one mark's); no crosshair dot or ring where a line's color
+  paints nothing; README lists FAINT, compact, decimalsOf. Left before committing: test each in a fresh page (a cached
+  module fooled the first test), the 79-preset sweep (/private/tmp/claude-501/-Users-k-Developer-mono/7484960b-c137-482b-bd83-479b12916bd1/scratchpad/n437/sweep-live.mjs, needs the local `__view` line),
+  a look at the phone, Codex on the diff.
+- Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
+  whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
+  (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
+  ~301 (scale.js divides first); dead code: Bars.distance (same as Line's), unused re-exports; duplicated: the first
+  non-NaN scan (line, band, candles), the curve control points (line, band); stale comments: "nothing made a frame"
+  (README, index.js:4), Pane.stretch (index.js ~104, ~643), a price line tag "its last of all" (pane.js ~886), APCA
+  and "a ninth apart" (color.js 2, 273).
+- A question for you from it: the library's Grid, Profile and stack (313 lines) aren't used by Studio, which draws
+  heatmaps and profiles with its own Heat and stacks with stackOf. One should go: Studio onto the library's, or the
+  library's removed. Mine: Studio onto the library's, if they draw the same (to compare).
+- Phone (connected 2026-11-01): the 11 presets with one slow frame (21–41 ms) in 60 while panning (
+  n437/phone.txt: MVRV zone, Days since ATH, MVRV, Inflation rate, Bitcoin burned ×2, Supply last moved, Supply by
+  age band 41 ms, UTXO count, Supply by UTXO amount, its share): find what each long frame is.
+
 ## Studio: raised by you, still open
 
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
