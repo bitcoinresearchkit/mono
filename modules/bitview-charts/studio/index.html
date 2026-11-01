@@ -17077,16 +17077,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // color (a theme, its opacity) paints them again.)
           const shadeDown = signal && layer.place === "shade" ? alpha(ink(belowOf(layer)), 0.14 * op) : "";
           const painting = dated ? paintSig(doc, layer, data, op, base) : shadeDown ? [shadeDown] : null;
-          // Colors are kept apart from the rest so a spotlight can fade them and give them back.
-          /** @type {Record<string, string>} */
-          const paint = layer.type === "cloud" ? { color: alpha(base, op), ...(banded ? Object.fromEntries(/** @type {string[]} */ (result?.memberIds).map((id, k) => [`band${k}`, alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)])) : {}) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ upColor: hollowOf(layer) ? css("--card") : up, downColor: down, wickUpColor: up, wickDownColor: down, borderUpColor: up, borderDownColor: down }))(color, layer.colors === 1 ? color : below)
+          // Its colors, as the library takes them (a line's; a band's fill and fade, a baseline's under its base too; candles'
+          // parts; a cloud's, its bands').
+          /** @type {Record<string, any>} */
+          const paint = layer.type === "cloud" ? { color: alpha(base, op), bands: banded ? /** @type {string[]} */ (result?.memberIds).map((id) => alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)) : [] } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ up: hollowOf(layer) ? css("--card") : up, down, upWick: up, downWick: down, upBorder: up, downBorder: down }))(color, layer.colors === 1 ? color : below)
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
             // high it would all but vanish. Stacked, its band (from its line to the one under it, see stackBands) evenly too:
             // a band fading by price would read lighter the lower it sits.
-            : layer.type === "area" ? (([top, foot]) => ({ lineColor: color, topColor: alpha(base, top * op), bottomColor: alpha(base, foot * op) }))(fillOf(layer, Boolean(stack)))
+            : layer.type === "area" ? (([top, foot]) => ({ line: color, fill: alpha(base, top * op), fade: alpha(base, foot * op) }))(fillOf(layer, Boolean(stack)))
             : layer.type === "histogram" ? { color: alpha(base, 0.75 * op) }
-            : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
-            : stackedLine ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
+            : layer.type === "baseline" ? { line: color, under: below, fill: alpha(base, 0.24 * op), fade: alpha(base, 0.01 * op), below: alpha(under, 0.01 * op), belowFade: alpha(under, 0.24 * op) }
+            : stackedLine ? { line: color, fill: alpha(base, 0), fade: alpha(base, 0) }
             : { color };
           let series;
           // (Drawn as before, the series as it was.)
@@ -17108,7 +17109,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
             series = again ?? new Cloud(pane, layer.side, top && bottom && !cloudLayers(layer).length);
             series.engine.hidden = !shown;
-            series.style({ color: paint.color, top, bottom, midway: false, banded, bands: banded ? /** @type {string[]} */ (result?.memberIds).map((_, k) => paint[`band${k}`]) : [] });
+            series.style({ color: paint.color, top, bottom, midway: false, banded, bands: paint.bands });
           } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see Heat): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
@@ -17147,7 +17148,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // background's); only its line and marker hide while candles show.
             const closeAgain = again && wasCloses.get(layer.id)?.series;
             series = standard("candles", again);
-            styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { up: paint.upColor, down: paint.downColor, upWick: paint.wickUpColor, downWick: paint.wickDownColor, upBorder: paint.borderUpColor, downBorder: paint.borderDownColor, radius: BAR_CORNER } });
+            styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { ...paint, radius: BAR_CORNER } });
             const closeSeries = standard("line", closeAgain || undefined);
             styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
             closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
@@ -17157,9 +17158,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see
             // stackBands). An area's fill to the pane's foot, or its top where it's filled above its line.)
             const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
-              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
               : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
-              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.topLineColor, under: { value: base, color: paint.bottomLineColor } }, band: { color: paint.topFillColor1, fade: paint.topFillColor2, below: paint.bottomFillColor1, belowFade: paint.bottomFillColor2, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.line, under: { value: base, color: paint.under } }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
               : ["line", { line: { ...stroke, color: paint.color } }];
             series = standard(/** @type {"line" | "band" | "bars"} */ (kind), again);
             styleSeries(series, { ...tags, ...look });
@@ -17219,7 +17220,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
             // (Its colors another layer's, they say something: its fill stronger, as a regime's.) (A baseline's two its own.)
             const fill = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
-            const look = !dated || layer.type === "baseline" ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
+            const look = !dated || layer.type === "baseline" ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ line: op < 1 ? alpha(c, op) : c, fill: alpha(c, fill[0] * op), fade: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             // (Its values as a column on the timeline, the library's (none where not finite (a formula's division by zero), or
             // not over zero on a log scale: copied only then), its colors and a trend's breaks as columns too; candles' four.)
@@ -18981,7 +18982,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function paintSeries(series, painted) {
         const colors = painted?.colors ?? null, looks = painted ? painted.palette.map(painted.look) : [];
         if (series instanceof Cloud) return void series.paint(colors, looks.map((look) => look.color));
-        if (series.edge) series.engine.set({ colors, palette: looks.map((look) => ({ color: look.topColor, fade: look.bottomColor })) }), series.edge.setStyle({ colors, palette: looks.map((look) => look.lineColor) });
+        if (series.edge) series.engine.set({ colors, palette: looks.map((look) => ({ color: look.fill, fade: look.fade })) }), series.edge.setStyle({ colors, palette: looks.map((look) => look.line) });
         else series.engine.setStyle({ colors, palette: looks.map((look) => look.color) });
         engine.invalidate(true);
       }
