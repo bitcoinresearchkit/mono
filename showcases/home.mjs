@@ -126,6 +126,7 @@ const CARDS = {
   changes: { url: "/changes/", settle: 6000 },
   dev: { url: "/dev/", settle: 4000 },
   brk: { url: "/brk/", settle: 4000 },
+  benchmarks: { url: "/benchmarks/", settle: 8000 },
 };
 // (Every page in the rows: its canonical address and its preview's its own on bitview.space, wherever it's served from
 // (next.bitview.space, someone's own server: one page, not copies); its preview named, described and pictured, the
