@@ -2997,7 +2997,7 @@
         margin: auto;
       }
 
-      /* A pane's legend (see foldLegend): one layer, named, its value beside it; more, a chip, their first four marks
+      /* A pane's legend (the library's, its items Studio's: see updateLegends): one layer, named, its value beside it; more, a chip, their first four marks
          stacked (each ringed in the card's color) and how many, the way to the pane's layers; pointing at one, its mark,
          name and value in it alone. The layers' panel shown, none: the panel names them, reads them, lights the one
          pointed at (a picture's, every one named: see presentLegends). */
@@ -3025,10 +3025,6 @@
         overflow: hidden;
         pointer-events: none;
 
-        > [hidden] {
-          display: none !important;
-        }
-
         &[data-chip] {
           right: auto;
           align-items: center;
@@ -3049,31 +3045,21 @@
               margin-left: 0;
             }
 
-            /* (Four marks at most: the count says how many.) */
-            &.more {
-              display: none;
-            }
-
             :is(.name, .legend-value) {
               display: none;
             }
           }
 
-          > .legend-count {
+          > .bc-legend-count {
             margin-left: 6px;
             color: var(--soft);
             font: 510 12px/22px var(--sans);
             font-variant-numeric: tabular-nums;
           }
 
-          /* (Pointing at one: it alone, named.) */
+          /* (Pointing at one: it alone, named (the library hides the rest).) */
           &[data-named] {
-            > button:not(.lit),
-            > .legend-count {
-              display: none;
-            }
-
-            > button.lit {
+            > button[data-pointed] {
               display: flex;
               margin-left: 0;
               border-radius: var(--radius-md);
@@ -17726,7 +17712,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
         return layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : lines ? `${format(high[at], unit)}\n${format(low[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
       }
-      const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend")]);
+      const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend:not([hidden])")]);
       /** What each legend last showed (written again only when it changes). @type {WeakMap<HTMLElement, string>} */
       const legendShown = new WeakMap();
       /**
@@ -17749,26 +17735,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function placeLegends() {
         // Until this chart is drawn, its panes don't exist yet: no legends to place (none at all, turned off).
         if (chart && drawnChart === chart.id) placeFull();
-        const kept = new Set();
         if (chart && drawnChart === chart.id) {
           // (Turned off, none; but a folded pane's, its names all it shows.)
           const folded = chart.legend === "off" ? foldedPanes(chart) : null;
           chart.panes.forEach((pane, i) => {
-            if (folded && !folded.has(pane.id)) return;
-            // The legend goes in the pane's frame, over its plot.
-            const plot = engine.panes[i]?.frame;
-            if (!plot) return;
-            let element = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${CSS.escape(pane.id)}"]`));
-            if (!element) {
-              element = document.createElement("div");
-              element.className = "legend";
-              element.dataset.pane = pane.id;
-              plot.append(element);
-            }
-            kept.add(element);
+            // The library's, over its plot: its chip pressed, the pane's layers.
+            const legend = engine.panes[i]?.setLegend({ onPress: () => paneLayers(pane.id) });
+            if (!legend) return;
+            const element = legend.element;
+            element.classList.add("legend");
+            if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
+            // (Turned off, none; but a folded pane's, its names all it shows.)
+            element.hidden = Boolean(folded && !folded.has(pane.id));
           });
         }
-        for (const legend of legends()) if (!kept.has(legend)) legend.remove();
         if (!chart || drawnChart !== chart.id) return;
         updateLegends();
         sizePanes();
@@ -17884,7 +17864,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Each pane's caption, and the chart's readout, one line: every layer by name and color, its value beside its name in
        * a slot as wide as it gets (nothing moves as it's read): under the crosshair while hovering (the date shows on the
-       * time axis), else at the view's end; a click selects. As much of it as fits, see foldLegend.
+       * time axis), else at the view's end; a click selects. Laid by the library (one named, more a chip: see its legend.js).
        */
       /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
       const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(name)}</span>`;
@@ -17910,14 +17890,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A reversed stack's, in its order: its key's cells as its bands lie.)
           const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane);
           const html = (pane?.stack && pane.reverse ? mine.reverse() : mine).map(item).join("");
-          if (legendShown.get(element) === html) continue;
-          legendShown.set(element, html);
           // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
-          // marks it, see markLegends); laid out again, its items measured anew.)
-          const focus = focusKey(element);
-          element.innerHTML = html;
-          restoreFocus(element, focus);
-          fitSoon(element);
+          // marks it, see markLegends).)
+          if (legendShown.get(element) !== html) {
+            legendShown.set(element, html);
+            const focus = focusKey(element);
+            element.innerHTML = html;
+            restoreFocus(element, focus);
+          }
+          // (Its items the library's to lay, each time (a layer's series made anew, its words the same): each layer's
+          // button (a profile's key beside it), the series it's read on.)
+          const legend = engine.panes[chart.panes.indexOf(/** @type {Pane} */ (pane))]?.legend;
+          legend?.set(/** @type {HTMLElement[]} */ ([...element.querySelectorAll(":scope > button[data-select]")]).map((button) => {
+            const id = /** @type {string} */ (button.dataset.select), own = drawn.get(id), close = closes.get(id);
+            return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("profile-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [own?.engine, own?.edge, close?.series.engine, close?.candles.engine].filter(Boolean), hidden: button.classList.contains("hidden") };
+          }));
         }
         markLegends();
         paintProfileItems();
@@ -17950,43 +17937,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           element.scrollLeft += event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientWidth : 1);
         }, { passive: false });
       }
-      /** A scroller fitted, a legend laid, on the next frame: once however many asks come before it (its size read once). */
+      /** A scroller fitted on the next frame, once however many scroll events come before it (its size read once). */
       const fitting = new WeakSet();
       function fitSoon(/** @type {HTMLElement} */ element, down = false) {
         if (fitting.has(element)) return;
         fitting.add(element);
-        requestAnimationFrame(() => (fitting.delete(element), element.classList.contains("legend") ? foldLegend(element) : fitStrip(element, down)));
+        requestAnimationFrame(() => (fitting.delete(element), fitStrip(element, down)));
       }
-      /**
-       * A pane's legend: one layer, named, its value beside it (see item); more, a chip: their first four marks stacked
-       * and how many, the way to the pane's layers (a picture's, every one named: see presentLegends). Pointing at one
-       * of them, the chip names it alone, its value beside it; nothing else moves. Which color is which, and which one's pointed at: the axis' tags read the values, the layers' panel lists
-       * and edits them.
-       */
-      function foldLegend(/** @type {HTMLElement} */ element) {
-        const items = /** @type {HTMLElement[]} */ ([...element.children].filter((child) => child.tagName === "BUTTON"));
-        // (Its shown layers: the hidden ones left to the panel's list, none shown, each named, faded.)
-        const shown = items.filter((item) => !item.classList.contains("hidden")), chip = shown.length > 1, lit = shown.find((item) => item.classList.contains("lit"));
-        element.toggleAttribute("data-chip", chip);
-        let count = /** @type {HTMLElement | null} */ (element.querySelector(":scope > .legend-count"));
-        if (chip && !count) element.append((count = Object.assign(document.createElement("span"), { className: "legend-count" })));
-        if (count && count.textContent !== String(shown.length)) count.textContent = String(shown.length);
-        element.toggleAttribute("data-named", chip && pointing && Boolean(lit));
-        let refocus = false;
-        for (const item of items) {
-          const off = shown.length > 0 && item.classList.contains("hidden");
-          // (Its focus, gone with it (its layer hidden by a key): onto the first shown.)
-          if (off && item.contains(document.activeElement)) refocus = true;
-          if (item.hidden !== off) item.hidden = off;
-          // (Past the first four in a chip: its count says it.)
-          item.classList.toggle("more", chip && shown.indexOf(item) >= 4);
-          // (A profile's key beside its item while it's named alone; in a chip, its mark is.)
-          if (item.nextElementSibling?.classList.contains("profile-key")) /** @type {HTMLElement} */ (item.nextElementSibling).hidden = chip || off;
-        }
-        if (refocus) shown[0]?.focus({ preventScroll: true });
-      }
-      /** Whether the crosshair's on the chart: a chip names the one pointed at (see foldLegend). */
-      let pointing = false;
       /**
        * A scroller's state: whether it scrolls (a strip then takes the wheel), and which of its edges hide more; a strip
        * scrolls sideways, the chart list down.
@@ -18230,8 +18187,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const items = again ? findLitItems() : [...of(litLayer), ...of(id)];
         litLayer = id;
         for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
-        // (A chip names the lit one: laid again.)
-        for (const item of items) if (item.parentElement?.classList.contains("legend")) fitSoon(/** @type {HTMLElement} */ (item.parentElement));
         // (Lit from the chart (`follow`), its row kept in sight in the panel showing (the legend then): it glides there,
         // each glide taken over by the next as a sweep crosses many; not while the view moves (bands sweep under a still
         // pointer).)
@@ -18250,11 +18205,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function updateReadout() {
         const point = readPoint();
-        // (Pointing or not, the legends laid again: a folded one pointed at, shown.)
-        if (pointing !== !point.rest) {
-          pointing = !point.rest;
-          for (const legend of legends()) fitSoon(legend);
-        }
         // (The panel's rows only while it shows: hidden, it's still laid out, and each written value lays the page out
         // again; shown, they're written at once, see rowsBehind.)
         rowsBehind = !panelShown();
@@ -19207,12 +19157,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         crossMoved(NO_CROSS);
       }
       /**
-       * The line a layer's crosshair dot is on: candles shown as their close line, that line's; an area's edge; else its
-       * own (null: none, candles have no dot).
+       * The series a layer's read on, the crosshair's pointed one (its dot ringed, its legend item named): candles shown
+       * as their close line, that line; an area's edge; else its own (candles: no dot, named still).
        */
       function dotLineOf(/** @type {string} */ id) {
-        const close = closes.get(id), own = close && !candlesFit ? close.series : drawn.get(id);
-        return own?.edge ?? (close && candlesFit ? null : own?.engine) ?? null;
+        const close = closes.get(id), own = close && !candlesFit ? close.series : close ? close.candles : drawn.get(id);
+        return own?.edge ?? own?.engine ?? null;
       }
       /** @param {ChartPoint} param */
       function crossMoved(param) {
@@ -19256,7 +19206,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         bandLit = bandAt(param) ?? (onLegend ? bandLit : null);
         // (The dot marked on the crosshair: the layer read's (a band's edge, the band under it being the one read); else
         // the line it hits.)
-        engine.crosshair.pointed = bandLit ? dotLineOf(bandLit) : undefined;
+        engine.crosshair.pointed = bandLit ? dotLineOf(bandLit) : profileLit ? (drawn.get(profileLit.layer)?.engine ?? undefined) : undefined;
         lightLegend(bandLit ?? profileLit?.layer ?? (param.point ? param.layer : null), false, true);
         lightBubble(param.point ? time : null, param.pane);
         if (time === hoverTime) return;
@@ -38518,14 +38468,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presentLegends() {
         const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
-        const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string, boolean]} */ ([button, button.className, button.style.display, button.hidden]));
+        const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
         const keys = all$("#chart .legend .profile-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
         const folded = foldedPanes(chart), lit = profileLit;
-        // (Each layer named, its chip let go (its count, its profile's keys hidden in it), put back after.)
-        const chips = legends().filter((legend) => legend.hasAttribute("data-chip")).map((legend) => /** @type {[HTMLElement, boolean]} */ ([legend, legend.hasAttribute("data-named")]));
-        const tucked = all$("#chart .legend > :is(.legend-count, .profile-key)").map((element) => /** @type {[HTMLElement, boolean]} */ ([element, element.hidden]));
-        for (const [legend] of chips) legend.removeAttribute("data-chip"), legend.removeAttribute("data-named");
-        for (const [element] of tucked) element.hidden = element.matches(".legend-count");
+        // (Each layer named, as the library lays a picture's: its chip let go, put back after.)
+        const laid = engine.panes.flatMap((pane) => (pane.legend ? [pane.legend] : []));
+        for (const legend of laid) legend.setWhole(true);
         // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
         if (lit) (profileLit = null), paintProfileItems();
         for (const [legend] of strips) Object.assign(legend.style, { display: "flex", flexWrap: "wrap", overflow: "visible", rowGap: "2px", height: "auto" });
@@ -38533,15 +38481,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
         for (const [button] of buttons) {
           if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
-          button.hidden = false;
-          button.classList.remove("selected", "lit", "more");
+          button.classList.remove("selected", "lit");
         }
         return () => {
-          for (const [button, className, display, hidden] of buttons) (button.className = className), (button.style.display = display), (button.hidden = hidden);
+          for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
           for (const [legend, cssText] of strips) legend.style.cssText = cssText;
           for (const [key, cssText] of keys) key.style.cssText = cssText;
-          for (const [element, hidden] of tucked) element.hidden = hidden;
-          for (const [legend, named] of chips) legend.toggleAttribute("data-chip", true), legend.toggleAttribute("data-named", named);
+          for (const legend of laid) legend.setWhole(false);
           if (lit && !profileLit) (profileLit = lit), paintProfileItems();
         };
       }
@@ -39254,9 +39200,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const template = closest(event, "[data-template]");
         const card = template && recommendedCards[Number(template.dataset.template)];
         if (card) return pickPreset(card.preset);
-        // (A legend's chip, wherever it's pressed, the way to its pane's layers.)
-        const chipped = closest(event, ".legend[data-chip]");
-        if (chipped) return paneLayers(/** @type {string} */ (chipped.dataset.pane));
         const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
         // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
         const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
