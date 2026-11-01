@@ -1,7 +1,7 @@
 // @ts-check
-// Words on a color: white or black, whichever APCA finds reads better on it, each color measured once; a series' tag
-// (its color, its words, its edge). And a fill's or a stroke's style as a vertical gradient (a fade, or a color split at
-// a height), kept till it changes.
+// Words on a color: white or black, by its lightness (where APCA turns for a gray: see whiteReads), each color measured
+// once; a series' tag (its fill, its words). And a fill's or a stroke's style as a vertical gradient (a
+// fade, or a color split at a height), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -270,7 +270,7 @@ export class Fill {
       const gradient = split ? g.createLinearGradient(0, 0, 0, bottom) : g.createLinearGradient(0, top, 0, bottom);
       if (split) gradient.addColorStop(0, from), gradient.addColorStop(top, from), gradient.addColorStop(top, to), gradient.addColorStop(1, to);
       else {
-        // (Blended in OKLab, not the canvas's sRGB: its stops a ninth apart.)
+        // (Blended in OKLab, not the canvas's sRGB: nine stops, an eighth apart.)
         const stops = blended(from, to);
         for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
       }

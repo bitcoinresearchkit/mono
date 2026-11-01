@@ -12,6 +12,12 @@
  */
 export const NOISE = 1e-9;
 
+/** A column's first value at or after index `i` (a relative scale's base: a series' first in view), or NaN: none. @param {Float64Array} values @param {number} i */
+export function firstFrom(values, i) {
+  for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
+  return NaN;
+}
+
 export class Timeline {
   /** @param {{ rightOffset?: number, minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
   constructor({ rightOffset = 24, minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {

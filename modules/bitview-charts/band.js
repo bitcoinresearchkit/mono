@@ -1,6 +1,6 @@
 // @ts-check
 import { Fill } from "./color.js";
-import { NOISE } from "./timeline.js";
+import { NOISE, firstFrom } from "./timeline.js";
 import { measure } from "./recorder.js";
 
 /** Points a block of a band's fitting extremes. */
@@ -112,9 +112,7 @@ export class Band {
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
   first(i) {
-    const values = this.upper;
-    for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
-    return NaN;
+    return firstFrom(this.upper, i);
   }
 
   /**

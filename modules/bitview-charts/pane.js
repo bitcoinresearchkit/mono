@@ -884,8 +884,8 @@ export class Pane {
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
    * top to bottom at tagPlace, tagStep apart at least): each one at the crosshair's point (`tagsAt`: its value there,
    * none where it has none), else at its last value in view, a point partly in it counted (as the chart library's were:
-   * they read the view's end, its strict range's, as a pan moves it; a price line, its last of all; one with nothing in
-   * view, none),
+   * they read the view's end, its strict range's, as a pan moves it (a price line's tag too: its line alone at its last
+   * of all); one with nothing in view, none),
    * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
    * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
    * the pane; on a relative scale, as it reads them.

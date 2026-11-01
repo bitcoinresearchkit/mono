@@ -2,7 +2,7 @@
 
 Time series charts drawn from columns: panes stacked over one time axis, each series a `Float64Array` on a shared
 timeline (an index a time). Built for many series of thousands of points on a phone without its JIT: no object a
-point, nothing made a frame, a pan moving the picture already drawn. Source modules, no build, typed by JSDoc.
+point, next to nothing made a frame, a pan moving the picture already drawn. Source modules, no build, typed by JSDoc.
 
 ```js
 import { createChart, stack } from "/modules/bitview-charts/index.js";

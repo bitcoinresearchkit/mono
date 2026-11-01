@@ -5,7 +5,7 @@
 // its highest high and lowest low, its last close) drawn as its wick alone.
 
 import { Line } from "./line.js";
-import { NOISE } from "./timeline.js";
+import { NOISE, firstFrom } from "./timeline.js";
 import { measure } from "./recorder.js";
 
 /** The least spacing (CSS pixels a point) a candle has its body at: under it, its wick alone. */
@@ -86,9 +86,7 @@ export class Candles {
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
   first(i) {
-    const values = this.close;
-    for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
-    return NaN;
+    return firstFrom(this.close, i);
   }
 
   /**

@@ -36,29 +36,23 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## In progress (my own work, picked up from here)
 
-- bitview-charts, Codex's review of the whole library (2026-11-01; its report:
-  /private/tmp/claude-501/-Users-k-Developer-mono/7484960b-c137-482b-bd83-479b12916bd1/scratchpad/codex/lib1/out, summarized here). Being fixed, uncommitted in modules/bitview-charts/ (index.js, pane.js,
-  marks.js, crosshair.js, README.md): range/crosshair/layout/click listeners iterated from the list as it was (one
-  unsubscribing skipped the next); a crosshair moved into another pane at the same point and height now told; a
-  removed or destroyed pane detached (`detach`: canvases gone, its onLayout no longer the chart's); a page's Custom
-  axis tags redrawn as the view's end moves, as a tagged line's are (`#tagged`); marks keep room for their tallest stack
-  at one point (`stacks`, their sizes, counts and words; was one mark's); no crosshair dot or ring where a line's color
-  paints nothing; README lists FAINT, compact, decimalsOf. Left before committing: test each in a fresh page (a cached
-  module fooled the first test), the 79-preset sweep (/private/tmp/claude-501/-Users-k-Developer-mono/7484960b-c137-482b-bd83-479b12916bd1/scratchpad/n437/sweep-live.mjs, needs the local `__view` line),
-  a look at the phone, Codex on the diff.
+- bitview-charts, Codex's review of the whole library (2026-11-01): done in two commits (b8f0aa256, then the
+  second: Bars.distance gone, one firstFrom, stale comments).
+- Going live (you asked 2026-11-01 whether prod has the library: no). Every server runs v0.13.0 at 4f961b7f; the
+  switch (3f8b7ab68) and all since are local commits on next, never pushed. Asked you: push next and `fleet update`
+  the next servers once these fixes are in; prod after (likely next merged to main, a release). Waiting on your yes.
 - Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
   whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
   (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
-  ~301 (scale.js divides first); dead code: Bars.distance (same as Line's), unused re-exports; duplicated: the first
-  non-NaN scan (line, band, candles), the curve control points (line, band); stale comments: "nothing made a frame"
-  (README, index.js:4), Pane.stretch (index.js ~104, ~643), a price line tag "its last of all" (pane.js ~886), APCA
-  and "a ninth apart" (color.js 2, 273).
+  ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
 - A question for you from it: the library's Grid, Profile and stack (313 lines) aren't used by Studio, which draws
   heatmaps and profiles with its own Heat and stacks with stackOf. One should go: Studio onto the library's, or the
   library's removed. Mine: Studio onto the library's, if they draw the same (to compare).
-- Phone (connected 2026-11-01): the 11 presets with one slow frame (21–41 ms) in 60 while panning (
-  n437/phone.txt: MVRV zone, Days since ATH, MVRV, Inflation rate, Bitcoin burned ×2, Supply last moved, Supply by
-  age band 41 ms, UTXO count, Supply by UTXO amount, its share): find what each long frame is.
+- Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
+  with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed
+  (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing
+  drawn (most likely a WebKit full collection: ~1 a 60-frame pan now, 5–6 in 120 with Lightweight Charts), and the
+  scale's refit at new extremes (a whole draw, 20–37 ms on the 24-band stack). Left as is unless a heap cut shows up.
 
 ## Studio: raised by you, still open
 

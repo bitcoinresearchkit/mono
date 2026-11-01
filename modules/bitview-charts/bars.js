@@ -6,7 +6,6 @@
 
 import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
-import { measure } from "./recorder.js";
 
 /** A rounded rect's corners, at its value's end (top or bottom), made once and set at each draw. */
 const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
@@ -29,16 +28,6 @@ export class Bars extends Line {
   setStyle({ radius = this.radius, base = this.base, ...look }) {
     super.setStyle(look);
     (this.radius = radius), (this.base = base);
-  }
-
-  /**
-   * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
-   * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
-   * relative). At index `i` the pane's nearest point (unread: its drawing has it).
-   * @param {number} _i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
-   */
-  distance(_i, y, scale, x, time) {
-    return measure(this, time, scale, x, y);
   }
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */

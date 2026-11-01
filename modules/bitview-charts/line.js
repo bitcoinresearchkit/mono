@@ -10,7 +10,7 @@
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
 import { Fill } from "./color.js";
-import { NOISE } from "./timeline.js";
+import { NOISE, firstFrom } from "./timeline.js";
 import { measure, measuring, painted } from "./recorder.js";
 
 /** A curved segment's control points, as #bend writes them (made once). */
@@ -378,9 +378,7 @@ export class Line {
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
   first(i) {
-    const values = this.values;
-    for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
-    return NaN;
+    return firstFrom(this.values, i);
   }
 
   /**

@@ -1,8 +1,8 @@
 // @ts-check
 // bitview-charts: time series charts drawn from columns. A chart is panes stacked over one time axis, every pane on the
 // same timeline (one time a logical index); each pane's lines are columns on it (a Float64Array a line, NaN for none).
-// Made for many series of thousands of points on a phone without its JIT: no object a point, nothing made a frame, a
-// pan moving the picture already drawn where it can.
+// Made for many series of thousands of points on a phone without its JIT: no object a point, next to nothing made a
+// frame, a pan moving the picture already drawn where it can.
 //
 //   const chart = createChart(element);
 //   chart.setTimes(times);                                   // Float64Array of seconds, rising
@@ -103,7 +103,7 @@ export class Chart {
     (this.crossedFrom = NaN), (this.crossedSpacing = NaN);
     /** The separator pointed at or dragged (the pane over it; none, null): drawn in the theme's active color. @type {Pane | null} */
     this.separatorLit = null;
-    /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
+    /** A separator being dragged: its panes laid out and drawn at each move, no crosshair or tag read meanwhile. */
     this.resizing = false;
     /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
     this.clickListeners = [];
@@ -644,7 +644,7 @@ export class Chart {
     }, { signal });
     element.addEventListener("pointermove", (event) => {
       if (sizer === event.pointerId) return void (sizing && !this.#size(sizing[0], sizing[1], event.clientY - element.getBoundingClientRect().top) && stopSizing());
-      // (Another pointer meanwhile (a mouse beside a finger): nothing, its panes shown stretched.)
+      // (Another pointer meanwhile (a mouse beside a finger): nothing while a separator's dragged.)
       if (this.resizing) return;
       const at = down.get(event.pointerId);
       if (!at && event.pointerType === "mouse") {
