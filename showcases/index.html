@@ -216,8 +216,8 @@
         height: calc(64px + var(--bar-top));
         padding: var(--bar-top) var(--gutter) 0;
         /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
-           progressive blur. Ten layers behind its contents, each blurring twice as much as the one
-           under it and stopping a little higher, so the blur builds smoothly toward the top (its contents over the
+           progressive blur. Five layers behind its contents (each costs Mullvad's CPU drawing ~2ms a frame: ten
+           looked no smoother on an iPhone), each blurring two to three times as much as the one under it and stopping a little higher, so the blur builds smoothly toward the top (its contents over the
            strongest), past its foot none: no slab, no line, as iOS's own bars end. A tint of its ground fades out with it,
            for its words.) */
         > .glass {
@@ -234,19 +234,14 @@
           }
 
           /* (Lengths fixed from its foot, whatever its height (the installed app's, no status bar over it, is 62px
-             shorter than Safari's): over its words all ten (the page frosted through); from its pills' middle (24px
-             over its foot) to 96px past it, one fewer each 12px, each one's fade overlapping the next's two: a
-             long, even ease, no step to see. Each blur written out: Safari takes none through a custom property.) */
-          > i:nth-child(1) { backdrop-filter: blur(0.5px); -webkit-backdrop-filter: blur(0.5px); --to: calc(100% - 30px); --off: calc(100% - 0px); }
-          > i:nth-child(2) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); --to: calc(100% - 42px); --off: calc(100% - 12px); }
-          > i:nth-child(3) { backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); --to: calc(100% - 54px); --off: calc(100% - 24px); }
-          > i:nth-child(4) { backdrop-filter: blur(2.5px); -webkit-backdrop-filter: blur(2.5px); --to: calc(100% - 66px); --off: calc(100% - 36px); }
-          > i:nth-child(5) { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); --to: calc(100% - 78px); --off: calc(100% - 48px); }
-          > i:nth-child(6) { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); --to: calc(100% - 90px); --off: calc(100% - 60px); }
-          > i:nth-child(7) { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); --to: calc(100% - 102px); --off: calc(100% - 72px); }
-          > i:nth-child(8) { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); --to: calc(100% - 114px); --off: calc(100% - 84px); }
-          > i:nth-child(9) { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); --to: calc(100% - 126px); --off: calc(100% - 96px); }
-          > i:nth-child(10) { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); --to: calc(100% - 138px); --off: calc(100% - 108px); }
+             shorter than Safari's): over its words all five (the page frosted through); from its pills' middle (24px
+             over its foot) to 96px past it, one fewer each 24px, each one's fade overlapping the next's: a long, even
+             ease, no step to see. Each blur written out: Safari takes none through a custom property.) */
+          > i:nth-child(1) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); --to: calc(100% - 48px); --off: calc(100% - 0px); }
+          > i:nth-child(2) { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); --to: calc(100% - 72px); --off: calc(100% - 24px); }
+          > i:nth-child(3) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); --to: calc(100% - 96px); --off: calc(100% - 48px); }
+          > i:nth-child(4) { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); --to: calc(100% - 120px); --off: calc(100% - 72px); }
+          > i:nth-child(5) { backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); --to: calc(100% - 144px); --off: calc(100% - 96px); }
 
           &::after {
             content: "";
@@ -2174,7 +2169,7 @@
 
     <div class="edge" aria-hidden="true"></div>
     <header class="top">
-      <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <nav aria-label="Sections">
         <a href="#apps-title">Apps</a>
