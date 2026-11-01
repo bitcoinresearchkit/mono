@@ -19321,13 +19321,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
       engine.element.addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
       engine.element.addEventListener("pointerleave", () => !crossIn && lightTag(null));
-      engine.onClick((index, pane, hit, y, x) => {
-        // (A tap letting a finger's crosshair go, that alone: see fingerCross.)
-        if (fingerCross.dismissing) return;
-        // (A band of a keyed pane, anywhere in it; else a line, near it.)
-        const param = chartPoint(index, pane, x, y, true, hit), id = bandAt(param) ?? param.layer;
-        if (id) select(id);
-      });
 
       // ── The chart by keys: what it shows, said; a crosshair taken bar by bar ──────
 
