@@ -19,7 +19,7 @@ import { painted } from "./recorder.js";
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
  * words; the line between panes.
- * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, across: string, badge: string, separator: string }} Theme
+ * @typedef {{ background: string, text: string, grid: string, font: string, crosshair: string, across: string, badge: string, separator: string, active: string }} Theme
  */
 
 /** Drawing a pane whole slower than this (ms): a zoom stretches its picture instead (see draw). */
@@ -139,9 +139,6 @@ export class Pane {
     /** Where it lies in the chart (CSS pixels), and its plot's width (the axis past it). */
     this.top = 0;
     this.height = 0;
-    /** Where it shows (see stretch): where it lies, but while a separator's dragged. */
-    this.shownTop = 0;
-    this.shownHeight = 0;
     this.width = 0;
     this.plot = 0;
     /** Its foot a separator's line (between it and the pane under it, or the time axis: see Chart's layout). */
@@ -384,7 +381,6 @@ export class Pane {
     this.width = width;
     this.height = height;
     this.plot = Math.max(1, width - axis);
-    (this.shownTop = top), (this.shownHeight = height);
     const w = Math.round(this.plot * dpr), h = Math.round(height * dpr), aw = Math.round((width - this.plot) * dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) (this.canvas.width = w), (this.canvas.height = h), (this.drawnFrom = NaN);
     Object.assign(this.canvas.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
@@ -403,20 +399,6 @@ export class Pane {
       if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h);
       Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
     }
-  }
-
-  /**
-   * Shown from `top`, `height` tall, laid out as it was (a separator being dragged: its canvases scaled to it, drawn as
-   * laid out; laid out at it once let go, as a canvas just resized is slow to draw into on iOS).
-   * @param {number} top @param {number} height
-   */
-  stretch(top, height) {
-    (this.shownTop = top), (this.shownHeight = height);
-    const style = { top: `${top}px`, transform: height === this.height ? "" : `scaleY(${height / this.height})`, transformOrigin: "0 0" };
-    Object.assign(this.canvas.style, style), Object.assign(this.axisCanvas.style, style);
-    if (this.leftCanvas) Object.assign(this.leftCanvas.style, style);
-    if (this.overCanvas) Object.assign(this.overCanvas.style, style);
-    Object.assign(this.frame.style, { top: `${top}px`, height: `${height}px` });
   }
 
   /**

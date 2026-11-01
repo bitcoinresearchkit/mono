@@ -128,6 +128,9 @@
         --sheen-color: light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
         --sheen: inset 0 1px 0 var(--sheen-color);
         --field-focus: inset 0 0 0 1px var(--focus), 0 0 0 3px var(--line);
+        /* (The brand's orange: the chrome's one color, for where you are and what you're moving: the open chart's bar, a
+           resize bar pointed at or held, the chart's own separators too.) */
+        --accent: oklch(64.34% 0.191 44.41);
         --up: light-dark(#0c7642, #3ccf7c);
         --live: var(--up);
         --danger: light-dark(#bf2b31, #f2555a);
@@ -1420,7 +1423,7 @@
         width: 2px;
         height: 20px;
         border-radius: 1px;
-        background: oklch(64.34% 0.191 44.41);
+        background: var(--accent);
         translate: 0 -50%;
         pointer-events: none;
       }
@@ -3961,7 +3964,7 @@
       }
 
       /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), a line there as
-         it's pointed at, focused or dragged; side by side with the chart only (a rail, a floating panel, a sheet: none).
+         it's pointed at or dragged (the accent: what you're moving), focused (the focus ring's); side by side with the chart only (a rail, a floating panel, a sheet: none).
          (Separators: the drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid
          it.) */
       .grip[role="separator"] {
@@ -3978,7 +3981,7 @@
           content: "";
           position: absolute;
           inset: 0 3px;
-          background: var(--line-strong);
+          background: var(--accent);
           opacity: 0;
         }
 
@@ -7227,7 +7230,7 @@
           width: 2px;
           height: 20px;
           border-radius: 1px;
-          background: oklch(64.34% 0.191 44.41);
+          background: var(--accent);
           translate: 0 -50%;
         }
 
@@ -16225,7 +16228,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shows it (see chartGround).
        */
       function chartTheme() {
-        return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), font: `11px ${chartSans}` };
+        return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `11px ${chartSans}` };
       }
       /**
        * The ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first that isn't
@@ -16315,14 +16318,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** A date's x across the plot (its point's); none where no point has it. @param {number} time */
       /**
-       * Pane `i`'s box on the page as it shows (its row: its axes and its plot; stretched as a separator's dragged), or
-       * none. @param {number} i
+       * Pane `i`'s box on the page (its row: its axes and its plot), or none. @param {number} i
        */
       const paneBox = (i) => {
         const pane = engine.panes[i];
         if (!pane) return null;
         const box = engine.element.getBoundingClientRect();
-        return new DOMRect(box.left, box.top + pane.shownTop, engine.left + pane.width, pane.shownHeight);
+        return new DOMRect(box.left, box.top + pane.top, engine.left + pane.width, pane.height);
       };
       /** Pane `i`'s price scale on a side (its right one, or its left one once a series is on it), or none. @param {number} i @param {string} side */
       const scaleOn = (i, side) => ((pane) => (pane ? (side === "left" ? pane.left : pane.scale) : null))(engine.panes[i]);

@@ -30,8 +30,7 @@ chart.show(365);                                 // the last 365 points in view
   none there, null for the library's.
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
-  things kept on them; as a separator's dragged, its two panes shown stretched, each pane's `shownTop` and
-  `shownHeight` where it shows), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
+  things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)`, `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
@@ -46,8 +45,8 @@ chart.show(365);                                 // the last 365 points in view
   there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on
-  the axes (none shows cut beside them). Separators between panes drag to share their heights (the two panes shown
-  stretched, laid out once let go). A drag on a price axis scales it about its middle (its range then set by hand; a
+  the axes (none shows cut beside them). Separators between panes drag to share their heights (laid out and drawn at
+  each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
 

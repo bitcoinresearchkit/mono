@@ -1,7 +1,8 @@
 // @ts-check
 // The crosshair: over the whole chart, its own canvas (the panes' pictures never drawn again for it): a line down every
 // pane at a point (the nearest to where it's pointed), a line across the pane pointed at, at the pointer's height; the
-// point's date on the time axis and the height's value on that pane's axis, each in a badge.
+// point's date on the time axis and the height's value on that pane's axis, each in a badge. And a separator between
+// panes pointed at or dragged, along it in the theme's active color.
 
 import { kept } from "./format.js";
 import { Line, FAINT } from "./line.js";
@@ -51,17 +52,26 @@ export class Crosshair {
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Pane[]} panes @param {number} room the panes' height
    * @param {number} left the left axis' width (the plot after it) @param {import("./pane.js").Theme} theme @param {number} dpr
    * @param {import("./axis.js").TimeAxis} axis the time axis under it (its labels as drawn)
+   * @param {import("./pane.js").Pane | null} [lit] the separator pointed at or dragged (the pane over it; a pane gone or the
+   * last, none: nothing under it to separate)
    */
-  draw(time, panes, room, left, theme, dpr, axis) {
-    const g = this.g, i = this.index;
-    if (i !== i) {
+  draw(time, panes, room, left, theme, dpr, axis, lit = null) {
+    const g = this.g, i = this.index, litAt = lit ? panes.indexOf(lit) : -1, over = litAt >= 0 && litAt < panes.length - 1 ? lit : null;
+    if (i !== i && !over) {
       if (this.shown) g.setTransform(1, 0, 0, 1, 0, 0), g.clearRect(0, 0, this.canvas.width, this.canvas.height), (this.shown = false);
       return;
     }
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, this.width, this.height);
-    g.translate(left, 0);
     this.shown = true;
+    // (The separator lit: along it, the chart's whole width, as wide as a line, over its own (a device pixel at its
+    // pane's foot).)
+    if (over) {
+      const y = Math.round((over.top + over.height) * dpr) / dpr - 0.5;
+      (g.strokeStyle = theme.active), (g.lineWidth = 1), g.beginPath(), g.moveTo(0, y), g.lineTo(this.width, y), g.stroke();
+    }
+    if (i !== i) return;
+    g.translate(left, 0);
     const plot = time.width, x = Math.round(time.x(i) * dpr) / dpr + 0.5 / dpr;
     // (Its line down, solid; its line across its pane, dashed, fainter.)
     g.lineWidth = 1;

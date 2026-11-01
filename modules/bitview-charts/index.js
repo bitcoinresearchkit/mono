@@ -37,9 +37,9 @@ export { compact, decimalsOf } from "./format.js";
 export { channels } from "./color.js";
 
 /** @type {import("./pane.js").Theme} */
-export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", across: "rgba(247, 248, 248, 0.25)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)" };
+export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", across: "rgba(247, 248, 248, 0.25)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)", active: "#f2660f" };
 /** @type {import("./pane.js").Theme} */
-export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", across: "rgba(14, 15, 17, 0.2)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)" };
+export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0, 0, 0.06)", font: "11px system-ui, sans-serif", crosshair: "rgba(14, 15, 17, 0.35)", across: "rgba(14, 15, 17, 0.2)", badge: "#0e0f11", separator: "rgba(0, 0, 0, 0.12)", active: "#f2660f" };
 
 /** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart (as Lightweight Charts' long tap). */
 const HOLD = 240;
@@ -96,6 +96,8 @@ export class Chart {
     /** A pointer's crosshair to be found again at the next frame (see #recross); its pane's changes as it was told. */
     this.recrossing = false;
     this.crossedChanges = -1;
+    /** The separator pointed at or dragged (the pane over it; none, null): drawn in the theme's active color. @type {Pane | null} */
+    this.separatorLit = null;
     /** A separator being dragged: its panes shown stretched (see Pane.stretch), no crosshair or tag read meanwhile. */
     this.resizing = false;
     /** @type {((index: number, pane: number, series: number, y: number, x: number) => void)[]} */
@@ -300,8 +302,8 @@ export class Chart {
   }
 
   /**
-   * Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them), and
-   * as a separator's dragged (two panes shown stretched: each pane's `shownTop` and `shownHeight` where it shows).
+   * Told each time it's laid out (its size, its panes' places, its axes' widths: a page's own things kept on them; a
+   * separator's drag, at each move).
    * @param {() => void} listener
    */
   onLayout(listener) {
@@ -467,7 +469,7 @@ export class Chart {
     }
     this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
-    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis);
+    this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     this.placed = false;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
@@ -496,11 +498,10 @@ export class Chart {
     let twoFingers = false;
     // (A separator dragged: the panes over and under it, the pointer dragging it (-1: none).)
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
-    // (Let go: the panes, shown stretched as it went, laid out at their new heights.)
-    const stopSizing = () => {
-      const was = sizing;
-      (sizing = null), (sizer = -1), (this.resizing = false);
-      was ? this.layout() : this.invalidate(true);
+    /** Let go (`y`: a mouse's height in the chart, its separator lit still where it's over one). @param {number} [y] */
+    const stopSizing = (y = NaN) => {
+      (sizing = null), (sizer = -1), (this.resizing = false), (this.separatorLit = this.panes[separator(y, false)] ?? null);
+      this.invalidate(true);
     };
     /** The separator under a height in the chart (the pane over it), or -1. @param {number} y @param {boolean} touch */
     const separator = (y, touch) => {
@@ -577,7 +578,7 @@ export class Chart {
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.glide.speed = 0), this.setCrosshair(NaN));
+      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.glide.speed = 0), this.setCrosshair(NaN));
       const touch = event.pointerType === "touch", box = element.getBoundingClientRect();
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis: down.size ? null : axisAt(event.clientX - box.left, y) });
       this.glide.speed = 0;
@@ -612,10 +613,12 @@ export class Chart {
       const at = down.get(event.pointerId);
       if (!at && event.pointerType === "mouse") {
         // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
-        if (event.target !== element && !this.#owns(event.target)) return void this.setCrosshair(NaN);
+        if (event.target !== element && !this.#owns(event.target)) return void (this.separatorLit && ((this.separatorLit = null), this.invalidate()), this.setCrosshair(NaN));
         // (A mouse over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
-        const box = element.getBoundingClientRect(), y = event.clientY - box.top, over = separator(y, false) >= 0, axis = !over && findAxis(event.clientX - box.left, y);
+        const box = element.getBoundingClientRect(), y = event.clientY - box.top, lit = separator(y, false), over = lit >= 0, axis = !over && findAxis(event.clientX - box.left, y);
         element.style.cursor = over ? "row-resize" : axis ? (foundPane ? "ns-resize" : "ew-resize") : "";
+        // (The separator pointed at in the theme's active color: it can be dragged.)
+        if (this.panes[lit] !== (this.separatorLit ?? undefined)) (this.separatorLit = this.panes[lit] ?? null), this.invalidate();
         return void (over ? this.setCrosshair(NaN) : point(event));
       }
       if (!at) return;
@@ -654,9 +657,9 @@ export class Chart {
       if (event.pointerType === "mouse") this.#follow(event);
       this.invalidate();
     }, { signal });
-    element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && this.setCrosshair(NaN), { signal });
+    element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && !this.resizing && ((this.separatorLit = null), this.setCrosshair(NaN)), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
-      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing());
+      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing(event.pointerType === "mouse" ? event.clientY - element.getBoundingClientRect().top : NaN));
       const at = down.get(event.pointerId);
       if (!at || !down.delete(event.pointerId)) return;
       const pinched = twoFingers;
@@ -709,7 +712,7 @@ export class Chart {
 
   /**
    * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn; not one hidden
-   * since), or null (none while a separator's dragged: its panes shown stretched).
+   * since), or null (none while a separator's dragged).
    * @param {number} x @param {number} y
    */
   tagAt(x, y) {
@@ -757,8 +760,8 @@ export class Chart {
 
   /**
    * The separator between `over` and `under` dragged to `y` (CSS pixels in the chart): their shares moved between them,
-   * their total kept, neither under LEAST; shown stretched to their new heights (see Pane.stretch), laid out once let go.
-   * Whether they're still next to each other (a pane removed: the drag's over).
+   * their total kept, neither under LEAST; laid out and drawn at their new heights at each move (what's dragged is what
+   * shows: no picture stretched). Whether they're still next to each other (a pane removed: the drag's over).
    * @param {Pane} over @param {Pane} under @param {number} y
    */
   #size(over, under, y) {
@@ -769,9 +772,7 @@ export class Chart {
     const height = Math.min(Math.max(y - over.top, LEAST), both - LEAST), shares = over.share + under.share;
     over.share = (shares * height) / both;
     under.share = shares - over.share;
-    over.stretch(over.top, height);
-    under.stretch(over.top + height, both - height);
-    for (let l = 0; l < this.layoutListeners.length; l++) this.layoutListeners[l]();
+    this.layout();
     return true;
   }
 
