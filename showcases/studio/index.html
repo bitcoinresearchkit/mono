@@ -14810,7 +14810,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // here (two days, at a week): thirty, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
         const plot = engine.time.width, bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
-        const room = plot > gap ? Math.max(0, (gap * (bars + 1)) / (plot - gap) - 0.5) : 0;
+        const room = plot > gap ? (gap * bars) / (plot - gap) : 0;
         const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
         return { from, to };
       }
@@ -16214,7 +16214,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
         // (Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`:
         // a view about to be shown, its own.)
-        const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? shownSpan() : null), spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from + 1) : Infinity);
+        const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? shownSpan() : null), spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from) : Infinity);
         if (spacing !== engine.time.minSpacing) (engine.time.minSpacing = spacing), engine.invalidate(true);
       }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
@@ -16723,7 +16723,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
        * a bar has no room for a hollow body (under BODIES_FROM pixels, where the library draws its wick alone), the layer
        * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
-       * @type {Map<string, { candles: any, series: any, color: string, rise: string, fall: string }>}
+       * @type {Map<string, { candles: any, series: any, rise: string, fall: string, tinted: number }>}
        */
       const closes = new Map();
       let candlesFit = true;
@@ -16736,8 +16736,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A rebuild empties the chart for a moment: no range then, and nothing to decide.
         if (!range) return;
         const fit = engine.time.width / Math.max(1, range.to - range.from) >= BODIES_FROM;
-        // (Each tag in its last candle in view's color, as the view moves: see tintClose.)
-        if (fit === candlesFit) return void closes.forEach((_, id) => tintClose(id));
+        if (fit === candlesFit) return;
         candlesFit = fit;
         for (const [id, close] of closes) {
           close.candles.engine.hidden = Boolean(layerById(id)?.hidden) || !fit;
@@ -16749,22 +16748,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (marksMade?.doc.layers.some((layer) => layer.type === "signal" && layer.ref && closes.has(layer.ref))) markSignals(marksMade.doc, marksMade.data, marksMade.drawn, []);
       }
       /**
-       * The close line's color, its tag's (see `closes`): its last candle in view's while candles show (the one its tag
-       * reads), rising or falling (as the candle's own tag would be, though a hollow one's body is the background); the
-       * layer's while the line shows instead.
+       * The close line's colors, its tag's and its price line's (see `closes`): while candles show, each candle's own,
+       * rising or falling, point by point (as the candle's own tag would be, though a hollow one's body is the background),
+       * so its tag is in the color of the candle it reads (the crosshair's, else the last in view) and its price line in
+       * the latest's; the layer's while the line shows instead. Made again as its candles change.
        * @param {string} id
        */
       function tintClose(id) {
         const close = closes.get(id);
         if (!close) return;
-        // (Its last candle at or before the view's end: the library's columns.)
-        const candles = close.candles.engine;
-        let i = Math.min(Math.ceil(engine.time.to), candles.close.length - 1);
-        while (i >= 0 && !(candles.close[i] === candles.close[i])) i--;
-        const color = candlesFit && i >= 0 && candles.close[i] < candles.open[i] ? close.fall : close.rise;
-        if (color === close.color) return;
-        close.color = color;
-        close.series.engine.setStyle({ color });
+        const candles = close.candles.engine, line = close.series.engine, version = candlesFit ? candles.version : -1;
+        if (version === close.tinted) return;
+        close.tinted = version;
+        if (candlesFit) {
+          const n = candles.close.length, colors = new Uint8Array(n);
+          for (let i = 0; i < n; i++) colors[i] = candles.close[i] < candles.open[i] ? 1 : 0;
+          line.setStyle({ colors, palette: [close.rise, close.fall] });
+        } else line.setStyle({ colors: null, palette: [] });
         engine.invalidate(true);
       }
       /**
@@ -17197,7 +17197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { ...paint, radius: BAR_CORNER } });
             const closeSeries = standard("line", closeAgain || undefined);
             styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
-            closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below });
+            closes.set(layer.id, { candles: series, series: closeSeries, rise: color, fall: layer.colors === 1 ? color : below, tinted: NaN });
             tintClose(layer.id);
           } else {
             const radius = dotRadius(layer.width), base = baseOf(layer);
@@ -17575,9 +17575,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // as fit (at most `most` across: the latest of them).
         const width = engine.time.width, lead = days ? 0 : room, inner = width - lead - gap;
         if (!(inner > 0)) return within({ from: first, to: n - 1 }, "to", most);
-        // (Bars sit at their middles: a span holds as many as it's long and one.)
-        const spacing = Math.max(inner / Math.max(1, n - 1 - first), width / most), to = n - 1 + gap / spacing - 0.5;
-        return { from: to + 1 - width / spacing, to };
+        // (Points at their middles, the library's: point i at (i - from) spacings in.)
+        const spacing = Math.max(inner / Math.max(1, n - 1 - first), width / most), to = n - 1 + gap / spacing;
+        return { from: to - width / spacing, to };
       }
       function applyRange(doc, data, animate = false) {
         if (data.times.length < 2 || !engine.time.width) return engine.show(engine.time.length);
@@ -17641,8 +17641,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!range) return;
         const width = Math.min(mostBars(), Math.max(10, (range.to - range.from) * factor)), center = (range.from + range.to) / 2;
         // (At the latest: it stays where it is, its room after it as wide as ever.)
-        // (Bars sit at their middles, as many across as the span and one: the last one's middle the gap from the edge.)
-        const last = (resolved?.times.length ?? 0) - 1, to = last + (rightGap() * (width + 1)) / Math.max(1, engine.time.width) - 0.5;
+        // (Points at their middles, the library's: the last one's middle the gap from the edge.)
+        const last = (resolved?.times.length ?? 0) - 1, to = last + (rightGap() * width) / Math.max(1, engine.time.width);
         glide(range.to >= last ? { from: to - width, to } : within({ from: center - width / 2, to: center + width / 2 }));
       }
       /** Every price scale back on auto, however it was dragged. */
@@ -17662,14 +17662,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function lastShown() {
         const n = resolved?.times.length ?? 0;
         const range = n ? shownSpan() : null;
-        // (A bar sits whole in view to half a bar past the range's end: the library centres its last half a bar in.)
-        return range ? clamp(Math.floor(range.to + 0.5), 0, n - 1) : n - 1;
+        // (A point partly in view counted, as the library's tags read it: the same point.)
+        return range ? clamp(Math.ceil(range.to), 0, n - 1) : n - 1;
       }
-      /** The view's first point (in view from half a bar before the range's start). */
+      /** The view's first point (one partly in view counted, as the library reads a relative scale's base). */
       function firstInView() {
         const n = resolved?.times.length ?? 0;
         const range = n ? shownSpan() : null;
-        return range ? clamp(Math.ceil(range.from - 0.5), 0, n - 1) : 0;
+        return range ? clamp(Math.floor(range.from), 0, n - 1) : 0;
       }
       /** The point the readout describes: the one under the crosshair, else the view's last (`rest`). */
       const readPoint = () => (hoverTime === null ? { at: lastShown(), rest: true } : { at: indexOfTime(hoverTime), rest: false });
@@ -17758,8 +17758,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function atLatest(range, was) {
         const width = engine.time.width, last = (resolved?.times.length ?? 0) - 1, span = range.to - range.from;
-        if (!width || !was || last <= 0 || Math.abs(range.to - (last + (rightGap(was) * (span + 1)) / was - 0.5)) > 0.5) return null;
-        const to = last + (rightGap(width) * (span + 1)) / width - 0.5;
+        if (!width || !was || last <= 0 || Math.abs(range.to - (last + (rightGap(was) * span) / was)) > 0.5) return null;
+        const to = last + (rightGap(width) * span) / width;
         return { from: to - span, to };
       }
       /**
@@ -17775,7 +17775,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // now), its room after it as wide as it is now once a heatmap's profile comes or goes: the chart moved over for
           // it, back as it goes. Elsewhere, or with more room after it already, where it was. A look ⌘K shows (see
           // showLook) moves nothing: the view as it was, to come back to; chosen, it's the chart's, and moves it then.)
-          const span = range ? range.to - range.from : 0, end = (/** @type {number} */ px) => last + (px * (span + 1)) / width - 0.5;
+          const span = range ? range.to - range.from : 0, end = (/** @type {number} */ px) => last + (px * span) / width;
           // (The room it was placed with another chart's: none to move from, as it's placed for this one.)
           // (The room as it was at this width: a resize places the view with it, see holdView.)
           const on = room > 0, moves = !lookShown && roomPlaced.id === chart.id && on !== roomPlaced.on && range && last > 0 && range.to >= last - 0.5 && (Math.abs(range.to - end(base + (roomPlaced.on ? profileWidth(width) : 0))) <= 0.5 || range.to < end(gap));
@@ -19925,7 +19925,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * same view by the box, though the plot's range isn't.
        */
       function boxView(/** @type {{ from: number, to: number }} */ range) {
-        const spacing = engine.time.width / (range.to - range.from + 1);
+        const spacing = engine.time.width / (range.to - range.from);
         return { from: range.from - engine.left / spacing, to: range.to + engine.axisShown / spacing };
       }
       /** The chart's own width as last seen: a size change at it is a price scale's, not the box's. */
@@ -19955,12 +19955,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
-        // (Its bars as wide: as many across the box as it holds, the last whole, as the library counts them.)
-        const spacing = was.box / (was.to - was.from + 1), bars = box / spacing - 1, last = resolved.times.length - 1;
+        // (Its bars as wide: as many across the box as it holds, as the library counts them (point i at (i - from) bars in).)
+        const spacing = was.box / (was.to - was.from), bars = box / spacing, last = resolved.times.length - 1;
         const right = engine.axisShown / spacing;
-        const to = was.at.from < 0 ? (was.to / (was.to - was.from)) * bars : was.at.to > last ? last + rightGap(width) / spacing - 0.5 + right : was.to;
+        const to = was.at.from < 0 ? (was.to / (was.to - was.from)) * bars : was.at.to > last ? last + rightGap(width) / spacing + right : was.to;
         madeView = { from: to - bars, to };
-        showSpan({ from: to - right - (width / spacing - 1), to: to - right });
+        showSpan({ from: to - right - width / spacing, to: to - right });
       }
       engine.onRange(() => {
         // (The view as left: one moved in the box it was left in, or moved since a resize of the box made it; not one the
@@ -20304,7 +20304,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const width = range.to - range.from, far = event.shiftKey;
         if (upDown(event)) return zoom(event.key === "ArrowUp" ? (far ? 0.5 : 0.8) : far ? 2 : 1.25);
         const by = (event.key === "ArrowLeft" ? -1 : 1) * width * (far ? 1 : 0.1);
-        const end = n - 1 + (rightGap() * (width + 1)) / Math.max(1, engine.time.width) - 0.5;
+        const end = n - 1 + (rightGap() * width) / Math.max(1, engine.time.width);
         glide(event.key === "Home" ? { from: -0.5, to: width - 0.5 } : event.key === "End" ? { from: end - width, to: end } : { from: range.from + by, to: range.to + by });
       });
       $("navigator").addEventListener("pointercancel", endBrush);
@@ -24104,14 +24104,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * What a chart's picture shows of its data (`most` bars at most): the view it opens on, its own; the open one's,
        * linked, every chart's (as its chunks are, see spanOf); else its range. (Another chart's: the room any chart has
        * after its latest point, not the open one's tags'.) A shown profile's room after the latest, as the chart leaves it
-       * (see rightGap): a quarter of the picture, where it ends at the latest. As the picture spans it: from its first bar's
-       * left edge to its last's right edge (a view's range is by their middles, the library's: see lastShown).
+       * (see rightGap): a quarter of the picture, where it ends at the latest. As the picture spans it, its edges: a view's
+       * as the chart shows it (the library's range is its screen's edges); a range's from its first bar's left edge to its
+       * last's right edge (its window by their middles: half a bar more each side).
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most
        */
       const previewShown = (doc, data, most) => {
         const left = openView(doc), shown = left ? within(viewOn(left, doc.index, data.times, rightGap()), "to") : presetWindow(doc, data, most, 0, 0), last = data.times.length - 1, ROOM = 0.25;
         const range = profiled(doc) && shown.to >= last - 0.5 && shown.to - last < (shown.to - shown.from) * ROOM ? { from: shown.from, to: last + ((last - shown.from) * ROOM) / (1 - ROOM) } : shown;
-        return { from: range.from - 0.5, to: range.to + 0.5 };
+        return left ? range : { from: range.from - 0.5, to: range.to + 0.5 };
       };
       /**
        * The density a picture's heatmaps are sampled at: 50 rows a ×10 (a tile's few hundred pixels tall); their days, a
@@ -36079,9 +36080,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else {
           // Its middle when it's wider than the chart shows (as loaded for it), else all of it.
           const times = /** @type {Resolved} */ (resolved).times, middle = stretchOf(span);
-          // (Its first and last bars whole at the edges: the library centres bar i at (i - from + 0.5) bars in, so a range from
-          // its first to its last shows each whole, none of the days around it.)
-          glide({ from: Math.max(first, lowerBound(times, middle.from)), to: Math.min(last, lowerBound(times, middle.to) - 1) });
+          // (Its first and last bars whole at the edges: the library puts bar i at (i - from) bars in, its middle, so half a
+          // bar more each side shows each whole, none of the days around it.)
+          glide({ from: Math.max(first, lowerBound(times, middle.from)) - 0.5, to: Math.min(last, lowerBound(times, middle.to) - 1) + 0.5 });
         }
       }
       /** Where ↵ would take the view: the chart's overview, the span lit on it; when it starts and ends, how many points. */
@@ -39857,6 +39858,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The view's change windows were read from the old value; the navigator's shape from the data before it.)
         windows.data = null;
         drawOverview();
+        // (The crosshair set here back on its date and price, on its scale as the new value fits it: drawn now, then put
+        // back, as after a build; the library keeps one set by a page at its height.)
+        if (crossSet) engine.render(false), holdCross();
         updateValues();
       }
       let pricePending = false, priceTimer = 0, priceDelay = 1000;

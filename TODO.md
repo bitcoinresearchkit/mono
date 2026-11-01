@@ -40,7 +40,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   second: Bars.distance gone, one firstFrom, stale comments).
 - Studio's chart code, Codex's review (2026-11-01; full report: scratchpad codex/studio1/out). To fix, in batches
   (each: fresh test, type checks, 79-preset sweep, phone sweep, Codex on the diff, commit). Lines as of ac6dbc585:
-  - Batch 1 made (uncommitted, 2026-11-01): (1), (2), (7) (Shade `behind` by default in the library), (9), (10),
+  - Batch 1 committed (804a3cc8d); batch 2 committed after it ((3) every LWC geometry place, previewShown's
+    ±0.5 for saved views; (4) a pinned crosshair put back after a live tick; (5) the close line colored candle by
+    candle). Left: batch 3 (per-frame work, below), then going live.
+  - Batch 1 as made: (1), (2), (7) (Shade `behind` by default in the library), (9), (10),
     (14); (8) kept, its comment fixed (a histogram's below-base palette is made with its data: a color edit needs
     it). Type checks clean, 79 presets 0 errors; Codex on the diff (scratchpad codex/studio2/out); then phone, commit.
   - Batch 1 as found: (1) stacksMade's key (~23502) lacks layer type and `from`: a layer made bubbles on
@@ -59,7 +62,10 @@ Only what's left. An item done is removed: its history is in the commits and log
     the library's Timeline doesn't: lead and gap off by a few px, the resting legend reading point 10 where tags read
     11; (4) a live tick doesn't re-anchor a pinned crosshair after the scale refits (~39826: holdCross); (5) candles'
     close line tinted by the view's last candle (~16764), wrong when the tag reads the crosshair's candle; (6) bandAt
-    (~17817) can override the library's hit with a nearer value at the rounded point.
+    (~17817) can override the library's hit with a nearer value at the rounded point. (6) looked at, left: the
+    library's hit puts a fill under the pointer at distance 0, so preferring it would let an area's fill beat a line
+    3 px away; Studio prefers the nearby line on purpose. A better fix measures each line's y at the pointer's x
+    (steps, curves) in the nearest-line scan: not done.
   - Batch 3, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
     drawings, trends' gradient colors (~21012); (16) Heat `fixed` (~18787) redraws its pane at every crosshair move,
     profile bins rebuilt each time (~22652); (17) profileShare summed twice a move (~22356, ~22598) though its day is
@@ -89,6 +95,20 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
+- Studio's bottom-right corner shows the version; you wanted the commit hash there, without a build step (2026-11-01).
+  Found: it shows the server's /version, which on the deployed servers is already the hash (bitview.space/version:
+  "4f961b7", read at start from cargo's install record: crates/bitview_server/src/lib.rs installed_commit); a local
+  build has no record and says "v0.12.2" (what local.bitview.space shows). Asked you: should a local build say its
+  checkout's commit too (read from .git at start, no build step: a small server change and a restart)? You said
+  (2026-11-01): crates.io install → its version, from a repo → the hash; the back end's VERSION does it, the front
+  end stays generic. To do: VERSION falls back to the checkout's commit (.git two up from CARGO_MANIFEST_DIR: HEAD,
+  its ref or packed-refs; a worktree's .git file) before `v` + the version. Committed (9817c748d): the local
+  server says "804a3cc". Found after: bindgen writes the spec's info.version into llms.txt and llms-full.txt (it
+  was VERSION: they'd change every commit); the spec now says the release (`v` + the crate's version, openapi/mod.rs),
+  uncommitted, server restarting to regenerate them (they must read `v0.13.0` again, then commit with clippy).
+- The Mac restarted (2026-11-01 ~21:00): Rex sessions gone. Restarted in session bitview-dev: the server (cargo
+  dev, window 1), the tunnel, headless Chromium 9334 (its profile in the scratchpad), bitcoind (it had died with
+  the Mac). The windowed Mullvad (BiDi 9341) not restarted yet.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's
