@@ -27,6 +27,14 @@ Only what's left. An item done is removed: its history is in the commits and log
     making is near nothing). Lines one device pixel wide take its hairline path and cost almost nothing, but that's
     a third as wide as today on a 2x screen; strokes split in pieces gain ~10% and change the joins. Mine: leave it.
 
+- Right after a `fleet update` (2026-11-01, 232107e), live Bitcoin price stayed on "Loading 1 series" for over 40 s in
+  Mullvad and Chromium, then loaded (later: 0.37 s; the API 30–60 ms). Not the server: locally, straight after a
+  restart, the price answers in 2 ms and the preset opens in 0.54 s. Most likely a request caught on a server
+  restarting behind the tunnel (fleet restarts them one at a time) hanging till the client's 30 s timeout
+  (modules/bitview-client/index.js ~2164, the download included), then retried. To confirm during the next deploy
+  (watch a page's requests as each server restarts); then either fleet drains a server's tunnel before stopping it,
+  or the client gives a series request less time to start answering (not to finish).
+
 ## bitview-charts: raised by you, still open
 
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
