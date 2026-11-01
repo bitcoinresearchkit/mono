@@ -1641,7 +1641,8 @@
           margin-right: 10px;
         }
 
-        /* (A layer's: its mark, as the chart's legend draws it: the panel is the legend while it shows. Its letter, the
+        /* (A layer's: its mark, as the chart's legend draws it (the panel is the legend while it shows), in a box of its
+           color as a marker's icon is: the box its tick takes the place of as it's pointed at, to pick it. Its letter, the
            name formulas know it by, heads its second line.) */
         > .row-mark {
           display: grid;
@@ -1649,11 +1650,15 @@
           align-self: center;
           place-items: center;
           width: 22px;
+          height: 22px;
           margin-right: 10px;
+          border-radius: var(--radius-sm);
+          background: color-mix(in srgb, var(--c) 13%, transparent);
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent);
 
           > .series-mark {
-            width: 20px;
-            height: 15px;
+            width: 16px;
+            height: 12px;
           }
         }
       }
@@ -30033,7 +30038,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
-                  <span class="row-mark">${seriesMark(layer)}</span>
+                  <span class="row-mark" style="--c:${escape(ink(layer.color))}">${seriesMark(layer)}</span>
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
