@@ -1,21 +1,14 @@
 // @ts-check
-// The part of Lightweight Charts' API Studio uses, on bitview-charts: Studio's copy imports this in the chart library's
-// place, its own code as it is, to try the library in the real app. Studio's glue, not the library's: what Studio does
-// with the library (its options, its patches' calls: bv*), mapped onto bitview-charts' panes, scales and series. Phase
-// one: the chart, its panes and scales, the view, the crosshair and clicks, pictures, and the standard series (lines,
-// areas (stacked ones' fills to the line under them), histograms, baselines, candles), rows or columns onto one
-// timeline (the page's: see Chart.#sync). Phase two: custom series (Studio's clouds, heatmaps, bubbles: see Painted) and
-// overlay scales. (Their order in their panes, and what Studio draws with them (its drawings, halving marks, lines
-// across), Studio's own on the library.)
+// What's left of Lightweight Charts' API in Studio's copy, on bitview-charts: the chart (its element, pictures, the
+// patches' flush: bv*) and Studio's custom series (clouds, shades, heatmaps, profiles, bubbles: their rows onto the
+// timeline, see Chart.#sync; their views drawn as the chart library drew them, see Painted; overlay scales). The rest
+// (panes, standard series, their order, data, looks and scales, the view, events, levels, drawings) Studio's own on the
+// library.
 
-import { createChart as make, picture, Line, Band, Bars, Candles, Custom, Scale } from "/modules/bitview-charts/index.js";
+import { createChart as make, picture, Line, Custom, Scale } from "/modules/bitview-charts/index.js";
 
-export const LineSeries = "Line", AreaSeries = "Area", HistogramSeries = "Histogram", BaselineSeries = "Baseline", CandlestickSeries = "Candlestick";
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
 export const LineType = { Simple: 0, WithSteps: 1, Curved: 2 };
-export const ColorType = { Solid: "solid", VerticalGradient: "gradient" };
-export const CrosshairMode = { Normal: 0, Magnet: 1, Hidden: 2, MagnetOHLC: 3 };
-export const TrackingModeExitMode = { OnTouchEnd: 0, OnNextTap: 1 };
 export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right" };
 
 /** @param {HTMLElement} element @param {any} [options] */
@@ -25,8 +18,6 @@ export function createChart(element, options = {}) {
 
 // (What an autoscaleInfoProvider's `original` gives it here: a sign it kept the series' own range.)
 const OWN = { priceRange: null }, original = () => OWN;
-/** A fit adding nothing (an edge: its series fitted by its band). */
-const NOTHING = () => {};
 
 /** The index of `time` in rising `times`, or -1 (exact), or the nearest one each way (`mismatch`). @param {Float64Array | number[]} times @param {number} time @param {number} [mismatch] */
 function indexOf(times, time, mismatch = 0) {
@@ -63,16 +54,9 @@ class Chart {
   // ── What Studio calls ──
 
 
-  /** @param {any} type @param {any} options @param {number} [pane] */
-  addSeries(type, options = {}, pane = 0) {
-    const series = new Series(this, String(type), options, this.#pane(pane));
-    this.all.push(series);
-    return series;
-  }
-
   /** @param {any} view @param {any} options @param {number} [pane] */
   addCustomSeries(view, options = {}, pane = 0) {
-    const series = new Series(this, "Custom", { ...customSeriesDefaultOptions, ...view.defaultOptions?.(), ...options }, this.#pane(pane), view);
+    const series = new Series(this, { ...customSeriesDefaultOptions, ...view.defaultOptions?.(), ...options }, this.#pane(pane), view);
     this.all.push(series);
     return series;
   }
@@ -80,7 +64,6 @@ class Chart {
   /** @param {Series} series */
   removeSeries(series) {
     series.pane.engine.remove(series.engine);
-    if (series.edge) series.pane.engine.remove(series.edge);
     this.all = this.all.filter((each) => each !== series);
     this.changed();
   }
@@ -157,12 +140,11 @@ class PriceScale {
   }
 }
 
+/** A custom series of Studio's (its clouds, shades, heatmaps, profiles, bubbles): its rows, drawn by its view (see Painted). */
 class Series {
-  /** @param {Chart} chart @param {string} type @param {any} options @param {Pane} pane @param {any} [view] */
-  constructor(chart, type, options, pane, view) {
+  /** @param {Chart} chart @param {any} options @param {Pane} pane @param {any} view */
+  constructor(chart, options, pane, view) {
     this.chart = chart;
-    this.type = type;
-    this.view = view;
     this.pane = pane;
     this.opts = { visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right", ...options };
     /** Its own times and values (Studio's rows or columns), and its values on the chart's timeline (pushed at sync). */
@@ -178,25 +160,11 @@ class Series {
     this.ownRows = false;
     /** Its data or look changed since it was pushed. */
     this.dirty = true;
-    /** A custom series' view, drawn as the chart library drew it. @type {Painted | null} */
-    this.painted = view ? new Painted(this, view) : null;
-    // (Its fitting by its autoscaleInfoProvider (see #fit), made once: nothing made a frame but what the provider makes.)
-    this.fitter = (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => this.#fit(a, b, positive, out);
-    this.original = () => this.#own();
-    this.asked = new Float64Array(3);
-    this.range = new Float64Array(2);
-    this.info = { priceRange: { minValue: 0, maxValue: 0 } };
-    this.engine = this.#make();
+    /** Its view, drawn as the chart library drew it. */
+    this.painted = new Painted(this, view);
+    this.engine = this.painted.engine;
     pane.engine.add(this.engine, this.side);
-    // (An area's or a baseline's line along its edge, over its fill: its tag and its price line its.)
-    /** @type {Line | null} */
-    this.edge = this.type === "Area" || this.type === "Baseline" ? pane.engine.add(new Line(), this.side) : null;
     this.#style();
-  }
-
-  /** How it writes a value (its priceFormat's own writer; none, its scale's). */
-  get format() {
-    return this.opts.priceFormat?.formatter ?? null;
   }
 
   /** Its side: its scale's (an overlay's series on the right one's, their own scale theirs). */
@@ -209,72 +177,13 @@ class Series {
     return this.pane.scaleApi(this.opts.priceScaleId || "right");
   }
 
-  /** Its series in the library, by its type. */
-  #make() {
-    switch (this.type) {
-      case "Area":
-      case "Baseline":
-        return new Band({ upper: new Float64Array(0) });
-      case "Histogram":
-        return new Bars({});
-      case "Candlestick":
-        return new Candles({ open: new Float64Array(0), high: new Float64Array(0), low: new Float64Array(0), close: new Float64Array(0) });
-      case "Custom":
-        return /** @type {Painted} */ (this.painted).engine;
-      default:
-        return new Line();
-    }
-  }
-
-  /**
-   * Its fitting by its autoscaleInfoProvider where it has one (a stack's: its edge then not fitted to, the series' range
-   * its band's); a custom series' look from its options. (A standard series' look is the page's: the library's styles.)
-   */
+  /** Its look from its options: shown or hidden, its view's (see Painted.style). */
   #style() {
-    const o = this.opts, engine = this.engine;
-    if (engine instanceof Custom) return void ((engine.hidden = o.visible === false), /** @type {Painted} */ (this.painted).style());
-    engine.fit = o.autoscaleInfoProvider ? this.fitter : null;
-    if (this.edge) this.edge.fit = o.autoscaleInfoProvider ? NOTHING : null;
-  }
-
-  /**
-   * Its autoscale info from point `a` to `b`, as the chart library's: its own range there (none: null), through its
-   * autoscaleInfoProvider where it has one (Studio's: a stack's from zero or 0 to 100, a
-   * carrier's none), `original` its own.
-   * @param {number} a @param {number} b @param {boolean} positive
-   */
-  autoscale(a, b, positive) {
-    (this.asked[0] = a), (this.asked[1] = b), (this.asked[2] = positive ? 1 : 0);
-    const provider = this.opts.autoscaleInfoProvider;
-    return provider ? provider(this.original) : this.#own();
-  }
-
-  /**
-   * Its scale's range from it by its autoscaleInfoProvider, from point `a` to `b` widening `out`.
-   * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out
-   */
-  #fit(a, b, positive, out) {
-    const range = this.autoscale(a, b, positive)?.priceRange;
-    if (!range) return;
-    if (range.minValue < out[0]) out[0] = range.minValue;
-    if (range.maxValue > out[1]) out[1] = range.maxValue;
-  }
-
-  /** Its own autoscale info where it's asked (see autoscale): its range there; no range, null. */
-  #own() {
-    const range = this.range, asked = this.asked;
-    (range[0] = Infinity), (range[1] = -Infinity);
-    this.engine.extent(asked[0], asked[1], asked[2] === 1, range);
-    if (!(range[0] <= range[1])) return null;
-    (this.info.priceRange.minValue = range[0]), (this.info.priceRange.maxValue = range[1]);
-    return this.info;
+    this.engine.hidden = this.opts.visible === false;
+    this.painted.style();
   }
 
   // ── What Studio calls ──
-
-  seriesType() {
-    return this.type;
-  }
 
   options() {
     return this.opts;
@@ -317,9 +226,9 @@ class Series {
     this.ownRows = true;
   }
 
-  /** A custom series' rows onto the timeline (its bars; its closes its values: see Painted); a standard one's data is the page's, set on the library. @param {Float64Array} times */
+  /** Its rows onto the timeline (its bars; its closes its values: see Painted). @param {Float64Array} times */
   push(times) {
-    if (this.painted) this.columns = this.painted.push(times);
+    this.columns = this.painted.push(times);
   }
 
   /** The row at a point (or the nearest one each way). @param {number} index @param {number} [mismatch] */

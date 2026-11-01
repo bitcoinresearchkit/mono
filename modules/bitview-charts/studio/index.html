@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
       import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Marks, Levels, Custom, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { Line, Band, Bars, Candles, Marks, Levels, Custom, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -17149,6 +17149,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!again) added = true;
           /** Its series: the one kept, its look set anew (with what `also` adds), else made. @param {() => any} make @param {any} options */
           const madeOrKept = (make, options, also = () => ({})) => (again ? (again.applyOptions({ ...lookOf(options), ...also() }), again) : tracked(make()));
+          // (A standard one's: kept, or made, fitted as its stack is.)
+          const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : null;
+          const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting);
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
             // of its own, unseen), faint, behind what's drawn.
@@ -17200,10 +17203,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
             const closeAgain = again && wasCloses.get(layer.id)?.series;
-            series = madeOrKept(() => view.addSeries(LC.CandlestickSeries, common, pane), common);
+            series = standard("candles", again);
             styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { up: paint.upColor, down: paint.downColor, upWick: paint.wickUpColor, downWick: paint.wickDownColor, upBorder: paint.borderUpColor, downBorder: paint.borderDownColor, radius: BAR_CORNER } });
-            const closeSeries = closeAgain || tracked(view.addSeries(LC.LineSeries, common, pane));
-            if (closeAgain) closeAgain.applyOptions(lookOf(common));
+            const closeSeries = standard("line", closeAgain || undefined);
             styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
             closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
             tintClose(layer.id);
@@ -17211,12 +17213,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const radius = dotRadius(layer.width), base = baseOf(layer);
             // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see the facade's
             // stack). An area's fill to the pane's foot, or its top where it's filled above its line.)
-            const [kind, options, look] = layer.type === "dots" ? [LC.LineSeries, common, { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
-              : layer.type === "area" || stackedLine ? [LC.AreaSeries, common, { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
-              : layer.type === "histogram" ? [LC.HistogramSeries, common, { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
-              : layer.type === "baseline" ? [LC.BaselineSeries, common, { line: { ...stroke, color: paint.topLineColor, under: { value: base, color: paint.bottomLineColor } }, band: { color: paint.topFillColor1, fade: paint.topFillColor2, below: paint.bottomFillColor1, belowFade: paint.bottomFillColor2, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
-              : [LC.LineSeries, common, { line: { ...stroke, color: paint.color } }];
-            series = madeOrKept(() => view.addSeries(/** @type {any} */ (kind), options, pane), options);
+            const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
+              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
+              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.topLineColor, under: { value: base, color: paint.bottomLineColor } }, band: { color: paint.topFillColor1, fade: paint.topFillColor2, below: paint.bottomFillColor1, belowFade: paint.bottomFillColor2, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
+              : ["line", { line: { ...stroke, color: paint.color } }];
+            series = standard(/** @type {"line" | "band" | "bars"} */ (kind), again);
             styleSeries(series, { ...tags, ...look });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
@@ -17320,7 +17322,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const { levels, pane } of levelsBefore.values()) pane.remove(levels);
         engine.invalidate(true);
         markSignals(doc, data, drawn, old);
-        for (const series of old) heatSeries.delete(series), dropOwnLayers(series), view.removeSeries(series);
+        for (const series of old) {
+          heatSeries.delete(series), dropOwnLayers(series);
+          if (!(series instanceof Standard)) view.removeSeries(series);
+          else ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
+        }
         while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
         // (Each new series' sketch: its drawings, halving marks, a trend's ends.)
@@ -18576,6 +18582,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** No values (made once). */
       const EMPTY = new Float64Array(0);
+      /**
+       * A layer's standard series on the library: its line, band (an area's, a baseline's: its line along its edge,
+       * `edge`, its tag and price line its), bars or candles (`engine`), on its pane's `side`.
+       */
+      class Standard {
+        /** @param {"line" | "band" | "bars" | "candles"} kind @param {number} pane @param {"left" | "right"} side */
+        constructor(kind, pane, side) {
+          const on = /** @type {any} */ (engine.panes[pane]);
+          this.side = side;
+          /** @type {any} */
+          this.engine = on.add(kind === "band" ? new Band({ upper: EMPTY }) : kind === "bars" ? new Bars({}) : kind === "candles" ? new Candles({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY }) : new Line(), side);
+          /** @type {any} */
+          this.edge = kind === "band" ? on.add(new Line(), side) : null;
+        }
+      }
+      /** A stack's range from zero: its own (`out` widened by it and zero), none in view nothing. (Made once.) */
+      const SPAN = new Float64Array(2);
+      /**
+       * A series fitted as its stack is (`stack`: "shares", 0 to 100; "zero", its own range and zero), its edge not fitted
+       * to then (its band's range is its range); none, by what it draws.
+       * @param {Standard} series @param {"shares" | "zero" | null} stack
+       */
+      function fitSeries(series, stack) {
+        const own = series.engine;
+        own.fit = stack === "shares" ? fitShares : stack === "zero" ? (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => {
+          (SPAN[0] = Infinity), (SPAN[1] = -Infinity);
+          own.extent(a, b, positive, SPAN);
+          if (!(SPAN[0] <= SPAN[1])) return;
+          (out[0] = Math.min(out[0], SPAN[0], 0)), (out[1] = Math.max(out[1], SPAN[1], 0));
+        } : null;
+        if (series.edge) series.edge.fit = own.fit ? NOTHING : null;
+        return series;
+      }
+      const fitShares = (/** @type {number} */ _a, /** @type {number} */ _b, /** @type {boolean} */ _positive, /** @type {Float64Array} */ out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
+      const NOTHING = () => {};
       /** A layer drawn by the page's own series (its rows: clouds, shades, heatmaps, profiles, bubbles), not a standard one. @param {Layer} layer */
       const customKind = (layer) => layer.type === "cloud" || layer.type === "bubbles" || heatLike(layer) || (layer.type === "signal" && layer.place === "shade");
       /**
