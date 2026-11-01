@@ -237,7 +237,7 @@
           margin-top: 2px;
           overflow: hidden;
           color: var(--state, var(--ink));
-          font: 400 clamp(52px, 11vw, 112px) / 1 var(--serif);
+          font: 400 clamp(52px, min(11vw, 12svh), 112px) / 1 var(--serif);
           letter-spacing: -0.01em;
           white-space: nowrap;
           text-overflow: ellipsis;
@@ -744,12 +744,12 @@
 
       .index-chart {
         position: relative;
-        height: 220px;
+        height: clamp(240px, 40svh, 420px);
         margin: 0;
         touch-action: pan-y;
 
         @media (max-width: 719px) {
-          height: 180px;
+          height: clamp(220px, 32svh, 300px);
         }
 
         canvas {
