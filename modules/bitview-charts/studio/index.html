@@ -17307,7 +17307,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const panes = engine.panes;
         // (A pane's shade is on a scale of its own: no side's.)
         const sides = new Set(doc.layers.flatMap((layer) => (edgesOf(layer).length > 1 ? [] : [layer.side])));
-        const folded = foldedPanes(doc);
         doc.panes.forEach((pane, i) => {
           if (!panes[i]) return;
           // A side shows in every pane once any layer uses it: the plots line up.
@@ -17696,7 +17695,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const kept = new Set(), made = /** @type {HTMLElement[]} */ ([]);
         if (chart && drawnChart === chart.id) {
           // (Turned off, none; but a folded pane's, its names all it shows.)
-          const panes = engine.panes, folded = chart.legend === "off" ? foldedPanes(chart) : null;
+          const folded = chart.legend === "off" ? foldedPanes(chart) : null;
           chart.panes.forEach((pane, i) => {
             if (folded && !folded.has(pane.id)) return;
             // The legend goes in the pane's frame, over its plot.
@@ -17784,36 +17783,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const side of ["left", "right"]) moved = engine.panes[i].setTagsTop(top, /** @type {any} */ (side)) || moved;
         });
         if (moved) engine.invalidate(true);
-      }
-      /**
-       * The values whose written forms bound every other's: each order of magnitude's least and greatest, either sign
-       * (within one, the digits and the decimals a form has are alike), and the latest.
-       * @param {Vector} values @returns {number[]}
-       */
-      function magnitudes(values) {
-        // (Keyed by a number, its sign by its exponent's place (every exponent past -400); a value inside the last one's
-        // magnitude (its bounds a hair in, a power of ten's neighbors read exactly) that one's, none looked up: no string,
-        // no logarithm each value, hundreds of thousands a stack's tags, a phone's engine without a JIT.)
-        const ends = new Map();
-        let last = NaN, end = [0, 0], sign = 0, low = Infinity, high = 0;
-        // (By index, finite by a subtraction: no iterator's step, no call, each value.)
-        for (let i = 0; i < values.length; i++) {
-          const value = values[i];
-          if (value - value !== 0) continue;
-          last = value;
-          const size = Math.abs(value), side = value > 0 ? 1 : -1;
-          if (!(side === sign && size > low && size < high)) {
-            const power = value === 0 ? 0 : Math.floor(Math.log10(size)), key = value === 0 ? 0 : side * (400 + power), had = ends.get(key);
-            end = had ?? [value, value];
-            if (!had) ends.set(key, end);
-            // (Normal numbers alone: a subnormal's bounds can't be drawn in a hair.)
-            [sign, low, high] = value === 0 || size < 1e-300 ? [0, Infinity, 0] : [side, 10 ** power * (1 + 1e-12), 10 ** (power + 1) * (1 - 1e-12)];
-          }
-          // (Zeros by Math's own, a negative one kept as it was.)
-          if (value === 0) (end[0] = Math.min(end[0], value)), (end[1] = Math.max(end[1], value));
-          else (end[0] = value < end[0] ? value : end[0]), (end[1] = value > end[1] ? value : end[1]);
-        }
-        return [...[...ends.values()].flat(), ...(Number.isFinite(last) ? [last] : [])];
       }
       /**
        * A pane's layers as its key has them: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
@@ -31104,7 +31073,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A layer's lowest and highest values (none: Infinity and -Infinity). @param {Vector | number[]} values @returns {[number, number]} */
       function rangeOf(values) {
         let low = Infinity, high = -Infinity;
-        // (By index, finite by a subtraction, as magnitudes: a gradient's layer's every value at each live price; zeros by
+        // (By index, finite by a subtraction: a gradient's layer's every value at each live price; zeros by
         // Math's own, a negative one kept as it was.)
         for (let i = 0; i < values.length; i++) {
           const value = values[i];
