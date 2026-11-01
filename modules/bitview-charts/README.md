@@ -44,8 +44,10 @@ chart.show(365);                                 // the last 365 points in view
   let go), a pinch or the wheel zooms about that point (the point
   there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
-  own element over the chart (a legend); its badges (its value, its date) cover the tags and labels they touch on
-  the axes (none shows cut beside them). Separators between panes drag to share their heights (laid out and drawn at
+  own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
+  covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
+  pointed at's larger, ringed in its color (`crosshair.pointed`: a page's line, null none; left undefined, the one its
+  pane hits there). Separators between panes drag to share their heights (laid out and drawn at
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).

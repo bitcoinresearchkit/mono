@@ -23,6 +23,12 @@ export class Crosshair {
     /** Its height in the chart (CSS pixels), and the pane it's in (-1: none, on the time axis). */
     this.y = NaN;
     this.pane = -1;
+    /**
+     * The line pointed at, its dot drawn larger and ringed (over the others): a page's (null: none), else (undefined)
+     * the one its pane hits at the crosshair (see Pane's hit).
+     * @type {import("./line.js").Line | null | undefined}
+     */
+    this.pointed = undefined;
     this.width = 0;
     this.height = 0;
     // (As drawn: nothing to clear when it's gone already.)
@@ -86,9 +92,12 @@ export class Crosshair {
       g.stroke();
       g.setLineDash(NONE);
     }
-    // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground, within its pane's plot.)
+    // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground, within its pane's plot; the
+    // line pointed at's larger, in a ring of its color, over the others: which one the crosshair reads.)
     if (x >= 0 && x <= plot) {
-      const from = Math.max(0, Math.floor(time.from));
+      const from = Math.max(0, Math.floor(time.from)), under = panes[this.pane];
+      const pointed = this.pointed !== undefined ? this.pointed : under ? under.series[under.hit(time, i, x, this.y - under.top)] ?? null : null;
+      let focus = NaN, focusY = NaN, focusColor = "", focusMarker = 0;
       for (let p = 0; p < panes.length; p++) {
         const each = panes[p];
         g.save();
@@ -107,6 +116,10 @@ export class Crosshair {
           }
           const y = each.top + scale.y(v);
           if (!(y >= each.top && y <= each.top + each.height)) continue;
+          if (line === pointed && !line.faint) {
+            (focus = p), (focusY = y), (focusColor = line.colorAt(i)), (focusMarker = line.marker);
+            continue;
+          }
           // (A faint line's as faint.)
           g.globalAlpha = line.faint ? FAINT : 1;
           g.fillStyle = theme.background;
@@ -119,6 +132,22 @@ export class Crosshair {
           g.fill();
         }
         g.globalAlpha = 1;
+        if (focus === p) {
+          g.fillStyle = focusColor;
+          g.globalAlpha = 0.3;
+          g.beginPath();
+          g.arc(x, focusY, focusMarker + 7, 0, 2 * Math.PI);
+          g.fill();
+          g.globalAlpha = 1;
+          g.fillStyle = theme.background;
+          g.beginPath();
+          g.arc(x, focusY, focusMarker + 3.5, 0, 2 * Math.PI);
+          g.fill();
+          g.fillStyle = focusColor;
+          g.beginPath();
+          g.arc(x, focusY, focusMarker + 1.5, 0, 2 * Math.PI);
+          g.fill();
+        }
         g.restore();
       }
     }
