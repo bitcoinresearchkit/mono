@@ -76,11 +76,9 @@ Only what's left. An item done is removed: its history is in the commits and log
     the view's last.
   - Not to do now: Cloud, Heat, stackOf duplicate parts of the library's Band, Grid/Profile, stack (11–13): the
     question above (one should go).
-- Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out). Made,
-  uncommitted: the two leftovers gone, (2) a picture clears the spotlight (spotlight(null), lit again after), (3) a
-  picture writes a value's as-of date after it (its ::after measured by a Range, in its color). Left for them: a
-  picture checked (studio.png with a layer selected, a series ending early), sweep, Codex, commit; then (1), (4), (5).
-  To fix:
+- Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out).
+  Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
+  as-of date. Left: (1), (4), (5), and the repeated work (measure first). As found:
   - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
     every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
     (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;
