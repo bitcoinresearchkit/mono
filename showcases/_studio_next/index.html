@@ -39264,7 +39264,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const template = closest(event, "[data-template]");
         const card = template && recommendedCards[Number(template.dataset.template)];
         if (card) return pickPreset(card.preset);
-        const target = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+        const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+        // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
+        const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
         if (!target) return;
         const { select: id, toggle, paneMode, paneStack, paneReverse, mode, action, sheet, openChart } = target.dataset;
         if (openChart) {
