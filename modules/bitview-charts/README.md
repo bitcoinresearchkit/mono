@@ -58,9 +58,8 @@ chart.show(365);                                 // the last 365 points in view
   written: `format(v, step)`, a value on its axis (a tag, a level's, the crosshair's) given `step`, the step between its
   ticks around it (`stepAt(v, scale)`: a decimal past theirs, in the unit it's written in: 89.0 by ticks 20 apart, 1.053
   by 0.02; the default writer's rule), elsewhere none. `setFormat(format, ticks, side)`: a side's own (`ticks`, its
-  ticks written all at once, their digits alike; an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `setTagsTop(top, side)`, a
-  side's tags kept under that height (a page's legend over the pane); `frame`, a page's own element over its plot (a
-  legend, a highlight), laid out and stretched with it, under the crosshair, taking no pointer (its children may).
+  ticks written all at once, their digits alike; an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `frame`, a page's own element
+  over its plot (a legend, a highlight), laid out with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
   the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's

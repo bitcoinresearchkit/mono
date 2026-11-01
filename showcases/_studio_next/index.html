@@ -17692,7 +17692,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** A legend whose width changes (the window, a price scale) checks again whether it scrolls. */
       // (Resized, a legend's tags follow it, read as it's laid out: see fitLegends.)
-      const legendFit = new ResizeObserver((entries) => (entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))), fitLegends()));
+      const legendFit = new ResizeObserver((entries) => entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))));
       /** A pane's plot resized (a separator dragged, sizes undone, the window), the tags' room under its legend follows. */
       const plotFit = new ResizeObserver(() => fitLegends());
       /** Full screen's button, in the chart's corner under its price scale (the right one's, else the left's). */
@@ -17786,22 +17786,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitLegends();
       }
       /**
-       * Its legends' forms by the plot's width (narrow, no words after a key's strip; tight, the strip alone), and each
-       * pane's tags kept under its legend (the library's setTagsTop: a crowded pane's spread up past it, else). `tags` false: the
-       * forms alone, a legend written (what it holds read as it's laid out, if it's resized: see legendFit; read now, a
-       * click's writes would all be laid out at once, mid-click).
+       * Its legends' forms by the plot's width (narrow, no words after a key's strip; tight, the strip alone). (A pane's
+       * tags at their lines up to its top: its legend over its plot alone, never over the axis they're on.)
        */
-      function fitLegends(tags = true) {
+      function fitLegends() {
         const width = engine.time.width;
         if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < KEY_NARROW), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
-        let moved = false;
-        if (tags) chart?.panes.forEach((pane, i) => {
-          if (!engine.panes[i]) return;
-          // (Under its legend, but two tags' room left at least: a short pane's tags beside it rather than off its foot.)
-          const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, engine.panes[i].height - 44)) : 0;
-          for (const side of SIDES) moved = engine.panes[i].setTagsTop(top, side) || moved;
-        });
-        if (moved) engine.invalidate(true);
       }
       /**
        * A pane's layers as its key has them: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
@@ -17971,7 +17961,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         markLegends();
         paintProfileItems();
         // (Its bands named after the latest point too: renamed, recolored, as the legend is.)
-        fitLegends(false);
+        fitLegends();
         lightLegend(litLayer, true);
         updateValues();
       }

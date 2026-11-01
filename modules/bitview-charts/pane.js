@@ -81,8 +81,8 @@ export class Pane {
     this.canvas = document.createElement("canvas");
     this.canvas.style.cssText = "position: absolute; left: 0; display: block";
     /**
-     * A page's own element over its plot (a legend, a highlight), laid out with it (stretched with it as a separator's
-     * dragged: its height, not scaled), under the crosshair; it takes no pointer (its children may).
+     * A page's own element over its plot (a legend, a highlight), laid out with it, under the crosshair; it takes no
+     * pointer (its children may).
      */
     this.frame = document.createElement("div");
     this.frame.style.cssText = "position: absolute; left: 0; top: 0; pointer-events: none";
@@ -170,8 +170,6 @@ export class Pane {
     this.pageTags = [new Tags(), new Tags()];
     /** Each side's lines' tags as last drawn: each one's line and middle, and their height. @type {{ lines: Line[], at: Float64Array, step: number }[]} */
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
-    /** Each side's tags kept under this height (CSS pixels: a page's legend over the pane), as setTagsTop gives it. */
-    this.tagsTop = [0, 0];
     /** What each side's axis needs as last drawn (CSS pixels): its widest tick label or tag, with their room (see the chart's). */
     this.axisNeed = [0, 0];
     /**
@@ -503,18 +501,6 @@ export class Pane {
     const drawn = this.drawnTags[side];
     for (let k = drawn.lines.length - 1; k >= 0; k--) if (Math.abs(drawn.at[k] - y) <= drawn.step / 2) return drawn.lines[k];
     return null;
-  }
-
-  /**
-   * A side's tags kept under `top` (CSS pixels from its top: a page's legend over the pane); whether that moved them (the
-   * chart to be drawn again).
-   * @param {number} top @param {"right" | "left"} [side]
-   */
-  setTagsTop(top, side = "right") {
-    const k = side === "left" ? 1 : 0;
-    if (this.tagsTop[k] === top) return false;
-    (this.tagsTop[k] = top), (this.drawnFrom = NaN);
-    return true;
   }
 
   /** A slot's ticks (`count` of them, in axisTicks) as its writer writes them, written anew only when they change. @param {number} slot @param {number} count */
@@ -888,12 +874,12 @@ export class Pane {
       }
     // (More than fit a tag's height apart: as many as do, picked evenly top to bottom, every one readable; a pane too
     // short for one, none.)
-    const room = this.height - this.tagsTop[side], m = n * TAG > room ? Math.floor(room / TAG) : n;
+    const room = this.height, m = n * TAG > room ? Math.floor(room / TAG) : n;
     if (!m) return 0;
     if (m < n) for (let j = 0; j < m; j++) order[j] = order[m === 1 ? 0 : Math.round((j * (n - 1)) / (m - 1))];
     // (Top to bottom, each a tag below the one over it at least; then, past the foot, each back up.)
     const step = TAG;
-    for (let k = 0; k < m; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : this.tagsTop[side] + step / 2);
+    for (let k = 0; k < m; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : step / 2);
     for (let k = m - 1; k >= 0; k--) at[k] = Math.min(at[k], k < m - 1 ? at[k + 1] - step : this.height - step / 2);
     this.tagStep = step;
     return m;
