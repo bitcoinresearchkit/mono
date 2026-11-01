@@ -867,7 +867,9 @@ export class Pane {
    * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it
    * counted (as the chart library's were: they read the view's end, its strict range's, as a pan moves it; a price
    * line, its last of all; one with nothing in view, none),
-   * laid top to bottom where they'd overlap (none pushed past its axis' ends); on a relative scale, as it reads them.
+   * laid top to bottom where they'd overlap (none pushed past its axis' ends); more than its axis holds a tag's height
+   * apart, as many as it does, picked evenly through them (each in its line's color: which is which still read), the
+   * rest left out till there's room; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -897,18 +899,22 @@ export class Pane {
       if (relative) scale.setBase(lines[k].first(from));
       (ys[k] = scale.y(lines[k].values[index[k]])), (order[k] = k);
     }
-    // (Top to bottom, each at least a tag below the one over it (less, where they'd not all fit: the axis shared); then,
-    // past the foot, each back up.)
-    const step = Math.min(TAG, (this.height - this.tagsTop[side]) / n);
     for (let k = 1; k < n; k++)
       for (let j = k; j > 0 && ys[order[j]] < ys[order[j - 1]]; j--) {
         const swap = order[j];
         (order[j] = order[j - 1]), (order[j - 1] = swap);
       }
-    for (let k = 0; k < n; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : this.tagsTop[side] + step / 2);
-    for (let k = n - 1; k >= 0; k--) at[k] = Math.min(at[k], k < n - 1 ? at[k + 1] - step : this.height - step / 2);
+    // (More than fit a tag's height apart: as many as do, picked evenly top to bottom, every one readable; a pane too
+    // short for one, none.)
+    const room = this.height - this.tagsTop[side], m = n * TAG > room ? Math.floor(room / TAG) : n;
+    if (!m) return 0;
+    if (m < n) for (let j = 0; j < m; j++) order[j] = order[m === 1 ? 0 : Math.round((j * (n - 1)) / (m - 1))];
+    // (Top to bottom, each a tag below the one over it at least; then, past the foot, each back up.)
+    const step = TAG;
+    for (let k = 0; k < m; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : this.tagsTop[side] + step / 2);
+    for (let k = m - 1; k >= 0; k--) at[k] = Math.min(at[k], k < m - 1 ? at[k + 1] - step : this.height - step / 2);
     this.tagStep = step;
-    return n;
+    return m;
   }
 
   /**
