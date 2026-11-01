@@ -115,17 +115,13 @@ export class Crosshair {
     g.font = theme.font;
     g.textBaseline = "middle";
     // (Its value on its pane's axis, the tags it touches there covered with the ground: none shows cut beside it, as
-    // no time label does by its date.)
+    // no time label does by its date. Written as nothing (a page's writer for a pane showing nothing): no badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
-      g.fillStyle = theme.background;
-      this.#cover(g, pane, 0, plot, this.width - left - plot);
-      pill(g, pane.axisLabel(pane.scale.value(this.y - pane.top)), theme.badge, inkOn(theme.badge), plot, this.y, "left");
+      const words = pane.axisLabel(pane.scale.value(this.y - pane.top));
+      if (words) (g.fillStyle = theme.background), this.#cover(g, pane, 0, plot, this.width - left - plot), pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left");
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
-      if (pane.left && left) {
-        g.fillStyle = theme.background;
-        this.#cover(g, pane, 1, -left, left);
-        pill(g, pane.axisLabel(pane.left.value(this.y - pane.top), pane.left), theme.badge, inkOn(theme.badge), 0, this.y, "right");
-      }
+      const leftWords = pane.left && left ? pane.axisLabel(pane.left.value(this.y - pane.top), pane.left) : "";
+      if (leftWords) (g.fillStyle = theme.background), this.#cover(g, pane, 1, -left, left), pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
     }
     // (Its date on the time axis, its point's.)
     const times = time.times, k = Math.round(i);

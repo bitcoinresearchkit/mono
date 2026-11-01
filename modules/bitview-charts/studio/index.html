@@ -16248,6 +16248,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
       /** How a % or indexed scale writes its changes: in percent. */
       const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
+      /** A folded pane's: nothing written (its layers all hidden, its scale held by hand still reads nothing). */
+      const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => values.map(() => "") };
 
       /**
        * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
@@ -17307,20 +17309,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const panes = engine.panes;
         // (A pane's shade is on a scale of its own: no side's.)
         const sides = new Set(doc.layers.flatMap((layer) => (edgesOf(layer).length > 1 ? [] : [layer.side])));
+        const folded = foldedPanes(doc);
         doc.panes.forEach((pane, i) => {
           if (!panes[i]) return;
           // A side shows in every pane once any layer uses it: the plots line up.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
-          // nothing: it has nothing shown.)
+          // nothing: it has nothing shown (none of its ticks, as its scale's empty; written nowhere where it's held).)
           // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
           // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
-          const format = shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
-          panes[i].setPercentFormat(PERCENT_FORMAT.value, PERCENT_FORMAT.ticks);
+          const format = folded.has(pane.id) ? NO_FORMAT : shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
+          panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
           for (const side of /** @type {const} */ (["left", "right"])) {
             panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
             if (!keep) panes[i].setRange(undefined, undefined, side);
             const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
-            panes[i].setFormat(used ? format.value : libraryWords, used ? format.ticks : null, side);
+            panes[i].setFormat(used || format === NO_FORMAT ? format.value : libraryWords, used || format === NO_FORMAT ? format.ticks : null, side);
           }
         });
         // (Its right axis where a layer is on that side; none, the plots to the chart's right edge.)
