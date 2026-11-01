@@ -1,2 +1,0 @@
-TradingView Lightweight Charts™
-Copyright (с) 2023 TradingView, Inc. https://www.tradingview.com/
