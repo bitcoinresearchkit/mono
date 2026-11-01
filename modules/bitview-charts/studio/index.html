@@ -11052,7 +11052,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Candles, BODIES_FROM, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -17138,12 +17138,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else if (layer.type === "bubbles") {
             // (On the layer they're on, at its scale (see normalize: its pane, its side); on none, along their pane's middle,
             // on a scale of their own. Sized against the largest in view, or of all their history: see Bubbles.)
-            const on = doc.layers.some((other) => other.id === layer.ref), values = result?.values;
-            // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
-            const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : shownSpan()) : 0;
+            const on = doc.layers.some((other) => other.id === layer.ref);
             series = again ?? new Bubbles(pane, layer.side, !on);
             series.engine.hidden = !shown;
-            series.style({ up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "" });
+            series.style({ up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, scaleTo: layer.scaleTo === "all" ? "all" : "view", halo: layer.outline ? css("--card") : null });
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -18545,123 +18543,50 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /**
-       * A bubbles layer on the library (see Layer): a bubble a date, at its place there (`y`: the value there of the
-       * layer it's on; on none, its pane's middle, on a scale of its own), its area its own value's size (`v`): the
-       * largest `most` (of what's in view, kept by sizeBubbles; of all its history) `size` across, each other by the
-       * square root of its share of it (area for size, as read), those under `hide` of it left out (a date without its own
-       * value, none: there all the same, so its places start where the layer's do, a percent or an indexed scale's base
-       * the same). Above zero in its color, below in its second, each filled faintly and edged (`up`, `upEdge`, `down`,
-       * `downEdge`); the largest drawn first, the smallest on top, none hidden behind a big one; outlined (`halo`), each
-       * ringed in the chart's background first. Fitted to its places (on none, its own scale 0 to 1); hit where a bubble's
-       * drawn.
+       * A bubbles layer (see Layer): the library's Bubbles, a bubble a date at its place there (`y`: the value there of the
+       * layer it's on; on none, its pane's middle, on a scale of its own from 0 to 1), its area its own value's size (`v`)
+       * against the largest (in view, or of all its history: `scaleTo`).
        */
       class Bubbles {
         /** @param {number} pane @param {"left" | "right"} side @param {boolean} own */
         constructor(pane, side, own) {
           this.side = side;
-          /** Its sizes and places on the timeline. */
+          /** Its sizes and places on the timeline (a live date's set in place, see place). */
           (this.v = EMPTY), (this.y = EMPTY);
-          this.look = { up: "", upEdge: "", down: "", downEdge: "", size: BUBBLE_SIZE, hide: BUBBLE_HIDE, most: 0, halo: "" };
-          /** Its places as a line (in no pane): their extents by blocks, not point by point, each frame. */
-          this.places = new Line();
-          this.engine = new Custom({
-            draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1, at.dpr),
-            extent: (a, b, positive, out) => void (!this.engine.overlay && this.places.extent(a, b, positive, out)),
-            first: (i) => (this.engine.overlay ? 1 : this.places.first(i)),
-            distance: (_i, y, scale, x) => this.#distance(scale, x, y),
-          });
+          /** @type {any} */
+          this.engine = new LibraryBubbles({ values: EMPTY, sizes: EMPTY });
           // (On none: along its pane's middle, its margins even.)
-          if (own) ((this.engine.overlay = new Scale({ top: 0.1, bottom: 0.1 })), this.engine.overlay.fit(0, 1));
+          if (own) (this.engine.overlay = new Scale({ top: 0.1, bottom: 0.1 })), (this.engine.fit = fitMiddle);
+          // (Hit where a bubble's drawn, no other way: not near one, as a line is.)
+          const near = this.engine.distance.bind(this.engine);
+          this.engine.distance = (/** @type {any[]} */ ...at) => (near(...at) === 0 ? 0 : Infinity);
           /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
         }
 
         /** Its sizes and places, on the timeline. @param {Float64Array} v @param {Float64Array} y */
         set(v, y) {
           (this.v = v), (this.y = y);
-          this.places.setValues(y);
-          this.#changed();
-        }
-
-        /** What it draws changed: its pane drawn whole at the next frame, asked for (a live tick, the view's range). */
-        #changed() {
-          this.engine.changed();
+          this.engine.setValues({ values: y, sizes: v });
           engine.invalidate();
         }
 
         /** One date's size and place, in place (the timeline grown to it: the dates opened meanwhile empty). @param {number} at @param {number} v @param {number} y */
         place(at, v, y) {
-          if (this.v.length <= at) {
-            const grow = (/** @type {Float64Array} */ from) => ((out) => (out.set(from), out))(new Float64Array(at + 1).fill(NaN));
-            (this.v = grow(this.v)), (this.y = grow(this.y));
-            this.places.setValues(this.y);
-          }
+          if (this.v.length > at && this.y.length > at) return void (this.engine.set(at, y, v), engine.invalidate());
+          const grow = (/** @type {Float64Array} */ from) => ((out) => (out.set(from), out))(new Float64Array(at + 1).fill(NaN));
+          (this.v = grow(this.v)), (this.y = grow(this.y));
           (this.v[at] = v), (this.y[at] = y);
-          this.places.set(at, y);
-          this.#changed();
+          this.set(this.v, this.y);
         }
 
-        /** Its look (see the class). @param {Partial<Bubbles["look"]>} look */
+        /** Its look (the library's Bubbles' style). @param {Record<string, any>} look */
         style(look) {
-          Object.assign(this.look, look);
-          this.#changed();
-        }
-
-        /**
-         * Each bubble from x `x0` to `x1` (and those reaching in) as `each` takes it: its middle, its radius (CSS pixels),
-         * above zero or not; none where it has no size or place, or is too small.
-         * @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
-         * @param {number} x0 @param {number} x1 @param {(x: number, y: number, r: number, up: boolean) => void} each
-         */
-        #each(time, scale, x0, x1, each) {
-          const { most, hide, size } = this.look, v = this.v, y = this.y, R = size / 2, reach = R + 4;
-          if (!(most > 0)) return;
-          const least = hide * most, a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(v.length - 1, Math.ceil(time.index(x1 + reach)));
-          for (let i = a; i <= b; i++) {
-            const worth = Math.abs(v[i]), at = worth > 0 && worth < Infinity && worth >= least ? scale.y(y[i]) : NaN;
-            if (at === at) each(time.x(i), at, R * Math.sqrt(Math.min(1, worth / most)), v[i] >= 0);
-          }
-        }
-
-        /**
-         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
-         * @param {number} x0 @param {number} x1 @param {number} dpr
-         */
-        #draw(g, time, scale, x0, x1, dpr) {
-          // (Found, then drawn largest first: kept between frames, grown, nothing made anew each.)
-          let n = 0;
-          this.#each(time, scale, x0, x1, (x, y, r, up) => {
-            if (BUBBLE.r.length <= n) for (const key of /** @type {const} */ (["x", "y", "r", "up", "order"])) BUBBLE[key] = ((out) => (out.set(BUBBLE[key]), out))(new (key === "order" ? Int32Array : key === "up" ? Uint8Array : Float64Array)(n * 2 + 64));
-            (BUBBLE.x[n] = x), (BUBBLE.y[n] = y), (BUBBLE.r[n] = r), (BUBBLE.up[n] = up ? 1 : 0), (BUBBLE.order[n] = n), n++;
-          });
-          if (!n) return;
-          const look = this.look, radii = BUBBLE.r, sorted = BUBBLE.order.subarray(0, n).sort((a, b) => radii[b] - radii[a]);
-          // (Device pixels whole: a ring and an edge as the chart library drew them.)
-          g.lineWidth = Math.max(1, Math.floor(dpr)) / dpr;
-          const ring = Math.max(1, Math.round(1.5 * dpr)) / dpr;
-          for (const k of sorted) {
-            const up = BUBBLE.up[k] === 1, x = BUBBLE.x[k], y = BUBBLE.y[k], r = radii[k];
-            if (look.halo) {
-              g.beginPath();
-              g.arc(x, y, r + ring, 0, Math.PI * 2);
-              g.fillStyle = look.halo;
-              g.fill();
-            }
-            g.beginPath();
-            g.arc(x, y, r, 0, Math.PI * 2);
-            g.fillStyle = up ? look.up : look.down;
-            g.fill();
-            g.strokeStyle = up ? look.upEdge : look.downEdge;
-            g.stroke();
-          }
-        }
-
-        /** None (0) where a bubble's drawn under the point, else never hit. @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} x @param {number} y */
-        #distance(scale, x, y) {
-          let hit = false;
-          this.#each(engine.time, scale, x, x, (cx, cy, r) => void (hit ||= Math.hypot(x - cx, y - cy) <= r));
-          return hit ? 0 : Infinity;
+          this.engine.setStyle(look);
+          engine.invalidate();
         }
       }
+      /** Bubbles on no layer: their own scale from 0 to 1, their places its middle. @param {number} _a @param {number} _b @param {boolean} _positive @param {Float64Array} out */
+      const fitMiddle = (_a, _b, _positive, out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 1)));
       /**
        * A cloud on the library (a "cloud" layer, a shaded signal's stretches): from its lows up to its highs (or from its
        * pane's bottom, up to its top: `bottom`, `top`), filled in its color (a date's own where it's painted), run by run
@@ -18958,8 +18883,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
       const CLOUD = { xs: new Float64Array(64), highs: new Float64Array(64), lows: new Float64Array(64), ats: new Float64Array(64) };
-      /** The bubbles a draw found (their middles, radii, sides, and order by size), kept and grown. */
-      const BUBBLE = { x: new Float64Array(64), y: new Float64Array(64), r: new Float64Array(64), up: new Uint8Array(64), order: new Int32Array(64) };
       /** A stack's range from zero: its own (`out` widened by it and zero), none in view nothing. (Made once.) */
       const SPAN = new Float64Array(2);
       /**
@@ -19362,7 +19285,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const layer of doc.layers) {
             const series = drawn.get(layer.id), row = series instanceof Bubbles && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? { v: series.v[i], y: series.y[i] } : null;
             if (!row || x === null) continue;
-            const { most, hide, size, upEdge, downEdge } = series.look, worth = Math.abs(row.v), y = Number.isFinite(row.y) ? seriesY(series, row.y) : null;
+            // (Its largest as it'll be drawn: a live value may have changed it since the last draw.)
+            series.engine.viewed(engine.time);
+            const { most, hide, size, upEdge, downEdge } = series.engine, worth = Math.abs(row.v), y = Number.isFinite(row.y) ? seriesY(series, row.y) : null;
             if (y === null || !(most > 0 && worth > 0 && worth < Infinity && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
             // (A pixel clear of the bubble, and of the crosshair's dot on its layer, a small bubble's under it.)
             lit = { x, y, d: Math.max(size * Math.sqrt(Math.min(1, worth / most)), 2 * (MARKER.radius + MARKER.border)) + 6, color: row.v >= 0 ? upEdge : downEdge };
@@ -20123,7 +20048,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (lensAt) lookAt(lensAt);
         nameAxis();
         if (writing) placeField();
-        sizeBubbles();
         lightBubble(bubbleAt.time, bubbleAt.pane);
         viewMoved();
         placeBrush();
@@ -22059,19 +21983,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const n = data.times.length, v = new Float64Array(n), y = new Float64Array(n);
         for (let i = 0; i < n; i++) (v[i] = own?.[i] ?? NaN), (y[i] = !on ? 0.5 : ((value) => (Number.isFinite(value) && (!log || value > 0) ? value : NaN))(at?.[i] ?? NaN));
         return [v, y];
-      }
-      /**
-       * Bubbles' largest in view, kept as the view moves (theirs sized to it, not to all of their history): set where it
-       * changes, the whole drawn again (never a pan's strip alone, sized by its own).
-       */
-      function sizeBubbles() {
-        if (!resolved) return;
-        for (const layer of drawnDoc?.layers ?? chart.layers) {
-          const series = drawn.get(layer.id), values = resolved.results.get(layer.id)?.values;
-          if (layer.type !== "bubbles" || layer.scaleTo === "all" || !series || !values) continue;
-          const most = mostIn(values, shownSpan());
-          if (series.look.most !== most) series.style({ most });
-        }
       }
       /** Values' largest size (in all of them, without a range), 0 for none. @param {Vector} values @param {{ from: number, to: number } | null} [range] */
       const mostIn = (values, range = { from: 0, to: values.length - 1 }) => {
@@ -39964,6 +39875,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const on = inDoc(layer.ref), y = on ? /** @type {Vector | undefined} */ (built.get(on.id)?.shown)?.[at] ?? NaN : 0.5;
           series.place(at, data.results.get(layer.id)?.values?.[at] ?? NaN, on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y);
         }
+        // (A bubble pointed at: its ring as it's drawn now, its size or the largest moved.)
+        if (bubbleAt.time !== null) lightBubble(bubbleAt.time, bubbleAt.pane);
         for (const id of paintedLayers.keys()) {
           // (Its point there: a value, or a cloud's band (one to its pane's edges, every date).)
           const layer = inDoc(id), series = drawn.get(id), has = paintedLayers.get(id)?.colors.length === at + 1 && Number.isFinite(series instanceof Cloud ? series.high[at] : built.get(id)?.shown?.[at]);

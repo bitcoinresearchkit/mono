@@ -87,8 +87,9 @@ chart.show(365);                                 // the last 365 points in view
   number or one by its points' spacing).
 - `Bubbles({ values, sizes, up, upEdge, down, downEdge, size, hide, scaleTo, halo })`: a dot a point where `values`
   put it, its area its size's share of the largest (of those in view, kept up as the view moves, or `scaleTo: "all"`),
-  `size` pixels across at the largest, those under `hide` of it left out; above zero in `up`, below in `down`, each
-  edged; the largest drawn first; `halo`, ringed in it first.
+  `size` pixels across at the largest (of every size, placed or not), those under `hide` of it left out; above zero in
+  `up`, below in `down`, each edged; the largest drawn first; `halo`, ringed in it first. `set(i, value, size)`, one
+  point's in place (a live one).
 - `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
   where it holds), a point's slot reaching halfway to its neighbors in its color, a NaN value none; never fitted or hit.
 - `Grid({ edges, column, place, gradient })`: a heatmap's cells, a column a point (zoomed out, a block of points by

@@ -1,7 +1,7 @@
 // @ts-check
 // Bubbles: a dot a point on the timeline, where its `values` put it on its scale (NaN: none there), its area its size's
-// share of the largest (`sizes`, a column: `size` CSS pixels across at the largest; those under `hide` of the largest
-// left out), above zero in `up` and edged in `upEdge`, below in `down` and `downEdge`; the largest drawn first, the
+// share of the largest (`sizes`, a column: `size` CSS pixels across at the largest, of every size, placed or not; those
+// under `hide` of the largest left out), above zero in `up` and edged in `upEdge`, below in `down` and `downEdge`; the largest drawn first, the
 // smallest on top (none hidden behind a big one). The largest: of those in view (`scaleTo` "view", kept up as the view
 // moves: its pane drawn whole where it changes), or of all of them ("all"). With `halo`, each ringed in it first (the
 // ground's color: overlapping bubbles stand apart).
@@ -13,6 +13,8 @@ import { measure, measuring, painted } from "./recorder.js";
 let xs = new Float64Array(64), ys = new Float64Array(64), radii = new Float64Array(64), ups = new Uint8Array(64), order = new Int32Array(64);
 /** A range's lowest and highest, as a line's extent reads them (made once). */
 const EXTENT = new Float64Array(2);
+/** A size's magnitude, none (NaN) where it's 0 or not finite. @param {number} size */
+const magnitude = (size) => ((m) => (m > 0 && m < Infinity ? m : NaN))(Math.abs(size));
 /** The largest first, ties by index (a strip's and a whole draw's alike). @param {number} a @param {number} b */
 const largest = (a, b) => radii[b] - radii[a] || a - b;
 
@@ -42,23 +44,34 @@ export class Bubbles {
     this.setValues({ values, sizes });
   }
 
-  /** Its positions where a bubble's drawn. */
+  /** Its positions. */
   get values() {
     return this.positions.values;
   }
 
-  /** @param {{ values: Float64Array, sizes: Float64Array }} columns */
+  /**
+   * Its positions (its scale fitted to them, a relative one based on them, sized or not: they follow what they're on)
+   * and sizes (the largest of them all, placed or not: a bubble's size the same wherever the others are).
+   * @param {{ values: Float64Array, sizes: Float64Array }} columns
+   */
   setValues({ values, sizes }) {
     this.version++;
     this.sizes = sizes;
-    // (Its positions and sizes where a bubble's drawn alone: a position with a size (none of 0), a size with a position.)
     // (In a loop: without a JIT, from() with a mapping costs several times as much.)
-    const positions = new Float64Array(values.length), magnitudes = new Float64Array(sizes.length);
-    for (let i = 0; i < positions.length; i++) positions[i] = values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity ? values[i] : NaN;
-    for (let i = 0; i < magnitudes.length; i++) magnitudes[i] = values[i] === values[i] && Math.abs(sizes[i]) > 0 && Math.abs(sizes[i]) < Infinity ? Math.abs(sizes[i]) : NaN;
-    this.positions.setValues(positions);
+    const magnitudes = new Float64Array(sizes.length);
+    for (let i = 0; i < magnitudes.length; i++) magnitudes[i] = magnitude(sizes[i]);
+    this.positions.setValues(values);
     this.magnitudes.setValues(magnitudes);
     if (this.scaleTo === "all") this.most = this.#largest(0, sizes.length - 1);
+  }
+
+  /** One point's position and size set in place (a live point), its blocks' extremes made again. @param {number} i @param {number} value @param {number} size */
+  set(i, value, size) {
+    this.version++;
+    this.sizes[i] = size;
+    this.positions.set(i, value);
+    this.magnitudes.set(i, magnitude(size));
+    if (this.scaleTo === "all") this.most = this.#largest(0, this.sizes.length - 1);
   }
 
   /** @param {{ up?: string, upEdge?: string, down?: string, downEdge?: string, size?: number, hide?: number, scaleTo?: "view" | "all", halo?: string | null }} look */
