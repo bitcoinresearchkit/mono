@@ -16659,12 +16659,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fadedNow = new Set();
       /**
        * A layer's series faint or not (its own, an area's edge, a candle layer's candles and close line; from `series` and
-       * `closesOf`, the drawn ones unless given). Heatmaps and bubbles as they are: their own colors.
+       * `closesOf`, the drawn ones unless given): every kind, heatmaps and bubbles too.
        * @param {string} layerId @param {boolean} faint
        */
       function fadeLayer(layerId, faint, series = drawn, closesOf = closes) {
-        const layer = layerById(layerId), close = closesOf.get(layerId);
-        if (layer && (heatLike(layer) || layer.type === "bubbles")) return;
+        const close = closesOf.get(layerId);
         for (const own of [series.get(layerId), close?.series, close?.candles]) if (own) for (const line of [own.engine, own.edge]) if (line) line.faint = faint;
       }
       function spotlight(id) {
@@ -22770,7 +22769,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A profile's shares on its axis, where its plot has no room for them (over its bars or the price): in loss just
        * over its close's tag, in profit just under it, in their colors on the card's (as text beside the tag); none
-       * where it isn't drawn. A layer of its series' own (see ownLayer).
+       * where it isn't drawn, or while its profile's faint (a spotlight on another: its tags gone, as every faint series').
+       * A layer of its series' own (see ownLayer).
        * @param {string} id @param {any} series
        */
       function profileShares(id, series) {
@@ -22783,7 +22783,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             draw: () => {},
             axisTags: (on, add) => {
               const look = heatLooks.get(id), shares = look?.shares, y = shares && seriesY(series, shares.close);
-              if (on !== side || !shares || y === null || y === undefined) return;
+              if (on !== side || series.engine.faint || !shares || y === null || y === undefined) return;
               add(y - 19, `${100 - shares.share}%`, look.halo ?? "transparent", look.lose ?? "transparent");
               add(y + 19, `${shares.share}%`, look.halo ?? "transparent", look.gain ?? "transparent");
             },
