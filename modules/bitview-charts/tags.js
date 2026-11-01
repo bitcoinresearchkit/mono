@@ -47,13 +47,15 @@ export class Tags {
     /** @type {string[]} */
     this.inks = [];
     this.count = 0;
+    /** The axis' length: one past either end of it, none (its value out of view). */
+    this.length = Infinity;
     /**
      * One added: at `at`, its words `text`, on `color` (in `ink`, else black or white by it); none where it's not a
-     * number. Made once: given to every series asked.
+     * number, or out of the axis. Made once: given to every series asked.
      * @param {number} at @param {string} text @param {string} color @param {string} [ink]
      */
     this.add = (at, text, color, ink) => {
-      if (at !== at || at === Infinity || at === -Infinity) return;
+      if (!(at > -0.5 && at < this.length + 0.5)) return;
       if (this.count >= this.at.length) ((grown) => (grown.set(this.at), (this.at = grown)))(new Float64Array(this.at.length * 2));
       const k = this.count++;
       (this.at[k] = at), (this.texts[k] = text), (this.colors[k] = color), (this.inks[k] = ink || inkOn(color));

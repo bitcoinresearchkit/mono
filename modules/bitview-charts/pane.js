@@ -725,9 +725,9 @@ export class Pane {
     // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
     // 4 pixels: one touching a tag reads cramped against it).)
     const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
-    page.count = 0;
+    (page.count = 0), (page.length = this.height);
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale, stepAt);
-    // (Each where it's drawn: within the pane.)
+    // (Each where it's drawn: within the pane (one out of it none, as a line's).)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
@@ -836,8 +836,8 @@ export class Pane {
    * counted (as the chart library's were: they read the view's end, its strict range's, as a pan moves it; a price
    * line, its last of all; one with nothing in view, none),
    * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
-   * its axis' foot where they run past it, one where lines meet (as the chart library laid them); on a relative scale,
-   * as it reads them.
+   * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
+   * the pane; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -875,13 +875,16 @@ export class Pane {
     // (Top to bottom, each at its line, or just under the one over it where they'd overlap (as the chart library laid
     // them): the first always at its line, each moving only as its own line or one over it does; past the axis' foot,
     // cut off there (more under it, said), none starting under it. One where lines meet (an empty band's top on the next
-    // one's, lines past an edge). A pane too short for one, none.)
+    // one's). A line out of the pane (its scale dragged past it), none: a tag reads where its line is. A pane too short
+    // for one, none.)
     const top = TAG / 2, foot = this.height - TAG / 2;
     this.tagStep = TAG;
     if (foot < top) return 0;
     let m = 0, last = NaN;
     for (let k = 0; k < n; k++) {
-      const line = Math.min(Math.max(ys[order[k]], top), foot);
+      const y0 = ys[order[k]];
+      if (!(y0 > -0.5 && y0 < this.height + 0.5)) continue;
+      const line = Math.min(Math.max(y0, top), foot);
       if (Math.abs(line - last) < 0.5) continue;
       const y = m ? Math.max(line, at[m - 1] + TAG) : line;
       if (y - TAG / 2 >= this.height) break;
