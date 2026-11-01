@@ -17176,7 +17176,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = kept.get(layer.id);
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
-          if (heatLike(layer)) series.set(heatKnown(layer) ? Float64Array.from(data.times, (_, i) => result?.closes?.[i] ?? NaN) : EMPTY);
+          if (heatLike(layer)) series.set(heatKnown(layer) ? columnBy(data.times.length, (i) => result?.closes?.[i] ?? NaN) : EMPTY);
           // (Bubbles' sizes, each date's own value, and places, the value there of the layer they're on, as drawn (a
           // stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
@@ -17201,7 +17201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // value (on a log scale, those over zero), its own lowest and highest drawn, where enough of them with its
             // edges are: its bands, see Cloud.)
             const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.values, whole = edgesOf(layer).length > 1 && !cloudLayers(layer).length, n = fromUnfit(doc, layer) ? 0 : data.times.length;
-            const lows = new Float64Array(n).fill(NaN), highs = new Float64Array(n).fill(NaN), members = banded ? (result.members ?? []).map((values) => Float64Array.from({ length: n }, (_, i) => (log && !(values[i] > 0) ? NaN : values[i]))) : [];
+            const lows = new Float64Array(n).fill(NaN), highs = new Float64Array(n).fill(NaN), members = banded ? (result.members ?? []).map((values) => columnBy(n, (i) => (log && !(values[i] > 0) ? NaN : values[i]))) : [];
             for (let i = 0; i < n; i++) {
               if (whole) (lows[i] = 0), (highs[i] = 0);
               else if (banded) {
@@ -18500,6 +18500,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return { colors, palette };
       }
+      /** A column of `n` points, each `at(i)`: by a loop, not from() (its iterator 4-6x slower without a JIT). @param {number} n @param {(i: number) => number} at */
+      const columnBy = (n, at) => {
+        const out = new Float64Array(n);
+        for (let i = 0; i < n; i++) out[i] = at(i);
+        return out;
+      };
       /** No values (made once). */
       const EMPTY = /** @type {Float64Array} */ (new Float64Array(0));
       /**
@@ -18881,7 +18887,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {any} series @param {ArrayLike<number>} values @param {boolean} stacked
        */
       function setColumn(series, values, stacked) {
-        const column = values instanceof Float64Array ? values : Float64Array.from(values), own = series.engine;
+        const column = values instanceof Float64Array ? values : new Float64Array(values), own = series.engine;
         if (series.edge) own.set({ upper: column, ...(stacked ? {} : { lower: null }) }), series.edge.setValues(column);
         else own.setValues(column);
         engine.invalidate(true);
