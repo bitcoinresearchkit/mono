@@ -16314,10 +16314,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const scaleOn = (i, side) => ((pane) => (pane ? (side === "left" ? pane.left : pane.scale) : null))(engine.panes[i]);
       /** Whether pane `i`'s scale on a side fits itself to the view (else it's held where it was set). @param {number} i @param {string} side */
       const scaleFits = (i, side) => ((pane) => !pane || (side === "left" ? pane.leftAuto : pane.auto))(engine.panes[i]);
+      /** A pane's two sides, its scales'. @type {readonly ["left", "right"]} */
+      const SIDES = ["left", "right"];
       /** What pane `i`'s scale on a side shows, as values; none without it. @param {number} i @param {string} side */
       const scaleRange = (i, side) => ((scale) => (scale ? { from: scale.lo, to: scale.hi } : null))(scaleOn(i, side));
-      /** Pane `i`'s scale on a side held at a range, or (none) fitted to the view again. @param {number} i @param {string} side @param {{ from: number, to: number } | null} range */
-      const holdScale = (i, side, range) => (engine.panes[i]?.setRange(range?.from, range?.to, /** @type {any} */ (side)), engine.invalidate(true));
+      /** Pane `i`'s scale on a side held at a range, or (none) fitted to the view again. @param {number} i @param {"left" | "right"} side @param {{ from: number, to: number } | null} range */
+      const holdScale = (i, side, range) => (engine.panes[i]?.setRange(range?.from, range?.to, side), engine.invalidate(true));
       /** The range pane `i`'s scale on a side would show fitted to the view, where it's held now (it stays held). @param {number} i @param {string} side */
       const fittedRange = (i, side) => {
         const pane = engine.panes[i], scale = scaleOn(i, side);
@@ -17280,7 +17282,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           heatSeries.delete(series), dropOwnLayers(series);
           ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
         }
-        while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
+        while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(engine.panes[engine.panes.length - 1]);
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
         // (Each new series' sketch: its drawings, halving marks, a trend's ends.)
         for (const [id, series] of drawn) if (!sketches.has(series)) sketches.set(series, new Sketch(id, series));
@@ -17319,7 +17321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
           const format = folded.has(pane.id) ? NO_FORMAT : shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
           panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
-          for (const side of /** @type {const} */ (["left", "right"])) {
+          for (const side of SIDES) {
             panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
             if (!keep) panes[i].setRange(undefined, undefined, side);
             const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
@@ -17604,7 +17606,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         glide(range.to >= last ? { from: to - width, to } : within({ from: center - width / 2, to: center + width / 2 }));
       }
       /** Every price scale back on auto, however it was dragged. */
-      const autoScale = () => engine.panes.forEach((_, i) => ["left", "right"].forEach((side) => holdScale(i, side, null)));
+      const autoScale = () => engine.panes.forEach((_, i) => SIDES.forEach((side) => holdScale(i, side, null)));
       /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
       const presetFits = (/** @type {string} */ id) => id === "max" || rangeDays(id) / INTERVAL_DAYS[chart.index] <= mostBars();
       /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
@@ -17783,7 +17785,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!engine.panes[i]) return;
           // (Under its legend, but two tags' room left at least: a short pane's tags beside it rather than off its foot.)
           const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, engine.panes[i].height - 44)) : 0;
-          for (const side of ["left", "right"]) moved = engine.panes[i].setTagsTop(top, /** @type {any} */ (side)) || moved;
+          for (const side of SIDES) moved = engine.panes[i].setTagsTop(top, side) || moved;
         });
         if (moved) engine.invalidate(true);
       }
@@ -18507,7 +18509,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       class Standard {
         /** @param {"line" | "band" | "bars" | "candles"} kind @param {number} pane @param {"left" | "right"} side */
         constructor(kind, pane, side) {
-          const on = /** @type {any} */ (engine.panes[pane]);
+          const on = engine.panes[pane];
           this.side = side;
           /** @type {any} */
           this.engine = on.add(kind === "band" ? new Band({ upper: EMPTY }) : kind === "bars" ? new Bars({}) : kind === "candles" ? new Candles({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY }) : new Line(), side);
@@ -18533,7 +18535,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Hit where a bubble's drawn, no other way: not near one, as a line is.)
           const near = this.engine.distance.bind(this.engine);
           this.engine.distance = (/** @type {any[]} */ ...at) => (near(...at) === 0 ? 0 : Infinity);
-          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+          engine.panes[pane].add(this.engine, side);
         }
 
         /** Its sizes and places, on the timeline. @param {Float64Array} v @param {Float64Array} y */
@@ -18593,7 +18595,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             first: (i) => (this.engine.overlay ? 1 : this.highs.first(i)),
           });
           if (own) ((this.engine.overlay = new Scale({ top: 0.2, bottom: 0.1 })), this.engine.overlay.fit(0, 1));
-          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+          engine.panes[pane].add(this.engine, side);
         }
 
         /**
@@ -18819,7 +18821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             },
             { fixed: true },
           );
-          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+          engine.panes[pane].add(this.engine, side);
         }
 
         /** Its closes, on the timeline: its days those with one. @param {Float64Array} closes */
@@ -19570,7 +19572,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const all = chart.panes.map((pane, i) => marginsOf(chart, pane, i)), key = JSON.stringify(all.map(({ top, bottom }) => [top.toFixed(3), bottom.toFixed(3)]));
         if (key === marginsSet) return;
         marginsSet = key;
-        all.forEach((margins, i) => (["left", "right"]).forEach((side) => engine.panes[i]?.setScale(/** @type {"left" | "right"} */ (side), margins)));
+        all.forEach((margins, i) => SIDES.forEach((side) => engine.panes[i]?.setScale(side, margins)));
         engine.invalidate(true);
       }
       const resized = new ResizeObserver((entries) => {
@@ -20155,12 +20157,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** Each scale's range as it's held, where it follows the plot (auto scaled). */
       function heldScales() {
-        return engine.panes.flatMap((_, i) => ["left", "right"].flatMap((side) => {
+        return engine.panes.flatMap((_, i) => SIDES.flatMap((side) => {
           const range = scaleRange(i, side);
           return scaleFits(i, side) && range ? [{ i, side, mode: scaleMode(i, side), range }] : [];
         }));
       }
-      let scaleGlide = 0, scaleMoves = /** @type {{ i: number, side: string }[]} */ ([]), scaleGliding = false;
+      let scaleGlide = 0, scaleMoves = /** @type {{ i: number, side: "left" | "right" }[]} */ ([]), scaleGliding = false;
       /** A glide under way, ended: its scales follow the plot again. */
       function endScaleGlide() {
         cancelAnimationFrame(scaleGlide);
@@ -23546,7 +23548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const pane of doc.panes) {
           if (!pane.stack) continue;
           const shares = pane.stack === "percent";
-          for (const side of ["left", "right"]) {
+          for (const side of SIDES) {
             const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && !placedOn(layer) && data.results.get(layer.id)?.values);
             if (!layers.length) continue;
             const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n), group = `${pane.id}:${side}`;
@@ -23959,7 +23961,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const band = { bottom: top - height + gap / 2, height: height - gap };
           top -= height;
           // Each axis side has its own scale, as on the chart.
-          for (const side of ["left", "right"]) {
+          for (const side of SIDES) {
             const on = layers.filter((layer) => layer.side === side).map((layer) => ({ layer, shape: shapes.get(layer.id) }));
             // Bars' base is in their scale, as on the chart.
             // (A stack's, its foot too, on a linear scale: one layer alone, a 100% one, is a line at its top.)
@@ -24393,7 +24395,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
           };
           // Each side of a pane has its own scale, as on the chart.
-          for (const side of ["left", "right"]) {
+          for (const side of SIDES) {
             // (A signal's marks aren't drawn this small. A layer bubbles are on, hidden or not drawn here (a trend in a
             // stacked pane), unseen but there, as on the chart: their scale's and their places'.)
             const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && (!layer.hidden || carried.has(layer.id)) && !placedOn(layer) && data.results.get(layer.id)?.values && (!fromUnfit(doc, layer) || carried.has(layer.id))).map((layer) => {
