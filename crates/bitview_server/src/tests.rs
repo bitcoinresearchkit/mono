@@ -1,4 +1,4 @@
-use crate::commit_installed;
+use crate::{checkout_commit, commit_installed};
 
 #[test]
 fn version_from_install_record() {
@@ -19,4 +19,23 @@ fn version_from_install_record() {
     assert_eq!(commit("blk"), None);
     assert_eq!(commit("odd"), None);
     assert_eq!(commit_installed(b"not json", "bitviewd"), None);
+}
+
+#[test]
+fn version_from_checkout() {
+    // A checkout's HEAD: on a branch (its ref loose, then packed), detached, none.
+    let root = std::env::temp_dir().join(format!("bitview-checkout-{}", std::process::id()));
+    let git = root.join(".git");
+    std::fs::create_dir_all(git.join("refs/heads")).unwrap();
+    let commit = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
+    std::fs::write(git.join("HEAD"), "ref: refs/heads/next\n").unwrap();
+    std::fs::write(git.join("refs/heads/next"), format!("{commit}\n")).unwrap();
+    assert_eq!(checkout_commit(&root).as_deref(), Some("a1b2c3d"));
+    std::fs::remove_file(git.join("refs/heads/next")).unwrap();
+    std::fs::write(git.join("packed-refs"), format!("# pack-refs\n{commit} refs/heads/next\n")).unwrap();
+    assert_eq!(checkout_commit(&root).as_deref(), Some("a1b2c3d"));
+    std::fs::write(git.join("HEAD"), format!("{commit}\n")).unwrap();
+    assert_eq!(checkout_commit(&root).as_deref(), Some("a1b2c3d"));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(checkout_commit(&root), None);
 }

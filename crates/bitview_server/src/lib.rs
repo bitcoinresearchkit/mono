@@ -2,7 +2,9 @@
 
 use std::{
     any::Any,
+    fs,
     net::SocketAddr,
+    path::Path,
     sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
@@ -80,12 +82,50 @@ use raw_body::RawBodyPermit;
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix):
-/// built by `cargo install --git` (next's), the commit it was built from, so each build is told
-/// apart; otherwise (a crates.io release, a local build), `v` and the release.
+/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix): built
+/// from the repository, its commit, so each build is told apart (by `cargo install --git`,
+/// next's, the one it was built from; in a checkout, `cargo dev`'s, the one checked out as it
+/// starts); a crates.io release, `v` and the release.
 pub(crate) static VERSION: LazyLock<String> = LazyLock::new(|| {
-    installed_commit().unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
+    installed_commit()
+        .or_else(|| checkout_commit(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")))
+        .unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
 });
+
+/// The short commit checked out in the repository at `root` (this crate's workspace, two up
+/// from its source), read from its `.git` as the server starts: its HEAD, the branch it names
+/// (loose or packed, a worktree's in its repository's), or the commit itself. None where it's no
+/// repository (a crates.io release's source, in cargo's registry).
+fn checkout_commit(root: &Path) -> Option<String> {
+    let dot = root.join(".git");
+    let git = if dot.is_dir() {
+        dot
+    } else {
+        // (A worktree's: a file naming its own.)
+        root.join(fs::read_to_string(&dot).ok()?.strip_prefix("gitdir:")?.trim())
+    };
+    let head = fs::read_to_string(git.join("HEAD")).ok()?;
+    let commit = match head.trim().strip_prefix("ref:") {
+        None => head.trim().to_string(),
+        Some(name) => {
+            let name = name.trim();
+            let common = fs::read_to_string(git.join("commondir"))
+                .map_or_else(|_| git.clone(), |dir| git.join(dir.trim()));
+            match fs::read_to_string(common.join(name)) {
+                Ok(commit) => commit.trim().to_string(),
+                Err(_) => fs::read_to_string(common.join("packed-refs"))
+                    .ok()?
+                    .lines()
+                    .find_map(|line| {
+                        let (commit, packed) = line.split_once(' ')?;
+                        (packed == name).then(|| commit.to_string())
+                    })?,
+            }
+        }
+    };
+    (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
+        .then(|| commit[..7].to_string())
+}
 
 /// The short commit `cargo install --git` built this binary from, as cargo recorded it: its record
 /// of installs (`.crates2.json`, in the root whose `bin/` holds the binary, its links followed)
