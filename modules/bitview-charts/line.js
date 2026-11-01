@@ -301,6 +301,10 @@ export class Line {
     this.byLog = false;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
+    /** Drawn at a fifth of its opacity, its tag and price line gone (another lit over it: see the pane's Series). */
+    this.faint = false;
+    /** A scale of its own (see the pane's Series), none: its side's. @type {import("./scale.js").Scale | null} */
+    this.overlay = null;
     /** Changed at each change of its values or look: its pane's picture drawn whole then. */
     this.version = 0;
     /** @type {Float64Array} */
