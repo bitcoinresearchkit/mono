@@ -3050,7 +3050,7 @@
             }
 
             /* (Four marks at most: the count says how many.) */
-            &:nth-of-type(n + 5) {
+            &.more {
               display: none;
             }
 
@@ -17964,16 +17964,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function foldLegend(/** @type {HTMLElement} */ element) {
         const items = /** @type {HTMLElement[]} */ ([...element.children].filter((child) => child.tagName === "BUTTON"));
-        const chip = items.length > 1, lit = items.find((item) => item.classList.contains("lit"));
+        // (Its shown layers: the hidden ones left to the panel's list, none shown, each named, faded.)
+        const shown = items.filter((item) => !item.classList.contains("hidden")), chip = shown.length > 1, lit = shown.find((item) => item.classList.contains("lit"));
         element.toggleAttribute("data-chip", chip);
         let count = /** @type {HTMLElement | null} */ (element.querySelector(":scope > .legend-count"));
         if (chip && !count) element.append((count = Object.assign(document.createElement("span"), { className: "legend-count" })));
-        if (count && count.textContent !== String(items.length)) count.textContent = String(items.length);
+        if (count && count.textContent !== String(shown.length)) count.textContent = String(shown.length);
         element.toggleAttribute("data-named", chip && pointing && Boolean(lit));
-        // (A profile's key beside its item while it's named alone; in a chip, its mark is.)
+        let refocus = false;
         for (const item of items) {
-          if (item.nextElementSibling?.classList.contains("profile-key")) /** @type {HTMLElement} */ (item.nextElementSibling).hidden = chip;
+          const off = shown.length > 0 && item.classList.contains("hidden");
+          // (Its focus, gone with it (its layer hidden by a key): onto the first shown.)
+          if (off && item.contains(document.activeElement)) refocus = true;
+          if (item.hidden !== off) item.hidden = off;
+          // (Past the first four in a chip: its count says it.)
+          item.classList.toggle("more", chip && shown.indexOf(item) >= 4);
+          // (A profile's key beside its item while it's named alone; in a chip, its mark is.)
+          if (item.nextElementSibling?.classList.contains("profile-key")) /** @type {HTMLElement} */ (item.nextElementSibling).hidden = chip || off;
         }
+        if (refocus) shown[0]?.focus({ preventScroll: true });
       }
       /** Whether the crosshair's on the chart: a chip names the one pointed at (see foldLegend). */
       let pointing = false;
@@ -38508,7 +38517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presentLegends() {
         const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
-        const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
+        const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string, boolean]} */ ([button, button.className, button.style.display, button.hidden]));
         const keys = all$("#chart .legend .profile-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
         const folded = foldedPanes(chart), lit = profileLit;
         // (Each layer named, its chip let go (its count, its profile's keys hidden in it), put back after.)
@@ -38523,10 +38532,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
         for (const [button] of buttons) {
           if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
-          button.classList.remove("selected", "lit");
+          button.hidden = false;
+          button.classList.remove("selected", "lit", "more");
         }
         return () => {
-          for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
+          for (const [button, className, display, hidden] of buttons) (button.className = className), (button.style.display = display), (button.hidden = hidden);
           for (const [legend, cssText] of strips) legend.style.cssText = cssText;
           for (const [key, cssText] of keys) key.style.cssText = cssText;
           for (const [element, hidden] of tucked) element.hidden = hidden;
