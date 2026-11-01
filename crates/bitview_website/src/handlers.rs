@@ -3,7 +3,8 @@ use std::borrow::Cow;
 use axum::{
     body::Body,
     extract::{Path as ExtractPath, State},
-    http::{HeaderMap, HeaderName, HeaderValue, Response, header},
+    http::{HeaderMap, HeaderName, HeaderValue, Response, Uri, header},
+    response::{IntoResponse, Redirect},
 };
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
@@ -12,12 +13,28 @@ use crate::{
     website::{File, hash},
 };
 
+/// Pages that moved, each old folder with its new one: a link or a search result to the old address still arrives.
+const MOVED: &[(&str, &str)] = &[("series", "catalog"), ("api-changes", "changes")];
+
 pub async fn file_handler(
     State(website): State<Website>,
     headers: HeaderMap,
+    uri: Uri,
     ExtractPath(path): ExtractPath<String>,
 ) -> Result<Response<Body>, Error> {
+    if let Some(to) = moved(&path, uri.query()) {
+        return Ok(Redirect::permanent(&to).into_response());
+    }
     serve(website, path, headers).await
+}
+
+/// Where a request under a moved page's old folder goes now: the same place under the new one, its query kept.
+pub(crate) fn moved(path: &str, query: Option<&str>) -> Option<String> {
+    let path = sanitize(path);
+    let (folder, rest) = path.split_once('/').unwrap_or((&path, ""));
+    let (_, to) = MOVED.iter().find(|(from, _)| *from == folder)?;
+    let query = query.map(|query| format!("?{query}")).unwrap_or_default();
+    Some(format!("/{to}/{rest}{query}"))
 }
 
 pub async fn index_handler(

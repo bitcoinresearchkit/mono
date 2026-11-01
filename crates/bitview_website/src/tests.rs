@@ -1,6 +1,6 @@
 use std::{env, fs, process};
 
-use crate::Website;
+use crate::{Website, handlers::moved};
 
 #[test]
 fn addresses_get_their_folders_page() {
@@ -25,4 +25,19 @@ fn addresses_get_their_folders_page() {
     assert_eq!(read("app/deep/gone.js"), None);
     assert_eq!(read("nowhere"), None);
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn moved_pages_redirect_to_the_same_place() {
+    assert_eq!(moved("series", None).as_deref(), Some("/catalog/"));
+    assert_eq!(
+        moved("series/", Some("series=hashrate")).as_deref(),
+        Some("/catalog/?series=hashrate")
+    );
+    assert_eq!(
+        moved("api-changes/x.js", None).as_deref(),
+        Some("/changes/x.js")
+    );
+    assert_eq!(moved("seriesx", None), None);
+    assert_eq!(moved("catalog/", None), None);
 }
