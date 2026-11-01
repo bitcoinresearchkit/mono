@@ -5,7 +5,7 @@
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
-// server's too) and the favicon at /favicon.ico; and every page's share card (NAME/og.jpg, as CARDS makes it). Each
+// server's too) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, and the sitemap (sitemap.xml) written from
 // the rows. Run it after changing an app, and before a release:
 //
@@ -109,7 +109,8 @@ const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntr
 
 // ── Each page's head: its address, and how a link to it previews ──
 
-/** Every page's share card's making (NAME/og.jpg, 1200×630, made with --pictures): its address, how long it's let
+/** Every page's share card's making (assets/cards/NAME.jpg, 1200×630, made with --pictures; with the brand, not in
+ * the page's folder, which a server route can shadow, as /api/ is the API's): its address, how long it's let
  * settle, its screen's size if not 1200×630 (drawn at twice the density, the card shrunk to fit), and what's done on it
  * first, if anything (Logs: only series answered, no one's addresses in a picture that lasts). */
 const CARDS = {
@@ -147,7 +148,7 @@ for (const href of [...apps, ...dev]) {
   const image = meta["og:image"]?.startsWith(`${ORIGIN}/`) ? join(HERE, meta["og:image"].slice(ORIGIN.length)) : null;
   const name = href.slice(1, -1);
   if (!(name in CARDS)) wrong("no card's making in CARDS");
-  else if (image !== join(HERE, name, "og.jpg")) wrong(`its og:image isn't its card, ${url}og.jpg`);
+  else if (image !== join(HERE, "assets", "cards", `${name}.jpg`)) wrong(`its og:image isn't its card, ${ORIGIN}/assets/cards/${name}.jpg`);
 }
 
 // ── Every way into Studio it has, in Studio's sitemap ──
@@ -231,7 +232,7 @@ if (pictures || icons) await makePictures();
 // (Every app's icon there, the favicon, and every card, once any were made.)
 for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
 if (!existsSync(join(HERE, "favicon.ico"))) problems.push("No favicon.ico: run with --icons");
-for (const name of Object.keys(CARDS)) if (!existsSync(join(HERE, name, "og.jpg"))) problems.push(`${name}: no card, ${name}/og.jpg: run with --pictures --only ${name}`);
+for (const name of Object.keys(CARDS)) if (!existsSync(join(HERE, "assets", "cards", `${name}.jpg`))) problems.push(`${name}: no card, assets/cards/${name}.jpg: run with --pictures --only ${name}`);
 
 if (problems.length) {
   console.error(`${problems.length} to see to:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
@@ -321,8 +322,8 @@ async function makePictures() {
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
         const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: 88, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
-        writeFileSync(join(HERE, name, "og.jpg"), Buffer.from(shot.data, "base64"));
-        console.log(`made ${name}/og.jpg`);
+        writeFileSync(join(HERE, "assets", "cards", `${name}.jpg`), Buffer.from(shot.data, "base64"));
+        console.log(`made cards/${name}.jpg`);
       } finally {
         await tab.close();
       }
