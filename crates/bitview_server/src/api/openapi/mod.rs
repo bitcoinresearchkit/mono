@@ -6,7 +6,7 @@ use aide::openapi::{Contact, Info, License, OpenApi, Tag};
 use axum::body::Bytes;
 use serde_json::{to_value, to_vec};
 
-use crate::{VERSION, prepared_json::PreparedJson};
+use crate::prepared_json::PreparedJson;
 
 /// The full spec and its compact form for LLMs, pre-serialized at startup with their validators.
 pub struct OpenApiBodies {
@@ -190,7 +190,8 @@ Errors use `application/problem+json`:
 - [Bitview Studio](https://bitview.space/studio/) - Charts of any series, built on this API"#
                 .to_string(),
         ),
-        version: VERSION.to_string(),
+        // (The API's release, not the build's commit (/version's): the docs made from it stay as they are.)
+        version: format!("v{}", env!("CARGO_PKG_VERSION")),
         contact: Some(Contact {
             name: Some("Bitview".to_string()),
             url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
