@@ -15170,7 +15170,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
       // (Its rows' values written only while it shows (see updateReadout): shown again with some left behind, at once.)
       let rowsBehind = false;
-      new MutationObserver(() => panelShown() && (layersBehind ? writeLayers() : rowsBehind && valuesSoon())).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
+      // (Shown or not, the one open in the spotlight or not, see respot.)
+      new MutationObserver(() => (respot(), panelShown() && (layersBehind ? writeLayers() : rowsBehind && valuesSoon()))).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
@@ -16777,14 +16778,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
       /** Whether the pointer's on a legend over the plot (the band pointed at kept). */
       let onLegend = false;
+      /** The layer whose row or legend item the pointer's on (a finger's, none), and whether it's on the chart itself. */
+      let pointedLayer = /** @type {string | null} */ (null), pointerOnChart = false;
+      /**
+       * The spotlight as it should be now: the layer pointed at in the panel or a legend; else the one open in the panel,
+       * while the panel shows and the pointer's not on the chart (the plot pointed at lights nothing: what's under the
+       * pointer is named, the rest as they are).
+       */
+      const respot = () => spotlight(pointedLayer ?? (selected && !pointerOnChart && panelShown() ? selected : null));
       document.addEventListener("pointerover", (event) => {
         onLegend = Boolean(closest(event, "#chart .legend"));
         // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
         // touched, a row it scrolled the list by, would stay lit once it's lifted.)
         if (document.body.classList.contains("carrying")) return;
-        // (The plot pointed at lights nothing: what's under the pointer is named in its legend, the rest as they are.)
-        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null));
+        pointedLayer = event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null);
+        // (A finger points at nothing: a tap on the chart's legend opens its layer, in the spotlight while it's open.)
+        pointerOnChart = event.pointerType !== "touch" && !pointedLayer && Boolean(closest(event, "#chart"));
+        respot();
       });
+      // (Out of the window: on nothing.)
+      document.addEventListener("pointerout", (event) => event.relatedTarget || ((pointedLayer = null), (pointerOnChart = false), respot()));
       /** @type {Resolved | null} */
       let resolved = null;
       /** How many times the open chart's data has changed here (read anew, grown, a live price moved in it). */
@@ -30156,6 +30169,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderLayers();
           renderInspector();
           updateLegends();
+          respot();
         }
         if (phone.matches) document.body.dataset.sheet = "panel";
         else if (document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
@@ -30429,6 +30443,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function showSelection() {
         renderLayers();
         renderInspector();
+        // (The one open, in the spotlight while the panel shows it.)
+        respot();
         updateLegends();
         renderBelt();
       }
