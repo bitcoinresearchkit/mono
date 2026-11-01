@@ -120,7 +120,7 @@ const CARDS = {
   stack: { url: "/stack/", settle: 8000 },
   compass: { url: "/compass/", settle: 6000 },
   calendar: { url: "/calendar/", settle: 9000 },
-  series: { url: "/series/?series=hashrate", settle: 8000 },
+  catalog: { url: "/catalog/?series=hashrate", settle: 8000 },
   logs: { url: "/logs/", settle: 6000, run: `document.querySelector('button[data-group="statuses"][data-key$=":2"]').click(); document.getElementById("search").value = "/api/series/"; document.getElementById("search").dispatchEvent(new Event("input"))` },
   api: { url: "/api/", settle: 6000 },
   changes: { url: "/changes/", settle: 6000 },
