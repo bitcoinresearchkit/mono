@@ -51,9 +51,9 @@ export class Profile {
 
   /**
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {number} dpr
+   * @param {number} _x0 @param {number} _x1 @param {number} dpr
    */
-  draw(g, time, scale, x0, x1, dpr) {
+  draw(g, time, scale, _x0, _x1, dpr) {
     const edges = this.edges, groups = this.groups, log = scale.mode === "log", count = edges.length - 1;
     if (count < 1 || !groups.length) return;
     // (A row's foot's y (a bound a log scale can't show: below the plot); the rows rising as their ys fall.)

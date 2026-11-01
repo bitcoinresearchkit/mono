@@ -35,9 +35,9 @@ export class Bars extends Line {
    * How far a point (`x` into the plot, `y` in its pane: CSS pixels) is from it, measured against its drawing there
    * (see recorder.js: whatever it draws, as it draws it, at any zoom), on `scale` (its base set already, where it's
    * relative). At index `i` the pane's nearest point (unread: its drawing has it).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
+   * @param {number} _i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
-  distance(i, y, scale, x, time) {
+  distance(_i, y, scale, x, time) {
     return measure(this, time, scale, x, y);
   }
 

@@ -416,7 +416,7 @@ export class Chart {
     if (this.seams) this.frame ||= requestAnimationFrame(this.tick);
   }
 
-  /** Drawn now (for a measurement: its frames draw it). @param {boolean} [whole] */
+  /** Drawn now (for a measurement: its frames draw it). @param {boolean} [whole] @returns {void} */
   render(whole = false) {
     this.whole = false;
     const time = this.time, crosshair = this.crosshair, x = this.pointerX;

@@ -107,9 +107,9 @@ export class Bubbles {
 
   /**
    * How far a point is from it, measured against its drawing there (see recorder.js).
-   * @param {number} i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
+   * @param {number} _i @param {number} y @param {import("./scale.js").Scale} scale @param {number} x @param {import("./timeline.js").Timeline} time
    */
-  distance(i, y, scale, x, time) {
+  distance(_i, y, scale, x, time) {
     return measure(this, time, scale, x, y);
   }
 
