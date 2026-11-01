@@ -1,15 +1,14 @@
 // @ts-check
 // What's left of Lightweight Charts' API in Studio's copy, on bitview-charts: the chart (its element, pictures, the
-// patches' flush: bv*) and Studio's custom series (clouds, shades, heatmaps, profiles, bubbles: their rows onto the
-// timeline, see Chart.#sync; their views drawn as the chart library drew them, see Painted; overlay scales). The rest
-// (panes, standard series, their order, data, looks and scales, the view, events, levels, drawings) Studio's own on the
-// library.
+// patches' flush: bv*) and Studio's heatmaps and profiles (their rows onto the timeline, see Chart.#sync; their view
+// drawn as the chart library drew it, see Painted). The rest (panes, standard series, clouds, bubbles, their order,
+// data, looks and scales, the view, events, levels, drawings) Studio's own on the library.
 
 import { createChart as make, picture, Line, Custom, Scale } from "/modules/bitview-charts/index.js";
 
 export const LineStyle = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
 export const LineType = { Simple: 0, WithSteps: 1, Curved: 2 };
-export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right" };
+export const customSeriesDefaultOptions = { color: "#2196f3", visible: true, priceScaleId: "right" };
 
 /** @param {HTMLElement} element @param {any} [options] */
 export function createChart(element, options = {}) {
@@ -119,34 +118,16 @@ class Pane {
   constructor(chart, engine) {
     this.chart = chart;
     this.engine = engine;
-    /** @type {Record<string, PriceScale>} */
-    this.scales = {};
-  }
-
-  /** Its scale of that id: its right one, its left one, or an overlay (any other id: its series' own, unseen). @param {string} id */
-  scaleApi(id) {
-    return (this.scales[id] ??= new PriceScale(this, id));
   }
 }
 
-class PriceScale {
-  /** @param {Pane} pane @param {string} id */
-  constructor(pane, id) {
-    this.pane = pane;
-    /** Its side; an overlay's, none (its series drawn on the right one's side, its own scale theirs). @type {"right" | "left" | null} */
-    this.side = id === "left" || id === "right" ? id : null;
-    /** An overlay's own scale: its series' range (their autoscaleInfoProvider's), the pane's height. */
-    this.overlay = this.side ? null : new Scale({ top: 0.2, bottom: 0.1 });
-  }
-}
-
-/** A custom series of Studio's (its clouds, shades, heatmaps, profiles, bubbles): its rows, drawn by its view (see Painted). */
+/** A custom series of Studio's (its heatmaps, profiles): its rows, drawn by its view (see Painted). */
 class Series {
   /** @param {Chart} chart @param {any} options @param {Pane} pane @param {any} view */
   constructor(chart, options, pane, view) {
     this.chart = chart;
     this.pane = pane;
-    this.opts = { visible: true, lastValueVisible: true, priceLineVisible: true, priceScaleId: "right", ...options };
+    this.opts = { visible: true, priceScaleId: "right", ...options };
     /** Its own times and values (Studio's rows or columns), and its values on the chart's timeline (pushed at sync). */
     /** @type {Float64Array} */
     this.times = new Float64Array(0);
@@ -165,14 +146,9 @@ class Series {
     this.#style();
   }
 
-  /** Its side: its scale's (an overlay's series on the right one's, their own scale theirs). */
+  /** Its side: its scale's. */
   get side() {
     return this.opts.priceScaleId === "left" ? "left" : "right";
-  }
-
-  /** Its scale's: its side's, or an overlay's. */
-  get scaleApi() {
-    return this.pane.scaleApi(this.opts.priceScaleId || "right");
   }
 
   /** Its look from its options: shown or hidden, its view's (see Painted.style). */
@@ -260,12 +236,11 @@ function lowerBound(places, n, at) {
 }
 
 /**
- * A custom series' view (Studio's clouds, shades, heatmaps, profiles: the chart library's custom series), drawn by a
- * Custom of bitview-charts as the chart library drew it: its rows its bars (each its place on the timeline, `time`, and
+ * A custom series' view (Studio's heatmaps, profiles: the chart library's custom series), drawn by a Custom of
+ * bitview-charts as the chart library drew it: its rows its bars (each its place on the timeline, `time`, and
  * as drawn its x; whitespace, by its view, none), the strip being drawn its range (and the bars reaching into it; a
  * heatmap's, all in view: what it draws, it keeps), its renderer given the canvas in device pixels (or CSS ones) and
- * its scale's y. Fitted to its rows' prices (its priceValueBuilder's) or by its autoscaleInfoProvider; on an overlay,
- * its scale its own (fixed by it). Never hit. Nothing made a frame.
+ * its scale's y. Fitted to its rows' prices (its priceValueBuilder's) or by its autoscaleInfoProvider. Never hit. Nothing made a frame.
  */
 class Painted {
   /** @param {Series} series @param {any} view */
@@ -274,7 +249,7 @@ class Painted {
     this.view = view;
     // (Its renderer once: Studio's draws read its view's data and options, whichever renderer's asked.)
     this.renderer = view.renderer();
-    /** @type {{ x: number, time: number, originalData: any, barColor: string | undefined }[]} */
+    /** @type {{ x: number, time: number, originalData: any }[]} */
     this.bars = [];
     /** Its bars' places on the timeline, rising (`count` of them). */
     this.places = new Int32Array(0);
@@ -299,18 +274,12 @@ class Painted {
   }
 
   /**
-   * Its look from its options: hidden, an overlay's range; drawn whole each frame where what it draws hangs on the whole
-   * view (Studio's profile at the plot's edge; a heatmap's days, grouped by how many are in view).
+   * Its look from its options: drawn whole each frame where what it draws hangs on the whole view (Studio's profile at
+   * the plot's edge; a heatmap's days, grouped by how many are in view).
    */
   style() {
-    const o = this.series.opts, overlay = this.series.scaleApi.overlay;
+    const o = this.series.opts;
     this.engine.fixed = Boolean(o.bvFixed) || "heatId" in o;
-    // (On an overlay, its scale its own: the library's (fitted by its provider's range, as its extent gives none).)
-    this.engine.overlay = overlay;
-    if (overlay) {
-      const info = o.autoscaleInfoProvider?.(original);
-      if (info?.priceRange) overlay.fit(info.priceRange.minValue, info.priceRange.maxValue);
-    }
     this.engine.changed();
   }
 
@@ -327,7 +296,7 @@ class Painted {
       if (view.isWhitespace?.(row)) continue;
       const i = indexOf(times, Number(row.time));
       if (i < 0) continue;
-      this.bars.push({ x: 0, time: i, originalData: row, barColor: row.color });
+      this.bars.push({ x: 0, time: i, originalData: row });
       this.places[m++] = i;
       const prices = view.priceValueBuilder(row);
       let lo = Infinity, hi = -Infinity;
@@ -364,8 +333,7 @@ class Painted {
 
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
   #extent(a, b, positive, out) {
-    // (An overlay's its own; a provider's range, none, or its own.)
-    if (this.series.scaleApi.overlay) return;
+    // (A provider's range, none, or its own.)
     const info = this.series.opts.autoscaleInfoProvider?.(original);
     if (info !== undefined && info !== OWN) {
       const range = info?.priceRange;
@@ -378,9 +346,8 @@ class Painted {
     this.highLine.extent(a, b, positive, out);
   }
 
-  /** Its first close at or past `i` (on an overlay, its scale its own: any, 1, so a relative pane draws it). @param {number} i */
+  /** Its first close at or past `i`. @param {number} i */
   #first(i) {
-    if (this.series.scaleApi.overlay) return 1;
     const closes = this.closes;
     for (let k = Math.max(0, i); k < closes.length; k++) if (closes[k] === closes[k]) return closes[k];
     return NaN;

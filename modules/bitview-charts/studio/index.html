@@ -16072,7 +16072,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (One of them in a loop through it: it's in the loop too, whatever's computed first.)
           if (all.some((result) => result?.error === LOOP)) throw new Error(LOOP);
           const inputs = all.filter((result) => result?.values), edges = layer.type === "cloud" ? edgesOf(layer).length : 0;
-          // (Each input's layer, by its id: a cloud's bands are colored by them, see cloudView.)
+          // (Each input's layer, by its id: a cloud's bands are colored by them, see Cloud.)
           const inputIds = (layer.from ?? []).filter((id) => doc.layers.some((item) => item.id === id)).filter((_, k) => all[k]?.values);
           if (inputs.length + edges < 2) return { unit: inputs[0]?.unit ?? "number", error: fromShort(layer, doc) || (edges ? "Needs a layer with data" : "Needs two layers with data") };
           const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
@@ -17044,8 +17044,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawn.clear();
         closes.clear();
         dotted.clear();
-        const wasPainted = new Map([...paintedRows, ...paintedLayers]);
-        paintedRows.clear();
+        const wasPainted = new Map(paintedLayers);
         paintedLayers.clear();
         // (The layer lit, lit again once its series are drawn anew.)
         const relit = spotlit;
@@ -17106,9 +17105,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const common = {
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
-            lastValueVisible: false,
-            priceLineVisible: false,
-            ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             priceFormat: shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT,
           };
           layerFormats.set(layer.id, common.priceFormat.formatter);
@@ -17123,7 +17119,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
-          // own, theirs (see cloudView), not one a date.)
+          // own, theirs (see Cloud), not one a date.)
           const banded = layer.type === "cloud" && Boolean(layer.byLayers && result?.members?.length && result.memberIds);
           const fromSource = candles || banded ? null : paintOf(doc, layer, data);
           // (A date it has no color for: its own.)
@@ -17155,15 +17151,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
             // of its own, unseen), faint, behind what's drawn.
-            const options = { ...common, ...paint, visible: signalShown(layer, doc), lastValueVisible: false, priceLineVisible: false, top: true, bottom: true, midway: true, priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) };
-            series = madeOrKept(() => view.addCustomSeries(cloudView(), options, pane), options);
+            series = again ?? new Cloud(pane, layer.side, true);
+            series.engine.hidden = !signalShown(layer, doc);
+            series.style({ color: paint.color, top: true, bottom: true, midway: true, banded: false, bands: [] });
           } else if (layer.type === "cloud") {
             // Its band alone: no label on the axis, no line across, no marker (its legend says its range); to its pane's edges
             // if it has them (both: on a scale of its own, unseen, its rows none of the pane's scales' business: drawn
             // whatever's on its side, or hidden, or how it's scaled).
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
-            const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false, top, bottom, banded, ...(top && bottom && !cloudLayers(layer).length ? { priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) } : {}) };
-            series = madeOrKept(() => view.addCustomSeries(cloudView(), options, pane), options);
+            series = again ?? new Cloud(pane, layer.side, top && bottom && !cloudLayers(layer).length);
+            series.engine.hidden = !common.visible;
+            series.style({ color: paint.color, top, bottom, midway: false, banded, bands: banded ? /** @type {string[]} */ (result?.memberIds).map((_, k) => paint[`band${k}`]) : [] });
           } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see heatView): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
@@ -17183,7 +17181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
             // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
-            const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
+            const options = { ...common, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
             series = madeOrKept(() => view.addCustomSeries(heatView(), options, pane), options, () => ({ heatTick: ++heatTicks }));
             if (layer.type === "profile") profileShares(layer.id, series);
             // (Kept up with live only where drawn: see movePrice.)
@@ -17232,32 +17230,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
           else if (!result?.values && again && before?.shown) {
-            customKind(layer) ? series.setData([]) : setColumn(series, EMPTY, false);
+            series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Cloud ? series.set({ low: EMPTY, high: EMPTY }) : series.setData([]);
             const close = closes.get(layer.id);
             if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
           } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
-            if (carried) "points" in carried ? paintedRows.set(layer.id, carried) : paintedLayers.set(layer.id, /** @type {Painted} */ (carried));
+            if (carried) paintedLayers.set(layer.id, carried);
             linesAcross(layer, pane, common.priceFormat, op);
           }
           else if (result?.values && signal && layer.place === "shade") {
-            const shown = result.values, rows = data.times.map((time, i) => (Number.isFinite(shown[i]) && shown[i] !== 0 ? { time, low: 0, high: 0, ...(shown[i] < 0 ? { color: shadeDown } : {}) } : { time }));
-            setRows(series, rows);
-            paintedRows.set(layer.id, { points: rows });
+            // (Its stretches: where it's up or down, to both its pane's edges; down, in its second color.)
+            const shown = result.values, n = data.times.length, low = new Float64Array(n), colors = new Uint16Array(n);
+            for (let i = 0; i < n; i++) (low[i] = Number.isFinite(shown[i]) && shown[i] !== 0 ? 0 : NaN), (colors[i] = shown[i] < 0 ? 1 : 0);
+            series.set({ low, high: low });
+            series.paint(colors, ["", shadeDown]);
           } else if (result?.values && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. Which of its two is over: where that
             // changes, they cross. Of its pane's two edges alone, every date, its values none. By its layers: each one's
-            // value, and their order, low to high: its bands, see cloudView.)
-            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.values, sides = result.sides, whole = edgesOf(layer).length > 1 && !cloudLayers(layer).length, members = result.members ?? [];
-            const bandsAt = (/** @type {number} */ i) => {
-              const at = Float64Array.from(members, (values) => (log && !(values[i] > 0) ? NaN : values[i]));
-              return { values: at, order: Uint8Array.from([...at.keys()].filter((k) => Number.isFinite(at[k])).sort((a, b) => at[a] - at[b])) };
-            };
-            // (Banded, its own lowest and highest drawn (on a log scale, those over zero), enough of them with its edges.)
-            const bandRow = (/** @type {number} */ time, /** @type {number} */ i) => ((at) => (at.order.length && at.order.length + edgesOf(layer).length >= 2 ? { time, low: at.values[at.order[0]], high: at.values[at.order[at.order.length - 1]], ...at } : { time }))(bandsAt(i));
-            const rows = fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (whole ? { time, low: 0, high: 0, ...(dated ? { color: alpha(dated(i), op) } : {}) } : banded ? bandRow(time, i) : Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i], ...(sides ? { side: sides[i] } : {}), ...(dated ? { color: alpha(dated(i), op) } : {}) } : { time }));
-            setRows(series, rows);
-            if (dated) paintedRows.set(layer.id, { points: rows, paintWith: (/** @type {string} */ c) => ({ color: alpha(c, op) }) });
+            // value (on a log scale, those over zero), its own lowest and highest drawn, where enough of them with its
+            // edges are: its bands, see Cloud.)
+            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.values, whole = edgesOf(layer).length > 1 && !cloudLayers(layer).length, n = fromUnfit(doc, layer) ? 0 : data.times.length;
+            const lows = new Float64Array(n).fill(NaN), highs = new Float64Array(n).fill(NaN), members = banded ? (result.members ?? []).map((values) => Float64Array.from({ length: n }, (_, i) => (log && !(values[i] > 0) ? NaN : values[i]))) : [];
+            for (let i = 0; i < n; i++) {
+              if (whole) (lows[i] = 0), (highs[i] = 0);
+              else if (banded) {
+                let count = 0, lo = Infinity, hi = -Infinity;
+                for (const values of members) if (Number.isFinite(values[i])) count++, (lo = Math.min(lo, values[i])), (hi = Math.max(hi, values[i]));
+                if (count && count + edgesOf(layer).length >= 2) (lows[i] = lo), (highs[i] = hi);
+              } else if (Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0)) (lows[i] = low[i]), (highs[i] = high[i]);
+            }
+            series.set({ low: lows, high: highs, sides: banded || whole ? null : result.sides ?? null, members });
+            // (Its colors date by date, as a painted layer's: the live price paints its own point, see paintPoint.)
+            const painted = dated && n ? { series, ...paletteOf(n, dated), look: (/** @type {string} */ c) => ({ color: alpha(c, op) }) } : null;
+            if (painted) paintedLayers.set(layer.id, painted);
+            paintSeries(series, painted);
           } else if (result?.values) {
             const shown = stack?.values ?? result.values;
             // A stacked candle: its open, high, low and close on the ones before it too.
@@ -17323,7 +17329,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         markSignals(doc, data, drawn, old);
         for (const series of old) {
           heatSeries.delete(series), dropOwnLayers(series);
-          if (!(series instanceof Standard || series instanceof Bubbles)) view.removeSeries(series);
+          if (!(series instanceof Standard || series instanceof Bubbles || series instanceof Cloud)) view.removeSeries(series);
           else ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
         }
         while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
@@ -18484,7 +18490,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return value < base ? (back ? fallsBelow : under) : back ? fallsAbove : top;
           };
         }
-        // A cloud by its layers: at each date, the one highest's (its top band's; see cloudView for each band's own).
+        // A cloud by its layers: at each date, the one highest's (its top band's; see Cloud for each band's own).
         if (layer.type === "cloud" && layer.byLayers && result?.highest && result.memberIds) {
           const highest = result.highest, colors = result.memberIds.map((id) => doc.layers.find((item) => item.id === id)?.color ?? top);
           return (i) => (highest[i] < 0 ? null : colors[highest[i]]);
@@ -18562,12 +18568,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @type {Map<string, Painted>}
        */
       const paintedLayers = new Map();
-      /**
-       * Clouds and shades painted date by date, as their rows were last set (their series the page's own drawing: see
-       * cloudView), and how a row is painted in a color.
-       * @type {Map<string, { points: any[], paintWith?: (color: string) => Record<string, string> }>}
-       */
-      const paintedRows = new Map();
       /** Colors date by date as columns: each of `n` points an index into its colors, each once. @param {number} n @param {(i: number) => string} colorAt */
       function paletteOf(n, colorAt) {
         const colors = new Uint16Array(n), palette = /** @type {string[]} */ ([]), index = new Map();
@@ -18714,6 +18714,237 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return hit ? 0 : Infinity;
         }
       }
+      /**
+       * A cloud on the library (a "cloud" layer, a shaded signal's stretches): from its lows up to its highs (or from its
+       * pane's bottom, up to its top: `bottom`, `top`), filled in its color (a date's own where it's painted), run by run
+       * (a gap in its data, a gap in it; a point alone, a sliver; a shade's, `midway`, its bar's room), over the bars in
+       * view and the one past each edge (to the edges, as its lines run); where its two cross (`sides`, which is over,
+       * changes from one column to the next), pinched to the point their lines cross at, a color of its own from there.
+       * By its layers (`banded`), a cloud of two between each two of them next to each other in its order (`members`,
+       * see #bands): several clouds, made by one, each always between its own two (a color never on what its layer doesn't
+       * bound). Fitted to its lows and highs; to both its pane's edges, on a scale of its own, unseen. Never hit.
+       */
+      class Cloud {
+        /** @param {number} pane @param {"left" | "right"} side @param {boolean} own */
+        constructor(pane, side, own) {
+          this.side = side;
+          /** Its lows and highs on the timeline, which of its two is over (none: no crossing), its layers' values (banded). */
+          (this.low = EMPTY), (this.high = EMPTY);
+          /** @type {Uint8Array | null} */
+          this.sides = null;
+          /** @type {Float64Array[]} */
+          this.members = [];
+          /** Its colors date by date (an index into `palette`; "": its own), none: its own throughout. @type {Uint16Array | null} */
+          this.colors = null;
+          /** @type {string[]} */
+          this.palette = [];
+          this.look = { color: "transparent", top: false, bottom: false, midway: false, banded: false, /** @type {string[]} */ bands: [] };
+          /** Its lows and highs as lines (in no pane): their extents by blocks, not point by point, each frame. */
+          (this.lows = new Line()), (this.highs = new Line());
+          this.engine = new Custom({
+            draw: (g, at) => this.#draw(g, at.time, at.scale, at.x0, at.x1, at.dpr),
+            extent: (a, b, positive, out) => void (!this.engine.overlay && (this.lows.extent(a, b, positive, out), this.highs.extent(a, b, positive, out))),
+            first: (i) => (this.engine.overlay ? 1 : this.highs.first(i)),
+          });
+          if (own) ((this.engine.overlay = new Scale({ top: 0.2, bottom: 0.1 })), this.engine.overlay.fit(0, 1));
+          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+        }
+
+        /**
+         * Its columns (see the class): none where it has no low or high.
+         * @param {{ low: Float64Array, high: Float64Array, sides?: Uint8Array | null, members?: Float64Array[] }} columns
+         */
+        set({ low, high, sides = null, members = [] }) {
+          (this.low = low), (this.high = high), (this.sides = sides), (this.members = members);
+          this.lows.setValues(low);
+          this.highs.setValues(high);
+          this.#changed();
+        }
+
+        /** Its colors date by date (see colors, palette). @param {Uint16Array | null} colors @param {string[]} palette */
+        paint(colors, palette) {
+          (this.colors = colors), (this.palette = palette);
+          this.#changed();
+        }
+
+        /** Its look (see the class). @param {Partial<Cloud["look"]>} look */
+        style(look) {
+          Object.assign(this.look, look);
+          this.#changed();
+        }
+
+        /** What it draws changed: its pane drawn whole at the next frame, asked for. */
+        #changed() {
+          this.engine.changed();
+          engine.invalidate();
+        }
+
+        /**
+         * Drawn on `g` from x `x0` to `x1` of the plot (and a bar past each), in device pixels: a column each bar at most,
+         * and a crossing between each two.
+         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
+         * @param {number} x0 @param {number} x1 @param {number} dpr
+         */
+        #draw(g, time, scale, x0, x1, dpr) {
+          const n = this.high.length, from = Math.max(0, Math.floor(time.index(x0 - 4) - 1)), to = Math.min(n, Math.ceil(time.index(x1 + 4) + 1) + 1);
+          if (from >= to) return;
+          if (CLOUD.xs.length < (to - from) * 2 + 2) for (const key of /** @type {const} */ (["xs", "highs", "lows", "ats"])) CLOUD[key] = new Float64Array((to - from) * 4 + 2);
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          if (this.look.banded) this.#bands(g, time, scale, dpr, from, to);
+          else this.#runs(g, time, scale, dpr, from, to);
+        }
+
+        /**
+         * Its runs: a run of columns filled, its highs along, its lows back (a column alone, a sliver; one the run before
+         * ended on, `shared`, drawn with it already). A date with nothing breaks the run.
+         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
+         * @param {number} h @param {number} from @param {number} to
+         */
+        #runs(g, time, scale, h, from, to) {
+          const look = this.look, { xs, highs, lows, ats } = CLOUD, v = h, height = scale.height, colors = this.colors, palette = this.palette;
+          let color = look.color;
+          // (`midway`, a shaded signal's: a stretch from where its first bar's room begins to where its last one's ends,
+          // halfway to the next: one bar alone, a bar wide; bars narrower than a pixel, a pixel, as a sliver is.)
+          const half = look.midway ? (Math.max(time.spacing, 1) * h) / 2 : 0;
+          const topAt = (/** @type {number} */ k) => (look.top ? 0 : Number.isNaN(ats[k]) ? scale.y(highs[k]) : ats[k]) * v, bottomAt = (/** @type {number} */ k) => (look.bottom ? height : Number.isNaN(ats[k]) ? scale.y(lows[k]) : ats[k]) * v;
+          let k = 0, shared = false;
+          const fill = (ended = true) => {
+            if (ended && half && k) (xs[k] = xs[k - 1] + half), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
+            g.fillStyle = color;
+            if (k === 1 && !shared) g.fillRect(xs[0] - h / 2, topAt(0), h, bottomAt(0) - topAt(0));
+            else if (k > 1) {
+              g.beginPath();
+              for (let j = 0; j < k; j++) j ? g.lineTo(xs[j], topAt(j)) : g.moveTo(xs[j], topAt(j));
+              for (let j = k - 1; j >= 0; j--) g.lineTo(xs[j], bottomAt(j));
+              g.closePath();
+              g.fill();
+            }
+            (k = 0), (shared = false);
+          };
+          /** The run so far filled (to that point, a shade's not past it: it's where the next begins), the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
+          const restart = () => {
+            const [x0, high0, low0, at0] = [xs[k - 1], highs[k - 1], lows[k - 1], ats[k - 1]], drawn = k > 1;
+            if (drawn) fill(false);
+            (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (ats[0] = at0), (k = 1), (shared ||= drawn);
+          };
+          // (`side`: which of its two is over at the last bar.)
+          let last = NaN, side = 0;
+          for (let i = from; i < to; i++) {
+            const high = this.high[i], low = this.low[i];
+            if (!(high === high && low === low)) continue;
+            if (i !== last + 1) fill();
+            last = i;
+            const now = (colors && palette[colors[i]]) || look.color, column = Math.round(time.x(i) * h), there = this.sides ? this.sides[i] : 0;
+            if (k && xs[k - 1] !== column && there !== side) {
+              // They cross between the last column and this one: where their lines (straight between the two, as the
+              // chart draws lines) meet, a point of both runs.
+              const top = scale.y(highs[k - 1]), bottom = scale.y(lows[k - 1]), nextTop = scale.y(high), nextBottom = scale.y(low);
+              const before = Math.abs(bottom - top), after = Math.abs(nextBottom - nextTop), t = before + after > 0 ? before / (before + after) : 0.5;
+              const first = side === 2 ? top : bottom, nextFirst = there === 2 ? nextTop : nextBottom;
+              (xs[k] = xs[k - 1] + t * (column - xs[k - 1])), (ats[k++] = first + t * (nextFirst - first));
+              if (now !== color) restart();
+            } else if (now !== color && k) {
+              // (`midway`, a shaded signal's: its color changes between the two bars, where one stretch ends and the
+              // next begins, not at the last one.)
+              if (look.midway && xs[k - 1] !== column) (xs[k] = (xs[k - 1] + column) / 2), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
+              restart();
+            }
+            color = now;
+            side = there;
+            if (k && xs[k - 1] === column && Number.isNaN(ats[k - 1])) {
+              if (high > highs[k - 1]) highs[k - 1] = high;
+              if (low < lows[k - 1]) lows[k - 1] = low;
+            } else {
+              if (half && !k) (xs[k] = column - half), (highs[k] = high), (lows[k] = low), (ats[k++] = NaN);
+              (xs[k] = column), (highs[k] = high), (lows[k] = low), (ats[k++] = NaN);
+            }
+          }
+          fill();
+        }
+
+        /**
+         * Its clouds (`banded`), one between each two of its layers next to each other in its order, each as a cloud of two
+         * is: from the lower to the higher, in the color of the one over (`bands`), pinched where they cross (at the point
+         * their lines cross, in pixels: as the chart draws them, straight between two bars); its pane's top with its first,
+         * its bottom with its last, in that one's color. Where they cross out of order, two overlap, their colors mixed. A
+         * column a bar at most (`xs`, `highs`, `lows`, in pixels).
+         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale
+         * @param {number} h @param {number} from @param {number} to
+         */
+        #bands(g, time, scale, h, from, to) {
+          const look = this.look, members = this.members, { xs, highs, lows } = CLOUD, v = h, TOP = -1, BOTTOM = -2, floor = scale.height * v;
+          const n = members.length;
+          const pairs = /** @type {[number, number][]} */ ([...Array.from({ length: Math.max(0, n - 1) }, (_, m) => [m, m + 1]), ...(look.top && n ? [[TOP, 0]] : []), ...(look.bottom && n ? [[n - 1, BOTTOM]] : [])]);
+          for (const [a, b] of pairs) {
+            // (`shared`: the run starts on a column the one before it painted: alone, nothing more drawn. `split`: they
+            // crossed in the column the run's at, its next color `splitPaint`, see settle.)
+            let k = 0, color = "", last = NaN, over = 0, column = 0, before0 = NaN, before1 = NaN, shared = false, split = false, splitPaint = "";
+            const fill = () => {
+              g.fillStyle = color;
+              if (k === 1 && !shared) g.fillRect(xs[0] - h / 2, highs[0], h, lows[0] - highs[0]);
+              else if (k > 1) {
+                g.beginPath();
+                for (let q = 0; q < k; q++) q ? g.lineTo(xs[q], highs[q]) : g.moveTo(xs[q], highs[q]);
+                for (let q = k - 1; q >= 0; q--) g.lineTo(xs[q], lows[q]);
+                g.closePath();
+                g.fill();
+              }
+              (k = 0), (shared = false);
+            };
+            const yOf = (/** @type {number} */ who, /** @type {number} */ i) => (who === TOP ? 0 : who === BOTTOM ? floor : ((value) => (Number.isFinite(value) ? scale.y(value) * v : NaN))(members[who][i]));
+            // (A column they crossed in, done (the next column's come, a gap, the end): the run so far ends there in its
+            // color, the next starts there in the color they ended on, the column painted once, as high and low as all
+            // its bars.)
+            const settle = () => {
+              if (!split) return;
+              split = false;
+              // (The run that column alone: nothing to end, the column the next one's, in its color.)
+              if (k === 1) return void (color = splitPaint);
+              const [x0, high0, low0] = [xs[k - 1], highs[k - 1], lows[k - 1]];
+              fill();
+              (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (k = 1), (color = splitPaint), (shared = true);
+            };
+            for (let i = from; i < to; i++) {
+              if (!(this.high[i] === this.high[i] && this.low[i] === this.low[i])) continue;
+              const ya = yOf(a, i), yb = yOf(b, i);
+              if (i !== last + 1) settle(), fill();
+              last = i;
+              if (!Number.isFinite(ya) || !Number.isFinite(yb)) {
+                settle(), fill();
+                continue;
+              }
+              // (Over: the one higher up, its color; an edge's, its layer's.)
+              const now = ya < yb || (ya === yb && over === a) ? a : b, here = Math.round(time.x(i) * h), paint = look.bands[now < 0 ? (now === a ? b : a) : now] ?? look.color;
+              if (k && xs[k - 1] === here) {
+                // (Bars narrower than a pixel: one column, as high and as low as any of them. Crossing there too: the run
+                // before ends at the column in its color, the next starts there in the new one's. Kept in the run, the
+                // run took the new color whole, from wherever it began: a stretch's color as the zoom put its bars in
+                // columns, changing as it zoomed.)
+                highs[k - 1] = Math.min(highs[k - 1], ya, yb);
+                lows[k - 1] = Math.max(lows[k - 1], ya, yb);
+                if (now !== over) split = true;
+                if (split) splitPaint = paint;
+                (over = now), (before0 = ya), (before1 = yb);
+                continue;
+              }
+              settle();
+              if (k && now !== over) {
+                // They cross between the two bars: where their lines meet, both runs' point.
+                const d0 = before0 - before1, d1 = ya - yb, t0 = d0 / (d0 - d1), t = Number.isFinite(t0) && t0 >= 0 && t0 <= 1 ? t0 : 1, y = before0 + t * (ya - before0), at = column + t * (here - column);
+                (xs[k] = at), (highs[k] = y), (lows[k++] = y);
+                fill();
+                (xs[0] = at), (highs[0] = y), (lows[0] = y), (k = 1);
+              }
+              (xs[k] = here), (highs[k] = Math.min(ya, yb)), (lows[k++] = Math.max(ya, yb));
+              (color = paint), (over = now), (column = here), (before0 = ya), (before1 = yb);
+            }
+            settle();
+            fill();
+          }
+        }
+      }
+      /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
+      const CLOUD = { xs: new Float64Array(64), highs: new Float64Array(64), lows: new Float64Array(64), ats: new Float64Array(64) };
       /** The bubbles a draw found (their middles, radii, sides, and order by size), kept and grown. */
       const BUBBLE = { x: new Float64Array(64), y: new Float64Array(64), r: new Float64Array(64), up: new Uint8Array(64), order: new Int32Array(64) };
       /** A stack's range from zero: its own (`out` widened by it and zero), none in view nothing. (Made once.) */
@@ -18736,8 +18967,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const fitShares = (/** @type {number} */ _a, /** @type {number} */ _b, /** @type {boolean} */ _positive, /** @type {Float64Array} */ out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
       const NOTHING = () => {};
-      /** A layer drawn by the page's own series (its rows: clouds, shades, heatmaps, profiles, bubbles), not a standard one. @param {Layer} layer */
-      const customKind = (layer) => layer.type === "cloud" || layer.type === "bubbles" || heatLike(layer) || (layer.type === "signal" && layer.place === "shade");
       /**
        * A standard series' values set on the library, as a column on the timeline: its line's, its bars', an area's or a
        * baseline's band and edge (`stacked`: its band's lower edge its stack's, see stackBands; else an area, to its floor).
@@ -18815,6 +19044,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function paintSeries(series, painted) {
         const colors = painted?.colors ?? null, looks = painted ? painted.palette.map(painted.look) : [];
+        if (series instanceof Cloud) return void series.paint(colors, looks.map((look) => look.color));
         if (series.edge) series.engine.set({ colors, palette: looks.map((look) => ({ color: look.topColor, fade: look.bottomColor })) }), series.edge.setStyle({ colors, palette: looks.map((look) => look.lineColor) });
         else series.engine.setStyle({ colors, palette: looks.map((look) => look.color) });
         engine.invalidate(true);
@@ -21801,186 +22031,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return best;
       }
-      /**
-       * A cloud as the chart draws it: from its lows up to its highs (or from its pane's bottom, up to its top:
-       * `bottom`, `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver; a
-       * shade's, its bar's room), over the bars in view and the one past each edge (lightweight-charts patch 52: to the
-       * edges, as its lines run); where its two cross (`side`, which is over, changes from one column to the next),
-       * pinched to the point their lines cross at, a color of its own from there. By its layers (`banded`), a cloud of
-       * two between each two of them next to each other in its order (see drawBands): several clouds, made by one, each
-       * always between its own two (a color never on what its layer doesn't bound). One of the chart's own series: its
-       * scale fits its values (not its edges), its pane orders it.
-       */
-      function cloudView() {
-        /** @type {any} */
-        let data = null, options = /** @type {any} */ ({ color: "transparent", top: false, bottom: false, midway: false, banded: false });
-        // A pixel column's highest and lowest (in prices: the scale turns them over), kept between frames: one point of the
-        // path a column, however many bars it holds (zoomed out, hundreds), and nothing made anew each frame. A point where
-        // its two cross, its height (`ats`, in pixels; a column's, NaN).
-        let xs = new Float64Array(0), highs = xs, lows = xs, ats = xs;
-        /**
-         * Its clouds (`banded`), one between each two of its layers next to each other in its order, each as a cloud of two
-         * is: from the lower to the higher, in the color of the one over (its layers' `band0`, `band1`…), pinched where
-         * they cross (at the point their lines cross, in pixels: as the chart draws them, straight between two bars); its
-         * pane's top with its first, its bottom with its last, in that one's color. Where they cross out of order, two
-         * overlap, their colors mixed. A column a bar at most (`xs`, `highs`, `lows`, in pixels).
-         */
-        const drawBands = (/** @type {CanvasRenderingContext2D} */ context, /** @type {{ height: number }} */ media, /** @type {number} */ h, /** @type {number} */ v, /** @type {(price: number) => number | null} */ toY, /** @type {number} */ from, /** @type {number} */ to) => {
-          const TOP = -1, BOTTOM = -2, floor = media.height * v;
-          let n = 0;
-          for (let i = from; i < to && !n; i++) n = data.bars[i].originalData.values?.length ?? 0;
-          const pairs = /** @type {[number, number][]} */ ([...Array.from({ length: Math.max(0, n - 1) }, (_, m) => [m, m + 1]), ...(options.top && n ? [[TOP, 0]] : []), ...(options.bottom && n ? [[n - 1, BOTTOM]] : [])]);
-          for (const [a, b] of pairs) {
-            // (`shared`: the run starts on a column the one before it painted: alone, nothing more drawn. `split`: they
-            // crossed in the column the run's at, its next color `splitPaint`, see settle.)
-            let k = 0, color = "", last = NaN, over = 0, column = 0, before = [NaN, NaN], shared = false, split = false, splitPaint = "";
-            const fill = () => {
-              context.fillStyle = color;
-              if (k === 1 && !shared) context.fillRect(xs[0] - h / 2, highs[0], h, lows[0] - highs[0]);
-              else if (k > 1) {
-                context.beginPath();
-                for (let q = 0; q < k; q++) q ? context.lineTo(xs[q], highs[q]) : context.moveTo(xs[q], highs[q]);
-                for (let q = k - 1; q >= 0; q--) context.lineTo(xs[q], lows[q]);
-                context.closePath();
-                context.fill();
-              }
-              (k = 0), (shared = false);
-            };
-            const yOf = (/** @type {number} */ who, /** @type {any} */ row) => (who === TOP ? 0 : who === BOTTOM ? floor : Number.isFinite(row.values?.[who]) ? /** @type {number} */ (toY(row.values[who])) * v : NaN);
-            // (A column they crossed in, done (the next column's come, a gap, the end): the run so far ends there in its
-            // color, the next starts there in the color they ended on, the column painted once, as high and low as all
-            // its bars.)
-            const settle = () => {
-              if (!split) return;
-              split = false;
-              // (The run that column alone: nothing to end, the column the next one's, in its color.)
-              if (k === 1) return void (color = splitPaint);
-              const [x0, high0, low0] = [xs[k - 1], highs[k - 1], lows[k - 1]];
-              fill();
-              (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (k = 1), (color = splitPaint), (shared = true);
-            };
-            for (let i = from; i < to; i++) {
-              const { x, time, originalData: row } = data.bars[i], ya = yOf(a, row), yb = yOf(b, row);
-              if (time !== last + 1) settle(), fill();
-              last = time;
-              if (!Number.isFinite(ya) || !Number.isFinite(yb)) {
-                settle(), fill();
-                continue;
-              }
-              // (Over: the one higher up, its color; an edge's, its layer's.)
-              const now = ya < yb || (ya === yb && over === a) ? a : b, here = Math.round(x * h), paint = options[`band${now < 0 ? (now === a ? b : a) : now}`] ?? options.color;
-              if (k && xs[k - 1] === here) {
-                // (Bars narrower than a pixel: one column, as high and as low as any of them. Crossing there too: the run
-                // before ends at the column in its color, the next starts there in the new one's. Kept in the run, the
-                // run took the new color whole, from wherever it began: a stretch's color as the zoom put its bars in
-                // columns, changing as it zoomed.)
-                highs[k - 1] = Math.min(highs[k - 1], ya, yb);
-                lows[k - 1] = Math.max(lows[k - 1], ya, yb);
-                if (now !== over) split = true;
-                if (split) splitPaint = paint;
-                (over = now), (before = [ya, yb]);
-                continue;
-              }
-              settle();
-              if (k && now !== over) {
-                // They cross between the two bars: where their lines meet, both runs' point.
-                const d0 = before[0] - before[1], d1 = ya - yb, t0 = d0 / (d0 - d1), t = Number.isFinite(t0) && t0 >= 0 && t0 <= 1 ? t0 : 1, y = before[0] + t * (ya - before[0]), at = column + t * (here - column);
-                (xs[k] = at), (highs[k] = y), (lows[k++] = y);
-                fill();
-                (xs[0] = at), (highs[0] = y), (lows[0] = y), (k = 1);
-              }
-              (xs[k] = here), (highs[k] = Math.min(ya, yb)), (lows[k++] = Math.max(ya, yb));
-              (color = paint), (over = now), (column = here), (before = [ya, yb]);
-            }
-            settle();
-            fill();
-          }
-        };
-        return {
-          renderer: () => ({
-            draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => {
-              const range = data?.visibleRange;
-              if (!range || !data.bars.length) return;
-              const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
-              let color = options.color;
-              const from = Math.max(0, range.from), to = Math.min(data.bars.length, range.to);
-              // (A column each bar at most, and a crossing between each two; a shaded stretch's two ends.)
-              if (xs.length < (to - from) * 2 + 2) [xs, highs, lows, ats] = [0, 0, 0, 0].map(() => new Float64Array((to - from) * 4 + 2));
-              if (options.banded) return void drawBands(context, mediaSize, h, v, toY, from, to);
-              // (`midway`, a shaded signal's: a stretch from where its first bar's room begins to where its last one's ends,
-              // halfway to the next: one bar alone, a bar wide; bars narrower than a pixel, a pixel, as a sliver is.)
-              const half = options.midway ? (Math.max(data.barSpacing, 1) * h) / 2 : 0;
-              const y = (/** @type {number} */ price) => /** @type {number} */ (toY(price));
-              const topAt = (/** @type {number} */ k) => (options.top ? 0 : Number.isNaN(ats[k]) ? y(highs[k]) : ats[k]) * v, bottomAt = (/** @type {number} */ k) => (options.bottom ? mediaSize.height : Number.isNaN(ats[k]) ? y(lows[k]) : ats[k]) * v;
-              // A run of columns, filled: its highs along, its lows back (a column alone, a sliver; one the run before
-              // ended on, `shared`, drawn with it already).
-              let k = 0, shared = false;
-              const fill = (ended = true) => {
-                if (ended && half && k) (xs[k] = xs[k - 1] + half), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
-                context.fillStyle = color;
-                if (k === 1 && !shared) context.fillRect(xs[0] - h / 2, topAt(0), h, bottomAt(0) - topAt(0));
-                else if (k > 1) {
-                  context.beginPath();
-                  for (let j = 0; j < k; j++) j ? context.lineTo(xs[j], topAt(j)) : context.moveTo(xs[j], topAt(j));
-                  for (let j = k - 1; j >= 0; j--) context.lineTo(xs[j], bottomAt(j));
-                  context.closePath();
-                  context.fill();
-                }
-                (k = 0), (shared = false);
-              };
-              /** The run so far filled (to that point, a shade's not past it: it's where the next begins), the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
-              const restart = () => {
-                const [x0, high0, low0, at0] = [xs[k - 1], highs[k - 1], lows[k - 1], ats[k - 1]], drawn = k > 1;
-                if (drawn) fill(false);
-                (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (ats[0] = at0), (k = 1), (shared ||= drawn);
-              };
-              // (A date with nothing isn't among the bars: one not next to the last breaks the run. `side`: which of its two
-              // is over at the last bar.)
-              let last = NaN, side = 0;
-              for (let i = from; i < to; i++) {
-                // (A row's own color, the chart library keeps as its bar's, not in the row.)
-                const { x, time, originalData: row, barColor } = data.bars[i];
-                if (time !== last + 1) fill();
-                last = time;
-                if (!Number.isFinite(row.high) || !Number.isFinite(row.low)) {
-                  fill();
-                  continue;
-                }
-                const now = barColor ?? options.color, column = Math.round(x * h);
-                if (k && xs[k - 1] !== column && row.side !== side) {
-                  // They cross between the last column and this one: where their lines (straight between the two, as the
-                  // chart draws lines) meet, a point of both runs.
-                  const top = y(highs[k - 1]), bottom = y(lows[k - 1]), nextTop = y(row.high), nextBottom = y(row.low);
-                  const before = Math.abs(bottom - top), after = Math.abs(nextBottom - nextTop), t = before + after > 0 ? before / (before + after) : 0.5;
-                  const first = side === 2 ? top : bottom, nextFirst = row.side === 2 ? nextTop : nextBottom;
-                  (xs[k] = xs[k - 1] + t * (column - xs[k - 1])), (ats[k++] = first + t * (nextFirst - first));
-                  if (now !== color) restart();
-                } else if (now !== color && k) {
-                  // (`midway`, a shaded signal's: its color changes between the two bars, where one stretch ends and the
-                  // next begins, not at the last one.)
-                  if (options.midway && xs[k - 1] !== column) (xs[k] = (xs[k - 1] + column) / 2), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
-                  restart();
-                }
-                color = now;
-                side = row.side;
-                if (k && xs[k - 1] === column && Number.isNaN(ats[k - 1])) {
-                  if (row.high > highs[k - 1]) highs[k - 1] = row.high;
-                  if (row.low < lows[k - 1]) lows[k - 1] = row.low;
-                } else {
-                  if (half && !k) (xs[k] = column - half), (highs[k] = row.high), (lows[k] = row.low), (ats[k++] = NaN);
-                  (xs[k] = column), (highs[k] = row.high), (lows[k] = row.low), (ats[k++] = NaN);
-                }
-              }
-              fill();
-            }),
-          }),
-          update: (/** @type {any} */ next, /** @type {LC.CustomSeriesOptions} */ given) => ((data = next), (options = given)),
-          priceValueBuilder: (/** @type {any} */ row) => [row.low, row.high, row.high],
-          /** @param {any} row @returns {row is LC.CustomSeriesWhitespaceData<LC.Time>} */
-          isWhitespace: (row) => !Number.isFinite(row.low) || !Number.isFinite(row.high),
-          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", top: false, bottom: false, midway: false }),
-        };
-      }
 
       // ── Bubbles: a series' sizes on another layer ───────────────────────────────
 
@@ -23656,12 +23706,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && (a[i] === a[i] || b[i] === b[i])) return false;
         return true;
       }
-      /** A stack's scale, on a linear one, takes in zero: its foot (up from it, or down, a stack of negatives). */
-      const fromZero = (mode) => (mode === 0 ? (/** @type {() => any} */ original) => {
-        const info = original();
-        // (None in view, a layer that starts later: nothing to take in.)
-        return info?.priceRange ? { ...info, priceRange: { minValue: Math.min(0, info.priceRange.minValue), maxValue: Math.max(0, info.priceRange.maxValue) } } : info;
-      } : undefined);
       /** The scale of the pane a layer is on. @param {Chart} doc */
       const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
       /**
@@ -39877,7 +39921,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         liveLast = key;
         dataRevision++;
         let moved = false, regrade = false;
-        /** @type {{ id: string, series: any, rows: { points: any[], paintWith?: (color: string) => Record<string, string> } | null, point: Record<string, any> | null }[]} */
+        /** The painted layers whose latest point's color is found again (see paintPoint). @type {string[]} */
         const toPaint = [];
         for (const layer of layers) {
           const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
@@ -39906,28 +39950,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (own && own.close.length > at) own.set(at, candle[0], candle[1], candle[2], value), engine.invalidate();
             else if (own) own.setValues(candleColumns(ohlc, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
           }
-          // (Bubbles' own below, with their places.)
-          const custom = customKind(layer) && layer.type !== "bubbles";
-          if (custom) for (const gap of added.slice(0, -1)) series?.update({ time: gap });
-          // (Painted date by date: its point once every live value is in, from the colors as they are then; kept with the
-          // others. Rows (a cloud's), the dates opened meanwhile empty.)
-          const rows = paintedRows.get(layer.id);
-          if (rows) for (const gap of added.slice(0, -1)) rows.points.push({ time: gap });
+          // (A heatmap's rows, the dates opened meanwhile empty. Bubbles' own below, with their places; a cloud's at the next
+          // build.)
+          const custom = series && !(series instanceof Standard || series instanceof Bubbles || series instanceof Cloud);
+          if (custom) for (const gap of added.slice(0, -1)) series.update({ time: gap });
           data.results.set(layer.id, { ...result, values, ohlc });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
-          if (rows?.paintWith) toPaint.push({ id: layer.id, series, rows, point: { time, value } });
-          else if (custom) series?.update({ time, value });
+          if (custom) series.update({ time, value });
           else if (series instanceof Standard) liveColumn(series, values, at, value);
-          if (paintedLayers.has(layer.id)) toPaint.push({ id: layer.id, series, rows: null, point: null });
+          // (Painted date by date: its point once every live value is in, from the colors as they are then.)
+          if (paintedLayers.has(layer.id)) toPaint.push(layer.id);
           if (close) tintClose(layer.id);
           moved = true;
         }
         // (And each layer taking its colors from one that moved, its latest point (a value, a cloud's band), where it has
         // one; each as the chart is drawn, a preview's while one shows.)
         const doc = drawnDoc ?? chart, inDoc = (/** @type {string | undefined} */ id) => doc.layers.find((item) => item.id === id);
-        const movedIds = new Set(layers.map((layer) => layer.id)), painting = new Set(toPaint.map((item) => item.id));
+        const movedIds = new Set(layers.map((layer) => layer.id)), painting = new Set(toPaint);
         // (Bubbles on a layer that moved, or moving themselves: their latest where it is now, at their size now (a live
         // value written as a point's, none of theirs, put right); the dates opened meanwhile, empty.)
         for (const layer of doc.layers) {
@@ -39936,26 +39977,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const on = inDoc(layer.ref), y = on ? /** @type {Vector | undefined} */ (built.get(on.id)?.shown)?.[at] ?? NaN : 0.5;
           series.place(at, data.results.get(layer.id)?.values?.[at] ?? NaN, on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y);
         }
-        for (const id of new Set([...paintedLayers.keys(), ...paintedRows.keys()])) {
-          // (Its point there: a value, or a cloud's band.)
-          const layer = inDoc(id), rows = paintedRows.get(id), last = rows?.points[at];
-          const has = rows ? Boolean(rows.paintWith && last && rows.points.length === at + 1 && ("value" in last || "high" in last)) : paintedLayers.get(id)?.colors.length === at + 1 && Number.isFinite(built.get(id)?.shown?.[at]);
+        for (const id of paintedLayers.keys()) {
+          // (Its point there: a value, or a cloud's band (one to its pane's edges, every date).)
+          const layer = inDoc(id), series = drawn.get(id), has = paintedLayers.get(id)?.colors.length === at + 1 && Number.isFinite(series instanceof Cloud ? series.high[at] : built.get(id)?.shown?.[at]);
           if (!layer || painting.has(id) || !has) continue;
           let source = inDoc(layer.colorFrom);
           for (const seen = new Set([id]); source && !seen.has(source.id) && !movedIds.has(source.id); source = inDoc(source.colorFrom)) seen.add(source.id);
-          if (source && movedIds.has(source.id)) toPaint.push({ id, series: drawn.get(id), rows: rows ?? null, point: last ?? null });
+          if (source && movedIds.has(source.id)) toPaint.push(id);
         }
-        for (const { id, series, rows, point: base } of toPaint) {
+        for (const id of toPaint) {
           const layer = inDoc(id), painted = paintedLayers.get(id);
-          if (!layer) continue;
-          const color = ink(paintOf(doc, layer, data)?.(at) ?? layer.color);
-          if (!rows) {
-            if (painted) paintPoint(painted, at, color);
-            continue;
-          }
-          const point = { ...base, .../** @type {(color: string) => Record<string, string>} */ (rows.paintWith)(color) };
-          rows.points[at] = point;
-          series?.update(point);
+          if (layer && painted) paintPoint(painted, at, ink(paintOf(doc, layer, data)?.(at) ?? layer.color));
         }
         if (lensAt) lookAt(lensAt);
         if (!moved) return;
