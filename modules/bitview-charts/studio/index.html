@@ -16244,10 +16244,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * past it: the margin over the top stays blank). (Its ticks short; its latest's tag and the crosshair's, a digit or
        * so more: see precise.)
        */
-      const VALUE_FORMAT = { formatter: (/** @type {number} */ value) => precise(value), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values) };
-      const SHARE_FORMAT = { formatter: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
+      const VALUE_FORMAT = { value: (/** @type {number} */ value) => precise(value), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
+      const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
       /** How a % or indexed scale writes its changes: in percent. */
-      const PERCENT_FORMAT = { formatter: (/** @type {number} */ value) => precise(value, "%"), tickmarksFormatter: (/** @type {number[]} */ values) => axisTicks(values, "%") };
+      const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
 
       /**
        * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
@@ -17056,13 +17056,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const signal = layer.type === "signal";
           // (Its values written as its scale writes them: a 100% stack's in percent.)
           const format = shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT;
-          layerFormats.set(layer.id, format.formatter);
+          layerFormats.set(layer.id, format.value);
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
           // (A standard series' look, the library's: shown or not; its value's tag reading the axis where it sits (a
           // stacked band's, its sum there, at its top: its own amount the legend's and the panel's); its line across; its
           // values' writer; edged in the card's color where it's outlined (over a heatmap, a cloud, another line).)
           const shown = !layer.hidden && !signal;
-          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.formatter, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
+          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.value, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
           // (Its line's: width, dashes (by its width as set), steps or curved, its crosshair dot.)
           const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
           const pane = paneIndex.get(layer.pane) ?? 0;
@@ -17268,7 +17268,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (was && was.pane !== pane) was.pane.remove(was.levels);
           const levels = was && was.pane === pane ? was.levels : ((made) => (pane.add(made, first.layer.side), made))(new Levels({ side: first.layer.side }));
           // (Its tags written as its layer's values are.)
-          levels.set({ lines: list, format: first.format.formatter });
+          levels.set({ lines: list, format: first.format.value });
           levelsKept.set(key, { levels, pane });
         }
         for (const { levels, pane } of levelsBefore.values()) pane.remove(levels);
@@ -17316,12 +17316,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
           // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
           const format = shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
-          panes[i].setPercentFormat(PERCENT_FORMAT.formatter, PERCENT_FORMAT.tickmarksFormatter);
+          panes[i].setPercentFormat(PERCENT_FORMAT.value, PERCENT_FORMAT.ticks);
           for (const side of /** @type {const} */ (["left", "right"])) {
             panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
             if (!keep) panes[i].setRange(undefined, undefined, side);
             const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
-            panes[i].setFormat(used ? format.formatter : libraryWords, used ? format.tickmarksFormatter : null, side);
+            panes[i].setFormat(used ? format.value : libraryWords, used ? format.ticks : null, side);
           }
         });
         // (Its right axis where a layer is on that side; none, the plots to the chart's right edge.)
