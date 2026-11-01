@@ -94,7 +94,8 @@ chart.show(365);                                 // the last 365 points in view
   `up`, below in `down`, each edged; the largest drawn first; `halo`, ringed in it first. `set(i, value, size)`, one
   point's in place (a live one).
 - `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
-  where it holds), a point's slot reaching halfway to its neighbors in its color, a NaN value none; never fitted or hit.
+  where it holds), each from half a point's room before its first point to half after its last (a pixel at least: a
+  point alone zoomed out, a sliver), its color changing halfway between two points, a NaN value none; never fitted or hit.
 - `Grid({ edges, column, place, gradient })`: a heatmap's cells, a column a point (zoomed out, a block of points by
   powers of two), each column's rows the page's (`column(i, step)`: bins and values, null till they come; then
   `invalidate()`), its bins' bounds `edges`; a cell's color its `place(value)` along `gradient` (stops blended in OKLab,

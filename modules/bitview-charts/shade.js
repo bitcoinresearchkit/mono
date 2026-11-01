@@ -1,14 +1,9 @@
 // @ts-check
-// A shade: stretches of the pane's whole height behind what's drawn (a signal's: where it holds), a point's slot from
-// halfway to the point before to halfway to the next, in its color (`color`, or `colors`, indices into `palette`, point
-// by point: its color changing halfway between two points); a point whose value is NaN (`values`) none, the stretch
-// broken there. Zoomed out, a pixel column in its last shaded point's color. A backdrop: not fitted, never hit.
-
-import { NOISE } from "./timeline.js";
-
-/** A slot's edges, shared by two neighbors and on device pixels (no seam between two colors' fills); zoomed out, each
- * column's last shaded point (-1: none): grown, never made again. */
-let edges = new Float64Array(64), lasts = new Int32Array(64);
+// A shade: stretches of the pane's whole height behind what's drawn (a signal's: where it holds), in its color (`color`,
+// or `colors`, indices into `palette`, point by point); a point whose value is NaN (`values`) none, the stretch broken
+// there. A stretch runs from half a point's room before its first point to half after its last (a point's room: the
+// spacing, a pixel at least: a point alone, zoomed out, a sliver), its color changing halfway between two points, on
+// device-pixel columns: the same at any zoom, a stretch however short shown. A backdrop: not fitted, never hit.
 
 export class Shade {
   /** @param {{ values: Float64Array, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[] }} options */
@@ -22,6 +17,8 @@ export class Shade {
     this.palette = palette;
     /** Not drawn. */
     this.hidden = false;
+    /** Drawn at a fifth of its opacity (another lit over it: see the pane's Series). */
+    this.faint = false;
     /** Not read on its side's scale: it has none. */
     this.scaled = false;
     this.version = 0;
@@ -53,42 +50,33 @@ export class Shade {
   }
 
   /**
+   * Its stretches from x `x0` to `x1` (and a point past each), in device pixels: each one filled as it ends (a gap, a
+   * color changing, the last point).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
-    const values = this.values, n = values.length, colors = this.colors && this.palette.length ? this.colors : null, passes = colors ? this.palette.length : 1;
-    if (!n) return;
-    // (Zoomed in, a point's slot; zoomed out, a pixel column each, in its last shaded point's color.)
-    if (time.spacing >= 1) {
-      const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
-      if (edges.length < b - a + 2) edges = new Float64Array((b - a + 2) * 2);
-      for (let i = a; i <= b + 1; i++) edges[i - a] = time.snap(time.x(i - 0.5), dpr);
-      for (let pass = 0; pass < passes; pass++) {
-        g.fillStyle = colors ? this.palette[pass] : this.color;
-        g.beginPath();
-        for (let i = a; i <= b; i++) if (values[i] === values[i] && (!colors || colors[i] === pass)) g.rect(edges[i - a], 0, edges[i - a + 1] - edges[i - a], scale.height);
-        g.fill();
-      }
-      return;
+    const values = this.values, n = values.length, colors = this.colors && this.palette.length ? this.colors : null;
+    const from = Math.max(0, Math.floor(time.index(x0 - 4) - 1)), to = Math.min(n, Math.ceil(time.index(x1 + 4) + 1) + 1);
+    if (from >= to) return;
+    const half = (Math.max(time.spacing, 1) * dpr) / 2, height = scale.height * dpr;
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // (The stretch being made: where it starts (NaN: none), its color; the last point's index and column.)
+    let start = NaN, color = "", last = NaN, column = 0;
+    const fill = (/** @type {number} */ end) => {
+      if (start === start) (g.fillStyle = color), g.fillRect(start, 0, end - start, height);
+      start = NaN;
+    };
+    for (let i = from; i < to; i++) {
+      if (values[i] !== values[i]) continue;
+      const now = colors ? this.palette[colors[i]] ?? this.color : this.color, at = time.snap(time.x(i), dpr) * dpr;
+      if (i !== last + 1) fill(column + half), (start = at - half);
+      // (Its color changing: halfway between the two points' columns, or at the column both are in.)
+      else if (now !== color) ((middle) => (fill(middle), (start = middle)))(at !== column ? (column + at) / 2 : at);
+      (color = now), (last = i), (column = at);
     }
-    // (Each column's last shaded point found once, then its columns filled a color at a time.)
-    const from = Math.floor(x0) - 1, columns = Math.ceil(x1) + 1 - from + 1;
-    if (lasts.length < columns) lasts = new Int32Array(columns * 2);
-    for (let c = 0; c < columns; c++) {
-      const x = from + c;
-      let last = -1;
-      for (let i = Math.max(0, Math.ceil(time.index(x) - NOISE)), end = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1); i <= end; i++) if (values[i] === values[i]) last = i;
-      lasts[c] = last;
-    }
-    for (let pass = 0; pass < passes; pass++) {
-      g.fillStyle = colors ? this.palette[pass] : this.color;
-      g.beginPath();
-      for (let c = 0; c < columns; c++) {
-        const last = lasts[c], left = time.snap(from + c, dpr);
-        if (last >= 0 && (!colors || colors[last] === pass)) g.rect(left, 0, time.snap(from + c + 1, dpr) - left, scale.height);
-      }
-      g.fill();
-    }
+    fill(column + half);
+    g.restore();
   }
 }

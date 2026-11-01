@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -17103,9 +17103,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
             // of its own, unseen), faint, behind what's drawn.
-            series = again ?? new Cloud(pane, layer.side, true);
+            series = again ?? new Shading(pane, layer.side);
             series.engine.hidden = !signalShown(layer, doc);
-            series.style({ color: paint.color, top: true, bottom: true, midway: true, banded: false, bands: [] });
+            series.style(paint.color);
           } else if (layer.type === "cloud") {
             // Its band alone: no label on the axis, no line across, no marker (its legend says its range); to its pane's edges
             // if it has them (both: on a scale of its own, unseen, its rows none of the pane's scales' business: drawn
@@ -17113,7 +17113,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
             series = again ?? new Cloud(pane, layer.side, top && bottom && !cloudLayers(layer).length);
             series.engine.hidden = !shown;
-            series.style({ color: paint.color, top, bottom, midway: false, banded, bands: paint.bands });
+            series.style({ color: paint.color, top, bottom, banded, bands: paint.bands });
           } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see Heat): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
@@ -17181,7 +17181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
           else if (!result?.values && again && before?.shown) {
-            series instanceof Standard ? setColumn(series, EMPTY, false) : series.set({ low: EMPTY, high: EMPTY });
+            series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Shading ? series.set(EMPTY) : series.set({ low: EMPTY, high: EMPTY });
             const close = closes.get(layer.id);
             if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
           } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
@@ -17191,10 +17191,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           else if (result?.values && signal && layer.place === "shade") {
             // (Its stretches: where it's up or down, to both its pane's edges; down, in its second color.)
-            const shown = result.values, n = data.times.length, low = new Float64Array(n), colors = new Uint16Array(n);
-            for (let i = 0; i < n; i++) (low[i] = Number.isFinite(shown[i]) && shown[i] !== 0 ? 0 : NaN), (colors[i] = shown[i] < 0 ? 1 : 0);
-            series.set({ low, high: low });
-            series.paint(colors, ["", shadeDown]);
+            const shown = result.values, n = data.times.length, values = new Float64Array(n), colors = new Uint16Array(n);
+            for (let i = 0; i < n; i++) (values[i] = Number.isFinite(shown[i]) && shown[i] !== 0 ? 0 : NaN), (colors[i] = shown[i] < 0 ? 1 : 0);
+            series.set(values, colors, [paint.color, shadeDown]);
           } else if (result?.values && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. Which of its two is over: where that
             // changes, they cross. Of its pane's two edges alone, every date, its values none. By its layers: each one's
@@ -18566,9 +18565,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Bubbles on no layer: their own scale from 0 to 1, their places its middle. @param {number} _a @param {number} _b @param {boolean} _positive @param {Float64Array} out */
       const fitMiddle = (_a, _b, _positive, out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 1)));
       /**
-       * A cloud on the library (a "cloud" layer, a shaded signal's stretches): from its lows up to its highs (or from its
-       * pane's bottom, up to its top: `bottom`, `top`), filled in its color (a date's own where it's painted), run by run
-       * (a gap in its data, a gap in it; a point alone, a sliver; a shade's, `midway`, its bar's room), over the bars in
+       * A shaded signal's stretches on the library (its Shade): where it's up or down, its pane's whole height behind what's
+       * drawn, down in its second color. Never fitted or hit.
+       */
+      class Shading {
+        /** @param {number} pane @param {"left" | "right"} side */
+        constructor(pane, side) {
+          this.side = side;
+          this.engine = new Shade({ values: EMPTY });
+          engine.panes[pane].add(this.engine, side);
+        }
+
+        /** Where it's shaded (0; NaN: not), and each date's color (an index into `palette`). @param {Float64Array} values @param {Uint16Array | null} [colors] @param {string[]} [palette] */
+        set(values, colors = null, palette = []) {
+          this.engine.setValues({ values, colors });
+          this.engine.setStyle({ palette });
+          engine.invalidate();
+        }
+
+        /** Its color (where none's painted). @param {string} color */
+        style(color) {
+          this.engine.setStyle({ color });
+          engine.invalidate();
+        }
+      }
+      /**
+       * A cloud on the library (a "cloud" layer): from its lows up to its highs (or from its pane's bottom, up to its top:
+       * `bottom`, `top`), filled in its color (a date's own where it's painted), run by run (a gap in its data, a gap in
+       * it; a point alone, a sliver), over the bars in
        * view and the one past each edge (to the edges, as its lines run); where its two cross (`sides`, which is over,
        * changes from one column to the next), pinched to the point their lines cross at, a color of its own from there.
        * By its layers (`banded`), a cloud of two between each two of them next to each other in its order (`members`,
@@ -18589,7 +18613,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.colors = null;
           /** @type {string[]} */
           this.palette = [];
-          this.look = { color: "transparent", top: false, bottom: false, midway: false, banded: false, /** @type {string[]} */ bands: [] };
+          this.look = { color: "transparent", top: false, bottom: false, banded: false, /** @type {string[]} */ bands: [] };
           /** Its lows and highs as lines (in no pane): their extents by blocks, not point by point, each frame. */
           (this.lows = new Line()), (this.highs = new Line());
           this.engine = new Custom({
@@ -18654,13 +18678,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         #runs(g, time, scale, h, from, to) {
           const look = this.look, { xs, highs, lows, ats } = CLOUD, v = h, height = scale.height, colors = this.colors, palette = this.palette;
           let color = look.color;
-          // (`midway`, a shaded signal's: a stretch from where its first bar's room begins to where its last one's ends,
-          // halfway to the next: one bar alone, a bar wide; bars narrower than a pixel, a pixel, as a sliver is.)
-          const half = look.midway ? (Math.max(time.spacing, 1) * h) / 2 : 0;
           const topAt = (/** @type {number} */ k) => (look.top ? 0 : Number.isNaN(ats[k]) ? scale.y(highs[k]) : ats[k]) * v, bottomAt = (/** @type {number} */ k) => (look.bottom ? height : Number.isNaN(ats[k]) ? scale.y(lows[k]) : ats[k]) * v;
           let k = 0, shared = false;
-          const fill = (ended = true) => {
-            if (ended && half && k) (xs[k] = xs[k - 1] + half), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
+          const fill = () => {
             g.fillStyle = color;
             if (k === 1 && !shared) g.fillRect(xs[0] - h / 2, topAt(0), h, bottomAt(0) - topAt(0));
             else if (k > 1) {
@@ -18672,10 +18692,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             (k = 0), (shared = false);
           };
-          /** The run so far filled (to that point, a shade's not past it: it's where the next begins), the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
+          /** The run so far filled (to that point), the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
           const restart = () => {
             const [x0, high0, low0, at0] = [xs[k - 1], highs[k - 1], lows[k - 1], ats[k - 1]], drawn = k > 1;
-            if (drawn) fill(false);
+            if (drawn) fill();
             (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (ats[0] = at0), (k = 1), (shared ||= drawn);
           };
           // (`side`: which of its two is over at the last bar.)
@@ -18685,7 +18705,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!(high === high && low === low)) continue;
             if (i !== last + 1) fill();
             last = i;
-            const now = (colors && palette[colors[i]]) || look.color, column = Math.round(time.x(i) * h), there = this.sides ? this.sides[i] : 0;
+            const now = (colors && palette[colors[i]]) || look.color, column = time.snap(time.x(i), h) * h, there = this.sides ? this.sides[i] : 0;
             if (k && xs[k - 1] !== column && there !== side) {
               // They cross between the last column and this one: where their lines (straight between the two, as the
               // chart draws lines) meet, a point of both runs.
@@ -18694,19 +18714,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const first = side === 2 ? top : bottom, nextFirst = there === 2 ? nextTop : nextBottom;
               (xs[k] = xs[k - 1] + t * (column - xs[k - 1])), (ats[k++] = first + t * (nextFirst - first));
               if (now !== color) restart();
-            } else if (now !== color && k) {
-              // (`midway`, a shaded signal's: its color changes between the two bars, where one stretch ends and the
-              // next begins, not at the last one.)
-              if (look.midway && xs[k - 1] !== column) (xs[k] = (xs[k - 1] + column) / 2), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
-              restart();
-            }
+            } else if (now !== color && k) restart();
             color = now;
             side = there;
             if (k && xs[k - 1] === column && Number.isNaN(ats[k - 1])) {
               if (high > highs[k - 1]) highs[k - 1] = high;
               if (low < lows[k - 1]) lows[k - 1] = low;
             } else {
-              if (half && !k) (xs[k] = column - half), (highs[k] = high), (lows[k] = low), (ats[k++] = NaN);
               (xs[k] = column), (highs[k] = high), (lows[k] = low), (ats[k++] = NaN);
             }
           }
@@ -18765,7 +18779,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 continue;
               }
               // (Over: the one higher up, its color; an edge's, its layer's.)
-              const now = ya < yb || (ya === yb && over === a) ? a : b, here = Math.round(time.x(i) * h), paint = look.bands[now < 0 ? (now === a ? b : a) : now] ?? look.color;
+              const now = ya < yb || (ya === yb && over === a) ? a : b, here = time.snap(time.x(i), h) * h, paint = look.bands[now < 0 ? (now === a ? b : a) : now] ?? look.color;
               if (k && xs[k - 1] === here) {
                 // (Bars narrower than a pixel: one column, as high and as low as any of them. Crossing there too: the run
                 // before ends at the column in its color, the next starts there in the new one's. Kept in the run, the
