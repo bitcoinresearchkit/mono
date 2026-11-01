@@ -16157,7 +16157,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
-          const out = { ...result, values, ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.members ? { members: result.members.map((values) => values.slice(first)) } : {}), ...(result.highest ? { highest: result.highest.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}) };
+          const out = { ...result, values, ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.members ? { members: result.members.map((values) => values.slice(first)) } : {}), ...(result.highest ? { highest: result.highest.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}), ...(result.closes ? { closes: result.closes.slice(first) } : {}) };
           trims.set(result, { first, out });
           results.set(id, out);
         }
@@ -16315,7 +16315,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const timelineOf = (/** @type {number[]} */ times) => timelines.get(times) ?? ((line) => (timelines.set(times, line), line))(new Float64Array(times));
       /**
        * The chart on `times`, at once (its view read and moved on them from here on, as a build places it): its series
-       * given their data on them before the next frame (see LC's Chart.#sync).
+       * given their data on them before the next frame.
        * @param {number[]} times
        */
       const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
@@ -16723,7 +16723,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
        * a bar has no room for a hollow body (under BODIES_FROM pixels, where the library draws its wick alone), the layer
        * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
-       * @type {Map<string, { candles: any, series: any, color: string, rise: string, fall: string, dated: boolean }>}
+       * @type {Map<string, { candles: any, series: any, color: string, rise: string, fall: string }>}
        */
       const closes = new Map();
       let candlesFit = true;
@@ -16752,12 +16752,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The close line's color, its tag's (see `closes`): its last candle in view's while candles show (the one its tag
        * reads), rising or falling (as the candle's own tag would be, though a hollow one's body is the background); the
        * layer's while the line shows instead.
-       * (Its colors another layer's date by date, those stay.)
        * @param {string} id
        */
       function tintClose(id) {
         const close = closes.get(id);
-        if (!close || close.dated) return;
+        if (!close) return;
         // (Its last candle at or before the view's end: the library's columns.)
         const candles = close.candles.engine;
         let i = Math.min(Math.ceil(engine.time.to), candles.close.length - 1);
@@ -17060,8 +17059,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
         // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
-        // alone, and a color or a width scrubbed stays smooth however many points there are. (Bars, their colors in
-        // their points, are set again whole.)
+        // alone, and a color or a width scrubbed stays smooth however many points there are. (A histogram's set again
+        // whole: its bars under its base in its second color, a palette made with its data.)
         // (Not where it is among them: a layer moved, or its pane reversed, keeps its series, put in order below.)
         const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", layer.type === "bubbles" && !layer.ref, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
@@ -17145,8 +17144,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : null;
           const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting);
           if (signal && layer.place === "shade") {
-            // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
-            // of its own, unseen), faint, behind what's drawn.
+            // Shaded: its stretches, its pane's whole height, faint, behind what's drawn (the library's Shade).
             series = again ?? new Shading(pane, layer.side);
             series.engine.hidden = !signalShown(layer, doc);
             series.style(paint.color);
@@ -17199,7 +17197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { ...paint, radius: BAR_CORNER } });
             const closeSeries = standard("line", closeAgain || undefined);
             styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
-            closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
+            closes.set(layer.id, { candles: series, series: closeSeries, color, rise: color, fall: layer.colors === 1 ? color : below });
             tintClose(layer.id);
           } else {
             const radius = dotRadius(layer.width), base = baseOf(layer);
@@ -17469,7 +17467,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Mid-drag, the panes as they were: their legends kept, their contents written again.)
         if (holding && legends().length === chart.panes.length) updateLegends();
         else placeLegends();
-        updateValues();
         setGap();
       }
 
@@ -20438,8 +20435,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const finite = (point) => Number.isFinite(point?.x) && Number.isFinite(point?.y);
 
-      /** A line style's dashes, as the chart draws a series' (in widths). */
-      const dashesOf = (dash, width) => ({ [LINE_STYLE.Dotted]: [1, 1], [LINE_STYLE.Dashed]: [2, 2], [LINE_STYLE.LargeDashed]: [6, 6], [LINE_STYLE.SparseDotted]: [1, 4] })[dash]?.map((n) => n * width) ?? [];
       /**
        * A line through points as drawn (a trend line, a path): to each in turn (those shown), its first and its last on past
        * them (each end its own) to the plot's edges, along its first stretch and its last.
@@ -20519,7 +20514,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.lineWidth = drawing.width;
         context.lineCap = drawing.dash ? "butt" : "round";
         context.lineJoin = "round";
-        context.setLineDash(dashesOf(drawing.dash, drawing.width));
+        context.setLineDash(dashFor(drawing.width, drawing.dash));
         if (label) {
           context.save();
           clipOut(context, label, size);
@@ -22270,8 +22265,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ context: CanvasRenderingContext2D, width: number, height: number, dpr: number }} HeatPlot
        */
       /**
-       * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
-       * library merges field by field: its days, thousands, would be gone through at each change).
+       * Each heatmap's look, by its layer's id: what it draws and how, read by its layer's drawing (see Heat).
        * @type {Map<string, HeatLook>}
        */
       const heatLooks = new Map();
@@ -23498,7 +23492,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // from other data, aren't kept: `kept` false.)
         const key = kept && doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
           const shown = data.results.get(layer.id)?.values;
-          return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${shown ? idOf(shown) : "-"}`;
+          return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${layer.from ?? ""}.${placedOn(layer) ? 1 : 0}.${shown ? idOf(shown) : "-"}`;
         }).join()}`).join("|") : "";
         if (key && key === stacksMade.key) return stacksMade.stacked;
         const stacked = new Map();

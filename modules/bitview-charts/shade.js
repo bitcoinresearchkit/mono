@@ -21,6 +21,8 @@ export class Shade {
     this.faint = false;
     /** Not read on its side's scale: it has none. */
     this.scaled = false;
+    /** Drawn behind every series, whatever their order: a backdrop. */
+    this.behind = true;
     this.version = 0;
   }
 

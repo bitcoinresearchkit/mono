@@ -38,9 +38,42 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - bitview-charts, Codex's review of the whole library (2026-11-01): done in two commits (b8f0aa256, then the
   second: Bars.distance gone, one firstFrom, stale comments).
-- Going live (you asked 2026-11-01 whether prod has the library: no). Every server runs v0.13.0 at 4f961b7f; the
-  switch (3f8b7ab68) and all since are local commits on next, never pushed. Asked you: push next and `fleet update`
-  the next servers once these fixes are in; prod after (likely next merged to main, a release). Waiting on your yes.
+- Studio's chart code, Codex's review (2026-11-01; full report: scratchpad codex/studio1/out). To fix, in batches
+  (each: fresh test, type checks, 79-preset sweep, phone sweep, Codex on the diff, commit). Lines as of ac6dbc585:
+  - Batch 1 made (uncommitted, 2026-11-01): (1), (2), (7) (Shade `behind` by default in the library), (9), (10),
+    (14); (8) kept, its comment fixed (a histogram's below-base palette is made with its data: a color edit needs
+    it). Type checks clean, 79 presets 0 errors; Codex on the diff (scratchpad codex/studio2/out); then phone, commit.
+  - Batch 1 as found: (1) stacksMade's key (~23502) lacks layer type and `from`: a layer made bubbles on
+    another stays in the stack; (2) the timeline trim (~16159) slices every column but `closes` (heatmaps' closes off
+    by `first` points); (7) Shading's Shade not `behind` (~18523): it can paint over series; (8) histograms excluded
+    from kept data (~17232, ~17065: an LWC-era rule; Bars has columns now); (9) candles' `dated` unreachable (~17122,
+    ~17203, ~16761); (10) LWC comments (~16319 Chart.#sync, ~17149 shading overlay, ~22275 field merge); (14)
+    updateValues called twice (~17473 with updateLegends ~17910), dashFor (~18914) and dashesOf (~20443) the same
+    five dashes.
+  - Batch 2 plan for (3), read 2026-11-01: the library puts point i at (i - from) * spacing (LWC: (i - from + 0.5),
+    a range one bar longer). Fix four: presetWindow (~17582: to = n-1 + gap/spacing, from = to - width/spacing; same
+    intent, first point's middle `room` in, last's `gap` from the end), lastShown (~17667: Math.ceil(to), the
+    library's tags' rule), firstInView (~17673: Math.floor(from), the library's #from), the span glide (~36085:
+    first - 0.5 to last + 0.5, whole bars). previewShown's ±0.5 (~24115) is already right for the library.
+  - Batch 2, to look at closely: (3) Studio's range maths (~17583, ~17670) use LWC's bar geometry (n-1, half a bar),
+    the library's Timeline doesn't: lead and gap off by a few px, the resting legend reading point 10 where tags read
+    11; (4) a live tick doesn't re-anchor a pinned crosshair after the scale refits (~39826: holdCross); (5) candles'
+    close line tinted by the view's last candle (~16764), wrong when the tag reads the crosshair's candle; (6) bandAt
+    (~17817) can override the library's hit with a nearer value at the rounded point.
+  - Batch 3, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
+    drawings, trends' gradient colors (~21012); (16) Heat `fixed` (~18787) redraws its pane at every crosshair move,
+    profile bins rebuilt each time (~22652); (17) profileShare summed twice a move (~22356, ~22598) though its day is
+    the view's last.
+  - Not to do now: Cloud, Heat, stackOf duplicate parts of the library's Band, Grid/Profile, stack (11–13): the
+    question above (one should go).
+- Going live: **you said yes (2026-11-01)**, once Codex's review of Studio's chart code is done and its bugs fixed:
+  push next, `fleet update` the next servers (next.bitview.space), check it there (Chromium, Mullvad, the phone),
+  then prod. How it deploys (read 2026-11-01): all four servers are in mode `prod` (dots/pc/fleet.conf), which
+  follows the remote branch `prod` (fleet's resolve: ls-remote refs/heads/prod), and they serve both tunnels (next
+  and prod): there are no separate next servers. origin's next and prod are both 4f961b7f. So: push next, push
+  next to prod (`git push origin next next:prod`, a fast-forward), `fleet update` (one server at a time, each serving
+  again before the next), then check bitview.space/studio and next.bitview.space/studio in Chromium, Mullvad and on
+  the phone.
 - Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
   whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
   (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
