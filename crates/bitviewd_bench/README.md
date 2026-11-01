@@ -26,9 +26,10 @@ never replaced: repetitions of one revision on one machine sit side by side.
   storage, `internal`, `external-tb` (Thunderbolt or USB4, macOS),
   `external-usb`, `external` (another or undetected bus) or `unknown`
   (`apple-m6-16gb-external-tb`);
-- `<revision>` is the tag at HEAD (`v0.13.0`), else the short commit, else the
-  crate version, with `-dirty` when the sources (`crates/`, the Cargo manifest,
-  lockfile and configuration, the toolchain file) have local changes. It is
+- `<revision>` is the short commit (`bd1ed8635`): the checkout's HEAD, or the
+  commit a published package records, never a tag or a version; `-dirty` when
+  the sources (`crates/`, the Cargo manifest, lockfile and configuration, the
+  toolchain file) have local changes. A build with neither fails. It is
   captured at compile time, with the compiler, profile, target and flags, so a
   run records the code that was built, not the checkout it runs next to;
 - `<run-id>` is the run's UTC start, `20261014T153012Z`.

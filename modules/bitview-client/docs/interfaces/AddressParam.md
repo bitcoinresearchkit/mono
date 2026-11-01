@@ -6,7 +6,7 @@
 
 # Interface: AddressParam
 
-Defined in: [modules/bitview-client/index.js:72](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L72)
+Defined in: modules/bitview-client/index.js:72
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:72](https://github.com/bitcoinresea
 
 > **address**: `string`
 
-Defined in: [modules/bitview-client/index.js:73](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L73)
+Defined in: modules/bitview-client/index.js:73

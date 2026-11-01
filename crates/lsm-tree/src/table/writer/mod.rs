@@ -43,7 +43,6 @@ const DATA_BLOCK_SIZE: usize = 4_096;
 const META_PARTITION_SIZE: u32 = 4_096;
 
 /// Data blocks are LZ4-compressed; index, filter and meta blocks are stored uncompressed.
-const DATA_BLOCK_COMPRESSION: CompressionType = CompressionType::Lz4;
 const INDEX_BLOCK_COMPRESSION: CompressionType = CompressionType::None;
 
 #[derive(Default)]
@@ -78,6 +77,7 @@ pub struct WriterOptions {
     partition_filter: bool,
     /// `None` builds no filter.
     bloom: Option<BloomConstructionPolicy>,
+    compression: CompressionType,
 }
 
 impl WriterOptions {
@@ -88,6 +88,7 @@ impl WriterOptions {
             partition_index: config.index_block_partitioning_policy.at_level(level),
             partition_filter: config.filter_block_partitioning_policy.at_level(level),
             bloom,
+            compression: config.data_block_compression,
         }
     }
 }
@@ -100,6 +101,8 @@ pub struct Writer<K = Slice, V = Slice> {
     table_id: u32,
 
     data_block_restart_interval: u8,
+
+    data_block_compression: CompressionType,
 
     /// Buffer to serialize blocks into
     block_buffer: Vec<u8>,
@@ -143,6 +146,7 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
             table_id,
 
             data_block_restart_interval: options.restart_interval,
+            data_block_compression: options.compression,
 
             path: path::absolute(path)?,
 
@@ -244,12 +248,17 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
             fixed_value_len,
         )?;
 
-        let header = Block::write_lz4_into(
-            &mut self.file_writer,
-            &self.block_buffer,
-            BlockType::Data,
-            &mut self.lz4_scratch,
-        )?;
+        let header = match self.data_block_compression {
+            CompressionType::None => {
+                Block::write_into(&mut self.file_writer, &self.block_buffer, BlockType::Data)?
+            }
+            CompressionType::Lz4 => Block::write_lz4_into(
+                &mut self.file_writer,
+                &self.block_buffer,
+                BlockType::Data,
+                &mut self.lz4_scratch,
+            )?,
+        };
 
         #[expect(
             clippy::cast_possible_truncation,
@@ -322,7 +331,7 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
                 ),
                 meta(
                     "compression#data",
-                    &DATA_BLOCK_COMPRESSION.encode_into_vec(),
+                    &self.data_block_compression.encode_into_vec(),
                 ),
                 meta(
                     "compression#index",

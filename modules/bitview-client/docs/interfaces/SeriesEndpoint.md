@@ -6,7 +6,7 @@
 
 # Interface: SeriesEndpoint\<T\>
 
-Defined in: [modules/bitview-client/index.js:1992](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1992)
+Defined in: modules/bitview-client/index.js:2000
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1992](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:1998](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1998)
+Defined in: modules/bitview-client/index.js:2006
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:1999](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1999)
+Defined in: modules/bitview-client/index.js:2007
 
 Fetch all data as CSV
 
@@ -64,7 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1995](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1995)
+Defined in: modules/bitview-client/index.js:2003
 
 #### Parameters
 
@@ -82,7 +82,7 @@ Defined in: [modules/bitview-client/index.js:1995](https://github.com/bitcoinres
 
 > **get**: (`index`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1993](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1993)
+Defined in: modules/bitview-client/index.js:2001
 
 #### Parameters
 
@@ -100,7 +100,7 @@ Defined in: [modules/bitview-client/index.js:1993](https://github.com/bitcoinres
 
 > **last**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1996](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1996)
+Defined in: modules/bitview-client/index.js:2004
 
 #### Parameters
 
@@ -118,7 +118,7 @@ Defined in: [modules/bitview-client/index.js:1996](https://github.com/bitcoinres
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:2000](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2000)
+Defined in: modules/bitview-client/index.js:2008
 
 Get total number of data points
 
@@ -132,7 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: [modules/bitview-client/index.js:2003](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2003)
+Defined in: modules/bitview-client/index.js:2011
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [modules/bitview-client/index.js:2003](https://github.com/bitcoinres
 
 > **skip**: (`n`) => [`SkippedBuilder`](SkippedBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1997](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1997)
+Defined in: modules/bitview-client/index.js:2005
 
 Skip first n items, chain with take()
 
@@ -160,7 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1994](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1994)
+Defined in: modules/bitview-client/index.js:2002
 
 #### Parameters
 
@@ -182,7 +182,7 @@ Defined in: [modules/bitview-client/index.js:1994](https://github.com/bitcoinres
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:2002](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2002)
+Defined in: modules/bitview-client/index.js:2010
 
 Thenable (await endpoint)
 
@@ -224,7 +224,7 @@ A Promise for the completion of which ever callback is executed.
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:2001](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2001)
+Defined in: modules/bitview-client/index.js:2009
 
 #### Returns
 

@@ -21,8 +21,9 @@ use crate::{
     paths::{default_bitview_dir, expand_home},
 };
 
-/// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
-pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
+/// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`). The page cache
+/// holds the same files: on a 16 GB machine 1 GiB synced ~80 s faster than 2 GiB, 512 MiB no faster.
+pub const DEFAULT_CACHE_BUDGET: usize = 1 << 30;
 
 #[derive(Debug, Default, Serialize)]
 pub struct Config {

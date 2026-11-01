@@ -2274,7 +2274,7 @@ pub struct BitviewClient {
 }
 
 impl BitviewClient {
-    pub const VERSION: &'static str = "v0.12.2";
+    pub const VERSION: &'static str = "v0.13.0";
 
     pub fn new(base_url: impl Into<String>) -> Self {
         let base = Arc::new(BitviewClientBase::new(base_url));

@@ -36,6 +36,7 @@ use vecs::{
 
 #[macro_use]
 mod macros;
+mod block_freer;
 mod confirmed;
 mod constants;
 mod has;
@@ -595,6 +596,7 @@ impl Indexer {
                 inputs,
                 addresses,
                 outputs,
+                analyzed_outputs,
                 analyses,
                 ..
             } = &mut *buffers;
@@ -610,12 +612,20 @@ impl Indexer {
             let input_count = txins.len();
             let output_count = outputs.len();
 
-            processor.analyze_and_finalize_transactions(txs, outputs, txins, addresses, analyses);
+            processor.analyze_and_finalize_transactions(
+                txs,
+                outputs,
+                analyzed_outputs,
+                txins,
+                addresses,
+                analyses,
+            );
 
             processor
                 .lengths
                 .add_block(tx_count, input_count, output_count);
             buffers.finish_block(*block.hash());
+            block_freer::free(block);
             pending_export_height = Some(height);
             pending_blocks += 1;
             pending_records += tx_count + input_count + output_count;

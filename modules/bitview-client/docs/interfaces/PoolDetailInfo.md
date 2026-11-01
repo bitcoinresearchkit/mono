@@ -6,7 +6,7 @@
 
 # Interface: PoolDetailInfo
 
-Defined in: [modules/bitview-client/index.js:1140](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1140)
+Defined in: modules/bitview-client/index.js:1142
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1140](https://github.com/bitcoinres
 
 > **addresses**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:1144](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1144)
+Defined in: modules/bitview-client/index.js:1146
 
 Known payout addresses
 
@@ -24,7 +24,7 @@ Known payout addresses
 
 > **id**: `number`
 
-Defined in: [modules/bitview-client/index.js:1141](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1141)
+Defined in: modules/bitview-client/index.js:1143
 
 One-based pool ID, matching mempool.space's `id`
 
@@ -34,7 +34,7 @@ One-based pool ID, matching mempool.space's `id`
 
 > **link**: `string`
 
-Defined in: [modules/bitview-client/index.js:1143](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1143)
+Defined in: modules/bitview-client/index.js:1145
 
 Pool website URL
 
@@ -44,7 +44,7 @@ Pool website URL
 
 > **name**: `string`
 
-Defined in: [modules/bitview-client/index.js:1142](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1142)
+Defined in: modules/bitview-client/index.js:1144
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [modules/bitview-client/index.js:1142](https://github.com/bitcoinres
 
 > **regexes**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:1145](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1145)
+Defined in: modules/bitview-client/index.js:1147
 
 Coinbase tags, matched as case-insensitive substrings
 
@@ -62,7 +62,7 @@ Coinbase tags, matched as case-insensitive substrings
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [modules/bitview-client/index.js:1146](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1146)
+Defined in: modules/bitview-client/index.js:1148
 
 URL-friendly pool identifier
 
@@ -72,6 +72,6 @@ URL-friendly pool identifier
 
 > **uniqueId**: `number`
 
-Defined in: [modules/bitview-client/index.js:1147](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1147)
+Defined in: modules/bitview-client/index.js:1149
 
 Zero-based pool ID, matching mempool.space's `unique_id`

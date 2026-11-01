@@ -4,7 +4,7 @@
 
 ## API
 
-- Version: `v0.12.2`
+- Version: `v0.13.0`
 - Base URL: https://bitview.space
 - Authentication: None
 - Browser access: Permissive CORS

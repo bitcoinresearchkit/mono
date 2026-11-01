@@ -8,7 +8,7 @@
 
 > **Mining** = `object`
 
-Defined in: [modules/bitview-client/index.js:4344](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4344)
+Defined in: modules/bitview-client/index.js:4358
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: RangeBuilder\<T\>
 
-Defined in: [modules/bitview-client/index.js:2050](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2050)
+Defined in: modules/bitview-client/index.js:2058
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:2050](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:2051](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2051)
+Defined in: modules/bitview-client/index.js:2059
 
 Fetch the selection (one item or a range)
 
@@ -44,7 +44,7 @@ Fetch the selection (one item or a range)
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:2052](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2052)
+Defined in: modules/bitview-client/index.js:2060
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:2052](https://github.com/bitcoinres
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:2053](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2053)
+Defined in: modules/bitview-client/index.js:2061
 
 Attaches callbacks for the resolution and/or rejection of the Promise.
 

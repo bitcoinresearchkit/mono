@@ -6,7 +6,7 @@
 
 # Interface: StartParam
 
-Defined in: [modules/bitview-client/index.js:1399](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1399)
+Defined in: modules/bitview-client/index.js:1403
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:1399](https://github.com/bitcoinres
 
 > **start**: `number`
 
-Defined in: [modules/bitview-client/index.js:1400](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1400)
+Defined in: modules/bitview-client/index.js:1404
 
 The first block's height.

@@ -7201,7 +7201,7 @@ const _SeriesTree = _s({
  * @extends BitviewClientBase
  */
 class BitviewClient extends BitviewClientBase {
-  VERSION = "v0.12.2";
+  VERSION = "v0.13.0";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

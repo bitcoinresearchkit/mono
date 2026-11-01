@@ -8,7 +8,7 @@
 
 > **ReusedCount** = `object`
 
-Defined in: [modules/bitview-client/index.js:3546](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3546)
+Defined in: modules/bitview-client/index.js:3560
 
 ## Type Parameters
 

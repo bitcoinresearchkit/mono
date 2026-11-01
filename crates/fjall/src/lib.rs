@@ -31,9 +31,12 @@ mod worker_pool;
 
 /// LSM storage policies exposed to BRK's store profiles.
 pub mod config {
-    pub use lsm_tree::config::{
-        BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry, PartitioningPolicy,
-        PinningPolicy, RestartIntervalPolicy,
+    pub use lsm_tree::{
+        CompressionType,
+        config::{
+            BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry, PartitioningPolicy,
+            PinningPolicy, RestartIntervalPolicy,
+        },
     };
 }
 

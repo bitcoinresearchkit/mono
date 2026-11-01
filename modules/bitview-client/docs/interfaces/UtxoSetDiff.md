@@ -6,7 +6,7 @@
 
 # Interface: UtxoSetDiff
 
-Defined in: [modules/bitview-client/index.js:1659](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1659)
+Defined in: modules/bitview-client/index.js:1663
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1659](https://github.com/bitcoinres
 
 > **created**: [`UtxoChanges`](UtxoChanges.md)
 
-Defined in: [modules/bitview-client/index.js:1665](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1665)
+Defined in: modules/bitview-client/index.js:1669
 
 Outputs created, one row per block, including those spent again within the range (which
 `spent` lists too).
@@ -25,7 +25,7 @@ Outputs created, one row per block, including those spent again within the range
 
 > **date**: `string`
 
-Defined in: [modules/bitview-client/index.js:1664](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1664)
+Defined in: modules/bitview-client/index.js:1668
 
 UTC date of block `last`'s monotonic timestamp.
 
@@ -35,7 +35,7 @@ UTC date of block `last`'s monotonic timestamp.
 
 > **first**: `number`
 
-Defined in: [modules/bitview-client/index.js:1660](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1660)
+Defined in: modules/bitview-client/index.js:1664
 
 First block of the diff; it applies to the set after block `first - 1` (the empty set for
 block 0).
@@ -46,7 +46,7 @@ block 0).
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:1663](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1663)
+Defined in: modules/bitview-client/index.js:1667
 
 Hash of block `last`.
 
@@ -56,7 +56,7 @@ Hash of block `last`.
 
 > **last**: `number`
 
-Defined in: [modules/bitview-client/index.js:1662](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1662)
+Defined in: modules/bitview-client/index.js:1666
 
 Last block of the diff, described by `hash` and `date`.
 
@@ -66,7 +66,7 @@ Last block of the diff, described by `hash` and `date`.
 
 > **spent**: [`UtxoChanges`](UtxoChanges.md)
 
-Defined in: [modules/bitview-client/index.js:1667](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1667)
+Defined in: modules/bitview-client/index.js:1671
 
 Outputs removed, one row per creation height in ascending order: spent outputs, plus the
 coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.

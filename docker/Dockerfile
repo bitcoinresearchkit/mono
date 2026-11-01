@@ -11,6 +11,9 @@ COPY crates crates
 COPY examples examples
 COPY showcases showcases
 COPY modules modules
+# The changelog the Changes page reads (showcases/changes/CHANGELOG.md -> docs/CHANGELOG.md):
+# include_dir! fails on a link left dangling.
+COPY docs/CHANGELOG.md docs/CHANGELOG.md
 
 RUN cargo build --release --locked -p bitviewd
 

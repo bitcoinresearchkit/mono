@@ -8,6 +8,6 @@
 
 > **MempoolBlockIndex** = `number`
 
-Defined in: [modules/bitview-client/index.js:824](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L824)
+Defined in: modules/bitview-client/index.js:826
 
 ## Type Parameters

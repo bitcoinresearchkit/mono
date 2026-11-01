@@ -2,10 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Benchmarks" data-color="#d95f12"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>bitviewd benchmarks</title>
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c0d0e" />
+    <title>Benchmarks · Bitview</title>
     <meta name="description" content="bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by showcases/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/benchmarks/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/benchmarks/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Bitview benchmarks" />
+    <meta property="og:description" content="bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." />
+    <meta property="og:image" content="https://bitview.space/benchmarks/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Benchmarks: bitviewd's full syncs from block 0, each run's time, memory, disk and CPU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
+    <!-- (The runs are read from GitHub: its two hosts reached while the page loads.) -->
+    <link rel="preconnect" href="https://api.github.com" crossorigin />
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <style>
       /* A lab report: a quiet ground, numbers in a monospace, one accent; every value measured, none claimed. */
       :root {
@@ -56,6 +76,67 @@
 
         @media (min-width: 720px) {
           padding: 40px 32px 96px;
+        }
+      }
+
+      /* ── The bar: the way home, every page's ── */
+
+      .bar {
+        border-bottom: 1px solid var(--line);
+
+        nav {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          height: 52px;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        a {
+          color: var(--soft);
+          font-size: 13.5px;
+          white-space: nowrap;
+          text-decoration: none;
+
+          &:hover {
+            color: var(--ink);
+          }
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-right: auto;
+          color: var(--ink);
+          font-size: 14px;
+          font-weight: 650;
+          letter-spacing: -0.01em;
+
+          img {
+            width: 18px;
+            height: 21px;
+          }
+        }
+      }
+
+      /* (For fingers: the bar's links and the machines a 44px reach each, unseen, and the machines' rows apart for it; a
+         pointer sees none.) */
+      @media (pointer: coarse) {
+        .bar a,
+        .tabs button {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+
+        .tabs {
+          row-gap: 12px;
         }
       }
 
@@ -479,59 +560,353 @@
         margin-top: 28px;
         color: var(--faint);
         font-size: 12.5px;
+
+        a {
+          color: inherit;
+        }
+      }
+
+      /* ── While the runs are read from GitHub, or when they can't be ── */
+
+      .status {
+        grid-column: 1 / -1;
+        color: var(--soft);
+
+        p {
+          max-width: 64ch;
+          margin: 0;
+        }
+
+        .meter {
+          max-width: 320px;
+          height: 3px;
+          margin-top: 12px;
+          border-radius: 2px;
+          background: var(--raised);
+
+          span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--accent);
+            transition: width 0.2s;
+          }
+        }
+
+        button {
+          margin-top: 12px;
+          border: 0;
+          border-radius: 999px;
+          padding: 6px 14px;
+          background: var(--ink);
+          color: var(--app);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        &.failed p {
+          color: var(--ink);
+        }
       }
     </style>
   </head>
   <body>
-    <div class="page">
+    <header class="bar">
+      <nav class="page" aria-label="Bitview">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <a href="/dev/">Run your own</a>
+        <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches">Recordings</a>
+      </nav>
+    </header>
+    <main class="page">
       <header>
         <h1>bitviewd <span>benchmarks</span></h1>
         <p>Full syncs from block 0, each at one commit, sampled every few seconds: how long they take and the memory, disk and CPU they use. Runs on different machines don't compare.</p>
         <div class="tabs" id="tabs" role="group" aria-label="Machine"></div>
       </header>
 
-      <section aria-label="Latest complete run">
+      <section aria-label="Latest complete run" aria-live="polite">
         <div class="hero" id="hero"></div>
       </section>
 
-      <section aria-labelledby="history-title">
-        <h2 id="history-title">Run by run <small>complete runs: time to sync, and peak memory</small></h2>
-        <div class="chart" id="history"></div>
-        <div class="legend"><span><i style="--c: var(--accent)"></i>time to sync</span><span><i class="dashed" style="--c: var(--compare)"></i>peak memory</span></div>
-      </section>
+      <div id="more" hidden>
+        <section aria-labelledby="history-title">
+          <h2 id="history-title">Run by run <small>complete runs: time to sync, and peak memory</small></h2>
+          <div class="chart" id="history"></div>
+          <div class="legend"><span><i style="--c: var(--accent)"></i>time to sync</span><span><i class="dashed" style="--c: var(--compare)"></i>peak memory</span></div>
+        </section>
 
-      <section aria-labelledby="runs-title">
-        <h2 id="runs-title">Every run <small>pick one to see it below</small></h2>
-        <div class="table"><table id="runs"></table></div>
-      </section>
+        <section aria-labelledby="runs-title">
+          <h2 id="runs-title">Every run <small>pick one to see it below</small></h2>
+          <div class="table"><table id="runs"></table></div>
+        </section>
 
-      <section aria-labelledby="run-title">
-        <div class="detail-head">
-          <h2 id="run-title"></h2>
-          <label>Compare with<select id="compare"></select></label>
-        </div>
-        <div class="phases" id="phases"></div>
-        <div class="charts" id="charts"></div>
-      </section>
+        <section aria-labelledby="run-title">
+          <div class="detail-head">
+            <h2 id="run-title"></h2>
+            <label>Compare with<select id="compare"></select></label>
+          </div>
+          <div class="phases" id="phases"></div>
+          <div class="charts" id="charts"></div>
+        </section>
 
-      <section aria-labelledby="plugins-title">
-        <h2 id="plugins-title">Compute time per plugin</h2>
-        <div class="bars" id="compute"></div>
-      </section>
+        <section aria-labelledby="plugins-title">
+          <h2 id="plugins-title">Compute time per plugin</h2>
+          <div class="bars" id="compute"></div>
+        </section>
 
-      <section aria-labelledby="disk-title">
-        <h2 id="disk-title">Data directory by component <small>at the end</small></h2>
-        <div class="bars" id="breakdown"></div>
-      </section>
+        <section aria-labelledby="disk-title">
+          <h2 id="disk-title">Data directory by component <small>at the end</small></h2>
+          <div class="bars" id="breakdown"></div>
+        </section>
+      </div>
 
-      <footer>Written by <code>bitviewd_bench_visualizer</code> from each run's recordings in <code>benches/</code>. Curves keep 400 points a run.</footer>
-    </div>
+      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span></footer>
+    </main>
 
     <script>
       "use strict";
-      const DATA = __DATA__;
       const $ = (id) => document.getElementById(id);
       const REPO = "https://github.com/bitcoinresearchkit/mono/commit/";
+
+      // ── The runs: benches/ on GitHub, read here as bitviewd_bench_visualizer read it ──
+      // (One call to GitHub's API lists them, 60 an hour from an address (a reload within a minute revalidates, uncounted);
+      // the recordings are raw files, not counted. A machine's runs are read when it's shown: all of them are megabytes,
+      // more with each run.)
+      const BRANCH = "next";
+      const TREE = `https://api.github.com/repos/bitcoinresearchkit/mono/git/trees/${BRANCH}:benches?recursive=1`;
+      const RAW = `https://raw.githubusercontent.com/bitcoinresearchkit/mono/${BRANCH}/benches/`;
+      /** A run's recordings; all but memory.csv optional (older runs lack them). */
+      const FILES = ["metadata.txt", "run.csv", "memory.csv", "io.csv", "cpu.csv", "disk.csv", "progress.csv", "timings.csv", "disk_breakdown.csv"];
+      /** Points kept per curve: enough for a screen's width. */
+      const POINTS = 400;
+
+      /** What went wrong reaching GitHub, in words for the page. */
+      class Failure extends Error {}
+      async function get(url) {
+        let response;
+        try {
+          response = await fetch(url);
+        } catch {
+          throw new Failure("GitHub can't be reached from here just now: offline, or blocked?");
+        }
+        if (response.ok || response.status === 404) return response;
+        if (response.headers.get("x-ratelimit-remaining") === "0") {
+          const reset = Number(response.headers.get("x-ratelimit-reset"));
+          const at = reset ? `, again from ${new Date(reset * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+          throw new Failure(`GitHub lists the runs for an address 60 times an hour, and this one has had its 60${at}.`);
+        }
+        throw new Failure(`GitHub answered ${response.status}${response.status >= 500 ? ", its own trouble" : ""}.`);
+      }
+      const texts = new Map();
+      /** A recording's text (`path` below benches/), `null` when GitHub has no such file; asked for once. */
+      function text(path) {
+        if (!texts.has(path)) {
+          const url = RAW + path.split("/").map(encodeURIComponent).join("/");
+          texts.set(path, get(url).then((r) => (r.ok ? r.text() : null)).catch((error) => (texts.delete(path), Promise.reject(error))));
+        }
+        return texts.get(path);
+      }
+      /** Strings in Rust's order (by bytes, as the visualizer sorted them). */
+      const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+      /** Each machine (a folder of benches/) and its runs' folders: each below it holding a memory.csv, its files' sizes. */
+      async function list() {
+        const response = await get(TREE);
+        if (response.status === 404) return [];
+        const folders = new Map();
+        for (const { path, type, size } of (await response.json()).tree) {
+          const cut = path.lastIndexOf("/");
+          if (type !== "blob" || cut < 0) continue;
+          const folder = path.slice(0, cut);
+          if (!folders.has(folder)) folders.set(folder, new Map());
+          folders.get(folder).set(path.slice(cut + 1), size);
+        }
+        const machines = new Map();
+        for (const [folder, files] of folders) {
+          if (!files.has("memory.csv")) continue;
+          const name = folder.split("/")[0];
+          if (!machines.has(name)) machines.set(name, []);
+          machines.get(name).push({ folder, files });
+        }
+        return [...machines].sort(([a], [b]) => order(a, b)).map(([name, folders]) => ({ name, folders, runs: null, skipped: [] }));
+      }
+
+      /** A file's lines, as Rust's `lines()` reads them. */
+      const lines = (s) => (s === "" ? [] : s.replace(/\n$/, "").split("\n").map((line) => line.replace(/\r$/, "")));
+      /** A number as Rust's `f64::from_str` reads one (nothing empty, no spaces). */
+      const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+      /** A CSV read by header name; a malformed trailing row (a killed recorder) is dropped. `null` for a missing or empty
+       * file: older recorders lacked some, a killed one may not have written its header. */
+      function csv(content, file) {
+        if (content == null) return null;
+        const [head, ...rest] = lines(content);
+        if (head === undefined) return null;
+        const header = head.split(",");
+        const rows = rest.filter((line) => line !== "").map((line) => line.split(","));
+        const last = rows.at(-1);
+        if (last && (last.length !== header.length || last.some((field) => field === ""))) rows.pop();
+        return {
+          header,
+          numbers(name) {
+            const k = header.indexOf(name);
+            if (k < 0) return [];
+            return rows.map((row) => {
+              const field = row[k] ?? "";
+              if (!NUMBER.test(field)) throw new Error(`${file}: ${name} ${JSON.stringify(field)}: not a number`);
+              return Number(field);
+            });
+          },
+          strings(name) {
+            const k = header.indexOf(name);
+            return k < 0 ? [] : rows.map((row) => row[k] ?? "");
+          },
+        };
+      }
+      /** A time series file: `timestamp_ms` plus value columns, read by header name. */
+      function timeSeries(content, file) {
+        const sheet = csv(content, file);
+        const times = sheet ? sheet.numbers("timestamp_ms").map((ms) => ms / 1000) : [];
+        const columns = new Map(sheet ? sheet.header.filter((name) => name !== "timestamp_ms").map((name) => [name, sheet.numbers(name)]) : []);
+        return {
+          times,
+          /** (seconds, value) points of a column, empty when the run did not record it. */
+          column: (name) => (columns.get(name) ?? []).slice(0, times.length).map((v, i) => [times[i], v]),
+          last: (name) => columns.get(name)?.at(-1) ?? null,
+          /** Growth of a cumulative counter over the run: the counters start before bootstrap. */
+          growth: (name) => (columns.get(name)?.length ? columns.get(name).at(-1) - columns.get(name)[0] : null),
+          max: (name) => (columns.get(name)?.length ? columns.get(name).reduce((a, b) => Math.max(a, b)) : null),
+        };
+      }
+      const metadata = (content) => new Map(lines(content ?? "").flatMap((line) => (line.includes("=") ? [[line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]] : [])));
+      const startedAt = (meta) => (/^\+?\d+$/.test(meta.get("started_at_unix") ?? "") ? Number(meta.get("started_at_unix")) : 0);
+      const statusOf = (sheet) => sheet?.strings("status").pop() ?? null;
+
+      /** Indexer heights: the `source` column when recorded, else the rows before the first drop (older files mixed
+       * compute-phase logs in after indexing). */
+      function progress(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return [];
+        const times = sheet.numbers("timestamp_ms"), heights = sheet.numbers("height"), sources = sheet.strings("source");
+        const points = [];
+        for (let i = 0; i < Math.min(times.length, heights.length); i++) {
+          if (!sources.length) {
+            if (points.length && heights[i] < points.at(-1)[1]) break;
+          } else if (sources[i] !== "indexer") continue;
+          points.push([times[i] / 1000, heights[i]]);
+        }
+        return points;
+      }
+      function timings(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return [];
+        const starts = sheet.numbers("start_ms"), durations = sheet.numbers("duration_ms"), phases = sheet.strings("phase"), plugins = sheet.strings("plugin");
+        return Array.from({ length: Math.min(phases.length, plugins.length, starts.length, durations.length) }, (_, i) => ({ phase: phases[i], plugin: plugins[i], start: starts[i] / 1000, duration: durations[i] / 1000 }));
+      }
+      function breakdown(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return [];
+        const bytes = sheet.numbers("physical_bytes");
+        return sheet.strings("component").slice(0, bytes.length).map((component, i) => [component, bytes[i]]).sort((a, b) => b[1] - a[1]);
+      }
+      /** A bootstrap cycle starts with each indexer import: indexing when the indexer takes most of it; the first other
+       * cycle computes, later ones catch up. */
+      function cycles(timed, end) {
+        const starts = timed.filter((t) => t.phase === "import" && t.plugin === "indexer").map((t) => t.start);
+        let computed = false;
+        return starts.map((start, k) => {
+          const until = Math.max(starts[k + 1] ?? end, start);
+          const indexing = timed.filter((t) => t.phase === "compute" && t.plugin === "indexer" && t.start >= start && t.start < until).reduce((total, t) => total + t.duration, 0);
+          const name = indexing * 2 >= until - start ? "indexing" : computed ? "catch-up" : ((computed = true), "compute");
+          return { name, start, end: until };
+        });
+      }
+      /** Seconds per plugin and phase, summed over cycles, longest first. */
+      function pluginSeconds(timed, phase) {
+        const totals = new Map();
+        for (const t of timed) if (t.phase === phase) totals.set(t.plugin, (totals.get(t.plugin) ?? 0) + t.duration);
+        return [...totals].sort(([a], [b]) => order(a, b)).sort((a, b) => b[1] - a[1]);
+      }
+      /** As Rust rounds: half away from zero. */
+      const round = (v, digits) => (Math.sign(v) * Math.round(Math.abs(v) * 10 ** digits)) / 10 ** digits;
+      /** At most `POINTS` of a curve, evenly picked, its first and last kept. */
+      function thin(points) {
+        const pick = (i) => [round(points[i][0], 1), points[i][1]];
+        if (points.length <= POINTS) return points.map((_, i) => pick(i));
+        return Array.from({ length: POINTS }, (_, k) => pick(Math.floor((k * (points.length - 1) + (POINTS - 1) / 2) / (POINTS - 1))));
+      }
+
+      /** One run, its summaries and curves (the counters', CPU and I/O, cumulative: read as rates when drawn). Its label is
+       * its path below its machine: `<revision>/<run-id>`, `<revision>` for older runs. */
+      async function read(machine, { folder, files }) {
+        const [meta, done, ...rest] = await Promise.all(FILES.map((name) => (files.has(name) ? text(`${folder}/${name}`) : null)));
+        const at = (name) => `${folder}/${name}`;
+        const [memory, io, cpu, disk] = rest.slice(0, 4).map((content, k) => timeSeries(content, at(FILES[k + 2])));
+        if (!memory.times.length) throw new Error("no memory samples");
+        const info = metadata(meta), run = csv(done, at("run.csv"));
+        const said = (key) => info.get(key) || null;
+        const number = (key) => (NUMBER.test(info.get(key) ?? "") ? Number(info.get(key)) : null);
+        const timed = timings(rest[5], at("timings.csv")), heights = progress(rest[4], at("progress.csv")), parts = breakdown(rest[6], at("disk_breakdown.csv"));
+        const ms = run ? run.numbers("duration_ms").pop() : undefined;
+        const end = ms != null ? ms / 1000 : memory.times.at(-1);
+        const peak = [["peak_physical_bytes", "peak footprint"], ["peak_resident_bytes", "peak resident"]].map(([column, name]) => [name, memory.max(column)]).find(([, bytes]) => bytes != null);
+        const growth = (counters, column, scale = 1) => (counters.growth(column) == null ? null : round(counters.growth(column) / scale, 1));
+        return {
+          label: folder.slice(machine.length + 1) || "run",
+          started_at: startedAt(info),
+          status: statusOf(run),
+          duration_s: round(end, 1),
+          revision: said("revision"),
+          dirty: info.get("dirty") === "true",
+          host: { cpu: said("cpu"), ram_bytes: number("ram_bytes"), storage: said("storage"), cores: number("parallelism"), os: said("target_os"), cache_bytes: number("cache_budget") },
+          chain_height: number("chain_height"),
+          peak_memory: peak ? { name: peak[0], bytes: peak[1] } : null,
+          read_bytes: io.growth("read_bytes"),
+          written_bytes: io.growth("written_bytes"),
+          cpu_user_s: growth(cpu, "user_ms", 1000),
+          cpu_system_s: growth(cpu, "system_ms", 1000),
+          disk_bytes: disk.last("physical_bytes"),
+          cycles: cycles(timed, end).map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1) })),
+          curves: {
+            height: thin(heights),
+            memory: thin(memory.column("physical_bytes")),
+            cpu_user_ms: thin(cpu.column("user_ms")),
+            cpu_system_ms: thin(cpu.column("system_ms")),
+            read_bytes: thin(io.column("read_bytes")),
+            written_bytes: thin(io.column("written_bytes")),
+            disk_bytes: thin(disk.column("physical_bytes")),
+          },
+          compute: pluginSeconds(timed, "compute").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
+          import: pluginSeconds(timed, "import").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
+          breakdown: parts,
+        };
+      }
+      /** A run's start and status alone, from its two small files: enough to choose the machine shown first. */
+      async function head(run) {
+        const [meta, done] = await Promise.all(["metadata.txt", "run.csv"].map((name) => (run.files.has(name) ? text(`${run.folder}/${name}`) : null)));
+        run.started_at = startedAt(metadata(meta));
+        run.status = statusOf(csv(done, "run.csv"));
+      }
+      /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
+      async function load(m, told) {
+        const wanted = m.folders.flatMap(({ folder, files }) => FILES.filter((name) => files.has(name)).map((name) => [`${folder}/${name}`, files.get(name)]));
+        const total = wanted.reduce((sum, [, size]) => sum + size, 0);
+        let got = 0;
+        await Promise.all(wanted.map(([path, size]) => text(path).then(() => told((got += size), total))));
+        const runs = [];
+        for (const run of m.folders) {
+          try {
+            runs.push(await read(m.name, run));
+          } catch (error) {
+            if (error instanceof Failure) throw error;
+            console.warn(`Skipping ${run.folder}: ${error.message}`);
+            m.skipped.push(run.folder.slice(m.name.length + 1) || "run");
+          }
+        }
+        m.runs = runs.sort((a, b) => a.started_at - b.started_at || order(a.label, b.label));
+      }
 
       // ── Words ──
       const bytes = (v) => {
@@ -559,25 +934,70 @@
       /** A machine's folder name in words: "apple-m6-16gb-external-tb" as "Apple M6 · 16 GB · external (Thunderbolt)". */
       const machineWords = (name) => name.replace(/^apple-/, "Apple ").replace(/ m(\d)/, " M$1").replace(/-(\d+)gb-/, " · $1 GB · ").replace(/-tb$/, " (Thunderbolt)").replace(/-/g, " ");
 
-      // ── State: the machine whose latest complete run is newest ──
-      DATA.machines = DATA.machines.filter((m) => m.runs.length);
-      const newest = (m) => Math.max(0, ...m.runs.filter((r) => r.status === "complete").map((r) => r.started_at));
-      let machine = DATA.machines.reduce((best, m, k) => (newest(m) > newest(DATA.machines[best]) ? k : best), 0);
+      // ── State: the machine named in the address, else the one whose latest complete run is newest ──
+      let machines = [], machine = 0;
       let selected = null, compared = null;
-      const runs = () => DATA.machines[machine].runs;
+      const runs = () => machines[machine].runs;
       const complete = () => runs().filter((r) => r.status === "complete");
 
       // ── Machines ──
       function tabs() {
-        $("tabs").innerHTML = DATA.machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${m.runs.length}</span></button>`).join("");
+        $("tabs").innerHTML = machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${(m.runs ?? m.folders).length}</span></button>`).join("");
       }
+      function choose(k) {
+        machine = k;
+        selected = compared = null;
+        show();
+      }
+      /** The machine the address names (`#apple-m6-16gb-external-tb`), -1 for none. */
+      const named = () => machines.findIndex((m) => `#${m.name}` === decodeURIComponent(location.hash));
       $("tabs").addEventListener("click", (e) => {
         const b = e.target.closest("button");
         if (!b) return;
-        machine = Number(b.dataset.k);
-        selected = compared = null;
-        render();
+        history.replaceState(null, "", `#${machines[Number(b.dataset.k)].name}`);
+        choose(Number(b.dataset.k));
       });
+      addEventListener("hashchange", () => named() >= 0 && named() !== machine && choose(named()));
+
+      // ── While the runs are read, or when they can't be ──
+      /** Words in the hero's place, the rest held back; a share read so far, or a way to try again. */
+      function notice(words, { share = null, again = null } = {}) {
+        $("more").hidden = true;
+        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}"><p>${escape(words)}</p>${share == null ? "" : `<div class="meter" role="progressbar" aria-label="Read so far" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`}${again ? `<button type="button">Try again</button>` : ""}</div>`;
+        if (again) $("hero").querySelector("button").addEventListener("click", again);
+      }
+      const failed = (error, again) => notice(error instanceof Failure ? error.message : `The runs couldn't be read: ${error.message}`, { again });
+
+      async function start() {
+        notice("Listing the runs on GitHub…");
+        try {
+          machines = await list();
+          await Promise.all(machines.flatMap((m) => m.folders.map(head)));
+        } catch (error) {
+          return failed(error, start);
+        }
+        if (!machines.length) return notice("No runs recorded yet.");
+        const newest = (m) => Math.max(0, ...m.folders.filter((r) => r.status === "complete").map((r) => r.started_at));
+        choose(named() >= 0 ? named() : machines.reduce((best, m, k) => (newest(m) > newest(machines[best]) ? k : best), 0));
+      }
+      /** The machine chosen, its runs read first if they haven't been. */
+      async function show() {
+        const m = machines[machine];
+        tabs();
+        if (!m.runs) {
+          const said = `Reading ${m.folders.length} runs from GitHub`;
+          notice(`${said}…`, { share: 0 });
+          try {
+            await (m.loading ??= load(m, (got, total) => m === machines[machine] && notice(`${said}: ${bytes(got)} of ${bytes(total)}`, { share: got / total })));
+          } catch (error) {
+            m.loading = null;
+            if (m === machines[machine]) failed(error, show);
+            return;
+          }
+          if (m !== machines[machine]) return;
+        }
+        render();
+      }
 
       // ── The latest complete run ──
       function hero() {
@@ -600,7 +1020,7 @@
       const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);
 
       // ── History: complete runs in time order, time to sync as bars, peak memory as a line ──
-      function history() {
+      function runByRun() {
         const all = complete(), el = $("history");
         if (all.length < 1) return (el.innerHTML = "");
         const w = el.clientWidth || 800, h = 200, pad = { l: 44, r: 52, t: 10, b: 24 };
@@ -747,18 +1167,17 @@
         const focused = document.activeElement?.closest?.("#runs tr[data-label]")?.dataset.label;
         selected = r;
         if (compared === r) compared = null;
-        history();
+        runByRun();
         table();
         detail();
         bars();
         if (focused) $("runs").querySelector(`tr[data-label="${CSS.escape(focused)}"] .pick`)?.focus();
       }
       function render() {
-        if (!DATA.machines.length) {
-          document.querySelector(".page").innerHTML = `<header><h1>bitviewd <span>benchmarks</span></h1><p>No runs recorded yet.</p></header>`;
-          return;
-        }
-        tabs();
+        const { skipped } = machines[machine];
+        $("skipped").textContent = skipped.length ? ` Not readable, so left out: ${skipped.join(", ")}.` : "";
+        if (!runs().length) return notice("None of this machine's runs could be read.");
+        $("more").hidden = false;
         hero();
         selected ??= complete().at(-1) ?? runs().at(-1);
         // (Compared, at first, with the complete run before it: what changed.)
@@ -771,9 +1190,9 @@
       let resizing = 0;
       addEventListener("resize", () => {
         cancelAnimationFrame(resizing);
-        resizing = requestAnimationFrame(() => selected && (history(), detail()));
+        resizing = requestAnimationFrame(() => selected && (runByRun(), detail()));
       });
-      render();
+      start();
     </script>
   </body>
 </html>

@@ -12,6 +12,8 @@ use vecdb::{likely, unlikely};
 
 use super::ComputedTx;
 use crate::TxFeatureFlags;
+use brk_types::{Height, TxIndex};
+
 use crate::processor::{BlockProcessor, txin::InputSource, txout::ProcessedOutput};
 
 pub struct TransactionAnalysis {
@@ -40,15 +42,17 @@ pub fn record_rbf_signaling(flags: &mut TxFeatureFlags, sequence: Sequence) {
 
 impl BlockProcessor<'_> {
     /// Analyzes each transaction into `analyses`, cleared first.
+    /// The block at `height`, its first transaction at `block_first_tx_index`: an associated
+    /// function, so it runs beside the finalization that mutably borrows the processor.
     pub fn analyze_transactions(
-        &self,
+        height: Height,
+        block_first_tx_index: TxIndex,
         txs: &[ComputedTx<'_>],
         txins: &[InputSource],
         txouts: &[ProcessedOutput],
         analyses: &mut Vec<TransactionAnalysis>,
     ) {
-        let block_first_tx_index = self.lengths.tx_index;
-        let track_executed_legacy = policy::tracks_executed_legacy_sigops(self.height);
+        let track_executed_legacy = policy::tracks_executed_legacy_sigops(height);
 
         analyses.clear();
         analyses.par_extend(txs.par_iter().map(|tx| {
@@ -59,7 +63,7 @@ impl BlockProcessor<'_> {
             let mut sigops = sigops::Accumulator::new(track_executed_legacy);
             let mut flags = TxFeatureFlags::default();
             let mut output_scanner = output::Scanner::default();
-            let mut policy = policy::Accumulator::new(self.height);
+            let mut policy = policy::Accumulator::new(height);
 
             if unlikely(is_coinbase) {
                 let input = &tx.tx.input[0];

@@ -6,7 +6,7 @@
 
 # Interface: ReplacementNode
 
-Defined in: [modules/bitview-client/index.js:1275](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1275)
+Defined in: modules/bitview-client/index.js:1277
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1275](https://github.com/bitcoinres
 
 > **fullRbf**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1279](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1279)
+Defined in: modules/bitview-client/index.js:1281
 
 Any predecessor in this subtree was non-signaling.
 
@@ -24,7 +24,7 @@ Any predecessor in this subtree was non-signaling.
 
 > `optional` **interval?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1280](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1280)
+Defined in: modules/bitview-client/index.js:1282
 
 Seconds between this node's `time` and the successor that
 replaced it. Omitted on the root of an RBF response.
@@ -35,7 +35,7 @@ replaced it. Omitted on the root of an RBF response.
 
 > `optional` **mined?**: `boolean` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1282)
+Defined in: modules/bitview-client/index.js:1284
 
 `Some(true)` iff this node's tx is currently confirmed. Absent
 on serialization otherwise.
@@ -46,7 +46,7 @@ on serialization otherwise.
 
 > **replaces**: `ReplacementNode`[]
 
-Defined in: [modules/bitview-client/index.js:1284](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1284)
+Defined in: modules/bitview-client/index.js:1286
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [modules/bitview-client/index.js:1284](https://github.com/bitcoinres
 
 > **time**: `number`
 
-Defined in: [modules/bitview-client/index.js:1277](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1277)
+Defined in: modules/bitview-client/index.js:1279
 
 First-seen timestamp, duplicated here to match mempool.space's
 on-the-wire shape.
@@ -65,4 +65,4 @@ on-the-wire shape.
 
 > **tx**: [`RbfTx`](RbfTx.md)
 
-Defined in: [modules/bitview-client/index.js:1276](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1276)
+Defined in: modules/bitview-client/index.js:1278

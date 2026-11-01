@@ -2,6 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
+use crate::CompressionType;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -87,6 +88,9 @@ pub struct Config {
     /// Restart interval inside data blocks
     pub(crate) data_block_restart_interval_policy: RestartIntervalPolicy,
 
+    /// Compression of data blocks
+    pub(crate) data_block_compression: CompressionType,
+
     /// Whether to pin index blocks
     pub(crate) index_block_pinning_policy: PinningPolicy,
 
@@ -115,6 +119,7 @@ impl Config {
             descriptor_table: Arc::new(DescriptorTable::new(256)),
             cache: Arc::new(Cache::with_capacity_bytes(16 * 1_024 * 1_024)),
             data_block_restart_interval_policy: RestartIntervalPolicy::all(16),
+            data_block_compression: CompressionType::Lz4,
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
             index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
@@ -194,6 +199,16 @@ impl Config {
     #[must_use]
     pub fn data_block_restart_interval_policy(mut self, policy: RestartIntervalPolicy) -> Self {
         self.data_block_restart_interval_policy = policy;
+        self
+    }
+
+    /// Sets the compression of new tables' data blocks; each table records its own, so tables
+    /// written before a change still read.
+    ///
+    /// Default = LZ4
+    #[must_use]
+    pub fn data_block_compression(mut self, compression: CompressionType) -> Self {
+        self.data_block_compression = compression;
         self
     }
 

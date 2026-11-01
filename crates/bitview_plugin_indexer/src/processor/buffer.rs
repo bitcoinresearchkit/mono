@@ -12,6 +12,8 @@ pub struct BlockBuffers {
     pub inputs: InputResolver,
     pub addresses: BlockAddresses,
     pub outputs: Vec<ProcessedOutput>,
+    /// The outputs as resolved, which the analysis reads while finalization rewrites `outputs`.
+    pub analyzed_outputs: Vec<ProcessedOutput>,
     pub analyses: Vec<TransactionAnalysis>,
     tip: Option<BlockHash>,
 }

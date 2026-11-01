@@ -6,7 +6,7 @@
 
 # Interface: OracleBlock
 
-Defined in: [modules/bitview-client/index.js:917](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L917)
+Defined in: modules/bitview-client/index.js:919
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:917](https://github.com/bitcoinrese
 
 > **bin**: `number`
 
-Defined in: [modules/bitview-client/index.js:924](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L924)
+Defined in: modules/bitview-client/index.js:926
 
 The bin it picked, refined between bins by a parabola through the best score and its
 neighbours.
@@ -25,7 +25,7 @@ neighbours.
 
 > **firstBin**: `number`
 
-Defined in: [modules/bitview-client/index.js:926](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L926)
+Defined in: modules/bitview-client/index.js:928
 
 The search window's first candidate bin: 12 below the block before's answer, rounded, 24
 candidates in all.
@@ -36,7 +36,7 @@ candidates in all.
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:919](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L919)
+Defined in: modules/bitview-client/index.js:921
 
 The confirmed block it was read at: this block's hash; live with the mempool, the tip's
 (block `height - 1`), the one the mempool is blended onto.
@@ -47,7 +47,7 @@ The confirmed block it was read at: this block's hash; live with the mempool, th
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:918](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L918)
+Defined in: modules/bitview-client/index.js:920
 
 The block's height; live with the mempool, the next block's.
 
@@ -57,7 +57,7 @@ The block's height; live with the mempool, the next block's.
 
 > **histogram**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:933](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L933)
+Defined in: modules/bitview-client/index.js:935
 
 The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
 before it (live, the mempool's as the next block's), each block's counts weighted
@@ -69,7 +69,7 @@ before it (live, the mempool's as the next block's), each block's counts weighte
 
 > **mempool**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:921](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L921)
+Defined in: modules/bitview-client/index.js:923
 
 Whether it's the live reading with the mempool blended in as the next block (`outputs` the
 mempool's), rather than a confirmed block's.
@@ -80,7 +80,7 @@ mempool's), rather than a confirmed block's.
 
 > **outputs**: [`OracleOutputs`](OracleOutputs.md)
 
-Defined in: [modules/bitview-client/index.js:936](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L936)
+Defined in: modules/bitview-client/index.js:938
 
 The block's own outputs (live, the mempool's) as the oracle's filter judged them.
 
@@ -90,7 +90,7 @@ The block's own outputs (live, the mempool's) as the oracle's filter judged them
 
 > **price**: `number`
 
-Defined in: [modules/bitview-client/index.js:923](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L923)
+Defined in: modules/bitview-client/index.js:925
 
 The price it found, in dollars: `bin` as a price, to the cent.
 
@@ -100,7 +100,7 @@ The price it found, in dollars: `bin` as a price, to the cent.
 
 > **scores**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:928](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L928)
+Defined in: modules/bitview-client/index.js:930
 
 Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar
 amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),

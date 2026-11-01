@@ -4,6 +4,8 @@ description = "The UTXO set: its published history by creation block and its glo
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 bitview_compute = { workspace = true }
