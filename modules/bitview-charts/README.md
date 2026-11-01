@@ -35,6 +35,8 @@ chart.show(365);                                 // the last 365 points in view
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
+  `time.held(from, to)` (how far a view would move to keep its data's share in view, as the chart holds it: a page's
+  glide aimed there ends where the chart stops it),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
   `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
@@ -84,7 +86,8 @@ chart.show(365);                                 // the last 365 points in view
 - `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
-  number or one by its points' spacing).
+  number or one by its points' spacing). Under `BODIES_FROM` pixels a point (3), candles are drawn as their wicks
+  alone (a page may show their close as a line there instead).
 - `Bubbles({ values, sizes, up, upEdge, down, downEdge, size, hide, scaleTo, halo })`: a dot a point where `values`
   put it, its area its size's share of the largest (of those in view, kept up as the view moves, or `scaleTo: "all"`),
   `size` pixels across at the largest (of every size, placed or not), those under `hide` of it left out; above zero in
