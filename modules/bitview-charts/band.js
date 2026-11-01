@@ -149,8 +149,6 @@ export class Band {
     (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
   }
 
-
-
   /** Its next gap from each point (the length: none). @param {boolean} log */
   #gaps(log) {
     if (this.gapsVersion !== this.version) (this.gaps = this.logGaps = null), (this.gapsVersion = this.version);

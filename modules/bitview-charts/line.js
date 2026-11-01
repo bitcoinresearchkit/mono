@@ -401,8 +401,6 @@ export class Line {
     return measure(this, time, scale, x, y);
   }
 
-
-
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {
     // (Below its under value, that color: a baseline's tag, its dots and its crosshair's dot under its base.)
@@ -728,6 +726,4 @@ export class Line {
       run.end(time, scale, colors, breaks);
     }
   }
-
-
 }

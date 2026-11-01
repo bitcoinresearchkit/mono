@@ -131,8 +131,6 @@ export class Timeline {
     return Math.round(x * dpr + 1e-6) / dpr;
   }
 
-
-
   /** A span (points) within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
   within(span) {
     const least = this.width / this.maxSpacing, most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
