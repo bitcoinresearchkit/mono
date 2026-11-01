@@ -139,6 +139,16 @@ export class Timeline {
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
 
+  /**
+   * How far (points) a view from `from` to `to` moves to hold its data's share (see limit): back toward the data on the
+   * side it's past; 0, held already. A page's glide aimed with it ends where the chart holds it.
+   * @param {number} from @param {number} to
+   */
+  held(from, to) {
+    const span = to - from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
+    return from > last - hold ? last - hold - from : to < hold ? hold - to : 0;
+  }
+
   /** How far it can pan (CSS pixels) to `px`'s side (over 0: earlier points coming in) before an end holds it. @param {number} px */
   room(px) {
     const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
@@ -153,9 +163,8 @@ export class Timeline {
       const middle = (this.from + this.to) / 2;
       (span = fits), (this.from = middle - span / 2), (this.to = middle + span / 2);
     }
-    const last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
-    // (Its last point at least `hold` points into the view; its first at most `hold` from the view's end.)
-    if (this.from > last - hold) (this.from = last - hold), (this.to = this.from + span);
-    if (this.to < hold) (this.to = hold), (this.from = this.to - span);
+    // (Its last point at least its share of the view into it; its first at most that from the view's end.)
+    const by = this.held(this.from, this.to);
+    (this.from += by), (this.to += by);
   }
 }

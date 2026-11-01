@@ -11051,8 +11051,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // @ts-check
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
-      // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Candles, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      // (Studio's chart library: bitview-charts.)
+      import { createChart, picture as chartPicture, Line, Band, Bars, Candles, BODIES_FROM, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -11928,7 +11928,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
       /** The types drawn as a line: a dash and a shape apply. */
       const LINED = new Set(["line", "area", "baseline", "trend"]);
-      /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
+      /** The types an outline edges (the chart's background about what's drawn: the library's `outline`): what a series is drawn as, and a trend's line. */
       const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend", "bubbles"]);
       /** The crosshair's dot on a line: its radius and its edge's width (a lit bubble's ring clears it, see lightBubble). */
       const MARKER = { radius: 3, border: 2 };
@@ -14723,17 +14723,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return keep === "to" ? { from: from + over, to } : keep === "from" ? { from, to: to - over } : { from: from + over / 2, to: to - over / 2 };
       }
       /**
-       * A view as the chart holds it on its data (ON_DATA, by the chart's own rule): moved back on the side it's past; null,
-       * on it already. For where a move is going (a glide, a jump): the chart holds the steps there, not past.
+       * A view as the chart holds it on its data (the library's rule: see Timeline.held): moved back on the side it's
+       * past; null, on it already. For where a move is going (a glide, a jump): the chart holds the steps there, not past.
        * @param {{ from: number, to: number }} range
        */
       function ontoData(range) {
-        const now = shownSpan(), bars = resolved?.times.length ?? 0;
-        if (!now || !bars) return null;
-        // (Its data ends where the chart counts it: its last bar with a value, its view's end less its offset; gaps past.)
-        const last = Math.round(now.to - (engine.time.to - (engine.time.length - 1)));
-        const least = Math.min(Math.max(2, ON_DATA * (range.to - range.from + 1)), bars);
-        const shift = Math.min(0, last + 1 - least - range.from) + Math.max(0, least - 1 - range.to);
+        const shift = engine.time.length ? engine.time.held(range.from, range.to) : 0;
         return shift ? { from: range.from + shift, to: range.to + shift } : null;
       }
       /** The first of sorted times at or after a time (their count, past the last). @param {ArrayLike<number>} times @param {number} time */
@@ -16170,12 +16165,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * width more, the latest day clear of it (the chart drawn: ⌘K's preview, while it shows). Any chart's (a preview's too).
        */
       const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? profileWidth(width) : 0);
-      /**
-       * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
-       * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
-       */
-      const ON_DATA = 1 / 6;
-      /** The farthest the chart zooms out: four points a pixel (lightweight-charts' default, two), still smooth to pan. */
+      /** The farthest the chart zooms out: four points a pixel, still smooth to pan. */
       const MIN_BAR_SPACING = 0.25;
       /**
        * How close the chart's bars can get: four a pixel; at a day or coarser (all of history at hand, a few thousand
@@ -16207,14 +16197,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         engine.invalidate(true);
       }
       /**
-       * The widest a price scale gets: the longest label an axis writes, as lightweight-charts sizes it (its border,
-       * tick, paddings and label offset around the text). Each is as wide as its labels are; this, the room they can take.
+       * The widest a price scale gets: the longest label an axis writes, as the library sizes it (8 pixels each side of
+       * its words, in steps of 4, in the chart's font). Each is as wide as its labels are; this, the room they can take.
        */
       function axisWidth() {
         const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-        context.font = `500 11px ${chartSans}`;
-        const width = Math.ceil(1 + 5 + (2 * 5 * 11) / 12 + 5 + Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width));
-        return width + (width % 2);
+        context.font = `11px ${chartSans}`;
+        return Math.ceil((Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width) + 16) / 4) * 4;
       }
       /** The chart's colors, the theme's (set again when it changes). */
       /**
@@ -16503,8 +16492,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const now = scaleRange(i, side), box = boxes[i];
           const edgeTop = now && box ? seriesY(series, now.to) : null, edgeFoot = now && box ? seriesY(series, now.from) : null;
           if (edgeTop === null || edgeFoot === null || !box || !(edgeFoot - edgeTop > 1)) return [];
-          // (A log scale's as the chart's own: the logarithm of a price a ten-thousandth up, see LWC's logFormula.)
-          const log = mode === 1, f = (/** @type {number} */ x) => (log ? Math.log10(x + 1e-4) : x), g = (/** @type {number} */ x) => (log ? 10 ** x - 1e-4 : x);
+          // (A log scale's as the library maps it: by a price's logarithm.)
+          const log = mode === 1, f = (/** @type {number} */ x) => (log ? Math.log10(x) : x), g = (/** @type {number} */ x) => (log ? 10 ** x : x);
           const k = (foot - top) / (f(range.to) - f(range.from)), high = f(range.to) + (top - (box.top + edgeTop)) / k, low = high - (edgeFoot - edgeTop) / k;
           const kept = { from: g(low), to: g(high) };
           if (!(kept.to > kept.from) || !Number.isFinite(kept.to + kept.from)) return [];
@@ -16696,7 +16685,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
-       * a bar has no room for a hollow body (under 2.5px, where the chart library stops drawing one), the layer
+       * a bar has no room for a hollow body (under BODIES_FROM pixels, where the library draws its wick alone), the layer
        * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
        * @type {Map<string, { candles: any, series: any, color: string, rise: string, fall: string, dated: boolean }>}
        */
@@ -16710,7 +16699,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const range = shownSpan();
         // A rebuild empties the chart for a moment: no range then, and nothing to decide.
         if (!range) return;
-        const fit = engine.time.width / Math.max(1, range.to - range.from) >= 2.5;
+        const fit = engine.time.width / Math.max(1, range.to - range.from) >= BODIES_FROM;
         // (Each tag in its last candle in view's color, as the view moves: see tintClose.)
         if (fit === candlesFit) return void closes.forEach((_, id) => tintClose(id));
         candlesFit = fit;
@@ -17034,7 +17023,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (before && before.shape === layerShape(layer) && was.has(layer.id)) kept.set(layer.id, before);
         }
         built.clear();
-        // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
+        // The others' series go once the new ones are in (their panes kept till then, see the panes trimmed below).
         const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series)];
         let added = false;
         /** @type {{ layer: Layer, value: number, color: string, dash: number, tag: boolean, mode: number, pane: number, format: any }[]} */
@@ -17322,7 +17311,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folded = foldedPanes(doc);
         doc.panes.forEach((pane, i) => {
           if (!panes[i]) return;
-          // A side shows in every pane once any layer uses it: the plots line up, and the chart library needs it so.
+          // A side shows in every pane once any layer uses it: the plots line up.
           // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
           // nothing: it has nothing shown.)
           // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
@@ -17364,7 +17353,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const onRange = Boolean(left?.latest && left.index === doc.index && data.times.length > 1) && ((preset, last, latest) => Math.abs(latest[0] - (preset.from - last)) < 1 && Math.abs(latest[1] - (preset.to - last)) <= Math.max(1, (preset.to - last) / 4))(presetWindow(doc, data), data.times.length - 1, /** @type {[number, number]} */ (left?.latest));
         const back = left && !onRange && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
         // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
-        // library's own, on a first draw), and the change of their width held against it, see LWC patch 20.)
+        // library's own, on a first draw), and the change of their width held against it: the library holds the bars where
+        // they are on screen as an axis widens.)
         if (back && back.to - back.from >= 1) {
           const target = within(back, "to");
           showSpan(target);
@@ -17780,7 +17770,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Its legends' forms by the plot's width (narrow, no words after a key's strip; tight, the strip alone), and each
-       * pane's tags kept under its legend (see LWC patch 50: a crowded pane's spread up past it, else). `tags` false: the
+       * pane's tags kept under its legend (the library's setTagsTop: a crowded pane's spread up past it, else). `tags` false: the
        * forms alone, a legend written (what it holds read as it's laid out, if it's resized: see legendFit; read now, a
        * click's writes would all be laid out at once, mid-click).
        */
@@ -20088,7 +20078,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const chartWidth = () => engine.time.width + engine.left + engine.axisShown;
       /**
        * A view by the chart's box: its bars from the box's left edge to its right, the price scales' room counted. A price
-       * scale wider or narrower, the library holds the bars where they are on screen (patch 20 of lightweight-charts): the
+       * scale wider or narrower, the library holds the bars where they are on screen: the
        * same view by the box, though the plot's range isn't.
        */
       function boxView(/** @type {{ from: number, to: number }} */ range) {
@@ -20296,7 +20286,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The scales held (see holdPrices), glided from there to where they follow the plot now. Held through the draw,
-       * where the view's applied (as it's drawn next), then glided to where they'd be (patch 16 of lightweight-charts): a
+       * where the view's applied (as it's drawn next), then glided to where they'd be: a
        * log scale's by its logarithms. Anything else moving the view (a press on the chart, a zoom, the navigator), another
        * draw, or the page hidden, lets them follow at once.
        * @param {ReturnType<typeof heldScales>} held
@@ -20555,7 +20545,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.max(0, Math.floor(at)), from = timeAt(drawnIndex, i);
         return from + (at - i) * (timeAt(drawnIndex, i + 1) - from);
       }
-      /** The time axis as a line: bar 0's x, and a bar's width (the chart library's own conversions keep to whole bars). */
+      /** The time axis as a line: bar 0's x, and a bar's width (the library's x is a bar's index, scaled and moved). */
       function timeLine() {
         const at = engine.time.x(0), next = engine.time.x(1);
         return drawnTimes.length && next > at ? { at, step: next - at } : null;
@@ -21014,7 +21004,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Words on a color (OKLCH, as shown): white or the ink's black, by its lightness as drawn (its sRGB hex's, as the
-       * chart's own tags measure theirs, patch 35): black from 0.7157, where APCA flips for a gray (#a4a4a4 and lighter),
+       * library's own tags measure theirs, see its color.js): black from 0.7157, where APCA flips for a gray (#a4a4a4 and lighter),
        * so a color of one lightness goes one way whatever its hue (APCA, by luminance, split a palette of one lightness
        * by hue; WCAG's ratio overrates black on a vivid color).
        * @param {[number, number, number]} oklch
@@ -21655,7 +21645,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const first = paneBox(0), last = paneBox(engine.panes.length - 1);
         if (!first || !last) return null;
         const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = engine.element.getBoundingClientRect();
-        // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
+        // (A scale not laid out yet: 0 wide.)
         const axis = engine.left, firstTop = first.top, lastBottom = last.bottom;
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
         const [left, right, top, bottom] = boxed

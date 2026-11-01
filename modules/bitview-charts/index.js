@@ -22,7 +22,7 @@ export { Timeline, Pane, TimeAxis };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars } from "./bars.js";
-export { Candles } from "./candles.js";
+export { Candles, BODIES_FROM } from "./candles.js";
 export { Bubbles } from "./bubbles.js";
 export { Shade } from "./shade.js";
 export { Grid } from "./grid.js";

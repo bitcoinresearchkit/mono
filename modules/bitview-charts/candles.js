@@ -8,6 +8,9 @@ import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
 import { measure } from "./recorder.js";
 
+/** The least spacing (CSS pixels a point) a candle has its body at: under it, its wick alone. */
+export const BODIES_FROM = 3;
+
 /** A candle's parts, as #shapes draws them. */
 const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
 
@@ -134,7 +137,7 @@ export class Candles {
    */
   #shapes(g, time, scale, x0, x1, dpr, pass, pad, part) {
     const { open, close } = this, high = this.highs.values, low = this.lows.values, n = close.length, log = scale.mode === "log";
-    const spacing = time.spacing, wide = spacing >= 3, half = Math.max(0.5, (spacing * 0.7) / 2), wick = Math.max(1, Math.round(dpr)) / dpr;
+    const spacing = time.spacing, wide = spacing >= BODIES_FROM, half = Math.max(0.5, (spacing * 0.7) / 2), wick = Math.max(1, Math.round(dpr)) / dpr;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1), corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     if (wide) {
       for (let i = a; i <= b; i++) {
