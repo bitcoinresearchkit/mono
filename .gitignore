@@ -50,3 +50,6 @@ expand.rs
 
 # AI
 .claude
+
+# Cloudflare CLI (cf) account cache, written wherever it runs
+.cloudflare
