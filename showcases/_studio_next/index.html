@@ -17802,7 +17802,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /**
-       * A pane's layers as its key has them: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
+       * A pane's layers in their order: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
        * if it's reversed); not, every one shown (a trend's, a cloud's too), in the panel's order. A signal's marks are its
        * layer's.
        */
@@ -19225,9 +19225,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // cleared by Studio says nothing: see keyAt.)
           if (!param.point || time !== fingerCross.kept) fingerCross.kept = null;
         }
-        // (In a keyed pane, the band under it, a finger's held too: its item in the key's place (lit among its pane's only
-        // as that item, or its row, is pointed at: see spotlight). On the legend over the plot, the one it was (its item
-        // stays under the pointer).)
+        // (The layer read: in a stacked pane the band under it, else a line near it (see bandAt), a finger's held too; its
+        // legend names it (its pane's others fade only as its item, or its row, is pointed at: see spotlight). On the
+        // legend over the plot, the one it was.)
         crossIn = Boolean(param.point);
         // (Where it is in its pane: a heatmap reads the price there, see heatReading.)
         heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
@@ -29965,7 +29965,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         to.focus();
       });
       const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)), { look: true });
-      /** How a chart's legends show: none, or (the default, "") over each pane, scrolling to the line pointed at. */
+      /** How a chart's legends show: none, or (the default, "") over each pane, naming the line pointed at. */
       const LEGENDS = /** @type {const} */ ([["off", "Off", "No legend over the panes", "None"], ["", "On", "A legend over each pane, its values where you point", "Over each pane"]]);
       /** The legend's setting, the chart's (its ⋯, ⌘K's page of it). */
       const legendAction = (group = "") => ({ key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], group, page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , note]) => ({ key: id || "on", icon: ICONS.legend, label: text, aside: note, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) });
@@ -30136,7 +30136,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (phone.matches) document.body.dataset.sheet = "panel";
         else if (document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
       }
-      /** A pane's layers in the panel's list (a keyed pane's View all): the list shown, that pane's at its top. */
+      /** A pane's layers in the panel's list (its legend's chip pressed): the list shown, that pane's at its top. */
       function paneLayers(/** @type {string} */ id) {
         showList();
         requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced.matches ? "auto" : "smooth" }));
@@ -38493,8 +38493,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return pieces;
       }
       /**
-       * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer shown (a
-       * crowded legend wraps onto more lines within its pane, a picture can't scroll), a hidden layer's left out (the others
+       * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
+       * long legend wraps onto more lines within its pane: a picture can't be pointed at), a hidden layer's left out (the others
        * close up as they would; a folded pane's kept, faded, all it shows), none lit or selected.
        * @returns {() => void}
        */
