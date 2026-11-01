@@ -40,7 +40,7 @@ export class Marks {
     this.saidAt = NaN;
     this.saidFont = "";
     /** Whether it has marks above points, below them, on them, and words (its room at the scale's ends). */
-    (this.over = false), (this.under = false), (this.inside = false), (this.words = false);
+    (this.above = false), (this.below = false), (this.on = false), (this.words = false);
     /** How far past its point a mark reaches (its words' half, a shape's): drawn into the strips it reaches. */
     this.reach = 18;
     this.set(marks);
@@ -50,12 +50,12 @@ export class Marks {
   set(marks) {
     this.version++;
     this.marks = marks;
-    (this.over = false), (this.under = false), (this.inside = false), (this.words = false);
+    (this.above = false), (this.below = false), (this.on = false), (this.words = false);
     for (const mark of marks) {
       if (mark.text) this.words = true;
-      if (mark.position === "above") this.over = true;
-      else if (mark.position === "below") this.under = true;
-      else this.inside = true;
+      if (mark.position === "above") this.above = true;
+      else if (mark.position === "below") this.below = true;
+      else this.on = true;
     }
     this.saidAt = NaN;
   }
@@ -85,8 +85,8 @@ export class Marks {
     this.series.extent(Math.ceil(time.from), Math.floor(time.to), positive, SPAN);
     if (!(SPAN[0] <= SPAN[1])) return;
     const unit = Math.min(Math.max(spacing, 12), 30), room = even(odd(unit)) + Math.max(odd(unit * 0.1), 3) + (this.words ? TALL + GAP : 0);
-    out[0] = Math.max(out[0], this.over ? room : this.inside ? Math.ceil(room / 2) : 0);
-    out[1] = Math.max(out[1], this.under ? room : this.inside ? Math.ceil(room / 2) : 0);
+    out[0] = Math.max(out[0], this.above ? room : this.on ? Math.ceil(room / 2) : 0);
+    out[1] = Math.max(out[1], this.below ? room : this.on ? Math.ceil(room / 2) : 0);
   }
 
   /** Which marks show their words at `spacing`: from the latest back, each clear of the one after it (3 pixels apart). @param {CanvasRenderingContext2D} g @param {number} spacing */

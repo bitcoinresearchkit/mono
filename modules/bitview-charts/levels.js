@@ -60,10 +60,12 @@ export class Levels {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
+    // (Faint as a whole (a spotlight's on it), each line's own fading under that.)
+    const alpha = g.globalAlpha;
     for (const line of this.lines) {
       const y = Math.round(scale.y(line.value) * dpr) / dpr + 0.5 / dpr, dash = line.dash ?? [];
       if (line.hidden || y !== y) continue;
-      g.globalAlpha = line.faint ? FAINT : 1;
+      g.globalAlpha = line.faint ? alpha * FAINT : alpha;
       g.strokeStyle = line.color;
       g.lineWidth = line.width ?? 1;
       g.setLineDash(dash);
@@ -73,8 +75,9 @@ export class Levels {
       g.lineTo(x1, y);
       g.stroke();
     }
-    g.globalAlpha = 1;
+    g.globalAlpha = alpha;
     g.setLineDash([]);
+    g.lineDashOffset = 0;
   }
 
   /**

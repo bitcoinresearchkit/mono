@@ -733,7 +733,7 @@ export class Pane {
     // 4 pixels: one touching a tag reads cramped against it).)
     const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
     page.count = 0;
-    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden) this.series[k].axisTags?.(side, page.add, scale);
+    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale);
     // (Each where it's drawn: within the pane.)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     for (let k = 0; k < count; k++) {

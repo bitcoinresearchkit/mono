@@ -102,7 +102,7 @@ export class TimeAxis {
     g.fillRect(0, 0, this.width, this.height);
     g.font = theme.font;
     (page.count = 0), (this.drawnCount = 0);
-    for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden) pane.series[k].timeTags?.(page.add);
+    for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden && !pane.series[k].faint) pane.series[k].timeTags?.(page.add);
     // (Each tag's half width, measured once a draw.)
     if (this.halves.length < page.count) this.halves = new Float64Array(page.count * 2);
     // (Each where it's drawn: within the plot.)
