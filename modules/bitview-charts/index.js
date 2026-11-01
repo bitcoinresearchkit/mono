@@ -424,6 +424,8 @@ export class Chart {
     const time = this.time, crosshair = this.crosshair, x = this.pointerX;
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
+      // (Its tags read the crosshair's point while it's on: each line's value there, by its line.)
+      pane.tagsAt = crosshair.index;
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
@@ -468,6 +470,8 @@ export class Chart {
       }
     }
     this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
+    // (Found again under a still pointer (the view moved beneath it): its panes' tags at its point now, in this render.)
+    for (let k = 0; k < this.panes.length; k++) this.panes[k].retag(crosshair.index, time, this.theme, this.dpr);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);

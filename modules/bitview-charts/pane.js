@@ -180,6 +180,9 @@ export class Pane {
     this.axesEnd = NaN;
     this.tagsFrom = Infinity;
     this.tagsOut = -1;
+    /** The point its tags read (the crosshair's: NaN, none, its lines' last in view), and the one they were drawn at. */
+    this.tagsAt = NaN;
+    this.drawnTagsAt = NaN;
     this.tagY = new Float64Array(8);
     this.tagPlace = new Float64Array(8);
     /** The least room between two tags as last placed. */
@@ -623,8 +626,8 @@ export class Pane {
     // (Moved, unless what it draws can't be: drawn whole.)
     if (moves && (!by || !immovable)) {
       if (!by) {
-        // (Its series over it changed: their tags on its axes drawn again, the plot as it is.)
-        if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
+        // (Its series over it changed, or the point its tags read: its axes drawn again, the plot as it is.)
+        if (overs !== this.drawnOvers || !this.#tagsSame()) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
         return false;
       }
       // (What stays, copied to where it goes, in device pixels; then the strip come in.)
@@ -657,7 +660,7 @@ export class Pane {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
       const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      if (overs !== this.drawnOvers || !this.#tagsSame() || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -673,9 +676,24 @@ export class Pane {
     return moves || stretches;
   }
 
+  /**
+   * Its tags at another point (the crosshair's, NaN: none): its axes drawn again where that's not the one they read.
+   * @param {number} at @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr
+   */
+  retag(at, time, theme, dpr) {
+    this.tagsAt = at;
+    if (!this.#tagsSame()) this.#axes(time, theme, dpr);
+  }
+
+  /** Whether its tags read the point they were drawn at (the crosshair's, or none: their last in view). */
+  #tagsSame() {
+    return this.tagsAt === this.drawnTagsAt || (this.tagsAt !== this.tagsAt && this.drawnTagsAt !== this.drawnTagsAt);
+  }
+
+
   /** Its axes drawn (each on its own canvas, beside its plot): ticks, tags, separators. @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
   #axes(time, theme, dpr) {
-    (this.tagsFrom = Infinity), (this.tagsOut = -1);
+    (this.tagsFrom = Infinity), (this.tagsOut = -1), (this.drawnTagsAt = this.tagsAt);
     this.axisG.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.#axis(this.axisG, this.scale, time, theme, dpr, 0, this.width - this.plot, 0);
     if (this.leftG && this.leftWidth) {
@@ -832,9 +850,10 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it
-   * counted (as the chart library's were: they read the view's end, its strict range's, as a pan moves it; a price
-   * line, its last of all; one with nothing in view, none),
+   * top to bottom at tagPlace, tagStep apart at least): each one at the crosshair's point (`tagsAt`: its value there,
+   * none where it has none), else at its last value in view, a point partly in it counted (as the chart library's were:
+   * they read the view's end, its strict range's, as a pan moves it; a price line, its last of all; one with nothing in
+   * view, none),
    * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
    * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
    * the pane; on a relative scale, as it reads them.
@@ -847,12 +866,20 @@ export class Pane {
       if (this.sides[k] !== side) continue;
       const line = this.series[k];
       if (!(line instanceof Line) || !line.tag || line.hidden || line.faint || line.overlay) continue;
-      const i = line.lastBy(end, log);
-      // (Its last point before the view: nothing of it in view. On a relative scale, one with no base has no reading.)
-      const base = relative ? line.first(from) : 1;
-      if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
-      if (i < from || !base || base !== base) continue;
-      if (i < this.tagsFrom) this.tagsFrom = i;
+      // (On a relative scale, one with no base has no reading.)
+      const base = relative ? line.first(from) : 1, at = this.tagsAt;
+      let i = at;
+      if (at === at) {
+        // (Past a shorter line's data, none.)
+        const v = at < line.values.length ? line.values[at] : NaN;
+        if (!(v === v) || (log && !(v > 0)) || !base || base !== base) continue;
+      } else {
+        i = line.lastBy(end, log);
+        // (Its last point before the view: nothing of it in view.)
+        if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
+        if (i < from || !base || base !== base) continue;
+        if (i < this.tagsFrom) this.tagsFrom = i;
+      }
       // (Its color there see-through: no tag, nor its room.)
       if (!painted(line.colorAt(i))) continue;
       if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
