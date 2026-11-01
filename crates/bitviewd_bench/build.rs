@@ -1,7 +1,7 @@
 //! The build's identity, embedded at compile time: a run records the code that was compiled, not
 //! the checkout the binary happens to run next to.
 
-use std::{env, path::Path, process::Command};
+use std::{env, fs, path::Path, process::Command};
 
 /// The workspace inputs of the binary: a change to one reruns this script, and only they make a
 /// build `dirty` (reports copied into `benches/` are not code).
@@ -21,25 +21,31 @@ fn main() {
     for source in SOURCES {
         rerun_if_changed(&workspace.join(source));
     }
-    // Commits, checkouts, staging and tags.
+    // Commits, checkouts and staging.
     let git_dir = git(&["rev-parse", "--absolute-git-dir"]);
     if !git_dir.is_empty() {
-        for state in ["HEAD", "index", "logs/HEAD", "packed-refs", "refs/tags"] {
+        for state in ["HEAD", "index", "logs/HEAD"] {
             rerun_if_changed(&Path::new(&git_dir).join(state));
         }
     }
 
-    let dirty = !git(&[&["status", "--porcelain", "--"][..], &SOURCES].concat()).is_empty();
-    // One directory name: the tag at HEAD (`v0.13.0`), else the short commit, else the crate
-    // version; `-dirty` with local changes.
-    let mut revision = git(&["describe", "--tags", "--exact-match", "HEAD"]);
-    if revision.is_empty() {
-        revision = git(&["rev-parse", "--short", "HEAD"]);
-    }
-    if revision.is_empty() {
-        revision = format!("v{}", env::var("CARGO_PKG_VERSION").unwrap());
-    }
-    let mut revision = revision.replace('/', "-");
+    // The commit: the one a published package records (crates.io builds have no git), else the
+    // checkout's HEAD. A run is filed under its commit alone, so none is guessed.
+    let (commit, dirty) = published_commit(Path::new(&manifest))
+        .or_else(|| {
+            let commit = git(&["rev-parse", "HEAD"]);
+            let dirty =
+                || !git(&[&["status", "--porcelain", "--"][..], &SOURCES].concat()).is_empty();
+            (!commit.is_empty()).then(|| (commit, dirty()))
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "bitviewd_bench: no commit to file runs under: build it from a git checkout or a \
+                 published package"
+            )
+        });
+    // One directory name: the short commit, `-dirty` with local changes.
+    let mut revision = commit[..9].to_owned();
     if dirty {
         revision.push_str("-dirty");
     }
@@ -55,7 +61,7 @@ fn main() {
 
     for (key, value) in [
         ("REVISION", revision),
-        ("COMMIT", git(&["rev-parse", "HEAD"])),
+        ("COMMIT", commit),
         ("DIRTY", dirty.to_string()),
         ("PROFILE", profile),
         (
@@ -72,6 +78,15 @@ fn main() {
     ] {
         println!("cargo::rustc-env=BENCH_{key}={value}");
     }
+}
+
+/// The commit and dirtiness `cargo package` records in `.cargo_vcs_info.json`, read without a JSON
+/// dependency: `{"git": {"sha1": "…", "dirty": true}, "path_in_vcs": "…"}`.
+fn published_commit(manifest: &Path) -> Option<(String, bool)> {
+    let info = fs::read_to_string(manifest.join(".cargo_vcs_info.json")).ok()?;
+    let sha1 = info.split("\"sha1\"").nth(1)?.split('"').nth(1)?;
+    (sha1.len() == 40 && sha1.bytes().all(|b| b.is_ascii_hexdigit()))
+        .then(|| (sha1.to_owned(), info.contains("\"dirty\": true")))
 }
 
 /// A missing path would rerun the script on every build.
