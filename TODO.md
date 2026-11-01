@@ -27,6 +27,10 @@ Only what's left. An item done is removed: its history is in the commits and log
     making is near nothing). Lines one device pixel wide take its hairline path and cost almost nothing, but that's
     a third as wide as today on a 2x screen; strokes split in pieces gain ~10% and change the joins. Mine: leave it.
 
+- Since the deploy (7c91c4bfa, live on every server), local commits not pushed: the legend fixes (d1917fa27,
+  c6efe9ec9, 4b95765fb), a stack readout's work (3121b3904), TODO. Pushing them (next and prod) and `fleet update`
+  needs your word: your yes was for the one deploy.
+
 ## bitview-charts: raised by you, still open
 
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
