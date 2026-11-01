@@ -56,8 +56,10 @@ chart.show(365);                                 // the last 365 points in view
 - `addPane({ share, scale: { mode, top, bottom }, left, format })`: `share`, its part of the height; `mode`:
   `"linear"`, `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it);
   `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
-  written. `setFormat(format, ticks, side)`: a side's own (`ticks`, its ticks written all at once, their digits alike;
-  an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `setTagsTop(top, side)`, a
+  written: `format(v, step)`, a value on its axis (a tag, a level's, the crosshair's) given `step`, the step between its
+  ticks around it (`stepAt(v, scale)`: a decimal past theirs, in the unit it's written in: 89.0 by ticks 20 apart, 1.053
+  by 0.02; the default writer's rule), elsewhere none. `setFormat(format, ticks, side)`: a side's own (`ticks`, its
+  ticks written all at once, their digits alike; an indexed scale's as its values); `setPercentFormat(format, ticks)`, a percent scale's; `setTagsTop(top, side)`, a
   side's tags kept under that height (a page's legend over the pane); `frame`, a page's own element over its plot (a
   legend, a highlight), laid out and stretched with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
@@ -69,9 +71,8 @@ chart.show(365);                                 // the last 365 points in view
 
 - `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline, dots, marker })`:
   `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
-  `Uint8Array`, 1 at a point) stops the line after it; `tag`, its last value in view on the axis (to three
-  significant digits, from 1 to 10 three decimals, a whole number under a million all its digits: `tagValue` in tags.js; then written by `format`,
-  else as its side writes values); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
+  `Uint8Array`, 1 at a point) stops the line after it; `tag`, its last value in view on the axis (written by
+  `format`, else as its side writes values, given its axis's step there); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
@@ -119,7 +120,8 @@ chart.show(365);                                 // the last 365 points in view
   the view (bubbles' largest): its pane drawn whole then, its picture moved otherwise.
 - `Levels({ lines, side, format })`: lines across a pane at values (thresholds, a baseline's base), behind every
   series, each `{ value, color, width, dash, tag, hidden, faint }`, its value tagged on its side's axis where it asks
-  (written by `format`); `set({ lines })` or, a line changed in place, `changed()`; then `chart.invalidate(true)`.
+  (written by `format`, else as a scale writes values: by its axis's ticks); `set({ lines })` or, a line changed in
+  place, `changed()`; then `chart.invalidate(true)`.
 - Any series' `behind`: drawn behind every series, whatever their order (a backdrop: levels).
 - Any series' `faint`: drawn at a fifth of its opacity, its tag and price line gone (another lit over it); then
   `chart.invalidate(true)`.

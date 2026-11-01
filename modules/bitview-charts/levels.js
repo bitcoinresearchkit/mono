@@ -2,16 +2,17 @@
 // Lines across a pane at values, on its side's scale (a page's levels: a series' thresholds, a baseline's base): each
 // `{ value, color, width, dash, tag, hidden, faint }` (`dash`, its dashes: empty, solid), dashed where its dashes would be
 // on the timeline (a pan's moved picture has them where a whole draw does); its value tagged on its side's axis (`side`,
-// as it's added) in its color where it asks (`tag`), written by `format` (none: as it is); a faint one (a spotlight's)
+// as it's added) in its color where it asks (`tag`), written by `format` (none: as a scale writes values, by its ticks); a faint one (a spotlight's)
 // at FAINT, its tag gone. Behind every series (`behind`), never fitted (its scale reads what it marks) or hit. After a
 // change of its lines, `set` (or `changed()`), then the chart's invalidate(true).
 
 import { FAINT, periodOf } from "./line.js";
+import { compact } from "./format.js";
 
 /** @typedef {{ value: number, color: string, width?: number, dash?: number[], tag?: boolean, hidden?: boolean, faint?: boolean }} Level */
 
 export class Levels {
-  /** @param {{ lines?: Level[], side?: "right" | "left", format?: ((v: number) => string) | null }} [options] */
+  /** @param {{ lines?: Level[], side?: "right" | "left", format?: ((v: number, step?: number) => string) | null }} [options] */
   constructor({ lines = [], side = "right", format = null } = {}) {
     /** @type {Level[]} */
     this.lines = lines;
@@ -26,7 +27,7 @@ export class Levels {
     this.version = 0;
   }
 
-  /** @param {{ lines?: Level[], format?: ((v: number) => string) | null }} change */
+  /** @param {{ lines?: Level[], format?: ((v: number, step?: number) => string) | null }} change */
   set({ lines = this.lines, format = this.format }) {
     this.version++;
     (this.lines = lines), (this.format = format);
@@ -81,11 +82,13 @@ export class Levels {
   }
 
   /**
-   * Its lines' values on its axis (`side`: 0, the right; 1, the left), each in its color, where they ask.
+   * Its lines' values on its axis (`side`: 0, the right; 1, the left), each in its color, where they ask: written by its
+   * axis's ticks around them (`stepAt`), as every value on an axis is.
    * @param {number} side @param {(y: number, text: string, color: string) => void} add @param {import("./scale.js").Scale} scale
+   * @param {(v: number) => number} [stepAt]
    */
-  axisTags(side, add, scale) {
+  axisTags(side, add, scale, stepAt) {
     if ((this.side === "left" ? 1 : 0) !== side) return;
-    for (const line of this.lines) if (line.tag && !line.hidden && !line.faint) add(scale.y(line.value), this.format ? this.format(line.value) : String(line.value), line.color);
+    for (const line of this.lines) if (line.tag && !line.hidden && !line.faint) add(scale.y(line.value), (this.format ?? compact)(line.value, stepAt ? stepAt(line.value) : NaN), line.color);
   }
 }

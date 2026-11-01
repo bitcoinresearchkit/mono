@@ -24,7 +24,7 @@
  *   extent?: (a: number, b: number, positive: boolean, out: Float64Array) => void,
  *   first?: (i: number) => number,
  *   distance?: (i: number, y: number, scale: import("./scale.js").Scale, x: number) => number,
- *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: import("./scale.js").Scale) => void,
+ *   axisTags?: (side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: import("./scale.js").Scale, stepAt: (v: number) => number) => void,
  *   timeTags?: (add: (x: number, text: string, color: string, ink?: string) => void) => void,
  *   margins?: (spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean) => void,
  *   viewed?: (time: import("./timeline.js").Timeline) => void,
@@ -81,11 +81,13 @@ export class Custom {
   }
 
   /**
-   * Its own tags on its pane's axis on `side` (0, the right; 1, the left), that side's scale given.
+   * Its own tags on its pane's axis on `side` (0, the right; 1, the left), that side's scale given, and the step between
+   * its ticks around a value (a value written by them, as every one on an axis).
    * @param {number} side @param {(y: number, text: string, color: string, ink?: string) => void} add @param {import("./scale.js").Scale} scale
+   * @param {(v: number) => number} stepAt
    */
-  axisTags(side, add, scale) {
-    this.hooks.axisTags?.(side, add, scale);
+  axisTags(side, add, scale, stepAt) {
+    this.hooks.axisTags?.(side, add, scale, stepAt);
   }
 
   /** Told before each draw of its pane (its hook's). @param {import("./timeline.js").Timeline} time */

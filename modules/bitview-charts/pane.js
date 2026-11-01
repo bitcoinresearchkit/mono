@@ -13,7 +13,7 @@ import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
 import { solid, tint } from "./color.js";
-import { Tags, pill, PILL, tagValue } from "./tags.js";
+import { Tags, pill, PILL } from "./tags.js";
 import { painted } from "./recorder.js";
 
 /**
@@ -58,7 +58,7 @@ const TAG = PILL;
  *   overlay?: Scale | null,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
  *   margins?(spacing: number, out: Float64Array, time: import("./timeline.js").Timeline, positive: boolean): void,
- *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: Scale): void,
+ *   axisTags?(side: number, add: (y: number, text: string, color: string, ink?: string) => void, scale: Scale, stepAt: (v: number) => number): void,
  *   behind?: boolean,
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
@@ -121,14 +121,16 @@ export class Pane {
     // (How each side writes a value (its tags', but a line's own, and the crosshair's), and its ticks, all of them at
     // once (their digits alike; none, each as a value): 0, the right one's; 1, the left one's; 2 and 3, theirs as a
     // percent (an indexed scale's as its side's values are). Each slot's ticks as last written, and their words:
-    // written anew only when they change.)
-    const percent = kept((v) => `${compact(v)}%`);
+    // written anew only when they change; and as last drawn, a value on its axis written by the step between them.)
+    const percent = kept((v, step) => `${compact(v, step)}%`);
     this.labels = [kept(format), kept(format), percent, percent];
     /** @type {(((values: number[]) => string[]) | null)[]} */
     this.tickWriters = [null, null, null, null];
     this.tickValues = [new Float64Array(0), new Float64Array(0), new Float64Array(0), new Float64Array(0)];
     /** @type {string[][]} */
     this.tickTexts = [[], [], [], []];
+    this.drawnTicks = [new Float64Array(0), new Float64Array(0), new Float64Array(0), new Float64Array(0)];
+    this.drawnTickCounts = [0, 0, 0, 0];
     // (A relative scale's: each series' base, as fitted and as drawn: its picture moved only where each is the same.)
     this.bases = new Float64Array(4);
     this.drawnBases = new Float64Array(4);
@@ -468,27 +470,45 @@ export class Pane {
     return (scale.mode === "percent" ? 2 : 0) + (scale === this.left ? 1 : 0);
   }
 
-  /** A value as an axis writes it (the right one's, or `scale`'s). @param {number} v @param {Scale} [scale] */
-  axisLabel(v, scale = this.scale) {
-    return this.labels[this.#slot(scale)](v);
+  /**
+   * A value as an axis writes it (the right one's, or `scale`'s): on it (a tag, the crosshair's), by `step`, the step
+   * between its ticks around it (see stepAt); elsewhere, as it is.
+   * @param {number} v @param {Scale} [scale] @param {number} [step]
+   */
+  axisLabel(v, scale = this.scale, step = NaN) {
+    return this.labels[this.#slot(scale)](v, step);
   }
 
   /**
-   * How a side writes its values (`format`: its tags', but a line's own, and the crosshair's; an indexed scale's too)
-   * and its ticks (`ticks`: all of them at once, so their digits agree; none, each as a value).
-   * @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] @param {"right" | "left"} [side]
+   * The step between the ticks around `v` on `scale`'s axis (the right one's unless given), as last drawn: a linear
+   * scale's, its step; a log one's, its decade's or its top's. Fewer than two ticks, NaN.
+   * @param {number} v @param {Scale} [scale]
+   */
+  stepAt(v, scale = this.scale) {
+    const slot = this.#slot(scale), ticks = this.drawnTicks[slot], n = this.drawnTickCounts[slot];
+    if (n < 2) return NaN;
+    let k = 1;
+    while (k < n - 1 && ticks[k] < v) k++;
+    return Math.abs(ticks[k] - ticks[k - 1]);
+  }
+
+  /**
+   * How a side writes its values (`format`: its tags', but a line's own, and the crosshair's; an indexed scale's too;
+   * on its axis given the step between its ticks around one, see stepAt) and its ticks (`ticks`: all of them at once,
+   * so their digits agree; none, each as a value).
+   * @param {(v: number, step?: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] @param {"right" | "left"} [side]
    */
   setFormat(format, ticks = null, side = "right") {
     this.#write(side === "left" ? 1 : 0, format, ticks);
   }
 
-  /** How a percent scale (either side) writes its values and its ticks, as setFormat. @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] */
+  /** How a percent scale (either side) writes its values and its ticks, as setFormat. @param {(v: number, step?: number) => string} format @param {((values: number[]) => string[]) | null} [ticks] */
   setPercentFormat(format, ticks = null) {
     this.#write(2, format, ticks);
     this.#write(3, format, ticks);
   }
 
-  /** @param {number} slot @param {(v: number) => string} format @param {((values: number[]) => string[]) | null} ticks */
+  /** @param {number} slot @param {(v: number, step?: number) => string} format @param {((values: number[]) => string[]) | null} ticks */
   #write(slot, format, ticks) {
     this.labels[slot] = kept(format);
     this.tickWriters[slot] = ticks;
@@ -729,11 +749,16 @@ export class Pane {
     g.textAlign = side ? "right" : "left";
     let need = 0;
     const count = scale.ticks(this.axisTicks), at = side ? x + width - 8 : x + 8, slot = this.#slot(scale), texts = this.tickWriters[slot] ? this.#tickTexts(slot, count) : null;
+    // (Its ticks kept as drawn: a value on its axis written by the step between them, see stepAt.)
+    if (this.drawnTicks[slot].length < count) this.drawnTicks[slot] = new Float64Array(this.axisTicks.length);
+    this.drawnTicks[slot].set(this.axisTicks.subarray(0, count));
+    this.drawnTickCounts[slot] = count;
+    const stepAt = (/** @type {number} */ v) => this.stepAt(v, scale);
     // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
     // 4 pixels: one touching a tag reads cramped against it).)
     const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
     page.count = 0;
-    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale);
+    for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale, stepAt);
     // (Each where it's drawn: within the pane.)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     for (let k = 0; k < count; k++) {
@@ -908,8 +933,9 @@ export class Pane {
       // (Its pill against the plot, as wide as its words (too tight to read: its color alone).)
       const color = solid(line.colorAt(i));
       if (relative) scale.setBase(line.first(from));
-      // (Its value as a tag writes it, then in its writer's words: see tagValue.)
-      const words = relative ? this.axisLabel(tagValue(line.values[i] * scale.m + scale.c), scale) : (line.format ?? this.labels[side])(tagValue(line.values[i]));
+      // (Its value in its writer's words, by the step between its axis's ticks there: a decimal past theirs.)
+      const v = relative ? line.values[i] * scale.m + scale.c : line.values[i], by = this.stepAt(v, scale);
+      const words = relative ? this.axisLabel(v, scale, by) : (line.format ?? this.labels[side])(v, by);
       const look = tint(color);
       // (Against the plot, a tag's room tall: touching its neighbors, as one column with the lines' ends; 4 pixels from the
       // edge.)

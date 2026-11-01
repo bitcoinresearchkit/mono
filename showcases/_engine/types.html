@@ -46,11 +46,11 @@
       top.addBand({ lower: fast, upper: slow, color: "rgba(124, 154, 255, 0.16)" });
       top.addCandles({ open, high, low, close });
       top.addLine({ values: slow, colors: side, palette: ["#26a69a", "#ef5350"], width: 1.5 });
-      const bars = chart.addPane({ share: 1, format: (v) => `${compact(v)}%` });
+      const bars = chart.addPane({ share: 1, format: (v, step) => `${compact(v, step)}%` });
       bars.addBars({ values: change, colors: sign, palette: ["#26a69a", "#ef5350"] });
-      const distance = chart.addPane({ share: 1, format: (v) => `${compact(v)}%` });
+      const distance = chart.addPane({ share: 1, format: (v, step) => `${compact(v, step)}%` });
       distance.addBand({ upper: Float64Array.from(close, (v, i) => ((v - slow[i]) / slow[i]) * 100), color: "rgba(38, 166, 154, 0.35)", below: "rgba(239, 83, 80, 0.35)" });
-      const cycles = chart.addPane({ share: 1.4, scale: { mode: "log" }, format: (v) => `${compact(v)}×` });
+      const cycles = chart.addPane({ share: 1.4, scale: { mode: "log" }, format: (v, step) => `${compact(v, step)}×` });
       cycles.addLine({ values: rebased, breaks, color: "#f7931a", width: 1.5 });
       // (A series of the page's own: each halving a dashed line down the pane, drawn by its hook.)
       cycles.addCustom({

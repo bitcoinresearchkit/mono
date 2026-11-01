@@ -33,7 +33,7 @@ export { Marks } from "./marks.js";
 export { Levels } from "./levels.js";
 export { picture } from "./picture.js";
 export { Scale } from "./scale.js";
-export { compact } from "./format.js";
+export { compact, decimalsOf } from "./format.js";
 export { channels } from "./color.js";
 
 /** @type {import("./pane.js").Theme} */

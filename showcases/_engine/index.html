@@ -36,7 +36,7 @@
       chart.setTimes(times);
       const top = chart.addPane({ share: 1.4, scale: { mode: "log" } });
       top.addLine({ values: close, color: "#f7f8f8", width: 1.5, tag: true, priceLine: true });
-      const shares = chart.addPane({ share: 3, scale: { top: 0.02, bottom: 0.02 }, format: (v) => `${compact(v)}%` });
+      const shares = chart.addPane({ share: 3, scale: { top: 0.02, bottom: 0.02 }, format: (v, step) => `${compact(v, step)}%` });
       shares.setRange(0, 100);
       // (Each band filled between its lower edge and its own, under the lines; ?lines: the lines alone.)
       const hue = (k) => Math.round(25 + (295 * k) / (edges.length - 1)), floor = Float64Array.from(edges[0], (v) => (v === v ? 0 : NaN));

@@ -9,18 +9,6 @@ import { inkOn } from "./color.js";
 export const PILL = 18;
 
 /**
- * A value as a tag writes it: three significant digits (leading zeros not counted), a number from 1 to 10 three decimals,
- * a whole number under a million all its digits (77,443; 1,235; 89.0; 1.053; 0.961; 0.0795; 1.51M): as exact at every
- * size and every zoom, and short. The exact value is the legend's and the crosshair's.
- * @param {number} v
- */
-export function tagValue(v) {
-  const size = Math.abs(v), round = size >= 1000 && size < 1e6 ? Math.round(v) : size >= 1 && size < 10 ? Number(v.toFixed(3)) : size > 0 && size < Infinity ? Number(v.toPrecision(3)) : v;
-  // (One rounded past the largest number (1.80e+308): as it is.)
-  return round === round && Math.abs(round) < Infinity ? round : v;
-}
-
-/**
  * A pill (every tag and badge the chart draws: its series' and a page's on the axes, the crosshair's): `words` on
  * `color` in `ink`, as wide as its words and 6 pixels each side, `height` tall (its corners 4, less where it's lower), its
  * middle at `y`; its left at `x` (`align` "left"), its right ("right") or its middle ("center"). Too low to read (under

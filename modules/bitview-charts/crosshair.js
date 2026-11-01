@@ -117,10 +117,10 @@ export class Crosshair {
     // (Its value on its pane's axis, the tags it touches there covered with the ground: none shows cut beside it, as
     // no time label does by its date. Written as nothing (a page's writer for a pane showing nothing): no badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
-      const words = pane.axisLabel(pane.scale.value(this.y - pane.top));
+      const value = pane.scale.value(this.y - pane.top), words = pane.axisLabel(value, pane.scale, pane.stepAt(value));
       if (words) (g.fillStyle = theme.background), this.#cover(g, pane, 0, plot, this.width - left - plot), pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left");
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
-      const leftWords = pane.left && left ? pane.axisLabel(pane.left.value(this.y - pane.top), pane.left) : "";
+      const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
       if (leftWords) (g.fillStyle = theme.background), this.#cover(g, pane, 1, -left, left), pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
     }
     // (Its date on the time axis, its point's.)

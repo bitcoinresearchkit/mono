@@ -11053,7 +11053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -12289,14 +12289,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
        * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
        * room as the widest (PRECISE): thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
-       * 0.01234); millions and up, four digits and a letter (1.235M).
+       * 0.01234); millions and up, four digits and a letter (1.235M). On an axis (a tag, a level's, the crosshair's:
+       * `step`, the step between its ticks around it), by them: a decimal past theirs, in its letter's unit (89.0% by ticks
+       * 20% apart, 1.053 by 0.02, 20.1M by 2M), thousands whole as ever (77,546).
+       * @param {number} value @param {string} [suffix] @param {number} [step]
        */
-      function precise(value, suffix = "") {
-        const key = `p${value}${suffix}`, known = axisLabels.get(key);
+      function precise(value, suffix = "", step = NaN) {
+        const key = `p${value}|${suffix}|${step}`, known = axisLabels.get(key);
         if (known !== undefined) return known;
         if (axisLabels.size > 4000) axisLabels.clear();
-        // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
         const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
+        if (step > 0 && Math.round(abs) < 1e6 && abs < 999.95) {
+          const text = abs.toFixed(Math.min(20, decimalsOf(step) + 1));
+          if (text.length <= PRECISE.length) return axisLabels.set(key, `${Number(text) ? sign : ""}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
+        }
+        if (step > 0 && Math.round(abs) >= 1e6) {
+          let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3));
+          if (abs / 1000 ** tier >= 999.95 && tier < SI.length - 1) tier++;
+          const unit = 1000 ** tier, text = `${(abs / unit).toFixed(Math.min(20, decimalsOf(step / unit) + 1))}${SI[tier]}`;
+          if (text.length <= PRECISE.length) return axisLabels.set(key, `${sign}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
+        }
+        // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
         const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
         // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
         const lettered = (/** @type {number} */ n) => {
@@ -16245,10 +16258,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * past it: the margin over the top stays blank). (Its ticks short; its latest's tag and the crosshair's, a digit or
        * so more: see precise.)
        */
-      const VALUE_FORMAT = { value: (/** @type {number} */ value) => precise(value), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
-      const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
+      const VALUE_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => precise(value, "", step), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
+      const SHARE_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%", step)), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
       /** How a % or indexed scale writes its changes: in percent. */
-      const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
+      const PERCENT_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => precise(value, "%", step), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
       /** A folded pane's: nothing written (its layers all hidden, its scale held by hand still reads nothing). */
       const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => values.map(() => "") };
 
