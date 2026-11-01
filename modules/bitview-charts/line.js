@@ -227,6 +227,24 @@ const run = {
 /** A faint series' opacity (`faint`: another lit over it): a fifth, its tag and price line gone. */
 export const FAINT = 0.2;
 
+/**
+ * A line's pixel columns as #plain read them zoomed out (each by its points, `a` to `b`: its low and high and where
+ * they are; its first and last, its points' own), kept while its values and its scale's kind stay: a pan by whole
+ * pixels, or a refit of its scale alone, reads the same columns again, each in its slot by its place on the time axis
+ * (one a pan doesn't change; `size` of them, a power of two past the plot's width) and found there by its points (a
+ * column of other points read anew: a zoom). Only a column of one run (no point it can't go through).
+ */
+class Columns {
+  /** @param {number} size */
+  constructor(size) {
+    this.size = size;
+    (this.a = new Int32Array(size)), (this.b = new Int32Array(size)), (this.stamp = new Int32Array(size));
+    (this.lo = new Float64Array(size)), (this.hi = new Float64Array(size)), (this.loAt = new Int32Array(size)), (this.hiAt = new Int32Array(size));
+    /** Its slots' stamp now (one of another stamp, another version's: none); its line's version and scale's kind. */
+    (this.now = 1), (this.version = -1), (this.log = false);
+  }
+}
+
 export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
@@ -291,6 +309,8 @@ export class Line {
     this.summary = null;
     /** A dashed subpath of it written longer than DRIFT, never split: drawn whole as the view moves (till its values or look change). */
     this.drifts = false;
+    /** Its pixel columns as #plain last read them (see Columns), made once it's drawn zoomed out. @type {Columns | null} */
+    this.columns = null;
     this.setValues(values);
   }
 
@@ -414,13 +434,26 @@ export class Line {
     // from the scale's low end: no large terms cancelling.)
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, px = width / span;
+    // (Its columns as last read, while its values and its scale's kind stay.)
+    // (Made again, wider, for a plot wider than its slots.)
+    const size = 2 ** Math.ceil(Math.log2(Math.max(64, width + 4)));
+    if (!this.columns || this.columns.size < size) this.columns = new Columns(size);
+    const columns = this.columns, mask = columns.size - 1;
+    if (columns.version !== this.version || columns.log !== log) (columns.version = this.version), (columns.log = log), columns.now++;
+    const now = columns.now, cA = columns.a, cB = columns.b, cStamp = columns.stamp, origin = Math.round(from * px);
     // (Each column from where the last one ended: its start computed once.)
     let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width - NOISE);
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
       const end = Math.ceil(from + ((x + 1) * span) / width - NOISE), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
       start = end;
       pen.id = a;
-      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, firstAt = 0, lastAt = 0, i = a;
+      // (The same points as a column read before: its run as it was.)
+      const slot = (x + origin) & mask;
+      if (cStamp[slot] === now && cA[slot] === a && cB[slot] === b) {
+        this.#run(from, px, values[a], values[b], columns.lo[slot], columns.hi[slot], a, b, columns.loAt[slot], columns.hiAt[slot], bottom, k, ta, m, c, log);
+        continue;
+      }
+      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, firstAt = 0, lastAt = 0, i = a, clean = true;
       while (i <= b) {
         // (The largest clean block starting at i and ending by b: as large as i's alignment and what's left allow.)
         if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
@@ -451,10 +484,15 @@ export class Line {
           // (No value: the run so far written, the line broken.)
           if (first === first) this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log), (first = NaN), (lo = Infinity), (hi = -Infinity);
           pen.lift();
+          clean = false;
         }
         i++;
       }
-      if (first === first) this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log);
+      if (first === first) {
+        this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log);
+        // (Kept clean: its first and last its own end points.)
+        if (clean) (cStamp[slot] = now), (cA[slot] = a), (cB[slot] = b), (columns.lo[slot] = lo), (columns.hi[slot] = hi), (columns.loAt[slot] = loAt), (columns.hiAt[slot] = hiAt);
+      }
     }
   }
 
