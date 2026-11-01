@@ -17806,7 +17806,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {ChartPoint} param
        */
       function bandAt(param) {
-        const point = param?.point, pane = point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
+        const point = param?.point, pane = point && param.pane !== undefined ? chart.panes[param.pane] : undefined;
         if (!point || !pane || !keyedPane(pane) || !resolved || param.logical === undefined) return null;
         const stacked = stackOf(chart, resolved), at = Math.round(param.logical);
         // (Lines, not stacked: the one nearest the pointer at that date, a line's reach away at most.)
@@ -19142,14 +19142,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it's gone), its pane and its place there (`point`: x across the plot, y down the pane), whether a pointer put it
        * there (`input`), and the layer drawn under it (`layer`: the library's hit, a candle layer's close line or an
        * area's edge its own). Made from the library's crosshair and clicks.
-       * @typedef {{ point?: { x: number, y: number }, time?: number, logical?: number, paneIndex?: number, input: boolean, layer: string | null }} ChartPoint
+       * @typedef {{ point?: { x: number, y: number }, time?: number, logical?: number, pane?: number, input: boolean, layer: string | null }} ChartPoint
        */
       /** @param {number} index @param {number} pane @param {number} x @param {number} y @param {boolean} input @param {number} hit @returns {ChartPoint} */
       function chartPoint(index, pane, x, y, input, hit) {
         if (index !== index) return { input, layer: null };
         const line = hit >= 0 ? engine.panes[pane]?.series[hit] : null;
         const layer = !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? [...closes].find(([, close]) => close.series.engine === line || close.series.edge === line)?.[0] ?? null;
-        return { point: { x, y }, time: engine.time.times[index], logical: index, paneIndex: pane >= 0 ? pane : undefined, input, layer };
+        return { point: { x, y }, time: engine.time.times[index], logical: index, pane: pane >= 0 ? pane : undefined, input, layer };
       }
       /** @type {ChartPoint} */
       const NO_CROSS = { input: false, layer: null };
@@ -19196,8 +19196,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const profiles = heatLooks.size && !exporting ? profilesUnder(param) : [];
         // (A finger's kept where it is: on a profile's bars past the data, on the view's last day, the one they show.)
         const kept = time ?? (profiles.length && resolved ? resolved.times[lastShown()] ?? null : null);
-        if (fingers.size && param.point && kept !== null && param.paneIndex !== undefined && !tool && !placing) {
-          const series = [...drawn.values()].find((item) => !item.engine.hidden && seriesPane(item) === param.paneIndex), price = seriesValue(series, param.point.y);
+        if (fingers.size && param.point && kept !== null && param.pane !== undefined && !tool && !placing) {
+          const series = [...drawn.values()].find((item) => !item.engine.hidden && seriesPane(item) === param.pane), price = seriesValue(series, param.point.y);
           fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time: kept, series } : null;
         } else if (!param.point && fingerCross.at && !fingers.size) {
           const { price, time: at, series } = fingerCross.at, layer = layerOfSeries(series);
@@ -19220,7 +19220,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // stays under the pointer).)
         crossIn = Boolean(param.point);
         // (Where it is in its pane: a heatmap reads the price there, see heatReading.)
-        heatAt = param.point && param.paneIndex !== undefined ? { pane: param.paneIndex, y: param.point.y } : null;
+        heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
         if (heatLooks.size && heatAt) valuesSoon();
         // (The bar under it lit, the frontmost profile's.)
         const point = param.point;
@@ -19233,7 +19233,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its item kept in sight, a band's or a line's: not a line's under a finger swept across lines, the legend sliding
         // under it.)
         lightLegend(band ?? profileLit?.layer ?? (param.point ? param.layer : null), false, Boolean(band) || !fingers.size);
-        lightBubble(param.point ? time : null, param.paneIndex);
+        lightBubble(param.point ? time : null, param.pane);
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
@@ -22411,8 +22411,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * keys'. @param {ChartPoint} param @returns {Layer[]}
        */
       function profilesUnder(param) {
-        if (keyTime !== null || !param.point || param.paneIndex === undefined) return [];
-        const width = engine.time.width, pane = chart.panes[param.paneIndex];
+        if (keyTime !== null || !param.point || param.pane === undefined) return [];
+        const width = engine.time.width, pane = chart.panes[param.pane];
         if (param.point.x < width - 2 - profileWidth(width)) return [];
         const mine = chart.layers.filter((layer) => layer.type === "profile" && !layer.hidden && layer.pane === pane?.id);
         return pane?.reverse ? mine.reverse() : mine;
