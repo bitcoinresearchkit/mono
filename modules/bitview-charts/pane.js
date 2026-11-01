@@ -835,9 +835,9 @@ export class Pane {
    * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it
    * counted (as the chart library's were: they read the view's end, its strict range's, as a pan moves it; a price
    * line, its last of all; one with nothing in view, none),
-   * laid top to bottom where they'd overlap (none pushed past its axis' ends); more than its axis holds a tag's height
-   * apart, as many as it does, picked evenly through them (each in its line's color: which is which still read), the
-   * rest left out till there's room; on a relative scale, as it reads them.
+   * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
+   * its axis' foot where they run past it, one where lines meet (as the chart library laid them); on a relative scale,
+   * as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -872,16 +872,21 @@ export class Pane {
         const swap = order[j];
         (order[j] = order[j - 1]), (order[j - 1] = swap);
       }
-    // (More than fit a tag's height apart: as many as do, picked evenly top to bottom, every one readable; a pane too
-    // short for one, none.)
-    const room = this.height, m = n * TAG > room ? Math.floor(room / TAG) : n;
-    if (!m) return 0;
-    if (m < n) for (let j = 0; j < m; j++) order[j] = order[m === 1 ? 0 : Math.round((j * (n - 1)) / (m - 1))];
-    // (Top to bottom, each a tag below the one over it at least; then, past the foot, each back up.)
-    const step = TAG;
-    for (let k = 0; k < m; k++) at[k] = Math.max(ys[order[k]], k ? at[k - 1] + step : step / 2);
-    for (let k = m - 1; k >= 0; k--) at[k] = Math.min(at[k], k < m - 1 ? at[k + 1] - step : this.height - step / 2);
-    this.tagStep = step;
+    // (Top to bottom, each at its line, or just under the one over it where they'd overlap (as the chart library laid
+    // them): the first always at its line, each moving only as its own line or one over it does; past the axis' foot,
+    // cut off there (more under it, said), none starting under it. One where lines meet (an empty band's top on the next
+    // one's, lines past an edge). A pane too short for one, none.)
+    const top = TAG / 2, foot = this.height - TAG / 2;
+    this.tagStep = TAG;
+    if (foot < top) return 0;
+    let m = 0, last = NaN;
+    for (let k = 0; k < n; k++) {
+      const line = Math.min(Math.max(ys[order[k]], top), foot);
+      if (Math.abs(line - last) < 0.5) continue;
+      const y = m ? Math.max(line, at[m - 1] + TAG) : line;
+      if (y - TAG / 2 >= this.height) break;
+      (order[m] = order[k]), (at[m++] = y), (last = line);
+    }
     return m;
   }
 
