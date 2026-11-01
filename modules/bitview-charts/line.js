@@ -2,8 +2,8 @@
 // A line: its values as one column on the chart's timeline (a Float64Array, an index a time; NaN: none there, the line
 // broken), its color and width. Its values summed up by blocks of 4, 8, 16… points (its summary: a view's extremes,
 // and the lowest above zero a log scale's, read by its largest whole blocks). Drawn point to point where a point has a pixel or more; zoomed
-// out, each pixel column as its first, low, high and last values (as many points as the column holds, drawn as the eye
-// sees them). `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a
+// out, each pixel column as its low and high, in the order they came (as many points as the column holds, drawn as the
+// eye sees them). `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a
 // trend's flip, a stretch begun anew). `colors` (a Uint8Array or Uint16Array of indices into `palette`): each segment
 // in its first point's color.
 
@@ -179,13 +179,11 @@ const pen = {
 };
 
 /**
- * A pixel column's run of points (between gaps and breaks): its first, last, low and high, written to the pen as they
- * came, its low and high only past its first and last (two points a column: two segments); in its first point's
- * color, its last's on to the next.
+ * A pixel column's run of points (between gaps, breaks and changes of color): its low and high, written to the pen in
+ * the order they came, in its color (its first point's: one for the whole run); whether its last point breaks the line.
  */
 const run = {
   first: NaN,
-  last: NaN,
   lo: Infinity,
   hi: -Infinity,
   firstAt: 0,
@@ -198,28 +196,22 @@ const run = {
   /** @param {number} v @param {number} i */
   add(v, i) {
     if (this.first !== this.first) (this.first = v), (this.firstAt = i);
-    (this.last = v), (this.lastAt = i);
+    this.lastAt = i;
     if (v < this.lo) (this.lo = v), (this.loAt = i);
     if (v > this.hi) (this.hi = v), (this.hiAt = i);
   },
 
   /**
-   * Written, if it has points, each at its own point's x (see Line's #run); then begun again.
+   * Written, if it has points: its low and high in the order they came, each at its own point's x (see Line's #run), in
+   * its color, the line cut after it where its last point breaks it; then begun again.
    * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {Uint8Array | Uint16Array | null} colors @param {Uint8Array | null} breaks
    */
   end(time, scale, colors, breaks) {
-    const { first, last, lo, hi } = this;
-    if (first !== first) return;
-    const color = colors ? colors[this.firstAt] : 0;
-    pen.to(time.x(this.firstAt), scale.y(first), color, false);
+    if (this.first !== this.first) return;
+    const color = colors ? colors[this.firstAt] : 0, cut = breaks ? breaks[this.lastAt] === 1 : false, loFirst = this.loAt <= this.hiAt;
+    pen.to(time.x(loFirst ? this.loAt : this.hiAt), scale.y(loFirst ? this.lo : this.hi), color, false);
     pen.id = -1;
-    const low = lo < first && lo < last, high = hi > first && hi > last;
-    if (low && high && this.hiAt < this.loAt) pen.to(time.x(this.hiAt), scale.y(hi), color, false), pen.to(time.x(this.loAt), scale.y(lo), color, false);
-    else {
-      if (low) pen.to(time.x(this.loAt), scale.y(lo), color, false);
-      if (high) pen.to(time.x(this.hiAt), scale.y(hi), color, false);
-    }
-    pen.to(time.x(this.lastAt), scale.y(last), colors ? colors[this.lastAt] : 0, breaks ? breaks[this.lastAt] === 1 : false);
+    pen.to(time.x(loFirst ? this.hiAt : this.loAt), scale.y(loFirst ? this.hi : this.lo), color, cut);
     this.start();
   },
 };
@@ -229,7 +221,7 @@ export const FAINT = 0.2;
 
 /**
  * A line's pixel columns as #plain read them zoomed out (each by its points, `a` to `b`: its low and high and where
- * they are; its first and last, its points' own), kept while its values and its scale's kind stay: a pan by whole
+ * they are), kept while its values and its scale's kind stay: a pan by whole
  * pixels, or a refit of its scale alone, reads the same columns again, each in its slot by its place on the time axis
  * (one a pan doesn't change; `size` of them, a power of two past the plot's width) and found there by its points (a
  * column of other points read anew: a zoom). Only a column of one run (no point it can't go through).
@@ -452,10 +444,10 @@ export class Line {
       // (The same points as a column read before: its run as it was.)
       const slot = (x + origin) & mask;
       if (cStamp[slot] === now && cA[slot] === a && cB[slot] === b) {
-        this.#run(from, px, values[a], values[b], columns.lo[slot], columns.hi[slot], a, b, columns.loAt[slot], columns.hiAt[slot], bottom, k, ta, m, c, log);
+        this.#run(from, px, columns.lo[slot], columns.hi[slot], columns.loAt[slot], columns.hiAt[slot], bottom, k, ta, m, c, log);
         continue;
       }
-      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, firstAt = 0, lastAt = 0, i = a, clean = true;
+      let lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a, clean = true;
       while (i <= b) {
         // (The largest clean block starting at i and ending by b: as large as i's alignment and what's left allow.)
         if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
@@ -464,9 +456,7 @@ export class Line {
             const level = 31 - Math.clz32(size) - FIRST;
             if (level >= levels.length) continue;
             const at = levels[level], k = i >> (level + FIRST);
-            if (k >= at.first.length || (log ? at.low[k] : at.nan[k])) continue;
-            if (first !== first) (first = at.first[k]), (firstAt = i);
-            (last = at.last[k]), (lastAt = i + size - 1);
+            if (k >= at.lo.length || (log ? at.low[k] : at.nan[k])) continue;
             if (at.lo[k] < lo) (lo = at.lo[k]), (loAt = at.loAt[k]);
             if (at.hi[k] > hi) (hi = at.hi[k]), (hiAt = at.hiAt[k]);
             break;
@@ -478,45 +468,38 @@ export class Line {
         }
         const v = values[i];
         if (log ? v > 0 : v === v) {
-          if (first !== first) (first = v), (firstAt = i);
-          (last = v), (lastAt = i);
           if (v < lo) (lo = v), (loAt = i);
           if (v > hi) (hi = v), (hiAt = i);
         } else {
           // (No value: the run so far written, the line broken.)
-          if (first === first) this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log), (first = NaN), (lo = Infinity), (hi = -Infinity);
+          if (lo <= hi) this.#run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log), (lo = Infinity), (hi = -Infinity);
           pen.lift();
           clean = false;
         }
         i++;
       }
-      if (first === first) {
-        this.#run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log);
-        // (Kept clean: its first and last its own end points.)
+      if (lo <= hi) {
+        this.#run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log);
+        // (Kept clean: no gap in it.)
         if (clean) (cStamp[slot] = now), (cA[slot] = a), (cB[slot] = b), (columns.lo[slot] = lo), (columns.hi[slot] = hi), (columns.loAt[slot] = loAt), (columns.hiAt[slot] = hiAt);
       }
     }
   }
 
   /**
-   * A run written: its first, its low and high past its first and last in the order they came, its last, each at its
-   * own point's x (as Timeline.x: `from`, `px` pixels a point): a trend through a column drawn as one slope, not a stroke
-   * down the column and a step to the next (stairs, on a screen of two or three pixels a CSS pixel).
-   * @param {number} from @param {number} px @param {number} first @param {number} last @param {number} lo @param {number} hi
-   * @param {number} firstAt @param {number} lastAt @param {number} loAt @param {number} hiAt @param {number} bottom
-   * @param {number} k @param {number} ta @param {number} m @param {number} c @param {boolean} log
+   * A run written: its low and high in the order they came, each at its own point's x (as Timeline.x: `from`, `px`
+   * pixels a point): a trend through a column drawn as one slope, not a stroke down the column and a step to the next
+   * (stairs, on a screen of two or three pixels a CSS pixel). Its first and last points lie between them: two vertices a
+   * column, the fewest that keep its reach (each one's stroke costs: a stack of 25 lines zoomed out, a fifth of a frame).
+   * @param {number} from @param {number} px @param {number} lo @param {number} hi @param {number} loAt @param {number} hiAt
+   * @param {number} bottom @param {number} k @param {number} ta @param {number} m @param {number} c @param {boolean} log
    */
-  #run(from, px, first, last, lo, hi, firstAt, lastAt, loAt, hiAt, bottom, k, ta, m, c, log) {
-    pen.to((firstAt - from) * px, bottom - k * ((log ? Math.log10(first) : first * m + c) - ta), 0, false);
-    pen.id = -1;
-    const low = lo < first && lo < last, high = hi > first && hi > last;
-    // (Flat: its first and last written (the pen runs them as one segment), its plateau to its last point's x.)
-    if (low && high && hiAt < loAt) pen.to((hiAt - from) * px, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false), pen.to((loAt - from) * px, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
-    else {
-      if (low) pen.to((loAt - from) * px, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
-      if (high) pen.to((hiAt - from) * px, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false);
-    }
-    pen.to((lastAt - from) * px, bottom - k * ((log ? Math.log10(last) : last * m + c) - ta), 0, false);
+  #run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log) {
+    const loX = (loAt - from) * px, loY = bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta);
+    const hiX = (hiAt - from) * px, hiY = bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta);
+    // (Its first vertex the column's first for a dashed line's ruler (pen.id, see Line's #anchor), the rest none.)
+    if (loAt <= hiAt) pen.to(loX, loY, 0, false), (pen.id = -1), pen.to(hiX, hiY, 0, false);
+    else pen.to(hiX, hiY, 0, false), (pen.id = -1), pen.to(loX, loY, 0, false);
   }
 
   /**
@@ -707,7 +690,7 @@ export class Line {
       return;
     }
     if (!colors && !breaks) return this.#plain(time, scale, x0, x1);
-    // (Each pixel column's points as runs: its first, low, high and last; a point with no value ends a run and breaks
+    // (Each pixel column's points as runs: its low and high; a point with no value ends a run and breaks
     // the line there, in its column too; a break ends a run after its point. Columns at whole pixels of the view, their
     // points at whole indices: a view moved by whole pixels holds the same columns.)
     for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {

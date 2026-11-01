@@ -150,7 +150,7 @@ chart.show(365);                                 // the last 365 points in view
   (the canvas measures a subpath in single precision); so a pan's strip draws the dashes its moved picture has. A
   curved one's draws whole as the view moves, as does one a whole draw found unsplit over 2,048 pixels (its segments
   each about a multiple of its dashes' period: no gap to split in).
-- Zoomed out, a line's pixel column is drawn as its first, low, high and last values, read from its summary by blocks
+- Zoomed out, a line's pixel column is drawn as its low and high in the order they came, read from its summary by blocks
   of 4, 8, 16… points (a draw's work by its columns, not its points); a band's, as its last point (a gap found by an
   index, not a scan); bars' and candles', from their points.
 - Lines' ys on device pixels, a run at one y one segment; bevelled joins (half a round join's cost in Firefox).
