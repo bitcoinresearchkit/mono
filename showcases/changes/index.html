@@ -971,7 +971,7 @@
         if (!served.has(id)) served.set(id, fetch(`/api/series/${encodeURIComponent(id)}`).then((r) => r.ok, () => false));
         return /** @type {Promise<boolean>} */ (served.get(id));
       }
-      const seriesLink = (/** @type {string} */ id) => `<a href="/series/?series=${encodeURIComponent(id)}">${code(id)}</a>`;
+      const seriesLink = (/** @type {string} */ id) => `<a href="/catalog/?series=${encodeURIComponent(id)}">${code(id)}</a>`;
 
       let asked = 0;
       async function lookUp() {

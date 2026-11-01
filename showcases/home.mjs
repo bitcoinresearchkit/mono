@@ -129,8 +129,6 @@ const PICTURES = {
   stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
-  series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270] },
-  logs: { url: "/logs/", settle: 6000, cover: [280, 228, 400, 250] },
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);

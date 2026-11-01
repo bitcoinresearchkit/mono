@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
-    <script src="/assets/launch/launch.js" data-app="Series" data-color="#d4570a"></script>
+    <script src="/assets/launch/launch.js" data-app="Catalog" data-color="#d4570a"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." />
     <meta name="color-scheme" content="light dark" />
-    <title>Series · Bitview</title>
+    <title>Catalog · Bitview</title>
     <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
     <style>
       @font-face {
@@ -1439,7 +1439,7 @@
         // (After the columns: the series open, at the top what this is, else the room left.)
         main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : overviewHtml(root));
         fit();
-        document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Series · Bitview`;
+        document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Catalog · Bitview`;
         // (Each column where it was, its open row brought just into sight; new, its open row centered.)
         for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
           const rows = /** @type {HTMLElement} */ (column.querySelector("ul")), was = columnsScrolled.get(column.dataset.folder);
@@ -2007,7 +2007,7 @@
             </button></li>`;
           }).join("");
           $("found-none").hidden = names.length > 0;
-          document.title = `“${query}” · Series · Bitview`;
+          document.title = `“${query}” · Catalog · Bitview`;
           sayPicked();
         } catch (error) {
           if (signal.aborted || !document.getElementById("found")) return;

@@ -2220,7 +2220,7 @@
         </div>
         <div>
           <h3>Developers</h3>
-          <a href="/api/">API</a><a href="/changes/">Changes</a><a href="/openapi.json">OpenAPI</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pypi.org/project/bitview-client/">Python client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://crates.io/crates/bitview_client">Rust client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="/llms.txt">llms.txt</a><a href="https://mcp.bitview.space/">MCP server<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <a href="/api/">API</a><a href="/catalog/">Catalog</a><a href="/changes/">Changes</a><a href="/logs/">Logs</a><a href="/openapi.json">OpenAPI</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://pypi.org/project/bitview-client/">Python client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="https://crates.io/crates/bitview_client">Rust client<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><a href="/llms.txt">llms.txt</a><a href="https://mcp.bitview.space/">MCP server<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
         <div>
           <h3>Run your own</h3>
@@ -2294,15 +2294,15 @@
         { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/", made: "The daily price, Bedrock's floors, what young coins paid" },
         { id: "compass", kind: "Market", line: "Where the market stands, and which way it's heading.", href: "/compass/", made: "The price, and what long- and short-term holders paid" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
-        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/", made: "Bitview's catalogue of every series it computes" },
-        { id: "logs", kind: "Server", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
         { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "Bitview's series, blocks, addresses and mempool" },
+        { id: "catalog", name: "Catalog", line: "Every series, what it is and how to fetch it.", href: "/catalog/", made: "Bitview's catalog of every series it computes" },
         { id: "changes", name: "Changes", line: "Every release's notes, and every id it renamed or removed.", href: "/changes/", made: "Bitview's changelog, and each release's API against the one before it" },
         { id: "run", name: "Run your own", line: "Bitview on your own node.", href: "/dev/", made: "Your own Bitcoin Core node", copy: "cargo install --locked bitviewd" },
+        { id: "logs", name: "Logs", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
         { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
         { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
       ]);
@@ -2315,11 +2315,11 @@
         "/stack/": { "name": "Stack", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
         "/compass/": { "name": "Compass", "about": "Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." },
         "/calendar/": { "name": "Calendar", "about": "Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." },
-        "/series/": { "name": "Series", "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
-        "/logs/": { "name": "Logs", "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
         "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
+        "/catalog/": { "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/changes/": { "about": "What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." },
         "/dev/": { "about": "Bitview is an open-source Bitcoin data server that runs beside Bitcoin Core: about 1½ hours to a full index on a 16 GB Mac mini, 21,154 series, Studio, an HTTP API, generated clients and MCP." },
+        "/logs/": { "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
         "/brk/": { "about": "Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." },
       };
       /* /from the apps */
@@ -2528,8 +2528,10 @@
       /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
+        catalog: () => el("span", { className: "say" }, el("code", { className: "big catalog-count" }, "–"), el("span", { className: "small" }, "What each one is, and how to fetch it")),
         changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_2y_to_3y_old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
         run: () => el("span", { className: "say" }, el("code", { className: "big cmd" }, el("b", {}, "$"), " cargo install", el("br"), "--locked bitviewd"), el("span", { className: "small" }, "Linux · macOS · beside Bitcoin Core")),
+        logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
         mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · ChatGPT · any MCP client")),
       };
@@ -2947,9 +2949,9 @@
             refresh("trail");
           }, () => forget("trail")),
           counted ? null : read("/api/series/count").then((c) => {
-            facts.studio = facts.series = `<b>${grouped(c.distinct)}</b> series to chart`;
+            facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
             refresh("studio");
-            refresh("series");
+            document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
             counted = true;
           }, () => {}),
           rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`), () => {}),
