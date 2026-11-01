@@ -17236,7 +17236,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             (traced?.edge ?? traced?.engine)?.setStyle({ breaks: result.breaks ?? null });
             // (Bars below their base each in its second color, the rest in its own: two colors.)
             const tint = alpha(under, 0.75 * op), from = baseOf(layer), belowBase = !look && layer.type === "histogram" && layer.colors !== 1 && values.some((/** @type {number} */ value) => value < from);
-            const colored = look && !candles ? paletteOf(times.length, dated) : belowBase ? paletteOf(times.length, (i) => (values[i] < from ? tint : paint.color)) : null;
+            const colored = look && dated && !candles ? paletteOf(times.length, dated) : belowBase ? paletteOf(times.length, (i) => (values[i] < from ? tint : paint.color)) : null;
             const painted = colored && { series, ...colored, look: look ?? ((/** @type {string} */ c) => ({ color: c })) };
             if (painted) paintedLayers.set(layer.id, painted);
             if (!candles) paintSeries(series, painted);
@@ -17806,16 +17806,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {ChartPoint} param
        */
       function bandAt(param) {
-        const pane = param?.point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
-        if (!pane || !keyedPane(pane) || !resolved || param.logical === undefined) return null;
+        const point = param?.point, pane = point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
+        if (!point || !pane || !keyedPane(pane) || !resolved || param.logical === undefined) return null;
         const stacked = stackOf(chart, resolved), at = Math.round(param.logical);
         // (Lines, not stacked: the one nearest the pointer at that date, a line's reach away at most.)
         if (!pane.stack) {
           let near = null, off = PULL;
           const bands = bandsOf(pane);
           for (const layer of bands) {
-            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at], y = Number.isFinite(value) ? seriesY(drawn.get(layer.id), value) : null;
-            if (typeof y === "number" && Math.abs(y - param.point.y) <= off) (near = layer.id), (off = Math.abs(y - param.point.y));
+            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at] ?? NaN, y = Number.isFinite(value) ? seriesY(drawn.get(layer.id), value) : null;
+            if (typeof y === "number" && Math.abs(y - point.y) <= off) (near = layer.id), (off = Math.abs(y - point.y));
           }
           // (None that near: the series the chart finds under it, a candle's wick, a bar's body, a cloud's fill.)
           const under = param.layer;
@@ -17823,7 +17823,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         for (const layer of bandsOf(pane)) {
           // (Each on its own scale: a stack's left and right sides are stacked apart.)
-          const price = seriesValue(drawn.get(layer.id), param.point.y), made = stacked.get(layer.id), top = made ? made.values[at] : NaN, foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
+          const price = seriesValue(drawn.get(layer.id), point.y), made = stacked.get(layer.id), top = made ? made.values[at] : NaN, foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
           if (typeof price === "number" && Number.isFinite(top) && Number.isFinite(foot) && price >= Math.min(foot, top) && price <= Math.max(foot, top)) return layer.id;
         }
         return null;
@@ -18499,7 +18499,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { colors, palette };
       }
       /** No values (made once). */
-      const EMPTY = new Float64Array(0);
+      const EMPTY = /** @type {Float64Array} */ (new Float64Array(0));
       /**
        * A layer's standard series on the library: its line, band (an area's, a baseline's: its line along its edge,
        * `edge`, its tag and price line its), bars or candles (`engine`), on its pane's `side`.
@@ -20992,7 +20992,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.markOrder = "bottom";
           /** A trend's segments' ends, dotted (where one starts after a switch, or ends before one), as the series draws. @type {{ x: number, y: number, i: number }[]} */
           this.ends = [];
-          this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ ({ color: "", radius: 1.5 });
+          this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null, faint?: boolean }} */ ({ color: "", radius: 1.5 });
           /** Its axes' tags, found once a view (read again as the axes are drawn). @type {AxisTag[] | null} */
           this.priceTags = null;
           /** @type {AxisTag[] | null} */

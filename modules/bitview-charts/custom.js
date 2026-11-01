@@ -37,6 +37,10 @@ export class Custom {
     this.hooks = hooks;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
+    /** Drawn at a fifth of its opacity, its tags gone (another lit over it: see the pane's Series). */
+    this.faint = false;
+    /** A scale of its own (see the pane's Series), none: its side's. @type {import("./scale.js").Scale | null} */
+    this.overlay = null;
     /** What it draws holds its place as the view moves: its pane drawn whole each frame. */
     this.fixed = fixed;
     /** Drawn over everything, on its pane's layer over it, whole each frame. */

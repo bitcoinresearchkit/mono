@@ -40,6 +40,10 @@ export class Bubbles {
     this.most = 0;
     /** Not drawn, fitted or hit. */
     this.hidden = false;
+    /** Drawn at a fifth of its opacity, its tags gone (another lit over it: see the pane's Series). */
+    this.faint = false;
+    /** A scale of its own (see the pane's Series), none: its side's. @type {import("./scale.js").Scale | null} */
+    this.overlay = null;
     this.version = 0;
     this.setValues({ values, sizes });
   }
