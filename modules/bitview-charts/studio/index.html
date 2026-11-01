@@ -11052,8 +11052,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library, the copy's: bitview-charts behind the part of Lightweight Charts' API Studio uses.)
-      import * as LC from "/modules/bitview-charts/studio/lc.js";
-      import { Line, Band, Bars, Candles, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Candles, Marks, Levels, Custom, Scale, DARK, channels, FAINT, compact as libraryWords } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -11944,9 +11943,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
       /** Whether a layer has a series' look, its Type one of TYPES: none made from layers, placed on one, or a heatmap. @param {Layer} layer */
       const seriesLooked = (layer) => !layer.from && !placedOn(layer) && !heatLike(layer);
+      /** A line's dashes (a layer's `dash`, a drawing's): solid, dotted, dashed, long dashes, sparse dots. */
+      const LINE_STYLE = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
+      /** How a line runs between its points (a layer's `shape`): straight, in steps, curved. */
+      const LINE_TYPE = { Simple: 0, WithSteps: 1, Curved: 2 };
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
-      const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
-      const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
+      const SHAPES = [["straight", "Straight", LINE_TYPE.Simple], ["steps", "Steps", LINE_TYPE.WithSteps], ["curved", "Curved", LINE_TYPE.Curved]];
+      const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LINE_TYPE.Simple;
       /** A type's two colors, where it has two: what each is called. */
       const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], candles: ["Rising", "Falling"], trend: ["Resistance", "Support"], signal: ["Up", "Down"], bubbles: ["Above zero", "Below zero"] };
       /** Whether a signal has a down state (below 0) in what's drawn: its second color, the down one's, then offered. @param {Layer} layer */
@@ -11975,11 +11978,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @type {[number, string, number, number][]}
        */
       const DASHES = [
-        [LC.LineStyle.Solid, "Solid", 14, 0],
-        [LC.LineStyle.LargeDashed, "Long dashes", 6, 2],
-        [LC.LineStyle.Dashed, "Dashed", 3, 2],
-        [LC.LineStyle.Dotted, "Dotted", 2, 2],
-        [LC.LineStyle.SparseDotted, "Sparse dots", 2, 4],
+        [LINE_STYLE.Solid, "Solid", 14, 0],
+        [LINE_STYLE.LargeDashed, "Long dashes", 6, 2],
+        [LINE_STYLE.Dashed, "Dashed", 3, 2],
+        [LINE_STYLE.Dotted, "Dotted", 2, 2],
+        [LINE_STYLE.SparseDotted, "Sparse dots", 2, 4],
       ];
       const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
       /** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
@@ -15956,7 +15959,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         // (A heatmap's: no values a date (its days, many each, are drawn apart: see drawHeat), its measure's unit; the
-        // price's closes, its scale's (see heatView).)
+        // price's closes, its scale's (see Heat).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
         // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
         for (const layer of doc.layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
@@ -16271,11 +16274,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const face = [...document.fonts].find((face) => face.family.replace(/["']/g, "") === "Inter Chart");
         return Boolean(face && (await face.loaded));
       })().catch(() => false);
-      // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
-      // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
-      const view = LC.createChart($("chart"), { width: $("chart").clientWidth, height: $("chart").clientHeight });
-      /** The chart as the library has it (bitview-charts): its timeline (`engine.time`), its panes, its drawing. */
-      const engine = view.engine;
+      // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
+      // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
+      const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
       engine.theme = chartTheme();
       /** The right axis' width till it's drawn (then as its labels need: the library's), where a layer's on that side. */
       const RIGHT_AXIS = engine.axis;
@@ -16292,7 +16293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * given their data on them before the next frame (see LC's Chart.#sync).
        * @param {number[]} times
        */
-      const showTimes = (times) => ((line) => engine.time.times !== line && (engine.setTimes(line), view.changed()))(timelineOf(times));
+      const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
       /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
@@ -16367,7 +16368,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), (Object.assign(engine.element.style, { width: `${width}px`, height: `${height}px` }), engine.layout()), !sizeHeld && !exporting && fillBox());
       /** The chart drawn at a size, its stretch (the bars it shows across) kept as it was: see keepStretch. */
       const sizeKeeping = (/** @type {number} */ width, /** @type {number} */ height) => {
-        const was = (view.bvFlush(), shownSpan());
+        const was = (engine.render(true), shownSpan());
         sizeChart(width, height);
         keepStretch(was);
       };
@@ -16420,7 +16421,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // frame as long as a heavy chart takes); drawn at its end's width once the motion's over (releaseSize). Its height
         // too (full screen): drawn at its end's size first.)
         const later = across && Math.abs(end.height - chartSize.height) < 1;
-        const was = across && !later ? (view.bvFlush(), shownSpan()) : null;
+        const was = across && !later ? (engine.render(true), shownSpan()) : null;
         stretchDrawn(null);
         const width = later ? chartSize.width : end.width, height = end.height;
         // (Its height changing too (full screen): its prices held where they show as it's drawn at its end's size, then
@@ -16461,7 +16462,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const holding = pricesHeld, held = priceMarks(holding);
           releaseSize();
           // (Still that hold (not let go meanwhile: a press, a draw), its panes drawn as laid out first.)
-          if (held.length) requestAnimationFrame(() => run === motionsSized && pricesHeld === holding && (view.bvFlush(), holdPrices(held), letPricesGo()));
+          if (held.length) requestAnimationFrame(() => run === motionsSized && pricesHeld === holding && (engine.render(true), holdPrices(held), letPricesGo()));
         });
       }
       /** Each pane's box on the screen, top to bottom. */
@@ -16598,7 +16599,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitSpacing(chart, resolved.times.length, was);
         if (presetShown && !glideTarget) applyRange(chart, resolved);
         else if (was) showSpan(was);
-        view.bvFlush();
+        engine.render(true);
       }
       /** The chart following its box again (a window resized meanwhile, at once): what's laid out by its size, again. */
       function releaseSize() {
@@ -16642,7 +16643,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const BAR_CORNER = (/** @type {number} */ spacing) => (spacing < 4 ? 0 : Math.min(4, Math.max(1, spacing / 10)));
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
-      const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
       /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
       const built = new Map();
       /** The layers' order as last put in order (see build). */
@@ -16926,43 +16926,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * What each custom series (the page's own: clouds, shades, heatmaps, bubbles) was last set to, its rows, to tell rows
-       * set again from the same with older ones before them; its last point updated (a live tick), unknown. Only at
-       * a fine interval, the one that reaches back (elsewhere, rows kept would only take memory).
-       */
-      const rowsOf = /** @type {WeakMap<object, object[]>} */ (new WeakMap());
-      /** A series holding a layer's data, its data followed (see rowsOf). @param {any} series @returns {any} */
-      function tracked(series) {
-        const setData = series.setData.bind(series), update = series.update.bind(series);
-        series.setData = (/** @type {any[]} */ rows) => {
-          setData(rows);
-          // (By the chart being built: a look's, mid-switch, at the old interval.)
-          if (FINE.has(drawnDoc?.index ?? chart.index)) rowsOf.set(series, rows);
-          else rowsOf.delete(series);
-        };
-        series.update = (/** @type {any} */ row, /** @type {boolean | undefined} */ historical) => (rowsOf.delete(series), update(row, historical));
-        return series;
-      }
-      /**
-       * A layer's rows set: the ones its series has with older ones before them (the view reaching back at a fine
-       * interval): only those, put before them (the library converts them alone, what it had kept); else all, again.
-       * @param {any} series @param {any[]} rows
-       */
-      function setRows(series, rows) {
-        const was = rowsOf.get(series), extra = was ? rows.length - was.length : 0;
-        if (!was || extra <= 0 || !was.length || !sameRows(rows, extra, was)) return series.setData(rows);
-        series.bvPrepend(rows.slice(0, extra));
-        rowsOf.set(series, rows);
-      }
-      /** Whether `rows` from `at` on are `was`, field by field (a row's fields: a point's, a candle's, a color's). @param {any[]} rows @param {number} at @param {any[]} was */
-      function sameRows(rows, at, was) {
-        for (let k = 0; k < was.length; k++) {
-          const a = rows[at + k], b = was[k];
-          if (a.time !== b.time || a.value !== b.value || a.v !== b.v || a.y !== b.y || a.color !== b.color || a.open !== b.open || a.high !== b.high || a.low !== b.low || a.close !== b.close || a.lineColor !== b.lineColor || a.topColor !== b.topColor || a.bottomColor !== b.bottomColor || a.side !== b.side) return false;
-        }
-        return true;
-      }
-      /**
        * The signals' marks, each on its layer's series, where it turns up or down (and with its results, where a stretch
        * ends off; see changesOf: not at its first, nothing turned): all of a layer's in time's order. Those on a series let go of (`old`), or no
        * longer marked, cleared.
@@ -17102,20 +17065,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
-          const common = {
-            priceScaleId: layer.side,
-            visible: !layer.hidden && !signal,
-            priceFormat: shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT,
-          };
-          layerFormats.set(layer.id, common.priceFormat.formatter);
+          // (Its values written as its scale writes them: a 100% stack's in percent.)
+          const format = shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT;
+          layerFormats.set(layer.id, format.formatter);
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
           // (A standard series' look, the library's: shown or not; its value's tag reading the axis where it sits (a
           // stacked band's, its sum there, at its top: its own amount the legend's and the panel's); its line across; its
           // values' writer; edged in the card's color where it's outlined (over a heatmap, a cloud, another line).)
           const shown = !layer.hidden && !signal;
-          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: common.priceFormat.formatter, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
+          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.formatter, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
           // (Its line's: width, dashes (by its width as set), steps or curved, its crosshair dot.)
-          const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LC.LineType.WithSteps, curve: lineTypeOf(layer) === LC.LineType.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
+          const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
@@ -17143,8 +17103,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Drawn as before, the series as it was.)
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
-          /** Its series: the one kept, its look set anew (with what `also` adds), else made. @param {() => any} make @param {any} options */
-          const madeOrKept = (make, options, also = () => ({})) => (again ? (again.applyOptions({ ...lookOf(options), ...also() }), again) : tracked(make()));
           // (A standard one's: kept, or made, fitted as its stack is.)
           const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : null;
           const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting);
@@ -17160,12 +17118,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // whatever's on its side, or hidden, or how it's scaled).
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
             series = again ?? new Cloud(pane, layer.side, top && bottom && !cloudLayers(layer).length);
-            series.engine.hidden = !common.visible;
+            series.engine.hidden = !shown;
             series.style({ color: paint.color, top, bottom, midway: false, banded, bands: banded ? /** @type {string[]} */ (result?.memberIds).map((_, k) => paint[`band${k}`]) : [] });
           } else if (heatLike(layer)) {
-            // A heatmap: each day's URPD behind the lines (see heatView): no tag, no line across; nothing to its scale but
+            // A heatmap: each day's URPD behind the lines (see Heat): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
-            // don't count), the price's then (its closes, see heatView).
+            // don't count), the price's then (its closes, see Heat).
             // (Its reference kept while it's the same map: a rebuild during a block's refresh draws on, see drawHeat.)
             const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id), known = heatKnown(layer);
             if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
@@ -17180,9 +17138,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && !heatLike(other) && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
-            // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
-            const options = { ...common, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
-            series = madeOrKept(() => view.addCustomSeries(heatView(), options, pane), options, () => ({ heatTick: ++heatTicks }));
+            series = again ?? new Heat(pane, layer.side, layer.id);
+            series.engine.hidden = !shown;
+            series.alone = alone;
+            series.redraw();
             if (layer.type === "profile") profileShares(layer.id, series);
             // (Kept up with live only where drawn: see movePrice.)
             if (known) heatSeries.add(series);
@@ -17194,7 +17153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
             const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : shownSpan()) : 0;
             series = again ?? new Bubbles(pane, layer.side, !on);
-            series.engine.hidden = !common.visible;
+            series.engine.hidden = !shown;
             series.style({ up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "" });
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
@@ -17208,8 +17167,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             tintClose(layer.id);
           } else {
             const radius = dotRadius(layer.width), base = baseOf(layer);
-            // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see the facade's
-            // stack). An area's fill to the pane's foot, or its top where it's filled above its line.)
+            // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see
+            // stackBands). An area's fill to the pane's foot, or its top where it's filled above its line.)
             const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
               : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.lineColor }, band: { color: paint.topColor, fade: paint.bottomColor, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
               : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
@@ -17225,18 +17184,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = kept.get(layer.id);
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
-          if (heatLike(layer)) setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
+          if (heatLike(layer)) series.set(heatKnown(layer) ? Float64Array.from(data.times, (_, i) => result?.closes?.[i] ?? NaN) : EMPTY);
           // (Bubbles' sizes, each date's own value, and places, the value there of the layer they're on, as drawn (a
           // stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
           else if (!result?.values && again && before?.shown) {
-            series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Cloud ? series.set({ low: EMPTY, high: EMPTY }) : series.setData([]);
+            series instanceof Standard ? setColumn(series, EMPTY, false) : series.set({ low: EMPTY, high: EMPTY });
             const close = closes.get(layer.id);
             if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
           } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
             if (carried) paintedLayers.set(layer.id, carried);
-            linesAcross(layer, pane, common.priceFormat, op);
+            linesAcross(layer, pane, format, op);
           }
           else if (result?.values && signal && layer.place === "shade") {
             // (Its stretches: where it's up or down, to both its pane's edges; down, in its second color.)
@@ -17291,7 +17250,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const painted = colored && { series, ...colored, look: look ?? ((/** @type {string} */ c) => ({ color: c })) };
             if (painted) paintedLayers.set(layer.id, painted);
             if (!candles) paintSeries(series, painted);
-            linesAcross(layer, pane, common.priceFormat, op);
+            linesAcross(layer, pane, format, op);
           }
           drawn.set(layer.id, series);
         }
@@ -17329,8 +17288,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         markSignals(doc, data, drawn, old);
         for (const series of old) {
           heatSeries.delete(series), dropOwnLayers(series);
-          if (!(series instanceof Standard || series instanceof Bubbles || series instanceof Cloud)) view.removeSeries(series);
-          else ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
+          ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
         }
         while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(/** @type {any} */ (engine.panes.at(-1)));
         for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
@@ -17410,13 +17368,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (back && back.to - back.from >= 1) {
           const target = within(back, "to");
           showSpan(target);
-          view.bvFlush();
+          engine.render(true);
           showSpan(target);
           setPresetShown(false);
           if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         } else if (!visible || presetShown || onRange || linkOpen) {
           applyRange(doc, data);
-          view.bvFlush();
+          engine.render(true);
           applyRange(doc, data);
           setPresetShown(true);
           if (onRange || linkOpen) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
@@ -18941,6 +18899,82 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             settle();
             fill();
           }
+        }
+      }
+      /**
+       * A heatmap or a profile on the library (see drawHeat): each column a day's URPD, its rows on its pane's scale (see
+       * heatGrid). Zoomed out, a day in so many (a column `HEAT_COLUMN` pixels wide at least): each column is its block's
+       * last day, the days between never asked for. A day not come yet, the coarser one over it shows meanwhile: the map
+       * comes coarse, then sharpens. Drawn whole each frame (it keeps the days it draws, asks for those missing; a
+       * profile at the plot's edge). Its days the price's closes on the timeline (`closes`): fitted to them where it's
+       * alone on its scale (`alone`; the lines on it set it otherwise). Never hit.
+       */
+      class Heat {
+        /** @param {number} pane @param {"left" | "right"} side @param {string} id */
+        constructor(pane, side, id) {
+          this.side = side;
+          this.id = id;
+          this.alone = false;
+          this.closes = EMPTY;
+          /** Its closes as a line (in no pane): their extents by blocks, each frame. */
+          this.line = new Line();
+          /** Its days with a close (their places on the timeline, rising), each as drawn (its x): drawHeat's bars. @type {{ x: number, time: number }[]} */
+          this.bars = [];
+          this.places = new Int32Array(0);
+          /** What drawHeat reads: its bars, their spacing and those in view (`from` to `to`, of `bars`); the canvas, in device pixels. */
+          this.data = { bars: this.bars, barSpacing: 1, visibleRange: { from: 0, to: 0 } };
+          this.scope = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), mediaSize: { width: 0, height: 0 }, horizontalPixelRatio: 1, verticalPixelRatio: 1 };
+          /** The scale it's drawn on now, and a price's height on it (made once). */
+          this.scale = new Scale();
+          this.toY = (/** @type {number} */ price) => this.scale.y(price);
+          this.engine = new Custom(
+            {
+              draw: (g, at) => this.#draw(g, at.time, at.scale, at.dpr),
+              extent: (a, b, positive, out) => void (this.alone && this.line.extent(a, b, positive, out)),
+              first: (i) => this.line.first(i),
+            },
+            { fixed: true },
+          );
+          /** @type {any} */ (engine.panes[pane]).add(this.engine, side);
+        }
+
+        /** Its closes, on the timeline: its days those with one. @param {Float64Array} closes */
+        set(closes) {
+          this.closes = closes;
+          this.line.setValues(closes);
+          const bars = (this.bars = this.data.bars = []), places = (this.places = new Int32Array(closes.length));
+          let m = 0;
+          for (let i = 0; i < closes.length; i++) if (closes[i] === closes[i]) bars.push({ x: 0, time: i }), (places[m++] = i);
+          this.places = places.subarray(0, m);
+          this.redraw();
+        }
+
+        /** A date's close (the live price's, the timeline grown to it: the dates opened meanwhile empty). @param {number} at @param {number} close */
+        place(at, close) {
+          const closes = this.closes.length > at ? this.closes : ((out) => (out.set(this.closes), out))(new Float64Array(at + 1).fill(NaN));
+          closes[at] = close;
+          this.set(closes);
+        }
+
+        /** Drawn again at the next frame (its days in, a cohort pointed at, its look). */
+        redraw() {
+          this.engine.changed();
+          engine.invalidate();
+        }
+
+        /**
+         * Its days in view (and one past each edge) placed, drawn by drawHeat on the canvas in device pixels.
+         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} dpr
+         */
+        #draw(g, time, scale, dpr) {
+          const bars = this.bars, places = this.places, data = this.data, scope = this.scope;
+          const from = lowerBound(places, Math.floor(time.from - 1)), to = lowerBound(places, Math.ceil(time.to + 1) + 1);
+          for (let k = from; k < to; k++) bars[k].x = time.x(bars[k].time);
+          (data.barSpacing = time.spacing), (data.visibleRange.from = from), (data.visibleRange.to = to);
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          (scope.context = g), (scope.horizontalPixelRatio = scope.verticalPixelRatio = dpr), (scope.mediaSize.width = time.width), (scope.mediaSize.height = scale.height);
+          this.scale = scale;
+          drawHeat(scope, this.toY, data, heatLooks.get(this.id) ?? null);
         }
       }
       /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
@@ -20571,7 +20605,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const finite = (point) => Number.isFinite(point?.x) && Number.isFinite(point?.y);
 
       /** A line style's dashes, as the chart draws a series' (in widths). */
-      const dashesOf = (dash, width) => ({ [LC.LineStyle.Dotted]: [1, 1], [LC.LineStyle.Dashed]: [2, 2], [LC.LineStyle.LargeDashed]: [6, 6], [LC.LineStyle.SparseDotted]: [1, 4] })[dash]?.map((n) => n * width) ?? [];
+      const dashesOf = (dash, width) => ({ [LINE_STYLE.Dotted]: [1, 1], [LINE_STYLE.Dashed]: [2, 2], [LINE_STYLE.LargeDashed]: [6, 6], [LINE_STYLE.SparseDotted]: [1, 4] })[dash]?.map((n) => n * width) ?? [];
       /**
        * A line through points as drawn (a trend line, a path): to each in turn (those shown), its first and its last on past
        * them (each end its own) to the plot's edges, along its first stretch and its last.
@@ -22203,14 +22237,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const heatWants = new Map();
       let heatAsking = 0, heatPumping = false;
-      /** The heatmap series drawn, to draw again as days come (see heatSoon). @type {Set<any>} */
+      /** The heatmaps drawn, to draw again as days come (see heatSoon). @type {Set<Heat>} */
       const heatSeries = new Set();
-      let heatFrame = 0, heatTicks = 0;
+      let heatFrame = 0;
       /** Its series drawn again, once a frame, as days come. */
       const heatSoon = () => void (heatFrame ||= requestAnimationFrame(() => {
         heatFrame = 0;
-        heatTicks++;
-        for (const series of heatSeries) series.applyOptions({ heatTick: heatTicks });
+        for (const series of heatSeries) series.redraw();
         // (What it reads, the day come.)
         valuesSoon();
       }));
@@ -22401,27 +22434,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         pixels[at + 3] = Math.round(255 * look.opacity * (look.gradient ? Math.min(1, felt / HEAT_FADE) : felt));
       }
       /**
-       * A heatmap's custom series: each column a day's URPD, its rows on the pane's scale (see heatGrid). Zoomed out, a
-       * day in so many (a column `HEAT_COLUMN` pixels wide at least): each column is its block's last day, the days
-       * between never asked for. A day not come yet, the coarser one over it shows meanwhile: the map comes coarse, then
-       * sharpens. Its rows say nothing to its scale (the lines on it set it), unless it's alone there: then the price's
-       * (its rows the closes), as with it.
-       */
-      function heatView() {
-        /** @type {any} */
-        let data = null, options = {};
-        return {
-          renderer: () => ({
-            draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => drawHeat(scope, toY, data, heatLooks.get(options.heatId) ?? null)),
-          }),
-          update: (/** @type {any} */ next, /** @type {LC.CustomSeriesOptions} */ given) => ((data = next), (options = given)),
-          priceValueBuilder: (/** @type {any} */ row) => [row.close],
-          /** @param {any} row @returns {row is LC.CustomSeriesWhitespaceData<LC.Time>} */
-          isWhitespace: (row) => !Number.isFinite(row.close),
-          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", heatId: "", heatTick: 0 }),
-        };
-      }
-      /**
        * A heatmap's look (see heatLook), and as last drawn: whether it's been (`drawn`; `undrawable`, not two frames after
        * its chart was, see settle), the days a column holds (`step`), the days it showed and wanted (`keep`), its
        * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
@@ -22561,7 +22573,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const was = profileLit;
         if (was?.layer === hit?.layer && was?.cohort === hit?.cohort && was?.from === hit?.from && was?.to === hit?.to) return;
         profileLit = hit;
-        if (was?.layer !== hit?.layer || was?.cohort !== hit?.cohort) for (const id of new Set([was?.layer, hit?.layer])) if (id) drawn.get(id)?.applyOptions({ heatTick: ++heatTicks });
+        if (was?.layer !== hit?.layer || was?.cohort !== hit?.cohort) for (const id of new Set([was?.layer, hit?.layer])) if (id) drawn.get(id)?.redraw();
         paintProfileItems();
         valuesSoon();
       }
@@ -22737,7 +22749,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const was = heat.shares;
           if (was?.close === next?.close && was?.share === next?.share) return;
           heat.shares = next;
-          queueMicrotask(() => drawn.get(heat.id)?.applyOptions({ heatTick: ++heatTicks }));
+          queueMicrotask(() => drawn.get(heat.id)?.redraw());
         };
         heat.bars = undefined;
         if (!grid || !resolved || !heat.cohorts.length) return none();
@@ -32789,7 +32801,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * color in long dashes, a base gray in sparse dots.
        */
       const lineAt = (layer, key) => (key === "base" ? layer.baseLine ?? {} : layer.levels?.[Number(key)]);
-      const lineDefaults = (layer, key) => (key === "base" ? { color: "gray", dash: LC.LineStyle.SparseDotted } : { color: layer.color, dash: LC.LineStyle.LargeDashed });
+      const lineDefaults = (layer, key) => (key === "base" ? { color: "gray", dash: LINE_STYLE.SparseDotted } : { color: layer.color, dash: LINE_STYLE.LargeDashed });
       const lineLook = (layer, key) => ({ ...lineDefaults(layer, key), ...lineAt(layer, key) });
       /** Why a line's value on the axis can't be turned on, said one way everywhere. */
       const TAG_NEEDS_LINE = "Turn on the line to show its value on the axis";
@@ -38388,10 +38400,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             marginsSet = "";
             fitMargins();
             // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
-            view.bvFlush();
+            engine.render(true);
             exporting = false;
             // (A profile's bar pointed at, lit again: the picture's drew none.)
-            if (profileLit) drawn.get(profileLit.layer)?.applyOptions({ heatTick: ++heatTicks });
+            if (profileLit) drawn.get(profileLit.layer)?.redraw();
             lastBox = chartWidth();
             // (The crosshair set here, where it was: see crossHeld.)
             if (crossSet) holdCross();
@@ -38409,7 +38421,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // then would have lost the tap that allows it.)
           if (sized && wait) for (let round = 0; shownHeats().length; round++) {
             const asked = asPicture(() => {
-              view.takeScreenshot(true, false);
+              chartPicture(engine);
               Object.assign(extra, { wants: [...heatWants.values()].flat(), keys: new Set(shownHeats().flatMap((look) => [...(look.keep ?? [])])) });
               // (Those not in, nor failed: a failed one won't come.)
               return [...extra.keys].filter((key) => !heatDays.get(key)?.rows && !heatDays.get(key)?.failed);
@@ -38427,7 +38439,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             repaintDrawings();
             let shot;
             try {
-              shot = view.takeScreenshot(true, false);
+              shot = chartPicture(engine);
             } finally {
               capturing = false;
               repaintDrawings();
@@ -39912,9 +39924,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // What's drawn now (a build from it is the same timeline, not one that grew).
           drawnTimes = resolved.times;
           // (A heatmap's bars too, at the price now: its newest column drawn there, see drawHeat.)
-          for (const series of heatSeries) for (const time of added) series.update({ time, close: price });
+          for (const series of heatSeries) for (let k = 0; k < added.length; k++) series.place(resolved.times.length - added.length + k, price);
         }
-        const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1, time = data.times[at];
+        const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1;
         // The same price on the same data, for the same layers (as most polls bring): nothing to move.
         const key = `${idOf(data)}:${price}:${layers.map((layer) => layer.id).join()}`;
         if (key === liveLast) return;
@@ -39950,16 +39962,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (own && own.close.length > at) own.set(at, candle[0], candle[1], candle[2], value), engine.invalidate();
             else if (own) own.setValues(candleColumns(ohlc, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
           }
-          // (A heatmap's rows, the dates opened meanwhile empty. Bubbles' own below, with their places; a cloud's at the next
-          // build.)
-          const custom = series && !(series instanceof Standard || series instanceof Bubbles || series instanceof Cloud);
-          if (custom) for (const gap of added.slice(0, -1)) series.update({ time: gap });
+          // (Bubbles' own below, with their places; a heatmap's closes above; a cloud's at the next build.)
           data.results.set(layer.id, { ...result, values, ohlc });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
-          if (custom) series.update({ time, value });
-          else if (series instanceof Standard) liveColumn(series, values, at, value);
+          if (series instanceof Standard) liveColumn(series, values, at, value);
           // (Painted date by date: its point once every live value is in, from the colors as they are then.)
           if (paintedLayers.has(layer.id)) toPaint.push(layer.id);
           if (close) tintClose(layer.id);
