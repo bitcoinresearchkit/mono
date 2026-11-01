@@ -31,6 +31,7 @@ export { stack } from "./stack.js";
 export { Custom } from "./custom.js";
 export { Marks } from "./marks.js";
 export { Levels } from "./levels.js";
+export { Legend } from "./legend.js";
 export { picture } from "./picture.js";
 export { Scale } from "./scale.js";
 export { compact, decimalsOf } from "./format.js";
@@ -210,6 +211,7 @@ export class Chart {
     this.panes = this.panes.filter((each) => each !== pane);
     pane.canvas.remove();
     pane.frame.remove();
+    pane.legend?.remove();
     pane.axisCanvas.remove();
     pane.leftCanvas?.remove();
     pane.overCanvas?.remove();
@@ -486,6 +488,10 @@ export class Chart {
     for (let k = 0; k < this.panes.length; k++) this.panes[k].retag(crosshair.index, time, this.theme, this.dpr);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
+    // (Each legend pointed at the series read (the page's, else the one a pointer's on; none, the crosshair gone), its
+    // items made here read at its point, in this frame.)
+    const read = crosshair.index === crosshair.index ? (crosshair.pointed !== undefined ? crosshair.pointed : crosshair.hit) : null;
+    for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     this.placed = false;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {

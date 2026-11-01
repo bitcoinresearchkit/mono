@@ -66,6 +66,14 @@ chart.show(365);                                 // the last 365 points in view
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
   the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's
   scale's look, now and a left one made later), `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
+- `setLegend({ onPress })`: its legend, over its plot's top left (made once, returned): `set(items)`, each
+  `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;
+  else made from its first series: a key of its color, its `label`, its value at the crosshair or its last in view, as
+  its tag writes it). One shown, named; more, a chip (their first four keys and how many; a press on it told
+  `onPress`); the crosshair's series (`crosshair.pointed`, else the one a pointer's on) named alone in it. Hidden ones
+  left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
+  over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,
+  `data-named`, an item's `data-pointed`).
 
 ## Series
 

@@ -15,6 +15,7 @@ import { compact, kept } from "./format.js";
 import { solid, tint } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
 import { painted } from "./recorder.js";
+import { Legend } from "./legend.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -84,6 +85,8 @@ export class Pane {
      * A page's own element over its plot (a legend, a highlight), laid out with it, under the crosshair; it takes no
      * pointer (its children may).
      */
+    /** Its legend, once the page asks for one (see setLegend). @type {Legend | null} */
+    this.legend = null;
     this.frame = document.createElement("div");
     this.frame.style.cssText = "position: absolute; left: 0; top: 0; pointer-events: none";
     const g = this.canvas.getContext("2d", { alpha: false });
@@ -297,6 +300,34 @@ export class Pane {
       if (d < nearest) (nearest = d), (best = k);
     }
     return best;
+  }
+
+  /**
+   * Its legend, over its plot's top left (see Legend): made once, its items then set by the page; a press on its chip
+   * told `onPress`. @param {{ onPress?: (() => void) | null }} [options] @returns {Legend}
+   */
+  setLegend(options) {
+    this.legend ??= new Legend(this.frame, options);
+    if (options && "onPress" in options) this.legend.onPress = options.onPress ?? null;
+    return this.legend;
+  }
+
+  /**
+   * A series' value in its words, as its tag writes it: its side's writer (or its own), by the ticks there; on a
+   * relative scale, as it reads it (against its first value in view).
+   * @param {any} series @param {number} v @param {import("./timeline.js").Timeline} time
+   */
+  words(series, v, time) {
+    const k = this.series.indexOf(series), scale = k >= 0 ? this.scaleOf(k) : this.scale;
+    if (scale.relative) {
+      // (No base (none in view, or zero): no reading, as its tag has none.)
+      const base = series.first(this.#from(time));
+      if (!base || base !== base) return "";
+      scale.setBase(base);
+      const read = v * scale.m + scale.c;
+      return this.axisLabel(read, scale, this.stepAt(read, scale));
+    }
+    return (series.format ?? this.labels[k >= 0 && this.sides[k] ? 1 : 0])(v, this.stepAt(v, scale));
   }
 
   /** A series' scale: its own (an overlay's, the pane's height), else its side's. @param {number} k */
