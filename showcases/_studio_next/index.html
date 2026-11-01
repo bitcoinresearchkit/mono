@@ -12649,18 +12649,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * x over period `n` (its points where `periods` is n: halving_epoch's cycles, each point's year) from 1× at its first
        * value (not 0: one before there's any, none), the whole period from that one (a gap in it, as a Feb 29 a year's shift
        * leaves, doesn't start it again); moved by as many points as there are between period `n`'s first and period
-       * `at`'s, where `at` is given (its first past the data: all of it past it too).
+       * `at`'s, where `at` is given (its first past the data: all of it past it too), and then none where x has no value
+       * at the period's first point (laid over another, its 1× would be a later one's: the price's first cycle, from Jul
+       * 2010, over the second).
        * @param {Vector} x @param {Vector} periods @param {number} n @param {number | undefined} at
        */
+      /** A period's values left out for want of one at its start (see periodAlone): its layer says so. @type {WeakSet<Vector>} */
+      const unstarted = new WeakSet();
       function periodAlone(x, periods, n, at) {
         const own = new Float64Array(x.length).fill(NaN);
         let base = NaN;
-        for (let i = 0; i < x.length; i++) {
+        // (Moved onto another, a period begun late none: its 1× would be a later one's; where it is, from its first.)
+        const start = periods.indexOf(n), moved = at !== undefined && at !== n;
+        if (moved && (start < 0 || !Number.isFinite(x[start]) || !x[start])) return (start >= 0 && unstarted.add(own), own);
+        for (let i = Math.max(0, start); i < x.length; i++) {
           if (periods[i] !== n || !Number.isFinite(x[i])) continue;
           if (!base) base = x[i];
           own[i] = base ? x[i] / base : NaN;
         }
         if (at === undefined || at === n) return own;
+        if (unstarted.has(own)) return ((out) => (unstarted.add(out), out))(new Float64Array(x.length).fill(NaN));
         const firstOf = (/** @type {number} */ period) => ((i) => (i < 0 ? Infinity : i))(periods.findIndex((p) => p >= period));
         const by = firstOf(at) - firstOf(n), out = new Float64Array(x.length).fill(NaN);
         if (!Number.isFinite(by)) return out;
@@ -12764,16 +12772,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Each stretch of `x` over its first value (from 1): a gap in `x` starts another, and with `by`, a change of by's
        * value (none of by's, no change); each after the first marked (see restarts: the chart's line drawn across a gap
-       * too). Values of 0 first (a price before there was one), none: it starts at the next.
+       * too). Values of 0 first (a price before there was one), none: it starts at the next. With `by` and `moved` (x a
+       * period shifted onto another), a period with no value at its first point, none: laid over another, its 1× would
+       * be a later one's (the price's first cycle, from Jul 2010, over the second); where it is, it's drawn from its first.
        * @param {Vector} x @param {Vector | null} by
        */
-      function rebaseOf(x, by) {
+      function rebaseOf(x, by, moved = false) {
         const out = new Float64Array(x.length).fill(NaN);
-        let base = NaN, was = NaN, last = -1, marks = /** @type {Uint8Array | null} */ (null);
+        let base = NaN, was = NaN, last = -1, marks = /** @type {Uint8Array | null} */ (null), whole = true;
         for (let i = 0; i < x.length; i++) {
           // (By's changes followed through x's gaps too: one there starts the stretch after it, once.)
           const key = by ? by[i] : NaN, changed = key === key && was === was && key !== was;
+          // (A period begun (by's first, or a change of it): whole only with a value at its start.)
+          if (key === key && (changed || was !== was)) whole = Number.isFinite(x[i]) && x[i] !== 0;
           if (key === key) was = key;
+          if (moved && by && !whole) continue;
           if (!Number.isFinite(x[i])) {
             base = NaN;
             continue;
@@ -13015,6 +13028,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return into;
       }
       /** Whether a formula shifts by halvings somewhere (shift(A, 1halving)). @param {any} node @returns {boolean} */
+      /** Whether a formula shifts anywhere in it (rebase(shift(A, 1halving) * 2, halving_epoch): a moved series). @param {any} node @returns {boolean} */
+      const shifts = (node) =>
+        node?.k === "call" ? node.f === "shift" || node.args.some(shifts) : node?.k === "neg" ? shifts(node.a) : node?.k === "bin" ? shifts(node.a) || shifts(node.b) : false;
       const shiftsByHalvings = (node) =>
         node?.k === "call" ? (node.f === "shift" && shiftSpan(node.args[1])?.unit === "halving") || node.args.some(shiftsByHalvings) : node?.k === "neg" ? shiftsByHalvings(node.a) : node?.k === "bin" ? shiftsByHalvings(node.a) || shiftsByHalvings(node.b) : false;
       /** The series a formula reads without naming them: halving()'s cycles, a shift's by halvings. @returns {string[]} */
@@ -13143,7 +13159,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (node.f === "when") return lift(args[0], args[1], (x, holds) => (holds && Number.isFinite(holds) ? x : NaN));
             // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
             if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-            if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]));
+            // (A shifted series rebased by period (one period laid over another): a period begun late left out there.)
+            if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]), shifts(node.args[0]));
             // (A halving cycle or a year alone, from 1× at its start: where it is, or moved to start where another does.)
             if (node.f === "halving" || node.f === "year") {
               const cycles = node.f === "halving", [least, says] = PERIODS_TAKEN[node.f];
@@ -16089,7 +16106,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // its other side).)
             // (The layers it reads with no value anywhere, named: what it lacks is theirs.)
             const blanks = [...refsOf(node)].filter((letter) => ((target) => target && target !== layer && target.type !== "cloud" && computed(target)?.blank)(byLetter.get(letter)));
-            if (!FINE.has(doc.index) && !values.some(Number.isFinite)) return { blank: new Float64Array(values.length).fill(NaN), unit, ...(blanks.length ? { error: `${blanks[0]} has no data`, detail: `${blanks.join(", ")} ${blanks.length > 1 ? "have" : "has"} no value at any date` } : { error: "No values", detail: "It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere" }) };
+            if (!FINE.has(doc.index) && !values.some(Number.isFinite)) return { blank: new Float64Array(values.length).fill(NaN), unit, ...(blanks.length ? { error: `${blanks[0]} has no data`, detail: `${blanks.join(", ")} ${blanks.length > 1 ? "have" : "has"} no value at any date` } : unstarted.has(values) ? { error: "Not from its start", detail: "What it reads begins later in this period, so it can't be read from 1× at the period's start" } : { error: "No values", detail: "It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere" }) };
             const breaks = ((marks) => marks && breaksAt(values, marks))(restarts.get(values));
             return { values, unit, ...(breaks ? { breaks } : {}) };
           });
@@ -33059,8 +33076,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * A layer's halving cycles (halving(A, n), each mined, named by its years) or its years (year(A, y), from the first
-       * it has values in as drawn, else the genesis block's, to this one): each from its start at 1×. `over`: instead,
+       * A layer's halving cycles (halving(A, n), each mined, named by its years) or its years (year(A, y)), from the first
+       * it has a value at the start of, as drawn (else the genesis block's), to this one: each from its start at 1×. `over`: instead,
        * this one over the ones before it, all of history (rebase(shift(A, 1halving), halving_epoch): at each start, the
        * one before from its start, each line broken where it starts anew), as far back as it has values whole, three at
        * most (more cross into a tangle), the oldest first.
@@ -33069,17 +33086,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function periodsOf(layer, which, over = false) {
         const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear(), cycles = which === "cycles";
         const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, first = resolved && at >= 0 ? resolved.times[at] : GENESIS;
+        // (Laid over each other, whole ones alone: those it has a value at the first point of, as rebase reads a moved
+        // one (one begun later has no 1× at its start), a week's or a month's first point in it too. Each a period's
+        // start and its next's; years not before the first year() takes: a week's or a month's first point can be dated
+        // before the genesis block.)
+        const times = resolved?.times ?? [], whole = (/** @type {number} */ start, /** @type {number} */ end) => {
+          const i = lowerBound(times, start);
+          // (Its first point the period's own: the timeline reaching back to its start (it begins where the data does).)
+          return values !== undefined && i < times.length && times[i] < end && (i > 0 || times[0] <= start) && Number.isFinite(values[i]) && values[i] !== 0;
+        };
+        const now = year(Date.now() / 1000), from = Math.max(PERIODS_TAKEN.year[0], year(first));
+        const starts = cycles ? [GENESIS, ...minedHalvings()] : Array.from({ length: now - from + 2 }, (_, k) => Date.UTC(from + k, 0, 1) / 1000);
+        const periods = starts.slice(0, cycles ? starts.length : -1).map((start, n) => ({ n, start, whole: whole(start, starts[n + 1] ?? Infinity) }));
         if (over) {
-          const now = year(Date.now() / 1000), whole = cycles ? [GENESIS, ...minedHalvings()].filter((start) => start >= first).length : now - year(first) + (first <= Date.UTC(year(first), 0, 1) / 1000 ? 1 : 0);
-          // (None whole before this one: nothing to lay it over.)
-          const before = Math.min(whole - 1, 3), [unit, by, what] = cycles ? ["halving", "halving_epoch", "cycle"] : ["y", "year", "year"];
+          // (The ones whole before this one, back to the first that isn't: three at most (more cross into a tangle); none,
+          // nothing to lay it over.)
+          let before = 0;
+          // (This one whole itself: one begun with no value has nothing over the others.)
+          if (periods.at(-1)?.whole) while (before < 3 && before + 1 < periods.length && periods[periods.length - 2 - before].whole) before++;
+          const [unit, by, what] = cycles ? ["halving", "halving_epoch", "cycle"] : ["y", "year", "year"];
           if (before < 1) return [];
           return Array.from({ length: before + 1 }, (_, i) => ((k) => ({ formula: k ? `rebase(shift(${layer.letter}, ${k}${unit}), ${by})` : `rebase(${layer.letter}, ${by})`, label: k ? `${k} ${what}${k > 1 ? "s" : ""} before` : `This ${what}` }))(before - i));
         }
-        if (cycles) return ((starts) => starts.map((start, n) => ({ formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` })))([GENESIS, ...minedHalvings()]);
-        // (Not before the first year year() takes: a week's or a month's first point can be dated before the genesis block.)
-        const from = Math.max(PERIODS_TAKEN.year[0], year(first));
-        return Array.from({ length: year(Date.now() / 1000) - from + 1 }, (_, k) => ({ formula: `year(${layer.letter}, ${from + k})`, label: String(from + k) }));
+        // (Side by side, each where it is: those it has values in, one begun late drawn from its first.)
+        const any = (/** @type {number} */ start, /** @type {number} */ end) => {
+          for (let i = lowerBound(times, start); i < times.length && times[i] < end; i++) if (values && Number.isFinite(values[i])) return true;
+          return false;
+        };
+        return periods.filter(({ n, start }) => any(start, starts[n + 1] ?? Infinity)).map(({ n, start }) => (cycles ? { formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` } : { formula: `year(${layer.letter}, ${from + n})`, label: String(from + n) }));
       }
       /** Why there's nothing to lay over each other: no whole one before this one, by the layer's values. @param {"cycles" | "years"} which */
       const overShort = (which) => (which === "cycles" ? "No whole halving cycle before this one" : "No whole year before this one");
