@@ -17885,11 +17885,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const html = (pane?.stack && pane.reverse ? mine.reverse() : mine).map(item).join("");
           // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
           // marks it, see markLegends).)
+          let focus = null;
           if (legendShown.get(element) !== html) {
             legendShown.set(element, html);
-            const focus = focusKey(element);
+            focus = focusKey(element);
             element.innerHTML = html;
-            restoreFocus(element, focus);
           }
           // (Its items the library's to lay, each time (a layer's series made anew, its words the same): each layer's
           // button (a profile's key beside it), the series it's read on.)
@@ -17898,6 +17898,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const id = /** @type {string} */ (button.dataset.select), own = drawn.get(id), close = closes.get(id);
             return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("profile-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [own?.engine, own?.edge, close?.series.engine, close?.candles.engine].filter(Boolean), hidden: button.classList.contains("hidden") };
           }));
+          // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
+          restoreFocus(element, focus);
         }
         markLegends();
         paintProfileItems();
@@ -23572,8 +23574,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const active = document.activeElement;
         return active instanceof HTMLElement && container.contains(active) ? keyOf(active) : null;
       }
-      /** What finds an element's like once it's drawn again: its id, or its tag and data. @param {HTMLElement} element */
-      const keyOf = (element) => ({ tag: element.tagName, id: element.id, data: Object.entries(element.dataset).filter(([name]) => name !== "tip" && name !== "kbd") });
+      /**
+       * What finds an element's like once it's drawn again: its id, or its tag and data (not what marks it for a moment:
+       * a tip, a key; a legend item named (pointed), a profile's group lit). @param {HTMLElement} element
+       */
+      const keyOf = (element) => ({ tag: element.tagName, id: element.id, data: Object.entries(element.dataset).filter(([name]) => !["tip", "kbd", "pointed", "lit"].includes(name)) });
       function restoreFocus(container, key) {
         if (!key || container.contains(document.activeElement)) return;
         const find = () => (key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value)));
