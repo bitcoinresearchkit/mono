@@ -492,7 +492,7 @@ export class Chart {
      * right end) at `held` of the plot's width, the press's x in the plot `at`). Scaled once the press has moved as far
      * as a click can't (a click on a tag scales nothing).
      */
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null }>} */ (new Map());
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null }>} */ (new Map());
     let held = -1;
     // (Two fingers down in this gesture: its end no click.)
     let twoFingers = false;
@@ -562,6 +562,16 @@ export class Chart {
       const a = log ? Math.log10(axis.a) : axis.a, b = log ? Math.log10(axis.b) : axis.b, middle = (a + b) / 2, half = ((b - a) / 2) * k;
       pane.setRange(log ? 10 ** (middle - half) : middle - half, log ? 10 ** (middle + half) : middle + half, axis.side);
     };
+    /**
+     * A pane's scales set by hand (an axis dragged) slid with a drag `dy` CSS pixels down, as the time axis is with it
+     * across (a fitted one fits the view as ever; a relative one reads its bases): its values follow the pointer.
+     * @param {Pane} pane @param {number} dy
+     */
+    const slide = (pane, dy) => {
+      if (!dy) return;
+      for (const [scale, side, auto] of /** @type {const} */ ([[pane.scale, "right", pane.auto], [pane.left, "left", pane.leftAuto]]))
+        if (scale && !auto && !scale.relative && !scale.empty) pane.setRange(scale.value(scale.y(scale.lo) - dy), scale.value(scale.y(scale.hi) - dy), side);
+    };
     // (A price axis' last click or tap: when, where and which, for a second one on it (a double-click, a double tap: iOS
     // sends no dblclick) fitting it again; forgotten at any release that isn't a click.)
     let tapAt = -Infinity, tapX = 0, tapY = 0, tapPane = /** @type {Pane | null} */ (null), tapSide = "";
@@ -580,7 +590,7 @@ export class Chart {
       const y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, event.pointerType === "touch");
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.glide.speed = 0), this.setCrosshair(NaN));
       const touch = event.pointerType === "touch", box = element.getBoundingClientRect();
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis: down.size ? null : axisAt(event.clientX - box.left, y) });
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis: down.size ? null : axisAt(event.clientX - box.left, y), pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null });
       this.glide.speed = 0;
       trailSize = 0;
       clearTimeout(this.holding);
@@ -639,6 +649,7 @@ export class Chart {
       }
       if (down.size === 1) {
         time.pan(event.clientX - at.x);
+        if (at.pane) slide(at.pane, event.clientY - at.y);
         trail[trailEnd] = event.clientX;
         trailAt[trailEnd] = event.timeStamp;
         trailEnd = (trailEnd + 1) % trail.length;
@@ -749,6 +760,8 @@ export class Chart {
 
   /** A click at a pointer's place: its point, pane and series told to the click's listeners. @param {PointerEvent} event */
   #click(event) {
+    // (None listening: nothing to find.)
+    if (!this.clickListeners.length) return;
     const box = this.element.getBoundingClientRect(), x = event.clientX - box.left - this.left, y = event.clientY - box.top, n = this.time.length;
     const index = n && x >= 0 && x <= this.time.width ? Math.min(Math.max(Math.round(this.time.index(x)), 0), n - 1) : NaN;
     let pane = -1, series = -1;
