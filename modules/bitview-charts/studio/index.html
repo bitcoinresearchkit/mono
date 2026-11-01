@@ -18806,8 +18806,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.closes = EMPTY;
           /** Its closes as a line (in no pane): their extents by blocks, each frame. */
           this.line = new Line();
-          /** The canvas drawHeat draws on, in device pixels. */
-          this.scope = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), mediaSize: { width: 0, height: 0 }, horizontalPixelRatio: 1, verticalPixelRatio: 1 };
+          /** The plot drawHeat draws on (see HeatPlot). @type {HeatPlot} */
+          this.plot = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), width: 0, height: 0, dpr: 1 };
           /** The scale it's drawn on now, and a price's height on it (made once). */
           this.scale = new Scale();
           this.toY = (/** @type {number} */ price) => this.scale.y(price);
@@ -18847,11 +18847,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} dpr
          */
         #draw(g, time, scale, dpr) {
-          const scope = this.scope;
+          const plot = this.plot;
           g.setTransform(1, 0, 0, 1, 0, 0);
-          (scope.context = g), (scope.horizontalPixelRatio = scope.verticalPixelRatio = dpr), (scope.mediaSize.width = time.width), (scope.mediaSize.height = scale.height);
+          (plot.context = g), (plot.width = time.width), (plot.height = scale.height), (plot.dpr = dpr);
           this.scale = scale;
-          drawHeat(scope, this.toY, time, this.closes, heatLooks.get(this.id) ?? null);
+          drawHeat(plot, this.toY, time, this.closes, heatLooks.get(this.id) ?? null);
         }
       }
       /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
@@ -22307,6 +22307,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, bars?: { edges: number[], starts: number[], sums: Float64Array, count: number, most: number, width: number, right: number, ids: string[] }, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
+       * The plot a heatmap or a profile is drawn on: its canvas's context, in device pixels; its size (CSS pixels); the
+       * device pixels a CSS pixel.
+       * @typedef {{ context: CanvasRenderingContext2D, width: number, height: number, dpr: number }} HeatPlot
+       */
+      /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
        * library merges field by field: its days, thousands, would be gone through at each change).
        * @type {Map<string, HeatLook>}
@@ -22468,22 +22473,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A heatmap's columns in view (and one past each edge): each date's day (`g`, by its place on the timeline; a date
        * without a close (`closes`), none: its day's count from the first; `days`, each one's date), a block of `step` days
        * drawn as its last day's (the coarser block's while it hasn't come); the days missing, wanted (the coarsest first).
-       * @param {any} scope @param {(price: number) => number | null} toY @param {import("/modules/bitview-charts/timeline.js").Timeline} time
+       * @param {HeatPlot} plot @param {(price: number) => number | null} toY @param {import("/modules/bitview-charts/timeline.js").Timeline} time
        * @param {Float64Array} closes @param {HeatLook | null} heat
        */
-      function drawHeat(scope, toY, time, closes, heat) {
+      function drawHeat(plot, toY, time, closes, heat) {
         const grid = heat?.grid;
         if (!heat) return;
         // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
         heat.drawn = true;
         if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
-        if (heat.kind === "profile") return drawProfile(scope, toY, heat);
+        if (heat.kind === "profile") return drawProfile(plot, toY, heat);
         // (Nothing drawn: nothing wanted, nothing kept for it.)
         const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
         if (!grid || !resolved) return none();
         // (The timeline's days as it is now: a live tick's new bar its own.)
         Object.assign(heat, heatCalendar(resolved.times));
-        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+        const { context, height, dpr } = plot;
         // (Its dates in view with a close, the edges' partly in view among them and one past each.)
         let from = -1, to = -1, count = 0;
         for (let i = Math.max(0, Math.floor(time.from - 1)), b = Math.min(closes.length - 1, Math.ceil(time.to + 1)); i <= b; i++) if (closes[i] === closes[i]) (from < 0 && (from = i)), (to = i), count++;
@@ -22527,13 +22532,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!shown) want(ownerAt(owner, step * 16), step * 16);
           if (!shown || !shown.day.rows.length) return;
           if (!reference) return;
-          const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * h), w = Math.max(1, Math.round(x1 * h) - x);
+          const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * dpr), w = Math.max(1, Math.round(x1 * dpr) - x);
           const top = toY(strip.top), bottom = toY(strip.bottom);
-          if (top === null || bottom === null || bottom < 0 || top > mediaSize.height) return;
+          if (top === null || bottom === null || bottom < 0 || top > height) return;
           // (Fewer pixels than its rows: averaged; more, each row's own edge, sharp. Its ends where they fall, not rounded:
           // each day's rows span its own prices, so a rounded end scaled each column a hair apart, their rows' edges then
           // a pixel off from one column to the next, a comb along them.)
-          const y0 = top * v, y1 = bottom * v;
+          const y0 = top * dpr, y1 = bottom * dpr;
           context.imageSmoothingEnabled = y1 - y0 < strip.height;
           context.drawImage(strip.canvas, x, y0, w, Math.max(1, y1 - y0));
         };
@@ -22602,9 +22607,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * right edge, stacked, the first group's at the edge (see profileBars); an older day's close's line across it (the
        * latest's, the price's own line marks), and the share of their coins each side. In the room the chart leaves for
        * it after its latest, see rightGap.
-       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat
+       * @param {HeatPlot} plot @param {(price: number) => number | null} toY @param {HeatLook} heat
        */
-      function drawProfile(scope, toY, heat) {
+      function drawProfile(plot, toY, heat) {
         const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined), shown(undefined));
         // (Its shares as drawn, for its axis (see profileShares): where they change, drawn again (the chart paints its axes
         // before its series: theirs read on the next frame).)
@@ -22631,24 +22636,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (wanted.length) (heatWants.set(heat.id, wanted), heatPumping || ((heatPumping = true), queueMicrotask(heatPump)));
         else heatWants.delete(heat.id);
         if (!(close > 0)) return shown(undefined);
-        const line = toY(close), share = profileShare(days, grid, close), { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+        const line = toY(close), share = profileShare(days, grid, close), { context, dpr } = plot;
         if (line === null || share === null) return shown(undefined);
         shown({ close, share });
-        profileBars(scope, toY, heat, days, line);
+        profileBars(plot, toY, heat, days, line);
         // (An older day's: its close dashed across it.)
         if (g === heat.days.length - 1) return;
         context.save();
-        context.scale(h, v);
-        paintProfileClose(context, mediaSize, heat, line);
+        context.scale(dpr, dpr);
+        paintProfileClose(context, plot, heat, line);
         context.restore();
       }
       /**
        * A profile's bars (see drawProfile): each group's amount by the price it was bought at, binned, stacked from the
        * chart's right edge, the first group at it; strong under the close (`line`, its y: in profit), faint over it.
-       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} line
+       * @param {HeatPlot} plot @param {(price: number) => number | null} toY @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} line
        */
-      function profileBars(scope, toY, heat, shown, line) {
-        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, grid = /** @type {NonNullable<HeatLook["grid"]>} */ (heat.grid), width = profileWidth(mediaSize.width), right = mediaSize.width - 2, height = mediaSize.height;
+      function profileBars(plot, toY, heat, shown, line) {
+        const { context, dpr } = plot, grid = /** @type {NonNullable<HeatLook["grid"]>} */ (heat.grid), width = profileWidth(plot.width), right = plot.width - 2, height = plot.height;
         let low = Infinity, high = -Infinity;
         for (const item of shown) if (item?.day.rows.length) (low = Math.min(low, item.day.rows[0])), (high = Math.max(high, item.day.rows[item.day.rows.length - 1]));
         if (!(low <= high)) return;
@@ -22712,17 +22717,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         heat.bars = { edges, starts, sums, count, most, width, right, ids: shown.map((item) => item?.cohort.id ?? "") };
         // (Each bin's bar from its top to a pixel over its floor (one too thin for that, to its floor); that pixel the
         // card's, as long as its bar: over other layers, none seen through a profile but by its opacity.)
-        const gap = Math.max(1, Math.round(v)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
+        const gap = Math.max(1, Math.round(dpr)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
         context.fillStyle = heat.backdrop;
         for (let bin = 0; bin < bins; bin++) {
-          const top = (tops[bin] = Math.round(edges[bin + 1] * v)), floor = Math.round(edges[bin] * v), bottom = (bottoms[bin] = floor - gap > top ? floor - gap : floor);
+          const top = (tops[bin] = Math.round(edges[bin + 1] * dpr)), floor = Math.round(edges[bin] * dpr), bottom = (bottoms[bin] = floor - gap > top ? floor - gap : floor);
           if (!totals[bin] || bottom === floor) continue;
-          const left = Math.round((right - (totals[bin] / most) * width) * h);
-          context.fillRect(left, bottom, Math.max(1, Math.round(right * h) - left), floor - bottom);
+          const left = Math.round((right - (totals[bin] / most) * width) * dpr);
+          context.fillRect(left, bottom, Math.max(1, Math.round(right * dpr) - left), floor - bottom);
         }
         // (The groups stacked from the right edge, the first at it: each group's bars in two passes, strong under the close
         // (in profit), faint over it, a bin it crosses split at it; a bar of one pointed at, the others' dimmed.)
-        const split = Math.round(line * v), from = new Float64Array(bins).fill(right), lit = exporting || capturing ? "" : litCohort(heat.id);
+        const split = Math.round(line * dpr), from = new Float64Array(bins).fill(right), lit = exporting || capturing ? "" : litCohort(heat.id);
         shown.forEach((item, c) => {
           if (!item) return;
           const dim = lit && item.cohort.id !== lit;
@@ -22731,9 +22736,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             for (let bin = 0; bin < bins; bin++) {
               const length = (sums[bin * count + c] / most) * width;
               if (!length) continue;
-              const x = from[bin], left = Math.round((x - length) * h), top = tops[bin], bottom = bottoms[bin];
+              const x = from[bin], left = Math.round((x - length) * dpr), top = tops[bin], bottom = bottoms[bin];
               const y0 = strong ? Math.max(top, split) : top, y1 = strong ? bottom : Math.min(bottom, split);
-              if (y1 > y0) context.fillRect(left, y0, Math.max(1, Math.round(x * h) - left), y1 - y0);
+              if (y1 > y0) context.fillRect(left, y0, Math.max(1, Math.round(x * dpr) - left), y1 - y0);
               if (!strong) from[bin] = x - length;
             }
           }
