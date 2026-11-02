@@ -12,21 +12,6 @@ Only what's left. An item done is removed: its history is in the commits and log
     - do the same at the latest bar;
     - turn the phone and back.
 
-- Decisions from the nights' work (2026-10-30 to 11-01; each with its numbers in
-  _notes/overnight-20261030/DECISIONS.md), mine noted:
-  - Charts saved with lag(…) now say "unknown function lag" (shift replaced it): Studio could rewrite lag( to shift(
-    in stored formulas as it reads them (one line). Mine: yes.
-  - Opening Studio at a preset's address: its data is asked for only once the presets are read (~80 ms after them in
-    Chromium, ~130 in Mullvad, more on the phone). Option: the last preset opened kept with its chart, its data
-    fetched at once, checked once the presets are read. It changes how Studio starts.
-  - Mullvad, the layers panel toggled on the 24-band stack: one frame of 50–67 ms at each toggle (2026-11-01; was
-    83–133 plus one of 50–67 with Lightweight Charts), the chart redrawn at its new width at the motion's end. Drawn
-    at its start instead, the long frame comes before the panel moves: a motion choice.
-  - Mullvad, the 24-band stack panned: ~20 ms a step (a whole draw each, the scale refitting: decision 12, as now),
-    ~12 of it the 24 lines' strokes, rasterized by Firefox's CPU canvas (~0.9 µs a segment at 1.5 px; their paths'
-    making is near nothing). Lines one device pixel wide take its hairline path and cost almost nothing, but that's
-    a third as wide as today on a 2x screen; strokes split in pieces gain ~10% and change the joins. Mine: leave it.
-
 - Right after a `fleet update` (2026-11-01, 232107e), live Bitcoin price stayed on "Loading 1 series" for over 40 s in
   Mullvad and Chromium, then loaded (later: 0.37 s; the API 30–60 ms). Not the server: locally, straight after a
   restart, the price answers in 2 ms and the preset opens in 0.54 s. Most likely a request caught on a server
@@ -35,7 +20,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   (watch a page's requests as each server restarts); then either fleet drains a server's tunnel before stopping it,
   or the client gives a series request less time to start answering (not to finish).
 
-- Local since the last deploy (232107e46): the line under the pointer (c34e6dd14). Going out needs your word.
+- Next deploy (you, 2026-11-02): one, once the chip rule and Studio's heatmaps/profiles/stacks on the library are
+  built and checked, with the line under the pointer (c34e6dd14); watched for the stall above.
 
 ## bitview-charts: raised by you, still open
 
@@ -88,11 +74,11 @@ Only what's left. An item done is removed: its history is in the commits and log
   Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
   as-of date. (1) committed after (focus restored after Legend.set). (5) committed after (every layer hidden: the
   legend wraps). A percent stack's readout reading the stacks once (not once a band; bandAt only for a stacked pane):
-  committed. Left: (4), a question for you: moving the pointer onto
-  a named chip unnames it (the library names from the crosshair, gone over page elements), and hovering an axis tag
-  can't name its series. Mine: the chip keeps the name it had while the pointer is on it or on a tag (Studio sets
-  crosshair.pointed; the library names from pointed even with no crosshair point). Then the rest of the repeated
-  work (measure first: the bench must count the legend's value writes, which run on their own frame). As found:
+  committed. Left: (4), decided (2026-11-02), to build next: one rule, wherever a layer is pointed at (its line in
+  the plot, its tag on the axis, its row in the layers panel) its pane's chip names it, as the spotlight lights it;
+  the chip keeps that name while the pointer moves onto it (never shrinking under it), back to its keys once the
+  pointer leaves for empty plot or off the chart; a tap the same. The library names from the page's pointed layer,
+  crosshair or not. Then the rest of the repeated work (measure first). As found:
   - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
     every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
     (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;
@@ -110,9 +96,9 @@ Only what's left. An item done is removed: its history is in the commits and log
   whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
   (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
   ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
-- A question for you from it: the library's Grid, Profile and stack (313 lines) aren't used by Studio, which draws
-  heatmaps and profiles with its own Heat and stacks with stackOf. One should go: Studio onto the library's, or the
-  library's removed. Mine: Studio onto the library's, if they draw the same (to compare).
+- Decided (2026-11-02), to build after the chip rule: Studio onto the library's Grid, Profile and stack (unused today,
+  313 lines); the library's grow what Studio's Heat and stackOf do (binning, cohorts, hits, readouts; a stack's
+  gaps, negatives, its under and scale columns), Studio's copies go. Checked picture by picture against today's.
 - Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
   with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed
   (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing
@@ -121,20 +107,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Studio's bottom-right corner shows the version; you wanted the commit hash there, without a build step (2026-11-01).
-  Found: it shows the server's /version, which on the deployed servers is already the hash (bitview.space/version:
-  "4f961b7", read at start from cargo's install record: crates/bitview_server/src/lib.rs installed_commit); a local
-  build has no record and says "v0.12.2" (what local.bitview.space shows). Asked you: should a local build say its
-  checkout's commit too (read from .git at start, no build step: a small server change and a restart)? You said
-  (2026-11-01): crates.io install → its version, from a repo → the hash; the back end's VERSION does it, the front
-  end stays generic. To do: VERSION falls back to the checkout's commit (.git two up from CARGO_MANIFEST_DIR: HEAD,
-  its ref or packed-refs; a worktree's .git file) before `v` + the version. Committed (9817c748d): the local
-  server says "804a3cc". Found after: bindgen writes the spec's info.version into llms.txt and llms-full.txt (it
-  was VERSION: they'd change every commit); the spec now says the release (`v` + the crate's version, openapi/mod.rs),
-  uncommitted, server restarting to regenerate them (they must read `v0.13.0` again, then commit with clippy).
-- The Mac restarted (2026-11-01 ~21:00): Rex sessions gone. Restarted in session bitview-dev: the server (cargo
-  dev, window 1), the tunnel, headless Chromium 9334 (its profile in the scratchpad), bitcoind (it had died with
-  the Mac). The windowed Mullvad (BiDi 9341) not restarted yet.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's
