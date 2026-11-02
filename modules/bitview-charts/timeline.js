@@ -43,6 +43,23 @@ export class Timeline {
     this.kept = Infinity;
   }
 
+  /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
+  get lastSlot() {
+    return Math.max(this.length - 1, Math.floor(this.to));
+  }
+
+  /**
+   * A point's time (seconds): its own, or past the last, the last's plus the step between the last two as many times
+   * (its points' step going on). NaN: none.
+   * @param {number} i
+   */
+  timeAt(i) {
+    const times = this.times, n = times.length;
+    if (i >= 0 && i < n) return times[i];
+    if (i < n || n < 2) return NaN;
+    return times[n - 1] + (i - n + 1) * (times[n - 1] - times[n - 2]);
+  }
+
   get length() {
     return this.times.length;
   }

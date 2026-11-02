@@ -19271,8 +19271,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
         // (The profiles whose bars it's among: not a picture's, see presentLegends.)
         const profiles = heatLooks.size && !exporting ? profilesUnder(param) : [];
-        // (A finger's kept where it is: on a profile's bars past the data, on the view's last day, the one they show.)
-        const kept = time ?? (profiles.length && resolved ? resolved.times[lastShown()] ?? null : null);
+        // (A finger's kept where it is: on a profile's bars, or past the data (the slots after its last point), on the
+        // view's last day, the one they show.)
+        const kept = time ?? ((profiles.length || (param.logical ?? -1) >= engine.time.length) && resolved ? resolved.times[lastShown()] ?? null : null);
         if (fingers.size && param.point && kept !== null && param.pane !== undefined && !tool && !placing) {
           const series = [...drawn.values()].find((item) => !item.engine.hidden && seriesPane(item) === param.pane), price = seriesValue(series, param.point.y);
           fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time: kept, series } : null;

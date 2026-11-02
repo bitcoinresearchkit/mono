@@ -98,9 +98,10 @@ export class Legend {
       if (item.elements) continue;
       const series = item.series?.[0], value = /** @type {HTMLElement | null} */ (this.laid[k][0].querySelector(".bc-legend-value"));
       if (!series?.values || !value) continue;
-      const i = index === index ? index : Math.min(Math.ceil(time.to), series.values.length - 1);
+      // (Past its last point (the crosshair after the data), read as at rest: its last in view.)
+      const past = !(index === index && index < series.values.length), i = past ? Math.min(Math.ceil(time.to), series.values.length - 1) : index;
       let at = i;
-      while (index !== index && at > 0 && !(series.values[at] === series.values[at])) at--;
+      while (past && at > 0 && !(series.values[at] === series.values[at])) at--;
       const v = series.values[at], text = v === v && v !== undefined ? write(series, v) : "";
       if (value.textContent !== text) value.textContent = text;
     }

@@ -265,11 +265,12 @@ export class Chart {
 
   /**
    * The crosshair on a point (a logical index: the nearest whole one) at a height in the chart (CSS pixels from its top),
-   * or gone (NaN). Told to the crosshair's listeners (`input`: a pointer moved it, at `x` CSS pixels into the plot).
+   * or gone (NaN); past the last point, on the slots after it in view (as many as its spacing makes: the line follows
+   * the pointer there, its date as the points' step goes on). Told to the crosshair's listeners (`input`: a pointer moved it, at `x` CSS pixels into the plot).
    * @param {number} index @param {number} [y] @param {boolean} [input] @param {number} [x]
    */
   setCrosshair(index, y = NaN, input = false, x = NaN) {
-    const k = index === index && this.time.length ? Math.min(Math.max(Math.round(index), 0), this.time.length - 1) : NaN, crosshair = this.crosshair;
+    const k = index === index && this.time.length ? Math.min(Math.max(Math.round(index), 0), this.time.lastSlot) : NaN, crosshair = this.crosshair;
     let pane = -1;
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
     // (Its pane by itself, not its place: one removed, the next in its place is another.)
@@ -487,7 +488,7 @@ export class Chart {
     if (x === x && (this.recrossing || crosshair.index === crosshair.index)) {
       // (Over an axis now (one come under it): gone, as a pointer over an axis has none.)
       if (!(x >= 0 && x <= time.width)) (this.recrossing = false), this.setCrosshair(NaN);
-      else if (this.recrossing || changed || Math.min(Math.max(Math.round(time.index(x)), 0), time.length - 1) !== crosshair.index) {
+      else if (this.recrossing || changed || Math.min(Math.max(Math.round(time.index(x)), 0), time.lastSlot) !== crosshair.index) {
         // (Found again, told even where its point and height stay: what's under it may not.)
         if (this.recrossing || changed) (this.recrossing = false), (crosshair.index = NaN);
         this.setCrosshair(time.index(x), crosshair.y, true, x);

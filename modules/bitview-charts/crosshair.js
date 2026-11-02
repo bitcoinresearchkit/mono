@@ -165,12 +165,12 @@ export class Crosshair {
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
       if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
     }
-    // (Its date on the time axis, its point's.)
-    const times = time.times, k = Math.round(i);
-    if (k >= 0 && k < times.length && x >= 0 && x <= plot) {
+    // (Its date on the time axis, its point's; past the last, as the points' step goes on.)
+    const times = time.times, k = Math.round(i), at = time.timeAt(k);
+    if (at === at && x >= 0 && x <= plot) {
       // (Points less than a day apart (the last one's from the one before it): its time too.)
-      const fine = times.length > 1 && (k < times.length - 1 ? times[k + 1] - times[k] : times[k] - times[k - 1]) < DAY;
-      const words = (fine ? this.fine : this.day)(times[k]), half = g.measureText(words).width / 2 + 6;
+      const n = times.length, fine = n > 1 && (k < n - 1 ? times[k + 1] - times[k] : times[n - 1] - times[n - 2]) < DAY;
+      const words = (fine ? this.fine : this.day)(at), half = g.measureText(words).width / 2 + 6;
       // (The time axis' labels it touches covered with the ground: none shows cut beside it, as none shows under a tag.)
       g.fillStyle = theme.background;
       for (let n = 0; n < axis.drawnCount; n++) {
