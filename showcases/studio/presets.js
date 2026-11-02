@@ -679,11 +679,12 @@ export function studioPresets(client, facts) {
 
   /** Moving averages (`sma` or `ema`): each over the price with its ratio below, and all of them together. @param {any} node @param {string} kind */
   const averages = (node, kind) => {
-    const list = entries(node), colors = ramp(list.length, 200, 330);
+    // (Each by its length: the shortest warm, the longest cool, as times are (recencyColor), in its own chart too.)
+    const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
     return section(kind, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w", "_1y"].includes(key) ? {} : { hidden: true }) }))]),
-      ...list.map(([key, value]) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
-        price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: "sky" }),
+      ...list.map(([key, value], i) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
+        price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
         value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
       ], { log: [2] })),
