@@ -106,8 +106,32 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Deployed 6a663bc3 (2026-11-02): prod checked in Chromium (79 presets, 0 errors, no stall) and Mullvad; the phone
-  not connected then: check it on prod once it is.
+- Deployed 673a0d69 (2026-11-02): prod checked in Chromium (79 presets, 0 errors) and Mullvad; the phone not
+  connected then: check it on prod once it is.
+- Presets review (you, 2026-11-02: "the best presets tree possible, that shows in the best way everything, uses the
+  best layer type, the best colors, the best combos, variants… the most intuitive and comprehensive", "the best names
+  and titles", "slight chart duplicates are fine if that makes sense", "use common sense", "deploy once it's all
+  checked"). Scratchpad review/ (presets*.json, reps.json, pics/ one per family, tree.mjs: every preset opened,
+  tree-done.jsonl; cov/ coverage: what the backend has that no preset shows). In the working tree, checks running
+  (every preset in the tree, Codex), committed and deployed (2026-11-02):
+  - colors: a family's member pages in its color (neutral lines, its flows), polarity series green/red as ever;
+    PRICE_COLORS one color per chain price (vaulted teal, active red, with their supply and liveliness); counts
+    summed since the start blue, not gray (series in several colors 1,369 → ~700, the rest intended);
+  - new: transaction fee rates, fees and sizes as fans (1-week averages of the day's percentiles); block fullness;
+    per cohort with a URPD: heatmap with its percentiles and realized price, heatmap and profile, cumulative profile;
+  - Studio: a 'by layers' cloud's lines folded into its legend item (their colors as squares, toggled with it, no axis
+    tags of their own): Compass's legend 9 lines → 2, its axis 22 tags → 4 (you: "grouped is better").
+  Coverage: of 21,154 series 422 by date in no preset; nearly all twins (capital.total = realized cap, by-coin
+  average = realized price, the by-dollar median = median capitalized price, OP_RETURN tx counts under two nodes);
+  the real gaps were the fans and fullness above. Names and titles pass (4,799 presets, no two titles alike): entry price titles
+  "Supply: Discount coins" (were "…, entered at or below the capitalized price at the time" on every chart); age
+  bands "Coins under 1 hour old" as the age cutoffs say (were "UTXOs …"); the fans "Transaction fee rates: median and
+  percentiles". Combinations: fee rates over block fullness; each group's realized price on all coins' heatmap;
+  cumulative profile by group (holders, age bands); per cohort heatmap with percentiles, heatmap and profile,
+  cumulative profile. Checked: every preset in the tree opened (4,709, 0 problems), then the 79-preset sweep and Codex
+  on the last fixes (folded lines: solo keeps them, one shown while its cloud's hidden listed on its own, hover names
+  the cloud, a line shared by two clouds the first's). Next passes: more combinations
+  (a profile beside its heatmap per family's compare, …); the phone check on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's

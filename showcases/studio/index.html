@@ -3116,6 +3116,20 @@
           display: none;
         }
 
+        /* A cloud's key, beside its item: the colors of the layers it's drawn from (folded into it: see foldedInto), a
+           square each, as a profile's groups. */
+        .cloud-key {
+          gap: 2px;
+          padding-left: 0;
+
+          > i {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: var(--c);
+          }
+        }
+
         /* An item: its mark and name, its value beside them in a slot as wide as it gets (nothing moves as it's read). */
         button {
           display: flex;
@@ -17109,6 +17123,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A pane on the library for each of the chart's, made as it comes: those past them go once their series have.)
         while (engine.panes.length < doc.panes.length) engine.addPane(PANE);
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
+        const foldedLayers = foldedInto(doc);
         // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A histogram's set again
@@ -17159,9 +17174,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
           // (A standard series' look, the library's: shown or not; its value's tag reading the axis where it sits (a
           // stacked band's, its sum there, at its top: its own amount the legend's and the panel's); its line across; its
-          // values' writer; edged in the card's color where it's outlined (over a heatmap, a cloud, another line).)
+          // values' writer; edged in the card's color where it's outlined (over a heatmap, a cloud, another line). One
+          // folded into a cloud (see foldedInto): no tag of its own, the cloud's range its legend's.)
           const shown = !layer.hidden && !signal;
-          const tags = { hidden: !shown, tag: shown, priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.value, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
+          const tags = { hidden: !shown, tag: shown && !foldedLayers.has(layer.id), priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.value, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
           // (Its line's: width, dashes (by its width as set), steps or curved, its crosshair dot.)
           const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
           const pane = paneIndex.get(layer.pane) ?? 0;
@@ -17921,6 +17937,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
       const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(name)}</span>`;
+      /**
+       * The layers folded into a cloud's legend item, by id (to the cloud's): a cloud by its layers' (byLayers), its lines
+       * in its pane (what it's drawn from, Compass's percentiles and averages, many a group): listed as its key's colors,
+       * shown and hidden with it (see toggleHidden), alone in its pane with it (see itsOwn); in the layers panel each its
+       * own as ever. One shown while its cloud's hidden, its own item; one two clouds are drawn from, the first's.
+       * @param {Chart} doc @returns {Map<string, string>}
+       */
+      function foldedInto(doc) {
+        const folded = new Map();
+        for (const cloud of doc.layers) {
+          if (cloud.type !== "cloud" || !cloud.byLayers) continue;
+          for (const id of cloudLayers(cloud)) ((member) => member && member.pane === cloud.pane && !member.from && !folded.has(member.id) && (!cloud.hidden || member.hidden) && folded.set(member.id, cloud.id))(doc.layers.find((layer) => layer.id === id));
+        }
+        return folded;
+      }
+      /** A cloud's key: its folded layers' colors (see foldedInto), each once, in its order. @param {Layer} layer */
+      function cloudKeyHtml(layer) {
+        const folded = foldedInto(chart), colors = [...new Set(chart.layers.filter((other) => folded.get(other.id) === layer.id && !other.hidden).map((other) => ink(other.color)))];
+        return colors.length ? `<span class="legend-key cloud-key">${colors.map((color) => `<i style="--c:${escape(color)}"></i>`).join("")}</span>` : "";
+      }
       function updateLegends() {
         if (!chart) return;
         // (Nothing reached, the plot says so once: no layer's legend says it again.)
@@ -17938,10 +17974,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}" style="--c:${escape(ink(colorNow(layer) ?? layer.color))}">
               <span class="legend-name">${legendNameHtml(layer)}</span>${value}
-            </button>${layer.type === "profile" && !layer.hidden && layer.profile?.length ? profileKeyHtml(layer) : ""}`;
+            </button>${layer.type === "profile" && !layer.hidden && layer.profile?.length ? profileKeyHtml(layer) : ""}${!layer.hidden ? cloudKeyHtml(layer) : ""}`;
           };
-          // (A reversed stack's, in its order: its key's cells as its bands lie.)
-          const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane);
+          // (A reversed stack's, in its order: its key's cells as its bands lie. A cloud's layers, folded into it: see
+          // foldedInto.)
+          const folded = foldedInto(chart);
+          const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane && !folded.has(layer.id));
           const html = (pane?.stack && pane.reverse ? mine.reverse() : mine).map(item).join("");
           // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
           // marks it, see markLegends).)
@@ -17955,8 +17993,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // button (a profile's key beside it), the series it's read on.)
           const legend = engine.panes[chart.panes.indexOf(/** @type {Pane} */ (pane))]?.legend;
           legend?.set(/** @type {HTMLElement[]} */ ([...element.querySelectorAll(":scope > button[data-select]")]).map((button) => {
-            const id = /** @type {string} */ (button.dataset.select), own = drawn.get(id), close = closes.get(id);
-            return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("profile-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [own?.engine, own?.edge, close?.series.engine, close?.candles.engine].filter(Boolean), hidden: button.classList.contains("hidden") };
+            const id = /** @type {string} */ (button.dataset.select);
+            // (The series it's read on: its own, its edge, its close's; a cloud's folded layers' too: one pointed at names it.)
+            const readOn = (/** @type {string} */ layer) => ((series, kept) => [series?.engine, series?.edge, kept?.series.engine, kept?.candles.engine])(drawn.get(layer), closes.get(layer));
+            const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
+            return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
           }));
           // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
           restoreFocus(element, focus);
@@ -30132,7 +30173,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a layer's pane holds others than it and its signals. @param {Layer} layer */
       const othersInPane = (layer) => chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer));
       /** A layer, or a signal marked on it: shown alone with it. @param {Layer} other @param {Layer} layer */
-      const itsOwn = (other, layer) => other.id === layer.id || (other.type === "signal" && other.ref === layer.id);
+      const itsOwn = (other, layer) => other.id === layer.id || (other.type === "signal" && other.ref === layer.id) || foldedInto(chart).get(other.id) === layer.id;
       /**
        * Of layers to move to a pane (`into`; null: a new one), those that move themselves: a cloud or a trend goes where
        * its layers go, a signal where its layer goes (in its own pane, it's put in its place as any). One asked to without
@@ -32513,7 +32554,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       });
 
-      const toggleHidden = (id) => editById(id, (layer) => (layer.hidden = !layer.hidden || undefined), { look: true });
+      /** A layer shown or hidden; a cloud with its folded layers (see foldedInto), all as it goes. @param {string} id */
+      const toggleHidden = (id) => {
+        const layer = layerById(id), members = layer ? [...foldedInto(chart)].filter(([, cloud]) => cloud === id).map(([member]) => member) : [];
+        if (!members.length) return editById(id, (layer) => (layer.hidden = !layer.hidden || undefined), { look: true });
+        const hide = !layer?.hidden || undefined;
+        commit((doc) => doc.layers.forEach((other) => (other.id === id || members.includes(other.id)) && (other.hidden = hide)), { look: true });
+      };
       const showEvery = () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden), { look: true });
       /**
        * A line across (a level, by index, or a baseline's "base"), and its color and style unless set: a level its layer's
@@ -38337,7 +38384,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const keyPieces = (key, faded) => {
           const strip = /** @type {HTMLElement | null} */ (key.querySelector(".key-strip")), cells = strip ? all$("i", strip) : [];
           if (strip) pieces.push({ ...box(strip), faded, svg: `<svg viewBox="0 0 ${cells.length} 1" width="${strip.offsetWidth}" height="${strip.offsetHeight}" preserveAspectRatio="none">${cells.map((cell, i) => `<rect x="${i}" width="1.02" height="1" fill="${getComputedStyle(cell).backgroundColor}"/>`).join("")}</svg>` });
-          for (const square of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip) > i", key))) pieces.push({ ...box(square), faded, svg: `<svg viewBox="0 0 8 8" width="${square.offsetWidth}" height="${square.offsetHeight}"><rect width="8" height="8" rx="2" fill="${getComputedStyle(square).backgroundColor}"/></svg>` });
+          for (const square of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip) > i, :scope > i", key))) pieces.push({ ...box(square), faded, svg: `<svg viewBox="0 0 8 8" width="${square.offsetWidth}" height="${square.offsetHeight}"><rect width="8" height="8" rx="2" fill="${getComputedStyle(square).backgroundColor}"/></svg>` });
           for (const words of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip, :has(> i)), :scope > span > span", key))) {
             if (!words.getClientRects().length) continue;
             const style = getComputedStyle(words);
@@ -38382,7 +38429,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presentLegends() {
         const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
         const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
-        const keys = all$("#chart .legend .profile-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
+        const keys = all$("#chart .legend .legend-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
         const folded = foldedPanes(chart), lit = profileLit;
         // (Each layer named, as the library lays a picture's: its chip let go, put back after.)
         const laid = engine.panes.flatMap((pane) => (pane.legend ? [pane.legend] : []));
