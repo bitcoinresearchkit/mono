@@ -27,7 +27,7 @@
  * have found a block, its height, the year
  */
 
-import { HOLDER_COLORS, OKLCH as OKLCH_OF, holderColor, recencyColor, wheelColor } from "./palette.js";
+import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
 
 /** @param {any} n */
 const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
@@ -116,25 +116,25 @@ const SUM_COLOR = "blue";
 /** A per-block measure's fan (its spread over each month's blocks): one color for every one (block size, weight, fullness, transactions, inputs, outputs). */
 const PER_BLOCK_COLOR = "sky";
 /**
- * A color on a two-sided scale (profit and loss, cheap and dear): green on the good side, red on the other, `far` from 0
- * (the middle: break-even, the median) to 1 (the extreme), dark and muted in the middle, bright and vivid at the
- * extremes, so the eye goes where it matters (on the light, as every color, turned: see Studio's toned).
- * @param {number} far @param {boolean} good
+ * An opacity by importance, `weight` from 0 (the least: the middle, break-even, a tail) to 1 (the most), from a fifth
+ * to whole, by twentieths (as a layer's opacity goes): a color kept vivid, its weight in how much of it shows (a dark,
+ * dull color reads as mud on a dark chart; a faint vivid one stays clean on either ground). @param {number} weight
  */
-function polarColor(far, good) {
-  const t = Math.max(0, Math.min(1, far));
-  return `oklch(${(0.36 + 0.34 * t).toFixed(3)} ${(0.05 + 0.15 * t).toFixed(3)} ${good ? (160 - 15 * t).toFixed(0) : (35 - 12 * t).toFixed(0)})`;
-}
+const fade = (weight) => Math.round((0.2 + 0.8 * Math.max(0, Math.min(1, weight))) * 20) / 20;
 /**
- * A profit band's color by how far in profit or in loss its coins are (its key: `profit300To500Percent`,
- * `loss0To10Percent`, `profitOver1000Percent`), on the two-sided scale (polarColor).
- * @param {string} key
+ * A look on a two-sided scale (profit and loss, cheap and dear): green on the good side, red on the other, Bitview's own,
+ * as vivid as they are, faint near the middle and whole at the extremes (see fade). @param {number} far 0 the middle, 1 the extreme @param {boolean} good
  */
-function profitBandColor(key) {
+const polarLook = (far, good) => ({ color: good ? "green" : "red", opacity: fade(far) });
+/**
+ * A profit band's look by how far in profit or in loss its coins are (its key: `profit300To500Percent`,
+ * `loss0To10Percent`, `profitOver1000Percent`), on the two-sided scale (polarLook). @param {string} key
+ */
+function profitBandLook(key) {
   const m = /^(profit|loss)(?:Over)?(\d+)/.exec(key);
   if (!m) return undefined;
   const from = Number(m[2]);
-  return polarColor(m[1] === "profit" ? Math.log10(1 + from / 10) / Math.log10(101) : from / 90, m[1] === "profit");
+  return polarLook(m[1] === "profit" ? Math.log10(1 + from / 10) / Math.log10(101) : from / 90, m[1] === "profit");
 }
 const WINDOW_COLORS = ["cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose", "red", "orange", "amber", "yellow"];
 /** Each ramp as made, by its count and hues (one a member's, asked for each of its family's members: made once). */
@@ -462,7 +462,7 @@ export function studioPresets(client, facts) {
           ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
           series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
         ], { log: [2] }),
-        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, 25),
+        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, false),
         ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
         cost.supplyDensity && chart("Supply density", titled("Share of supply with a cost basis within 5% of the price"), [
           series(cost.supplyDensity.total, "Supply", { color: color ?? "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
@@ -474,28 +474,24 @@ export function studioPresets(client, facts) {
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   };
   /**
-   * Percentiles of a price (`p5`… keys) over the price, as a field: each band between two next to each other in `color`
-   * (its average's: by coin the realized price's, by dollar the capitalized's), strongest at the median, where most
-   * were bought, fading toward the tails; the median a wider line; its lines one legend item (a cloud by them). From
-   * `from` up (by coin, the 25th: under it, coins mined for next to nothing, their cents stretching the scale), the
-   * ones under it hidden, a click away. None, no chart.
-   * @param {any} node @param {string} name @param {string} title @param {string} color @param {number} [from]
+   * Percentiles of a price (`p5`… keys) over the price, as a fan (as every spread: see fan): the median a line in
+   * `color` (its average's: by coin the realized price's, by dollar the capitalized's), the 25th to the 75th a band
+   * (where half were bought), the 5th to the 95th a fainter one; the others in its legend, a click away. `outer` false
+   * (by coin: its low tail coins mined for next to nothing, their cents stretching the scale), the inner band alone.
+   * None, no chart. @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer]
    */
-  const percentiles = (node, name, title, color, from = 0) => {
+  const percentiles = (node, name, title, color, outer = true) => {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
     // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
-    const [l, c, h] = OKLCH_OF[color] ?? [0.68, 0.18, 45];
-    const look = (/** @type {number} */ p) => ((near) => `oklch(${(0.34 + (l - 0.34) * near).toFixed(3)} ${(0.04 + (c - 0.04) * near).toFixed(3)} ${h})`)(1 - Math.abs(p - 50) / 50);
-    // (A line on the low side in its band above's shade, on the high side in its own: a band's, its line's over it.)
-    const ps = list.map(([key]) => percentile(key));
-    const lines = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(ps[i]), { color: key === "median" ? color : look(ps[i] < 50 ? ps[i + 1] ?? ps[i] : ps[i]), width: key === "median" ? 2 : 1, opacity: key === "median" ? 1 : 0.6, ...(ps[i] < from ? { hidden: true } : {}) }));
-    const field = ps.flatMap((p, i) => (p >= from ? [i] : []));
-    // (A field of two lines at least: fewer, the lines alone.)
-    const cloud = field.length > 1 ? [{ cloud: field.map((i) => letter(1 + i)), label: `${percentileLabel(ps[field[0]])} to ${percentileLabel(ps[field[field.length - 1]])}`, color, byLayers: true, opacity: 0.45 }] : [];
-    return [chart(name, title, [price(), ...lines, ...cloud])];
+    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(list.findIndex(([key]) => percentile(key) === p));
+    const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity }] : []))(at(low), at(high));
+    return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)])];
   };
+
+
   /**
    * A rarity meter component's charts: its price bands over the price, with its reference price, and its ratio
    * percentiles, with the price's ratio to it (a median's its own; the others' where the cohort or Cointime has them:
@@ -536,12 +532,12 @@ export function studioPresets(client, facts) {
   };
   /**
    * A rarity band's look by how rare its percentile is (its tail's share, 50 the median's to 0.1 the rarest's, on a log
-   * scale): the cheap side green, the dear red, dark and muted near the middle, bright and vivid at the extremes; the
+   * scale): the cheap side green, the dear red, faint near the middle, whole at the extremes (see polarLook); the
    * median gray, wider. @param {number} p @param {boolean} [median]
    */
   const rarityLook = (p, median = p === 50) => {
     if (median) return { color: "gray", width: 2 };
-    return { color: polarColor(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1, opacity: 0.7 };
+    return { ...polarLook(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1 };
   };
   /** A rarity node's band percentiles. @param {any} node */
   const bandPercentiles = (node) => entries(node).map(([k]) => percentile(k)).filter(Number.isFinite);
@@ -554,8 +550,8 @@ export function studioPresets(client, facts) {
     const side = (/** @type {(p: number) => boolean} */ on) => ps.filter(on).map(at).filter((letter) => letter !== undefined);
     const cheap = side((p) => p <= 20), dear = side((p) => p >= 80);
     return [
-      ...(cheap.length > 1 ? [{ cloud: cheap, label: "Cheap side", color: "green", byLayers: true, opacity: 0.55 }] : []),
-      ...(dear.length > 1 ? [{ cloud: dear, label: "Dear side", color: "red", byLayers: true, opacity: 0.55 }] : []),
+      ...(cheap.length > 1 ? [{ cloud: cheap, label: "Cheap side", color: "green", byLayers: true, opacity: 0.6 }] : []),
+      ...(dear.length > 1 ? [{ cloud: dear, label: "Dear side", color: "red", byLayers: true, opacity: 0.6 }] : []),
     ];
   };
   /**
@@ -587,22 +583,23 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], colorOf?: (key: string) => string | undefined, urpd?: (key: string) => string | undefined }} options
+   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
    * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort);
    * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart; `inTime`: its
    * members are times (halving epochs, years), the oldest first: colored as halving cycles and years are (recencyColor);
-   * `colorOf`: a member's color by what it is (a profit band's, by how far in profit or loss), else as said above
+   * `lookOf`: a member's color (and opacity) by what it is (a profit band's, by how far in profit or loss), else as said above
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
     // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
-    const colors = ((wheel) => members.map(([key], i) => options.colorOf?.(key) ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
+    const looks = members.map(([key]) => options.lookOf?.(key));
+    const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Its title says by what, its window last ("…by age band, 1
@@ -792,7 +789,7 @@ export function studioPresets(client, facts) {
       // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       // (Each named as it is, in its titles too ("Supply: Discount coins"): what it means, its comparisons' and its name's.)
-      section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "entry price", disjoint: true, colorOf: (key) => (key === "discount" || key === "premium" ? polarColor(0.6, key === "discount") : undefined) })),
+      section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "entry price", disjoint: true, lookOf: (key) => (key === "discount" ? { color: "green" } : key === "premium" ? { color: "red" } : undefined) })),
     ], { icon: "people" }),
     section("Coin age", [
       lastMovedChart(),
@@ -800,7 +797,7 @@ export function studioPresets(client, facts) {
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, colorOf: profitBandColor, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, lookOf: profitBandLook, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "UTXO amount", disjoint: true })),
