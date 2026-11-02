@@ -11711,8 +11711,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const belowOf = (layer) => ((layer.type === "histogram" || TWO_OR_ONE.has(layer.type) || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
       /**
        * A cloud colored by its layers, its colors theirs: its first one's where that's over, its second's where that is
-       * (to an edge, its one layer's; in its edit, and as every edit's chart is normalized: they follow); each slice at
-       * its layer's opacity too, times the cloud's (a faint line, a faint slice: what matters strong, the rest quiet).
+       * (to an edge, its one layer's; in its edit, and as every edit's chart is normalized: they follow).
        * @param {Layer} layer @param {Chart | null} [doc]
        */
       const layersColors = (layer, doc) => {
@@ -17203,7 +17202,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Its colors, as the library takes them (a line's; a band's fill and fade, a baseline's under its base too; candles'
           // parts; a cloud's, its bands').
           /** @type {Record<string, any>} */
-          const paint = layer.type === "cloud" ? { color: alpha(base, op), bands: banded ? /** @type {string[]} */ (result?.memberIds).map((id) => ((member) => alpha(ink(member?.color ?? layer.color), op * (member ? opacityOf(member) : 1)))(doc.layers.find((item) => item.id === id))) : [] } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ up: hollowOf(layer) ? css("--card") : up, down, upWick: up, downWick: down, upBorder: up, downBorder: down }))(color, layer.colors === 1 ? color : below)
+          const paint = layer.type === "cloud" ? { color: alpha(base, op), bands: banded ? /** @type {string[]} */ (result?.memberIds).map((id) => alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)) : [] } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ up: hollowOf(layer) ? css("--card") : up, down, upWick: up, downWick: down, upBorder: up, downBorder: down }))(color, layer.colors === 1 ? color : below)
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
             // high it would all but vanish. Stacked, its band (from its line to the one under it, see stackBands) evenly too:
             // a band fading by price would read lighter the lower it sits.
@@ -24320,8 +24319,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 return values.length ? /** @type {[number, number]} */ ([Math.min(...values), Math.max(...values)]) : null;
               });
               const bands = layer.type === "cloud" && layer.byLayers && members?.length && ids && low ? ((top, bottom) => {
-                // (Each in its layer's color and at its opacity (times the cloud's, see drawBand), as the chart's.)
-                const colors = ids.map((id) => ((member) => `${member?.color ?? layer.color}@${member ? opacityOf(member) : 1}`)(doc.layers.find((item) => item.id === id))), n = members.length;
+                const colors = ids.map((id) => doc.layers.find((item) => item.id === id)?.color ?? layer.color), n = members.length;
                 const ats = Array.from({ length: B }, (_, b) => {
                   let at = -1;
                   for (let [i, to] = bucketOf(b); i <= to; i++) if (Number.isFinite(low[i])) at = i;
@@ -24578,9 +24576,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const middle = (/** @type {number} */ b) => x(middleOf(b));
                 for (const [c, parts] of perColor(byColor(joined(runsOf(ranges)), tint))) {
                   const d = parts.map((part) => `M${part.map((b) => `${middle(b)} ${above(b)}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${below(b)}`).join("L")}Z`).join("");
-                  // (A cloud by its layers' tint, its layer's opacity with it ("color@opacity"): the band's times the cloud's.)
-                  const [color, own] = c.split("@"), op = (look.op ?? 1) * (own === undefined ? 1 : Number(own));
-                  if (d) drawn.marks.push({ ...look, c: color, ...(op < 1 ? { op } : {}), k: "band", d });
+                  if (d) drawn.marks.push({ ...look, c, k: "band", d });
                 }
               };
               if (bands) return void bands.forEach(({ band: ranges, tint }) => drawBand(ranges, tint, false));

@@ -116,16 +116,12 @@ const SUM_COLOR = "blue";
 /** A per-block measure's fan (its spread over each month's blocks): one color for every one (block size, weight, fullness, transactions, inputs, outputs). */
 const PER_BLOCK_COLOR = "sky";
 /**
- * An opacity by importance, `weight` from 0 (the least: the middle, break-even, a tail) to 1 (the most), from a fifth
- * to whole, by twentieths (as a layer's opacity goes): a color kept vivid, its weight in how much of it shows (a dark,
- * dull color reads as mud on a dark chart; a faint vivid one stays clean on either ground). @param {number} weight
+ * A look on a two-sided scale (profit and loss, cheap and dear), as Compass's clouds are made: a family of Bitview's
+ * named hues a side, at one strength, the further from the middle the further along it: the good side from lime through
+ * green and emerald to teal, the other from yellow through amber and orange to red (the middle's two next to each
+ * other, the extremes the furthest apart). @param {number} far 0 the middle, 1 the extreme @param {boolean} good
  */
-const fade = (weight) => Math.round((0.2 + 0.8 * Math.max(0, Math.min(1, weight))) * 20) / 20;
-/**
- * A look on a two-sided scale (profit and loss, cheap and dear): green on the good side, red on the other, Bitview's own,
- * as vivid as they are, faint near the middle and whole at the extremes (see fade). @param {number} far 0 the middle, 1 the extreme @param {boolean} good
- */
-const polarLook = (far, good) => ({ color: good ? "green" : "red", opacity: fade(far) });
+const polarLook = (far, good) => ((t) => ({ color: good ? wheelColor(t, 101, 120, 183) : wheelColor(t, 101, 85, 22) }))(Math.round(100 * Math.max(0, Math.min(1, far))));
 /**
  * A profit band's look by how far in profit or in loss its coins are (its key: `profit300To500Percent`,
  * `loss0To10Percent`, `profitOver1000Percent`), on the two-sided scale (polarLook). @param {string} key
@@ -536,12 +532,13 @@ export function studioPresets(client, facts) {
   };
   /**
    * A rarity band's look by how rare its percentile is (its tail's share, 50 the median's to 0.1 the rarest's, on a log
-   * scale): the cheap side green, the dear red, faint near the middle, whole at the extremes (see polarLook); the
+   * scale), on the two-sided scale (see polarLook: the cheap side greens to teal, the dear yellows to red); the
    * median gray, wider. @param {number} p @param {boolean} [median]
    */
   const rarityLook = (p, median = p === 50) => {
     if (median) return { color: "gray", width: 2 };
-    return { ...polarLook(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1 };
+    // (Its lines at half, as Compass's: the clouds carry the color.)
+    return { ...polarLook(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1, opacity: 0.5 };
   };
   /** A rarity node's band percentiles. @param {any} node */
   const bandPercentiles = (node) => entries(node).map(([k]) => percentile(k)).filter(Number.isFinite);
@@ -554,8 +551,8 @@ export function studioPresets(client, facts) {
     const side = (/** @type {(p: number) => boolean} */ on) => ps.filter(on).map(at).filter((letter) => letter !== undefined);
     const cheap = side((p) => p <= 20), dear = side((p) => p >= 80);
     return [
-      ...(cheap.length > 1 ? [{ cloud: cheap, label: "Cheap side", color: "green", byLayers: true, opacity: 0.6 }] : []),
-      ...(dear.length > 1 ? [{ cloud: dear, label: "Dear side", color: "red", byLayers: true, opacity: 0.6 }] : []),
+      ...(cheap.length > 1 ? [{ cloud: cheap, label: "Cheap side", color: "green", byLayers: true, opacity: 0.5 }] : []),
+      ...(dear.length > 1 ? [{ cloud: dear, label: "Dear side", color: "red", byLayers: true, opacity: 0.5 }] : []),
     ];
   };
   /**
