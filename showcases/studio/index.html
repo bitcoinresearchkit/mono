@@ -1166,7 +1166,8 @@
         right: 37px;
       }
 
-      /* A sidebar row, a chart's or a folder's: its button, room at its end for the ⋯. */
+      /* A sidebar row, a chart's or a folder's: its button, its name to its end at rest; room at its end for the ⋯ (and a
+         folder's →) only while they show (pointed at, reached by a key; a preview's ×, always; ⌘'s shortcuts, held). */
       :is(.chart-row, .folder-row) {
         position: relative;
         display: flex;
@@ -1175,11 +1176,15 @@
 
         :is(.chart-item, .folder-item) {
           min-width: 0;
+        }
+
+        &:is(:hover:where(.can-hover *), :has(:focus-visible), :has(> .chart-more:not([aria-haspopup="menu"]))) > :is(.chart-item, .folder-item),
+        body[data-hints] & > .chart-item {
           padding-right: 34px;
         }
 
         /* (Its name clear of its → too.) */
-        &:has(> .chart-go) > .folder-item {
+        &:has(> .chart-go):is(:hover:where(.can-hover *), :has(:focus-visible)) > .folder-item {
           padding-right: 62px;
         }
       }
@@ -13612,6 +13617,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.byLayers && (layer.type !== "cloud" || layer.colorFrom || !cloudLayers(layer).length)) delete layer.byLayers;
         for (const layer of doc.layers) if (layer.byLayers) layersColors(layer, doc);
         for (const layer of doc.layers) if (layer.type === "cloud" && edgesOf(layer).length && !layer.byLayers && !layer.colorFrom && layer.colorBelow !== undefined && layer.colors === undefined) layer.colors = 1;
+        // (Candles, unless their two colors are said: one, their own, rising hollow and falling filled (as the price's).)
+        for (const layer of doc.layers) if (layer.type === "candles" && layer.colors === undefined && layer.colorBelow === undefined && !layer.colorFrom && !layer.byLevels && !layer.byGradient) layer.colors = 1;
         // (How many colors: bars' one or four, a trend's or a cloud's one with a second kept; the colors picked kept,
         // whatever's used.)
         for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_OR_ONE.has(layer.type) ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
@@ -30904,7 +30911,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (key.startsWith("cohort:")) color && (layer.cohortColors = { ...layer.cohortColors, [key.slice(7)]: color });
         else if (key === "colorFading") layer.colorFading = color || undefined;
         else if (key === "colorBelowFading") layer.colorBelowFading = color || undefined;
-        else if (key === "colorBelow") layer.colorBelow = !TWO_KEPT.has(layer.type) && color === "red" ? undefined : color;
+        // (Red, the default, left unset, but candles': their two colors said, as unset reads as one, see normalize.)
+        else if (key === "colorBelow") layer.colorBelow = !TWO_KEPT.has(layer.type) && layer.type !== "candles" && color === "red" ? undefined : color;
         else layer.color = color;
       }
       /**
@@ -30926,6 +30934,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Two the same, as its layers' may be: a second apart.)
         else if (TWO_KEPT.has(layer.type) && mode === "sides") layer.colorBelow = layer.colorBelow === undefined || layer.colorBelow === layer.color ? secondColor(layer) : layer.colorBelow;
         else if (TWO_KEPT.has(layer.type) && mode === "one" && layer.colorBelow !== undefined) layer.colors = 1;
+        // (Two colors picked: their second said (red unset), as one unset reads as one, see normalize.)
+        else if (TWO_OR_ONE.has(layer.type) && mode === "sides") layer.colorBelow ??= secondColor(layer);
       }
       // ── Gradients: colors by value ───────────────────────────────────────────────
 
