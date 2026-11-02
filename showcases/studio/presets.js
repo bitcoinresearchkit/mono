@@ -249,7 +249,8 @@ export function studioPresets(client, facts) {
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
       ...options.extra,
-      ...(options.around === undefined ? {} : { ...around(options.around), ...shades(i, list.length) }),
+      // (Its shown one in Bitview's own green and red, as every baseline; the others each a shade apart, see shades.)
+      ...(options.around === undefined ? {} : { ...around(options.around), ...(shown.includes(key) ? { color: "green", colorBelow: "red" } : shades(i, list.length)) }),
     }));
   };
   /** A share or ratio over windows and since the start (`cumulative`), all its own windows. @param {any} node @param {string} what @param {Layer} [extra] */
@@ -352,7 +353,8 @@ export function studioPresets(client, facts) {
           series(btc(inProfit), "In profit", { color: "green", type: "area" }), series(btc(inLoss), "In loss", { color: "red", type: "area" }),
           ...(usd(inProfit) ? [series(usd(inProfit), "In profit, value", { color: "green", type: "area", pane: 2 }), series(usd(inLoss), "In loss, value", { color: "red", type: "area", pane: 2 })] : []),
         ], { stack: { 1: "stack", 2: "stack" } }),
-        inProfit?.share && chart("Share in profit", titled("Share of supply in profit"), [series(inProfit.share, "In profit", { color: "green", levels: [{ value: 50, color: "gray", dash: 3 }] }), series(inLoss.share, "In loss", { color: "red" })]),
+        // (Two parts of a whole: stacked, the share in profit under, in loss over, where they meet the share.)
+        inProfit?.share && chart("Share in profit", titled("Share of supply in profit"), [series(inProfit.share, "In profit", { color: "green", type: "area" }), series(inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }),
         supply.share && !whole && chart(`Share of ${of} coins`, titled(`Share of ${of} coins and capital`), [series(supply.share, `Of ${of} coins`, { color: color ?? "orange" }), ...(capital?.share ? [series(capital.share, `Of ${of} capital`, { color: "green" })] : [])]),
         ...change(supply.delta, "Change", titled("Supply change")),
         ...flow(supply.agedOut, "Aged out", titled("Supply aging out"), color),
@@ -389,7 +391,7 @@ export function studioPresets(client, facts) {
         ] : []),
         ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), color),
         ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), color),
-        activity.dormancy && chart("Dormancy", titled("Dormancy"), windows(activity.dormancy, "")),
+        activity.dormancy && chart("Dormancy", titled("Dormancy"), windows(activity.dormancy, "", { color })),
       ]),
       realized && section("Realized", [
         realized.profit && chart("Profit and loss", titled("Realized profit and loss"), [
@@ -421,7 +423,7 @@ export function studioPresets(client, facts) {
         realized.adjustedSopr && chart("Adjusted value, all time", titled("Adjusted value created and destroyed, all time"), [
           series(realized.adjustedSopr.valueCreated.cumulative, "Created", { color: "green" }), series(realized.adjustedSopr.valueDestroyed.cumulative, "Destroyed", { color: "red" }),
         ]),
-        realized.sellSideRiskRatio && chart("Sell-side risk ratio", titled("Sell-side risk ratio"), windows(realized.sellSideRiskRatio, ""), { log: [1] }),
+        realized.sellSideRiskRatio && chart("Sell-side risk ratio", titled("Sell-side risk ratio"), windows(realized.sellSideRiskRatio, "", { color }), { log: [1] }),
       ]),
       unrealized && section("Unrealized", [
         chart("Profit and loss", titled("Unrealized profit and loss"), [
