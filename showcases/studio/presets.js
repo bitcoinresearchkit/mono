@@ -27,7 +27,7 @@
  * have found a block, its height, the year
  */
 
-import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
+import { HOLDER_COLORS, OKLCH as OKLCH_OF, holderColor, recencyColor, wheelColor } from "./palette.js";
 
 /** @param {any} n */
 const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
@@ -462,8 +462,8 @@ export function studioPresets(client, facts) {
           ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
           series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
         ], { log: [2] }),
-        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin")),
-        ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar")) : []),
+        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, 25),
+        ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
         cost.supplyDensity && chart("Supply density", titled("Share of supply with a cost basis within 5% of the price"), [
           series(cost.supplyDensity.total, "Supply", { color: color ?? "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
         ]),
@@ -474,17 +474,27 @@ export function studioPresets(client, facts) {
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   };
   /**
-   * Percentiles of a price (`p5`… keys) over the price, as a fan: each its own line, the median solid, colored from
-   * low to high. None, no chart.
-   * @param {any} node @param {string} name @param {string} title
+   * Percentiles of a price (`p5`… keys) over the price, as a field: each band between two next to each other in `color`
+   * (its average's: by coin the realized price's, by dollar the capitalized's), strongest at the median, where most
+   * were bought, fading toward the tails; the median a wider line; its lines one legend item (a cloud by them). From
+   * `from` up (by coin, the 25th: under it, coins mined for next to nothing, their cents stretching the scale), the
+   * ones under it hidden, a click away. None, no chart.
+   * @param {any} node @param {string} name @param {string} title @param {string} color @param {number} [from]
    */
-  const percentiles = (node, name, title) => {
+  const percentiles = (node, name, title, color, from = 0) => {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
-    const colors = ramp(list.length, 25, 160);
     // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
-    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 }))])];
+    const [l, c, h] = OKLCH_OF[color] ?? [0.68, 0.18, 45];
+    const look = (/** @type {number} */ p) => ((near) => `oklch(${(0.34 + (l - 0.34) * near).toFixed(3)} ${(0.04 + (c - 0.04) * near).toFixed(3)} ${h})`)(1 - Math.abs(p - 50) / 50);
+    // (A line on the low side in its band above's shade, on the high side in its own: a band's, its line's over it.)
+    const ps = list.map(([key]) => percentile(key));
+    const lines = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(ps[i]), { color: key === "median" ? color : look(ps[i] < 50 ? ps[i + 1] ?? ps[i] : ps[i]), width: key === "median" ? 2 : 1, opacity: key === "median" ? 1 : 0.6, ...(ps[i] < from ? { hidden: true } : {}) }));
+    const field = ps.flatMap((p, i) => (p >= from ? [i] : []));
+    // (A field of two lines at least: fewer, the lines alone.)
+    const cloud = field.length > 1 ? [{ cloud: field.map((i) => letter(1 + i)), label: `${percentileLabel(ps[field[0]])} to ${percentileLabel(ps[field[field.length - 1]])}`, color, byLayers: true, opacity: 0.45 }] : [];
+    return [chart(name, title, [price(), ...lines, ...cloud])];
   };
   /**
    * A rarity meter component's charts: its price bands over the price, with its reference price, and its ratio

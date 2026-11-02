@@ -38312,12 +38312,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.globalAlpha = 1;
         context.textAlign = "left";
         context.textBaseline = "alphabetic";
-        // The source, set like the sidebar's brand; across from it the interval, the view's dates, the values' date.
+        // The source, set like the sidebar's brand (its mark, in its orange, then its name); across from it the interval,
+        // the view's dates, the values' date.
         const baseline = head + shot.height + px(28);
+        let at = pad;
+        ((mark) => {
+          const path = mark?.querySelector("path"), box = mark?.viewBox.baseVal;
+          if (!path || !box?.height) return;
+          // (As tall as the name's capitals and a little more, its foot on their baseline.)
+          const tall = px(13), k = tall / box.height;
+          context.save();
+          context.translate(at, baseline - tall + px(1.5));
+          context.scale(k, k);
+          context.translate(-box.x, -box.y);
+          context.fillStyle = /** @type {string} */ (path.getAttribute("fill"));
+          context.fill(new Path2D(/** @type {string} */ (path.getAttribute("d"))), "evenodd");
+          context.restore();
+          at += box.width * k + px(6);
+        })(/** @type {SVGSVGElement | null} */ (document.querySelector(".brand .logo svg")));
         context.font = font(590, 12);
         context.fillStyle = inkColor;
-        context.fillText("Bitview", pad, baseline);
-        let at = pad + context.measureText("Bitview ").width;
+        context.fillText("Bitview", at, baseline);
+        at += context.measureText("Bitview ").width;
         context.font = font(510, 12);
         context.fillStyle = softColor;
         context.fillText("Studio", at, baseline);
