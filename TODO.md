@@ -70,10 +70,8 @@ Only what's left. An item done is removed: its history is in the commits and log
     the library's Timeline doesn't: lead and gap off by a few px, the resting legend reading point 10 where tags read
     11; (4) a live tick doesn't re-anchor a pinned crosshair after the scale refits (~39826: holdCross); (5) candles'
     close line tinted by the view's last candle (~16764), wrong when the tag reads the crosshair's candle; (6) bandAt
-    (~17817) can override the library's hit with a nearer value at the rounded point. (6) looked at, left: the
-    library's hit puts a fill under the pointer at distance 0, so preferring it would let an area's fill beat a line
-    3 px away; Studio prefers the nearby line on purpose. A better fix measures each line's y at the pointer's x
-    (steps, curves) in the nearest-line scan: not done.
+    (~17817) can override the library's hit with a nearer value at the rounded point: fixed (2026-11-02), each line's
+    stroke measured against its drawing (Pane.distanceOf).
   - Batch 3 measured first (2026-11-01), left as is: a crosshair move costs 0.045 ms median in Chromium over 48
     presets (worst the profiles: Supply profile by age band 0.31, by holder group 0.24), on the phone 0.2 ms (the
     price) to 0.87 (the 24-band stack): what (15)–(17) could save is a part of that, a few percent of a frame

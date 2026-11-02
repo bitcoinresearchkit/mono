@@ -286,20 +286,29 @@ export class Pane {
    * @param {import("./timeline.js").Timeline} time @param {number} i @param {number} x @param {number} y @param {number} [within]
    */
   hit(time, i, x, y, within = 6) {
-    const from = this.#from(time);
     let best = -1, nearest = within;
     for (let k = this.series.length - 1; k >= 0; k--) {
-      if (this.series[k].hidden) continue;
-      const scale = this.scaleOf(k);
-      if (scale.relative) {
-        const base = this.series[k].first(from);
-        if (!base || base !== base) continue;
-        scale.setBase(base);
-      }
-      const d = this.series[k].distance(i, y, scale, x, time);
+      const d = this.#distance(k, time, i, x, y);
       if (d < nearest) (nearest = d), (best = k);
     }
     return best;
+  }
+
+  /**
+   * How far its series `series` is from a point (index `i`, `x` CSS pixels into the plot, `y` from its top), measured
+   * against its drawing there as `hit` measures it (a step, a curve, a stroke's width); Infinity: hidden, not its, or no
+   * reading there. A page picking among some of its series: the lines alone, not a fill under them.
+   * @param {Series} series @param {import("./timeline.js").Timeline} time @param {number} i @param {number} x @param {number} y
+   */
+  distanceOf(series, time, i, x, y) {
+    return this.#distance(this.series.indexOf(series), time, i, x, y);
+  }
+
+  /** Its `k`th series' distance from a point (see distanceOf). @param {number} k @param {import("./timeline.js").Timeline} time @param {number} i @param {number} x @param {number} y */
+  #distance(k, time, i, x, y) {
+    if (k < 0 || this.series[k].hidden) return Infinity;
+    const scale = this.#reading(k, time);
+    return scale ? this.series[k].distance(i, y, scale, x, time) : Infinity;
   }
 
   /**

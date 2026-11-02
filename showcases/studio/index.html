@@ -17813,13 +17813,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const point = param?.point, pane = point && param.pane !== undefined ? chart.panes[param.pane] : undefined;
         if (!point || !pane || !resolved || param.logical === undefined) return null;
         const at = Math.round(param.logical);
-        // (Lines, not stacked: the one nearest the pointer at that date, a line's reach away at most.)
+        // (Lines, not stacked: the one nearest the pointer, measured against its stroke as drawn (a step, a curve; an
+        // area's edge, not its fill), a line's reach away at most.)
         if (!pane.stack) {
           let near = null, off = PULL;
-          const bands = bandsOf(pane);
+          const bands = bandsOf(pane), on = engine.panes[/** @type {number} */ (param.pane)];
           for (const layer of bands) {
-            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at] ?? NaN, y = Number.isFinite(value) ? seriesY(drawn.get(layer.id), value) : null;
-            if (typeof y === "number" && Math.abs(y - point.y) <= off) (near = layer.id), (off = Math.abs(y - point.y));
+            // (Lines only: a candle's or a bar's body, under the pointer at no distance, left to the fallback.)
+            const line = layer.type === "cloud" ? null : dotLineOf(layer.id), stroke = line instanceof Line && !(line instanceof Bars);
+            const d = stroke && on ? on.distanceOf(line, engine.time, at, point.x, point.y) : Infinity;
+            if (d <= off) (near = layer.id), (off = d);
           }
           // (None that near: the series the chart finds under it, a candle's wick, a bar's body, a cloud's fill.)
           const under = param.layer;
