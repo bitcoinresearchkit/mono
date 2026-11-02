@@ -3018,6 +3018,17 @@
           pointer-events: auto;
           cursor: pointer;
 
+          /* (One control, its press the pane's layers: its keys a summary, none pointed at on its own (no eye, no
+             spotlight flipping between keys a few pixels apart).) */
+          > * {
+            pointer-events: none;
+
+            /* (But an error's words, its detail's tip under them: the one layer named shows them.) */
+            .legend-error[data-tip] {
+              pointer-events: auto;
+            }
+          }
+
           > button {
             margin-left: -6px;
             border-radius: 50%;
