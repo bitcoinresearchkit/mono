@@ -800,9 +800,16 @@ export class Pane {
       need = Math.max(need, g.measureText(words).width + 16);
     }
     this.axisNeed[side] = need;
+    // (Its series' own tags (a drawing's value, a page's marks), each where it says, within the pane, against the plot:
+    // over its lines' at rest (a line being drawn reads its value over the last one's); under them while they read the
+    // crosshair's point (what's read at the pointer, never hidden by what's marked).)
+    const own = () => {
+      for (let k = 0; k < page.count; k++) this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width : x, page.at[k], side ? "right" : "left") + 4);
+    };
+    const reading = this.tagsAt === this.tagsAt;
+    if (reading) own();
     this.#tags(g, scale, time, theme, x, width, side, tags);
-    // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
-    for (let k = 0; k < page.count; k++) this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width : x, page.at[k], side ? "right" : "left") + 4);
+    if (!reading) own();
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
   }
 

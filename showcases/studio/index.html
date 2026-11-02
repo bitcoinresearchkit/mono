@@ -3975,8 +3975,10 @@
         }
       }
 
-      /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), a line there as
-         it's pointed at or dragged (the accent: what you're moving), focused (the focus ring's); side by side with the chart only (a rail, a floating panel, a sheet: none).
+      /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), the line between
+         them and the chart lit as it's pointed at or dragged (the accent: what you're moving), focused (the focus ring's):
+         the sidebar's a bar of its own beside the card (its edge round), the panel's its own edge (a line of its own,
+         inside it, sat beside it); side by side with the chart only (a rail, a floating panel, a sheet: none).
          (Separators: the drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid
          it.) */
       .grip[role="separator"] {
@@ -3988,6 +3990,14 @@
         width: 7px;
         cursor: col-resize;
         touch-action: none;
+
+        &:focus-visible {
+          outline: none;
+        }
+      }
+
+      #side-grip {
+        right: 0;
 
         &::after {
           content: "";
@@ -4001,18 +4011,18 @@
           opacity: 1;
         }
 
-        &:focus-visible {
-          outline: none;
-
-          &::after {
-            background: var(--focus);
-            opacity: 1;
-          }
+        &:focus-visible::after {
+          background: var(--focus);
+          opacity: 1;
         }
       }
 
-      #side-grip {
-        right: 0;
+      .panel:has(> #panel-grip:is(:hover:where(.can-hover *), .dragging)) {
+        border-left-color: var(--accent);
+      }
+
+      .panel:has(> #panel-grip:focus-visible) {
+        border-left-color: var(--focus);
       }
 
       #panel-grip {
@@ -10656,7 +10666,7 @@
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
-            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's.</li>
+            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5.0% ₿1,690,123").</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -11939,6 +11949,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
       const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
+      /** A profile's views: its bars, or its amounts summed from the close outward. */
+      const PROFILE_VIEWS = /** @type {[string, string][]} */ ([["bars", "Bars"], ["cumulative", "Cumulative"]]);
       /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one. */
       const HEAT_ROWS = [100, 200, 500];
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
@@ -13233,7 +13245,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
-       *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
+       *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cumulative?: true, cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
@@ -16879,6 +16891,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {number[]} the last build's times, for where new data sits against them */
       let drawnTimes = [];
       let drawnPanes = "";
+      /** The last build's layers (their ids): another set, the axes fitted again. */
+      let drawnLayers = "";
       /** The range tabs light the chart's preset only while the view still shows it. */
       let presetShown = true;
       /** Whether the range preset shows, its button lit with it (a link's range, an interval stepped, a view kept). */
@@ -17409,7 +17423,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again. Laid from the chart, or the
         // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
         if (!(holding && drawnPanes === panesShape)) sizePanes();
-        drawnPanes = panesShape;
+        // (Its axes as narrow as their labels let them again where its scales fit their data again, or its layers changed:
+        // else they only widen, see the library's fitAxes.)
+        const layerIds = doc.layers.map((layer) => layer.id).join();
+        if (!keep || layerIds !== drawnLayers) engine.fitAxes();
+        (drawnPanes = panesShape), (drawnLayers = layerIds);
         nameAxis();
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
@@ -19010,7 +19028,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function valueSlot(layer, size, lines = false) {
         // (A heatmap's reading: a cell's amount, at its price beside it (a row's, `lines`, under it: its amount alone),
         // each as wide as it's written, see heatReading. A profile's: its share in profit, see profileReading.)
-        if (layer.type === "profile") return widest(["100% in profit"], 510, size, false);
+        // (A cumulative one's, its reading too: how far the pointer's price is and the sum to it.)
+        if (layer.type === "profile") return widest(["100% in profit", ...(layer.cumulative ? [`+100.0% ${format(layer.measure === "capital" || layer.measure === "pnl" ? 2e12 : 2e7, layer.measure === "capital" || layer.measure === "pnl" ? "usd" : "btc")}`] : [])], 510, size, false);
         if (heatLike(layer)) return widest([8.888e6, 888_888, 88_888].flatMap((amount) => ((written) => (lines ? [written] : [888_888, 88_888].map((price) => `${written} at ${format(price, "usd")}`)))(format(amount, (layer.measure ?? "supply") === "supply" ? "btc" : "usd"))), 510, size);
         const result = resolved?.results.get(layer.id), values = result?.values;
         if (!values) return 0;
@@ -19232,8 +19251,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // legend over the plot, the one it was.)
         crossIn = Boolean(param.point);
         // (Where it is in its pane: a heatmap reads the price there, see heatReading.)
+        // (Gone too, read again: a cumulative profile's legend back at rest.)
+        const wasAt = heatAt;
         heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
-        if (heatLooks.size && heatAt) valuesSoon();
+        if (heatLooks.size && (heatAt || wasAt)) valuesSoon();
         // (The bar under it lit, the frontmost profile's.)
         const point = param.point;
         if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof profileHit>} */ hit, layer) => hit ?? profileHit(layer, point), null) : null);
@@ -22001,7 +22022,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
-      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)" });
+      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)", bars: "Each price's amount", cumulative: "Summed from the close outward: at each price, all bought between it and the close" });
       /**
        * A profile's holder group in or out (in, after the others: further from the edge; out, its last too, none drawn till
        * one's picked). Its chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
@@ -22045,6 +22066,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           layer.type === "profile"
             ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
             : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map(([id, name]) => /** @type {[string, string]} */ ([id, name])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
+          ...(layer.type === "profile" ? [{ key: "view", icon: ICONS.layers, label: "View", aside: layer.cumulative ? "Cumulative" : "Bars", group: kind, page: choices("View", PROFILE_VIEWS, (item) => (item.cumulative ? "cumulative" : "bars"), (item, view) => (item.cumulative = view === "cumulative" || undefined), (view) => HEAT_SAYS[view]) }] : []),
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: measureName(layer), group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: weightName(layer), group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
@@ -22073,6 +22095,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>${layer.type === "profile" ? "Profile" : "Heatmap"}</h3>
               ${layer.type === "profile" ? `<div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span>${both("holders", "holder groups")}</span>${chips("holders", "Its holder groups")}</div>
               <div class="field"><span>Age bands${both("ages", "age bands")}</span>${chips("ages", "Its age bands")}</div>` : menu("holders")}${gone}
+              ${layer.type === "profile" ? tabs("view", "View", PROFILE_VIEWS, layer.cumulative ? "cumulative" : "bars") : ""}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
@@ -22261,7 +22284,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's (`kind`, see viewProfile): its holder groups and their colors, each one's day last shown (`last`), its
        * shares' colors (in profit, in loss), its close's line's (`mark`) and the card's (`halo`); its close and share in
        * profit (`shares`, see profileShares).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cumulative: boolean, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how, read by its layer's drawing (see Heat).
@@ -22300,7 +22323,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const card = rgbOf(css("--card")), own = rgbOf(color), over = (/** @type {number} */ strength) => `rgb(${own.map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
         return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
       };
-      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -22344,6 +22367,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let amount = 0;
           for (let k = lowerBound(rows, bar.from); k < rows.length && rows[k] < bar.to; k++) amount += values[k];
           return { amount: format(amount, look.measure === "supply" ? "btc" : "usd"), at: `$${compact(grid.price(bar.from))}–$${compact(grid.price(bar.to))}` };
+        }
+        // (Cumulative, the pointer in its pane: the sum from the close to its price, and how far that price is from it.)
+        const series = drawn.get(look.id), engine = series?.engine, pane = chart.panes.findIndex((item) => item.id === layerById(look.id)?.pane), at = crossAt();
+        if (look.cumulative && engine instanceof Profile && at?.pane === pane && !exporting && !capturing) {
+          const sums = engine.sumsAt(at.y), price = Number(seriesValue(series, at.y)), from = engine.at;
+          if (sums && price > 0 && from > 0) {
+            const change = (price / from - 1) * 100, total = sums.reduce((sum, value) => sum + value, 0);
+            return { amount: `${change < 0 ? "−" : "+"}${Math.abs(change).toFixed(1)}% ${format(total, look.measure === "supply" ? "btc" : "usd")}`, at: "" };
+          }
         }
         const close = profileClose(shown), share = close > 0 ? profileShare(shown, grid, close) : null;
         return share === null ? null : { amount: `${share}% in profit`, at: "" };
@@ -22393,6 +22425,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * cell's floor), the legend's on one line, a row's on two (a profile's, see profileReading). None drawn, none.
        * @param {Layer} layer @param {{ at: number, rest: boolean }} point @returns {{ amount: string, at: string } | null}
        */
+      /** Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer. */
+      function crossAt() {
+        const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
+        return crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
+      }
       function heatReading(layer, point, pointed = false) {
         const look = heatLooks.get(layer.id), grid = look?.grid;
         if (!look || !grid || !resolved) return null;
@@ -22402,10 +22439,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (point.at < 0 || point.at >= look.g.length) return null;
         const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
         if (!day?.rows) return null;
-        // (Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer.)
-        const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
-        const at = crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
-        const pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? seriesValue(drawn.get(layer.id), at.y) : day.close;
+        const at = crossAt(), pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? seriesValue(drawn.get(layer.id), at.y) : day.close;
         if (!(Number(price) > 0)) return null;
         const row = grid.cell(Number(price)), rows = day.rows, values = amountsOf(day, look.measure);
         const k = lowerBound(rows, row), value = rows[k] === row ? /** @type {Float32Array} */ (values)[k] : 0;
@@ -22524,8 +22558,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const show = (groups, at = NaN, closeLine = null) => {
           const lit = exporting || capturing ? "" : litCohort(heat.id), had = profile.groups;
           const same = had.length === groups.length && had.every((group, k) => group.rows === groups[k].rows && group.values === groups[k].values && group.gain === groups[k].gain && group.loss === groups[k].loss && group.dimGain === groups[k].dimGain);
-          if (same && (profile.at === at || (profile.at !== profile.at && at !== at)) && profile.lit === lit && profile.closeLine === closeLine && profile.backdrop === heat.backdrop) return;
-          profile.set({ groups, at, lit, closeLine, backdrop: heat.backdrop });
+          if (same && (profile.at === at || (profile.at !== profile.at && at !== at)) && profile.lit === lit && profile.closeLine === closeLine && profile.backdrop === heat.backdrop && profile.cumulative === heat.cumulative) return;
+          profile.set({ groups, at, lit, closeLine, backdrop: heat.backdrop, cumulative: heat.cumulative });
         };
         const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined), shown(undefined), show([]));
         if (!grid || !resolved || !heat.cohorts.length) return none();
@@ -23618,7 +23652,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200] : null, layer.outline, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200, layer.cumulative] : null, layer.outline, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -24353,25 +24387,53 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (Each profile's day (the last shown, as the chart's), its groups' bars from the right edge as the chart draws
             // them (see profileBars): a fifth of the width at the most, binned by a few units, strong under the close, faint
-            // over it, a group a mark of each (see previewSvg); in the pane's order, as a series.)
+            // over it, a group a mark of each (see previewSvg); in the pane's order, as a series. Cumulative, each side's
+            // amounts summed from the close outward, the groups stacked, an area each (see the library's Profile).)
             for (const layer of heats) {
               const sample = heat.get(layer.id), scaled = onScale(modeOf(doc, layer), NaN), rows = Number(HEAT_PICTURE_AGG.slice(3)), measure = layer.measure ?? "supply";
               const groups = layer.type === "profile" && range ? (layer.profile ?? []).map((cohort, c) => ({ cohort, day: sample?.days[c] })).filter((item) => item.day?.rows) : [];
               if (!groups.length) continue;
               const BIN = 4, bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
+              // (Cumulative: the amounts between the close and the pane's edge, out of view, each side's start.)
+              const split = y(scaled(Number(groups[0].day.close))), over = new Float64Array(count), under = new Float64Array(count);
               groups.forEach(({ day }, c) => {
                 const values = amountsOf(day, measure);
                 for (let k = 0; k < day.rows.length; k++) {
                   const at = y(scaled(10 ** ((day.rows[k] + 0.5) / rows) / 100));
+                  if (at < paneTop && split < at) under[c] += Math.abs(values[k]);
+                  else if (at >= paneBottom && at < split) over[c] += Math.abs(values[k]);
                   if (!(at >= paneTop && at < paneBottom)) continue;
                   const b = Math.floor((at - paneTop) / BIN), amount = Math.abs(values[k]);
                   sums[b * count + c] += amount;
                   totals[b] += amount;
                 }
               });
-              const most = totals.reduce((a, b) => Math.max(a, b), 0), split = y(scaled(Number(groups[0].day.close))), paths = groups.map(() => ["", ""]), op = opacityOf(layer);
-              if (!(most > 0)) continue;
-              for (let b = 0; b < bins; b++) {
+              const most = totals.reduce((a, b) => Math.max(a, b), 0), paths = groups.map(() => ["", ""]), op = opacityOf(layer);
+              if (!(most > 0) && !layer.cumulative) continue;
+              if (layer.cumulative) {
+                // (Each side's heights from the close (or the pane's edge) outward, a bin's far edge each, by its part on
+                // that side; then each group's area, along its curve out and back along the one under it.)
+                const line = clamp(split, paneTop, paneBottom), sides = [true, false].map((down) => {
+                  const run = Float64Array.from(down ? under : over), ys = [line], runs = [run.slice()];
+                  for (let i = 0; i < bins; i++) {
+                    const b = down ? i : bins - 1 - i, top = paneTop + b * BIN, bottom = Math.min(paneBottom, top + BIN), from = down ? Math.max(top, line) : top, to = down ? bottom : Math.min(bottom, line);
+                    if (!(to > from)) continue;
+                    for (let c = 0; c < count; c++) run[c] += (sums[b * count + c] * (to - from)) / (bottom - top);
+                    ys.push(down ? to : from), runs.push(run.slice());
+                  }
+                  return { down, ys, runs };
+                });
+                const whole = Math.max(...sides.map(({ runs }) => runs[runs.length - 1].reduce((a, b) => a + b, 0)));
+                if (!(whole > 0)) continue;
+                for (const { down, ys, runs } of sides) {
+                  const x = (v) => round(W - (v / whole) * W * 0.2), stacked = new Float64Array(ys.length);
+                  for (let c = 0; c < count; c++) {
+                    const out = ys.map((at, k) => `${x(stacked[k] + runs[k][c])} ${round(at)}`), back = ys.map((at, k) => `${x(stacked[k])} ${round(at)}`).reverse();
+                    if (runs[runs.length - 1][c]) paths[c][down ? 0 : 1] += `M${out.join("L")}L${back.join("L")}Z`;
+                    ys.forEach((_, k) => (stacked[k] += runs[k][c]));
+                  }
+                }
+              } else for (let b = 0; b < bins; b++) {
                 if (!totals[b]) continue;
                 const top = round(paneTop + b * BIN), bottom = round(Math.min(paneBottom, paneTop + (b + 1) * BIN - 1)), faint = (top + bottom) / 2 > split ? 0 : 1;
                 for (let c = 0, x = W; c < count; c++) {
@@ -32376,6 +32438,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (button.dataset.heatSet) editLayer((item) => {
           const value = button.dataset.value ?? "";
           if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === "supply" ? undefined : value));
+          else if (button.dataset.heatSet === "view") item.cumulative = value === "cumulative" || undefined;
           else item.weight = value || undefined;
         });
         else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
@@ -37778,7 +37841,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const profiled = !made && !heat && (Array.isArray(layer.profile) || cohort(layer.profile));
           /** @type {Record<string, any>} */
           const spec = {
-            ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
+            ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cumulative === true ? { cumulative: true } : {}), ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: formulaNow(String(layer.formula ?? "").slice(0, FORMULA_MAX)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
@@ -38175,7 +38238,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.textAlign = piece.align ?? "left";
           context.textBaseline = "middle";
           // (Edged as the page edges it: a hairline of the card's color under the letters.)
-          const text = fitted(context, /** @type {string} */ (piece.text), piece.width), at = piece.align === "right" ? x + piece.width : x;
+          const text = piece.cut ? fitted(context, /** @type {string} */ (piece.text), piece.width) : /** @type {string} */ (piece.text), at = piece.align === "right" ? x + piece.width : x;
           context.strokeStyle = cardColor;
           context.lineWidth = 2 * scale;
           context.lineJoin = "round";
@@ -38253,7 +38316,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Each pane's legend as the picture writes it (see presentLegends), at rest: its layers' marks, names and values, in
        * the chart's own coordinates, scaled.
-       * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign, faded?: boolean, clip?: number }[]}
+       * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign, faded?: boolean, clip?: number, cut?: boolean }[]}
        */
       function measureLegends(scale) {
         const shown = legends(), origin = engine.element.getBoundingClientRect();
@@ -38262,6 +38325,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return { x: (rect.left - origin.left) * scale, y: (rect.top - origin.top) * scale, width: rect.width * scale, height: rect.height * scale };
         };
         const pieces = [];
+        // (Words the page cuts (wider than their box): cut in the picture too; the others whole, however a canvas
+        // measures them (a hair wider than the page lays them, at another size).)
+        const cutOff = (/** @type {HTMLElement} */ element) => element.scrollWidth > element.clientWidth;
         /** A key as it shows: its strip's colors in their order, a profile's groups' squares; its names where they show. @param {HTMLElement} key @param {boolean} faded */
         const keyPieces = (key, faded) => {
           const strip = /** @type {HTMLElement | null} */ (key.querySelector(".key-strip")), cells = strip ? all$("i", strip) : [];
@@ -38270,7 +38336,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const words of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip, :has(> i)), :scope > span > span", key))) {
             if (!words.getClientRects().length) continue;
             const style = getComputedStyle(words);
-            pieces.push({ ...box(words), faded, text: words.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
+            pieces.push({ ...box(words), faded, text: words.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left"), cut: cutOff(words) });
           }
         };
         for (const legend of shown) {
@@ -38293,7 +38359,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const range = asOf ? document.createRange() : null;
               range?.selectNodeContents(element);
               const end = range ? ((words) => words.x + words.width)(box(range)) : at.x + at.width;
-              pieces.push({ ...at, x: at.x + inset, width: end - at.x - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
+              pieces.push({ ...at, x: at.x + inset, width: end - at.x - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left"), cut: cutOff(element) });
               if (asOf) {
                 pieces.push({ ...at, x: end, width: at.x + at.width - end, faded, text: ` · ${asOf}`, font: `${after.fontWeight} ${parseFloat(after.fontSize) * scale}px ${after.fontFamily}`, color: after.color, align: /** @type {CanvasTextAlign} */ ("left") });
               }

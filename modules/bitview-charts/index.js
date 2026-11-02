@@ -11,7 +11,7 @@
 //   chart.show(365);                                         // the last year in view
 //
 // Dragged, a pane pans (a finger's flick glides on, slowing as a list does, a little sooner); pinched or wheeled, it zooms about that point;
-// a trackpad's sideways scroll pans.
+// a trackpad's sideways scroll pans (a diagonal swipe both at once).
 
 import { Timeline } from "./timeline.js";
 import { Pane } from "./pane.js";
@@ -83,6 +83,8 @@ export class Chart {
     this.fitted = [0, 0];
     /** A render drawing again at the axes' new widths: in it they only widen (see render). */
     this.fitting = false;
+    /** The axes fitted again at the next frame, narrower too (see fitAxes). */
+    this.refit = false;
     /** The view set anew since the last frame (a timeline, the latest shown): unseen, its axes fitted keep its right end. */
     this.placed = true;
     this.timeHeight = timeHeight;
@@ -184,6 +186,12 @@ export class Chart {
   #follow(event) {
     const box = this.element.getBoundingClientRect();
     (this.pointerX = event.clientX - box.left - this.left), (this.crosshair.y = event.clientY - box.top), (this.recrossing = true);
+  }
+
+  /** Its axes as narrow as their labels and tags let them, at the next frame (they only widen by themselves). */
+  fitAxes() {
+    this.refit = true;
+    this.invalidate(true);
   }
 
   /** The timeline's times (seconds, rising), every pane's lines' indices. @param {Float64Array} times */
@@ -441,17 +449,18 @@ export class Chart {
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
-    // (Each axis as narrow as its labels and tags let it (4 pixels a step, AXIS_LEAST at least), each side on its own,
+    // (Each axis as wide as its labels and tags need (4 pixels a step, AXIS_LEAST at least), each side on its own,
     // every point kept where it is on the screen (the axis over the plot's edge, not the plot shifted; a view set anew,
-    // not seen yet, its right end and the room after its latest point as set): wider at once
-    // where they need it; narrower once the view's at rest (drawn whole: no plot sliding under a pan), and
-    // only by 8 pixels or more (a narrower plot can bring a wider label into view: no flapping between two widths). Laid
-    // out and drawn whole again now (a picture taken from this render has it all); in that draw, only wider (it ends).)
+    // not seen yet, its right end and the room after its latest point as set): wider at once where they need it, never
+    // narrower by itself (no plot growing and shrinking as values come and go); as narrow as they let it only when
+    // fitted again (fitAxes: a price axis' double-click, the page's own). Laid out and drawn whole again now (a picture
+    // taken from this render has it all); in that draw, only wider (it ends).)
     {
       let right = 0, leftNeed = 0;
       for (let k = 0; k < this.panes.length; k++) (right = Math.max(right, this.panes[k].axisNeed[0])), (leftNeed = Math.max(leftNeed, this.panes[k].left ? this.panes[k].axisNeed[1] : 0));
-      const fit = (/** @type {number} */ need) => Math.max(AXIS_LEAST, Math.ceil(need / 4) * 4), rest = whole && !this.glide.speed && !this.fitting;
-      const next = (/** @type {number} */ want, /** @type {number} */ shown) => (want > shown || (rest && want <= shown - 8) ? want : shown);
+      const fit = (/** @type {number} */ need) => Math.max(AXIS_LEAST, Math.ceil(need / 4) * 4), refit = this.refit;
+      this.refit = false;
+      const next = (/** @type {number} */ want, /** @type {number} */ shown) => (want > shown || refit ? want : shown);
       const wantRight = this.axis ? next(fit(right), this.axisShown) : 0, wantLeft = this.left ? next(fit(leftNeed), this.leftShown) : 0;
       if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
         if (this.axis) this.fitted[0] = wantRight;
@@ -506,8 +515,8 @@ export class Chart {
   }
 
   // Pointers: one drags (a pan, gliding on once let go), two pinch (a zoom about their middle, and a pan as it moves);
-  // the wheel zooms about the pointer, a trackpad's sideways scroll pans. On an axis, a drag scales it: a price axis
-  // about its middle (its range then set by hand, fitted again by a double-click), the time axis about the plot's right
+  // the wheel zooms about the pointer, a trackpad's sideways scroll pans (a diagonal swipe both). On an axis, a drag scales it: a price axis
+  // about its middle (its range then set by hand, fitted again by a double-click, its width too: see fitAxes), the time axis about the plot's right
   // edge. The crosshair: where a mouse is; a finger
   // held still (HOLD) shows it, moving it then instead of the chart, till it's let go. A finger pans once it's moved
   // past a slop of 6 pixels (a hold, else, would move the chart a little).
@@ -714,7 +723,7 @@ export class Chart {
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
         (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");
         // (A price axis' second: fitted again; the time axis': its page's to say what the view comes back to.)
-        if (again && axis.pane) axis.pane.setRange(undefined, undefined, axis.side), this.invalidate();
+        if (again && axis.pane) axis.pane.setRange(undefined, undefined, axis.side), this.fitAxes();
         else if (again) for (const listener of this.timeResetListeners) listener();
         return void this.#click(event);
       }
@@ -741,8 +750,9 @@ export class Chart {
     element.addEventListener("wheel", (event) => {
       event.preventDefault();
       const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1;
-      if (event.ctrlKey || Math.abs(event.deltaY) >= Math.abs(event.deltaX)) time.zoom(plotX(event.clientX), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
-      else time.pan(-event.deltaX * scale);
+      // (A pinch zooms alone; a scroll both at once, a trackpad's diagonal swipe panning and zooming together.)
+      if (event.deltaY) time.zoom(plotX(event.clientX), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
+      if (event.deltaX && !event.ctrlKey) time.pan(-event.deltaX * scale);
       this.glide.speed = 0;
       this.invalidate();
     }, { passive: false, signal });

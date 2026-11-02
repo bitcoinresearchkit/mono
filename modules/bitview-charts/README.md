@@ -23,7 +23,7 @@ chart.show(365);                                 // the last 365 points in view
 - `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
   and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
-  then as narrow as its labels and tags let it (`axisShown`: wider at once, narrower at rest by 8 pixels or more; every point kept where it is on the screen, the axis growing over the plot's edge);
+  then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
@@ -42,7 +42,7 @@ chart.show(365);                                 // the last 365 points in view
   pointer).
 - Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse's drag stops where it's
   let go), a pinch or the wheel zooms about that point (the point
-  there stays there), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
+  there stays there), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
   covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
@@ -116,14 +116,16 @@ chart.show(365);                                 // the last 365 points in view
   onto device pixels, smoothed only where it's squeezed; `forget(key)`, a column's strips let go (its cells anew).
   `viewed({ step, owners })`, told the blocks in view before each draw (what the page fetches and keeps). Fitted by
   the page's `fit`, else not; never hit.
-- `Profile({ groups, edge, cell, at, lit, width, bin, backdrop, closeLine, viewed, fit })`: groups' amounts by value
+- `Profile({ groups, edge, cell, at, lit, width, bin, backdrop, closeLine, cumulative, viewed, fit })`: groups' amounts by value
   rows (each `{ id, rows, values, gain, loss, dimGain, dimLoss }`; a row's floor `edge(row)`, a value's row
   `cell(value)`) as bars from the plot's right edge, stacked, as long as a bin's total against the longest in view
   (`width(plot)` pixels at most); rows gathered into bins `bin` pixels tall at least, on whole multiples of a row (the
   same at any pan), a pixel of `backdrop` between two; split at `at` (a close), a group's `gain` under it and `loss` over
   it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Drawn whole each
   frame, the page told first (`viewed`); `set(...)` its groups and the rest; `hit(x, y)`, the bar under a point (its
-  group, its bin's rows). Fitted by the page's `fit`, else not.
+  group, its bin's rows). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
+  it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
+  whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
   each `{ at, position, shape, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
   `"below"` it (its low) or `"on"` it; an arrow (`"up"`, `"down"`), a `"circle"` or a `"square"` as tall as a point is
@@ -154,7 +156,7 @@ chart.show(365);                                 // the last 365 points in view
   color, below })`; then `chart.invalidate()`.
 - `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own
   (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags
-  on a price axis or the time axis (a drawing's value, its date); `viewed`, told before each draw of its pane (what it
+  on a price axis or the time axis (a drawing's value, its date), a price axis' over its lines' at rest, under them while they read the crosshair's point (what's read at the pointer); `viewed`, told before each draw of its pane (what it
   draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole each
   frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
   placed in the plot); `behind`, behind every series; `changed()` after a change.

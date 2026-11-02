@@ -7,9 +7,11 @@
 // wherever the view's panned, whatever groups are shown; a row that tall its own bin. Each bin's bar from its top to a
 // pixel over its floor, that pixel the `backdrop` (none seen through but by its opacity); split at `at` (a value: a
 // close), each group's `gain` under it, `loss` over it (in profit and not); one group `lit`, the others in their dim
-// ones. A close not the latest's dashed across it (`closeLine`, its color). Drawn whole each frame, on device pixels; the
-// page told before each draw (`viewed`, its groups' day then). Fitted as the page says (`fit`); a bar under a point
-// found as drawn (`hit`).
+// ones. A close not the latest's dashed across it (`closeLine`, its color). `cumulative`: in place of the bars, the
+// amounts summed from the close outward (upward over it, downward under it), each group's stacked on the one before as
+// its bars are, filled in its colors to the edge, as long as the longer side's whole; read at a height (`sumsAt`).
+// Drawn whole each frame, on device pixels; the page told before each draw (`viewed`, its groups' day then). Fitted as
+// the page says (`fit`); a bar under a point found as drawn (`hit`).
 
 /**
  * @typedef {{ id: string, rows: Int32Array, values: ArrayLike<number>, gain: string, loss: string, dimGain: string, dimLoss: string }} ProfileGroup
@@ -20,21 +22,23 @@ export class Profile {
   /**
    * @param {{
    *   groups?: ProfileGroup[], edge: (row: number) => number, cell: (value: number) => number, at?: number, lit?: string,
-   *   width?: (plot: number) => number, bin?: number, backdrop?: string, closeLine?: string | null,
+   *   width?: (plot: number) => number, bin?: number, backdrop?: string, closeLine?: string | null, cumulative?: boolean,
    *   viewed?: ((time: import("./timeline.js").Timeline) => void) | null,
    *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
    * }} options
    */
-  constructor({ groups = [], edge, cell, at = NaN, lit = "", width = (plot) => Math.round(Math.min(200, Math.max(72, plot * 0.2))), bin = 3, backdrop = "transparent", closeLine = null, viewed = null, fit = null }) {
+  constructor({ groups = [], edge, cell, at = NaN, lit = "", width = (plot) => Math.round(Math.min(200, Math.max(72, plot * 0.2))), bin = 3, backdrop = "transparent", closeLine = null, cumulative = false, viewed = null, fit = null }) {
     /** @type {ProfileGroup[]} */
     this.groups = groups;
     (this.edge = edge), (this.cell = cell);
-    (this.at = at), (this.lit = lit), (this.width = width), (this.bin = bin), (this.backdrop = backdrop), (this.closeLine = closeLine);
+    (this.at = at), (this.lit = lit), (this.width = width), (this.bin = bin), (this.backdrop = backdrop), (this.closeLine = closeLine), (this.cumulative = cumulative);
     this.onViewed = viewed;
     /** How it widens its scale's range, the page's (see the pane's Series); none, not fitted. */
     this.fit = fit;
     /** Its bars as last drawn (for a point on them: see hit); none drawn, null. @type {ProfileBars | null} */
     this.bars = null;
+    /** Its bins and the close as last drawn, cumulative (see sumsAt): none, null. @type {{ edges: number[], sums: Float64Array, count: number, line: number } | null} */
+    this.summed = null;
     /** Drawn whole each frame: its bars are the view's. */
     this.fixed = true;
     this.scaled = Boolean(fit);
@@ -43,10 +47,29 @@ export class Profile {
     this.version = 0;
   }
 
-  /** @param {{ groups?: ProfileGroup[], at?: number, lit?: string, closeLine?: string | null, backdrop?: string }} change */
-  set({ groups = this.groups, at = this.at, lit = this.lit, closeLine = this.closeLine, backdrop = this.backdrop }) {
+  /** @param {{ groups?: ProfileGroup[], at?: number, lit?: string, closeLine?: string | null, backdrop?: string, cumulative?: boolean }} change */
+  set({ groups = this.groups, at = this.at, lit = this.lit, closeLine = this.closeLine, backdrop = this.backdrop, cumulative = this.cumulative }) {
     this.version++;
-    (this.groups = groups), (this.at = at), (this.lit = lit), (this.closeLine = closeLine), (this.backdrop = backdrop);
+    (this.groups = groups), (this.at = at), (this.lit = lit), (this.closeLine = closeLine), (this.backdrop = backdrop), (this.cumulative = cumulative);
+  }
+
+  /**
+   * Cumulative, as last drawn: each group's amount from the close to a height (CSS pixels in its pane; over the close,
+   * upward; under it, downward), a bin it's in by the part of it on the way; none drawn, null.
+   * @param {number} y @returns {number[] | null}
+   */
+  sumsAt(y) {
+    const summed = this.summed;
+    if (!summed) return null;
+    const { edges, sums, count, line } = summed, out = new Array(count).fill(0);
+    for (let b = 0; b < edges.length - 1; b++) {
+      // (Its part between the close and the height, as a share of it.)
+      const top = edges[b + 1], bottom = edges[b], from = y < line ? Math.max(top, y) : Math.max(top, line), to = y < line ? Math.min(bottom, line) : Math.min(bottom, y);
+      if (!(to > from)) continue;
+      const share = (to - from) / (bottom - top);
+      for (let c = 0; c < count; c++) out[c] += sums[b * count + c] * share;
+    }
+    return out;
   }
 
   /** What it draws changed in place: drawn again. */
@@ -92,11 +115,112 @@ export class Profile {
   }
 
   /**
+   * Its bars: each bin's from its top to a pixel over its floor, the groups stacked from the right edge, split at the
+   * close (see the class), on device pixels.
+   * @param {CanvasRenderingContext2D} g @param {number[]} edges @param {Float64Array} sums @param {Float64Array} totals @param {number} count
+   * @param {number} most @param {number} line @param {number} right @param {number} width @param {number} dpr
+   */
+  #bars(g, edges, sums, totals, count, most, line, right, width, dpr) {
+    const bins = totals.length, groups = this.groups;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // (Each bin's bar from its top to a pixel over its floor (one too thin for that, to its floor); that pixel the
+    // backdrop's, as long as its bar.)
+    const gap = Math.max(1, Math.round(dpr)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
+    g.fillStyle = this.backdrop;
+    for (let b = 0; b < bins; b++) {
+      const top = (tops[b] = Math.round(edges[b + 1] * dpr)), floor = Math.round(edges[b] * dpr), bottom = (bottoms[b] = floor - gap > top ? floor - gap : floor);
+      if (!totals[b] || bottom === floor) continue;
+      const left = Math.round((right - (totals[b] / most) * width) * dpr);
+      g.fillRect(left, bottom, Math.max(1, Math.round(right * dpr) - left), floor - bottom);
+    }
+    // (The groups stacked from the right edge, the first at it: each group's bars in two passes, its gain's under the
+    // close, its loss's over it, a bin it crosses split at it; a group lit, the others dimmed.)
+    const split = Math.round(line * dpr), from = new Float64Array(bins).fill(right), lit = this.lit;
+    groups.forEach((group, c) => {
+      const dim = lit && group.id !== lit;
+      for (const strong of [true, false]) {
+        g.fillStyle = strong ? (dim ? group.dimGain : group.gain) : dim ? group.dimLoss : group.loss;
+        for (let b = 0; b < bins; b++) {
+          const length = (sums[b * count + c] / most) * width;
+          if (!length) continue;
+          const x = from[b], left = Math.round((x - length) * dpr), top = tops[b], bottom = bottoms[b];
+          const y0 = strong ? Math.max(top, split) : top, y1 = strong ? bottom : Math.min(bottom, split);
+          if (y1 > y0) g.fillRect(left, y0, Math.max(1, Math.round(x * dpr) - left), y1 - y0);
+          if (!strong) from[b] = x - length;
+        }
+      }
+    });
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  /**
+   * Cumulative: each side's amounts summed from the close outward, bin by bin (the close's own shared by its parts each
+   * side), the groups stacked; each group's area from its stack's curve under it to its own, in its colors (its gain's
+   * under the close, its loss's over it), to the edge as long as the longer side's whole; each curve along its top, on
+   * to the pane's edge (flat past its last row).
+   * @param {CanvasRenderingContext2D} g @param {number[]} edges @param {Float64Array} sums @param {Float64Array} signed
+   * @param {number} count @param {number} line @param {number} right @param {number} width @param {number} height
+   */
+  #cumulative(g, edges, sums, signed, count, line, right, width, height) {
+    this.summed = { edges, sums: signed, count, line };
+    const bins = edges.length - 1, groups = this.groups, lit = this.lit;
+    // (Each side's heights, from the close outward: a bin's far edge each, its sums by its part on that side.)
+    for (const up of [true, false]) {
+      /** @type {number[]} */
+      const ys = [line];
+      /** @type {Float64Array[]} each group's running sum, at each height */
+      const runs = groups.map(() => new Float64Array(bins + 2));
+      const order = up ? [...Array(bins).keys()] : [...Array(bins).keys()].reverse();
+      for (const b of order) {
+        const top = edges[b + 1], bottom = edges[b], from = up ? top : Math.max(top, line), to = up ? Math.min(bottom, line) : bottom;
+        if (!(to > from)) continue;
+        const share = (to - from) / (bottom - top), k = ys.length;
+        ys.push(up ? from : to);
+        for (let c = 0; c < count; c++) runs[c][k] = runs[c][k - 1] + sums[b * count + c] * share;
+      }
+      // (Past its last row, its whole to the pane's edge.)
+      const last = ys.length - 1, edge = up ? Math.min(0, ys[last]) : Math.max(height, ys[last]);
+      if (edge !== ys[last]) {
+        ys.push(edge);
+        for (let c = 0; c < count; c++) runs[c][last + 1] = runs[c][last];
+      }
+      this.#sides[up ? 0 : 1] = { ys, runs };
+    }
+    const [over, under] = this.#sides, whole = (/** @type {{ ys: number[], runs: Float64Array[] }} */ side) => side.runs.reduce((sum, run) => sum + run[side.ys.length - 1], 0);
+    const most = Math.max(whole(over), whole(under));
+    if (!(most > 0)) return;
+    const x = (/** @type {number} */ v) => right - (v / most) * width;
+    for (const [side, up] of /** @type {const} */ ([[over, true], [under, false]])) {
+      const { ys, runs } = side, n = ys.length, stacked = new Float64Array(n);
+      groups.forEach((group, c) => {
+        const dim = lit && group.id !== lit, color = up ? (dim ? group.dimLoss : group.loss) : dim ? group.dimGain : group.gain;
+        // (Its area: along its own curve out, back along the one under it.)
+        g.beginPath();
+        for (let k = 0; k < n; k++) g.lineTo(x(stacked[k] + runs[c][k]), ys[k]);
+        for (let k = n - 1; k >= 0; k--) g.lineTo(x(stacked[k]), ys[k]);
+        g.closePath();
+        g.fillStyle = color;
+        g.fill();
+        g.beginPath();
+        for (let k = 0; k < n; k++) g.lineTo(x(stacked[k] + runs[c][k]), ys[k]);
+        g.strokeStyle = dim ? group.dimGain : group.gain;
+        g.lineWidth = 1.5;
+        g.lineJoin = "round";
+        g.stroke();
+        for (let k = 0; k < n; k++) stacked[k] += runs[c][k];
+      });
+    }
+  }
+
+  /** Each side's heights and running sums, as the cumulative draw makes them (made once a draw). @type {{ ys: number[], runs: Float64Array[] }[]} */
+  #sides = [{ ys: [], runs: [] }, { ys: [], runs: [] }];
+
+  /**
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} _x0 @param {number} _x1 @param {number} dpr
    */
   draw(g, time, scale, _x0, _x1, dpr) {
-    this.bars = null;
+    (this.bars = null), (this.summed = null);
     const groups = this.groups, edge = this.edge, plot = time.width, height = scale.height, width = this.width(plot), right = plot - 2, even = scale.mode === "log";
     let low = Infinity, high = -Infinity;
     for (const group of groups) if (group.rows.length) (low = Math.min(low, group.rows[0])), (high = Math.max(high, group.rows[group.rows.length - 1]));
@@ -115,6 +239,10 @@ export class Profile {
       if (yOf(mid) > 0) hi = mid;
       else last = mid - 1;
     }
+    // (Cumulative, from the close's row wherever it is: the amounts between it and the view counted, the bins there
+    // whole (none skipped across rows without coins); a view past every row, its sums whole.)
+    const summing = this.cumulative && this.at === this.at && this.at > 0;
+    if (summing) ((at) => ((lo = Math.min(lo, at)), (hi = Math.max(hi, at))))(this.cell(this.at));
     if (hi < lo) return;
     // (Rows into bins `bin` pixels tall at least, as many rows as it takes, on whole multiples of a row (a power of two
     // on a linear scale, its rows taller as values grow): the same bins wherever the view's panned and whichever groups
@@ -144,13 +272,14 @@ export class Profile {
       binAt[k] = edges.length - 1;
     }
     edges.push(yOf(hi + 1)), starts.push(hi + 1);
-    // (Each group's amount a bin; the groups', the longest bin's.)
-    const bins = edges.length - 1, count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
+    // (Each group's amount a bin, by its size; its signed sum too, summed (a loss counted as one).)
+    const bins = edges.length - 1, count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins), signed = summing ? new Float64Array(bins * count) : sums;
     groups.forEach((group, c) => {
       const rows = group.rows, values = group.values;
       for (let k = lowerBound(rows, lo); k < rows.length && rows[k] <= hi; k++) {
         const b = binAt[rows[k] - lo], amount = Math.abs(values[k]);
         sums[b * count + c] += amount;
+        if (summing) signed[b * count + c] += values[k];
         totals[b] += amount;
       }
     });
@@ -158,35 +287,10 @@ export class Profile {
     for (let b = 0; b < bins; b++) most = Math.max(most, totals[b]);
     if (!(most > 0)) return;
     this.bars = { edges, starts, sums, count, most, width, right, ids: groups.map((group) => group.id) };
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    // (Each bin's bar from its top to a pixel over its floor (one too thin for that, to its floor); that pixel the
-    // backdrop's, as long as its bar.)
-    const gap = Math.max(1, Math.round(dpr)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
-    g.fillStyle = this.backdrop;
-    for (let b = 0; b < bins; b++) {
-      const top = (tops[b] = Math.round(edges[b + 1] * dpr)), floor = Math.round(edges[b] * dpr), bottom = (bottoms[b] = floor - gap > top ? floor - gap : floor);
-      if (!totals[b] || bottom === floor) continue;
-      const left = Math.round((right - (totals[b] / most) * width) * dpr);
-      g.fillRect(left, bottom, Math.max(1, Math.round(right * dpr) - left), floor - bottom);
-    }
-    // (The groups stacked from the right edge, the first at it: each group's bars in two passes, its gain's under the
-    // close, its loss's over it, a bin it crosses split at it; a group lit, the others dimmed.)
-    const line = this.at === this.at ? scale.y(this.at) : -Infinity, split = Math.round(line * dpr), from = new Float64Array(bins).fill(right), lit = this.lit;
-    groups.forEach((group, c) => {
-      const dim = lit && group.id !== lit;
-      for (const strong of [true, false]) {
-        g.fillStyle = strong ? (dim ? group.dimGain : group.gain) : dim ? group.dimLoss : group.loss;
-        for (let b = 0; b < bins; b++) {
-          const length = (sums[b * count + c] / most) * width;
-          if (!length) continue;
-          const x = from[b], left = Math.round((x - length) * dpr), top = tops[b], bottom = bottoms[b];
-          const y0 = strong ? Math.max(top, split) : top, y1 = strong ? bottom : Math.min(bottom, split);
-          if (y1 > y0) g.fillRect(left, y0, Math.max(1, Math.round(x * dpr) - left), y1 - y0);
-          if (!strong) from[b] = x - length;
-        }
-      }
-    });
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const line = this.at === this.at ? scale.y(this.at) : -Infinity;
+    // (Cumulative: read by height (sumsAt), no bars to point at.)
+    if (summing && line === line && line > -Infinity) (this.bars = null), this.#cumulative(g, edges, sums, signed, count, line, right, width, height);
+    else this.#bars(g, edges, sums, totals, count, most, line, right, width, dpr);
     // (A close not the latest's: dashed across its bars.)
     if (this.closeLine && line === line && line > -Infinity) {
       const y = Math.round(line) + 0.5;

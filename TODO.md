@@ -106,11 +106,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Profiles: a cumulative toggle (you, 2026-11-02, with a picture of HyperTracker's Hyperliquid liquidation levels), as
-  exchanges show volume profiles and order book depth: from the close outward, above it the amounts summed upward,
-  below it summed downward, each a curve from the price with a fill under it, in profit's and loss's colors; levels at
-  ±1, 2, 3, 5% of the close with their sums in pills on dashed lines; the largest bars marked with their amount. Built
-  with the profile's move onto the library's Profile (it draws the curves; Studio toggles and labels).
+- Deploying (2026-11-02, you: "deploy once it's all checked"): next to prod, `fleet update`, then checked on Chromium,
+  Mullvad and the phone, watched for the post-deploy stall (Bitcoin price loading 40+ s: a request caught by a
+  restarting server?).
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's
