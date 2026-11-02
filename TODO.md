@@ -74,11 +74,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
   as-of date. (1) committed after (focus restored after Legend.set). (5) committed after (every layer hidden: the
   legend wraps). A percent stack's readout reading the stacks once (not once a band; bandAt only for a stacked pane):
-  committed. Left: (4), decided (2026-11-02), to build next: one rule, wherever a layer is pointed at (its line in
-  the plot, its tag on the axis, its row in the layers panel) its pane's chip names it, as the spotlight lights it;
-  the chip keeps that name while the pointer moves onto it (never shrinking under it), back to its keys once the
-  pointer leaves for empty plot or off the chart; a tap the same. The library names from the page's pointed layer,
-  crosshair or not. Then the rest of the repeated work (measure first). As found:
+  committed. (4) committed (2026-11-02): the chip names the layer pointed at (its line or band, its axis tag), kept
+  in its pane's empty space and on the chip. Left: the rest of the repeated work (measure first). As found:
   - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
     every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
     (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;

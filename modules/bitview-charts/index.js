@@ -491,9 +491,10 @@ export class Chart {
     for (let k = 0; k < this.panes.length; k++) this.panes[k].retag(crosshair.index, time, this.theme, this.dpr);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
-    // (Each legend pointed at the series read (the page's, else the one a pointer's on; none, the crosshair gone), its
-    // items made here read at its point, in this frame.)
-    const read = crosshair.index === crosshair.index ? (crosshair.pointed !== undefined ? crosshair.pointed : crosshair.hit) : null;
+    // (Each legend pointed at the series read: the page's, crosshair or not (a tag, a row of its own, the pointer moved
+    // onto the legend); else the one a pointer's on, none with the crosshair gone. Its items made here read at its
+    // point, in this frame.)
+    const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
     for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     this.placed = false;

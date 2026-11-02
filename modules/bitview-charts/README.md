@@ -70,7 +70,8 @@ chart.show(365);                                 // the last 365 points in view
   `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;
   else made from its first series: a key of its color, its `label`, its value at the crosshair or its last in view, as
   its tag writes it). One shown, named; more, a chip (their first four keys and how many; a press on it told
-  `onPress`); the crosshair's series (`crosshair.pointed`, else the one a pointer's on) named alone in it. Hidden ones
+  `onPress`); the series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
+  not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
   over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,
   `data-named`, an item's `data-pointed`).

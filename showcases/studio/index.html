@@ -16811,7 +16811,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const respot = () => spotlight(pointedLayer ?? (selected && !pointerOnChart && panelShown() ? selected : null));
       document.addEventListener("pointerover", (event) => {
-        onLegend = Boolean(closest(event, "#chart .legend"));
+        overLegend(event);
         // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
         // touched, a row it scrolled the list by, would stay lit once it's lifted.)
         if (document.body.classList.contains("carrying")) return;
@@ -16820,6 +16820,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         pointerOnChart = event.pointerType !== "touch" && !pointedLayer && Boolean(closest(event, "#chart"));
         respot();
       });
+      /**
+       * Whether the pointer's on a legend, from whichever comes first, its pointerover or its move (a browser may tell the
+       * move first), the move's known before the chart hears it (captured): moving onto it, the chart's crosshair goes as
+       * the move reaches it, and the band it named is kept by this. Off it, not onto the plot (off the chart, onto an
+       * axis): the layer it kept let go, as the crosshair, gone already, says nothing.
+       * @param {Event} event
+       */
+      function overLegend(event) {
+        const was = onLegend;
+        onLegend = Boolean(closest(event, "#chart .legend"));
+        if (was && !onLegend && !crossIn && bandLit) (bandLit = null), namePointed(), lightLegend(null, false, true);
+      }
+      document.addEventListener("pointermove", overLegend, { capture: true });
       // (Out of the window: on nothing.)
       document.addEventListener("pointerout", (event) => event.relatedTarget || ((pointedLayer = null), (pointerOnChart = false), respot()));
       /** @type {Resolved | null} */
@@ -19213,10 +19226,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The bar under it lit, the frontmost profile's.)
         const point = param.point;
         if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof profileHit>} */ hit, layer) => hit ?? profileHit(layer, point), null) : null);
-        bandLit = bandAt(param) ?? (onLegend ? bandLit : null);
-        // (The dot marked on the crosshair: the layer read's (a band's edge, the band under it being the one read); else
-        // the line it hits.)
-        engine.crosshair.pointed = bandLit ? dotLineOf(bandLit) : profileLit ? (drawn.get(profileLit.layer)?.engine ?? undefined) : undefined;
+        // (Kept, nothing else pointed at: in its own pane's empty space, or on its legend (the chip never changes under the
+        // pointer, nor flickers as it crosses gaps); off its pane or the chart, none.)
+        bandLit = bandAt(param) ?? (onLegend || (param.point && !profileLit && bandLit && seriesPane(drawn.get(bandLit)) === param.pane) ? bandLit : null);
+        // (In the plot, a tag pointed at before is left.)
+        if (param.point) tagLit = null;
+        namePointed();
         lightLegend(bandLit ?? profileLit?.layer ?? (param.point ? param.layer : null), false, true);
         lightBubble(param.point ? time : null, param.pane);
         if (time === hoverTime) return;
@@ -19268,8 +19283,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether the pointer's in the plot (the crosshair's): off it, on an axis, its tags are read (see tagAt). */
       let crossIn = false;
-      /** A tag pointed at (or none), its layer's legend item lit. */
-      const lightTag = (/** @type {string | null} */ tag) => lightLegend(tag, false, true);
+      /** A tag pointed at (or none): its layer's legend item lit, its chip naming it. */
+      const lightTag = (/** @type {string | null} */ tag) => ((tagLit = tag), namePointed(), lightLegend(tag, false, true));
+      /** The layer whose value's tag the pointer's on, off the plot (none: null). */
+      let tagLit = /** @type {string | null} */ (null);
+      /**
+       * The layer pointed at, told the library: its chip names it, its dot on the crosshair ringed. One rule wherever it's
+       * pointed at: its line or band in the plot (kept in its pane's empty space and on its legend, so the chip never
+       * changes under the pointer: see crossMoved), a profile's bar, its value's tag on an axis. (Its row in the layers
+       * panel: the legends hide while the panel shows.) The keys' crosshair says its own.
+       */
+      function namePointed() {
+        if (crossSet) return;
+        const line = bandLit ? dotLineOf(bandLit) : profileLit ? drawn.get(profileLit.layer)?.engine : tagLit ? dotLineOf(tagLit) : undefined;
+        if (engine.crosshair.pointed === (line ?? undefined)) return;
+        engine.crosshair.pointed = line ?? undefined;
+        engine.invalidate();
+      }
       // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
       engine.element.addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
       engine.element.addEventListener("pointerleave", () => !crossIn && lightTag(null));
