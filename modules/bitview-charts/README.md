@@ -107,11 +107,15 @@ chart.show(365);                                 // the last 365 points in view
 - `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
   where it holds), each from half a point's room before its first point to half after its last (a pixel at least: a
   point alone zoomed out, a sliver), its color changing halfway between two points, a NaN value none; never fitted or hit.
-- `Grid({ edges, column, place, gradient })`: a heatmap's cells, a column a point (zoomed out, a block of points by
-  powers of two), each column's rows the page's (`column(i, step)`: bins and values, null till they come; then
-  `invalidate()`), its bins' bounds `edges`; a cell's color its `place(value)` along `gradient` (stops blended in OKLab,
-  `gradientTable` in color.js). Each column a strip made once and stretched into place; kept while the scale's
-  resolution stays within a power of two. Never fitted or hit.
+- `Grid({ columns, column, edge, paint, look, width, viewed, extent })`: a heatmap's cells, its columns the page's
+  (`columns`, each point's: a day, say; -1 none), zoomed out a block of a power of two of them (`width` CSS pixels at
+  least, a block drawn as its last: the same blocks at any pan); a block's cells `column(owner, step)` (its rows,
+  rising, their values and a key; null: none or not yet, then `changed()`), a row's floor `edge(row)` (rows even on a
+  log scale). Each block a strip made once (a pixel a row on a log scale, a step of values on a linear one, each pixel
+  its strongest cell, colored by the page's `paint(value, pixels, at)`, its look's key `look`: `setLook`), stretched
+  onto device pixels, smoothed only where it's squeezed; `forget(key)`, a column's strips let go (its cells anew).
+  `viewed({ step, owners })`, told the blocks in view before each draw (what the page fetches and keeps). Fitted by
+  `extent`, else not; never hit.
 - `Profile({ edges, groups, at, width, bin })`: groups' amounts by value bins (each `{ rows, values, color, dim }`) as
   bars from the plot's right edge, stacked, as long as a bin's total against the largest in view (`width` of the plot at
   most), bins of rows gathered by powers of two `bin` pixels tall at least; under `at` in each group's color, over it

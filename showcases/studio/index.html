@@ -11064,7 +11064,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
@@ -13246,7 +13246,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
        *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
        *   (`upToDate`) of its history up to each date (no hindsight). A heatmap's: by its cells' strength (see
-       *   heatStrip). Its gradient kept while it's colored otherwise. Never with `colorFrom`, `byLevels`, `byLayers`.
+       *   heatColor). Its gradient kept while it's colored otherwise. Never with `colorFrom`, `byLevels`, `byLayers`.
        *   `byLayers`: a cloud's, colored by its layers: each one's own where it's over, following them (its `color` and
        *   `colorBelow` theirs, see layersColors; never with `colorFrom`).
        *   `colors`: bars' (their two, above and below their base, unset): 1, their one; 4, MACD's, each side's own where a
@@ -17196,7 +17196,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && !heatLike(other) && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
-            series = again ?? new Heat(pane, layer.side, layer.id);
+            series = again ?? new Heat(pane, layer.side, layer.id, layer.type === "profile");
             series.engine.hidden = !shown;
             series.alone = alone;
             series.redraw();
@@ -18782,31 +18782,46 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /**
-       * A heatmap or a profile on the library (see drawHeat): each column a day's URPD, its rows on its pane's scale (see
-       * heatGrid). Zoomed out, a day in so many (a column `HEAT_COLUMN` pixels wide at least): each column is its block's
-       * last day, the days between never asked for. A day not come yet, the coarser one over it shows meanwhile: the map
-       * comes coarse, then sharpens. Drawn whole each frame (it keeps the days it draws, asks for those missing; a
-       * profile at the plot's edge). Its days the price's closes on the timeline (`closes`): fitted to them where it's
-       * alone on its scale (`alone`; the lines on it set it otherwise). Never hit.
+       * A heatmap or a profile: each day's URPD, its rows on its pane's scale (see heatGrid). A heatmap on the library's
+       * grid (its cells colored against the open day's largest, see heatColor): zoomed out, a day in so many (a column
+       * `HEAT_COLUMN` pixels wide at least), each column its block's last day, the days between never asked for; a day not
+       * come yet, the coarser one over it shows meanwhile: the map comes coarse, then sharpens (see viewHeat, heatShown). A
+       * profile its holder groups' bars for the view's last day at the plot's edge, drawn whole each frame (see
+       * drawProfile). Its days the price's closes on the timeline (`closes`, a heatmap's column where there's one): fitted
+       * to them where it's alone on its scale (`alone`; the lines on it set it otherwise). Never hit.
        */
       class Heat {
-        /** @param {number} pane @param {"left" | "right"} side @param {string} id */
-        constructor(pane, side, id) {
+        /** @param {number} pane @param {"left" | "right"} side @param {string} id @param {boolean} profile */
+        constructor(pane, side, id, profile) {
           this.side = side;
           this.id = id;
           this.alone = false;
           this.closes = EMPTY;
           /** Its closes as a line (in no pane): their extents by blocks, each frame. */
           this.line = new Line();
-          /** The plot drawHeat draws on (see HeatPlot). @type {HeatPlot} */
-          this.plot = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), width: 0, height: 0, dpr: 1 };
-          /** The scale it's drawn on now, and a price's height on it (made once). */
-          this.scale = new Scale();
-          this.toY = (/** @type {number} */ price) => this.scale.y(price);
-          this.engine = new Custom(
+          const look = () => /** @type {HeatLook} */ (heatLooks.get(id)), extent = (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => void (this.alone && this.line.extent(a, b, positive, out));
+          /** A heatmap's grid (none: a profile). */
+          this.grid = profile ? null : new Grid({
+            columns: new Int32Array(0),
+            width: HEAT_COLUMN,
+            column: (owner, step) => ((heat, shown) => (shown?.day.rows.length ? { rows: shown.day.rows, values: amountsOf(shown.day, heat.measure), key: shown.key } : null))(look(), look() && heatShown(look(), owner, step)),
+            edge: (row) => /** @type {NonNullable<HeatLook["grid"]>} */ (look().grid).price(row),
+            paint: (value, pixels, at) => heatColor(value, look().reference ?? 0, look(), pixels, at),
+            viewed: (blocks) => void (look() && this.grid && viewHeat(look(), blocks, this.grid)),
+            extent,
+          });
+          /** A profile's plot (see HeatPlot) and the scale it's drawn on, a price's height on it (made once). */
+          const plot = { context: /** @type {CanvasRenderingContext2D} */ (/** @type {unknown} */ (null)), width: 0, height: 0, dpr: 1 };
+          let scale = new Scale();
+          const toY = (/** @type {number} */ price) => scale.y(price);
+          this.engine = this.grid ?? new Custom(
             {
-              draw: (g, at) => this.#draw(g, at.time, at.scale, at.dpr),
-              extent: (a, b, positive, out) => void (this.alone && this.line.extent(a, b, positive, out)),
+              draw: (g, at) => {
+                g.setTransform(1, 0, 0, 1, 0, 0);
+                (plot.context = g), (plot.width = at.time.width), (plot.height = at.scale.height), (plot.dpr = at.dpr), (scale = at.scale);
+                drawHeat(plot, toY, look() ?? null);
+              },
+              extent,
               first: (i) => this.line.first(i),
             },
             { fixed: true },
@@ -18814,10 +18829,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           engine.panes[pane].add(this.engine, side);
         }
 
-        /** Its closes, on the timeline: its days those with one. @param {Float64Array} closes */
+        /** Its closes, on the timeline: a heatmap's columns the days with one. @param {Float64Array} closes */
         set(closes) {
           this.closes = closes;
           this.line.setValues(closes);
+          if (this.grid) {
+            const g = resolved ? heatCalendar(resolved.times).g : new Int32Array(0);
+            this.grid.setColumns(Int32Array.from(closes, (close, i) => (close === close && i < g.length ? g[i] : -1)));
+          }
           this.redraw();
         }
 
@@ -18832,18 +18851,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         redraw() {
           this.engine.changed();
           engine.invalidate();
-        }
-
-        /**
-         * Drawn by drawHeat on the canvas in device pixels.
-         * @param {CanvasRenderingContext2D} g @param {import("/modules/bitview-charts/timeline.js").Timeline} time @param {import("/modules/bitview-charts/scale.js").Scale} scale @param {number} dpr
-         */
-        #draw(g, time, scale, dpr) {
-          const plot = this.plot;
-          g.setTransform(1, 0, 0, 1, 0, 0);
-          (plot.context = g), (plot.width = time.width), (plot.height = scale.height), (plot.dpr = dpr);
-          this.scale = scale;
-          drawHeat(plot, this.toY, time, this.closes, heatLooks.get(this.id) ?? null);
         }
       }
       /** A cloud's columns as a draw puts them in pixels (each a column's place, top and bottom, a crossing's height), kept and grown. */
@@ -22072,7 +22079,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * How a heatmap's rows are cut, as the URPD's `agg` says it: `rows` a ×10 in price (each the same share of its
        * price, as a cost basis is read), on a log scale or a linear one (`even`: on a log one, rows even on the scale;
-       * on a linear one, binned by dollars, see heatStrip: a day drawn as one strip, stretched, either way); none on a scale they can't be
+       * on a linear one, binned by dollars, see the library's Grid: a day drawn as one strip, stretched, either way); none on a scale they can't be
        * (percent change, indexed). The row any price is in (`cell`) and a row's floor price (dollars).
        * @param {Chart} doc @param {Layer} layer
        */
@@ -22091,7 +22098,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const heatDays = new Map();
       let heatCells = 0, heatUse = 0;
-      const HEAT_MOST_CELLS = 3_000_000, HEAT_AT_ONCE = 6, HEAT_RETRY = 30_000, HEAT_LOOKS = 3, HEAT_PIXELS = 4096;
+      const HEAT_MOST_CELLS = 3_000_000, HEAT_AT_ONCE = 6, HEAT_RETRY = 30_000;
       /**
        * What each heatmap drawn wants and doesn't have, by its layer's id, as last drawn (see drawHeat): asked for the
        * coarsest first, the newest first among them, whichever heatmap's.
@@ -22099,7 +22106,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const heatWants = new Map();
       let heatAsking = 0, heatPumping = false;
-      /** The heatmaps drawn, to draw again as days come (see heatSoon). @type {Set<Heat>} */
+      /** The heatmaps and profiles drawn, to draw again as days come (see heatSoon). @type {Set<Heat>} */
       const heatSeries = new Set();
       let heatFrame = 0;
       /** Its series drawn again, once a frame, as days come. */
@@ -22185,10 +22192,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         heatSoon();
       }
-      /** A day's strips let go of, their canvases' memory at once (WebKit's counts them till they're collected). @param {string} key */
+      /** A day's strips let go of (its cells anew under the same key, or gone), by every heatmap's grid (drawn now or not). @param {string} key */
       function dropStrips(key) {
-        for (const strip of heatStrips.get(key)?.values() ?? []) strip.canvas.width = strip.canvas.height = 0;
-        heatStrips.delete(key);
+        for (const series of drawn.values()) if (series instanceof Heat) series.grid?.forget(key);
       }
       /** The days drawn least recently let go of, past the most cells kept (those in view kept, however many). */
       function heatTrim() {
@@ -22202,13 +22208,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           heatCells -= /** @type {Int32Array} */ (day.rows).length;
         }
       }
-      /**
-       * Each day's strips, as drawn: a pixel a row from its highest to its lowest, by its measure and colors (its look's
-       * key, its reference's and step's too), each made once, the `HEAT_LOOKS` most recently drawn kept.
-       * @type {Map<string, Map<string, { canvas: HTMLCanvasElement, bottom: number, top: number, height: number }>>}
-       */
-      const heatStrips = new Map();
-      /** A heatmap's cells, by how many orders of magnitude under its reference they're seen (see heatStrip). */
+      /** A heatmap's cells, by how many orders of magnitude under its reference they're seen (see heatColor). */
       const HEAT_DECADES = 4;
       /**
        * How strong a cell reads, its strength to this power: most cells in view within a decade or two of the strongest,
@@ -22227,58 +22227,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The largest of a day's cells, by measure. @param {any} day @param {string} measure */
       const heatMost = (day, measure) => (day.most ??= {})[measure] ??= amountsOf(day, measure).reduce((most, value) => Math.max(most, Math.abs(value)), 0);
       /**
-       * A day's strip: each row's cell in its color, as strong as its amount against the map's reference (`most`: the
-       * open day's largest cell, the same for every day and every view, see drawHeat), on a log scale over
-       * `HEAT_DECADES` (a ten-thousandth of it and under not seen; felt as `HEAT_CURVE` says): what changes from one day to
-       * the next is what the coins did (each day against its own largest, a day with one big cluster dimmed its whole
-       * column), and earlier eras' smaller amounts still read. Unrealized P&L in its loss color where it's negative.
-       * A pixel a row on a log scale (`grid`'s rows, even there); on a linear one (`step`, dollars), a pixel a step of
-       * dollars, each its strongest row's (as a log scale's pixels show them, a row over several taking each): even
-       * there too, so a column is one image, stretched, either way. Its ends (`bottom`, `top`) in dollars.
-       * With a gradient, its color instead by its strength (unrealized P&L's: from its loss's at 0% through no gain at
-       * 50% to its profit's at 100%), opaque.
-       * @param {string} key @param {any} day @param {HeatLook} heat @param {number} most
-       * @param {NonNullable<ReturnType<typeof heatGrid>>} grid @param {number} step
-       */
-      function heatStrip(key, day, heat, most, grid, step) {
-        const { measure } = heat, look = `${heat.paint}|${most}|${step}`, looks = heatStrips.get(key) ?? new Map(), had = looks.get(look);
-        // (The most recently drawn last: a few kept a day (two heatmaps of it, a color tried, a zoom), the oldest's canvas
-        // painted anew for this one, never another made: a color dragged makes a look a step, for every day in view, and
-        // thousands of canvases a second left WebKit past its canvas memory, every canvas on the page blank.)
-        if (had) return looks.delete(look), looks.set(look, had), had;
-        let reused = null;
-        for (const [other, strip] of looks) if (looks.size >= HEAT_LOOKS) looks.delete(other), (reused = strip.canvas);
-        const rows = /** @type {Int32Array} */ (day.rows), values = amountsOf(day, measure);
-        const lowest = grid.price(rows[0]), highest = grid.price(rows[rows.length - 1] + 1);
-        // (A step no finer than its height's most, `HEAT_PIXELS`: zoomed far in on a linear scale, its pixels stretched,
-        // finer than its rows anyway (one at $100K, at 500 a ×10, is $230).)
-        if (step) step = Math.max(step, 2 ** Math.ceil(Math.log2(highest / HEAT_PIXELS)));
-        const bottom = step ? Math.floor(lowest / step) * step : lowest, top = step ? Math.ceil(highest / step) * step : highest;
-        const height = Math.max(1, step ? Math.round((top - bottom) / step) : rows[rows.length - 1] - rows[0] + 1);
-        const canvas = reused ?? document.createElement("canvas");
-        canvas.width = 1;
-        canvas.height = height;
-        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(1, height);
-        // (Each pixel's strongest amount (by its size, its sign aside), its color and strength from it.)
-        const strongest = new Float32Array(height);
-        for (let k = 0; k < rows.length; k++) {
-          const value = values[k];
-          if (!value || !most) continue;
-          // (Its pixels: its own on a log scale; on a linear one, every step it reaches, a part of it too.)
-          const first = step ? Math.max(0, Math.floor((top - grid.price(rows[k] + 1)) / step)) : rows[rows.length - 1] - rows[k];
-          const last = step ? Math.min(height - 1, Math.ceil((top - grid.price(rows[k])) / step) - 1) : first;
-          for (let p = first; p <= last; p++) if (Math.abs(value) > Math.abs(strongest[p])) strongest[p] = value;
-        }
-        for (let p = 0; p < height; p++) heatColor(strongest[p], most, heat, image.data, p * 4);
-        context.putImageData(image, 0, 0);
-        const strip = { canvas, bottom, top, height };
-        heatStrips.set(key, looks.set(look, strip));
-        return strip;
-      }
-      /**
-       * A cell's color, by its amount against the reference `most`, as the heatmap's look paints it (see heatStrip), into
-       * `pixels` at `at` (its red, green, blue and opacity); none, left as it is: its strength on a log scale over
-       * `HEAT_DECADES`, felt as `HEAT_CURVE` says; with a gradient, its color there (unrealized P&L's from its loss's at 0%
+       * A cell's color, by its amount against the reference `most` (the map's: the open day's largest cell, the same for
+       * every day and every view, see viewHeat), as the heatmap's look paints it, into `pixels` at `at` (its red, green,
+       * blue and opacity; the library's grid gives each pixel its strongest cell); none, left as it is: its strength on a
+       * log scale over `HEAT_DECADES` (a ten-thousandth of it and under not seen), felt as `HEAT_CURVE` says: what changes
+       * from one day to the next is what the coins did (each day against its own largest, a day with one big cluster
+       * dimmed its whole column), and earlier eras' smaller amounts still read; with a gradient, its color there (unrealized P&L's from its loss's at 0%
        * through no gain at 50% to its profit's at 100%), opaque but for the weakest (`HEAT_FADE`, as a single color
        * fades: the chart's own ground under them, a dark one's or a light one's); else its color (a loss's, its color
        * below), as opaque as it's felt.
@@ -22298,7 +22252,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A heatmap's look (see heatLook), and as last drawn: whether it's been (`drawn`; `undrawable`, not two frames after
        * its chart was, see settle), the days a column holds (`step`), the days it showed and wanted (`keep`), its
-       * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
+       * reference (`reference`: the open day's largest cell, see viewHeat); its colors (`gradient`, its gradient's as
        * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
        * A profile's (`kind`, see drawProfile): its holder groups and their colors, each one's day last shown (`last`), its
        * shares' colors (in profit, in loss), its close's line's (`mark`) and the card's (`halo`); its bars as last drawn
@@ -22468,96 +22422,63 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { amount: format(value, look.measure === "supply" ? "btc" : "usd"), at: format(grid.price(row), "usd") };
       }
       /**
-       * A heatmap's columns in view (and one past each edge): each date's day (`g`, by its place on the timeline; a date
-       * without a close (`closes`), none: its day's count from the first; `days`, each one's date), a block of `step` days
-       * drawn as its last day's (the coarser block's while it hasn't come); the days missing, wanted (the coarsest first).
-       * @param {HeatPlot} plot @param {(price: number) => number | null} toY @param {import("/modules/bitview-charts/timeline.js").Timeline} time
-       * @param {Float64Array} closes @param {HeatLook | null} heat
+       * A heatmap's blocks in view, as its grid finds them before each draw (see Heat): each block of `step` days
+       * drawn as its last day's (the coarser block's while it hasn't come); the days missing, wanted (the coarsest first);
+       * those it shows and wants, kept (see heatTrim); its reference (the open day's largest cell, wanted first), its look
+       * then. @param {HeatLook} heat @param {{ step: number, owners: number[] }} blocks @param {import("/modules/bitview-charts/grid.js").Grid} grid
        */
-      function drawHeat(plot, toY, time, closes, heat) {
-        const grid = heat?.grid;
-        if (!heat) return;
+      function viewHeat(heat, { step, owners }, grid) {
         // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
         heat.drawn = true;
         if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
-        if (heat.kind === "profile") return drawProfile(plot, toY, heat);
         // (Nothing drawn: nothing wanted, nothing kept for it.)
-        const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
-        if (!grid || !resolved) return none();
+        if (!heat.grid || !resolved || !owners.length) return void (heatWants.delete(heat.id), (heat.keep = undefined));
         // (The timeline's days as it is now: a live tick's new bar its own.)
         Object.assign(heat, heatCalendar(resolved.times));
-        const { context, height, dpr } = plot;
-        // (Its dates in view with a close, the edges' partly in view among them and one past each.)
-        let from = -1, to = -1, count = 0;
-        for (let i = Math.max(0, Math.floor(time.from - 1)), b = Math.min(closes.length - 1, Math.ceil(time.to + 1)); i <= b; i++) if (closes[i] === closes[i]) (from < 0 && (from = i)), (to = i), count++;
-        if (!count) return none();
-        const first = heat.g[from], lastShown = heat.g[to];
-        // (A block of days a column `HEAT_COLUMN` wide at least: by powers of two, the same days at any pan.)
-        const perDay = (time.spacing * count) / Math.max(1, lastShown - first + 1);
-        let step = 1;
-        while (step * perDay < HEAT_COLUMN && step < 1 << 14) step *= 2;
         heat.step = step;
-        const ownerAt = (/** @type {number} */ g, /** @type {number} */ by) => heatOwner(heat, g, by), keyOf = (/** @type {number} */ g) => heatKeyOf(heat, g);
+        const ownerAt = (/** @type {number} */ g, /** @type {number} */ by) => heatOwner(heat, g, by), keyOf = (/** @type {number} */ g) => heatKeyOf(heat, g), agg = heat.grid.agg;
         /** @type {Map<string, NonNullable<ReturnType<typeof heatWants.get>>[number]>} */
         const wanted = new Map();
-        const want = (/** @type {number} */ g, /** @type {number} */ rank) => ((key) => {
-          keep.add(key);
-          if (!heatDayHeld(key) && !wanted.has(key)) wanted.set(key, { key, cohort: heat.cohort, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank });
-        })(keyOf(g));
         /** The days it shows and wants: kept however many cells (see heatTrim). */
         const keep = new Set();
-        // (The map's reference, the open day's largest cell (see heatStrip): wanted first, wherever the view is; until
-        // it's come, each day its own.)
+        const want = (/** @type {number} */ g, /** @type {number} */ rank) => ((key) => {
+          keep.add(key);
+          if (!heatDayHeld(key) && !wanted.has(key)) wanted.set(key, { key, cohort: heat.cohort, weight: heat.weight, agg, day: heat.days[g], rank });
+        })(keyOf(g));
+        // (The map's reference, the open day's largest cell (see heatColor): wanted first, wherever the view is; until
+        // it's come, none drawn.)
         const open = heatDays.get(keyOf(heat.days.length - 1));
         keep.add(keyOf(heat.days.length - 1));
         if (!open?.rows) want(heat.days.length - 1, Number.MAX_SAFE_INTEGER);
-        // (Its last while a new block's is asked for; none yet, nothing drawn: no frame scaled otherwise.)
+        // (Its last while a new block's is asked for.)
         const was = heat.reference;
         if (open?.rows) heat.reference = heatMost(open, heat.measure);
-        const reference = heat.reference ?? 0;
         // (Come or changed: what its gradient's places are worth, in its editor, after this frame's drawing.)
-        if (reference !== (was ?? 0) && heat.id === selected) queueMicrotask(showScale);
-        // (On a linear scale, its strips' step of dollars: a power of two near a pixel's worth, the same while the zoom
-        // stays within it, see heatStrip; on a log one, none.)
-        const span = grid.even ? 0 : Math.abs(/** @type {number} */ (toY(0)) - /** @type {number} */ (toY(1e5))) / 1e5;
-        const dollars = span > 0 ? 2 ** Math.ceil(Math.log2(1 / span)) : 0;
-        const smooth = context.imageSmoothingEnabled;
-        const column = (/** @type {number} */ owner, /** @type {number} */ x0, /** @type {number} */ x1) => {
+        if ((heat.reference ?? 0) !== (was ?? 0) && heat.id === selected) queueMicrotask(showScale);
+        grid.setLook(`${heat.paint}|${heat.reference ?? 0}`);
+        for (const owner of owners) {
           // (Its day, else the coarser ones' over it meanwhile; the missing ones wanted, the coarsest asked for first.)
           const shown = heatShown(heat, owner, step);
           if (shown) keep.add(shown.key);
           if (!heatDays.get(keyOf(owner))?.rows) want(owner, step);
           if (!shown) want(ownerAt(owner, step * 16), step * 16);
-          if (!shown || !shown.day.rows.length) return;
-          if (!reference) return;
-          const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * dpr), w = Math.max(1, Math.round(x1 * dpr) - x);
-          const top = toY(strip.top), bottom = toY(strip.bottom);
-          if (top === null || bottom === null || bottom < 0 || top > height) return;
-          // (Fewer pixels than its rows: averaged; more, each row's own edge, sharp. Its ends where they fall, not rounded:
-          // each day's rows span its own prices, so a rounded end scaled each column a hair apart, their rows' edges then
-          // a pixel off from one column to the next, a comb along them.)
-          const y0 = top * dpr, y1 = bottom * dpr;
-          context.imageSmoothingEnabled = y1 - y0 < strip.height;
-          context.drawImage(strip.canvas, x, y0, w, Math.max(1, y1 - y0));
-        };
-        const half = time.spacing / 2;
-        let owner = -1, x0 = 0, x1 = 0;
-        for (let i = from; i <= to; i++) {
-          if (closes[i] !== closes[i]) continue;
-          const x = time.x(i), here = ownerAt(heat.g[i], step);
-          if (here !== owner) {
-            if (owner >= 0) column(owner, x0, x1);
-            (owner = here), (x0 = x - half);
-          }
-          x1 = x + half;
         }
-        if (owner >= 0) column(owner, x0, x1);
-        context.imageSmoothingEnabled = smooth;
         heat.keep = keep;
         // (Those in view now take the place of any it wanted before.)
         if (!wanted.size) return void heatWants.delete(heat.id);
         heatWants.set(heat.id, [...wanted.values()]);
         if (!heatPumping) (heatPumping = true), queueMicrotask(heatPump);
+      }
+      /**
+       * A profile's bars (see drawProfile), as its layer draws them. @param {HeatPlot} plot @param {(price: number) => number | null} toY
+       * @param {HeatLook | null} heat
+       */
+      function drawHeat(plot, toY, heat) {
+        if (!heat) return;
+        // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
+        heat.drawn = true;
+        if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
+        drawProfile(plot, toY, heat);
       }
       /**
        * The point a profile shows: the view's last day (the latest at its end), whatever's pointed at, as a visible range's
@@ -31392,7 +31313,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a place along a gradient (0 to 100) is worth, as its values are written: between its lowest and highest of
        * all its history (up to each date, the same range in all); a heatmap's, on its log scale from its faintest cell
-       * seen to its reference (see heatStrip), its unrealized P&L's from its largest loss through none to its largest
+       * seen to its reference (see heatColor), its unrealized P&L's from its largest loss through none to its largest
        * gain. None yet, none. @param {Layer} layer @param {number} at @returns {string | null}
        */
       function gradientWorth(layer, at) {
