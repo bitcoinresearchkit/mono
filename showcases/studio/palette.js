@@ -26,11 +26,19 @@ export const HOLDER_COLORS = Object.freeze({ all: "green", sth: "orange", lth: "
 /** A holder group's color, by its key (none: not a holder group). @param {string} key */
 export const holderColor = (key) => (Object.hasOwn(HOLDER_COLORS, key) ? HOLDER_COLORS[key] : undefined);
 
+/** Bitview's hues around the wheel (its named colors, the neutral aside), by hue: what a ramp is made of. */
+const WHEEL = Object.values(OKLCH).filter(([, c]) => c > 0).sort((a, b) => a[2] - b[2]);
 /**
  * The `i`th of `count` members' color (a family's: the age bands from the youngest): hues around the wheel, evenly, from
- * warm to pink, all as light and as vivid. @param {number} i @param {number} count
+ * warm to pink, each as Bitview's own named color there is (its lightness and vividness, mixed between the two named on
+ * either side of its hue): as vivid as the colors one picks, never a duller copy of them. @param {number} i @param {number} count
  */
-export const wheelColor = (i, count, from = 25, to = 320) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`;
+export function wheelColor(i, count, from = 25, to = 320) {
+  const hue = (((count > 1 ? from + ((to - from) * i) / (count - 1) : from) % 360) + 360) % 360;
+  const after = WHEEL.findIndex(([, , h]) => h >= hue), [l1, c1, h1] = WHEEL[after < 0 ? 0 : after], [l0, c0, h0] = WHEEL[(after <= 0 ? WHEEL.length : after) - 1];
+  const span = (h1 - h0 + 360) % 360 || 360, t = ((hue - h0 + 360) % 360) / span;
+  return `oklch(${(l0 + (l1 - l0) * t).toFixed(3)} ${(c0 + (c1 - c0) * t).toFixed(4)} ${hue.toFixed(1)})`;
+}
 
 /** Bitview's hues from cool to warm, as things in time take them, the oldest the coolest. */
 const IN_TIME = ["indigo", "blue", "sky", "cyan", "teal", "emerald", "green", "lime", "avocado", "yellow", "amber", "orange"];

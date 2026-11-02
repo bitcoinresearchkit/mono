@@ -147,13 +147,11 @@ function ramp(/** @type {number} */ count, from = 25, to = 320) {
 }
 /**
  * A baseline's two colors, the `i`th of `count` alike (its windows, short to long): green above its base and red below,
- * as every baseline, from light and pale to deep and vivid, the green turning teal and the red crimson, so each reads
- * apart in either theme (the light one turns lightness over and narrows the middle: the hue and chroma still part
- * them) and all read the same way.
+ * as every baseline, each from Bitview's own named colors (see wheelColor: as vivid as they are), the green turning from
+ * lime to teal and the red from orange to rose, so each reads apart and all read the same way.
  */
 function shades(/** @type {number} */ i, /** @type {number} */ count) {
-  const k = count > 1 ? i / (count - 1) : 0.5, l = (0.82 - 0.26 * k).toFixed(2), c = (0.14 + 0.04 * k).toFixed(2);
-  return { color: `oklch(${l} ${c} ${Math.round(135 + 40 * k)})`, colorBelow: `oklch(${l} ${c} ${Math.round(40 - 20 * k)})` };
+  return { color: wheelColor(i, count, 131, 183), colorBelow: wheelColor(i, count, 44, 17) };
 }
 
 /**
@@ -476,8 +474,9 @@ export function studioPresets(client, facts) {
   /**
    * Percentiles of a price (`p5`… keys) over the price, as a fan (as every spread: see fan): the median a line in
    * `color` (its average's: by coin the realized price's, by dollar the capitalized's), the 25th to the 75th a band
-   * (where half were bought), the 5th to the 95th a fainter one; the others in its legend, a click away. `outer` false
-   * (by coin: its low tail coins mined for next to nothing, their cents stretching the scale), the inner band alone.
+   * (where half were bought), the 5th to the 95th a fainter one, their edges thin faint lines; the others a click away.
+   * `outer` false (by coin: its low tail coins mined for next to nothing, their cents stretching the scale), the inner
+   * band alone; the percentiles under the 25th hidden in its detail too. Then its detail, a chart of its own: each percentile its own line and color.
    * None, no chart. @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer]
    */
   const percentiles = (node, name, title, color, outer = true) => {
@@ -485,10 +484,15 @@ export function studioPresets(client, facts) {
     if (!list.length) return [];
     // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
-    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    // (The median whole; its bands' edges thin and faint (by coin, the inner band's alone); the others a click away, all
+    // of them each its own line in the chart beside it.)
+    const edges = outer ? [5, 25, 75, 95] : [25, 75];
+    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, ...(edges.includes(percentile(key)) ? {} : { hidden: true }) }) }));
     const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(list.findIndex(([key]) => percentile(key) === p));
     const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity }] : []))(at(low), at(high));
-    return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)])];
+    // (Its detail beside it: each its own line, in its own color from the low to the high, the median wider.)
+    const ramped = ramp(list.length, 25, 160), each = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: ramped[i], width: key === "median" ? 2 : 1, ...(!outer && percentile(key) < 25 ? { hidden: true } : {}) }));
+    return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)]), chart(`${name.replace(/^Percentiles/, "Percentile lines")}`, title.replace(/^Cost basis percentiles/, "Cost basis percentile lines"), [price(), ...each])];
   };
 
 
@@ -679,7 +683,7 @@ export function studioPresets(client, facts) {
     // (Each by its length: the shortest warm, the longest cool, as times are (recencyColor), in its own chart too.)
     const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
     return section(kind, [
-      chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w", "_1y"].includes(key) ? {} : { hidden: true }) }))]),
+      chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
       ...list.map(([key, value], i) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)

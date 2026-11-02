@@ -137,7 +137,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   distribution (fees, fee rates, sizes, every per-block statistic, mining fees per block); epochs blue steps; the
   tree's names to their row's end; candles one color unless two are said; cost basis percentiles a field in their
   average's color (by coin from the 25th); moving averages by length (short warm, long cool), the comparison the
-  classic three; the Bitview mark in captures' footer. All deployed (595cddb5), checked dark and light. Next passes:
+  classic three; the Bitview mark in captures' footer. Then (you: "very bland and muted", "make them pop… a general
+  rule"): hue for meaning, opacity for importance, every ramp from Bitview's named colors (palette.js wheelColor);
+  cost basis percentiles a fan beside a lines variant; subsidy and fee shares, vaulted and active, liveliness stacked.
+  Checked dark and light. Next passes:
   more combinations
   (a profile beside its heatmap per family's compare, …); the phone check on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
