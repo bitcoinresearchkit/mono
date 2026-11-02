@@ -95,8 +95,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
 - Decided (2026-11-02): Studio onto the library's Grid, Profile and stack. The stack done (committed after: the
   library's stack makes tops, feet and scale; Studio's stackOf calls it; every stacked preset's columns identical).
-  Heatmaps onto Grid committed (2026-11-02). Next: profiles onto the library's Profile, then the cumulative view
-  (mockups first). Also to look at: Studio's own gradientTable (~30978) beside the library's
+  Heatmaps onto Grid committed (2026-11-02). Profiles onto Profile committed after. Next: the cumulative
+  view (mockups first). Also to look at: Studio's own gradientTable (~30978) beside the library's
   (color.js).
 - Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
   with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed

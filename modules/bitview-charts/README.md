@@ -107,7 +107,7 @@ chart.show(365);                                 // the last 365 points in view
 - `Shade({ values, color, colors, palette })`: stretches of the pane's whole height behind what's drawn (a signal's
   where it holds), each from half a point's room before its first point to half after its last (a pixel at least: a
   point alone zoomed out, a sliver), its color changing halfway between two points, a NaN value none; never fitted or hit.
-- `Grid({ columns, column, edge, paint, look, width, viewed, extent })`: a heatmap's cells, its columns the page's
+- `Grid({ columns, column, edge, paint, look, width, viewed, fit })`: a heatmap's cells, its columns the page's
   (`columns`, each point's: a day, say; -1 none), zoomed out a block of a power of two of them (`width` CSS pixels at
   least, a block drawn as its last: the same blocks at any pan); a block's cells `column(owner, step)` (its rows,
   rising, their values and a key; null: none or not yet, then `changed()`), a row's floor `edge(row)` (rows even on a
@@ -115,11 +115,15 @@ chart.show(365);                                 // the last 365 points in view
   its strongest cell, colored by the page's `paint(value, pixels, at)`, its look's key `look`: `setLook`), stretched
   onto device pixels, smoothed only where it's squeezed; `forget(key)`, a column's strips let go (its cells anew).
   `viewed({ step, owners })`, told the blocks in view before each draw (what the page fetches and keeps). Fitted by
-  `extent`, else not; never hit.
-- `Profile({ edges, groups, at, width, bin })`: groups' amounts by value bins (each `{ rows, values, color, dim }`) as
-  bars from the plot's right edge, stacked, as long as a bin's total against the largest in view (`width` of the plot at
-  most), bins of rows gathered by powers of two `bin` pixels tall at least; under `at` in each group's color, over it
-  dim. On its pane's own layer over everything, drawn whole each frame. Never fitted or hit.
+  the page's `fit`, else not; never hit.
+- `Profile({ groups, edge, cell, at, lit, width, bin, backdrop, closeLine, viewed, fit })`: groups' amounts by value
+  rows (each `{ id, rows, values, gain, loss, dimGain, dimLoss }`; a row's floor `edge(row)`, a value's row
+  `cell(value)`) as bars from the plot's right edge, stacked, as long as a bin's total against the longest in view
+  (`width(plot)` pixels at most); rows gathered into bins `bin` pixels tall at least, on whole multiples of a row (the
+  same at any pan), a pixel of `backdrop` between two; split at `at` (a close), a group's `gain` under it and `loss` over
+  it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Drawn whole each
+  frame, the page told first (`viewed`); `set(...)` its groups and the rest; `hit(x, y)`, the bar under a point (its
+  group, its bin's rows). Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
   each `{ at, position, shape, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
   `"below"` it (its low) or `"on"` it; an arrow (`"up"`, `"down"`), a `"circle"` or a `"square"` as tall as a point is

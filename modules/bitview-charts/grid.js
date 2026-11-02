@@ -10,7 +10,7 @@
 // left clear), its look's key `look` (strips made again as it changes). Each column on device pixels, its strip
 // smoothed only where it's squeezed (its rows' edges sharp where they're taller than a pixel). Before each draw the page
 // is told the blocks in view (`viewed`): what it fetches and keeps. A backdrop, never hit; fitted as the page says
-// (`extent`), else not.
+// (`fit`), else not.
 
 /** A strip's pixels at most, on a linear scale. */
 const TALL = 4096;
@@ -29,10 +29,10 @@ export class Grid {
    *   columns: Int32Array, column: (owner: number, step: number) => Column | null, edge: (row: number) => number,
    *   paint: (value: number, pixels: Uint8ClampedArray, at: number) => void, look?: string, width?: number,
    *   viewed?: ((blocks: { step: number, owners: number[] }) => void) | null,
-   *   extent?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
+   *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
    * }} options
    */
-  constructor({ columns, column, edge, paint, look = "", width = 2, viewed = null, extent = null }) {
+  constructor({ columns, column, edge, paint, look = "", width = 2, viewed = null, fit = null }) {
     /** Each point's column (-1: none). */
     this.columns = columns;
     /** The last column (the newest): the blocks' last. */
@@ -43,15 +43,16 @@ export class Grid {
     this.look = look;
     this.width = width;
     this.onViewed = viewed;
-    this.fit = extent;
+    /** How it widens its scale's range, the page's (see the pane's Series); none, not fitted. */
+    this.fit = fit;
     /** The blocks' size as last found (a power of two of columns). */
     this.step = 1;
     /** Strips by column, look and step, the most recently drawn last. @type {Map<string, Strip>} */
     this.strips = new Map();
     /** Strips kept at most, as its last view needed. */
     this.kept = KEPT;
-    /** Not read on its side's scale unless it says so (`extent`). */
-    this.scaled = Boolean(extent);
+    /** Not read on its side's scale unless the page fits it (`fit`). */
+    this.scaled = Boolean(fit);
     this.hidden = false;
     this.faint = false;
     this.version = 0;
@@ -81,10 +82,8 @@ export class Grid {
     this.version++;
   }
 
-  /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
-  extent(a, b, positive, out) {
-    this.fit?.(a, b, positive, out);
-  }
+  /** Nothing of its own to fit to (the page's `fit`, where it has one). */
+  extent() {}
 
   /** Any base. */
   first() {
