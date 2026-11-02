@@ -35,6 +35,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   (watch a page's requests as each server restarts); then either fleet drains a server's tunnel before stopping it,
   or the client gives a series request less time to start answering (not to finish).
 
+- Local since the last deploy (232107e46): the line under the pointer (c34e6dd14). Going out needs your word.
+
 ## bitview-charts: raised by you, still open
 
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
