@@ -852,10 +852,13 @@ export function studioPresets(client, facts) {
         ...flow(mining.rewards.fees, "Fees", "Transaction fees"),
         ...flow(mining.rewards.unclaimed, "Unclaimed", "Unclaimed rewards"),
         // (The two make up the rewards: one chart, each in its color, since the start dashed.)
-        chart("Subsidy and fee shares", "Subsidy's and fees' shares of rewards", /** @type {[any, string, string][]} */ ([[mining.rewards.subsidy.share, "Subsidy", "orange"], [mining.rewards.fees.share, "Fees", "green"]]).flatMap(([share, what, color]) => [
-          series(share.cumulative, `${what}, all time`, { color, dash: 3 }),
-          ...windows(share, what, { extra: { color } }),
-        ])),
+        // (Two parts of one whole: stacked, the fees under (their spikes from the floor), the subsidy over them; since the
+        // start, a pane of their own below, lines.)
+        // (The month's alone: two windows in one stack would add up to two wholes.)
+        ((parts) => chart("Subsidy and fee shares", "Subsidy's and fees' shares of rewards, 1 month", [
+          ...parts.map(([share, what, color]) => series(share._1m, `${what}, 1 month`, { color, type: "area" })),
+          ...parts.map(([share, what, color]) => series(share.cumulative, `${what}, all time`, { color, pane: 2 })),
+        ], { stack: { 1: "stack" } }))(/** @type {[any, string, string][]} */ ([[mining.rewards.fees.share, "Fees", "green"], [mining.rewards.subsidy.share, "Subsidy", "orange"]])),
         // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
         // miners' income high or low for the time.)
         ((day, year) => chart("Puell multiple", "Puell multiple", [price(), { formula: `365 * ${day} / ${year}`, label: "Puell multiple", format: "ratio", pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] }], { log: [2] }))(mining.rewards.subsidy.sum._24h.usd.name, mining.rewards.subsidy.sum._1y.usd.name),
@@ -937,12 +940,14 @@ export function studioPresets(client, facts) {
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)
-      chart("Supply", "Vaulted and active supply", [...[["vaulted", "Vaulted"], ["active", "Active"]].flatMap(([key, label]) => [series(ct.supply[key].btc, label, { color: PRICE_COLORS[key] }), series(ct.supply[key].usd, `${label}, value`, { color: PRICE_COLORS[key], pane: 2 })])]),
+      // (Two parts of all coins, stacked: the vaulted under, the active over.)
+      chart("Supply", "Vaulted and active supply", [...[["vaulted", "Vaulted"], ["active", "Active"]].flatMap(([key, label]) => [series(ct.supply[key].btc, label, { color: PRICE_COLORS[key], type: "area" }), series(ct.supply[key].usd, `${label}, value`, { color: PRICE_COLORS[key], type: "area", pane: 2 })])], { stack: { 1: "stack", 2: "stack" } }),
       section("Activity", [
         ...flow(ct.activity.coinblocksCreated, "Coin blocks created", "Coin blocks created"),
         ...flow(ct.activity.coinblocksDestroyed, "Coin blocks destroyed", "Coin blocks destroyed"),
         ...flow(ct.activity.coinblocksStored, "Coin blocks stored", "Coin blocks stored"),
-        chart("Liveliness", "Liveliness and vaultedness", [series(ct.activity.liveliness, "Liveliness", { color: PRICE_COLORS.active }), series(ct.activity.vaultedness, "Vaultedness", { color: PRICE_COLORS.vaulted }), series(ct.activity.livelinessToVaultedness, "Liveliness to vaultedness", { pane: 2, color: "orange" })]),
+        // (Two parts of one (they add up to 1): stacked, the vaultedness under, the liveliness over.)
+        chart("Liveliness", "Liveliness and vaultedness", [series(ct.activity.vaultedness, "Vaultedness", { color: PRICE_COLORS.vaulted, type: "area" }), series(ct.activity.liveliness, "Liveliness", { color: PRICE_COLORS.active, type: "area" }), series(ct.activity.livelinessToVaultedness, "Liveliness to vaultedness", { pane: 2, color: "orange" })], { stack: { 1: "stack" } }),
         chart("Concurrent liveliness", "Concurrent liveliness", windows(ct.activity.concurrentLiveliness, "")),
       ]),
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),

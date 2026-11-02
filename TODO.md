@@ -135,7 +135,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   for rarity bands (graded clouds by their lines, a side each, the middle empty but its median), profit bands (a band
   by how far in profit or loss) and entry price (discount, premium); last moved by age colors; one fan for every
   distribution (fees, fee rates, sizes, every per-block statistic, mining fees per block); epochs blue steps; the
-  tree's names to their row's end; candles one color unless two are said. Next passes: more combinations
+  tree's names to their row's end; candles one color unless two are said; cost basis percentiles a field in their
+  average's color (by coin from the 25th); moving averages by length (short warm, long cool), the comparison the
+  classic three; the Bitview mark in captures' footer. All deployed (595cddb5), checked dark and light. Next passes:
+  more combinations
   (a profile beside its heatmap per family's compare, …); the phone check on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
