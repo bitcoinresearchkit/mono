@@ -130,7 +130,12 @@ Only what's left. An item done is removed: its history is in the commits and log
   cumulative profile by group (holders, age bands); per cohort heatmap with percentiles, heatmap and profile,
   cumulative profile. Checked: every preset in the tree opened (4,709, 0 problems), then the 79-preset sweep and Codex
   on the last fixes (folded lines: solo keeps them, one shown while its cloud's hidden listed on its own, hover names
-  the cloud, a line shared by two clouds the first's). Next passes: more combinations
+  the cloud, a line shared by two clouds the first's). Polish (2026-11-02, you: "continue the audit/check/polish", "always think of
+  the best design possible"): one two-sided ramp (polarColor: dark muted middle, vivid extremes, green good, red other)
+  for rarity bands (graded clouds by their lines, a side each, the middle empty but its median), profit bands (a band
+  by how far in profit or loss) and entry price (discount, premium); last moved by age colors; one fan for every
+  distribution (fees, fee rates, sizes, every per-block statistic, mining fees per block); epochs blue steps; the
+  tree's names to their row's end; candles one color unless two are said. Next passes: more combinations
   (a profile beside its heatmap per family's compare, …); the phone check on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the

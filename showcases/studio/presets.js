@@ -113,6 +113,29 @@ const LANDSCAPE = ["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a5
 const PRICE_COLORS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ realizedPrice: "orange", capitalizedPrice: "green", trueMarketMean: "sky", cointime: "violet", vaulted: "teal", active: "red" }));
 /** A count summed since the start, a chart of its own: its month's color (as its windows' chart shows it first), not gray (as if off). */
 const SUM_COLOR = "blue";
+/** A per-block measure's fan (its spread over each month's blocks): one color for every one (block size, weight, fullness, transactions, inputs, outputs). */
+const PER_BLOCK_COLOR = "sky";
+/**
+ * A color on a two-sided scale (profit and loss, cheap and dear): green on the good side, red on the other, `far` from 0
+ * (the middle: break-even, the median) to 1 (the extreme), dark and muted in the middle, bright and vivid at the
+ * extremes, so the eye goes where it matters (on the light, as every color, turned: see Studio's toned).
+ * @param {number} far @param {boolean} good
+ */
+function polarColor(far, good) {
+  const t = Math.max(0, Math.min(1, far));
+  return `oklch(${(0.36 + 0.34 * t).toFixed(3)} ${(0.05 + 0.15 * t).toFixed(3)} ${good ? (160 - 15 * t).toFixed(0) : (35 - 12 * t).toFixed(0)})`;
+}
+/**
+ * A profit band's color by how far in profit or in loss its coins are (its key: `profit300To500Percent`,
+ * `loss0To10Percent`, `profitOver1000Percent`), on the two-sided scale (polarColor).
+ * @param {string} key
+ */
+function profitBandColor(key) {
+  const m = /^(profit|loss)(?:Over)?(\d+)/.exec(key);
+  if (!m) return undefined;
+  const from = Number(m[2]);
+  return polarColor(m[1] === "profit" ? Math.log10(1 + from / 10) / Math.log10(101) : from / 90, m[1] === "profit");
+}
 const WINDOW_COLORS = ["cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose", "red", "orange", "amber", "yellow"];
 /** Each ramp as made, by its count and hues (one a member's, asked for each of its family's members: made once). */
 const ramps = new Map();
@@ -508,9 +531,7 @@ export function studioPresets(client, facts) {
    */
   const rarityLook = (p, median = p === 50) => {
     if (median) return { color: "gray", width: 2 };
-    const rare = Math.max(0, Math.min(1, Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500)));
-    const l = (0.36 + 0.34 * rare).toFixed(3), c = (0.05 + 0.15 * rare).toFixed(3), h = p < 50 ? 160 - 15 * rare : 35 - 12 * rare;
-    return { color: `oklch(${l} ${c} ${h.toFixed(0)})`, width: 1, opacity: 0.7 };
+    return { color: polarColor(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1, opacity: 0.7 };
   };
   /** A rarity node's band percentiles. @param {any} node */
   const bandPercentiles = (node) => entries(node).map(([k]) => percentile(k)).filter(Number.isFinite);
@@ -556,18 +577,19 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
+   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], colorOf?: (key: string) => string | undefined, urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
    * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort);
    * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart; `inTime`: its
-   * members are times (halving epochs, years), the oldest first: colored as halving cycles and years are (recencyColor)
+   * members are times (halving epochs, years), the oldest first: colored as halving cycles and years are (recencyColor);
+   * `colorOf`: a member's color by what it is (a profit band's, by how far in profit or loss), else as said above
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
     // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
-    const colors = ((wheel) => members.map(([key], i) => holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
+    const colors = ((wheel) => members.map(([key], i) => options.colorOf?.(key) ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
     const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
@@ -759,7 +781,7 @@ export function studioPresets(client, facts) {
       // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       // (Each named as it is, in its titles too ("Supply: Discount coins"): what it means, its comparisons' and its name's.)
-      section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "entry price", disjoint: true })),
+      section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "entry price", disjoint: true, colorOf: (key) => (key === "discount" || key === "premium" ? polarColor(0.6, key === "discount") : undefined) })),
     ], { icon: "people" }),
     section("Coin age", [
       lastMovedChart(),
@@ -767,7 +789,7 @@ export function studioPresets(client, facts) {
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, colorOf: profitBandColor, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "UTXO amount", disjoint: true })),
@@ -806,12 +828,12 @@ export function studioPresets(client, facts) {
       section("Difficulty", [
         chart("History", "Difficulty", [series(blocks.difficulty.value, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
         chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
-        chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: "gray" })]),
+        chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: SUM_COLOR, shape: "steps" })]),
       ]),
       // (The subsidy's schedule, as Difficulty is the work's.)
       section("Halvings", [
         chart("Next halving", "Until the next halving", [series(blocks.halving.blocksToHalving, "Blocks", { color: "sky" }), series(blocks.halving.daysToHalving, "Days", { color: "orange", pane: 2 })]),
-        chart("Epoch", "Halving epoch", [series(blocks.halving.epoch, "Halving epoch", { color: "gray" })]),
+        chart("Epoch", "Halving epoch", [series(blocks.halving.epoch, "Halving epoch", { color: SUM_COLOR, shape: "steps" })]),
       ]),
       section("Rewards", [
         ...flow(mining.rewards.coinbase, "Coinbase", "Coinbase rewards"),
@@ -826,10 +848,9 @@ export function studioPresets(client, facts) {
         // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
         // miners' income high or low for the time.)
         ((day, year) => chart("Puell multiple", "Puell multiple", [price(), { formula: `365 * ${day} / ${year}`, label: "Puell multiple", format: "ratio", pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] }], { log: [2] }))(mining.rewards.subsidy.sum._24h.usd.name, mining.rewards.subsidy.sum._1y.usd.name),
-        ...["avg", "min", "max", "p10", "p25", "median", "p75", "p90"].filter((key) => mining.rewards.fees[key]).length
-          ? [chart("Fees per block", "Fees per block", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: btc, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] }),
-            chart("Fees per block in dollars", "Fees per block, in dollars", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: usd, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] })]
-          : [],
+        // (Each block's fees, over each month's blocks: its spread, in bitcoin and in dollars.)
+        ...perBlockFan(mining.rewards.fees, "Fees per block", "Fees per block", true, btc),
+        ...perBlockFan(mining.rewards.fees, "Fees per block in dollars", "Fees per block, in dollars", true, usd),
       ]),
       section("Pools", poolCharts(), { workings: true }),
     ], { icon: "pickaxe" }),
@@ -840,7 +861,7 @@ export function studioPresets(client, facts) {
         // (Their sums, every block's together, "total"; each block's, its average and percentiles.)
         ...stats(blocks.size, "Size", "Total block size", "Block size"),
         ...stats(blocks.weight, "Weight", "Total block weight", "Block weight"),
-        ...perBlock(blocks.fullness, "Fullness", "Block fullness"),
+        ...perBlockFan(blocks.fullness, "Fullness", "Block fullness", false),
         ...flow(blocks.sigopCost, "Signature operations", "Signature operation cost"),
       ]),
       section("Transactions", [
@@ -962,36 +983,41 @@ export function studioPresets(client, facts) {
    * @param {any} node @param {string} name @param {string} title
    */
   function stats(node, name, title, perBlock = `${title} per block`) {
-    const keys = ["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => node[key]), colors = ramp(keys.length, 25, 300);
-    return [
-      ...flow(node, name, title),
-      ...(keys.length ? [chart(`${name} per block`, `${perBlock}: average and percentiles`, keys.flatMap((key, i) => windows(node[key], statLabel(key), { show: key === "avg" ? ["_1m"] : [], extra: { color: colors[i] } })), { log: [1] })] : []),
-    ];
+    return [...flow(node, name, title), ...perBlockFan(node, `${name} per block`, perBlock)];
   }
   /**
-   * A per-block share's statistics over windows (average, percentiles: block fullness), its month's average shown.
+   * A per-block measure's spread over each month's blocks (its month's percentiles, lowest, highest and average: block
+   * size, fullness, transactions per block), as a fan (see fan); `log`, on a log scale (a share's, as fullness, not);
+   * `pick`, its unit's series of a month's (fees' bitcoin or dollars).
    * @param {any} node @param {string} name @param {string} title
    */
-  function perBlock(node, name, title) {
-    const keys = ["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => node?.[key]), colors = ramp(keys.length, 25, 300);
-    return keys.length ? [chart(name, `${title}: average and percentiles`, keys.flatMap((key, i) => windows(node[key], statLabel(key), { show: key === "avg" ? ["_1m"] : [], extra: { color: colors[i] } })))] : [];
+  function perBlockFan(node, name, title, log = true, pick = (/** @type {any} */ n) => n) {
+    const keys = ["min", "p10", "p25", "median", "p75", "p90", "max", "avg"].filter((key) => isLeaf(pick(node?.[key]?._1m)));
+    return fan(name, `${title}: median and percentiles, by month`, keys.map((key) => [key, series(pick(node[key]._1m), `${statLabel(key)}, 1 month`, {})]), PER_BLOCK_COLOR, log);
   }
   /**
    * A measure's spread over a day's transactions (its percentiles, lowest and highest: fee rates, fees, sizes), each a
-   * week's average, as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th
-   * stronger, the median a line; the other lines (their edges, the lowest and highest) in its legend. On a log scale
-   * (they span orders of magnitude). The chain's workings: the price above it hidden, short (see priced).
-   * @param {any} node @param {string} name @param {string} title @param {string} color
+   * week's average (a day's jump about), as a fan (see fan). @param {any} node @param {string} name @param {string} title @param {string} color
    */
   function spread(node, name, title, color) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node?.[key]));
+    return fan(name, `${title}: median and percentiles`, keys.map((key) => [key, { formula: `sma(${node[key].name}, 7d)`, label: `${statLabel(key)}, 1-week average`, pane: 2 }]), color);
+  }
+  /**
+   * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
+   * the median a line, the average dashed; the other lines (the bands' edges, the lowest and highest) in its legend. On
+   * a log scale (they span orders of magnitude; `log` false, a share's, linear). The chain's workings: the price above it
+   * hidden, short (see priced).
+   * @param {string} name @param {string} title @param {[string, Layer][]} lines its statistics' layers, by key @param {string} color
+   */
+  function fan(name, title, lines, color, log = true) {
+    const keys = lines.map(([key]) => key);
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
-    // (Each a week's average: a day's percentiles jump about, the fan a wall; its unit the series'.)
-    const lines = keys.map((key) => ({ formula: `sma(${node[key].name}, 7d)`, label: `${statLabel(key)}, 1-week average`, pane: 2, color, ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2 }] : []);
-    const made = chart(name, `${title}: median and percentiles`, [{ ...price(), hidden: true }, ...lines, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: [2] });
-    return [{ ...made, c: { ...made.c, panes: [{ mode: 1, size: 1.4 }, { mode: 1, size: 3 }] } }];
+    const made = chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [] });
+    return [{ ...made, c: { ...made.c, panes: [{ mode: 1, size: 1.4 }, { mode: log ? 1 : 0, size: 3 }] } }];
   }
   function statLabel(/** @type {string} */ key) {
     return key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key));
@@ -1042,7 +1068,8 @@ export function studioPresets(client, facts) {
    * all coins below).
    */
   function lastMovedChart() {
-    const bands = entries(t.age.ranges), colors = ramp(4);
+    // (Each its first band's color, as the age bands draw it: older, cooler.)
+    const bands = entries(t.age.ranges), ages = ramp(bands.length), colorOf = (/** @type {string} */ key) => ages[bands.findIndex(([k]) => k === key)];
     // (Each from the band starting at its age: one the client renamed fails here, not quietly summed short.)
     const from = (/** @type {string} */ key) => {
       const at = bands.findIndex(([k]) => k === key);
@@ -1051,8 +1078,8 @@ export function studioPresets(client, facts) {
     };
     const over = /** @type {[string, string][]} */ ([["_1yTo18m", "1 year"], ["_2yTo3y", "2 years"], ["_5yTo6y", "5 years"], ["_10yTo12y", "10 years"]]);
     return chart("Last moved", "Supply last moved over 1, 2, 5 and 10 years ago", [
-      ...over.map(([key, age], i) => ({ formula: from(key).map((supply) => supply.total.btc.name).join(" + "), label: `Over ${age}`, format: "btc", color: colors[i] })),
-      ...over.map(([key, age], i) => ({ formula: from(key).map((supply) => supply.share.name).join(" + "), label: `Over ${age}, share`, format: "percent", color: colors[i], pane: 2 })),
+      ...over.map(([key, age]) => ({ formula: from(key).map((supply) => supply.total.btc.name).join(" + "), label: `Over ${age}`, format: "btc", color: colorOf(key) })),
+      ...over.map(([key, age]) => ({ formula: from(key).map((supply) => supply.share.name).join(" + "), label: `Over ${age}, share`, format: "percent", color: colorOf(key), pane: 2 })),
     ]);
   }
   /** Bitcoin clouds: each holder group's awake and mobile realized and capitalized prices (its cohorts' together), a
