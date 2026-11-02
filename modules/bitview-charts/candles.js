@@ -11,6 +11,17 @@ import { measure } from "./recorder.js";
 /** The least spacing (CSS pixels a point) a candle has its body at: under it, its wick alone. */
 export const BODIES_FROM = 3;
 
+/**
+ * A body's width in device pixels at `spacing` CSS pixels a point (as the chart library's: most of it zoomed out, a
+ * fifth less zoomed in; three CSS pixels' worth from 2.5 to 4), whole, odd or even as its wick is (centered on it).
+ * @param {number} spacing @param {number} dpr
+ */
+function bodyWidth(spacing, dpr) {
+  const tight = 1 - (0.2 * Math.atan(Math.max(4, spacing) - 4)) / (Math.PI / 2), wick = Math.max(1, Math.round(dpr));
+  const px = spacing >= 2.5 && spacing <= 4 ? Math.floor(3 * dpr) : Math.max(Math.floor(dpr), Math.min(Math.floor(spacing * tight * dpr), Math.floor(spacing * dpr)));
+  return Math.max(1, px >= 2 && px % 2 !== wick % 2 ? px - 1 : px);
+}
+
 /** A candle's parts, as #shapes draws them. */
 const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
 
@@ -139,7 +150,10 @@ export class Candles {
    */
   #shapes(g, time, scale, x0, x1, dpr, pass, pad, part) {
     const { open, close } = this, high = this.highs.values, low = this.lows.values, n = close.length, log = scale.mode === "log";
-    const spacing = time.spacing, wide = spacing >= BODIES_FROM, half = Math.max(0.5, (spacing * 0.7) / 2), wick = Math.max(1, Math.round(dpr)) / dpr;
+    // (A wick and a body in whole device pixels, each its half (rounded down) left of its point's pixel: centered alike,
+    // their widths odd or even alike.)
+    const spacing = time.spacing, wide = spacing >= BODIES_FROM, wicks = Math.max(1, Math.round(dpr)), bodies = bodyWidth(spacing, dpr);
+    const wick = wicks / dpr, width = bodies / dpr, wickBy = Math.floor(wicks / 2) / dpr, bodyBy = Math.floor(bodies / 2) / dpr;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1), corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     if (wide) {
       for (let i = a; i <= b; i++) {
@@ -148,13 +162,13 @@ export class Candles {
         // (Its body as drawn: a wick's width tall at least.)
         const x = time.snap(time.x(i), dpr), top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
         if (part & WICKS) {
-          if (pad > 0) g.rect(x - wick / 2 - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
+          if (pad > 0) g.rect(x - wickBy - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
           else {
-            if (top > hy) g.rect(x - wick / 2, hy, wick, top - hy);
-            if (ly > foot) g.rect(x - wick / 2, foot, wick, ly - foot);
+            if (top > hy) g.rect(x - wickBy, hy, wick, top - hy);
+            if (ly > foot) g.rect(x - wickBy, foot, wick, ly - foot);
           }
         }
-        const left = time.snap(x - half, dpr), width = Math.round(2 * half * dpr) / dpr;
+        const left = x - bodyBy;
         if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0, false);
         if (!(part & (RINGS | INSIDES))) continue;
         const inTop = Math.round((top + wick) * dpr) / dpr, inFoot = Math.round((foot - wick) * dpr) / dpr;

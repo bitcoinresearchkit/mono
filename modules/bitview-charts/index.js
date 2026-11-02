@@ -355,7 +355,7 @@ export class Chart {
   /**
    * Laid out again at the element's size (watched: needed only for a change it can't see); `kept`, every point where it
    * is on the screen (an axis fitted to its labels: it grows over the plot's edge or gives it back, nothing under it
-   * moving), else the view's right end (a box resized).
+   * moving), else the view's points (a box resized: stretched, see Timeline.resize).
    * @param {boolean} [kept]
    */
   layout(kept = false) {
@@ -444,8 +444,6 @@ export class Chart {
     const time = this.time, crosshair = this.crosshair, x = this.pointerX;
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
-      // (Its tags read the crosshair's point while it's on: each line's value there, by its line.)
-      pane.tagsAt = crosshair.index;
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
@@ -496,8 +494,6 @@ export class Chart {
       }
     }
     this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
-    // (Found again under a still pointer (the view moved beneath it): its panes' tags at its point now, in this render.)
-    for (let k = 0; k < this.panes.length; k++) this.panes[k].retag(crosshair.index, time, this.theme, this.dpr);
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
     // (Each legend pointed at the series read: the page's, crosshair or not (a tag, a row of its own, the pointer moved

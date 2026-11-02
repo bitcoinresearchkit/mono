@@ -16453,8 +16453,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let drawnStretch = null;
       function sizeOnce() {
         const box = $("chart"), inMotion = /** @type {CSSTransition[]} */ (document.querySelector(".app")?.getAnimations({ subtree: true }).filter((motion) => motion instanceof CSSTransition && /^(width|height|margin|padding|border|inset|left|right|top|bottom)/.test(motion.transitionProperty)) ?? []);
-        // (No motion (reduced motion): the chart at its box's new size at once, its view's stretch kept as well, before the
-        // library's own resize keeps its bars' width instead.)
+        // (No motion (reduced motion): the chart at its box's new size at once, its view's stretch kept as well (a preset
+        // showing shown again whole), not left to the resize watch, which keeps a window's bars as wide: see holdView.)
         if (!inMotion.length) {
           const { width, height } = box.getBoundingClientRect();
           if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
@@ -16658,6 +16658,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (presetShown && !glideTarget) applyRange(chart, resolved);
         else if (was) showSpan(was);
         engine.render(true);
+        // (Its box's new width seen, and the view as left in it: the resize it makes isn't one to hold the bars as wide for,
+        // and the next one (a window's) holds them as they are now, see holdView.)
+        const range = shownSpan();
+        lastBox = chartWidth();
+        (heldView = range ? { ...boxView(range), box: lastBox, at: { from: range.from, to: range.to } } : null), (madeView = null);
       }
       /** The chart following its box again (a window resized meanwhile, at once): what's laid out by its size, again. */
       function releaseSize() {

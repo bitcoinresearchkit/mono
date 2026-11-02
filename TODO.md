@@ -106,9 +106,8 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Deploying (2026-11-02, you: "deploy once it's all checked"): next to prod, `fleet update`, then checked on Chromium,
-  Mullvad and the phone, watched for the post-deploy stall (Bitcoin price loading 40+ s: a request caught by a
-  restarting server?).
+- Deployed 6a663bc3 (2026-11-02): prod checked in Chromium (79 presets, 0 errors, no stall) and Mullvad; the phone
+  not connected then: check it on prod once it is.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's

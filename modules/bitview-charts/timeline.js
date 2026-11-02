@@ -4,7 +4,8 @@
 // pixels (the rest kept for the next one), so a picture drawn before can be moved instead of drawn again. Its data
 // always holds part of the view (`minDataShare` of its width, or all of the data where it's less), a pan, a flick or a
 // zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). A
-// zoom keeps the point under the pointer where it is (what's looked at stays put).
+// zoom keeps the point under the pointer where it is (what's looked at stays put). Its plot resized, the view's the same
+// points (stretched), past the zoom's bound if it takes it.
 
 /**
  * The float noise a view's moves leave in an index, under which it counts as whole: a pixel column's first point the
@@ -34,6 +35,12 @@ export class Timeline {
     this.minDataShare = minDataShare;
     /** A pan's part of a pixel, kept for the next. */
     this.rest = 0;
+    /**
+     * A view a resize kept past the zoom's bound (`maxSpacing`: fewer points than it lets in): how many points it holds,
+     * no zoom in past it (nor out to the bound: nothing moves by itself), till the view's back within the bound.
+     * Infinity: none.
+     */
+    this.kept = Infinity;
   }
 
   get length() {
@@ -66,7 +73,8 @@ export class Timeline {
 
   /** The last `span` points in view, the right offset past them. @param {number} span */
   show(span) {
-    const spacing = Math.min(Math.max(this.width / span, this.minSpacing), this.maxSpacing);
+    // (Up to the zoom's bound, or as close as a resize kept it: see kept.)
+    const spacing = Math.min(Math.max(this.width / span, this.minSpacing), Math.max(this.maxSpacing, this.width / this.kept));
     this.to = this.length - 1 + this.rightOffset / spacing;
     this.from = this.to - this.width / spacing;
     this.rest = 0;
@@ -82,20 +90,25 @@ export class Timeline {
   }
 
   /**
-   * The plot's width changed: the view's right end and its spacing kept; or (`moved`: its left edge moved that many CSS
-   * pixels on the screen) every point kept where it is on the screen, its spacing too, unless that'd take its latest
-   * point out of view (one in view stays: the view follows it as more come, see setTimes).
+   * The plot's width changed: the view kept (the same points from edge to edge, its spacing as the width makes it: a
+   * sidebar opening or shutting stretches it, nothing comes or goes, past the zoom's bound if it takes it: see `kept`);
+   * or (`moved`: its left edge moved that many CSS pixels on the screen, an axis growing over the plot) every point kept
+   * where it is on the screen, its spacing too, unless that'd take its latest point out of view (then its right end and
+   * spacing kept: one in view stays, the view follows it as more come, see setTimes).
    * @param {number} width @param {number} [moved]
    */
   resize(width, moved = NaN) {
     if (width === this.width && !moved) return;
     const spacing = this.spacing, to = this.to, last = this.length - 1, following = last >= 0 && this.x(last) <= this.width;
     this.width = width;
-    if (moved === moved) {
-      (this.from += moved / spacing), (this.to = this.from + width / spacing), this.limit();
-      if (!(following && this.x(last) > width)) return;
+    if (moved !== moved) {
+      const span = this.to - this.from;
+      // (Its data's view, not the placeholder's before any.)
+      if (this.length && span < width / this.maxSpacing) this.kept = span;
+      return void this.limit();
     }
-    (this.to = to), (this.from = to - width / spacing), this.limit();
+    (this.from += moved / spacing), (this.to = this.from + width / spacing), this.limit();
+    if (following && this.x(last) > width) (this.to = to), (this.from = to - width / spacing), this.limit();
   }
 
   /**
@@ -137,9 +150,12 @@ export class Timeline {
     return Math.round(x * dpr + 1e-6) / dpr;
   }
 
-  /** A span (points) within the zoom's bounds: `maxSpacing` a point at most; at least all of the data, or `minSpacing`. @param {number} span */
+  /**
+   * A span (points) within the zoom's bounds: `maxSpacing` a point at most (or as many as a resize kept, see `kept`); at
+   * most all of the data, or `minSpacing`. @param {number} span
+   */
   within(span) {
-    const least = this.width / this.maxSpacing, most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
+    const least = Math.min(this.width / this.maxSpacing, this.kept), most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
 
@@ -162,6 +178,8 @@ export class Timeline {
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */
   limit() {
     let span = this.to - this.from;
+    // (Back within the zoom's bound: a resize's kept view let go of.)
+    if (span >= this.width / this.maxSpacing) this.kept = Infinity;
     const fits = this.within(span);
     if (fits !== span) {
       const middle = (this.from + this.to) / 2;

@@ -80,7 +80,7 @@ chart.show(365);                                 // the last 365 points in view
 
 - `Line({ values, color, width, colors, palette, breaks, tag, priceLine, stroke, format, outline, dots, marker })`:
   `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
-  `Uint8Array`, 1 at a point) stops the line after it; `tag`, its value on the axis: at the crosshair's point while it's on (none where it has none), else its last in view (written by
+  `Uint8Array`, 1 at a point) stops the line after it; `tag`, its value on the axis: its last in view (the crosshair's own tag says the pointer's; written by
   `format`, else as its side writes values, given its axis's step there; a side's tags laid top to bottom, each at its
   line or just under the one over it, the last cut off at the foot, one where lines read the same, none for a line out of the pane); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
@@ -156,7 +156,7 @@ chart.show(365);                                 // the last 365 points in view
   color, below })`; then `chart.invalidate()`.
 - `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own
   (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags
-  on a price axis or the time axis (a drawing's value, its date), a price axis' over its lines' at rest, under them while they read the crosshair's point (what's read at the pointer); `viewed`, told before each draw of its pane (what it
+  on a price axis or the time axis (a drawing's value, its date), a price axis' over its lines'; `viewed`, told before each draw of its pane (what it
   draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole each
   frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
   placed in the plot); `behind`, behind every series; `changed()` after a change.
