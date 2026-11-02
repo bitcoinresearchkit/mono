@@ -93,9 +93,14 @@ Only what's left. An item done is removed: its history is in the commits and log
   whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
   (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
   ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
-- Decided (2026-11-02), to build after the chip rule: Studio onto the library's Grid, Profile and stack (unused today,
-  313 lines); the library's grow what Studio's Heat and stackOf do (binning, cohorts, hits, readouts; a stack's
-  gaps, negatives, its under and scale columns), Studio's copies go. Checked picture by picture against today's.
+- Decided (2026-11-02): Studio onto the library's Grid, Profile and stack. The stack done (committed after: the
+  library's stack makes tops, feet and scale; Studio's stackOf calls it; every stacked preset's columns identical).
+  Next, heatmaps onto Grid: Studio's drawing rules move into the library (per pixel its strongest cell; a pixel a row
+  on a log scale, a dollar step on a linear one; columns by day, blocks ending on multiples of a power of two, a
+  column HEAT_COLUMN px at least; device-pixel columns; smoothing only when a strip is squeezed), with hooks: the
+  page's columns (a day each point, -1 none), its column(owner, step) (rows, values, a key; a coarser one meanwhile),
+  its rows' edges, its paint(value, pixels, at) and its look's key, a viewed() before each draw. Studio keeps its
+  days (fetching, keeping, the reference cell, readouts). Then profiles onto Profile, then the cumulative view.
 - Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
   with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed
   (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing
@@ -104,6 +109,11 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
+- Profiles: a cumulative toggle (you, 2026-11-02, with a picture of HyperTracker's Hyperliquid liquidation levels), as
+  exchanges show volume profiles and order book depth: from the close outward, above it the amounts summed upward,
+  below it summed downward, each a curve from the price with a fill under it, in profit's and loss's colors; levels at
+  ±1, 2, 3, 5% of the close with their sums in pills on dashed lines; the largest bars marked with their amount. Built
+  with the profile's move onto the library's Profile (it draws the curves; Studio toggles and labels).
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's

@@ -13,8 +13,8 @@ const price = chart.addPane({ share: 2, scale: { mode: "log" } });
 price.addLine({ values: close, color: "#f7931a", tag: true, priceLine: true });
 const bands = chart.addPane({ format: (v) => `${v}%` });
 bands.setRange(0, 100);                          // a fixed scale (none: fitted to what's in view)
-const edges = stack(members, { percent: true });
-edges.forEach((upper, k) => bands.addBand({ lower: k ? edges[k - 1] : undefined, upper, color: fills[k] }));
+const { tops, feet } = stack(members, { percent: true });
+tops.forEach((upper, k) => bands.addBand({ lower: feet[k], upper, color: fills[k] }));
 chart.show(365);                                 // the last 365 points in view
 ```
 
@@ -139,7 +139,9 @@ chart.show(365);                                 // the last 365 points in view
   extent, else as set: a volume along a price pane's foot, a page's drawing on a range of its own).
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
   from point `a` to `b` widening `out`'s low and high), its own `extent` there to call (a range from zero, a fixed one).
-- `stack(members, { percent })`: a stack's edges from its members' columns.
+- `stack(members, { percent })`: a stack's columns from its members' (the first at the foot): `tops` (each member's value
+  plus those under it, NaN where it has none), `feet` (the sum under it); with `percent`, shares of each point's whole
+  (a negative member counted as none), `scale` the factor taken (100 over the whole).
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate()`.
 - `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own

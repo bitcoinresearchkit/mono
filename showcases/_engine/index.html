@@ -29,8 +29,8 @@
       const n = price.end, times = Float64Array.from({ length: n }, (_, i) => FIRST + i * DAY);
       const close = new Float64Array(n).fill(NaN);
       for (let i = price.start; i < price.end; i++) { const c = price.data[i - price.start][3]; if (c > 0) close[i] = c; }
-      // (Each band's top edge: the shares of it and every band under it.)
-      const edges = stack(bands.map((b) => Float64Array.from({ length: n }, (_, i) => (i >= b.start && i < b.end && b.data[i - b.start] > 0 ? b.data[i - b.start] : NaN))), { percent: true });
+      // (Each band's top and foot: the shares of it and every band under it, and of those under it.)
+      const { tops, feet } = stack(bands.map((b) => Float64Array.from({ length: n }, (_, i) => (i >= b.start && i < b.end && b.data[i - b.start] > 0 ? b.data[i - b.start] : NaN))), { percent: true });
 
       const chart = createChart(document.getElementById("chart"));
       chart.setTimes(times);
@@ -39,9 +39,9 @@
       const shares = chart.addPane({ share: 3, scale: { top: 0.02, bottom: 0.02 }, format: (v, step) => `${compact(v, step)}%` });
       shares.setRange(0, 100);
       // (Each band filled between its lower edge and its own, under the lines; ?lines: the lines alone.)
-      const hue = (k) => Math.round(25 + (295 * k) / (edges.length - 1)), floor = Float64Array.from(edges[0], (v) => (v === v ? 0 : NaN));
-      if (!new URLSearchParams(location.search).has("lines")) edges.forEach((upper, k) => shares.addBand({ lower: k ? edges[k - 1] : floor, upper, color: `oklch(0.72 0.15 ${hue(k)} / 0.42)` }));
-      edges.forEach((values, k) => shares.addLine({ values, color: `oklch(0.72 0.15 ${hue(k)})`, width: 1, tag: true }));
+      const hue = (k) => Math.round(25 + (295 * k) / (tops.length - 1));
+      if (!new URLSearchParams(location.search).has("lines")) tops.forEach((upper, k) => shares.addBand({ lower: feet[k], upper, color: `oklch(0.72 0.15 ${hue(k)} / 0.42)` }));
+      tops.forEach((values, k) => shares.addLine({ values, color: `oklch(0.72 0.15 ${hue(k)})`, width: 1, tag: true }));
       chart.show(365 * 8);
       document.getElementById("note").textContent = `bitview-charts · ${bands.length} bands, ${n.toLocaleString()} days`;
 
