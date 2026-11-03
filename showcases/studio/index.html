@@ -14205,8 +14205,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** Where the Charts page was last (see Place): Charts, from a chart, after a reload too, comes back there. */
           at: /** @type {any} */ (stored.at && typeof stored.at === "object" ? stored.at : null),
           presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(-500) : []),
-          /** The sidebar's groups closed there (see GROUPS). */
-          groupsClosed: /** @type {Group[]} */ (Array.isArray(stored.groupsClosed) ? GROUPS.filter((group) => stored.groupsClosed.includes(group)) : []),
+          /** The sidebar's groups open there (see GROUPS): each closed till it's opened, as left after. */
+          groupsOpen: /** @type {Group[]} */ (Array.isArray(stored.groupsOpen) ? GROUPS.filter((group) => stored.groupsOpen.includes(group)) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
           /** The view linked: every chart on the same dates, in every tab (see linkView); off unless turned on. */
@@ -27033,7 +27033,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A count as the sidebar says it, short: whole thousands (1k, 11k, 111k), whole millions, never more than it is. */
       const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
       /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
-      const groupShut = (group) => prefs.groupsClosed.includes(group);
+      const groupShut = (group) => !prefs.groupsOpen.includes(group);
       /**
        * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
        * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
@@ -27055,7 +27055,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** One of the sidebar's groups opened or closed there, as a folder is (kept as left). @param {Group} group */
       function toggleGroup(group) {
         const closing = !groupShut(group);
-        prefs.groupsClosed = closing ? [...prefs.groupsClosed, group] : prefs.groupsClosed.filter((other) => other !== group);
+        prefs.groupsOpen = closing ? prefs.groupsOpen.filter((other) => other !== group) : [...prefs.groupsOpen, group];
         savePrefs();
         foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-group="${group}"]`)), closing);
       }
@@ -27316,7 +27316,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.folders.push(folder);
         setChildren([folder, ...childrenOf(folder.parent).filter((item) => item !== folder)]);
         // (Your Library opened in the sidebar if it was closed there: named in place, where it is.)
-        if (prefs.groupsClosed.includes("library")) (prefs.groupsClosed = prefs.groupsClosed.filter((group) => group !== "library")), savePrefs();
+        if (groupShut("library")) (prefs.groupsOpen = [...prefs.groupsOpen, "library"]), savePrefs();
         // (Where it is, in sight: the folders it's in opened.)
         for (let at = folder.parent; at; at = folderById(at)?.parent) delete /** @type {Folder} */ (folderById(at)).closed;
         moveToFolder(keys, folder.id, true);
@@ -27479,7 +27479,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (took.includes("keys")) renderSingleKeys();
         // (Unlinked there: the chart here stays where it is, as its own.)
         if (took.includes("linkView")) (carrySpan(), renderLinkView(), !prefs.linkView && storeView(false));
-        if (took.includes("presetsOpen") || took.includes("groupsClosed")) renderCharts();
+        if (took.includes("presetsOpen") || took.includes("groupsOpen")) renderCharts();
       });
       /** The themes, from their row: the one chosen ticked. */
       function themeMenu(/** @type {HTMLElement} */ anchor) {
@@ -29260,7 +29260,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const closed = sectionKeys(i).filter((key) => !prefs.presetsOpen.includes(key)), shut = groupShut("presets");
           if (closed.length || shut) {
             prefs.presetsOpen = [...prefs.presetsOpen, ...closed];
-            if (shut) prefs.groupsClosed = prefs.groupsClosed.filter((group) => group !== "presets");
+            if (shut) prefs.groupsOpen = [...prefs.groupsOpen, "presets"];
             savePrefs();
           }
           presetToReveal = i;
