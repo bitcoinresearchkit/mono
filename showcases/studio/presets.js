@@ -1033,16 +1033,19 @@ export function studioPresets(client, facts) {
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
    * the median a line, the average dashed; the other lines (the bands' edges, the lowest and highest) in its legend. On
-   * a log scale (they span orders of magnitude; `log` false, a share's, linear). The chain's workings: the price above it
-   * hidden, short (see priced).
+   * a log scale (they span orders of magnitude; `log` false, a share's, linear). On a log one its tails (the 10th to the
+   * 90th, the lowest and highest, decades past its middle at times: the empty blocks' months, a fee's spikes) out of the
+   * axis' fit, drawn past its edges, the axis framed on its middle (a share's whole range its own, 0 to 100: fitted).
+   * The chain's workings: the price above it hidden, short (see priced).
    * @param {string} name @param {string} title @param {[string, Layer][]} lines its statistics' layers, by key @param {string} color
    */
   function fan(name, title, lines, color, log = true) {
     const keys = lines.map(([key]) => key);
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
-    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
-    const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2 }] : []);
+    const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
+    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
     const made = chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [] });
     return [{ ...made, c: { ...made.c, panes: [{ mode: 1, size: 1.4 }, { mode: log ? 1 : 0, size: 3 }] } }];
   }
