@@ -339,11 +339,12 @@ export function studioPresets(client, facts) {
    * "short-term holders'"). `urpd`: its URPD cohort ("sth", "age_1h_to_1d"), where it has one: its supply by cost
    * basis, day by day, a heatmap behind the price. `color`: its own (a family's member's, as its comparisons draw it): its
    * single lines of what it has (its supply, counts, realized cap, prices) in it; those with a meaning of their own (profit
-   * green, loss red, a ratio around 1) as they are. None (all coins: the chain's own series), each its own.
-   * @param {any} c @param {string} who @param {string} [urpd] @param {string} [color] @returns {(ChartNode | SectionNode)[]}
+   * green, loss red, a ratio around 1) as they are. None (all coins: the chain's own series), each its own. `weight`: its
+   * URPD's ("wakefulness", "mobility"), a weighted cohort's (awake coins, mobile coins: each coin by its age band's share).
+   * @param {any} c @param {string} who @param {string} [urpd] @param {string} [color] @param {string} [weight] @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who, whole = false, of = "all", urpd = undefined, color = undefined) => {
-    const titled = (/** @type {string} */ what) => `${what}: ${who}`;
+  const cohort = (c, who, whole = false, of = "all", urpd = undefined, color = undefined, weight = undefined) => {
+    const titled = (/** @type {string} */ what) => `${what}: ${who}`, weighed = weight ? { weight } : {};
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized, cost = c.costBasis;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
     return [
@@ -434,19 +435,19 @@ export function studioPresets(client, facts) {
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       ]),
       cost && section("Cost basis", [
-        urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd }]),
+        urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, ...weighed }]),
         // (The heatmap with what's read off it: its realized price, and where a quarter, half and three quarters of its
         // coins were bought (by coin), dashed over the cells (the price alone solid white).)
         urpd && cost.byCoin.median && chart("Heatmap and percentiles", titled("Supply by cost basis, with its percentiles"), [
-          price(), { heatmap: urpd },
+          price(), { heatmap: urpd, ...weighed },
           ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6 })),
           series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? PRICE_COLORS.realizedPrice, width: 2 }),
         ]),
-        urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd] }]),
+        urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd], ...weighed }]),
         // (Its history and today's at once: the heatmap, the profile at its edge.)
-        urpd && chart("Heatmap and profile", titled("Supply by cost basis, history and today"), [price(), { heatmap: urpd }, { profile: [urpd] }]),
+        urpd && chart("Heatmap and profile", titled("Supply by cost basis, history and today"), [price(), { heatmap: urpd, ...weighed }, { profile: [urpd], ...weighed }]),
         // (Summed from the price outward: how much was bought between it and any price above or below.)
-        urpd && chart("Cumulative profile", titled("Supply profile, cumulative from the price"), [price(), { profile: [urpd], cumulative: true }]),
+        urpd && chart("Cumulative profile", titled("Supply profile, cumulative from the price"), [price(), { profile: [urpd], cumulative: true, ...weighed }]),
         chart("Realized price", titled("Realized price"), [
           price(), series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? "orange" }),
           ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
@@ -458,7 +459,7 @@ export function studioPresets(client, facts) {
           ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
           series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
         ], { log: [2] }),
-        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !OLDEST.has(urpd ?? "")),
+        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, Boolean(weight) || !OLDEST.has(urpd ?? "")),
         ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
         cost.supplyDensity && chart("Supply density", titled("Share of supply with a cost basis within 5% of the price"), [
           series(cost.supplyDensity.total, "Supply", { color: color ?? "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
@@ -590,17 +591,20 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
+   * @param {{ by: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
-   * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort);
+   * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort), `weight`
+   * its URPDs' (see cohort);
    * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart; `inTime`: its
    * members are times (halving epochs, years), the oldest first: colored as halving cycles and years are (recencyColor);
    * `lookOf`: a member's color (and opacity) by what it is (a profit band's, by how far in profit or loss), else as said above
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
+    // (Its URPDs weighted as its members are: see cohort.)
+    const weighed = options.weight ? { weight: options.weight } : {};
     // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
     const looks = members.map(([key]) => options.lookOf?.(key));
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
@@ -633,9 +637,9 @@ export function studioPresets(client, facts) {
       ...compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
       // (Members that split the whole (all coins, the reference, left out), their URPDs stacked at the chart's edge, each its color.)
       // (Stacked as they are, then summed from the price outward: how much each holds between it and any price.)
-      ...((groups) => (options.profile && groups.length > 1 ? [chart("Profile", `Supply profile by ${options.by}`, [price(), { profile: groups }]), chart("Cumulative profile", `Supply profile by ${options.by}, cumulative from the price`, [price(), { profile: groups, cumulative: true }])] : []))(members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"))),
+      ...((groups) => (options.profile && groups.length > 1 ? [chart("Profile", `Supply profile by ${options.by}`, [price(), { profile: groups, ...weighed }]), chart("Cumulative profile", `Supply profile by ${options.by}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }])] : []))(members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"))),
       // (Each member's realized price over all coins' supply by cost basis: where each sits in what was bought where.)
-      ...((all) => (all && members.length > 1 && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${options.by}, on the supply by cost basis`, [price(), { heatmap: all }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []))(members.some(([key]) => key === "all") ? options.urpd?.("all") : undefined),
+      ...((all) => (all && members.length > 1 && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${options.by}, on the supply by cost basis`, [price(), { heatmap: all, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []))(members.some(([key]) => key === "all") ? options.urpd?.("all") : undefined),
       ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       ...compare("Share in profit", (c) => c.supply?.inProfit?.share),
       ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
@@ -651,7 +655,7 @@ export function studioPresets(client, facts) {
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
       // (Each member in its color, as its comparisons draw it; all coins, the chain's own series, each its own.)
-      ...members.map(([key, c], i) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who, key === "all" ? undefined : colors[i]) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key), key === "all" ? undefined : colors[i])))(naming(key))),
+      ...members.map(([key, c], i) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who, key === "all" ? undefined : colors[i]) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key), key === "all" ? undefined : colors[i], options.weight)))(naming(key))),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
@@ -961,11 +965,11 @@ export function studioPresets(client, facts) {
       ]),
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
-      section(holderName("awake").name, weightedSets(ct.cohorts, "awake", "dormant", "Awake", "Dormant")),
+      section(holderName("awake").name, weightedSets(ct.cohorts, "awake", "dormant", "Awake", "Dormant", "wakefulness")),
     ], { icon: "clock" }),
     section("Coinflow", [
       section("Age bands", coinflowBands(cf.ageRanges)),
-      section(holderName("mobile").name, weightedSets(cf.cohorts, "mobile", "immobile", "Mobile", "Immobile")),
+      section(holderName("mobile").name, weightedSets(cf.cohorts, "mobile", "immobile", "Mobile", "Immobile", "mobility")),
     ], { icon: "swap" }),
     section("Bedrock", [
       // (Each floor, its modes' over the price: how far weighting moves it.)
@@ -1300,23 +1304,24 @@ export function studioPresets(client, facts) {
   }
   /**
    * Weighted coins (awake and dormant, mobile and immobile) for a holder group: supply, capital, cost basis; `color` its
-   * group's (see cohort). @param {any} on @param {any} off @param {string} who @param {string} onLabel @param {string} offLabel @param {string} [color]
+   * group's, `urpd` its URPD cohort and `weight` the URPD's weight (see cohort). @param {any} on @param {any} off @param {string} who @param {string} onLabel @param {string} offLabel @param {string} [color] @param {string} [urpd] @param {string} [weight]
    */
-  function weighted(on, off, who, onLabel, offLabel, color = undefined) {
+  function weighted(on, off, who, onLabel, offLabel, color = undefined, urpd = undefined, weight = undefined) {
     return [
       chart("Supply", `Supply: ${who}`, [series(on.supply.total.btc, onLabel, { color: color ?? "orange", type: "area" }), series(btc(off.supply), offLabel, { color: "gray", type: "area" }), series(on.supply.total.usd, `${onLabel}, value`, { color: "green", type: "area", pane: 2 }), series(usd(off.supply), `${offLabel}, value`, { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
       chart("Share in loss", `Share in loss: ${who}`, [series(on.supply.inLoss.share, `${onLabel}, share in loss`, { color: "red" })]),
       chart("Realized cap", `Realized cap: ${who}`, [series(on.capital.realizedCap, "Realized cap", { color: color ?? "orange" })], { log: [1] }),
-      ...cohort({ costBasis: on.costBasis }, who, false, "all", undefined, color),
+      ...cohort({ costBasis: on.costBasis }, who, false, "all", urpd, color, weight),
     ];
   }
   /**
    * Weighted coins (`on`, "awake"; the rest `off`, "dormant") of each holder group, in the holder groups' sets: compared,
-   * then each group's. @param {any} cohorts @param {string} on @param {string} off @param {string} onLabel @param {string} offLabel
+   * then each group's; each one's supply by cost basis its URPD's by `weight` ("wakefulness", "mobility": see cohort).
+   * @param {any} cohorts @param {string} on @param {string} off @param {string} onLabel @param {string} offLabel @param {string} weight
    */
-  function weightedSets(cohorts, on, off, onLabel, offLabel) {
+  function weightedSets(cohorts, on, off, onLabel, offLabel, weight) {
     const naming = (/** @type {string} */ key) => ({ name: holderName(key).name, who: holderName(key).of(holderName(on).name) });
-    return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by: `${by}, ${holderName(on).name.toLowerCase()}`, charts: (key, c, who, color) => weighted(c, cohorts[key][off], who, onLabel, offLabel, color) }));
+    return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by: `${by}, ${holderName(on).name.toLowerCase()}`, urpd: (key) => URPD_HOLDERS[key], weight, profile: by === "holder group", charts: (key, c, who, color) => weighted(c, cohorts[key][off], who, onLabel, offLabel, color, URPD_HOLDERS[key], weight) }));
   }
   /** Cointime by age band: coin days consumed, wakefulness, awake and dormant supply. @param {any} ranges */
   function cointimeBands(ranges) {
