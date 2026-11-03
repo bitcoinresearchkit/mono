@@ -349,6 +349,8 @@ export function studioPresets(client, facts) {
     const titled = (/** @type {string} */ what) => `${what}: ${who}`, weighed = weight ? { weight } : {};
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized, cost = c.costBasis;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
+    // (Its coins by coin reaching back to the chain's start: a holder group with the oldest coins, unweighted.)
+    const oldest = !weight && OLDEST.has(urpd ?? "");
     return [
       supply && section("Supply", [
         chart("Total", titled("Supply"), amount(supply.total, "Supply", color)),
@@ -440,11 +442,12 @@ export function studioPresets(client, facts) {
       ]),
       cost && section("Cost basis", [
         urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, ...weighed }]),
+        // (By coin, a holder group with the oldest coins (see OLDEST and percentiles): its 25th out of the axis' fit.)
         // (The heatmap with what's read off it: its realized price, and where a quarter, half and three quarters of its
         // coins were bought (by coin), dashed over the cells (the price alone solid white).)
         urpd && cost.byCoin.median && chart("Heatmap and percentiles", titled("Supply by cost basis, with its percentiles"), [
           price(), { heatmap: urpd, ...weighed },
-          ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6 })),
+          ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6, ...(key === "p25" && oldest ? { fit: false } : {}) })),
           series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? PRICE_COLORS.realizedPrice, width: 2 }),
         ]),
         urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd], ...weighed }]),
@@ -463,7 +466,7 @@ export function studioPresets(client, facts) {
           ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
           series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
         ], { log: [2] }),
-        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, Boolean(weight) || !OLDEST.has(urpd ?? "")),
+        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !oldest),
         ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
         cost.supplyDensity && chart("Supply density", titled("Share of supply with a cost basis within 5% of the price"), [
           series(cost.supplyDensity.total, "Supply", { color: color ?? "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
@@ -480,8 +483,10 @@ export function studioPresets(client, facts) {
    * (where half were bought), the 5th to the 95th a fainter one, their edges thin faint lines; the others a click away.
    * `outer` false (by coin, a holder group with the oldest coins (see OLDEST): its low tail coins mined for next to
    * nothing, its 5th $0, its 10th cents, stretching the scale down to them), the inner band alone; the percentiles under
-   * the 25th hidden in its detail too. (Every other's whole range is within about a tenth of the price's lows, by dollar
-   * or weighted (awake, mobile: their weight takes off what never moves) or young.) Then its detail, a chart of its own: each percentile its own line and color.
+   * the 25th hidden in its detail too, and its tail reaching the median (its 45th up to 4× under the price's lows, its
+   * 25th up to 25×): every percentile under the median, and the band, out of the axis' fit. (Every other's whole range
+   * is within about a tenth of the price's lows, by dollar or young, or by its 25th weighted (awake, mobile: their
+   * weight takes off what never moves).) Then its detail, a chart of its own: each percentile its own line and color.
    * None, no chart. @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer]
    */
   const percentiles = (node, name, title, color, outer = true) => {
@@ -491,12 +496,13 @@ export function studioPresets(client, facts) {
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
     // (The median whole; its bands' edges thin and faint (by coin, the inner band's alone); the others a click away, all
     // of them each its own line in the chart beside it.)
-    // (Its low tail, under the 25th, and the outer band out of the axis' fit: drawn, past the plot's foot where they're
-    // far under the price (a cohort's early years), the axis framed on the price and the core.)
-    const edges = outer ? [5, 25, 75, 95] : [25, 75], tail = (/** @type {string} */ key) => (percentile(key) < 25 ? { fit: false } : {});
+    // (Its low tail, under the 25th (the oldest coins' by coin: under the median), and the band its edge bounds out of
+    // the axis' fit: drawn, past the plot's foot where they're far under the price (a cohort's early years), the axis
+    // framed on the price and the core.)
+    const cut = outer ? 25 : 50, edges = outer ? [5, 25, 75, 95] : [25, 75], tail = (/** @type {string} */ key) => (percentile(key) < cut ? { fit: false } : {});
     const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...tail(key), ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, ...(edges.includes(percentile(key)) ? {} : { hidden: true }) }) }));
     const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(list.findIndex(([key]) => percentile(key) === p));
-    const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity, ...(low < 25 ? { fit: false } : {}) }] : []))(at(low), at(high));
+    const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity, ...(low < cut ? { fit: false } : {}) }] : []))(at(low), at(high));
     // (Its detail beside it: each its own line, in its own color from the low to the high, the median wider.)
     const ramped = ramp(list.length, 25, 160), each = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: ramped[i], width: key === "median" ? 2 : 1, ...tail(key), ...(!outer && percentile(key) < 25 ? { hidden: true } : {}) }));
     return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)]), chart(`${name.replace(/^Percentiles/, "Percentile lines")}`, title.replace(/^Cost basis percentiles/, "Cost basis percentile lines"), [price(), ...each])];
