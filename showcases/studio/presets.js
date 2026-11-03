@@ -23,8 +23,9 @@
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
- * @typedef {{ pools: Set<string>, height: number, year: number }} Facts the chain's, from its server: the pools that
- * have found a block, its height, the year
+ * @typedef {{ pools: Set<string>, recent: Set<string>, height: number, year: number }} Facts the chain's, from its server:
+ * the pools that have found a block, those that have in the last 3 years (the server's longest window short of all
+ * time), its height, the year
  */
 
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
@@ -151,16 +152,17 @@ function shades(/** @type {number} */ i, /** @type {number} */ count) {
 }
 
 /**
- * The chain's facts the presets go by, from its server (`origin`): the pools that have found a block, its height, the
- * year (see notYet).
+ * The chain's facts the presets go by, from its server (`origin`): the pools that have found a block (see notYet) and
+ * those that have lately (see poolCharts), its height, the year (see notYet).
  * @param {string} origin @returns {Promise<Facts>}
  */
 export async function chainFacts(origin) {
   // (In a time: a stalled server holds up nothing; its facts are then missing, and the presets made without them.)
   const read = (/** @type {string} */ path) => fetch(`${origin}${path}`, { signal: AbortSignal.timeout(15_000) }).then((response) => (response.ok ? response : Promise.reject(new Error(`${path}: ${response.status}`))));
-  const [pools, height] = await Promise.all([read("/api/v1/mining/pools/all").then((r) => r.json()), read("/api/blocks/tip/height").then((r) => r.text()).then(Number)]);
+  const [pools, recent, height] = await Promise.all([read("/api/v1/mining/pools/all").then((r) => r.json()), read("/api/v1/mining/pools/3y").then((r) => r.json()), read("/api/blocks/tip/height").then((r) => r.text()).then(Number)]);
   if (!Number.isFinite(height)) throw new Error("The chain's height isn't a number");
-  return { pools: new Set(pools.pools.filter((/** @type {any} */ pool) => pool.blockCount > 0).map((/** @type {any} */ pool) => pool.slug)), height, year: new Date().getUTCFullYear() };
+  const found = (/** @type {any} */ list) => new Set(list.pools.filter((/** @type {any} */ pool) => pool.blockCount > 0).map((/** @type {any} */ pool) => pool.slug));
+  return { pools: found(pools), recent: found(recent), height, year: new Date().getUTCFullYear() };
 }
 
 /**
@@ -415,12 +417,14 @@ export function studioPresets(client, facts) {
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
         ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), color),
         ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), color),
-        realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: ["_1w"], around: 1 })),
+        // (Ratios around 1, on a log scale as every ratio: 0.5× as far under as 2× over, an old group's spikes to 20× not
+        // flattening the rest.)
+        realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: ["_1w"], around: 1 }), { log: [1] }),
         realized.adjustedSopr && chart("Adjusted SOPR", titled("Adjusted SOPR (aSOPR)"), [
           ...windows(realized.adjustedSopr, "", { show: ["_1w"], around: 1 }),
           ...windows(realized.adjustedSopr.valueCreated.sum, "Value created", { pane: 2, extra: { color: "green" } }),
           ...windows(realized.adjustedSopr.valueDestroyed.sum, "Value destroyed", { pane: 2, extra: { color: "red" } }),
-        ]),
+        ], { log: [1] }),
         realized.adjustedSopr && chart("Adjusted value, all time", titled("Adjusted value created and destroyed, all time"), [
           series(realized.adjustedSopr.valueCreated.cumulative, "Created", { color: "green" }), series(realized.adjustedSopr.valueDestroyed.cumulative, "Destroyed", { color: "red" }),
         ]),
@@ -658,7 +662,7 @@ export function studioPresets(client, facts) {
       ...compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
       ...compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
       ...compare("Net realized profit and loss, 1 month", (c) => c.realized?.netPnl?.sum?._1m, { level: 0 }),
-      ...compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1 }),
+      ...compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1, log: true }),
     ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
@@ -1284,19 +1288,22 @@ export function studioPresets(client, facts) {
       ...(a.supply ? cohort({ supply: a.supply, capital: a.capital }, who) : []),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   }
-  /** Pools: their shares compared, then each pool, by name. */
+  /**
+   * Pools: their shares compared, then each pool, by name. A pool that hasn't found a block in 3 years (by the chain's
+   * facts) opens on its whole history: in the default 8 years, most of them none.
+   */
   function poolCharts() {
     const list = members(t.pools).filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_SLUG_TO_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
     // (Those mining most of the blocks in recent years: compared, and first; the others after, by name.)
     const MAJOR = ["foundryusa", "antpool", "viabtc", "f2pool", "marapool", "spiderpool", "binancepool", "luxor", "secpool", "braiinspool", "ocean", "poolin", "btccom", "unknown"];
     const major = MAJOR.flatMap((key) => list.filter(([k]) => k.replace(/^_/, "") === key)), others = list.filter((pool) => !major.includes(pool)), colors = ramp(major.length);
     /** A pool's charts. @param {[string, any, string]} pool */
-    const pool = ([, node, name]) => section(name, [
+    const pool = ([key, node, name]) => section(name, [
       ...counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
       ...flow(node.coinbase, "Coinbase", `Coinbase rewards: ${name}`),
       chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "Bitcoin", { pick: btc }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
-    ]);
+    ].map((item) => (facts && !facts.recent.has(key.replace(/^_/, "")) ? { ...item, c: { ...item.c, range: "max" } } : item)));
     return [
       section("Compare", [
         // (The others together, what the rest leaves: the whole accounted for.)

@@ -28822,9 +28822,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function presetsMaker(presetsUrl, clientUrl, origin, known) {
         try {
           const [{ studioPresets, chainFacts }, { BitviewClient }] = await Promise.all([import(presetsUrl), import(clientUrl)]);
-          /** @type {{ pools: Set<string>, height: number, year: number } | undefined} */
+          /** @type {{ pools: Set<string>, recent: Set<string>, height: number, year: number } | undefined} */
           const facts = await chainFacts(origin).catch(() => undefined);
-          const said = facts ? JSON.stringify([[...facts.pools].sort(), Math.floor(facts.height / 210_000), facts.year]) : "";
+          const said = facts ? JSON.stringify([[...facts.pools].sort(), [...facts.recent].sort(), Math.floor(facts.height / 210_000), facts.year]) : "";
           postMessage(known !== null && said === known ? { facts: said } : { facts: said, text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts)) });
         } catch (error) {
           postMessage({ error: String(error) });
