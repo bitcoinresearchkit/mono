@@ -420,10 +420,10 @@ export function studioPresets(client, facts) {
           price(), series(realized.profit.sum._24h, "Profit", { type: "bubbles", ref: "A", color: "green", colors: 1 }), series(realized.loss.sum._24h, "Loss", { type: "bubbles", ref: "A", color: "red", colors: 1 }),
           { heatmap: urpd, measure: "pnl" },
         ]),
-        ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss"), color),
+        ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss"), color, true),
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
-        ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), color),
-        ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), color),
+        ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), color, true),
+        ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), color, true),
         // (Ratios around 1, on a log scale as every ratio: 0.5× as far under as 2× over, an old group's spikes to 20× not
         // flattening the rest.)
         realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: ["_1w"], around: 1 }), { log: [1] }),
@@ -431,10 +431,10 @@ export function studioPresets(client, facts) {
           ...windows(realized.adjustedSopr, "", { show: ["_1w"], around: 1 }),
           ...windows(realized.adjustedSopr.valueCreated.sum, "Value created", { pane: 2, extra: { color: "green" } }),
           ...windows(realized.adjustedSopr.valueDestroyed.sum, "Value destroyed", { pane: 2, extra: { color: "red" } }),
-        ], { log: [1] }),
+        ], { log: [1, 2] }),
         realized.adjustedSopr && chart("Adjusted value, all time", titled("Adjusted value created and destroyed, all time"), [
           series(realized.adjustedSopr.valueCreated.cumulative, "Created", { color: "green" }), series(realized.adjustedSopr.valueDestroyed.cumulative, "Destroyed", { color: "red" }),
-        ]),
+        ], { log: [1] }),
         realized.sellSideRiskRatio && chart("Sell-side risk ratio", titled("Sell-side risk ratio"), windows(realized.sellSideRiskRatio, "", { color }), { log: [1] }),
       ]),
       unrealized && section("Unrealized", [
@@ -442,7 +442,7 @@ export function studioPresets(client, facts) {
           series(unrealized.profit, "Profit", { color: "green" }), series(unrealized.loss, "Loss", { color: "red" }),
           ...(unrealized.grossPnl ? [series(unrealized.grossPnl, "Gross", { color: "gray", hidden: true })] : []),
           series(unrealized.netPnl, "Net", { pane: 2, ...baseline }),
-        ]),
+        ], { log: [1] }),
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       ]),
       cost && section("Cost basis", [
@@ -670,8 +670,8 @@ export function studioPresets(client, facts) {
       ...compare("Address count", (c) => own(c.funded), { log: true, additive: true }),
       ...compare("Transfer volume, 1 month", (c) => btc(c.activity?.transferVolume?.sum?._1m), { additive: true }),
       ...compare("Coin days destroyed, 1 month", (c) => c.activity?.coindaysDestroyed?.sum?._1m, { additive: true }),
-      ...compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
-      ...compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
+      ...compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true, log: true }),
+      ...compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true, log: true }),
       ...compare("Net realized profit and loss, 1 month", (c) => c.realized?.netPnl?.sum?._1m, { level: 0 }),
       ...compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1, log: true }),
     ];
