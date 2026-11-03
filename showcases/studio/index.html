@@ -38212,6 +38212,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const titled = pictureTitle(title, width), HEAD = titled.length > 1 ? 86 : 60;
         const height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
+        // (Its legends set apart, under the plot: their block's height, out of the plot's at a size asked for.)
+        let below = 0;
         /**
          * The chart laid out as its picture, `read` run on it at once (what it reads, given back), then put back exactly
          * as it was. @template T @param {() => T} read @returns {T}
@@ -38229,9 +38231,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
             // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
             layOutLegends();
-            restoreLegends = presentLegends();
+            const presented = presentLegends();
+            restoreLegends = presented;
+            // (The panes at its width first, its legends wrapped there: then those past two rows set apart, and the plot's
+            // height less their block, at a size asked for.)
             sizeChart(width, height);
-            chartHeight = height;
+            // (Too small a picture to hold their block under a plot of 160 pixels: over it, as before.)
+            const together = setApart();
+            restoreLegends = () => (together(), presented());
+            below = apartHeight(width);
+            if (sized && below && height - below < 160) (together(), (below = 0));
+            const plot = sized ? height - below : height;
+            if (sized) element.style.height = `${plot}px`;
+            sizeChart(width, plot);
+            chartHeight = plot;
             sizePanes();
             if (sized && resolved && drawnChart === chart.id) {
               fitSpacing(chart, resolved.times.length);
@@ -38240,7 +38253,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             marginsSet = "";
             fitMargins();
-            sizeChart(width, height);
+            sizeChart(width, plot);
             return read();
           } finally {
             engine.crosshair.index = crossIndex;
@@ -38274,7 +38287,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (crossSet) holdCross();
           }
         };
-        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
+        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, apart: ReturnType<typeof apartItems>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
         let taken;
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
@@ -38314,30 +38327,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const hovered = hoverTime;
             hoverTime = null;
             updateReadout();
-            let pieces;
+            let pieces, apart;
             try {
               pieces = measureLegends(scale);
+              apart = apartItems();
             } finally {
               hoverTime = hovered;
               updateReadout();
             }
             // (Its dates and its axes' size, as the shot has them.)
-            return { shot, scale, pieces, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
+            return { shot, scale, pieces, apart, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
           });
         } finally {
           heatExtras.delete(extra);
         }
-        const { shot, scale, pieces, dates, axisHeight, leftWidth } = taken;
+        const { shot, scale, pieces, apart, dates, axisHeight, leftWidth } = taken;
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
+        // (The legends set apart, under the plot, in columns, read across: each its mark, its name (cut where it's long),
+        // its value at its column's end; pane after pane.)
+        if (apart.length) {
+          const cols = apartColumns(width), column = (width / cols) * scale, row = APART.row * scale, gap = 14 * scale, [markWidth, markHeight] = [16 * scale, 12 * scale];
+          const nameFont = `510 ${12 * scale}px ${sans}`, valueFont = `590 ${12 * scale}px ${sans}`, measure = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
+          measure.font = valueFont;
+          let top = shot.height + APART.top * scale;
+          for (const items of apart) {
+            items.forEach((item, i) => {
+              // (Its value cut where it's longer than its column holds beside a short name, so it can't cross into the next.)
+              const x = (i % cols) * column, y = top + Math.floor(i / cols) * row, end = x + column - gap, nameAt = x + (item.mark ? markWidth + 6 * scale : 0), valueWidth = Math.min(measure.measureText(item.value).width, Math.max(0, end - nameAt - 48 * scale));
+              if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
+              pieces.push({ x: nameAt, y, width: Math.max(0, end - valueWidth - 8 * scale - nameAt), height: row, faded: item.faded, text: item.name, font: nameFont, color: softColor, align: "left", cut: true });
+              if (item.value) pieces.push({ x: end - valueWidth, y, width: valueWidth, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
+            });
+            top += Math.ceil(items.length / cols) * row + APART.gap * scale;
+          }
+        }
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
-        const pad = px(PAD), head = px(HEAD), foot = px(FOOT);
+        const pad = px(PAD), head = px(HEAD), foot = px(FOOT), under = apart.length ? px(below) : 0;
         const canvas = document.createElement("canvas");
         canvas.width = shot.width + pad * 2;
-        canvas.height = shot.height + head + foot;
+        canvas.height = shot.height + head + under + foot;
         const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         context.fillStyle = cardColor;
         context.fillRect(0, 0, canvas.width, canvas.height);
@@ -38383,7 +38415,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.textBaseline = "alphabetic";
         // The source, set like the sidebar's brand (its mark, in its orange, then its name); across from it the interval,
         // the view's dates, the values' date.
-        const baseline = head + shot.height + px(28);
+        const baseline = head + shot.height + under + px(28);
         let at = pad;
         ((mark) => {
           const path = mark?.querySelector("path"), box = mark?.viewBox.baseVal;
@@ -38517,9 +38549,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return pieces;
       }
       /**
+       * A picture's legends past two rows (as presentLegends wrote them, the panes at the picture's width): set apart,
+       * under the plot (see apartItems), the plot whole, none of it over its lines; a folded pane's kept (all it shows),
+       * and one with a key (a profile's groups, a cloud's colors: drawn as they show). Undone by what it returns.
+       * @returns {() => void}
+       */
+      function setApart() {
+        const folded = foldedPanes(chart);
+        const apart = legends().filter((legend) => {
+          const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
+          return row > 0 && !folded.has(legend.dataset.pane ?? "") && !legend.querySelector(".legend-key") && legend.offsetHeight > row * 2 + 6;
+        }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
+        for (const [legend] of apart) (legend.dataset.apart = ""), (legend.style.display = "none");
+        return () => {
+          for (const [legend, display] of apart) delete legend.dataset.apart, (legend.style.display = display);
+        };
+      }
+      /** A picture's legends set apart (see setApart): their rows, the space over, under and between them. */
+      const APART = { row: 20, top: 6, bottom: 10, gap: 8 };
+      /** The columns a picture `width` wide sets them in: each as wide as a name and its value. */
+      const apartColumns = (/** @type {number} */ width) => Math.max(1, Math.floor(width / (width < 500 ? 150 : 175)));
+      /** Each legend set apart, its items as they show (a hidden layer's left out, as over the plot), their values as read. */
+      const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$("button", legend).filter((button) => button.style.display !== "none").map((button) => {
+        const value = /** @type {HTMLElement | null} */ (button.querySelector(".legend-value, .legend-error")), after = value ? getComputedStyle(value, "::after") : null;
+        // (A value older than the view's end: its date after it, as over the plot (see measureLegends).)
+        const asOf = value?.dataset.asOf && after && after.content !== "none" && after.display !== "none" ? ` · ${value.dataset.asOf}` : "";
+        return { mark: button.querySelector(".series-mark")?.outerHTML ?? "", name: button.querySelector(".name")?.textContent?.trim() ?? "", value: `${value?.textContent?.trim() ?? ""}${asOf}`, faded: button.classList.contains("hidden") };
+      })).filter((items) => items.length);
+      /** Their block's height under the plot of a picture `width` wide (none set apart, none). */
+      const apartHeight = (/** @type {number} */ width) => ((groups) => (groups.length ? APART.top + groups.reduce((sum, items) => sum + Math.ceil(items.length / apartColumns(width)) * APART.row, 0) + (groups.length - 1) * APART.gap + APART.bottom : 0))(apartItems());
+      /**
        * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
-       * long legend wraps onto more lines within its pane: a picture can't be pointed at), a hidden layer's left out (the others
-       * close up as they would; a folded pane's kept, faded, all it shows), none lit or selected.
+       * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
+       * plot), a hidden layer's left out (the others close up as they would; a folded pane's kept, faded, all it shows),
+       * none lit or selected.
        * @returns {() => void}
        */
       function presentLegends() {
