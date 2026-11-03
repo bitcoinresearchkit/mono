@@ -458,7 +458,7 @@ export function studioPresets(client, facts) {
           ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
           series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
         ], { log: [2] }),
-        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, false),
+        ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !OLDEST.has(urpd ?? "")),
         ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
         cost.supplyDensity && chart("Supply density", titled("Share of supply with a cost basis within 5% of the price"), [
           series(cost.supplyDensity.total, "Supply", { color: color ?? "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
@@ -473,8 +473,10 @@ export function studioPresets(client, facts) {
    * Percentiles of a price (`p5`… keys) over the price, as a fan (as every spread: see fan): the median a line in
    * `color` (its average's: by coin the realized price's, by dollar the capitalized's), the 25th to the 75th a band
    * (where half were bought), the 5th to the 95th a fainter one, their edges thin faint lines; the others a click away.
-   * `outer` false (by coin: its low tail coins mined for next to nothing, their cents stretching the scale), the inner
-   * band alone; the percentiles under the 25th hidden in its detail too. Then its detail, a chart of its own: each percentile its own line and color.
+   * `outer` false (by coin, a holder group with the oldest coins (see OLDEST): its low tail coins mined for next to
+   * nothing, its 5th $0, its 10th cents, stretching the scale down to them), the inner band alone; the percentiles under
+   * the 25th hidden in its detail too. (Every other's whole range is within about a tenth of the price's lows, by dollar
+   * or weighted (awake, mobile: their weight takes off what never moves) or young.) Then its detail, a chart of its own: each percentile its own line and color.
    * None, no chart. @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer]
    */
   const percentiles = (node, name, title, color, outer = true) => {
@@ -484,12 +486,14 @@ export function studioPresets(client, facts) {
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
     // (The median whole; its bands' edges thin and faint (by coin, the inner band's alone); the others a click away, all
     // of them each its own line in the chart beside it.)
-    const edges = outer ? [5, 25, 75, 95] : [25, 75];
-    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, ...(edges.includes(percentile(key)) ? {} : { hidden: true }) }) }));
+    // (Its low tail, under the 25th, and the outer band out of the axis' fit: drawn, past the plot's foot where they're
+    // far under the price (a cohort's early years), the axis framed on the price and the core.)
+    const edges = outer ? [5, 25, 75, 95] : [25, 75], tail = (/** @type {string} */ key) => (percentile(key) < 25 ? { fit: false } : {});
+    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...tail(key), ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, ...(edges.includes(percentile(key)) ? {} : { hidden: true }) }) }));
     const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(list.findIndex(([key]) => percentile(key) === p));
-    const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity }] : []))(at(low), at(high));
+    const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity, ...(low < 25 ? { fit: false } : {}) }] : []))(at(low), at(high));
     // (Its detail beside it: each its own line, in its own color from the low to the high, the median wider.)
-    const ramped = ramp(list.length, 25, 160), each = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: ramped[i], width: key === "median" ? 2 : 1, ...(!outer && percentile(key) < 25 ? { hidden: true } : {}) }));
+    const ramped = ramp(list.length, 25, 160), each = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: ramped[i], width: key === "median" ? 2 : 1, ...tail(key), ...(!outer && percentile(key) < 25 ? { hidden: true } : {}) }));
     return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)]), chart(`${name.replace(/^Percentiles/, "Percentile lines")}`, title.replace(/^Cost basis percentiles/, "Cost basis percentile lines"), [price(), ...each])];
   };
 
@@ -654,6 +658,8 @@ export function studioPresets(client, facts) {
   const named = (table, key) => sentence(table[key]?.long ?? key);
   /** The holder groups' URPD cohorts, by their keys (the weighted ones have none). */
   const URPD_HOLDERS = /** @type {Record<string, string>} */ ({ all: "all", sth: "sth", lth: "lth", under4m: "age_under_4m", under6m: "age_under_6m", over4m: "age_over_4m", over6m: "age_over_6m" });
+  /** The holder groups (by their URPD's) with no upper age: the chain's oldest coins in them, unmoved since they were mined. */
+  const OLDEST = new Set(["all", "lth", "age_over_4m", "age_over_6m"]);
   /** A holder group's (or weighted cohort's) name, title, and what it adds to some coins ("Awake coins under 4 months old"). */
   const HOLDERS = /** @type {Record<string, [string, string, string]>} */ ({
     all: ["All coins", "All coins", ""], sth: ["Short-term holders", "Short-term holders", " of short-term holders"], lth: ["Long-term holders", "Long-term holders", " of long-term holders"],
