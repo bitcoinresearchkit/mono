@@ -24949,8 +24949,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (top && started && !reduced.matches) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
         }
         const more = $("home-title-more");
-        more.hidden = !folder;
+        // (A folder's menu on its page; your Library's, its group's, on its own: as their ⋯ in the sidebar.)
+        more.hidden = !folder && !yours;
+        delete more.dataset.folderMenu, delete more.dataset.groupMenu;
         if (folder) Object.assign(more.dataset, { folderMenu: folder.id }), more.setAttribute("aria-label", `More for ${folder.name}`);
+        else if (yours) Object.assign(more.dataset, { groupMenu: "library" }), more.setAttribute("aria-label", "More for your Library");
         const ups = top ? [] : [{ name: "Home", at: /** @type {Place} */ ({ top: true }) }, ...stepsTo(homeAt).slice(0, -1)];
         const where = $("gallery-path");
         where.hidden = top;
@@ -25165,7 +25168,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // named over its own row. After its folders, they read as the last one's.)
           if (own.length) parts.push({ kind: "grid", docs: own });
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
-          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Start a chart in it, or hold a chart, then tap Move." : "Nothing in it yet. Start a chart in it, or drag charts onto it in the sidebar."}</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button></div>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Start a chart in it, or hold a chart, then tap Move." : "Nothing in it yet. Start a chart in it, or drag charts onto it in the sidebar."}</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import" data-into="${folderId}">${ICONS.upload}Import charts</button></div>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
         yoursFound = visible.length;
@@ -27050,7 +27053,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo(asPlace(GROUP_OF[group][1])) },
         ((shut) => ({ key: "toggle", icon: shut ? ICONS.folderOpen : ICONS.folder, label: shut ? "Expand" : "Collapse", stay: true, run: () => toggleGroup(group) }))(groupShut(group)),
         // (Your Library's, as a folder's: what can be made in it.)
-        ...(group === "library" ? [{ key: "new-chart", icon: ICONS.plus, label: "New chart", kbd: "N", run: () => newChart() }, { key: "new-folder", icon: ICONS.folderAdd, label: "New folder", run: () => newFolder([], undefined, { side: true }) }] : []),
+        // (And what comes in and goes out of it: a file of charts imported, all of it downloaded, as on its page.)
+        ...(group === "library" ? [
+          { key: "new-chart", icon: ICONS.plus, label: "New chart", kbd: "N", run: () => newChart() }, { key: "new-folder", icon: ICONS.folderAdd, label: "New folder", run: () => newFolder([], undefined, { side: true }) },
+          { key: "import", icon: ICONS.upload, label: "Import charts", run: () => importCharts() },
+          ...(anythingKept() ? [{ key: "download-all", icon: ICONS.download, label: "Download all charts", aside: "Folders and all", run: () => downloadAll() }] : []),
+        ] : []),
       ];
       /** One of the sidebar's groups opened or closed there, as a folder is (kept as left). @param {Group} group */
       function toggleGroup(group) {
@@ -27894,6 +27902,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => (isOpen($("palette")) && dismissPalette(), newFolder([], id, { side: inSide })) },
           { key: "folder", icon: ICONS.folder, label: "Move to folder", ...(inPalette ? { aside: folder.parent ? folderPath(folder.parent) : "None" } : {}), page: () => choicePage("Move to folder", () => folderChoices([`f:${id}`], inPalette)) },
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`f:${id}`], null) }] : []),
+          // (Its charts in and out, as your Library's: a file imported into it, all it holds downloaded with it.)
+          { key: "import", icon: ICONS.upload, label: "Import charts", aside: "Into it", run: () => (isOpen($("palette")) && dismissPalette(), importCharts(id)) },
+          ...(library.charts.some((doc) => isIn(doc.folder, id)) || library.folders.some((other) => other.id !== id && isIn(other.id, id)) ? [{ key: "download", icon: ICONS.download, label: "Download all charts", aside: "Its folders too", run: () => downloadFolder(id) }] : []),
           { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "Keeps its charts", verb: "Delete", danger: true, run: () => deleteFolder(id) },
         ];
       }
@@ -33931,7 +33942,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", icon: "file", run: () => exportAs("json") },
           ...(anythingKept() ? [{ title: "Download all charts", text: "All charts in one file, with their folders, to import elsewhere.", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
-          { title: "Import charts", text: "A chart file, or a file of several charts exported together.", icon: "upload", run: () => $("import-file").click(), anywhere: true },
+          { title: "Import charts", text: "A chart file, or a file of several charts exported together.", icon: "upload", run: () => importCharts(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
           ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
@@ -35447,7 +35458,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ...treeOf().flatMap(({ item }) => ("layers" in item ? [] : childrenOf(item.id).filter((doc) => "layers" in doc).map((doc) => ({ kind: "chart", key: doc.id, group: folderPath(item.id) })))),
         { kind: "row", key: "new", icon: ICONS.plus, label: "New chart", kbd: "N", verb: "Create", group: "Add", run: newChart },
         { kind: "row", key: "new-folder", icon: ICONS.folderAdd, label: "New folder", verb: "Create", group: "Add", run: () => (dismissPalette(), newFolder()) },
-        { kind: "row", key: "import", icon: ICONS.upload, label: "Import charts", verb: "Import", group: "Files", run: () => $("import-file").click() },
+        { kind: "row", key: "import", icon: ICONS.upload, label: "Import charts", verb: "Import", group: "Files", run: () => importCharts() },
         ...(anythingKept() ? [{ kind: "row", key: "download-all", icon: ICONS.download, label: "Download all charts", aside: "Folders and all", verb: "Download", group: "Files", run: () => (dismissPalette(), downloadAll()) }] : []),
       ] });
       /** Where charts go, as ⌘K's page. @param {string[]} ids @returns {Page} */
@@ -37404,9 +37415,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
 
 
+      /** The folder an import goes into (none: your Library's top), as asked from its menu. */
+      let importInto = /** @type {string | undefined} */ (undefined);
+      /** Charts from a file, into folder `into` (none: your Library's top). @param {string} [into] */
+      const importCharts = (into = undefined) => ((importInto = into), $("import-file").click());
       $("import-file").addEventListener("change", async (event) => {
-        const file = event.target.files?.[0];
+        const file = event.target.files?.[0], target = importInto && folderById(importInto) ? importInto : undefined;
         event.target.value = "";
+        importInto = undefined;
         if (!file) return;
         // (Charts, even all of them, are a few megabytes at most: a file far past that isn't, and would hang the page read.)
         if (file.size > 32e6) return notice(`That file is ${Math.round(file.size / 1e6)} MB: too large to be charts`);
@@ -37475,17 +37491,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= most; at = at.parent ? up(at.parent) : undefined, steps++) names.unshift(at.name);
               return JSON.stringify(names);
             };
+            // (Into a folder: matched within it alone, by id or by their paths from it.)
+            const fromTarget = (/** @type {Folder} */ folder) => {
+              const names = [];
+              for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= library.folders.length; at = at.parent ? folderById(at.parent) : undefined, steps++) {
+                if (at.id === target) return JSON.stringify(names);
+                names.unshift(at.name);
+              }
+              return null;
+            };
             const pathThere = (/** @type {Folder} */ folder) => namesOf(folder, (id) => made.get(id), made.size), here = new Map(), into = new Map();
-            for (const folder of library.folders) ((key) => here.set(key, here.has(key) ? null : folder.id))(namesOf(folder, folderById, library.folders.length));
-            for (const [from, folder] of folders) ((id) => id && into.set(folder.id, id))(folderById(from) ? from : here.get(pathThere(folder)));
+            for (const folder of library.folders) ((key) => key !== null && here.set(key, here.has(key) ? null : folder.id))(target ? fromTarget(folder) : namesOf(folder, folderById, library.folders.length));
+            for (const [from, folder] of folders) ((id) => id && into.set(folder.id, id))(folderById(from) && (!target || isIn(from, target)) ? from : here.get(pathThere(folder)));
             for (const doc of docs) if (doc.folder && into.has(doc.folder)) doc.folder = into.get(doc.folder);
             for (const [from, folder] of folders) if (into.has(folder.id) || (!holds.has(folder.id) && heldThere.has(folder.id))) folders.delete(from);
             const kept = new Set([...folders.values()].map((folder) => folder.id));
             for (const folder of folders.values()) {
               let parent = folder.parent;
               while (parent && !kept.has(parent) && !into.has(parent)) parent = made.get(parent)?.parent;
-              parent ? (folder.parent = into.get(parent) ?? parent) : delete folder.parent;
+              parent ? (folder.parent = into.get(parent) ?? parent) : target ? (folder.parent = target) : delete folder.parent;
             }
+            if (target) for (const doc of docs) doc.folder ??= target;
             // (Nothing new, charts nor folders: said, nothing changed.)
             if (!docs.length && !edits.length && !folders.size && editsHere) return notice("You already have all of it");
             if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "You already have that chart" : `You already have all ${grouped.format(already)} charts`}`);
@@ -37506,9 +37532,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (The edited presets by their ids as placed (an adopted one's, new): another tab's edit replaces the object.)
             const editIds = edits.filter((doc) => library.presets.includes(doc)).map((doc) => doc.id);
             save();
-            // (On your Library's page, where they are; picked to tell them from the charts already here (into none,
-            // they're all there is).)
-            goTo({ folder: "" });
+            // (On the page they went to, your Library's or the folder's; picked to tell them from the charts already here
+            // (into none, they're all there is).)
+            goTo({ folder: target ?? "" });
             picked.clear();
             if (among) for (const doc of docs) picked.add(doc.id);
             drawThumbs();
@@ -37553,6 +37579,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (twin) return void (showLinked(twin), toast(`Opened “${titleOf(twin)}”, which you already have`));
           // (Onto a new chart still empty, the file takes its place: an empty preview left simply goes.)
           const before = chart;
+          if (target) doc.folder = target;
           linkWindow = doc.id;
           adopt(doc);
           const same = asThen([doc]);
@@ -38012,7 +38039,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Kept while a browser may still be asking where it goes: Safari's iOS sheet, after a while.)
         setTimeout(() => URL.revokeObjectURL(link.href), 40000);
       }
-      const fileName = (extension, doc = chart) => `${(titleOf(doc) || "chart").trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "chart"}.${extension}`;
+      /** A name as a file's: words joined by dashes, lowercase. */
+      const slugOf = (/** @type {string} */ text) => text.trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+      const fileName = (extension, doc = chart) => `${slugOf(titleOf(doc) || "chart") || "chart"}.${extension}`;
       /**
        * Several charts in one file (their ids with them), their folders (`folders`: those they're in, at any depth) and
        * their order in the sidebar too: imported anywhere else, they're arranged as here.
@@ -38036,6 +38065,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!charts.length && !library.folders.length && !aside.length && !edited.length) return notice("No charts yet");
         download(`bitview-charts-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(charts, library.folders, aside, edited));
         toast(`Downloaded ${plural(charts.length, "chart")}${library.folders.length ? ` and ${plural(library.folders.length, "folder")}` : ""}${edited.length ? `, ${plural(edited.length, "edited preset")}` : ""}${aside.length ? `, and ${aside.length} kept aside` : ""}, in one file`);
+      }
+      /** A folder's charts, at any depth, in a file with it and the folders in it: imported, made anew as here. */
+      function downloadFolder(/** @type {string} */ id) {
+        const folder = folderById(id);
+        if (!folder) return;
+        const docs = library.charts.filter((doc) => isIn(doc.folder, id)), folders = library.folders.filter((other) => isIn(other.id, id));
+        if (!docs.length && folders.length === 1) return notice("Nothing in it yet");
+        download(`bitview-${slugOf(folder.name) || "folder"}-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(docs, folders));
+        toast(`Downloaded “${folder.name}”: ${plural(docs.length, "chart")}${folders.length > 1 ? ` and ${plural(folders.length - 1, "folder")}` : ""}, in one file`);
       }
       function downloadChart(/** @type {Chart} */ doc) {
         download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
@@ -39248,7 +39286,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
         else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
         else if (action === "leave-empty") leaveEmpty();
-        else if (action === "import") $("import-file").click();
+        else if (action === "import") importCharts(target.dataset.into);
         else if (action === "download-all") downloadAll();
         // (Home, from anywhere, a chart too: a page of its own, not the one a chart was opened from (its path, Back, go
         // there). The sidebar's.)
