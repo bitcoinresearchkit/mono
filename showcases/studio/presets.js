@@ -879,7 +879,8 @@ export function studioPresets(client, facts) {
       ]),
       section("Difficulty", [
         chart("History", "Difficulty", [series(blocks.difficulty.value, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
-        chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
+        // (A countdown of two weeks, over again: on a few months, where each one reads (over years, a solid block).)
+        chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })], { range: "3m" }),
         chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: SUM_COLOR, shape: "steps" })]),
       ]),
       // (The subsidy's schedule, as Difficulty is the work's.)

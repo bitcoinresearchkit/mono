@@ -143,9 +143,11 @@ Only what's left. An item done is removed: its history is in the commits and log
   Checked dark and light. Then Compass restored (7d2b2f5c8 had halved its bands: a cloud's slices took their layers'
   opacity; reverted, bc5b477d) and the others made like it (named hue families at one strength); cohort pages' share
   in profit stacked, dormancy and sell-side risk in the cohort's color, baselines' shown window green/red (fc88fae2).
-  Deploys: the permission check blocks mine now; you run them. Next passes:
-  more combinations
-  (a profile beside its heatmap per family's compare, …); the phone check on prod.
+  Deploys: the permission check blocks mine now; you run them. Then (2026-11-03): a profile on all coins' heatmap per
+  family's compare; pools idle 3 years on Max; SOPR, dollar flows and long returns on log; the oldest coins' cost basis
+  tail out of the fit; Capital chart for chart as Supply; import and download on your Library and every folder; a
+  picture's long legend under its plot (_notes/deep-pass-20261103.md). Next passes: more combinations; the phone check
+  on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
   the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
   ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's
@@ -190,6 +192,14 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 - A home for what only the website had: block, transaction and address pages.
 
 ## Back end
+
+- Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
+  not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
+  always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of
+  all coins, Memo and Bitproof data shares: more digits); five pools' 1-month average fees per block constant over 8
+  years (50BTC, DMND, Noderunners, Phoenix, SoloPool.com: the last value carried, not none). And a fact per series
+  for the presets, as the pools' 3-year set: which haven't changed in the default 8 years (the empty output type,
+  Ascribe, the far profit bands), so their charts open on Max.
 
 - Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
   `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
