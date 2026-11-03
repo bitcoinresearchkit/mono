@@ -629,6 +629,9 @@ export function studioPresets(client, facts) {
       if (o.price) return [chart(name, title, [price(), ...layers])];
       return [chart(name, title, layers, o.log ? { log: [1] } : {})];
     };
+    // (All coins' URPD (weighted as the members'): the whole the members split, or sit in; theirs, where they split it.)
+    const whole = options.urpd ? URPD_HOLDERS.all : undefined;
+    const groups = members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"));
     const comparisons = [
       ...compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
       ...compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
@@ -636,10 +639,15 @@ export function studioPresets(client, facts) {
       ...(options.disjoint ? [] : [...compare("Share of all coins", (c) => c.supply?.share), ...compare("Share of all capital", (c) => c.capital?.share)]),
       ...compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
       // (Members that split the whole (all coins, the reference, left out), their URPDs stacked at the chart's edge, each its color.)
-      // (Stacked as they are, then summed from the price outward: how much each holds between it and any price.)
-      ...((groups) => (options.profile && groups.length > 1 ? [chart("Profile", `Supply profile by ${options.by}`, [price(), { profile: groups, ...weighed }]), chart("Cumulative profile", `Supply profile by ${options.by}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }])] : []))(members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"))),
+      // (Stacked as they are, beside all coins' history (its heatmap: today's split by member, against how it came to
+      // be), then summed from the price outward: how much each holds between it and any price.)
+      ...(options.profile && groups.length > 1 ? [
+        chart("Profile", `Supply profile by ${options.by}`, [price(), { profile: groups, ...weighed }]),
+        ...(whole ? [chart("Profile on the heatmap", `Supply profile by ${options.by}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, { profile: groups, ...weighed }])] : []),
+        chart("Cumulative profile", `Supply profile by ${options.by}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }]),
+      ] : []),
       // (Each member's realized price over all coins' supply by cost basis: where each sits in what was bought where.)
-      ...((all) => (all && members.length > 1 && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${options.by}, on the supply by cost basis`, [price(), { heatmap: all, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []))(members.some(([key]) => key === "all") ? options.urpd?.("all") : undefined),
+      ...(whole && members.length > 1 && members.some(([key]) => key === "all") && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${options.by}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []),
       ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       ...compare("Share in profit", (c) => c.supply?.inProfit?.share),
       ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
