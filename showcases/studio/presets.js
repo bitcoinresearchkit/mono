@@ -744,6 +744,9 @@ export function studioPresets(client, facts) {
       chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
       // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)
       chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.usd.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.usd.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
+      // (The share of all supply in profit times the price's volatility over 30 days (its 30 days', not annualized: by
+      // √(30/365)), as fractions: low where few coins are in profit, the price is still, or both: sellers exhausted.)
+      chart("Seller exhaustion", "Seller exhaustion constant", [price(), { formula: `${t.holders.all.supply.inProfit.share.name} / 100 * volatility(A, 30d) / 100 * ${Math.sqrt(30 / 365).toFixed(4)}`, label: "Seller exhaustion constant", format: "ratio", pane: 2, color: "orange" }], { log: [2] }),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       // (Market cap over the day's transfer volume in dollars: the network's value against what moves on it; high, valued
       // over its use. A day's volume swings: faint, its signal over it (the volume's 90-day average), as the hash rate's.)
@@ -977,7 +980,9 @@ export function studioPresets(client, facts) {
             price(),
             ...edges.map(([value, label], i) => series(value, label, { color: LANDSCAPE[i], width: 1 })),
             { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
-            ...edges.map(([, label], i) => ({ cloud: [letter(i + 1), i + 1 < edges.length ? letter(i + 2) : "bottom"], label: i + 1 < edges.length ? `${label} to ${edges[i + 1][1].toLowerCase()}` : `Below the ${label.toLowerCase()}`, color: LANDSCAPE[i], opacity: 1 })),
+            // (Under it, one cloud by its edges: each band in the color of the edge over it, down to the pane's foot; its
+            // edges one legend item, their colors its key.)
+            { cloud: [...edges.map((_, i) => letter(i + 1)), "bottom"], label: "Water, soil and bedrock", color: LANDSCAPE[0], byLayers: true, opacity: 1 },
           ]),
           chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
             ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),

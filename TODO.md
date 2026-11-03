@@ -140,7 +140,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   classic three; the Bitview mark in captures' footer. Then (you: "very bland and muted", "make them pop… a general
   rule"): hue for meaning, opacity for importance, every ramp from Bitview's named colors (palette.js wheelColor);
   cost basis percentiles a fan beside a lines variant; subsidy and fee shares, vaulted and active, liveliness stacked.
-  Checked dark and light. Next passes:
+  Checked dark and light. Then Compass restored (7d2b2f5c8 had halved its bands: a cloud's slices took their layers'
+  opacity; reverted, bc5b477d) and the others made like it (named hue families at one strength); cohort pages' share
+  in profit stacked, dormancy and sell-side risk in the cohort's color, baselines' shown window green/red (fc88fae2).
+  Deploys: the permission check blocks mine now; you run them. Next passes:
   more combinations
   (a profile beside its heatmap per family's compare, …); the phone check on prod.
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
