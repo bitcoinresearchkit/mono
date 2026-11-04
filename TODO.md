@@ -189,7 +189,20 @@ Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studi
 
 The website is gone: the server serves the showcases, Bitview's front page (`showcases/index.html`) at `/`.
 
-- A home for what only the website had: block, transaction and address pages.
+- The explorer, designed from scratch (replaces the `_chain` draft): blocks, transactions and addresses, the next
+  block forming live. Direction chosen 2026-11-04: the Live floor mockup's, mempool.space's model made much better and
+  cleaner (shots of the three mockups in `_notes/explorer-mockups-20261104/`). At `/explorer/`, served but unlisted
+  (home.mjs UNLISTED): the belt of projected and confirmed blocks, the next block live, every block's exact map, fees
+  to get in, block, transaction and address views, search, keys. Two Codex rounds fixed (22 and 9 findings). Left:
+  its icon (home.mjs --icons); listed on the front page (card, preview) when the user says; the `_chain` draft
+  removed.
+- Ledger, a showcase of its own, at `/ledger/`, served but unlisted: every block a line (time, miner, txs, moved,
+  fees, profit, loss), a day starting a page and running over as many as it takes (brought and carried forward, its
+  total and margin notes on its last), pages sized to the screen with the columns that fit (no scaling), a crease
+  down the middle, a page curl by drag, click or keys (the left leaf turned back in its own mirrored frame), a corner
+  lifted under the mouse, fast turns on held keys, jumps that riffle pages; one page at a time on a phone. Codex's review
+  of the rewrite fixed (16 findings; one owner of the book at a time, refreshes after it). Left: its icon; listed when the
+  user says. Turning by a real finger on the iPhone not yet tried (only emulated touch).
 
 ## Back end
 

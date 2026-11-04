@@ -93,8 +93,13 @@ if ((existsSync(SITEMAP) ? readFileSync(SITEMAP, "utf8") : "") !== sitemapXml) {
 const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: HERE });
 if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().decode(git.stderr).trim()}): the apps on the front page unchecked`);
 const folders = new TextDecoder().decode(git.stdout).split("\n").filter(Boolean).map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
-// (On it: in its rows, APPS or DEV, the footer's links not counting.)
-for (const name of folders) if (![...apps, ...dev].includes(`/${name}/`)) problems.push(`/${name}/: an app not in the front page's rows (add it to APPS or DEV, or name its folder _${name} to keep it off)`);
+// (On it: in its rows, APPS or DEV, the footer's links not counting; or unlisted, in UNLISTED: served at its address,
+// with its icon, but off the front page and the sitemap, until it's ready to be listed.)
+const UNLISTED = ["/explorer/", "/ledger/"];
+for (const href of UNLISTED) if ([...apps, ...dev].includes(href)) problems.push(`${href}: in the front page's rows and in UNLISTED (take it out of UNLISTED)`);
+for (const name of folders)
+  if (![...apps, ...dev, ...UNLISTED].includes(`/${name}/`))
+    problems.push(`/${name}/: an app not in the front page's rows (add it to APPS or DEV, to UNLISTED to serve it unlisted, or name its folder _${name} to keep it off)`);
 
 // ── Every app's icon ──
 

@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Ledger" data-color="#e8e1d1"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e8e1d1" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#12110f" />
+    <title>Ledger · Bitview</title>
+    <meta
+      name="description"
+      content="Bitcoin's ledger, a page a day since January 3, 2009: every hour's blocks, transactions, coins moved, fees, and the profit and loss realized, totalled like a book of accounts."
+    />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Instrument;
+        src: url("/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Instrument;
+        src: url("/assets/fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-display: swap;
+      }
+
+      :root {
+        /* The desk, then the paper and its inks: the paper stays paper in the dark, lit by a lamp. */
+        --desk: #e8e1d1;
+        --desk-ink: #3d372c;
+        --desk-soft: #8a8170;
+        --paper: #f7f1e3;
+        --paper-edge: #e2d8c2;
+        --rule: rgb(70 104 168 / 0.2);
+        --margin: rgb(196 70 66 / 0.55);
+        --ink: #1f2741;
+        --soft: #7b7566;
+        --pencil: #9b968b;
+        --gain: #2a6a43;
+        --loss: #a5302b;
+        --note: #a5302b;
+        --mono: Lilex, ui-monospace, monospace;
+        --serif: Instrument, Georgia, serif;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #12110f;
+          --desk-ink: #e6dcc6;
+          --desk-soft: #8f8676;
+          --paper: #e9dfc9;
+          --paper-edge: #c9bda4;
+          color-scheme: dark;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--desk);
+        color: var(--desk-ink);
+        font: 14px/1.4 Inter, system-ui, sans-serif;
+        -webkit-text-size-adjust: none;
+      }
+      body {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        background:
+          radial-gradient(ellipse 70% 60% at 50% 45%, rgb(255 246 220 / 0.55), transparent 70%),
+          var(--desk);
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background:
+            radial-gradient(ellipse 60% 55% at 50% 42%, rgb(255 208 140 / 0.2), transparent 72%),
+            var(--desk);
+        }
+      }
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      /* The bar: the brand, the open pages' dates, a way to a day. */
+      .bar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 12px;
+        height: 56px;
+        padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--desk-ink);
+        font-weight: 600;
+        text-decoration: none;
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+      .where {
+        font: italic 19px var(--serif);
+        white-space: nowrap;
+      }
+      .go {
+        display: flex;
+        justify-content: end;
+        gap: 8px;
+      }
+      .go button,
+      .go input {
+        height: 32px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 16px;
+        background: rgb(0 0 0 / 0.05);
+        color: var(--desk-ink);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      @media (prefers-color-scheme: dark) {
+        .go button,
+        .go input {
+          background: rgb(255 255 255 / 0.07);
+        }
+      }
+      .go input {
+        width: 136px;
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .go input::-webkit-calendar-picker-indicator {
+        opacity: 0.5;
+      }
+
+      /* The desk: the book scaled to fit, its pages turned by the corner. */
+      .desk {
+        position: relative;
+        min-height: 0;
+        display: grid;
+        place-items: center;
+      }
+      .holder {
+        position: relative;
+      }
+      .book {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform-origin: 0 0;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .spine {
+        position: absolute;
+        top: 0;
+      }
+      .page {
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+        background: var(--paper);
+        transform-origin: 0 0;
+        will-change: transform, clip-path;
+      }
+      .page[hidden] {
+        display: none;
+      }
+      /* The paper's grain, and the shade toward the spine on each side. */
+      .page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .25 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .page::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(to var(--toward, right), rgb(60 40 10 / 0.16), rgb(60 40 10 / 0.04) 5%, transparent 14%);
+      }
+      .page.verso {
+        --toward: left;
+      }
+      .page.ghost .sheet {
+        opacity: 0.07;
+      }
+      .crease {
+        position: absolute;
+        top: 0;
+        left: -20px;
+        width: 40px;
+        pointer-events: none;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgb(60 40 10 / 0.05) 30%,
+          rgb(60 40 10 / 0.16) 45%,
+          rgb(40 25 5 / 0.34) 49.6%,
+          rgb(255 250 240 / 0.45) 50.4%,
+          rgb(60 40 10 / 0.12) 55%,
+          rgb(60 40 10 / 0.04) 70%,
+          transparent
+        );
+      }
+      .flap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        filter: drop-shadow(0 0 10px rgb(40 25 0 / 0.25));
+        pointer-events: none;
+      }
+      .shade {
+        position: absolute;
+        top: 0;
+        overflow: visible;
+        pointer-events: none;
+      }
+      /* The page edges: as thick on each side as the days before and after the open pages. */
+      .edges {
+        position: absolute;
+        top: 3px;
+        bottom: 3px;
+        background: repeating-linear-gradient(to right, var(--paper) 0 1px, var(--paper-edge) 1px 2px);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+      }
+      .book-shadow {
+        position: absolute;
+        inset: 0;
+        border-radius: 3px;
+        box-shadow:
+          0 2px 4px rgb(40 25 0 / 0.14),
+          0 24px 60px -20px rgb(40 25 0 / 0.45);
+      }
+
+      /* A page's writing. */
+      .sheet {
+        position: absolute;
+        inset: 0;
+        padding: var(--pad-top) var(--pad-right) 0 var(--pad-left);
+        color: var(--ink);
+      }
+      .sheet::before {
+        /* the red double margin rule */
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--pad-left) - 14px);
+        width: 3px;
+        border-inline: 1px solid var(--margin);
+      }
+      .date {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        height: var(--head-1);
+        h2 {
+          margin: 0;
+          font: 400 var(--date-size) / 1 var(--serif);
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+        }
+        .folio {
+          color: var(--soft);
+          font: italic 14px var(--serif);
+          white-space: nowrap;
+        }
+      }
+      .price {
+        height: var(--head-2);
+        color: var(--soft);
+        font: italic 15px var(--serif);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        b {
+          color: var(--ink);
+          font: 500 12.5px var(--mono);
+          font-style: normal;
+        }
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th {
+        height: var(--row);
+        padding: 0 0 4px;
+        color: var(--soft);
+        font: italic 400 14px var(--serif);
+        text-align: right;
+        vertical-align: bottom;
+        border-bottom: 1px solid var(--rule);
+      }
+      td {
+        height: var(--row);
+        padding: 0 0 0 4px;
+        border-bottom: 1px solid var(--rule);
+        font: 11.5px var(--mono);
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      th:first-child,
+      td:first-child {
+        padding-left: 0;
+        text-align: left;
+      }
+      td:first-child {
+        color: var(--soft);
+      }
+      td.none {
+        color: var(--pencil);
+      }
+      tr.now td {
+        color: var(--pencil);
+      }
+      td.time {
+        color: var(--soft);
+      }
+      th.who,
+      td.who {
+        padding-left: 10px;
+        text-align: left;
+        text-overflow: ellipsis;
+      }
+      td.who {
+        color: var(--soft);
+        font: italic 14px var(--serif);
+      }
+      tr.carry td {
+        color: var(--soft);
+        font-style: italic;
+      }
+      tr.carry td:first-child,
+      tr.now td {
+        font: italic 14px var(--serif);
+      }
+      .gain {
+        color: var(--gain);
+      }
+      .loss {
+        color: var(--loss);
+      }
+      tr.total td {
+        height: calc(var(--row) + 6px);
+        padding-top: 4px;
+        border-bottom: 3px double var(--ink);
+        font-weight: 600;
+      }
+      tr.total td:first-child {
+        color: var(--ink);
+        font: italic 600 14px var(--serif);
+      }
+      .notes {
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+        color: var(--note);
+        font: italic 14.5px/1.35 var(--serif);
+        li + li {
+          margin-top: 4px;
+        }
+      }
+      .quiet {
+        display: grid;
+        place-items: center;
+        height: calc(100% - var(--pad-top) - var(--head-1) - var(--head-2) - 120px);
+        color: var(--pencil);
+        font: italic 19px var(--serif);
+        text-align: center;
+        background: repeating-linear-gradient(transparent 0 calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px) var(--row));
+      }
+
+      /* The title page, before the first day. */
+      .title {
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        height: 100%;
+        padding: 0 40px 40px;
+        text-align: center;
+        .of {
+          color: var(--soft);
+          font: 400 13px var(--serif);
+          letter-spacing: 0.32em;
+          text-transform: uppercase;
+        }
+        h2 {
+          margin: 6px 0 4px;
+          font: italic 400 76px/1 var(--serif);
+          letter-spacing: -0.02em;
+        }
+        .kept {
+          color: var(--soft);
+          font: italic 17px var(--serif);
+        }
+        .rule {
+          width: 80px;
+          margin: 34px 0;
+          border-top: 3px double var(--ink);
+        }
+        blockquote {
+          max-width: 300px;
+          margin: 0;
+          font: italic 17px/1.4 var(--serif);
+        }
+        cite {
+          display: block;
+          margin-top: 10px;
+          color: var(--soft);
+          font: 400 12px var(--mono);
+          font-style: normal;
+        }
+      }
+      .title-sheet::before,
+      .blank-sheet::before,
+      .end-sheet::before {
+        display: none;
+      }
+      .end-sheet {
+        background: repeating-linear-gradient(transparent 0 calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px) var(--row)) 0
+          var(--pad-top) / 100% calc(100% - var(--pad-top) * 2) no-repeat;
+      }
+      .end-sheet p {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        padding: 0 60px;
+        color: var(--pencil);
+        font: italic 18px var(--serif);
+        text-align: center;
+      }
+
+      /* Under the book: the whole history as a ribbon to jump along. */
+      .foot {
+        display: grid;
+        gap: 6px;
+        width: min(720px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 6px 0 max(14px, env(safe-area-inset-bottom));
+      }
+      .years {
+        position: relative;
+        height: 14px;
+        color: var(--desk-soft);
+        font: 10.5px var(--mono);
+        span {
+          position: absolute;
+          translate: -50% 0;
+        }
+      }
+      input[type="range"] {
+        width: 100%;
+        height: 18px;
+        margin: 0;
+        background: transparent;
+        appearance: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 2px;
+        background: var(--desk-soft);
+        opacity: 0.6;
+      }
+      input[type="range"]::-moz-range-track {
+        height: 2px;
+        background: var(--desk-soft);
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        width: 10px;
+        height: 18px;
+        margin-top: -8px;
+        border: 0;
+        border-radius: 1px 1px 5px 5px;
+        background: var(--note);
+        appearance: none;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 10px;
+        height: 18px;
+        border: 0;
+        border-radius: 1px 1px 5px 5px;
+        background: var(--note);
+      }
+      .hint {
+        color: var(--desk-soft);
+        font-size: 11.5px;
+        text-align: center;
+      }
+      .hint .finger {
+        display: none;
+      }
+      @media (hover: none) {
+        .hint .pointer {
+          display: none;
+        }
+        .hint .finger {
+          display: inline;
+        }
+      }
+      @media (width < 640px) {
+        .bar {
+          grid-template-columns: auto 1fr auto;
+          padding: 0 12px;
+        }
+        .where {
+          font-size: 16px;
+          text-align: center;
+        }
+        .brand span {
+          display: none;
+        }
+        .go input {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" /><span>Bitview</span></a>
+      <span class="where" id="where" aria-live="polite"></span>
+      <div class="go">
+        <input id="day" type="date" aria-label="Open a day" />
+        <button id="today" type="button">Today</button>
+      </div>
+    </header>
+    <h1 class="vh">Ledger</h1>
+    <main class="desk" id="desk">
+      <div class="holder" id="holder">
+        <div class="book" id="book" role="region" aria-roledescription="book" aria-label="The ledger, open">
+          <div class="book-shadow"></div>
+          <div class="edges" id="edge-left"></div>
+          <div class="edges" id="edge-right"></div>
+          <div class="spine" id="spine">
+            <div class="page verso" id="p-left"></div>
+            <div class="page" id="p-under" hidden></div>
+            <div class="page" id="p-front"></div>
+            <div class="crease" id="crease"></div>
+            <div class="flap" id="flap" hidden><div class="page verso" id="p-back"></div></div>
+            <svg class="shade" id="shade" aria-hidden="true">
+              <defs>
+                <linearGradient id="g-cast" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#2a1a00" stop-opacity="0.34" />
+                  <stop offset="1" stop-color="#2a1a00" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="g-curl" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#2a1a00" stop-opacity="0.26" />
+                  <stop offset="0.12" stop-color="#ffffff" stop-opacity="0.16" />
+                  <stop offset="0.45" stop-color="#ffffff" stop-opacity="0" />
+                  <stop offset="1" stop-color="#2a1a00" stop-opacity="0.08" />
+                </linearGradient>
+              </defs>
+              <polygon id="cast" fill="url(#g-cast)" />
+              <polygon id="curl" fill="url(#g-curl)" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer class="foot">
+      <div class="years" id="years" aria-hidden="true"></div>
+      <input id="ribbon" type="range" min="0" value="0" aria-label="Turn to a day" />
+      <div class="hint"><span class="pointer">Turn a page by its corner, or click it · ← → to turn, Home and End</span><span class="finger">Swipe a page from its edge, or tap it</span></div>
+    </footer>
+    <script type="module">
+      // ---------------------------------------------------------------- Reads.
+      const get = async (path) => {
+        const r = await fetch(`/api${path}`);
+        if (!r.ok) throw new Error(`${r.status} ${path}`);
+        return r.headers.get("content-type")?.includes("json") ? r.json() : r.text();
+      };
+      const series = async (id, index, start, end) => (await get(`/series/${id}/${index}?start=${start}&end=${end}`)).data;
+      // One read of a kind at a time: a slow answer is never overtaken by the next tick's.
+      const alone = (read) => {
+        let running = null;
+        return () => (running ??= read().finally(() => (running = null)));
+      };
+
+      // ---------------------------------------------------------------- Numbers, as a clerk would write them.
+      const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
+      const int = (n) => nf(0).format(n);
+      const coins = (n) => (n >= 1000 ? int(n) : n >= 10 ? nf(1, 1).format(n) : n > 0 && n < 0.005 ? "<0.01" : nf(2, 2).format(n));
+      const fee = (n) => (n >= 10 ? nf(1, 1).format(n) : n >= 1 ? nf(2, 2).format(n) : n > 0 && n < 0.0005 ? "<0.001" : nf(3, 3).format(n));
+      const usd = (n) => {
+        if (!n) return "—";
+        if (n < 1) return "<$1";
+        if (n >= 1e9) return `$${nf(2).format(n / 1e9)}B`;
+        if (n >= 1e6) return `$${nf(n >= 1e8 ? 0 : 1).format(n / 1e6)}M`;
+        if (n >= 1e3) return `$${nf(n >= 1e5 ? 0 : 1).format(n / 1e3)}K`;
+        return `$${int(n)}`;
+      };
+      // A price as written: in whole dollars, with its cents while it's under a hundred.
+      const dollars = (n) => (n < 100 ? `$${nf(2, 2).format(n)}` : `$${int(n)}`);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      const clock = (t) => new Date(t * 1000).toISOString().slice(11, 16);
+      const ORDINAL = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
+
+      // ---------------------------------------------------------------- Days.
+      // Day index 0 is January 1, 2009 (UTC); the genesis block's day is index 2, the ledger's first.
+      const DAY0 = 1230768000;
+      const FIRST = 2;
+      const dayTime = (d) => (DAY0 + d * 86400) * 1000;
+      const dayName = (d) =>
+        new Date(dayTime(d)).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+      const shortDay = (d, year = true) =>
+        new Date(dayTime(d)).toLocaleDateString("en-US", { month: "long", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
+      const today = () => Math.floor((Date.now() / 1000 - DAY0) / 86400);
+      const iso = (d) => new Date(dayTime(d)).toISOString().slice(0, 10);
+      // A YYYY-MM-DD date as a day index, or null for anything that isn't a real date.
+      const parseDay = (text) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(text ?? "")) return null;
+        const t = Date.parse(`${text}T00:00:00Z`);
+        return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === text ? Math.floor((t / 1000 - DAY0) / 86400) : null;
+      };
+      let lastDay = today(); // the book's last day, moved on by a refresh
+      const clampDay = (d) => Math.max(FIRST, Math.min(lastDay, d));
+      let tip = 0;
+      let pools = {};
+
+      // A day's entries: each block, its time and miner, what it carried and what its spends realized.
+      const SERIES = ["timestamp", "block_pool", "tx_count", "transfer_volume", "fees", "subsidy", "realized_profit", "realized_loss", "coindays_destroyed"];
+      const days = new Map(); // the reads, by day
+      const ready = new Map(); // what's been read, by day
+      const readDay = (d) => {
+        if (!days.has(d)) {
+          const read = load(d).then(
+            (day) => {
+              if (days.get(d) === read) {
+                ready.set(d, day);
+                parts.delete(d);
+              }
+              return day;
+            },
+            (e) => {
+              if (days.get(d) === read) days.delete(d);
+              throw e;
+            },
+          );
+          days.set(d, read);
+        }
+        return days.get(d);
+      };
+      async function load(d) {
+        const [bounds, ohlc] = await Promise.all([series("first_height", "day1", d, d + 2), series("price_ohlc", "day1", d, d + 1)]);
+        const end = tip + 1;
+        const h1 = Math.min(bounds[1] ?? end, end);
+        const h0 = Math.min(bounds[0] ?? h1, h1);
+        const day = { d, isToday: d === lastDay, h0, h1, price: ohlc[0], blocks: [], notes: [] };
+        if (h1 > h0) {
+          const [time, pool, txs, moved, fees, issued, profit, loss, cdd] = await Promise.all(SERIES.map((id) => series(id, "height", h0, h1)));
+          day.blocks = time.map((t, i) => ({
+            height: h0 + i,
+            time: t,
+            pool: pools[pool[i]] ?? pool[i],
+            txs: txs[i],
+            moved: moved[i],
+            fees: fees[i],
+            issued: issued[i],
+            profit: profit[i],
+            loss: loss[i],
+            cdd: cdd[i],
+          }));
+        }
+        // Margin notes: what the chain itself marks on a day.
+        if (h0 === 0 && h1 > 0) day.notes.push("Block 0, the genesis block: 50 new coins that can never be spent.");
+        for (let h = Math.ceil(Math.max(h0, 1) / 210000) * 210000; h < h1; h += 210000)
+          day.notes.push(`Block ${int(h)}, the ${ORDINAL[h / 210000 - 1]} halving: new coins per block fall from ${nf(8).format(50 / 2 ** (h / 210000 - 1))} to ${nf(8).format(50 / 2 ** (h / 210000))}.`);
+        for (let h = Math.ceil(Math.max(h0, 1) / 2016) * 2016; h < h1; h += 2016) {
+          const [before, after] = await series("difficulty", "height", h - 1, h + 1);
+          if (before !== after) day.notes.push(`Block ${int(h)}: difficulty adjusted by ${after > before ? "+" : "−"}${nf(2).format(Math.abs(after / before - 1) * 100)}%.`);
+        }
+        const sum = (key) => day.blocks.reduce((s, b) => s + (b[key] ?? 0), 0);
+        day.total = Object.fromEntries(["txs", "moved", "fees", "issued", "profit", "loss", "cdd"].map((k) => [k, sum(k)]));
+        if (day.blocks.length)
+          day.notes.push(`${nf(3).format(day.total.issued)} new coins issued${day.total.cdd ? `, ${int(day.total.cdd)} coin-days destroyed` : ""}${day.isToday ? " so far" : ""}.`);
+        return day;
+      }
+
+      // ---------------------------------------------------------------- The page, fitted to the screen.
+      // Pages aren't drawn at one size and shrunk: a page is as big as the desk allows, holds as many lines as fit
+      // it, and the columns its width has room for, the least needed left out first.
+      const $ = (id) => document.getElementById(id);
+      const mode = { single: false, W: 0, H: 0, rows: 0, columns: [], content: 0 };
+      const COLUMNS = [
+        { key: "height", name: "Block", w: 62 },
+        { key: "time", name: "Time", w: 46 },
+        { key: "pool", name: "Mined by", w: 104, flex: true },
+        { key: "txs", name: "Txs", w: 56 },
+        { key: "moved", name: "Moved", w: 72 },
+        { key: "fees", name: "Fees", w: 58 },
+        { key: "profit", name: "Profit", w: 62 },
+        { key: "loss", name: "Loss", w: 62 },
+      ];
+      const NEED = ["height", "time", "txs", "profit", "loss", "pool", "fees", "moved"];
+      function measure() {
+        const desk = $("desk").getBoundingClientRect();
+        const single = desk.width < 900 || desk.width < desk.height * 0.95;
+        const W = Math.floor(single ? Math.min(580, desk.width - 16) : Math.min(660, (desk.width - 56) / 2));
+        const H = Math.floor(Math.max(200, desk.height - 18));
+        const s = single
+          ? { top: 26, left: 44, right: 18, bottom: 20, row: 21, head1: 34, head2: 30, date: 22 }
+          : { top: 36, left: 64, right: 32, bottom: 28, row: 22, head1: 44, head2: 36, date: 30 };
+        const content = W - s.left - s.right;
+        // The columns, in the order of need, while they fit; shown in their own order.
+        let used = 0;
+        const keep = new Set();
+        for (const key of NEED) {
+          const c = COLUMNS.find((x) => x.key === key);
+          if (used + c.w <= content) (used += c.w), keep.add(key);
+        }
+        const rows = Math.max(3, Math.floor((H - s.top - s.head1 - s.head2 - s.row - s.bottom) / s.row));
+        Object.assign(mode, { single, W, H, rows, content, columns: COLUMNS.filter((c) => keep.has(c.key)), style: s });
+        const root = document.documentElement.style;
+        for (const [k, v] of Object.entries({ "--pad-top": s.top, "--pad-left": s.left, "--pad-right": s.right, "--row": s.row, "--head-1": s.head1, "--head-2": s.head2, "--date-size": s.date }))
+          root.setProperty(k, `${v}px`);
+        const bookW = single ? W : 2 * W;
+        const book = $("book");
+        book.style.width = `${bookW}px`;
+        book.style.height = `${H}px`;
+        $("holder").style.width = `${bookW}px`;
+        $("holder").style.height = `${H}px`;
+        $("spine").style.left = `${single ? 0 : W}px`;
+        for (const el of document.querySelectorAll(".page")) {
+          el.style.width = `${W}px`;
+          el.style.height = `${H}px`;
+        }
+        const shade = $("shade");
+        shade.setAttribute("viewBox", `${-W} 0 ${2 * W} ${H}`);
+        Object.assign(shade.style, { left: `${-W}px`, width: `${2 * W}px`, height: `${H}px` });
+        $("p-left").hidden = single;
+        $("crease").hidden = single;
+        $("crease").style.height = `${H}px`;
+        book.style.overflow = single ? "hidden" : "visible";
+        parts.clear();
+      }
+
+      // ---------------------------------------------------------------- Pages.
+      // A page is the cover's inside, the title, a part of a day, or the blank page after today. A day starts on a
+      // page of its own and runs on over as many as its blocks take: each part but the last carried forward at its
+      // foot, each but the first brought forward at its head, the last totalled, its margin notes under the total.
+      const parts = new Map();
+      // The lines a day's last page needs after its blocks: its total, its notes (by their length), today's pencil line.
+      function tail(day) {
+        if (!day.blocks.length) return Math.ceil((day.notes.length * 20 + 40) / mode.style.row) + 2;
+        const lines = day.notes.reduce((n, text) => n + Math.ceil((text.length * 6.6) / mode.content), 0);
+        return 1 + (day.isToday ? 1 : 0) + Math.ceil((14 + lines * 19.6 + day.notes.length * 4) / mode.style.row);
+      }
+      function partsOf(day) {
+        if (!parts.has(day.d)) {
+          const n = day.blocks.length;
+          const out = [];
+          for (let i = 0, k = 0; ; k++) {
+            const room = mode.rows - (k > 0 ? 1 : 0);
+            const left = n - i;
+            if (left + tail(day) <= room || left === 0) {
+              out.push([i, n]);
+              break;
+            }
+            const take = Math.min(left, Math.max(1, room - 1));
+            out.push([i, i + take]);
+            i += take;
+          }
+          parts.set(day.d, out);
+        }
+        return parts.get(day.d);
+      }
+      const COVER = { t: "cover" };
+      const TITLE = { t: "title" };
+      const END = { t: "end" };
+      const dayPage = (d, k) => ({ t: "day", d, k });
+      const key = (p) => (p.t === "day" ? `${p.d}:${p.k}` : p.t);
+      // The pages either side: null where the book ends, undefined where a day isn't read yet (it's asked for).
+      const missing = new Set();
+      const lack = (d) => (missing.add(d), undefined);
+      function nextPage(p) {
+        if (p.t === "cover") return mode.single ? null : TITLE;
+        if (p.t === "title") return dayPage(FIRST, 0);
+        if (p.t === "end") return null;
+        const day = ready.get(p.d);
+        if (!day) return lack(p.d);
+        if (p.k + 1 < partsOf(day).length) return dayPage(p.d, p.k + 1);
+        return p.d < lastDay ? dayPage(p.d + 1, 0) : null;
+      }
+      function prevPage(p) {
+        if (p.t === "cover") return null;
+        if (p.t === "title") return mode.single ? null : COVER;
+        if (p.t === "end") {
+          const day = ready.get(lastDay);
+          return day ? dayPage(lastDay, partsOf(day).length - 1) : lack(lastDay);
+        }
+        if (p.k > 0) return dayPage(p.d, p.k - 1);
+        if (p.d === FIRST) return TITLE;
+        const day = ready.get(p.d - 1);
+        return day ? dayPage(p.d - 1, partsOf(day).length - 1) : lack(p.d - 1);
+      }
+      // Spreads: two pages side by side ({ left, right }), one on a phone ({ right }).
+      let spread = { left: COVER, right: TITLE };
+      function neighbor(s, dir) {
+        if (mode.single) {
+          const p = dir > 0 ? nextPage(s.right) : prevPage(s.right);
+          return p && { right: p };
+        }
+        if (dir > 0) {
+          const left = nextPage(s.right);
+          if (!left) return left;
+          const right = nextPage(left);
+          return right === undefined ? undefined : { left, right: right ?? END };
+        }
+        const right = prevPage(s.left);
+        if (!right) return right;
+        if (right.t === "cover") return { left: COVER, right: TITLE };
+        const left = prevPage(right);
+        return left === undefined ? undefined : { left: left ?? COVER, right };
+      }
+      // Where a spread is in the history: its first day, the line it starts at.
+      const firstDay = (s) => [s.left, s.right].find((p) => p?.t === "day");
+      const anchorOf = (s) => {
+        const p = firstDay(s);
+        return p ? { d: p.d, i: ready.has(p.d) ? partsOf(ready.get(p.d))[p.k]?.[0] ?? 0 : 0 } : { d: null };
+      };
+      // A spread opening on a line of a day (its first by default), today's last, or the beginning.
+      function spreadAt({ d, i = 0 }) {
+        if (d === null) return mode.single ? { right: TITLE } : { left: COVER, right: TITLE };
+        const day = ready.get(d);
+        if (!day) return lack(d);
+        const k = Math.max(0, partsOf(day).findIndex(([a, b]) => i >= a && i < b));
+        const p = dayPage(d, i >= day.blocks.length ? partsOf(day).length - 1 : k);
+        if (mode.single) return { right: p };
+        const right = nextPage(p);
+        return right === undefined ? undefined : { left: p, right: right ?? END };
+      }
+      function spreadAtEnd() {
+        const last = prevPage(END);
+        if (!last) return last;
+        if (mode.single) return { right: last };
+        const left = prevPage(last);
+        return left === undefined ? undefined : { left: left ?? COVER, right: last };
+      }
+      // A spread worked out once the days it needs are read: what's missing is read, then it's worked out again.
+      async function resolve(compute) {
+        for (let tries = 0; tries < 6; tries++) {
+          missing.clear();
+          const s = compute();
+          if (s !== undefined) return s;
+          await Promise.all([...missing].map(readDay));
+        }
+        return null;
+      }
+
+      // ---------------------------------------------------------------- Writing a page.
+      const sumRow = (label, sums, cls) => {
+        const lead = mode.columns.filter((c) => ["height", "time", "pool"].includes(c.key)).length;
+        const cells = mode.columns
+          .filter((c) => !["height", "time", "pool"].includes(c.key))
+          .map((c) => (c.key === "profit" || c.key === "loss" ? money(sums[c.key], c.key === "profit" ? "gain" : "loss") : `<td>${figure(c.key, sums[c.key])}</td>`));
+        return `<tr class="${cls}"><td colspan="${lead}">${label}</td>${cells.join("")}</tr>`;
+      };
+      const figure = (k, v) => (k === "txs" ? int(v) : k === "moved" ? coins(v) : k === "fees" ? fee(v) : "");
+      // A dollar column: its ink where there's an amount, a pencilled dash where there's none (before any price).
+      const money = (n, ink) => (n ? `<td class="${ink}">${usd(n)}</td>` : `<td class="none">—</td>`);
+      const entry = (b) =>
+        `<tr>${mode.columns
+          .map((c) =>
+            c.key === "height"
+              ? `<td>${int(b.height)}</td>`
+              : c.key === "time"
+                ? `<td class="time">${clock(b.time)}</td>`
+                : c.key === "pool"
+                  ? `<td class="who">${esc(b.pool)}</td>`
+                  : c.key === "profit" || c.key === "loss"
+                    ? money(b[c.key], c.key === "profit" ? "gain" : "loss")
+                    : `<td>${figure(c.key, b[c.key])}</td>`,
+          )
+          .join("")}</tr>`;
+      const running = (blocks) => Object.fromEntries(["txs", "moved", "fees", "profit", "loss"].map((k) => [k, blocks.reduce((s, b) => s + (b[k] ?? 0), 0)]));
+      const head = (d, folio, line) => `<div class="date"><h2>${dayName(d)}</h2><span class="folio">${folio}</span></div><div class="price">${line}</div>`;
+      const columnsHTML = () =>
+        `<colgroup>${mode.columns.map((c) => (c.flex ? "<col />" : `<col style="width:${c.w}px" />`)).join("")}</colgroup>
+         <thead><tr>${mode.columns.map((c) => `<th${c.key === "pool" ? ' class="who"' : ""}>${c.name}</th>`).join("")}</tr></thead>`;
+      function sheetHTML(p) {
+        if (p.t === "cover") return `<div class="sheet blank-sheet"></div>`;
+        if (p.t === "title")
+          return `<div class="sheet title-sheet"><div class="title">
+              <span class="of">The ledger of</span>
+              <h2>Bitcoin</h2>
+              <span class="kept">kept block by block, a day at a time,<br />from January 3, 2009</span>
+              <span class="rule"></span>
+              <blockquote>“The Times 03/Jan/2009 Chancellor on brink of second bailout for banks”<cite>written into block 0</cite></blockquote>
+            </div></div>`;
+        if (p.t === "end") return `<div class="sheet end-sheet"><p>The next page is written as blocks are found.</p></div>`;
+        const day = ready.get(p.d);
+        const folio = `Folio ${int(p.d - FIRST + 1)}`;
+        if (!day) return `<div class="sheet">${head(p.d, folio, "&nbsp;")}<table>${columnsHTML()}<tbody></tbody></table></div>`;
+        const all = partsOf(day);
+        const [a, b] = all[p.k] ?? [0, 0];
+        const last = p.k === all.length - 1;
+        const price = day.price;
+        const line =
+          p.k > 0
+            ? `continued, ${p.k + 1} of ${all.length}`
+            : !price?.[0]
+              ? day.isToday
+                ? "No price yet today"
+                : "Before Bitcoin had a price"
+              : `Opened at <b>${dollars(price[0])}</b>, ${day.isToday ? "now" : "closed at"} <b>${dollars(price[3])}</b>`;
+        if (!day.blocks.length)
+          return `<div class="sheet">${head(p.d, folio, line)}<div class="quiet">${day.isToday ? "No blocks yet today." : "No blocks were found this day."}</div>
+            <ul class="notes">${day.notes.map((n) => `<li>${n}</li>`).join("")}</ul></div>`;
+        const rows = [];
+        if (p.k > 0) rows.push(sumRow("Brought forward", running(day.blocks.slice(0, a)), "carry"));
+        rows.push(...day.blocks.slice(a, b).map(entry));
+        if (!last) rows.push(sumRow("Carried forward", running(day.blocks.slice(0, b)), "carry"));
+        else {
+          if (day.isToday) rows.push(`<tr class="now"><td colspan="${mode.columns.length}">awaiting the next block</td></tr>`);
+          const label = mode.columns.length > 5 ? `Total, ${int(day.blocks.length)} blocks${day.isToday ? " so far" : ""}` : "Total";
+          rows.push(sumRow(label, running(day.blocks), "total"));
+        }
+        return `<div class="sheet">${head(p.d, all.length > 1 ? `${folio} · ${p.k + 1}/${all.length}` : folio, line)}
+          <table>${columnsHTML()}<tbody>${rows.join("")}</tbody></table>
+          ${last ? `<ul class="notes">${day.notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}</div>`;
+      }
+      // A page element made to show page p (a ghost: the back of a page, its ink showing through); a page whose day
+      // is still being read is written again once it is, if it's still the page shown.
+      let writes = 0;
+      function write(el, p, { ghost = false } = {}) {
+        const w = String(++writes);
+        el.dataset.write = w;
+        el.dataset.page = key(p);
+        el.classList.toggle("ghost", ghost);
+        el.innerHTML = sheetHTML(p);
+        if (p.t === "day" && !ready.has(p.d))
+          readDay(p.d).then(
+            () => el.dataset.write === w && (el.innerHTML = sheetHTML(p)),
+            () => {},
+          );
+      }
+      const matrix = (el, [a, b, c, d, e, f]) => (el.style.transform = `matrix(${a},${b},${c},${d},${e},${f})`);
+      // A page element put on a side of the spine, showing page p: a left page shaded toward its right, and back.
+      function place(el, p, left, options) {
+        write(el, p, options);
+        el.classList.toggle("verso", left);
+        matrix(el, [1, 0, 0, 1, left ? -mode.W : 0, 0]);
+      }
+
+      // ---------------------------------------------------------------- Showing a spread.
+      function show(s) {
+        spread = s;
+        flip = null;
+        peek = null;
+        if (!mode.single) place($("p-left"), s.left ?? COVER, true);
+        place($("p-front"), s.right, false);
+        $("p-front").style.clipPath = "";
+        $("p-left").style.clipPath = "";
+        $("p-under").hidden = true;
+        $("flap").hidden = true;
+        $("cast").setAttribute("points", "");
+        $("curl").setAttribute("points", "");
+        caption();
+        edges();
+        const first = firstDay(s);
+        if (!scrubbing) $("ribbon").value = first ? first.d : FIRST;
+        history.replaceState(null, "", first ? `?day=${iso(first.d)}` : location.pathname);
+        // The days a turn away read ahead, so a turn shows them written.
+        resolve(() => neighbor(spread, 1)).catch(() => {});
+        resolve(() => neighbor(spread, -1)).catch(() => {});
+      }
+      function caption() {
+        const ds = [...new Set([spread.left, spread.right].filter((p) => p?.t === "day").map((p) => p.d))];
+        $("where").textContent = !ds.length
+          ? "The ledger of Bitcoin"
+          : ds.length === 1
+            ? shortDay(ds[0])
+            : new Date(dayTime(ds[0])).getUTCMonth() === new Date(dayTime(ds[1])).getUTCMonth()
+              ? `${shortDay(ds[0], false)}–${new Date(dayTime(ds[1])).getUTCDate()}, ${new Date(dayTime(ds[1])).getUTCFullYear()}`
+              : `${shortDay(ds[0], false)} – ${shortDay(ds[1])}`;
+        $("day").value = ds.length ? iso(ds.at(-1)) : "";
+      }
+      // The page edges: as thick on each side as the history before and after the open pages.
+      function edges() {
+        const p = firstDay(spread);
+        const f = p ? (p.d - FIRST) / Math.max(1, lastDay - FIRST) : 0;
+        const before = mode.single ? 0 : Math.round(2 + 12 * f);
+        const after = Math.round(2 + 12 * (1 - f));
+        Object.assign($("edge-left").style, { left: `${-before}px`, width: `${before}px`, display: mode.single ? "none" : "" });
+        Object.assign($("edge-right").style, { left: `${(mode.single ? 1 : 2) * mode.W}px`, width: `${after}px` });
+      }
+
+      // ---------------------------------------------------------------- The turn.
+      // A leaf turns about the spine. Its geometry is worked in the leaf's own frame: its spine at x = 0, its outer edge
+      // at x = W; on the page, x is that times `frame` (+1 the right leaf, turned forward; -1 the left leaf, turned
+      // back). Its corner C is pulled to P; the paper folds along the line halfway between them, at right angles to
+      // CP. What lies past the fold turns over: its back, mirrored across the fold, is the flap; under it shows the page
+      // beneath. A turn has two ends, the corner home (C) and the corner landed across the spine (x = -W), and knows
+      // which spread each one leaves open. On a phone, with no left page to take, a turn back is the page before
+      // brought back: a forward turn of it, from its landed end home.
+      let flip = null;
+      let peek = null; // "forward" or "back": a corner lifted under a mouse, not yet taken
+      const clampP = (P, C) => {
+        const W = mode.W;
+        const H = mode.H;
+        // The paper can't leave the spine: the corner stays within W of the spine's end on its side, and within the
+        // diagonal of the other end.
+        const near = { x: 0, y: C.y };
+        const far = { x: 0, y: C.y === 0 ? H : 0 };
+        const limit = (Q, S, r) => {
+          const dx = Q.x - S.x;
+          const dy = Q.y - S.y;
+          const l = Math.hypot(dx, dy);
+          return l > r ? { x: S.x + (dx * r) / l, y: S.y + (dy * r) / l } : Q;
+        };
+        let Q = limit(P, near, W);
+        Q = limit(Q, far, Math.hypot(W, H));
+        return limit(Q, near, W);
+      };
+      // The leaf's rectangle cut by the fold: the part on the spine's side, or the part past the fold.
+      function cut(M, n, keepSpineSide) {
+        const W = mode.W;
+        const H = mode.H;
+        const rect = [
+          [0, 0],
+          [W, 0],
+          [W, H],
+          [0, H],
+        ];
+        const side = ([x, y]) => (keepSpineSide ? 1 : -1) * ((x - M.x) * n.x + (y - M.y) * n.y);
+        const out = [];
+        for (let i = 0; i < 4; i++) {
+          const a = rect[i];
+          const b = rect[(i + 1) % 4];
+          const sa = side(a);
+          const sb = side(b);
+          if (sa >= 0) out.push(a);
+          if (sa >= 0 !== sb >= 0) {
+            const t = sa / (sa - sb);
+            out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+          }
+        }
+        return out;
+      }
+      const poly = (pts) => (pts.length ? `polygon(${pts.map(([x, y]) => `${x}px ${y}px`).join(",")})` : "polygon(0 0)");
+      const points = (pts) => pts.map(([x, y]) => `${x},${y}`).join(" ");
+
+      // How a turn goes, by its direction: the frame it's worked in, the spread it starts from (its corner home), the
+      // spread it lands on, the end it's played to, and where its corner starts. Null where the book ends there,
+      // undefined while the pages it needs are being read.
+      function plan(dir) {
+        const other = neighbor(spread, dir);
+        if (!other) return other;
+        return dir > 0 || !mode.single
+          ? { frame: dir, a: spread, b: other, to: "landing", start: "C" }
+          : { frame: 1, a: other, b: spread, to: "C", start: "landing" };
+      }
+
+      function begin({ frame, a, b, start }, corner = "bottom") {
+        const W = mode.W;
+        const C = { x: W, y: corner === "top" ? 0 : mode.H };
+        if (mode.single) {
+          place($("p-front"), a.right, false);
+          place($("p-back"), a.right, true, { ghost: true });
+          place($("p-under"), b.right, false);
+        } else if (frame > 0) {
+          place($("p-left"), a.left, true);
+          place($("p-front"), a.right, false);
+          place($("p-back"), b.left, true);
+          place($("p-under"), b.right, false);
+        } else {
+          place($("p-left"), a.right, false);
+          place($("p-front"), a.left, true);
+          place($("p-back"), b.right, false);
+          place($("p-under"), b.left, true);
+        }
+        $("p-under").hidden = false;
+        $("flap").hidden = false;
+        flip = { frame, C, ends: { C: a, landing: b }, P: start === "landing" ? { x: -W, y: C.y } : { ...C } };
+        draw();
+      }
+
+      function draw() {
+        const { C, P, frame } = flip;
+        const W = mode.W;
+        const vx = P.x - C.x;
+        const vy = P.y - C.y;
+        const len = Math.hypot(vx, vy);
+        if (len < 0.5) {
+          $("p-front").style.clipPath = "";
+          $("p-back").style.clipPath = "polygon(0 0)";
+          $("cast").setAttribute("points", "");
+          $("curl").setAttribute("points", "");
+          return;
+        }
+        const n = { x: vx / len, y: vy / len };
+        const M = { x: (P.x + C.x) / 2, y: (P.y + C.y) / 2 };
+        const kept = cut(M, n, true);
+        const gone = cut(M, n, false);
+        // Each element's own x for the leaf's x: the right leaf's own; the left leaf's measured from its outer edge.
+        $("p-front").style.clipPath = poly(kept.map(([x, y]) => [frame > 0 ? x : W - x, y]));
+        // The flap: the back's own point (u, y) is the leaf's (W - u, y) turned forward, its (u, y) turned back,
+        // mirrored across the fold, then put on the page by the frame.
+        const r00 = 1 - 2 * n.x * n.x;
+        const r01 = -2 * n.x * n.y;
+        const r11 = 1 - 2 * n.y * n.y;
+        const mn = 2 * (M.x * n.x + M.y * n.y);
+        matrix(
+          $("p-back"),
+          frame > 0 ? [-r00, -r01, r01, r11, r00 * W + mn * n.x, r01 * W + mn * n.y] : [-r00, r01, -r01, r11, -mn * n.x, mn * n.y],
+        );
+        $("p-back").style.clipPath = poly(gone.map(([x, y]) => [frame > 0 ? W - x : x, y]));
+        // The shade: cast on the page beneath, and the curl's light along the flap, both from the fold, on the page.
+        const reflect = ([x, y]) => {
+          const s = 2 * ((x - M.x) * n.x + (y - M.y) * n.y);
+          return [x - s * n.x, y - s * n.y];
+        };
+        const onPage = ([x, y]) => [frame * x, y];
+        const depth = Math.min(len / 2, W * 0.5);
+        const castW = Math.min(70, 10 + len * 0.18);
+        const g = (id, x2, y2) => {
+          const el = $(id);
+          el.setAttribute("x1", frame * M.x);
+          el.setAttribute("y1", M.y);
+          el.setAttribute("x2", frame * x2);
+          el.setAttribute("y2", y2);
+        };
+        g("g-cast", M.x - n.x * castW, M.y - n.y * castW);
+        g("g-curl", M.x + n.x * depth, M.y + n.y * depth);
+        $("cast").setAttribute("points", points(gone.map(onPage)));
+        $("curl").setAttribute("points", points(gone.map(reflect).map(onPage)));
+      }
+
+      // ---------------------------------------------------------------- Turning, one at a time.
+      // Every turn and every jump takes a new generation: a turn's frames and its landing count only while it's the
+      // latest, so a jump (Home, End, Today, the ribbon, a date) ends whatever turn there is, where it stands.
+      const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+      let gen = 0;
+      let busy = false;
+      let queued = 0;
+      let hand = null;
+      let pendingLayout = false;
+      const endAt = (name) => (name === "C" ? { ...flip.C } : { x: -mode.W, y: flip.C.y });
+      // Moving the corner over time to one of its ends, along a gentle lift.
+      let speed = 1;
+      function travel(name, ms, lift, g) {
+        const start = { ...flip.P };
+        const target = endAt(name);
+        let t = 0;
+        let last = performance.now();
+        return new Promise((done) => {
+          const step = (now) => {
+            if (g !== gen || !flip) return done();
+            t = Math.min(1, t + ((now - last) / ms) * speed);
+            last = now;
+            const e = ease(t);
+            const up = Math.sin(Math.PI * e) * lift * (flip.C.y === 0 ? -1 : 1);
+            flip.P = clampP({ x: start.x + (target.x - start.x) * e, y: start.y + (target.y - start.y) * e - up }, flip.C);
+            draw();
+            t < 1 ? requestAnimationFrame(step) : done();
+          };
+          requestAnimationFrame(step);
+        });
+      }
+      // One thing at a time owns the book: a turn, a dragged page let go, a jump (its reading too), a riffle. Each takes
+      // it as it starts (a new generation: whatever was going on stops where it is) and gives it back through finish,
+      // where a layout or a refresh asked for meanwhile is made, and a key pressed meanwhile turns on.
+      let pendingRefresh = false;
+      function take() {
+        busy = true;
+        return ++gen;
+      }
+      function finish(s) {
+        busy = false;
+        if (s && pendingLayout) {
+          const anchor = anchorOf(s);
+          pendingLayout = false;
+          measure();
+          years();
+          missing.clear();
+          const there = spreadAt(anchor);
+          if (there === undefined) return void jump(() => spreadAt(anchor));
+          s = there ?? s;
+        }
+        if (s) show(s);
+        if (pendingRefresh) {
+          pendingRefresh = false;
+          refresh().catch(() => {});
+        }
+        if (queued) {
+          const q = Math.sign(queued);
+          queued -= q;
+          turn(q);
+        } else speed = 1;
+      }
+      async function play(job) {
+        const g = take();
+        let s = null;
+        try {
+          s = await job(g);
+        } catch {}
+        if (g === gen) finish(s);
+      }
+      // A leaf left mid-turn by whatever takes the book next is put down on the end it's nearer.
+      const putDown = () => {
+        if (flip) spread = flip.ends[flip.P.x < 0 ? "landing" : "C"];
+      };
+      // To a spread worked out once its days are read: by a few quick leaves toward it (more the farther it is), or
+      // at once (a layout, a refresh).
+      const dayOf = (s) => firstDay(s)?.d ?? FIRST - 1;
+      async function jump(compute, { riffle = false } = {}) {
+        putDown();
+        const g = take();
+        speed = 1;
+        queued = 0;
+        if (hand) {
+          if (book.hasPointerCapture(hand.id)) book.releasePointerCapture(hand.id);
+          hand = null;
+        }
+        if (pendingLayout) {
+          pendingLayout = false;
+          measure();
+          years();
+        }
+        let s = null;
+        try {
+          s = await resolve(compute);
+        } catch {}
+        if (g !== gen) return;
+        if (s && riffle && key(s.right) !== key(spread.right)) {
+          const far = Math.abs(dayOf(s) - dayOf(spread));
+          const kOf = (x) => firstDay(x)?.k ?? -1;
+          const dir = Math.sign(dayOf(s) - dayOf(spread) || kOf(s) - kOf(spread)) || 1;
+          const leaves = far <= 2 ? 1 : far <= 31 ? 2 : far <= 400 ? 3 : 4;
+          for (let i = 0; i < leaves; i++) {
+            const from = i === 0 ? spread : s;
+            const p = dir > 0 || !mode.single ? { frame: dir, a: from, b: s, to: "landing", start: "C" } : { frame: 1, a: s, b: from, to: "C", start: "landing" };
+            begin(p);
+            await travel(p.to, i === leaves - 1 ? 360 : 190, mode.H * 0.1, g);
+            if (g !== gen) return;
+            spread = s; // the pages open now are the target's, whichever leaf turns next
+          }
+        }
+        finish(s);
+      }
+      // A dragged page let go: on to the end it's headed for, from wherever it is.
+      function settle(name) {
+        return play(async (g) => {
+          const f = flip;
+          const end = endAt(name);
+          const distance = Math.hypot(end.x - f.P.x, end.y - f.P.y) / (2 * mode.W);
+          await travel(name, Math.max(160, 520 * Math.min(1, distance + 0.25)), 0, g);
+          return g === gen ? f.ends[name] : null;
+        });
+      }
+      // A whole turn, by a click or a key (its pages read first if they aren't yet); one pressed during a turn hurries
+      // it and waits for it (eight at most), none past an end.
+      function turn(dir, lifted = false) {
+        if (hand) return;
+        if (busy) {
+          queued = Math.max(-8, Math.min(8, queued + dir));
+          speed = 2.8;
+          return;
+        }
+        play(async (g) => {
+          let p = plan(dir);
+          if (p === undefined) {
+            await resolve(() => neighbor(spread, dir));
+            if (g !== gen) return null;
+            p = plan(dir);
+            lifted = false;
+          }
+          if (!p) {
+            queued = 0;
+            return null;
+          }
+          if (!lifted) begin(p);
+          const f = flip;
+          await travel(p.to, 640, mode.H * 0.14, g);
+          return g === gen ? f.ends[p.to] : null;
+        });
+      }
+
+      // ---------------------------------------------------------------- Hands on the paper.
+      // A press on a page takes the corner on its side (top or bottom, by where the press is) and moves it as the
+      // pointer moves; let go past halfway, or with a flick, and the page turns, else it falls back.
+      const book = $("book");
+      const local = (e) => {
+        const r = $("spine").getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      };
+      // A mouse near a page's outer bottom corner lifts it a little, more the nearer it comes: the page to take.
+      const REACH = 90;
+      book.addEventListener("pointermove", (e) => {
+        if (hand || busy || e.pointerType !== "mouse") return;
+        const q = local(e);
+        const W = mode.W;
+        const H = mode.H;
+        const near = (x) => Math.hypot(q.x - x, q.y - H);
+        const side = near(W) < REACH ? 1 : !mode.single && near(-W) < REACH ? -1 : 0;
+        const p = side && plan(side);
+        if (!p) {
+          if (peek) show(spread);
+          return;
+        }
+        if (peek !== side) {
+          begin(p);
+          peek = side;
+        }
+        const lift = 8 + 30 * (1 - near(side * W) / REACH);
+        flip.P = clampP({ x: W - lift, y: H - lift * 0.8 }, flip.C);
+        draw();
+      });
+      book.addEventListener("pointerleave", () => {
+        if (peek && !hand && !busy) show(spread);
+      });
+      book.addEventListener("pointerdown", (e) => {
+        if (busy || hand || e.button !== 0) return;
+        const q = local(e);
+        const dir = (mode.single ? q.x > mode.W * 0.35 : q.x > 0) ? 1 : -1;
+        const p = plan(dir);
+        if (p === null) return;
+        if (p === undefined) resolve(() => neighbor(spread, dir)).catch(() => {});
+        const corner = q.y < mode.H / 2 ? "top" : "bottom";
+        // A corner already lifted is taken as it is; anything else lifted is let down first.
+        const lifted = peek === dir && Boolean(flip) && corner === "bottom";
+        if (peek && !lifted) show(spread);
+        peek = null;
+        hand = { id: e.pointerId, start: q, dir, plan: p ?? null, corner, lifted, moved: false, last: { x: q.x, t: e.timeStamp }, v: 0 };
+        book.setPointerCapture(e.pointerId);
+      });
+      book.addEventListener("pointermove", (e) => {
+        if (!hand || e.pointerId !== hand.id) return;
+        const q = local(e);
+        if (!hand.moved) {
+          if (Math.hypot(q.x - hand.start.x, q.y - hand.start.y) < 6) return;
+          if (!hand.lifted) {
+            hand.plan ??= plan(hand.dir) ?? null;
+            if (!hand.plan) return;
+            begin(hand.plan, hand.corner);
+          }
+          hand.moved = true;
+          hand.origin = { ...flip.P };
+        }
+        const dt = Math.max(1, e.timeStamp - hand.last.t);
+        hand.v = 0.7 * hand.v + 0.3 * ((q.x - hand.last.x) / dt);
+        hand.last = { x: q.x, t: e.timeStamp };
+        // On a phone the corner goes the whole way (from one edge to past the other) in the room the finger has:
+        // from where it pressed to the page's far edge.
+        const room = hand.dir > 0 ? hand.start.x : mode.W - hand.start.x;
+        const k = mode.single ? (2 * mode.W) / Math.max(room, 60) : 1;
+        const f = hand.plan.frame;
+        flip.P = clampP({ x: hand.origin.x + f * (q.x - hand.start.x) * k, y: hand.origin.y + (q.y - hand.start.y) }, flip.C);
+        draw();
+      });
+      book.addEventListener("pointerup", (e) => {
+        if (!hand || e.pointerId !== hand.id) return;
+        const h = hand;
+        hand = null;
+        if (!h.moved) return turn(h.dir, h.lifted);
+        // A flick counts only if the pointer was still moving when it let go; in the leaf's frame, toward the spine
+        // lands it, away sends it home.
+        const v = e.timeStamp - h.last.t < 100 ? h.plan.frame * h.v : 0;
+        settle(v < -0.45 ? "landing" : v > 0.45 ? "C" : flip.P.x < 0 ? "landing" : "C");
+      });
+      // A press taken away (by the system, a gesture): the page goes back to where it was, nothing turned.
+      book.addEventListener("pointercancel", (e) => {
+        if (!hand || e.pointerId !== hand.id) return;
+        const h = hand;
+        hand = null;
+        if (h.moved) settle(flip.ends.C === spread ? "C" : "landing");
+        else if (pendingLayout) relayout(anchorOf(spread));
+      });
+
+      addEventListener("keydown", (e) => {
+        if (e.target.closest?.("input, button, select, textarea, a")) return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (["ArrowRight", "PageDown", " "].includes(e.key)) turn(1);
+        else if (["ArrowLeft", "PageUp"].includes(e.key)) turn(-1);
+        else if (e.key === "Home") jump(() => spreadAt({ d: null }), { riffle: true });
+        else if (e.key === "End") jump(spreadAtEnd, { riffle: true });
+        else return;
+        e.preventDefault();
+      });
+
+      // ---------------------------------------------------------------- The ribbon, the date and Today.
+      function years() {
+        const marks = [];
+        for (let y = 2010; y <= new Date().getUTCFullYear(); y += mode.single ? 4 : 2) {
+          const d = Math.floor((Date.UTC(y, 0, 1) / 1000 - DAY0) / 86400);
+          marks.push(`<span style="left:${((d - FIRST) / (lastDay - FIRST)) * 100}%">${y}</span>`);
+        }
+        $("years").innerHTML = marks.join("");
+        $("ribbon").min = FIRST;
+        $("ribbon").max = lastDay;
+      }
+      let scrubbing = false;
+      $("ribbon").addEventListener("input", (e) => {
+        scrubbing = true;
+        $("where").textContent = shortDay(Number(e.target.value));
+      });
+      $("ribbon").addEventListener("change", (e) => {
+        scrubbing = false;
+        const d = Number(e.target.value);
+        jump(() => spreadAt({ d }), { riffle: true });
+      });
+      $("today").addEventListener("click", () => jump(spreadAtEnd, { riffle: true }));
+      $("day").addEventListener("change", (e) => {
+        const d = parseDay(e.target.value);
+        if (d !== null) jump(() => spreadAt({ d: clampDay(d) }), { riffle: true });
+      });
+
+      // The layout made again (a new size, a new day), the same line kept open.
+      function relayout(anchor) {
+        pendingLayout = false;
+        measure();
+        years();
+        jump(() => spreadAt(anchor));
+      }
+
+      // ---------------------------------------------------------------- Start, and today's page kept current.
+      [tip, pools] = await Promise.all([
+        get("/blocks/tip/height").then(Number),
+        get("/v1/mining/pools").then(
+          (list) => Object.fromEntries(list.map((p) => [p.slug, p.name])),
+          () => ({}),
+        ),
+      ]);
+      let tipHash = await get("/blocks/tip/hash").catch(() => null);
+      $("day").min = "2009-01-03";
+      $("day").max = iso(today());
+      measure();
+      years();
+      const askedDay = parseDay(new URLSearchParams(location.search).get("day"));
+      await jump(askedDay === null ? spreadAtEnd : () => spreadAt({ d: clampDay(askedDay) }));
+      new ResizeObserver(() => {
+        if (busy || hand) pendingLayout = true;
+        else relayout(anchorOf(spread));
+      }).observe($("desk"));
+      // Every 30 s: a new block or a new day reads the live day again (and the one that was live, if the tab slept
+      // through days); its pages are written again if they're open, a reader at the end kept at the end. Never in the
+      // middle of a turn or a jump: then it waits for it.
+      const refresh = alone(async () => {
+        if (busy || hand) return void (pendingRefresh = true);
+        const [hash, t] = await Promise.all([get("/blocks/tip/hash"), get("/blocks/tip/height").then(Number)]);
+        const d = today();
+        const showsLive = [spread.left, spread.right].some((p) => p?.t === "day" && p.d === lastDay) || spread.right.t === "end";
+        if (hash === tipHash && t === tip && d === lastDay && !(showsLive && !days.has(lastDay))) return;
+        if (busy || hand) return void (pendingRefresh = true);
+        const atEnd = neighbor(spread, 1) === null;
+        const anchor = anchorOf(spread);
+        const live = [...new Set([lastDay, d])];
+        tip = t;
+        tipHash = hash;
+        lastDay = d;
+        $("day").max = iso(d);
+        for (const day of live) days.delete(day);
+        await Promise.all(live.map((day) => readDay(day).catch(() => {})));
+        years();
+        if (busy || hand) return void (pendingRefresh = true);
+        if (showsLive || atEnd) jump(atEnd ? spreadAtEnd : () => spreadAt(anchor));
+        else edges();
+      });
+      setInterval(() => refresh().catch(() => {}), 30000);
+    </script>
+  </body>
+</html>

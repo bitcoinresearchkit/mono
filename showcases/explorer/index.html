@@ -1,0 +1,1730 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Explorer" data-color="#09090b"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
+    <title>Explorer · Bitview</title>
+    <meta
+      name="description"
+      content="Bitcoin's blocks, transactions and addresses, live: the next block as it forms, every block's exact map, and what each coin spent had gained or lost since it was born."
+    />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #fbfbfc;
+        --raise: #ffffff;
+        --ink: #0f0f12;
+        --soft: #686874;
+        --faint: #a3a3ad;
+        --line: rgb(15 15 18 / 0.08);
+        --tank: #eff0f3;
+        --profit: #14894a;
+        --loss: #d1392f;
+        --miner: #e8890c;
+        --mono: Lilex, ui-monospace, monospace;
+        --tile: 96px;
+        --map: min(100%, 580px);
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #09090b;
+          --raise: #111114;
+          --ink: #f3f3f5;
+          --soft: #8f8f9b;
+          --faint: #54545e;
+          --line: rgb(255 255 255 / 0.075);
+          --tank: #141418;
+          --profit: #36c978;
+          --loss: #ff6b5e;
+          --miner: #f7a23b;
+          color-scheme: dark;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.45 Inter, system-ui, sans-serif;
+        font-feature-settings: "tnum", "cv11";
+        -webkit-text-size-adjust: none;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+      .soft {
+        color: var(--soft);
+      }
+      .gain {
+        color: var(--profit);
+      }
+      .lost {
+        color: var(--loss);
+      }
+      :focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+
+      /* The bar: the brand, the search, the price. */
+      .bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 56px;
+        padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+        background: color-mix(in srgb, var(--bg) 86%, transparent);
+        backdrop-filter: blur(16px);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: none;
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+      .find {
+        position: relative;
+        flex: 1;
+        max-width: 560px;
+        margin: 0 auto;
+        input {
+          width: 100%;
+          height: 38px;
+          padding: 0 40px 0 16px;
+          border: 0;
+          border-radius: 19px;
+          background: var(--raise);
+          box-shadow: inset 0 0 0 1px var(--line);
+          color: var(--ink);
+          font: 13px var(--mono);
+          outline: none;
+        }
+        input::placeholder {
+          color: var(--faint);
+          font-family: Inter, sans-serif;
+        }
+        input:focus {
+          box-shadow: inset 0 0 0 1.5px var(--ink);
+        }
+        kbd {
+          position: absolute;
+          top: 10px;
+          right: 15px;
+          color: var(--faint);
+          font: 11px var(--mono);
+        }
+        .miss {
+          position: absolute;
+          top: 44px;
+          left: 16px;
+          color: var(--loss);
+          font-size: 12px;
+        }
+      }
+      .price {
+        min-width: 92px;
+        font: 600 14px var(--mono);
+        text-align: right;
+      }
+      @media (hover: none) {
+        .find kbd {
+          display: none;
+        }
+        .find input {
+          font-size: 16px;
+        }
+      }
+
+      /* The belt: projected blocks, now, then the confirmed ones going back. */
+      .belt {
+        position: relative;
+        display: flex;
+        gap: 14px;
+        height: calc(var(--tile) + 74px);
+        padding: 8px 20px 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+        scrollbar-width: none;
+        &::-webkit-scrollbar {
+          display: none;
+        }
+      }
+      .tiles {
+        display: flex;
+        gap: 14px;
+      }
+      .tile {
+        display: grid;
+        grid-template-rows: 20px var(--tile) auto;
+        gap: 6px;
+        width: var(--tile);
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+        text-align: left;
+        .over {
+          font: 600 13px var(--mono);
+          white-space: nowrap;
+        }
+        .face {
+          position: relative;
+          overflow: hidden;
+          border-radius: 14px;
+          box-shadow: inset 0 0 0 1px var(--line);
+          transition:
+            box-shadow 160ms,
+            transform 160ms;
+        }
+        .face i {
+          display: block;
+        }
+        .under {
+          color: var(--soft);
+          font-size: 11.5px;
+          line-height: 1.35;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .under b {
+          color: var(--ink);
+          font: 500 12px var(--mono);
+        }
+        &[aria-current="true"] .face {
+          box-shadow:
+            0 0 0 2px var(--bg),
+            0 0 0 4px var(--ink);
+        }
+        &.projected .over {
+          color: var(--soft);
+          font-weight: 500;
+        }
+        &.projected .face {
+          opacity: 0.92;
+        }
+      }
+      @media (hover: hover) {
+        .tile:hover .face {
+          transform: translateY(-2px);
+        }
+      }
+      .now {
+        flex: none;
+        position: relative;
+        width: 1px;
+        margin: 26px 12px 44px;
+        background: var(--faint);
+        span {
+          position: absolute;
+          top: -22px;
+          left: 50%;
+          translate: -50% 0;
+          color: var(--soft);
+          font: 500 11px var(--mono);
+        }
+      }
+      .tile.enter {
+        animation: enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      @keyframes enter {
+        from {
+          opacity: 0;
+          translate: -24px 0;
+        }
+      }
+
+      /* The page under the belt: the open block, transaction or address, and the side. */
+      .page {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 40px;
+        max-width: 1480px;
+        margin: 0 auto;
+        padding: 18px 20px 48px;
+      }
+      .view {
+        min-width: 0;
+      }
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 12px;
+        min-height: 40px;
+        h2 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 650;
+          letter-spacing: -0.02em;
+        }
+        .step {
+          display: inline-grid;
+          place-items: center;
+          width: 30px;
+          height: 30px;
+          border: 0;
+          border-radius: 15px;
+          background: var(--raise);
+          box-shadow: inset 0 0 0 1px var(--line);
+          cursor: pointer;
+        }
+        .step:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+        .live {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          color: var(--soft);
+          font-size: 13px;
+        }
+        .live::before {
+          content: "";
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--profit);
+          animation: ping 2s ease-out infinite;
+        }
+      }
+      @keyframes ping {
+        0% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--profit) 60%, transparent);
+        }
+        70%,
+        100% {
+          box-shadow: 0 0 0 7px transparent;
+        }
+      }
+      .crumb {
+        display: block;
+        min-height: 20px;
+        margin-bottom: 4px;
+        color: var(--soft);
+        font-size: 13px;
+      }
+      .crumb a:hover {
+        color: var(--ink);
+      }
+      .sub {
+        min-height: 22px;
+        margin: 2px 0 0;
+        color: var(--soft);
+        font-size: 13px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        height: 26px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 13px;
+        background: var(--raise);
+        box-shadow: inset 0 0 0 1px var(--line);
+        color: var(--soft);
+        font: 12px var(--mono);
+        cursor: copy;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 16px 24px;
+        margin: 22px 0 24px;
+        div {
+          display: grid;
+          align-content: start;
+          gap: 2px;
+          min-width: 0;
+        }
+        dt {
+          color: var(--soft);
+          font-size: 12px;
+        }
+        dd {
+          margin: 0;
+          font: 500 15px var(--mono);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        small {
+          color: var(--soft);
+          font: 11.5px Inter, sans-serif;
+        }
+      }
+      dl {
+        margin: 0;
+      }
+
+      /* A block: its map, its facts beside it (above it on a phone). */
+      .body {
+        display: grid;
+        grid-template-columns: minmax(0, 580px) minmax(200px, 1fr);
+        gap: 40px;
+        align-items: start;
+        margin-top: 22px;
+        .drawing {
+          grid-row: 1;
+          grid-column: 1;
+        }
+        .facts {
+          grid-template-columns: 1fr 1fr;
+          margin: 0;
+          gap: 22px 24px;
+        }
+      }
+      @media (width >= 1000px) {
+        :root {
+          --map: min(100%, 580px, max(380px, 100dvh - 380px));
+        }
+      }
+      @media (width < 1180px) {
+        .body {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 22px;
+          .drawing {
+            grid-row: 2;
+          }
+          .facts {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          }
+        }
+      }
+
+      /* A block's map: its transactions folded into rows from the bottom up, each as long as its size. */
+      .map {
+        position: relative;
+        width: var(--map);
+        canvas {
+          display: block;
+          width: 100%;
+          aspect-ratio: 1;
+          border-radius: 16px;
+          background: var(--tank);
+          touch-action: pan-y;
+          cursor: crosshair;
+        }
+        .empty {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          padding: 40px;
+          color: var(--soft);
+          text-align: center;
+        }
+      }
+      .scale {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: var(--map);
+        margin-top: 12px;
+        color: var(--soft);
+        font: 11px var(--mono);
+        i {
+          flex: 1;
+          height: 6px;
+          border-radius: 3px;
+        }
+      }
+      .tip {
+        position: fixed;
+        z-index: 10;
+        pointer-events: none;
+        padding: 8px 11px;
+        border-radius: 10px;
+        background: var(--ink);
+        color: var(--bg);
+        font: 12px/1.45 var(--mono);
+        white-space: nowrap;
+        translate: -50% calc(-100% - 14px);
+      }
+      .tip[hidden] {
+        display: none;
+      }
+
+      /* The side: what it takes to get in, and where the chain stands. */
+      .side {
+        display: grid;
+        align-content: start;
+        gap: 28px;
+        section {
+          display: grid;
+          gap: 10px;
+        }
+        h3 {
+          margin: 0;
+          color: var(--soft);
+          font-size: 12px;
+          font-weight: 500;
+        }
+        .row {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          min-height: 22px;
+        }
+        .row b {
+          font: 500 14px var(--mono);
+        }
+        .meter {
+          height: 6px;
+          border-radius: 3px;
+          background: var(--tank);
+          overflow: hidden;
+          i {
+            display: block;
+            height: 100%;
+            background: var(--ink);
+          }
+        }
+      }
+      .fees {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        div {
+          display: grid;
+          gap: 4px;
+          padding: 12px;
+          border-radius: 14px;
+          background: var(--raise);
+          box-shadow: inset 0 0 0 1px var(--line);
+        }
+        span {
+          color: var(--soft);
+          font-size: 11.5px;
+        }
+        b {
+          font: 600 17px var(--mono);
+        }
+        i {
+          width: 100%;
+          height: 3px;
+          border-radius: 2px;
+        }
+      }
+
+      /* A transaction: status, its flow, then its coins in and out. */
+      .flow {
+        position: relative;
+        height: 420px;
+        margin: 4px 0 10px;
+        svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+        }
+        text {
+          fill: var(--ink);
+          font: 12px var(--mono);
+        }
+        .sub-text {
+          fill: var(--soft);
+          font-size: 11px;
+        }
+        a:hover text {
+          text-decoration: underline;
+        }
+      }
+      .ages {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-bottom: 26px;
+        color: var(--soft);
+        font-size: 11.5px;
+        span {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        i {
+          width: 9px;
+          height: 9px;
+          border-radius: 3px;
+        }
+      }
+      .sides {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+      .list {
+        align-self: start;
+        min-width: 0;
+        ul {
+          display: grid;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        h3 {
+          margin: 0 0 6px;
+          color: var(--soft);
+          font-size: 12px;
+          font-weight: 500;
+        }
+        li {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 1px 12px;
+          padding: 10px 0;
+          border-top: 1px solid var(--line);
+        }
+        .addr {
+          font: 12.5px var(--mono);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        a.addr:hover {
+          text-decoration: underline;
+        }
+        .val {
+          font: 500 12.5px var(--mono);
+          text-align: right;
+        }
+        small {
+          color: var(--soft);
+          font-size: 11.5px;
+        }
+        small:last-child {
+          text-align: right;
+        }
+      }
+      .more {
+        margin-top: 10px;
+        color: var(--soft);
+        font-size: 12px;
+      }
+      .wait {
+        display: grid;
+        place-items: center;
+        min-height: 420px;
+        color: var(--soft);
+      }
+
+      @media (width < 1000px) {
+        .page {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 36px;
+        }
+      }
+      @media (width < 640px) {
+        :root {
+          --tile: 84px;
+        }
+        .tile .under {
+          font-size: 11px;
+        }
+        .bar {
+          gap: 12px;
+          padding: 0 14px;
+        }
+        .brand span {
+          display: none;
+        }
+        .price {
+          min-width: 0;
+          font-size: 13px;
+        }
+        .belt {
+          padding: 6px 14px 0;
+          gap: 10px;
+        }
+        .tiles {
+          gap: 10px;
+        }
+        .page {
+          padding: 14px 14px 40px;
+        }
+        .head h2 {
+          font-size: 21px;
+        }
+        .facts {
+          grid-template-columns: 1fr 1fr;
+          gap: 14px 16px;
+        }
+        .flow {
+          height: 360px;
+        }
+        .sides {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tile.enter {
+          animation: none;
+        }
+        .tile .face {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" /><span>Bitview</span></a>
+      <form class="find" id="find" role="search" autocomplete="off">
+        <input
+          name="q"
+          type="search"
+          placeholder="Search a block, transaction or address"
+          aria-label="Search by block height or hash, transaction id or address"
+          spellcheck="false"
+          enterkeyhint="search"
+        />
+        <kbd>/</kbd>
+        <span class="miss" id="miss" role="status"></span>
+      </form>
+      <span class="price" id="price" title="Bitcoin's price, read from the chain by the oracle"></span>
+    </header>
+    <h1 class="vh">Explorer</h1>
+    <nav class="belt" id="belt" aria-label="Blocks: the projected ones, then the latest">
+      <div class="tiles" id="projected"></div>
+      <div class="now" aria-hidden="true"><span>now</span></div>
+      <div class="tiles" id="confirmed"></div>
+    </nav>
+    <div class="page">
+      <main class="view" id="view"><div class="wait">Loading</div></main>
+      <aside class="side" id="side" aria-label="The chain now">
+        <section>
+          <h3>To get in, sat/vB</h3>
+          <div class="fees" id="fees">
+            <div><span>Next block</span><b>&nbsp;</b><i></i></div>
+            <div><span>In 3 blocks</span><b>&nbsp;</b><i></i></div>
+            <div><span>In 6 blocks</span><b>&nbsp;</b><i></i></div>
+          </div>
+        </section>
+        <section id="mempool">
+          <h3>Mempool</h3>
+          <div class="row"><span>Transactions</span><b>&nbsp;</b></div>
+          <div class="row"><span>Size</span><b>&nbsp;</b></div>
+          <div class="row"><span>Fees waiting</span><b>&nbsp;</b></div>
+        </section>
+        <section id="difficulty">
+          <h3>Difficulty adjustment</h3>
+          <div class="meter"><i style="width: 0"></i></div>
+          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
+          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
+        </section>
+        <section id="halving">
+          <h3>Halving</h3>
+          <div class="meter"><i style="width: 0"></i></div>
+          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
+        </section>
+      </aside>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+    <script type="module">
+      // ---------------------------------------------------------------- Reads, all from the server serving the page.
+      const get = async (path) => {
+        const r = await fetch(`/api${path}`);
+        if (!r.ok) throw Object.assign(new Error(`${r.status} ${path}`), { status: r.status });
+        return r.headers.get("content-type")?.includes("json") ? r.json() : r.text();
+      };
+      const series = async (id, index, start, end) => (await get(`/series/${id}/${index}?start=${start}&end=${end}`)).data;
+      const memo = new Map();
+      const once = (key, read) => {
+        if (!memo.has(key)) memo.set(key, read().catch((e) => (memo.delete(key), Promise.reject(e))));
+        return memo.get(key);
+      };
+      const priceAt = (h) => once(`price ${h}`, async () => (await series("price", "height", h, h + 1))[0]);
+
+      // ---------------------------------------------------------------- How numbers are written.
+      const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
+      const int = (n) => nf(0).format(n);
+      const btc = (sats) => nf(8).format(sats / 1e8);
+      const usd = (n) => {
+        const a = Math.abs(n);
+        const s = n < 0 ? "−" : "";
+        if (a >= 1e9) return `${s}$${nf(2).format(a / 1e9)}B`;
+        if (a >= 1e6) return `${s}$${nf(2).format(a / 1e6)}M`;
+        if (a >= 1e4) return `${s}$${nf(1).format(a / 1e3)}K`;
+        if (a >= 100) return `${s}$${nf(0).format(a)}`;
+        return `${s}$${a.toFixed(2)}`;
+      };
+      const signed = (n) => (n >= 0 ? `+${usd(n)}` : usd(n));
+      // A price, in whole dollars as written: $78,404.
+      const dollars = (n) => (n < 100 ? `$${nf(2, 2).format(n)}` : `$${int(n)}`);
+      const plural = (n, word) => `${int(n)} ${word}${n === 1 ? "" : "s"}`;
+      const tone = (n) => (n >= 0 ? "gain" : "lost");
+      const rateNum = (r) => nf(r < 10 ? 2 : r < 100 ? 1 : 0).format(r);
+      const rate = (r) => `${rateNum(r)} sat/vB`;
+      const ceilRate = (r) => (r < 10 ? Math.ceil(r * 100 - 1e-9) / 100 : r < 100 ? Math.ceil(r * 10 - 1e-9) / 10 : Math.ceil(r));
+      const vbytes = (v) => (v >= 1e5 ? `${nf(2, 2).format(v / 1e6)} MvB` : `${int(v)} vB`);
+      const bytes = (b) => (b >= 1e5 ? `${nf(2).format(b / 1e6)} MB` : `${nf(1).format(b / 1e3)} kB`);
+      const short = (s, n = 6) => (s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      const UNITS = [
+        ["year", 365.25 * 86400],
+        ["month", 30.44 * 86400],
+        ["day", 86400],
+        ["hour", 3600],
+        ["minute", 60],
+      ];
+      // A span of time in its two largest units, in full: "3 years 6 months".
+      const span = (s) => {
+        const top = UNITS.findIndex(([, size]) => s >= size);
+        if (top < 0) return "under a minute";
+        const word = (n, name) => `${n} ${name}${n === 1 ? "" : "s"}`;
+        const n = Math.floor(s / UNITS[top][1]);
+        const next = UNITS[top + 1];
+        const m = next ? Math.floor((s - n * UNITS[top][1]) / next[1]) : 0;
+        return m > 0 && top < 3 ? `${word(n, UNITS[top][0])} ${word(m, next[0])}` : word(n, UNITS[top][0]);
+      };
+      const nowS = () => Date.now() / 1000;
+      const ago = (t) => (nowS() - t < 60 ? "just now" : `${span(nowS() - t)} ago`);
+      const when = (t) =>
+        new Date(t * 1000).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+
+      // ---------------------------------------------------------------- Fee rates as colours: cool to hot, on a log scale.
+      // Most of its range is low, where fees have been since 2024: a tenth of a sat apart reads apart there.
+      const STOPS = [
+        [0.1, [76, 70, 172]],
+        [0.25, [52, 112, 214]],
+        [0.6, [22, 160, 196]],
+        [1.2, [26, 182, 132]],
+        [2.5, [124, 198, 70]],
+        [6, [236, 196, 48]],
+        [15, [244, 140, 44]],
+        [40, [226, 70, 56]],
+        [150, [178, 34, 120]],
+      ];
+      const feeColor = (r) => {
+        const x = Math.log(Math.max(r, STOPS[0][0]));
+        for (let i = 1; i < STOPS.length; i++) {
+          const [r1, c1] = STOPS[i];
+          if (x <= Math.log(r1) || i === STOPS.length - 1) {
+            const [r0, c0] = STOPS[i - 1];
+            const t = Math.min(1, (x - Math.log(r0)) / (Math.log(r1) - Math.log(r0)));
+            return `rgb(${c0.map((c, k) => Math.round(c + (c1[k] - c) * t)).join(" ")})`;
+          }
+        }
+      };
+      const scaleBar = () =>
+        `<div class="scale"><span>0.1</span><i style="background:linear-gradient(to right,${STOPS.map(([r]) => feeColor(r)).join(",")})"></i><span>150+ sat/vB</span></div>`;
+
+      // A tile's face: the block's fee percentiles as bands, the cheapest on top, each as tall as its share of transactions.
+      const SHARES = [0.1, 0.15, 0.25, 0.25, 0.15, 0.1];
+      const face = (range) =>
+        SHARES.map((share, i) => `<i style="height:${share * 100}%;background:${feeColor(Math.sqrt(range[i] * range[i + 1]))}"></i>`).join("");
+
+      // ---------------------------------------------------------------- State.
+      const $ = (id) => document.getElementById(id);
+      const state = {
+        tip: null, // the latest block's height
+        projected: [], // the template's blocks, next first (stats only)
+        confirmed: [], // the latest blocks and as many older ones as were scrolled to, newest first
+        next: null, // the next block's transactions, followed by its diffs
+        view: null,
+      };
+
+      // ---------------------------------------------------------------- The belt.
+      const projectedTile = (b, i) => `<a class="tile projected" href="?block=next${i ? `-${i}` : ""}" data-ref="next${i ? `-${i}` : ""}">
+          <span class="over">~${(i + 1) * 10} min</span>
+          <span class="face">${face(b.feeRange)}</span>
+          <span class="under"><b>${rateNum(b.medianFee)}</b> sat/vB<br />${plural(b.nTx, "tx")}</span>
+        </a>`;
+      const confirmedTile = (b, enter) => `<a class="tile${enter ? " enter" : ""}" href="?block=${b.height}" data-ref="${b.height}">
+          <span class="over">${int(b.height)}</span>
+          <span class="face">${face(b.extras.feeRange)}</span>
+          <span class="under"><b>${rateNum(b.extras.medianFee)}</b> sat/vB<br /><span data-ago="${b.timestamp}">${ago(b.timestamp)}</span></span>
+        </a>`;
+      function drawProjected() {
+        $("projected").innerHTML = state.projected
+          .slice(0, 8)
+          .map(projectedTile)
+          .reverse()
+          .join("");
+        markCurrent();
+      }
+      function drawConfirmed(entering = 0) {
+        $("confirmed").innerHTML = state.confirmed.map((b, i) => confirmedTile(b, i < entering)).join("");
+        markCurrent();
+      }
+      function markCurrent() {
+        const ref = state.view?.kind === "block" ? String(state.view.ref) : null;
+        for (const t of $("belt").querySelectorAll(".tile")) t.setAttribute("aria-current", t.dataset.ref === ref);
+      }
+      // Older blocks load as the belt is scrolled to its end, a page of 15 at a time.
+      let loadingOlder = false;
+      async function loadOlder() {
+        if (loadingOlder || !state.confirmed.length) return;
+        const tail = state.confirmed.at(-1);
+        if (tail.height === 0) return;
+        loadingOlder = true;
+        try {
+          const read = await get(`/v1/blocks/${tail.height - 1}`);
+          // A new tip may have redrawn the belt while the page was read: then it's asked again as it's scrolled.
+          if (state.confirmed.at(-1) !== tail || read[0]?.id !== tail.previousblockhash) return;
+          const older = read;
+          state.confirmed.push(...older);
+          $("confirmed").insertAdjacentHTML("beforeend", older.map((b) => confirmedTile(b)).join(""));
+          markCurrent();
+        } finally {
+          loadingOlder = false;
+        }
+      }
+      $("belt").addEventListener("scroll", (e) => {
+        const b = e.currentTarget;
+        if (b.scrollLeft + b.clientWidth > b.scrollWidth - 600) loadOlder();
+      });
+      // A vertical wheel moves the belt sideways where it can't move the page's own scroll anyway.
+      $("belt").addEventListener(
+        "wheel",
+        (e) => {
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY;
+          }
+        },
+        { passive: false },
+      );
+      // Starting with the now line a third of the way across.
+      const centerNow = () => {
+        const belt = $("belt");
+        const now = belt.querySelector(".now");
+        belt.scrollLeft = now.offsetLeft - belt.clientWidth * 0.36;
+      };
+
+      // ---------------------------------------------------------------- The live chain.
+      // One read of each kind at a time: a slow answer is never overtaken by the next tick's.
+      const alone = (read) => {
+        let running = null;
+        return () => (running ??= read().finally(() => (running = null)));
+      };
+      const readProjected = alone(async () => {
+        const [projected, mempool] = await Promise.all([get("/v1/fees/mempool-blocks"), get("/mempool")]);
+        state.projected = projected;
+        state.mempool = mempool;
+        drawProjected();
+        drawFees();
+        if (state.view?.kind === "block" && /^next-\d+$/.test(state.view.ref)) render();
+      });
+      // The chain's tip by its hash, so a block replaced at the same height is seen too; its height from the same read.
+      const readTip = alone(async () => {
+        const hash = await get("/blocks/tip/hash");
+        if (hash === state.tipHash) return;
+        const first = state.tipHash === undefined;
+        const latest = await get("/v1/blocks");
+        // The latest 15 as the server has them now (a block replaced by a reorg too), then the older ones already
+        // read, if they still join on; after a longer wait than 15 blocks, the belt starts again from the latest.
+        const known = new Set(state.confirmed.map((b) => b.id));
+        const fresh = latest.filter((b) => !known.has(b.id)).length;
+        const joins = state.confirmed.some((b) => b.height === latest.at(-1).height - 1 && b.id === latest.at(-1).previousblockhash);
+        state.confirmed = [...latest, ...(joins ? state.confirmed.filter((b) => b.height < latest.at(-1).height) : [])];
+        state.tip = latest[0].height;
+        state.tipHash = latest[0].id;
+        drawConfirmed(first ? 0 : fresh);
+        drawHalving();
+        if (!state.booted) return;
+        // What's open is read again: a block's confirmations, a transaction's status, an address's balance.
+        memo.clear();
+        readProjected().catch(() => {});
+        if (state.view?.kind === "block" && state.view.ref === "next") await loadNext().catch(() => {});
+        render();
+      });
+      async function readPrice() {
+        state.price = Number(await get("/oracle/price"));
+        $("price").textContent = `$${int(state.price)}`;
+      }
+
+      // The next block's transactions, as the template has them, then only what changed.
+      const slim = (t) => ({ txid: t.txid, vsize: Math.ceil(t.weight / 4), rate: t.fee / Math.ceil(t.weight / 4), fee: t.fee, born: 0 });
+      let nextReads = 0;
+      async function loadNext() {
+        const n = ++nextReads;
+        const b = await get("/mempool-blocks/0");
+        if (n === nextReads) state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
+      }
+      const followNext = alone(async () => {
+        if (!state.next) return;
+        const n = nextReads;
+        let diff;
+        try {
+          diff = await get(`/mempool-blocks/0/diff/${state.next.hash}`);
+        } catch {
+          await loadNext();
+          return state.view?.ref === "next" && render();
+        }
+        // A diff applies only to the copy it was asked against (a new block may have replaced it meanwhile).
+        if (n !== nextReads || diff.since !== state.next.hash || diff.hash === state.next.hash) return;
+        nextReads++;
+        const born = performance.now();
+        const txs = [];
+        for (const entry of diff.order)
+          if (Array.isArray(entry)) txs.push(...state.next.txs.slice(entry[0], entry[0] + entry[1]));
+          else txs.push({ ...slim(entry), born });
+        state.next = { hash: diff.hash, stats: diff.stats, txs };
+        if (state.view?.kind === "block" && state.view.ref === "next") {
+          map.set(state.next.txs);
+          drawNextFacts();
+        }
+      });
+
+      // ---------------------------------------------------------------- The side.
+      // What it takes to be in a projected block: a full block's cheapest, or, where a block has room to spare or
+      // isn't there at all, the cheapest the mempool holds.
+      const entry = (b) => (b && b.blockVSize >= 995000 ? b.feeRange[0] : Math.min(0.1, ...state.mempool.fee_histogram.map(([r]) => r)));
+      function drawFees() {
+        const p = state.projected;
+        const m = state.mempool;
+        // To be in within n blocks, a transaction pays at least what it takes to be in one of them.
+        const floor = (n) => Math.min(...Array.from({ length: n }, (_, i) => entry(p[i])));
+        $("fees").innerHTML = [
+          ["Next block", 1],
+          ["In 3 blocks", 3],
+          ["In 6 blocks", 6],
+        ]
+          .map(([name, n]) => `<div><span>${name}</span><b>${rateNum(ceilRate(floor(n)))}</b><i style="background:${feeColor(floor(n))}"></i></div>`)
+          .join("");
+        const rows = $("mempool").querySelectorAll(".row b");
+        rows[0].textContent = int(m.count);
+        rows[1].textContent = vbytes(m.vsize);
+        rows[2].textContent = `${btc(m.total_fee)} BTC`;
+      }
+      async function drawDifficulty() {
+        const d = await get("/v1/difficulty-adjustment");
+        const s = $("difficulty");
+        s.querySelector(".meter i").style.width = `${d.progressPercent}%`;
+        const rows = s.querySelectorAll(".row");
+        rows[0].innerHTML = `<span>${plural(d.remainingBlocks, "block")} to go</span><b class="${tone(d.difficultyChange)}">${d.difficultyChange >= 0 ? "+" : "−"}${nf(2).format(Math.abs(d.difficultyChange))}%</b>`;
+        rows[1].innerHTML = `<span>Around</span><b>${new Date(d.estimatedRetargetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</b>`;
+      }
+      function drawHalving() {
+        const next = (Math.floor(state.tip / 210000) + 1) * 210000;
+        const s = $("halving");
+        s.querySelector(".meter i").style.width = `${((state.tip % 210000) / 210000) * 100}%`;
+        s.querySelector(".row").innerHTML = `<span>${plural(next - state.tip, "block")} to go</span><b>${int(next)}</b>`;
+      }
+
+      // ---------------------------------------------------------------- A block's map.
+      // One canvas, drawn again only when its transactions change or a new one's glow fades.
+      const map = (() => {
+        let canvas;
+        let txs = [];
+        let ends = []; // each transaction's end along the strip, in vbytes
+        let capacity = 1e6;
+        let onOpen = null;
+        let glowing = false;
+        let lit = -1;
+        const ROW = 7;
+        const GAP = 1;
+        const GLOW = 2400;
+
+        function geometry() {
+          const S = canvas.clientWidth;
+          const rows = Math.floor(S / (ROW + GAP));
+          return { S, rows, perPx: capacity / (rows * S) };
+        }
+        function draw() {
+          if (!canvas?.isConnected) return false;
+          const { S, perPx } = geometry();
+          const dpr = devicePixelRatio;
+          const side = Math.round(S * dpr);
+          if (canvas.width !== side || canvas.height !== side) canvas.width = canvas.height = side;
+          const ctx = canvas.getContext("2d");
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, S, S);
+          const now = performance.now();
+          let fresh = false;
+          let at = 0;
+          for (let i = 0; i < txs.length; i++) {
+            const t = txs[i];
+            let len = t.vsize / perPx;
+            const age = t.born ? now - t.born : GLOW;
+            const hot = age < GLOW;
+            fresh ||= hot;
+            ctx.fillStyle = t.coinbase ? getComputedStyle(canvas).getPropertyValue("--miner") : feeColor(t.rate);
+            while (len > 0.01) {
+              const row = Math.floor(at / S);
+              const x = at % S;
+              const run = Math.min(len, S - x);
+              const y = S - (row + 1) * (ROW + GAP);
+              ctx.globalAlpha = 1;
+              ctx.fillRect(x, y, run, ROW);
+              if (hot || i === lit) {
+                ctx.globalAlpha = i === lit ? 0.7 : 1 - age / GLOW;
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(x, y, run, ROW);
+                ctx.fillStyle = feeColor(t.rate);
+              }
+              at += run;
+              len -= run;
+            }
+          }
+          ctx.globalAlpha = 1;
+          return fresh;
+        }
+        function glow() {
+          if (glowing) return;
+          glowing = true;
+          const step = () => (draw() ? requestAnimationFrame(step) : (glowing = false));
+          requestAnimationFrame(step);
+        }
+        // Which transaction lies under a point on the canvas.
+        function at(e) {
+          const r = canvas.getBoundingClientRect();
+          const { S, rows, perPx } = geometry();
+          const x = e.clientX - r.left;
+          const y = e.clientY - r.top;
+          // Row r is drawn from y = S - (r + 1)(ROW + GAP) for ROW pixels, its gap under it: measured up from the
+          // bottom (t), it covers r(ROW + GAP) + GAP < t <= (r + 1)(ROW + GAP), and a point in a gap is on nothing.
+          const t = S - y;
+          const row = Math.ceil(t / (ROW + GAP)) - 1;
+          if (x < 0 || x >= S || row < 0 || row >= rows || t - row * (ROW + GAP) <= GAP) return -1;
+          const v = (row * S + x) * perPx;
+          if (v >= (ends.at(-1) ?? 0)) return -1;
+          let lo = 0;
+          let hi = ends.length - 1;
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (ends[mid] > v) hi = mid;
+            else lo = mid + 1;
+          }
+          return lo;
+        }
+        const tip = $("tip");
+        const light = (i) => {
+          if (i === lit) return;
+          lit = i;
+          draw();
+        };
+        function hover(e) {
+          const i = at(e);
+          light(i);
+          if (i < 0) return (tip.hidden = true);
+          const t = txs[i];
+          tip.hidden = false;
+          tip.style.left = `${e.clientX}px`;
+          tip.style.top = `${e.clientY}px`;
+          tip.innerHTML = t.coinbase
+            ? "The coinbase: the miner's reward"
+            : `${rate(t.rate)} · ${vbytes(t.vsize)}${t.fee !== undefined ? ` · ${int(t.fee)} sats` : ""}`;
+        }
+        return {
+          mount(el, open) {
+            canvas = el;
+            onOpen = open;
+            canvas.addEventListener("pointermove", hover);
+            canvas.addEventListener("pointerleave", () => {
+              tip.hidden = true;
+              light(-1);
+            });
+            canvas.addEventListener("click", (e) => {
+              const i = at(e);
+              if (i >= 0) onOpen(i, txs[i]);
+            });
+            new ResizeObserver(draw).observe(canvas);
+          },
+          set(list, size = 1e6) {
+            txs = list;
+            lit = -1;
+            let sum = 0;
+            ends = list.map((t) => (sum += t.vsize));
+            capacity = Math.max(size, sum);
+            draw() && glow();
+          },
+        };
+      })();
+
+      // ---------------------------------------------------------------- Views.
+      const fact = (name, value, note = "") => `<div><dt>${name}</dt><dd>${value}</dd>${note ? `<small>${note}</small>` : ""}</div>`;
+      const copyPill = (text, label = short(text, 10)) =>
+        `<button class="pill" type="button" data-copy="${esc(text)}" title="Copy">${esc(label)}</button>`;
+
+      function blockShell({ crumb = "", title, extra = "", sub = "", facts = "", mapNote = "" }) {
+        return `<span class="crumb">${crumb}</span>
+          <div class="head">${title}${extra}</div>
+          <p class="sub" id="block-sub">${sub}</p>
+          <div class="body">
+            <dl class="facts" id="block-facts">${facts}</dl>
+            <div class="drawing">
+              <div class="map"><canvas id="map" role="img" aria-label="The block's transactions, each as much of it as its size, coloured by its fee rate"></canvas>${
+                mapNote ? `<div class="empty">${mapNote}</div>` : ""
+              }</div>
+              ${scaleBar()}
+            </div>
+          </div>`;
+      }
+
+      function drawNextFacts() {
+        const s = state.next.stats;
+        $("block-facts").innerHTML =
+          fact("Transactions", int(s.nTx)) +
+          fact("Size", vbytes(s.blockVSize), bytes(s.blockSize)) +
+          fact("Fees", `${btc(s.totalFees)}`, state.price ? usd((s.totalFees / 1e8) * state.price) : "") +
+          fact("Median fee", rate(s.medianFee)) +
+          fact("Fee range", `${rateNum(s.feeRange[0])}–${rateNum(s.feeRange.at(-1))}`, "sat/vB");
+      }
+
+      // Each view writes only while it's still the one asked for: a slower read for a view since left is dropped.
+      const waiting = (n) => fact("&nbsp;", "&nbsp;", "&nbsp;").repeat(n);
+      const nextTitle = { title: `<h2>Next block</h2>`, extra: `<span class="live">forming from the mempool</span>` };
+      async function viewNext() {
+        const v = state.view;
+        if (!state.next) {
+          $("view").innerHTML = blockShell({ ...nextTitle, sub: "&nbsp;", facts: waiting(5) });
+          await loadNext();
+        }
+        if (state.view !== v) return;
+        $("view").innerHTML = blockShell({
+          ...nextTitle,
+          sub: `Block ${int(state.tip + 1)}, as Bitcoin Core would mine it now · about 10 minutes`,
+        });
+        drawNextFacts();
+        map.mount($("map"), (i, t) => go(`?tx=${t.txid}`));
+        map.set(state.next.txs);
+      }
+
+      function viewQueued(n) {
+        const b = state.projected[n];
+        if (!b) return go("?block=next", true);
+        $("view").innerHTML = blockShell({
+          title: `<h2>${n + 1}${["st", "nd", "rd"][n] ?? "th"} block to come</h2>`,
+          sub: `In about ${(n + 1) * 10} minutes, if the mempool stays as it is`,
+          facts:
+            fact("Transactions", int(b.nTx)) +
+            fact("Size", vbytes(b.blockVSize), bytes(b.blockSize)) +
+            fact("Fees", btc(b.totalFees)) +
+            fact("Median fee", rate(b.medianFee)) +
+            fact("Fee range", `${rateNum(b.feeRange[0])}–${rateNum(b.feeRange.at(-1))}`, "sat/vB"),
+          mapNote: "Only the next block's transactions are projected one by one.",
+        });
+      }
+
+      const blockTitle = (h) => `<button class="step" type="button" data-go="${h + 1}" ${h >= state.tip ? "disabled" : ""} aria-label="Newer block">‹</button>
+            <h2>Block ${int(h)}</h2>
+            <button class="step" type="button" data-go="${h - 1}" ${h === 0 ? "disabled" : ""} aria-label="Older block">›</button>`;
+      async function viewBlock(ref) {
+        const v = state.view;
+        if (/^\d+$/.test(ref) && !document.getElementById("map")) $("view").innerHTML = blockShell({ title: blockTitle(+ref), sub: "&nbsp;", facts: waiting(9) });
+        const hash = /^\d+$/.test(ref) ? await get(`/block-height/${ref}`) : ref;
+        const b = await get(`/v1/block/${hash}`);
+        const h = b.height;
+        // A block opened by its hash is shown, linked and found on the belt by its height.
+        if (state.view === v && v.ref !== String(h)) {
+          v.ref = String(h);
+          history.replaceState(null, "", `?block=${h}`);
+          markCurrent();
+        }
+        const [first, profit, loss, cdd, price] = await Promise.all([
+          series("first_tx_index", "height", h, h + 1),
+          series("realized_profit", "height", h, h + 1),
+          series("realized_loss", "height", h, h + 1),
+          series("coindays_destroyed", "height", h, h + 1),
+          priceAt(h),
+        ]);
+        if (state.view !== v) return;
+        const x = b.extras;
+        $("view").innerHTML = blockShell({
+          title: blockTitle(h),
+          extra: copyPill(b.id),
+          sub: `${esc(x.pool.name === "Unknown" ? "Unknown miner" : x.pool.name)} · ${when(b.timestamp)} · ${ago(b.timestamp)} · ${plural(state.tip - h + 1, "confirmation")}`,
+          facts:
+            fact("Transactions", int(b.tx_count)) +
+            fact("Size", bytes(b.size), `${nf(2).format(b.weight / 1e6)} MWU`) +
+            fact("Fees", btc(x.totalFees), usd((x.totalFees / 1e8) * price)) +
+            fact("Reward", btc(x.reward), usd((x.reward / 1e8) * price)) +
+            fact("Median fee", rate(x.medianFee)) +
+            fact("Fee range", `${rateNum(x.feeRange[0])}–${rateNum(x.feeRange.at(-1))}`, "sat/vB") +
+            fact("Realized", `<span class="gain">+${usd(profit[0])}</span>`, `<span class="lost">−${usd(loss[0])}</span> in loss`) +
+            fact("Coin-days destroyed", int(cdd[0])) +
+            fact("Price", dollars(price), "read from this block's own payments"),
+        });
+        // Its map, exact: every transaction's size and effective fee rate, by its place in the chain.
+        const start = first[0];
+        const end = start + b.tx_count;
+        const [rates, sizes] = await Promise.all([
+          series("tx_effective_fee_rate", "tx_index", start, end),
+          series("tx_vsize", "tx_index", start, end),
+        ]);
+        if (state.view !== v) return;
+        map.mount($("map"), async (i) => {
+          const txid = await get(`/tx-index/${start + i}`);
+          if (state.view === v) go(`?tx=${txid}`);
+        });
+        map.set(
+          sizes.map((v, i) => ({ vsize: v, rate: rates[i], coinbase: i === 0 })),
+          1e6,
+        );
+      }
+
+      // A transaction's coins in: each one's birth, the price then, and what its spend made of it.
+      const AGES = [
+        ["under 1 month", 30.44 * 86400, "#f2c14e"],
+        ["1 to 6 months", 182.6 * 86400, "#f08a4b"],
+        ["6 months to 1 year", 365.25 * 86400, "#e05a6d"],
+        ["1 to 2 years", 2 * 365.25 * 86400, "#b5579f"],
+        ["2 to 4 years", 4 * 365.25 * 86400, "#7a5cc7"],
+        ["4 to 8 years", 8 * 365.25 * 86400, "#4a78d1"],
+        ["over 8 years", Infinity, "#2fa3a8"],
+      ];
+      const ageColor = (s) => (s === null ? "var(--faint)" : AGES.find(([, upTo]) => s < upTo)[2]);
+      const BIRTHS = 60; // inputs whose births are read one by one; past that, only their amounts
+
+      async function readTx(txid) {
+        const tx = await get(`/tx/${txid}`);
+        const confirmed = tx.status.confirmed;
+        const time = confirmed ? tx.status.block_time : nowS();
+        const [outspends, spendPrice, cpfp] = await Promise.all([
+          get(`/tx/${txid}/outspends`),
+          confirmed ? priceAt(tx.status.block_height) : state.price ?? get("/oracle/price").then(Number),
+          confirmed ? null : get(`/v1/cpfp/${txid}`).catch(() => null),
+        ]);
+        const inputs = await Promise.all(
+          tx.vin.map(async (v, i) => {
+            if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
+            const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
+            if (i >= BIRTHS) return base;
+            const birth = await once(`status ${v.txid}`, () => get(`/tx/${v.txid}/status`));
+            if (!birth.confirmed) return { ...base, age: 0, pnl: 0, unconfirmed: true };
+            const price = await priceAt(birth.block_height);
+            return { ...base, height: birth.block_height, age: time - birth.block_time, price, pnl: (v.prevout.value / 1e8) * (spendPrice - price) };
+          }),
+        );
+        const outputs = tx.vout.map((o, i) => ({
+          value: o.value,
+          address: o.scriptpubkey_address,
+          type: o.scriptpubkey_type,
+          spentBy: outspends[i].spent ? outspends[i].txid : null,
+        }));
+        const vsize = Math.ceil(tx.weight / 4);
+        const counted = inputs.filter((c) => c.pnl !== undefined);
+        return {
+          tx,
+          confirmed,
+          height: tx.status.block_height,
+          time,
+          vsize,
+          rate: tx.fee / vsize,
+          effective: cpfp?.effectiveFeePerVsize ?? tx.fee / vsize,
+          price: spendPrice,
+          inputs,
+          outputs,
+          value: inputs.reduce((s, c) => s + c.value, 0),
+          profit: counted.reduce((s, c) => s + Math.max(0, c.pnl), 0),
+          loss: counted.reduce((s, c) => s + Math.max(0, -c.pnl), 0),
+          partial: counted.length < inputs.filter((c) => !c.coinbase).length,
+        };
+      }
+
+      // Where a waiting transaction stands: the first projected block whose cheapest it pays.
+      // Where a waiting transaction stands: in the next block if the template holds it, else the first projected block
+      // its effective rate (with the transactions it confirms with) gets it into.
+      const placeOf = (t) => {
+        if (state.next?.txs.some((x) => x.txid === t.tx.txid)) return 0;
+        const i = state.projected.findIndex((b) => t.effective >= entry(b));
+        return i < 0 ? state.projected.length : i;
+      };
+
+      async function viewTx(txid) {
+        const v = state.view;
+        const t = await readTx(txid);
+        if (state.view !== v) return;
+        const coinbase = t.inputs[0].coinbase;
+        let status;
+        if (t.confirmed)
+          status = `Confirmed in <a href="?block=${t.height}"><b>block ${int(t.height)}</b></a> · ${when(t.time)} · ${plural(state.tip - t.height + 1, "confirmation")}`;
+        else {
+          const n = placeOf(t);
+          status = `<span class="live">waiting</span> · ${n === 0 ? "in the next block" : `about ${n + 1} blocks away, ~${(n + 1) * 10} minutes`} at ${rate(t.effective)}${
+            Math.abs(t.effective - t.rate) > 0.005 ? ` with the transactions it confirms with (${rate(t.rate)} on its own)` : ""
+          }`;
+        }
+        const net = t.profit - t.loss;
+        $("view").innerHTML = `
+          <span class="crumb">${t.confirmed ? `<a href="?block=${t.height}">Block ${int(t.height)}</a> ›` : `<a href="?block=next">Mempool</a> ›`}</span>
+          <div class="head"><h2>Transaction</h2>${copyPill(txid)}</div>
+          <p class="sub">${status}</p>
+          <dl class="facts">
+            ${fact("Moved", `${btc(t.value)}`, usd((t.value / 1e8) * t.price))}
+            ${coinbase ? fact("Kind", "Coinbase", "the miner's reward") : fact("Fee", `${int(t.tx.fee)} sats`, `${rate(t.rate)} · ${usd((t.tx.fee / 1e8) * t.price)}`)}
+            ${fact("Size", vbytes(t.vsize), `${int(t.tx.weight)} WU`)}
+            ${coinbase ? "" : fact("Realized", `<span class="${tone(net)}">${signed(net)}</span>`, [t.profit >= 0.005 && `<span class="gain">+${usd(t.profit)}</span>`, t.loss >= 0.005 && `<span class="lost">−${usd(t.loss)}</span>`, t.partial && `the first ${BIRTHS} coins`].filter(Boolean).join(" · "))}
+            ${fact("Coins", `${int(t.inputs.length)} in · ${int(t.outputs.length)} out`)}
+          </dl>
+          <div class="flow" id="flow"><svg id="flow-svg" role="img" aria-label="The coins in, by how long they had slept, and the coins out"></svg></div>
+          <div class="ages">${AGES.map(([name, , c]) => `<span><i style="background:${c}"></i>${name}</span>`).join("")}</div>
+          <div class="sides">
+            <section class="list"><h3>In</h3><ul>${t.inputs.slice(0, 200).map(inputRow).join("")}</ul></section>
+            <section class="list"><h3>Out</h3><ul>${t.outputs.slice(0, 200).map(outputRow).join("")}</ul></section>
+          </div>
+          ${t.inputs.length > 200 || t.outputs.length > 200 ? `<p class="more">The first 200 of each listed.</p>` : ""}`;
+        state.flow = t;
+        drawFlow();
+      }
+      const addrLink = (a, type) =>
+        a ? `<a class="addr" href="?address=${a}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
+      const inputRow = (c) =>
+        c.coinbase
+          ? `<li><span class="addr soft">New coins, the coinbase</span><span class="val">${btc(c.value)}</span></li>`
+          : `<li>${addrLink(c.address, c.type)}<span class="val">${btc(c.value)}</span>
+              <small>${c.age === null ? `<a href="?tx=${c.from}">from its transaction</a>` : c.unconfirmed ? "unconfirmed" : `<a href="?tx=${c.from}">born ${int(c.height)}</a> · held ${span(c.age)}`}</small>
+              <small>${c.pnl !== undefined && !c.unconfirmed ? `<span class="${tone(c.pnl)}">${signed(c.pnl)}</span>` : ""}</small></li>`;
+      const outputRow = (o) =>
+        `<li>${addrLink(o.address, o.type)}<span class="val">${btc(o.value)}</span>
+          <small>${o.spentBy ? `<a href="?tx=${o.spentBy}">spent</a>` : o.type === "op_return" ? "data" : "unspent"}</small><small></small></li>`;
+
+      // Labels kept apart, between lo and hi: each wants its band's middle, pushed down to a gap, then back up to fit
+      // (as many as fit are asked for).
+      const spread = (want, gap, lo, hi) => {
+        const out = want.slice();
+        out[0] = Math.max(lo, out[0]);
+        for (let i = 1; i < out.length; i++) out[i] = Math.max(out[i], out[i - 1] + gap);
+        if (out.at(-1) > hi) {
+          out[out.length - 1] = hi;
+          for (let i = out.length - 2; i >= 0; i--) out[i] = Math.min(out[i], out[i + 1] - gap);
+        }
+        return out;
+      };
+      const FLOW_MAX = 24; // coins drawn on each side; the rest join one band
+
+      function drawFlow() {
+        const t = state.flow;
+        const svg = $("flow-svg");
+        if (!svg) return;
+        const { width: W, height: H } = svg.getBoundingClientRect();
+        const narrow = W < 560;
+        const L = narrow ? 96 : 176;
+        const R = W - (narrow ? 104 : 190);
+        const mid = (L + R) / 2;
+        const top = 8;
+        const usable = H - 16;
+        const fold = (list, make) => (list.length <= FLOW_MAX ? list : [...list.slice(0, FLOW_MAX - 1), make(list.slice(FLOW_MAX - 1))]);
+        const ins = fold(t.inputs, (rest) => ({ value: rest.reduce((s, c) => s + c.value, 0), age: null, rest: rest.length }));
+        const outs = [
+          ...fold(t.outputs, (rest) => ({ value: rest.reduce((s, o) => s + o.value, 0), rest: rest.length })),
+          ...(t.tx.fee ? [{ value: t.tx.fee, fee: true }] : []),
+        ];
+        const total = t.value;
+        const band = (x0, a0, a1, x1, b0, b1, fill, op) => {
+          const c = (x0 + x1) / 2;
+          return `<path d="M${x0},${a0} C${c},${a0} ${c},${b0} ${x1},${b0} L${x1},${b1} C${c},${b1} ${c},${a1} ${x0},${a1} Z" fill="${fill}" opacity="${op}"/>`;
+        };
+        if (!(total > 0)) {
+          svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" class="sub-text">Nothing of value moved.</text>`;
+          return;
+        }
+        // Each side's bands: a sliver each, kept first so dust never pushes past the drawing, then the rest by value.
+        const MIN = 1.5;
+        const side = (n, gapMax) => {
+          const gap = Math.min(gapMax, (usable * 0.3) / n);
+          return { gap, k: (usable - gap * (n - 1) - MIN * n) / total };
+        };
+        const parts = [];
+        const sIn = side(ins.length, 6);
+        const kIn = sIn.k; // the trunk's scale, both sides meeting in it
+        const trunkH = total * kIn;
+        const ty = top + (usable - trunkH) / 2;
+        let y = top;
+        let ty0 = ty;
+        const inMid = [];
+        for (const c of ins) {
+          const h = MIN + c.value * kIn;
+          const color = c.coinbase ? "var(--miner)" : ageColor(c.age);
+          parts.push(band(L, y, y + h, mid, ty0, ty0 + c.value * kIn, color, 0.92));
+          inMid.push(y + h / 2);
+          y += h + sIn.gap;
+          ty0 += c.value * kIn;
+        }
+        const sOut = side(outs.length, 10);
+        let yo = top;
+        let to = ty;
+        const outMid = [];
+        for (const o of outs) {
+          const h = MIN + o.value * sOut.k;
+          const th = o.value * kIn;
+          parts.push(band(mid, to, to + th, R, yo, yo + h, o.fee ? "var(--miner)" : "var(--ink)", o.fee ? 0.95 : o.spentBy ? 0.2 : 0.34));
+          outMid.push(yo + h / 2);
+          yo += h + sOut.gap;
+          to += th;
+        }
+        const label = (x, yy, anchor, first, second, href) => {
+          const text = `<text x="${x}" y="${yy - 2}" text-anchor="${anchor}">${first}</text><text class="sub-text" x="${x}" y="${yy + 13}" text-anchor="${anchor}">${second}</text>`;
+          return href ? `<a href="${href}">${text}</a>` : text;
+        };
+        // As many labels as fit a side, 34px apart: its first coins and its last (the folded rest, the fee), each by its band.
+        const room = Math.max(2, Math.floor((H - 18 - (top + 10)) / 34) + 1);
+        const labelled = (mids, tail) => {
+          const keep = mids.length <= room ? mids.map((_, i) => i) : [...Array(room - tail).keys(), ...mids.map((_, i) => i).slice(-tail)];
+          const at = spread(keep.map((i) => mids[i]), 34, top + 10, H - 18);
+          return keep.map((i, k) => [i, at[k]]);
+        };
+        for (const [i, y] of labelled(inMid, 1)) {
+          const c = ins[i];
+          const second = c.coinbase
+            ? "new coins"
+            : c.rest
+              ? `and ${int(c.rest)} more`
+              : c.pnl !== undefined && !c.unconfirmed
+                ? `<tspan class="${tone(c.pnl)}" style="fill:var(--${c.pnl >= 0 ? "profit" : "loss"})">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
+                : esc(short(c.address ?? c.type, 5));
+          parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? `?tx=${c.from}` : null));
+        }
+        for (const [i, y] of labelled(outMid, t.tx.fee ? 2 : 1)) {
+          const o = outs[i];
+          const second = o.fee ? (narrow ? "fee" : "fee, to the miner") : o.rest ? `and ${int(o.rest)} more` : esc(short(o.address ?? (o.type === "op_return" ? "OP_RETURN" : o.type), 5));
+          parts.push(label(R + 12, y, "start", btc(o.value), second, o.address && !o.rest ? `?address=${o.address}` : null));
+        }
+        svg.innerHTML = parts.join("");
+      }
+      new ResizeObserver(() => drawFlow()).observe(document.documentElement);
+
+      async function viewAddress(address) {
+        const v = state.view;
+        const [a, txs, listed] = await Promise.all([
+          get(`/address/${address}`),
+          get(`/address/${address}/txs`),
+          get(`/address/${address}/utxo`).catch((e) => (e.status === 400 ? null : Promise.reject(e))),
+        ]);
+        const utxos = listed ?? [];
+        if (state.view !== v) return;
+        const c = a.chain_stats;
+        // The server's own balance (exact past what a double holds), its coins as listed (waiting ones too).
+        const balance = c.balance ?? c.funded_txo_sum - c.spent_txo_sum;
+        const price = state.price ?? Number(await get("/oracle/price"));
+        if (state.view !== v) return;
+        const value = (balance / 1e8) * price;
+        const basis = c.realized_price;
+        // A basis of $0 is real (coins from before Bitcoin had a price); only a held balance has one to show.
+        const held = balance > 0 && Number.isFinite(basis);
+        const unreal = held ? (balance / 1e8) * (price - basis) : null;
+        const pending = a.mempool_stats.funded_txo_sum - a.mempool_stats.spent_txo_sum;
+        // Its coins, the oldest first, each with how long it has slept.
+        const coins = utxos
+          .map((u) => ({ ...u, age: u.status.confirmed ? nowS() - u.status.block_time : null }))
+          .sort((x, y) => (y.age ?? -1) - (x.age ?? -1));
+        const net = (tx) =>
+          tx.vout.reduce((s, o) => s + (o.scriptpubkey_address === address ? o.value : 0), 0) -
+          tx.vin.reduce((s, v) => s + (v.prevout?.scriptpubkey_address === address ? v.prevout.value : 0), 0);
+        $("view").innerHTML = `
+          <span class="crumb">Address · ${esc(a.address_type ?? "")}</span>
+          <div class="head"><h2 class="mono" style="font-size:18px;overflow-wrap:anywhere">${esc(address)}</h2></div>
+          <p class="sub">${plural(c.tx_count, "confirmed transaction")}${listed ? ` · ${plural(utxos.length, "coin")} unspent` : ""}${pending ? ` · ${pending > 0 ? "+" : ""}${btc(pending)} BTC waiting` : ""}</p>
+          <dl class="facts">
+            ${fact("Balance", `${btc(balance)}`, usd(value))}
+            ${fact("Received", btc(c.funded_txo_sum))}
+            ${fact("Sent", btc(c.spent_txo_sum))}
+            ${held ? fact("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
+            ${held ? fact("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
+          </dl>
+          <div class="sides">
+            <section class="list"><h3>Coins, oldest first</h3><ul>${
+              coins
+                .slice(0, 100)
+                .map(
+                  (u) => `<li><a class="addr" href="?tx=${u.txid}">${short(u.txid, 8)}:${u.vout}</a><span class="val">${btc(u.value)}</span>
+                    <small>${u.age === null ? "unconfirmed" : `held ${span(u.age)}`}</small><small>${u.status.confirmed ? `block ${int(u.status.block_height)}` : ""}</small></li>`,
+                )
+                .join("") || `<li><small>None: it holds nothing now.</small></li>`
+            }</ul></section>
+            <section class="list"><h3>Latest transactions</h3><ul>${txs
+              .map((tx) => {
+                const n = net(tx);
+                return `<li><a class="addr" href="?tx=${tx.txid}">${short(tx.txid, 8)}</a><span class="val ${n >= 0 ? "gain" : "lost"}">${n >= 0 ? "+" : "−"}${btc(Math.abs(n))}</span>
+                  <small>${tx.status.confirmed ? ago(tx.status.block_time) : "waiting"}</small><small>${tx.status.confirmed ? `block ${int(tx.status.block_height)}` : ""}</small></li>`;
+              })
+              .join("")}</ul></section>
+          </div>
+          ${coins.length > 100 ? `<p class="more">The oldest 100 of ${int(coins.length)} coins listed.</p>` : ""}
+          ${listed ? "" : `<p class="more">More coins than the server lists one by one.</p>`}`;
+      }
+
+      // ---------------------------------------------------------------- Routes: ?block=next|next-N|height|hash, ?tx=, ?address=.
+      function parse() {
+        const q = new URLSearchParams(location.search);
+        if (q.has("tx")) return { kind: "tx", txid: q.get("tx").toLowerCase() };
+        // Bech32 is written in lowercase everywhere the server answers: an address typed or linked in capitals too.
+        if (q.has("address")) {
+          const a = q.get("address");
+          return { kind: "address", address: /^bc1/i.test(a) || /^([0-9a-f]{66}|[0-9a-f]{130})$/i.test(a) ? a.toLowerCase() : a };
+        }
+        const ref = q.get("block") ?? "next";
+        return { kind: "block", ref: /^\d+$/.test(ref) ? String(Number(ref)) : ref };
+      }
+      const fail = (e) =>
+        ($("view").innerHTML = `<div class="wait">${e?.status === 404 || e?.status === 400 ? "Not found." : "The server didn't answer. It will be tried again as the chain moves."}</div>`);
+      async function render() {
+        const v = (state.view = parse());
+        markCurrent();
+        $("tip").hidden = true;
+        document.title = `${v.kind === "tx" ? "Transaction" : v.kind === "address" ? "Address" : v.ref === "next" ? "Next block" : /^\d+$/.test(v.ref) ? `Block ${int(+v.ref)}` : "Block"} · Explorer · Bitview`;
+        try {
+          if (v.kind === "tx") await viewTx(v.txid);
+          else if (v.kind === "address") await viewAddress(v.address);
+          else if (v.ref === "next") await viewNext();
+          else if (/^next-\d+$/.test(v.ref)) viewQueued(Number(v.ref.slice(5)));
+          else await viewBlock(v.ref);
+        } catch (e) {
+          if (state.view === v) fail(e);
+        }
+      }
+      let navigations = 0;
+      function go(href, replace = false) {
+        navigations++;
+        history[replace ? "replaceState" : "pushState"](null, "", href);
+        scrollTo({ top: 0 });
+        render();
+      }
+      addEventListener("popstate", () => {
+        navigations++;
+        render();
+      });
+      document.addEventListener("click", (e) => {
+        const a = e.target.closest("a[href^='?']");
+        if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
+          e.preventDefault();
+          go(a.getAttribute("href"));
+          return;
+        }
+        const step = e.target.closest("[data-go]");
+        if (step && !step.disabled) return go(`?block=${step.dataset.go}`);
+        const copy = e.target.closest("[data-copy]");
+        if (copy) {
+          navigator.clipboard.writeText(copy.dataset.copy);
+          const was = copy.textContent;
+          copy.textContent = "Copied";
+          setTimeout(() => (copy.textContent = was), 1200);
+        }
+      });
+
+      // ---------------------------------------------------------------- Search: a height, a block hash, a txid or an address.
+      // What's searched resolves to a link; only the latest search, while nothing else was opened since, goes there.
+      let searches = 0;
+      async function resolve(q) {
+        if (/^\d{1,7}$/.test(q)) return Number(q) <= state.tip ? `?block=${Number(q)}` : { miss: `No block ${int(+q)} yet.` };
+        if (/^[0-9a-f]{64}$/i.test(q)) {
+          const id = q.toLowerCase();
+          if (id.startsWith("00000000") && (await get(`/block/${id}/status`).then(() => true, () => false))) return `?block=${id}`;
+          return (await get(`/tx/${id}/status`).then(() => true, () => false)) ? `?tx=${id}` : { miss: "No block or transaction with that id." };
+        }
+        const v = await get(`/v1/validate-address/${encodeURIComponent(q)}`).catch(() => null);
+        return v?.isvalid ? `?address=${v.address}` : { miss: "Not a block, transaction or address." };
+      }
+      $("find").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const q = e.target.q.value.trim();
+        $("miss").textContent = "";
+        if (!q) return;
+        const ask = ++searches;
+        const from = navigations;
+        const to = await resolve(q);
+        if (ask !== searches || navigations !== from) return;
+        if (typeof to === "string") go(to);
+        else $("miss").textContent = to.miss;
+      });
+
+      // ---------------------------------------------------------------- Keys: / to search, ← and → along the belt, Escape back.
+      addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const typing = document.activeElement?.matches("input");
+        if (e.key === "/" && !typing) {
+          e.preventDefault();
+          $("find").q.focus();
+          return;
+        }
+        if (typing) {
+          if (e.key === "Escape") document.activeElement.blur();
+          return;
+        }
+        if (e.key === "Escape" && state.view?.kind !== "block") return history.length > 1 ? history.back() : go("?block=next");
+        if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && state.view?.kind === "block") {
+          const tiles = [...$("belt").querySelectorAll(".tile")];
+          const i = tiles.findIndex((t) => t.getAttribute("aria-current") === "true");
+          const next = i < 0 ? null : tiles[i + (e.key === "ArrowRight" ? 1 : -1)];
+          if (next) {
+            e.preventDefault();
+            go(next.getAttribute("href"), true);
+            next.scrollIntoView({ inline: "nearest", block: "nearest" });
+            if (next === tiles.at(-1)) loadOlder();
+          }
+        }
+      });
+
+      // Each "ago" ticks on its own minute.
+      setInterval(() => {
+        for (const el of document.querySelectorAll("[data-ago]")) el.textContent = ago(Number(el.dataset.ago));
+      }, 30000);
+
+      // A phone's search field says less, in the room it has.
+      const narrowBar = matchMedia("(width < 640px)");
+      const placeholder = () => ($("find").q.placeholder = narrowBar.matches ? "Height, txid or address" : "Search a block, transaction or address");
+      narrowBar.addEventListener("change", placeholder);
+      placeholder();
+
+      // ---------------------------------------------------------------- Start.
+      // Each read on its own: one failing leaves the others shown, and the timers try it again.
+      await Promise.allSettled([readTip(), readProjected(), readPrice()]);
+      centerNow();
+      render();
+      state.booted = true;
+      drawDifficulty();
+      setInterval(followNext, 4000);
+      setInterval(() => readTip().catch(() => {}), 10000);
+      setInterval(() => readProjected().catch(() => {}), 10000);
+      setInterval(() => readPrice().catch(() => {}), 30000);
+      setInterval(() => drawDifficulty().catch(() => {}), 60000);
+    </script>
+  </body>
+</html>
