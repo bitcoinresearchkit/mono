@@ -4667,11 +4667,27 @@ const _DataBytesSeries = _s({
 
 /**
  * @typedef {{
+ *   block: SeriesPattern18<Sats>,
+ *   cumulative: SeriesPattern1<Sats>,
+ *   sum: Windows<Sats>,
+ *   share: Share,
+ * }} TxValue
+ */
+const _TxValue = _s({
+  block: [_i18, '*'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_Windows, '*_sum'],
+  share: [_Share, '*_share'],
+});
+
+/**
+ * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  *   fees: FeesSeries,
  * }} Inscription
  */
@@ -4681,6 +4697,7 @@ const _Inscription = _s({
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
   fees: [_FeesSeries, '*'],
 });
 
@@ -4691,6 +4708,7 @@ const _Inscription = _s({
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} TransactionsFlagged
  */
 const _TransactionsFlagged = _s({
@@ -4699,6 +4717,7 @@ const _TransactionsFlagged = _s({
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
 });
 
 /**
@@ -4737,6 +4756,7 @@ const _Fees = _s({
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} TxCount
  */
 const _TxCount = _s({
@@ -4744,6 +4764,7 @@ const _TxCount = _s({
   cumulative: [_i1, '*_count_cumulative'],
   sum: [_Windows, '*_count_sum'],
   share: [_Share, '*_share'],
+  value: [_TxValue, '*_value'],
 });
 
 /**
@@ -4753,6 +4774,7 @@ const _TxCount = _s({
  *   cumulative: SeriesPattern1<Count>,
  *   sum: Windows<Count>,
  *   share: Share,
+ *   value: TxValue,
  * }} Flagged
  */
 const _Flagged = _s({
@@ -4761,6 +4783,7 @@ const _Flagged = _s({
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_Windows, '*_tx_count_sum'],
   share: [_Share, '*_tx_share'],
+  value: [_TxValue, '*_tx_value'],
 });
 
 /**

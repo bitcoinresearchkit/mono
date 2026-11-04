@@ -1,14 +1,27 @@
+use bitview_plugin_indexer::FIRST_V29_POLICY_HEIGHT;
 use bitview_primitives::TxInIndex;
 use brk_cpfp::Cluster;
 use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
 use smallvec::SmallVec;
 use vecdb::VecIndex;
 
+use super::kinds::{
+    BITS, CPFP_CHILD, CPFP_PARENT, Columns, DUST, INSCRIPTION, NONSTANDARD, READ, UNCONDITIONAL,
+};
 use crate::distribution::{Stats, counted, weighted};
 
 #[derive(Default)]
 pub struct Block {
     first_tx: usize,
+    /// Its height, and its first transaction's place in the batch, for the batch's flags.
+    pub height: usize,
+    pub batch_offset: usize,
+    /// A bit for each kind each transaction is (see `kinds`): those derived from the reads at
+    /// first, every other once computed.
+    pub masks: Vec<u64>,
+    /// The value of each kind's transactions (`masks`' bits), the coinbase's none.
+    pub values: Vec<Sats>,
+    pub inscription_fees: Sats,
     pub input_begin: usize,
     pub input_values: Vec<Sats>,
     pub output_values: Vec<Sats>,
@@ -41,14 +54,16 @@ impl Block {
         self.vsizes.clear();
         self.txin_starts.clear();
         self.outpoints.clear();
+        self.masks.clear();
     }
 
-    /// `components`: scratch reused across blocks, one per worker.
-    pub fn compute(&mut self, components: &mut Components) {
+    /// `components`: scratch reused across blocks, one per worker. `bits`: the batch's flags.
+    pub fn compute(&mut self, components: &mut Components, bits: &[Vec<u64>; READ]) {
         let n = self.input_values.len();
         debug_assert_eq!(n, self.output_values.len());
         debug_assert_eq!(n, self.vsizes.len());
         debug_assert_eq!(n, self.txin_starts.len());
+        debug_assert_eq!(n, self.masks.len());
         // The coinbase spends nothing: its single input carries the `Sats::MAX` sentinel.
         debug_assert!(self.input_values[0].is_max());
 
@@ -79,6 +94,8 @@ impl Block {
             &mut self.effective_fee_rates,
         );
 
+        self.value_kinds(bits);
+
         self.sorted_fees.clear();
         self.sorted_fees.extend_from_slice(&self.fees[1..]);
         self.fee_stats = counted(&mut self.sorted_fees);
@@ -93,6 +110,46 @@ impl Block {
         // Last use of the block-order vsizes: sorted in place.
         self.vsize_stats = counted(&mut self.vsizes);
     }
+
+    /// Completes each transaction's mask (its flags, CPFP role and nonstandard) and sums the
+    /// value of each kind's transactions, and inscriptions' fees.
+    fn value_kinds(&mut self, bits: &[Vec<u64>; READ]) {
+        self.values.clear();
+        self.values.resize(BITS, Sats::ZERO);
+        self.inscription_fees = Sats::ZERO;
+        // Bitcoin Core 29 relays dust when it pays no fee (ephemeral dust).
+        let free_dust_relayed = self.height >= FIRST_V29_POLICY_HEIGHT as usize;
+        Columns::or_into(bits, self.batch_offset, &mut self.masks);
+        for tx in 0..self.masks.len() {
+            let fee = self.fees[tx];
+            let (raw, effective) = (self.fee_rates[tx], self.effective_fee_rates[tx]);
+            let mut mask = self.masks[tx];
+            mask |= (u64::from(effective > raw) << CPFP_PARENT)
+                | (u64::from(effective < raw) << CPFP_CHILD);
+            let nonstandard = is(mask, UNCONDITIONAL)
+                || (is(mask, DUST) && (!free_dust_relayed || fee != Sats::ZERO));
+            mask |= u64::from(nonstandard) << NONSTANDARD;
+            self.masks[tx] = mask;
+            if is(mask, INSCRIPTION) {
+                self.inscription_fees += fee;
+            }
+            // The coinbase spends nothing.
+            if tx > 0 {
+                let value = self.input_values[tx];
+                let mut rest = mask;
+                while rest != 0 {
+                    self.values[rest.trailing_zeros() as usize] += value;
+                    rest &= rest - 1;
+                }
+            }
+        }
+    }
+}
+
+/// Whether `mask` has `bit`.
+#[inline(always)]
+pub fn is(mask: u64, bit: usize) -> bool {
+    mask >> bit & 1 == 1
 }
 
 /// A block's same-block dependency components, linearized one at a time.

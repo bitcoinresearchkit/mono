@@ -9,7 +9,7 @@ use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ReadableCloneableVec};
 
 use super::Vecs;
-use crate::flagged::TxCount;
+use crate::flagged::{Totals, TxCount};
 
 impl Vecs {
     pub(crate) fn import(
@@ -19,7 +19,11 @@ impl Vecs {
         indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
-        all_txs: &impl ReadableCloneableVec<Height, Count>,
+        totals: Totals<
+            '_,
+            impl ReadableCloneableVec<Height, Count>,
+            impl ReadableCloneableVec<Height, Sats>,
+        >,
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let fees = ValuePerBlockCumulativeRolling::import(
@@ -49,7 +53,7 @@ impl Vecs {
                 version,
                 indexes,
                 window_starts,
-                all_txs,
+                totals,
             )?,
             fees,
             chain_share,

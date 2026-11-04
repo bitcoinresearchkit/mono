@@ -1196,12 +1196,19 @@ pub mod tree {
         sum: Windows<Bytes> = "*_bytes_sum",
         chain_share: Share = "*_chain_share",
     } }
+    shape! { TxValue at "series().transactions.inscription.value" {
+        block: SeriesPattern18<Sats> = "*",
+        cumulative: SeriesPattern1<Sats> = "*_cumulative",
+        sum: Windows<Sats> = "*_sum",
+        share: Share = "*_share",
+    } }
     shape! { Inscription at "series().transactions.inscription" {
         flag: SeriesPattern19<Boolean> = "has_*",
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: Windows<Count> = "*_tx_count_sum",
         share: Share = "*_tx_share",
+        value: TxValue = "*_tx_value",
         fees: FeesSeries = "*",
     } }
     shape! { TransactionsFlagged at "series().transactions.nonstandard" {
@@ -1210,6 +1217,7 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: Windows<Count> = "*_tx_count_sum",
         share: Share = "*_tx_share",
+        value: TxValue = "*_tx_value",
     } }
     shape! { Patterns at "series().transactions.patterns" {
         coinjoin: TransactionsFlagged = "*",
@@ -1228,6 +1236,7 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_count_cumulative",
         sum: Windows<Count> = "*_count_sum",
         share: Share = "*_share",
+        value: TxValue = "*_value",
     } }
     shape! { Flagged at "series().transactions.features.dust_output" {
         flag: SeriesPattern19<Boolean> = "has_*",
@@ -1235,6 +1244,7 @@ pub mod tree {
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: Windows<Count> = "*_tx_count_sum",
         share: Share = "*_tx_share",
+        value: TxValue = "*_tx_value",
     } }
     shape! { Signatures at "series().transactions.features.signatures" {
         annex: Flagged = "annex",

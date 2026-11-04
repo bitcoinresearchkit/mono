@@ -107,58 +107,58 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages (32): https://bitview.space/studio/presets/price/moving-averages/
   - Range (3): https://bitview.space/studio/presets/price/range/
   - Technical (10): https://bitview.space/studio/presets/price/technical/
-- Valuation (70): https://bitview.space/studio/presets/valuation/
+- Valuation (71): https://bitview.space/studio/presets/valuation/
   - Compass (5): https://bitview.space/studio/presets/valuation/compass/
   - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (382): https://bitview.space/studio/presets/holders/
-  - Compare (16): https://bitview.space/studio/presets/holders/compare/
-  - All coins (41): https://bitview.space/studio/presets/holders/all-coins/
-  - Short-term holders (43): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (41): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (183): https://bitview.space/studio/presets/holders/age-cutoffs/
-  - Entry price (58): https://bitview.space/studio/presets/holders/entry-price/
-- Coin age (1223): https://bitview.space/studio/presets/coin-age/
-  - Age bands (707): https://bitview.space/studio/presets/coin-age/age-bands/
-  - Halving epochs (121): https://bitview.space/studio/presets/coin-age/halving-epochs/
-  - Vintages (394): https://bitview.space/studio/presets/coin-age/vintages/
-- Profitability (237): https://bitview.space/studio/presets/profitability/
-  - All coins (79): https://bitview.space/studio/presets/profitability/all-coins/
-  - Short-term holders (79): https://bitview.space/studio/presets/profitability/short-term-holders/
-  - Long-term holders (79): https://bitview.space/studio/presets/profitability/long-term-holders/
-- UTXOs (367): https://bitview.space/studio/presets/utxos/
-  - By amount (213): https://bitview.space/studio/presets/utxos/by-amount/
-  - By type (153): https://bitview.space/studio/presets/utxos/by-type/
-- Addresses (419): https://bitview.space/studio/presets/addresses/
+- Holders (444): https://bitview.space/studio/presets/holders/
+  - Compare (19): https://bitview.space/studio/presets/holders/compare/
+  - All coins (48): https://bitview.space/studio/presets/holders/all-coins/
+  - Short-term holders (51): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (49): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (215): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - Entry price (62): https://bitview.space/studio/presets/holders/entry-price/
+- Coin age (1361): https://bitview.space/studio/presets/coin-age/
+  - Age bands (799): https://bitview.space/studio/presets/coin-age/age-bands/
+  - Halving epochs (131): https://bitview.space/studio/presets/coin-age/halving-epochs/
+  - Vintages (430): https://bitview.space/studio/presets/coin-age/vintages/
+- Profitability (312): https://bitview.space/studio/presets/profitability/
+  - All coins (104): https://bitview.space/studio/presets/profitability/all-coins/
+  - Short-term holders (104): https://bitview.space/studio/presets/profitability/short-term-holders/
+  - Long-term holders (104): https://bitview.space/studio/presets/profitability/long-term-holders/
+- UTXOs (391): https://bitview.space/studio/presets/utxos/
+  - By amount (227): https://bitview.space/studio/presets/utxos/by-amount/
+  - By type (163): https://bitview.space/studio/presets/utxos/by-type/
+- Addresses (434): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
   - Reused (11): https://bitview.space/studio/presets/addresses/reused/
   - Respent (11): https://bitview.space/studio/presets/addresses/respent/
   - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
-  - Capital (2): https://bitview.space/studio/presets/addresses/capital/
+  - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/
-  - By balance (200): https://bitview.space/studio/presets/addresses/by-balance/
+  - By balance (214): https://bitview.space/studio/presets/addresses/by-balance/
 - Mining (971): https://bitview.space/studio/presets/mining/
   - Hashing (4): https://bitview.space/studio/presets/mining/hashing/
   - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
   - Halvings (2): https://bitview.space/studio/presets/mining/halvings/
   - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
   - Pools (950): https://bitview.space/studio/presets/mining/pools/
-- Network (523): https://bitview.space/studio/presets/network/
-  - Blocks (11): https://bitview.space/studio/presets/network/blocks/
-  - Transactions (85): https://bitview.space/studio/presets/network/transactions/
+- Network (639): https://bitview.space/studio/presets/network/
+  - Blocks (12): https://bitview.space/studio/presets/network/blocks/
+  - Transactions (200): https://bitview.space/studio/presets/network/transactions/
   - Inputs (47): https://bitview.space/studio/presets/network/inputs/
   - Outputs (49): https://bitview.space/studio/presets/network/outputs/
   - OP_RETURN (331): https://bitview.space/studio/presets/network/op-return/
-- Cointime (183): https://bitview.space/studio/presets/cointime/
+- Cointime (236): https://bitview.space/studio/presets/cointime/
   - Activity (8): https://bitview.space/studio/presets/cointime/activity/
   - Value (6): https://bitview.space/studio/presets/cointime/value/
   - Age bands (97): https://bitview.space/studio/presets/cointime/age-bands/
-  - Awake coins (71): https://bitview.space/studio/presets/cointime/awake-coins/
-- Coinflow (170): https://bitview.space/studio/presets/coinflow/
+  - Awake coins (124): https://bitview.space/studio/presets/cointime/awake-coins/
+- Coinflow (223): https://bitview.space/studio/presets/coinflow/
   - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/
-  - Mobile coins (71): https://bitview.space/studio/presets/coinflow/mobile-coins/
+  - Mobile coins (124): https://bitview.space/studio/presets/coinflow/mobile-coins/
 - Bedrock (23): https://bitview.space/studio/presets/bedrock/
   - Compare (5): https://bitview.space/studio/presets/bedrock/compare/
   - Awake (6): https://bitview.space/studio/presets/bedrock/awake/

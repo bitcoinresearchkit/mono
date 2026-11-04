@@ -10,7 +10,6 @@ mod has;
 mod import;
 mod inscription;
 mod patterns;
-mod policy;
 mod resume;
 mod versions;
 mod vsize;

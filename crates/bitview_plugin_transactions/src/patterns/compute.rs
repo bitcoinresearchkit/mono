@@ -6,7 +6,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Boolean, Count};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Height;
+use brk_types::{Height, Sats};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex, WritableVec};
 
@@ -76,14 +76,13 @@ impl Vecs {
                     self.consolidation.flag.push(Boolean::from(consolidation));
                     self.batch_payout.flag.push(Boolean::from(batch_payout));
                 }
-                for [coinjoin, consolidation, batch_payout] in task.counts {
-                    self.coinjoin.count.push_block(Count::from(coinjoin));
-                    self.consolidation
-                        .count
-                        .push_block(Count::from(consolidation));
-                    self.batch_payout
-                        .count
-                        .push_block(Count::from(batch_payout));
+                for (counts, values) in task.counts.into_iter().zip(task.values) {
+                    for ((kind, count), value) in
+                        self.kinds_mut().into_iter().zip(counts).zip(values)
+                    {
+                        kind.count.push_block(Count::from(count));
+                        kind.value.push_block(value);
+                    }
                 }
             }
             // Writes when the wave crosses a multiple of `WRITE_INTERVAL`.
@@ -102,10 +101,12 @@ impl Vecs {
     }
 }
 
-/// One task's classified transactions (coinjoin, consolidation, batch payout) and per-block counts.
+/// One task's classified transactions (coinjoin, consolidation, batch payout), with their counts
+/// and values per block.
 struct Classified {
     flags: Vec<[bool; 3]>,
     counts: Vec<[u64; 3]>,
+    values: Vec<[Sats; 3]>,
 }
 
 /// Classifies the transactions of `heights`, independently of other tasks.
@@ -152,11 +153,13 @@ fn classify(
     let mut candidate = Candidate::default();
     let mut flags = Vec::with_capacity(end_tx - start_tx);
     let mut counts = Vec::with_capacity(block_tx_counts.len());
+    let mut values = Vec::with_capacity(block_tx_counts.len());
     let mut offset = 0;
     for tx_count in block_tx_counts {
         let block_start = offset;
         let block_end = offset + u64::from(tx_count) as usize;
         let mut totals = [0u64; 3];
+        let mut block_values = [Sats::ZERO; 3];
         for tx in block_start..block_end {
             let first_txin = txin_starts[tx].to_usize();
             let first_txout = txout_starts[tx].get().to_usize();
@@ -190,13 +193,31 @@ fn classify(
                     )
                 })
             };
-            totals[0] += u64::from(coinjoin);
-            totals[1] += u64::from(consolidation);
-            totals[2] += u64::from(batch_payout);
-            flags.push([coinjoin, consolidation, batch_payout]);
+            let kinds = [coinjoin, consolidation, batch_payout];
+            // What they moved: their inputs' value (none is the coinbase, which has one input).
+            if kinds.contains(&true) {
+                let mut value = Sats::ZERO;
+                for index in first_txin..next_txin {
+                    value += input_value.get(index).unwrap();
+                }
+                for (total, kind) in block_values.iter_mut().zip(kinds) {
+                    if kind {
+                        *total += value;
+                    }
+                }
+            }
+            for (total, kind) in totals.iter_mut().zip(kinds) {
+                *total += u64::from(kind);
+            }
+            flags.push(kinds);
         }
         counts.push(totals);
+        values.push(block_values);
         offset = block_end;
     }
-    Classified { flags, counts }
+    Classified {
+        flags,
+        counts,
+        values,
+    }
 }

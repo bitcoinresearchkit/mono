@@ -1,11 +1,14 @@
 use bitview_primitives::Count;
 use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ImportableVec, PcoVec, ReadableCloneableVec};
 
 use super::Vecs;
-use crate::{distribution::PerTxDistribution, flagged::Classified};
+use crate::{
+    distribution::PerTxDistribution,
+    flagged::{Classified, Totals},
+};
 
 /// Bump this when fee/feerate aggregation logic changes (e.g., skip coinbase, skip zero-fee).
 const VERSION: Version = Version::new(5);
@@ -18,7 +21,11 @@ impl Vecs {
         version: Version,
         mappings: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
-        all_txs: &impl ReadableCloneableVec<Height, Count>,
+        totals: Totals<
+            '_,
+            impl ReadableCloneableVec<Height, Count>,
+            impl ReadableCloneableVec<Height, Sats>,
+        >,
     ) -> Result<Self> {
         let fee_version = version + VERSION;
         let cpfp_role = |flag, kind| {
@@ -29,7 +36,7 @@ impl Vecs {
                 version + CHUNK_VERSION,
                 mappings,
                 window_starts,
-                all_txs,
+                totals,
             )
         };
 

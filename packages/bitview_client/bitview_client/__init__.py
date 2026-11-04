@@ -3913,12 +3913,20 @@ class DataBytesSeries(_Node):
     chain_share: Share = _at(Share, '*_chain_share')
 
 
+class TxValue(_Node):
+    block: SeriesPattern18[Sats] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[Sats] = _at(Windows, '*_sum')
+    share: Share = _at(Share, '*_share')
+
+
 class Inscription(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
     fees: FeesSeries = _at(FeesSeries, '*')
 
 
@@ -3928,6 +3936,7 @@ class TransactionsFlagged(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
 
 
 class Patterns(_Node):
@@ -3949,6 +3958,7 @@ class TxCount(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_count_sum')
     share: Share = _at(Share, '*_share')
+    value: TxValue = _at(TxValue, '*_value')
 
 
 class Flagged(_Node):
@@ -3957,6 +3967,7 @@ class Flagged(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
+    value: TxValue = _at(TxValue, '*_tx_value')
 
 
 class Signatures(_Node):

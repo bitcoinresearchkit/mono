@@ -2,6 +2,7 @@ mod compute;
 mod import;
 mod vecs;
 
+pub(crate) use compute::FEATURES;
 pub use vecs::{Scripts, Signatures, Vecs};
 
 /// The features with a flag, by group, passed to `$callback`: each name is also its indexer
@@ -35,4 +36,4 @@ macro_rules! with_flagged_features {
         )
     };
 }
-use with_flagged_features;
+pub(crate) use with_flagged_features;

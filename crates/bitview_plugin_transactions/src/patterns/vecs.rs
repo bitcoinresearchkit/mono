@@ -1,7 +1,7 @@
 use bitview_traversable::Traversable;
 use vecdb::{AnyStoredVec, Rw, StorageMode};
 
-use crate::flagged::Classified;
+use crate::flagged::{Classified, TxCount};
 
 /// Transactions by detected structural pattern: heuristic classifications, not protocol labels.
 #[derive(Traversable)]
@@ -20,16 +20,34 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
-    /// Every pattern's stored flags, then counts.
+    /// Coinjoins, consolidations, batch payouts.
+    pub(super) fn kinds_mut(&mut self) -> [&mut TxCount; 3] {
+        [
+            &mut self.coinjoin.count,
+            &mut self.consolidation.count,
+            &mut self.batch_payout.count,
+        ]
+    }
+
+    /// Every pattern's stored flags, then counts and values.
     pub(super) fn stored_mut(
         &mut self,
-    ) -> ([&mut dyn AnyStoredVec; 3], [&mut dyn AnyStoredVec; 3]) {
-        let (coinjoin_flag, coinjoin_count) = self.coinjoin.stored_mut();
-        let (consolidation_flag, consolidation_count) = self.consolidation.stored_mut();
-        let (batch_payout_flag, batch_payout_count) = self.batch_payout.stored_mut();
+    ) -> ([&mut dyn AnyStoredVec; 3], [&mut dyn AnyStoredVec; 6]) {
+        let (coinjoin, [coinjoin_count, coinjoin_value]) = self.coinjoin.stored_mut();
+        let (consolidation, [consolidation_count, consolidation_value]) =
+            self.consolidation.stored_mut();
+        let (batch_payout, [batch_payout_count, batch_payout_value]) =
+            self.batch_payout.stored_mut();
         (
-            [coinjoin_flag, consolidation_flag, batch_payout_flag],
-            [coinjoin_count, consolidation_count, batch_payout_count],
+            [coinjoin, consolidation, batch_payout],
+            [
+                coinjoin_count,
+                coinjoin_value,
+                consolidation_count,
+                consolidation_value,
+                batch_payout_count,
+                batch_payout_value,
+            ],
         )
     }
 }

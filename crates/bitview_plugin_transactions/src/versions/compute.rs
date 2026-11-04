@@ -1,21 +1,48 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Count;
+use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Sats;
 
 use super::Vecs;
 
+/// The versions' counts, each from the indexer's per-block count: 1, 2, 3, then the others.
+pub(crate) struct Counts<'a>([&'a mut PerBlockCumulativeRolling<Count>; 4]);
+
 impl Vecs {
-    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
+    /// The counts and the values apart, so both compute at once: the values are the fee pass's.
+    pub(crate) fn split_mut(&mut self) -> (Counts<'_>, [&mut PerBlockCumulativeRolling<Sats>; 4]) {
+        let Self { v1, v2, v3, other } = self;
+        (
+            Counts([
+                &mut v1.count,
+                &mut v2.count,
+                &mut v3.count,
+                &mut other.count,
+            ]),
+            [
+                &mut v1.value.value,
+                &mut v2.value.value,
+                &mut v3.value.value,
+                &mut other.value.value,
+            ],
+        )
+    }
+}
+
+impl Counts<'_> {
+    pub(crate) fn compute(self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+        let start = indexer.compute_start().height;
         let source = &indexer.vecs().transactions.versions;
-        for (target, source) in [
-            (&mut self.v1, &*source.v1.block),
-            (&mut self.v2, &*source.v2.block),
-            (&mut self.v3, &*source.v3.block),
-            (&mut self.other, &*source.other.block),
-        ] {
-            target.compute_cumulative_transformed(starting_height, source, Count::from, exit)?;
+        let sources = [
+            &*source.v1.block,
+            &*source.v2.block,
+            &*source.v3.block,
+            &*source.other.block,
+        ];
+        for (count, source) in self.0.into_iter().zip(sources) {
+            count.compute_cumulative_transformed(start, source, Count::from, exit)?;
         }
         Ok(())
     }

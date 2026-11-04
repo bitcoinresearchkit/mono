@@ -232,6 +232,16 @@ export function studioPresets(client, facts) {
    */
   const member = (name, items) => ((kept) => section(name, kept.length === 1 && "items" in kept[0] ? kept[0].items : kept))(/** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)));
 
+  /** @typedef {{ of: (name: string) => string, format: string }} Formula */
+  /**
+   * A series as a layer, or, with `formula`, a formula of it (its unit the formula's `format`).
+   * @param {any} node @param {string} label @param {Formula} [formula] @param {Layer} [extra] @returns {Layer}
+   */
+  const layerOf = (node, label, formula, extra = {}) => {
+    if (!formula) return series(node, label, extra);
+    if (!isLeaf(node)) throw new Error(`Not a series: ${label}`);
+    return { formula: formula.of(node.name), label, type: "line", format: formula.format, ...extra };
+  };
   /** A node's windows (`_24h`… and any other spans), in order. @param {any} node */
   const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
   /**
@@ -239,14 +249,15 @@ export function studioPresets(client, facts) {
    * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window. Read `around` a
    * base (a ratio's 1, a change's 0): each a baseline there, in its shades. `color`: the shown ones' (a cohort's own),
    * the others in their windows'.
-   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number, color?: string }} [options]
+   * `formula`: each a formula of its series instead (`(name) => text`, with its unit, `format`).
+   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number, color?: string, formula?: Formula }} [options]
    * @returns {Layer[]}
    */
   const windows = (node, what, options = {}) => {
     const list = windowsOf(node), pick = options.pick ?? ((n) => n);
     // (Said, as said, none at all too; else the month, or the longest where there's no month.)
     const shown = options.show ?? (list.some(([key]) => key === "_1m") ? ["_1m"] : [list.at(-1)?.[0]]);
-    return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), {
+    return list.map(([key, value], i) => layerOf(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), options.formula, {
       color: (shown.includes(key) && options.color) || WINDOW_COLORS[i % WINDOW_COLORS.length],
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
@@ -317,13 +328,37 @@ export function studioPresets(client, facts) {
     const areas = layers.map((layer) => ({ ...layer, type: "area" }));
     return [chart(name, title, areas, { stack: { 1: "stack" } }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" } })];
   };
+  /** Sats as bitcoin, and as dollars at the price of each point (amount × price): what isn't stored in dollars. */
+  const coins = /** @type {Formula} */ ({ of: (name) => `${name} / 1e8`, format: "btc" });
+  const coinDollars = /** @type {Formula} */ ({ of: (name) => `${name} / 1e8 * ${t.price.close.name}`, format: "usd" });
+  /** A title in a sentence: its first word lowered where it's a plain word ("Coinjoin transactions"). @param {string} title */
+  const lowered = (title) => title.replace(/^\S+/, inSentence);
   /**
-   * Kinds of transactions, which overlap: their shares of all transactions compared, then each one's count.
-   * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} compared
+   * A kind of transaction's value (its sats: a block's, summed over windows and since the start): in bitcoin, its
+   * dollars below at each point's price (a window's coins at its end's price); since the start, a chart of its own, in
+   * bitcoin alone (all of it at one day's price would be no dollar amount it ever was); then its share of transaction
+   * volume.
+   * @param {any} value @param {string} title @returns {ChartNode[]}
    */
-  const txKinds = (list, name, title, compared) => [
-    chart("Compare", `${compared}, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: ramp(list.length)[i] }))),
-    ...list.flatMap(([key, node]) => counted(node, name(key), title(key))),
+  const valued = (value, title) => {
+    const moved = `Value moved by ${lowered(title)}`;
+    return [
+      chart("Value", moved, [...windows(value.sum, "Bitcoin", { formula: coins }), ...windows(value.sum, "Dollars", { formula: coinDollars, pane: 2 })], { log: [2] }),
+      chart("Value, all time", `${moved}, all time`, [layerOf(value.cumulative, "Bitcoin", coins, { color: "orange" })]),
+      chart("Value share", `Share of transaction volume moved by ${lowered(title)}`, sharesOf(value.share, "Share")),
+    ];
+  };
+  /** A kind of transaction's charts: its count, then its value. @param {any} node @param {string} title */
+  const kindCharts = (node, title) => [...counted(node, "Count", title), ...valued(node.value, title)];
+  /**
+   * Kinds of transactions, which overlap: their shares of all transactions and of transaction volume compared, then
+   * each one's folder (`by`: what sorts them, "feature").
+   * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} by
+   */
+  const txKinds = (list, name, title, by) => [
+    chart("Compare", `Share of transactions by ${by}, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: ramp(list.length)[i] }))),
+    chart("Compare value", `Share of transaction volume by ${by}, 1 month`, list.map(([key, node], i) => series(node.value.share._1m, name(key), { color: ramp(list.length)[i] }))),
+    ...list.map(([key, node]) => section(name(key), kindCharts(node, title(key)))),
   ];
   /**
    * A change over windows (`absolute` and `rate`): the amount (its windows) and, below, the rate.
@@ -936,19 +971,22 @@ export function studioPresets(client, facts) {
         ...spread(tx.fees.fee, "Fee", "Transaction fees", "amber"),
         ...spread(tx.vsize, "Size", "Transaction sizes (vsize)", "sky"),
         ...flow(tx.transferVolume, "Volume", "Transaction volume"),
-        ...counted(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
+        section("Nonstandard", kindCharts(tx.nonstandard, "Nonstandard transactions")),
         section("Features", [
-          ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "Share of transactions by feature"),
-          section("Scripts", txKinds(entries(tx.features.scripts), featureName, featureTx, "Share of transactions by script")),
-          section("Signatures", txKinds(entries(tx.features.signatures), featureName, featureTx, "Share of transactions by signature feature")),
+          ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "feature"),
+          section("Scripts", txKinds(entries(tx.features.scripts), featureName, featureTx, "script")),
+          section("Signatures", txKinds(entries(tx.features.signatures), featureName, featureTx, "signature feature")),
         ]),
         section("Versions", [
-          section("Compare", parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] })))),
-          ...entries(tx.versions).flatMap(([key, node]) => counted(node, versionName(key), key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`)),
+          section("Compare", [
+            ...parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] }))),
+            ...parts(["Value, 1 month", "Value moved by version, 1 month"], ["Value share, 1 month", "Share of transaction volume by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => layerOf(node.value.sum._1m, versionName(key), coins, { color: ramp(all.length)[i] }))),
+          ]),
+          ...entries(tx.versions).map(([key, node]) => section(versionName(key), kindCharts(node, key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`))),
         ]),
-        section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "Share of transactions by pattern")),
-        section("CPFP", [...counted(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), ...counted(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
-        section("Inscriptions", [...counted(tx.inscription, "Count", "Inscription transactions"), ...flow(tx.inscription.fees, "Transaction fees", "Inscription transactions' fees"), chart("Fee share", "Inscription transactions' share of all fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
+        section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "pattern")),
+        section("CPFP", [section("Parents", kindCharts(tx.fees.cpfpParent, "CPFP parent transactions")), section("Children", kindCharts(tx.fees.cpfpChild, "CPFP child transactions"))]),
+        section("Inscriptions", [...kindCharts(tx.inscription, "Inscription transactions"), ...flow(tx.inscription.fees, "Transaction fees", "Inscription transactions' fees"), chart("Fee share", "Inscription transactions' share of all fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
       ]),
       section("Inputs", [
         ...stats(t.inputs.count, "Count", "Inputs"),
