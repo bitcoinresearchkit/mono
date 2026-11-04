@@ -3753,7 +3753,14 @@ class ValueFlowStats(_Node):
     share: Share = _at(Share, 'fee_share')
 
 
-class MiningValueFlow(_Node):
+class FeesSeries(_Node):
+    block: OpReturnValue = _at(OpReturnValue, '*_fees')
+    cumulative: Value = _at(Value, '*_fees_cumulative')
+    sum: OpReturnWindows = _at(OpReturnWindows, '*_fees_sum')
+    chain_share: Share = _at(Share, '*_fee_chain_share')
+
+
+class TxValue(_Node):
     block: OpReturnValue = _at(OpReturnValue, '*')
     cumulative: Value = _at(Value, '*_cumulative')
     sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
@@ -3762,7 +3769,7 @@ class MiningValueFlow(_Node):
 
 class Rewards(_Node):
     coinbase: ValueFlow = _at(ValueFlow, '*')
-    subsidy: MiningValueFlow = _at(MiningValueFlow, 'subsidy')
+    subsidy: TxValue = _at(TxValue, 'subsidy')
     fees: ValueFlowStats = _at(ValueFlowStats, 'fees')
     unclaimed: ValueFlow = _at(ValueFlow, 'unclaimed_rewards')
 
@@ -3772,13 +3779,6 @@ class Mining(_Node):
     hashrate: Rate = _at(Rate, 'hashrate')
     hash_price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
     hash_value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')
-
-
-class FeesSeries(_Node):
-    block: OpReturnValue = _at(OpReturnValue, '*_fees')
-    cumulative: Value = _at(Value, '*_fees_cumulative')
-    sum: OpReturnWindows = _at(OpReturnWindows, '*_fees_sum')
-    chain_share: Share = _at(Share, '*_fee_chain_share')
 
 
 class Halving(_Node):
@@ -3911,13 +3911,6 @@ class DataBytesSeries(_Node):
     cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
     sum: Windows[Bytes] = _at(Windows, '*_bytes_sum')
     chain_share: Share = _at(Share, '*_chain_share')
-
-
-class TxValue(_Node):
-    block: SeriesPattern18[Sats] = _at(SeriesPattern18, '*')
-    cumulative: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_cumulative')
-    sum: Windows[Sats] = _at(Windows, '*_sum')
-    share: Share = _at(Share, '*_share')
 
 
 class Inscription(_Node):

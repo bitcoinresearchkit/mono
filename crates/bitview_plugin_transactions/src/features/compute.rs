@@ -3,7 +3,8 @@ use bitview_primitives::Count;
 use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Sats;
+
+use crate::flagged::TxValue;
 
 use super::{Vecs, with_flagged_features};
 
@@ -16,9 +17,7 @@ pub(crate) struct Counts<'a>([&'a mut PerBlockCumulativeRolling<Count>; FEATURES
 
 impl Vecs {
     /// The counts and the values apart, so both compute at once: the values are the fee pass's.
-    pub(crate) fn split_mut(
-        &mut self,
-    ) -> (Counts<'_>, [&mut PerBlockCumulativeRolling<Sats>; FEATURES]) {
+    pub(crate) fn split_mut(&mut self) -> (Counts<'_>, [&mut TxValue; FEATURES]) {
         macro_rules! split {
             (
                 scripts: [$($script:ident),*],
@@ -35,12 +34,12 @@ impl Vecs {
                         &mut self.one_output.count,
                     ]),
                     [
-                        $(&mut self.scripts.$script.count.value.value,)*
-                        $(&mut self.signatures.$signature.count.value.value,)*
-                        $(&mut self.$other.count.value.value,)*
-                        &mut self.segwit.value.value,
-                        &mut self.one_input.value.value,
-                        &mut self.one_output.value.value,
+                        $(&mut self.scripts.$script.count.value,)*
+                        $(&mut self.signatures.$signature.count.value,)*
+                        $(&mut self.$other.count.value,)*
+                        &mut self.segwit.value,
+                        &mut self.one_input.value,
+                        &mut self.one_output.value,
                     ],
                 )
             };

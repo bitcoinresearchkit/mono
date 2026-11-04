@@ -1059,7 +1059,13 @@ pub mod tree {
         p90: OpReturnWindows = "*_p90",
         share: Share = "fee_share",
     } }
-    shape! { MiningValueFlow at "series().mining.rewards.subsidy" {
+    shape! { FeesSeries at "series().op_return.fees" {
+        block: OpReturnValue = "*_fees",
+        cumulative: Value = "*_fees_cumulative",
+        sum: OpReturnWindows = "*_fees_sum",
+        chain_share: Share = "*_fee_chain_share",
+    } }
+    shape! { TxValue at "series().mining.rewards.subsidy" {
         block: OpReturnValue = "*",
         cumulative: Value = "*_cumulative",
         sum: OpReturnWindows = "*_sum",
@@ -1067,7 +1073,7 @@ pub mod tree {
     } }
     shape! { Rewards at "series().mining.rewards" {
         coinbase: ValueFlow = "*",
-        subsidy: MiningValueFlow = "subsidy",
+        subsidy: TxValue = "subsidy",
         fees: ValueFlowStats = "fees",
         unclaimed: ValueFlow = "unclaimed_rewards",
     } }
@@ -1076,12 +1082,6 @@ pub mod tree {
         hashrate: Rate = "hashrate",
         hash_price: HashPriceValue<Option<HashPrice>> = "*_price",
         hash_value: HashPriceValue<Option<HashValue>> = "*_value",
-    } }
-    shape! { FeesSeries at "series().op_return.fees" {
-        block: OpReturnValue = "*_fees",
-        cumulative: Value = "*_fees_cumulative",
-        sum: OpReturnWindows = "*_fees_sum",
-        chain_share: Share = "*_fee_chain_share",
     } }
     shape! { Halving at "series().blocks.halving" {
         epoch: SeriesPattern1<HalvingEpoch> = "*_epoch",
@@ -1195,12 +1195,6 @@ pub mod tree {
         cumulative: SeriesPattern1<Bytes> = "*_bytes_cumulative",
         sum: Windows<Bytes> = "*_bytes_sum",
         chain_share: Share = "*_chain_share",
-    } }
-    shape! { TxValue at "series().transactions.inscription.value" {
-        block: SeriesPattern18<Sats> = "*",
-        cumulative: SeriesPattern1<Sats> = "*_cumulative",
-        sum: Windows<Sats> = "*_sum",
-        share: Share = "*_share",
     } }
     shape! { Inscription at "series().transactions.inscription" {
         flag: SeriesPattern19<Boolean> = "has_*",

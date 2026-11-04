@@ -21,7 +21,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl Vecs {
     /// Coinjoins, consolidations, batch payouts.
-    pub(super) fn kinds_mut(&mut self) -> [&mut TxCount; 3] {
+    pub(crate) fn kinds_mut(&mut self) -> [&mut TxCount; 3] {
         [
             &mut self.coinjoin.count,
             &mut self.consolidation.count,

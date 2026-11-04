@@ -232,16 +232,6 @@ export function studioPresets(client, facts) {
    */
   const member = (name, items) => ((kept) => section(name, kept.length === 1 && "items" in kept[0] ? kept[0].items : kept))(/** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)));
 
-  /** @typedef {{ of: (name: string) => string, format: string }} Formula */
-  /**
-   * A series as a layer, or, with `formula`, a formula of it (its unit the formula's `format`).
-   * @param {any} node @param {string} label @param {Formula} [formula] @param {Layer} [extra] @returns {Layer}
-   */
-  const layerOf = (node, label, formula, extra = {}) => {
-    if (!formula) return series(node, label, extra);
-    if (!isLeaf(node)) throw new Error(`Not a series: ${label}`);
-    return { formula: formula.of(node.name), label, type: "line", format: formula.format, ...extra };
-  };
   /** A node's windows (`_24h`… and any other spans), in order. @param {any} node */
   const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
   /**
@@ -249,15 +239,14 @@ export function studioPresets(client, facts) {
    * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window. Read `around` a
    * base (a ratio's 1, a change's 0): each a baseline there, in its shades. `color`: the shown ones' (a cohort's own),
    * the others in their windows'.
-   * `formula`: each a formula of its series instead (`(name) => text`, with its unit, `format`).
-   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number, color?: string, formula?: Formula }} [options]
+   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number, color?: string }} [options]
    * @returns {Layer[]}
    */
   const windows = (node, what, options = {}) => {
     const list = windowsOf(node), pick = options.pick ?? ((n) => n);
     // (Said, as said, none at all too; else the month, or the longest where there's no month.)
     const shown = options.show ?? (list.some(([key]) => key === "_1m") ? ["_1m"] : [list.at(-1)?.[0]]);
-    return list.map(([key, value], i) => layerOf(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), options.formula, {
+    return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), {
       color: (shown.includes(key) && options.color) || WINDOW_COLORS[i % WINDOW_COLORS.length],
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
@@ -290,7 +279,8 @@ export function studioPresets(client, facts) {
    * A flow (an amount per block: summed over windows, `sum`, and since the start, `cumulative`) as charts: its sums,
    * the bitcoin's dollars below; since the start, a chart of its own (as a count's is).
    * Since the start, its title says so after the measure, before whose it is ("Rewards, all time: Foundry USA").
-   * `color`: a cohort's own, its month's and its sum's (its dollars green, as an amount's). Dollars on a log scale (they
+   * Bitcoin orange (or `color`, a cohort's own), its dollars green, as an amount's, shown window and sum alike (the
+   * hidden windows in their own). Dollars on a log scale (they
    * move with the price, decades over the years: on a linear one the early years lie flat): the bitcoin's, below, and
    * a flow in dollars alone (`dollars`).
    * @param {any} node @param {string} name @param {string} title @param {string} [color] @param {boolean} [dollars]
@@ -306,7 +296,7 @@ export function studioPresets(client, facts) {
       const scale = dollars ? { log: [1] } : {};
       return [...(layers.length ? [chart(name, titled(""), layers, scale)] : []), ...(byDate(node.cumulative) ? [chart(`${name}, all time`, titled(", all time"), [series(node.cumulative, "All time", { color: color ?? SUM_COLOR })], scale)] : [])];
     }
-    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc, color }), ...windows(sums, "Dollars", { pick: usd, pane: 2, ...(color ? { color: "green" } : {}) })], { log: [2] })];
+    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc, color: color ?? "orange" }), ...windows(sums, "Dollars", { pick: usd, pane: 2, color: "green" })], { log: [2] })];
     if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "Bitcoin", { color: color ?? "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])], { log: [2] }));
     return charts;
   };
@@ -328,26 +318,16 @@ export function studioPresets(client, facts) {
     const areas = layers.map((layer) => ({ ...layer, type: "area" }));
     return [chart(name, title, areas, { stack: { 1: "stack" } }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" } })];
   };
-  /** Sats as bitcoin, and as dollars at the price of each point (amount × price): what isn't stored in dollars. */
-  const coins = /** @type {Formula} */ ({ of: (name) => `${name} / 1e8`, format: "btc" });
-  const coinDollars = /** @type {Formula} */ ({ of: (name) => `${name} / 1e8 * ${t.price.close.name}`, format: "usd" });
   /** A title in a sentence: its first word lowered where it's a plain word ("Coinjoin transactions"). @param {string} title */
   const lowered = (title) => title.replace(/^\S+/, inSentence);
   /**
-   * A kind of transaction's value (its sats: a block's, summed over windows and since the start): in bitcoin, its
-   * dollars below at each point's price (a window's coins at its end's price); since the start, a chart of its own, in
-   * bitcoin alone (all of it at one day's price would be no dollar amount it ever was); then its share of transaction
-   * volume.
-   * @param {any} value @param {string} title @returns {ChartNode[]}
+   * A kind of transaction's value: its flow (bitcoin, its dollars below; since the start, a chart of its own), then its
+   * share of transaction volume. @param {any} value @param {string} title @returns {ChartNode[]}
    */
-  const valued = (value, title) => {
-    const moved = `Value moved by ${lowered(title)}`;
-    return [
-      chart("Value", moved, [...windows(value.sum, "Bitcoin", { formula: coins }), ...windows(value.sum, "Dollars", { formula: coinDollars, pane: 2 })], { log: [2] }),
-      chart("Value, all time", `${moved}, all time`, [layerOf(value.cumulative, "Bitcoin", coins, { color: "orange" })]),
-      chart("Value share", `Share of transaction volume moved by ${lowered(title)}`, sharesOf(value.share, "Share")),
-    ];
-  };
+  const valued = (value, title) => [
+    ...flow(value, "Value", `Value moved by ${lowered(title)}`),
+    chart("Value share", `Share of transaction volume moved by ${lowered(title)}`, sharesOf(value.share, "Share")),
+  ];
   /** A kind of transaction's charts: its count, then its value. @param {any} node @param {string} title */
   const kindCharts = (node, title) => [...counted(node, "Count", title), ...valued(node.value, title)];
   /**
@@ -980,7 +960,7 @@ export function studioPresets(client, facts) {
         section("Versions", [
           section("Compare", [
             ...parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] }))),
-            ...parts(["Value, 1 month", "Value moved by version, 1 month"], ["Value share, 1 month", "Share of transaction volume by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => layerOf(node.value.sum._1m, versionName(key), coins, { color: ramp(all.length)[i] }))),
+            ...parts(["Value, 1 month", "Value moved by version, 1 month"], ["Value share, 1 month", "Share of transaction volume by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.value.sum._1m.btc, versionName(key), { color: ramp(all.length)[i] }))),
           ]),
           ...entries(tx.versions).map(([key, node]) => section(versionName(key), kindCharts(node, key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`))),
         ]),
@@ -1356,7 +1336,7 @@ export function studioPresets(client, facts) {
     const pool = ([key, node, name]) => section(name, [
       ...counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
       ...flow(node.coinbase, "Coinbase", `Coinbase rewards: ${name}`),
-      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "Bitcoin", { pick: btc }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
+      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "Bitcoin", { pick: btc, color: "orange" }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2, color: "green" })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
     ].map((item) => (facts && !facts.recent.has(key.replace(/^_/, "")) ? { ...item, c: { ...item.c, range: "max" } } : item)));
     return [

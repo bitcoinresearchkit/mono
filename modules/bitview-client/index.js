@@ -4324,10 +4324,25 @@ const _ValueFlowStats = _s({
  *   block: OpReturnValue,
  *   cumulative: Value,
  *   sum: OpReturnWindows,
- *   share: Share,
- * }} MiningValueFlow
+ *   chainShare: Share,
+ * }} FeesSeries
  */
-const _MiningValueFlow = _s({
+const _FeesSeries = _s({
+  block: [_OpReturnValue, '*_fees'],
+  cumulative: [_Value, '*_fees_cumulative'],
+  sum: [_OpReturnWindows, '*_fees_sum'],
+  chainShare: [_Share, '*_fee_chain_share'],
+});
+
+/**
+ * @typedef {{
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   share: Share,
+ * }} TxValue
+ */
+const _TxValue = _s({
   block: [_OpReturnValue, '*'],
   cumulative: [_Value, '*_cumulative'],
   sum: [_OpReturnWindows, '*_sum'],
@@ -4337,14 +4352,14 @@ const _MiningValueFlow = _s({
 /**
  * @typedef {{
  *   coinbase: ValueFlow,
- *   subsidy: MiningValueFlow,
+ *   subsidy: TxValue,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
  * }} Rewards
  */
 const _Rewards = _s({
   coinbase: [_ValueFlow, '*'],
-  subsidy: [_MiningValueFlow, 'subsidy'],
+  subsidy: [_TxValue, 'subsidy'],
   fees: [_ValueFlowStats, 'fees'],
   unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
@@ -4362,21 +4377,6 @@ const _Mining = _s({
   hashrate: [_Rate, 'hashrate'],
   hashPrice: [_HashPriceValue, '*_price'],
   hashValue: [_HashPriceValue, '*_value'],
-});
-
-/**
- * @typedef {{
- *   block: OpReturnValue,
- *   cumulative: Value,
- *   sum: OpReturnWindows,
- *   chainShare: Share,
- * }} FeesSeries
- */
-const _FeesSeries = _s({
-  block: [_OpReturnValue, '*_fees'],
-  cumulative: [_Value, '*_fees_cumulative'],
-  sum: [_OpReturnWindows, '*_fees_sum'],
-  chainShare: [_Share, '*_fee_chain_share'],
 });
 
 /**
@@ -4663,21 +4663,6 @@ const _DataBytesSeries = _s({
   cumulative: [_i1, '*_bytes_cumulative'],
   sum: [_Windows, '*_bytes_sum'],
   chainShare: [_Share, '*_chain_share'],
-});
-
-/**
- * @typedef {{
- *   block: SeriesPattern18<Sats>,
- *   cumulative: SeriesPattern1<Sats>,
- *   sum: Windows<Sats>,
- *   share: Share,
- * }} TxValue
- */
-const _TxValue = _s({
-  block: [_i18, '*'],
-  cumulative: [_i1, '*_cumulative'],
-  sum: [_Windows, '*_sum'],
-  share: [_Share, '*_share'],
 });
 
 /**

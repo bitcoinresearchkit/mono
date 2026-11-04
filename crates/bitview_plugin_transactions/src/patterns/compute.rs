@@ -81,7 +81,7 @@ impl Vecs {
                         self.kinds_mut().into_iter().zip(counts).zip(values)
                     {
                         kind.count.push_block(Count::from(count));
-                        kind.value.push_block(value);
+                        kind.value.push(value);
                     }
                 }
             }

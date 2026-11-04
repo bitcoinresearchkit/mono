@@ -2,12 +2,16 @@ use bitview_primitives::{Boolean, Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     IndexSources, LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling,
-    ops::Quotient, shapes::Windows,
+    ValuePerBlockCumulativeRolling, ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
-use brk_types::{Height, Sats, TxIndex, Version};
+use brk_exit::Exit;
+use brk_types::{Cents, Height, Sats, TxIndex, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, ReadableCloneableVec, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, Database, ImportableVec, PcoVec, ReadableCloneableVec, ReadableVec, Rw,
+    StorageMode,
+};
 
 /// A kind of transaction: its per-transaction flag beside its per-block count.
 #[derive(Clone, Traversable)]
@@ -56,9 +60,32 @@ pub struct TxValue<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub value: PerBlockCumulativeRolling<Sats, M>,
+    pub value: ValuePerBlockCumulativeRolling<M>,
     /// Their share of transfer volume.
     pub share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+}
+
+impl TxValue {
+    /// A block's value, in sats: its dollars compute apart (`compute_cents`).
+    #[inline]
+    pub(crate) fn push(&mut self, value: Sats) {
+        self.value.push_sats(value);
+    }
+
+    /// The stored sats, per block (the dollars resume by them).
+    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+        &mut self.value.cumulative.sats.height
+    }
+
+    /// Each block's dollars, its sats at its price, from `start`.
+    pub(crate) fn compute_cents(
+        &mut self,
+        start: Height,
+        price: &impl ReadableVec<Height, Cents>,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.value.compute_cents(start, price, exit)
+    }
 }
 
 impl TxCount {
@@ -94,7 +121,7 @@ impl TxCount {
             window_starts,
             indexes,
         );
-        let value = PerBlockCumulativeRolling::import(
+        let value = ValuePerBlockCumulativeRolling::import(
             db,
             &format!("{kind}_value"),
             version,
@@ -108,7 +135,7 @@ impl TxCount {
         >(
             &format!("{kind}_value_share"),
             version,
-            value.cumulative_source(),
+            value.cumulative.sats.resolutions.height_source(),
             totals.volume,
             window_starts,
             indexes,

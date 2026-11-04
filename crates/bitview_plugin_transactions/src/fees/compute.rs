@@ -50,10 +50,10 @@ impl Vecs {
         mappings: &MappingsVecs,
         vsize: &mut TxDistribution<VSize>,
         transfer_volume: &mut CachedSeries<Height, Sats>,
-        mut valued: Valued<'_>,
+        valued: &mut Valued<'_>,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute_fees(indexer, mappings, vsize, transfer_volume, &mut valued, exit)?;
+        self.compute_fees(indexer, mappings, vsize, transfer_volume, valued, exit)?;
         self.total_cumulative.compute_cumulative(
             indexer.compute_start().height,
             &self.total,
@@ -376,19 +376,13 @@ impl Vecs {
             }
             self.cpfp_parent.count.push_block(Count::from(parent_count));
             self.cpfp_child.count.push_block(Count::from(child_count));
-            self.cpfp_parent
-                .count
-                .value
-                .push_block(block.values[CPFP_PARENT]);
-            self.cpfp_child
-                .count
-                .value
-                .push_block(block.values[CPFP_CHILD]);
+            self.cpfp_parent.count.value.push(block.values[CPFP_PARENT]);
+            self.cpfp_child.count.value.push(block.values[CPFP_CHILD]);
             valued
                 .nonstandard_count
                 .push_block(Count::from(nonstandard_count));
             for (bit, value) in valued.values_mut() {
-                value.push_block(block.values[bit]);
+                value.push(block.values[bit]);
             }
             cumulative.1 += block.inscription_fees;
             valued.inscription_fees.push(cumulative.1);

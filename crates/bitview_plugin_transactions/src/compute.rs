@@ -1,10 +1,10 @@
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::Count;
 use brk_error::Result;
-use rayon::join;
+use rayon::{join, prelude::*};
 
 use super::Vecs;
-use crate::{Dependencies, fees::Valued};
+use crate::{Dependencies, fees::Valued, flagged::TxValue};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -46,7 +46,12 @@ impl ComputePlugin for Vecs {
                     || {
                         join(
                             || count.compute(start, &mappings.lookback.window_starts(), exit),
-                            || patterns.compute(indexer, mappings, exit),
+                            || {
+                                patterns.compute(indexer, mappings, exit)?;
+                                patterns.kinds_mut().into_iter().try_for_each(|kind| {
+                                    kind.value.compute_cents(start, price, exit)
+                                })
+                            },
                         )
                     },
                     || {
@@ -81,11 +86,11 @@ impl ComputePlugin for Vecs {
             },
             // The fee pass (with the vsize distribution and every kind's value), then dollars.
             || {
-                let valued = Valued {
+                let mut valued = Valued {
                     features: feature_values,
-                    inscription: &mut inscription.count.value.value,
+                    inscription: &mut inscription.count.value,
                     versions: version_values,
-                    nonstandard: &mut nonstandard.count.value.value,
+                    nonstandard: &mut nonstandard.count.value,
                     nonstandard_flag: &mut nonstandard.flag,
                     nonstandard_count: &mut nonstandard.count.count,
                     inscription_fees: &mut inscription.fees.cumulative.sats.height,
@@ -95,14 +100,26 @@ impl ComputePlugin for Vecs {
                     mappings,
                     &mut vsize.distribution,
                     &mut transfer_volume.cumulative.sats.height,
-                    valued,
+                    &mut valued,
                     exit,
                 )?;
-                let (inscription, volume) = join(
-                    || inscription.fees.compute_cents(start, price, exit),
+                // Each block's dollars, its sats at its price, every kind's at once.
+                let mut values: Vec<&mut TxValue> =
+                    valued.values_mut().map(|(_, value)| value).collect();
+                values.extend([
+                    &mut fees.cpfp_parent.count.value,
+                    &mut fees.cpfp_child.count.value,
+                ]);
+                let (kinds, volume) = join(
+                    || {
+                        values
+                            .par_iter_mut()
+                            .try_for_each(|value| value.compute_cents(start, price, exit))
+                    },
                     || transfer_volume.compute_cents(start, price, exit),
                 );
-                inscription.and(volume)
+                kinds.and(volume)?;
+                inscription.fees.compute_cents(start, price, exit)
             },
         );
         independent.and(fee_based)

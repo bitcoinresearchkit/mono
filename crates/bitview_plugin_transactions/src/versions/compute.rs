@@ -3,7 +3,8 @@ use bitview_primitives::Count;
 use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Sats;
+
+use crate::flagged::TxValue;
 
 use super::Vecs;
 
@@ -12,7 +13,7 @@ pub(crate) struct Counts<'a>([&'a mut PerBlockCumulativeRolling<Count>; 4]);
 
 impl Vecs {
     /// The counts and the values apart, so both compute at once: the values are the fee pass's.
-    pub(crate) fn split_mut(&mut self) -> (Counts<'_>, [&mut PerBlockCumulativeRolling<Sats>; 4]) {
+    pub(crate) fn split_mut(&mut self) -> (Counts<'_>, [&mut TxValue; 4]) {
         let Self { v1, v2, v3, other } = self;
         (
             Counts([
@@ -22,10 +23,10 @@ impl Vecs {
                 &mut other.count,
             ]),
             [
-                &mut v1.value.value,
-                &mut v2.value.value,
-                &mut v3.value.value,
-                &mut other.value.value,
+                &mut v1.value,
+                &mut v2.value,
+                &mut v3.value,
+                &mut other.value,
             ],
         )
     }

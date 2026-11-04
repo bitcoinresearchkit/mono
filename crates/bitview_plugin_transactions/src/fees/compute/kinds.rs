@@ -9,7 +9,10 @@ use brk_types::{Height, Sats, TxIndex, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec};
 
-use crate::features::{FEATURES, with_flagged_features};
+use crate::{
+    features::{FEATURES, with_flagged_features},
+    flagged::TxValue,
+};
 
 /// The features with a flag, read first (bits from 0, in `with_flagged_features` order).
 const FLAGGED: usize = FEATURES - 3;
@@ -67,10 +70,10 @@ const fn eq(a: &[u8], b: &[u8]) -> bool {
 /// SegWit and the single input and output last), inscriptions, the versions and nonstandard;
 /// with nonstandard's flag and count, and inscriptions' fees, which the same transactions give.
 pub(crate) struct Valued<'a> {
-    pub features: [&'a mut PerBlockCumulativeRolling<Sats>; FEATURES],
-    pub inscription: &'a mut PerBlockCumulativeRolling<Sats>,
-    pub versions: [&'a mut PerBlockCumulativeRolling<Sats>; 4],
-    pub nonstandard: &'a mut PerBlockCumulativeRolling<Sats>,
+    pub features: [&'a mut TxValue; FEATURES],
+    pub inscription: &'a mut TxValue,
+    pub versions: [&'a mut TxValue; 4],
+    pub nonstandard: &'a mut TxValue,
     pub nonstandard_flag: &'a mut PcoVec<TxIndex, Boolean>,
     pub nonstandard_count: &'a mut PerBlockCumulativeRolling<Count>,
     /// Inscription transactions' fees through every block, in sats.
@@ -79,9 +82,7 @@ pub(crate) struct Valued<'a> {
 
 impl Valued<'_> {
     /// Each value with its bit.
-    pub fn values_mut(
-        &mut self,
-    ) -> impl Iterator<Item = (usize, &mut PerBlockCumulativeRolling<Sats>)> {
+    pub fn values_mut(&mut self) -> impl Iterator<Item = (usize, &mut TxValue)> {
         let [features @ .., segwit, one_input, one_output] = &mut self.features;
         features
             .iter_mut()
