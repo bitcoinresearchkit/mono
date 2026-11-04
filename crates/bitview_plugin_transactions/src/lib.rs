@@ -64,7 +64,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// replacement, or node-specific settings. Modeled rules change after height
     /// 863,500 and at heights 892,500 and 921,000; coinbase transactions are not
     /// evaluated (never nonstandard).
-    #[traversable(lead = "Nonstandard transactions: ones Bitcoin Core's default policy likely wouldn't relay, as far as one transaction shows.")]
+    #[traversable(
+        lead = "Nonstandard transactions: ones Bitcoin Core's default policy likely wouldn't relay, as far as one transaction shows."
+    )]
     nonstandard: Classified<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.

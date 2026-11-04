@@ -41,16 +41,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// vsize, max the higher of the 99th percentile and the highest among those
     /// overlapping its first 2% (mempool.space's heuristic); null for a block
     /// without them. Time-period indexes take the period's final block.
-    #[traversable(lead = "Effective fee rate: what transactions paid per virtual byte, with the related transactions they confirm with.")]
+    #[traversable(
+        lead = "Effective fee rate: what transactions paid per virtual byte, with the related transactions they confirm with."
+    )]
     pub effective_fee_rate: PerTxDistribution<FeeRate, M>,
     /// Child-pays-for-parent (CPFP) parents: transactions whose effective (chunk) fee rate is
     /// higher than their raw fee rate because same-block descendants raise the rate at which
     /// their chunk is evaluated.
-    #[traversable(lead = "CPFP parents: transactions a later one paid to confirm (child pays for parent).")]
+    #[traversable(
+        lead = "CPFP parents: transactions a later one paid to confirm (child pays for parent)."
+    )]
     pub(crate) cpfp_parent: Classified<M>,
     /// Child-pays-for-parent (CPFP) children: transactions whose effective (chunk) fee rate is
     /// lower than their raw fee rate because their fee raises the rate at which a same-block
     /// chunk is evaluated.
-    #[traversable(lead = "CPFP children: transactions paying extra to confirm the ones before them (child pays for parent).")]
+    #[traversable(
+        lead = "CPFP children: transactions paying extra to confirm the ones before them (child pays for parent)."
+    )]
     pub(crate) cpfp_child: Classified<M>,
 }
