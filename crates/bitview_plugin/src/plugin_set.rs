@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use brk_error::Result;
+use brk_types::Transaction;
 
 use crate::{Plugin, UpdateContext};
 
@@ -46,4 +49,9 @@ pub trait ComputePluginSet: PluginSet {
     /// Writes what [`Self::commit`] published from memory, before the next update. Compositions
     /// delegate it to the default composition.
     fn write_published(&mut self) -> Result<()>;
+
+    /// Reads what an update of a block holding `txs` would read, so that update finds it in
+    /// memory: called between updates with the likely next block. Reads only. Compositions
+    /// delegate it to the default composition.
+    fn warm(&self, txs: &[Arc<Transaction>]);
 }

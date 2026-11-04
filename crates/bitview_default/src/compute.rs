@@ -1,4 +1,4 @@
-use std::thread;
+use std::{sync::Arc, thread};
 
 use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
@@ -9,6 +9,7 @@ use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
 use bitview_plugin_cointime::Dependencies as CointimeDependencies;
 use bitview_plugin_entry::Dependencies as EntryDependencies;
 use bitview_plugin_holders::Dependencies as HoldersDependencies;
+use bitview_plugin_indexer::Touched;
 use bitview_plugin_inputs::Dependencies as InputsDependencies;
 use bitview_plugin_mappings::Dependencies as MappingsDependencies;
 use bitview_plugin_market::Dependencies as MarketDependencies;
@@ -25,6 +26,7 @@ use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
 use bitview_urpd::ReplayInputs;
 use brk_error::Result;
+use brk_types::Transaction;
 use rayon::join;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
@@ -406,5 +408,15 @@ impl ComputePluginSet for DefaultPlugins {
 
     fn write_published(&mut self) -> Result<()> {
         self.addresses.write_published_state()
+    }
+
+    // The reads an update spends most of its time on when idle minutes left them on disk: the
+    // indexer's lookups, the spend index's entries and the addresses' data.
+    fn warm(&self, txs: &[Arc<Transaction>]) {
+        let Touched { spent, addresses } = self.indexer.warm(txs);
+        join(
+            || self.outputs.spent.warm(&spent),
+            || self.addresses.warm(&addresses),
+        );
     }
 }

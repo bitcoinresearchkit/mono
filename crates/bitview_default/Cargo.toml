@@ -40,6 +40,7 @@ bitview_traversable = { workspace = true }
 brk_alloc = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 brk_reader = { workspace = true }
+brk_types = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }

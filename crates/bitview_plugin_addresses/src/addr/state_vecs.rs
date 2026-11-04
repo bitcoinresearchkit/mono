@@ -351,6 +351,16 @@ impl<M: StorageMode> AddrStateRead<'_, M> {
         {
             return Ok(changed.clone());
         }
+        self.stored_addr_data(addr_type, type_index)
+    }
+
+    /// An address's data and whether it is funded, as stored: without the publication's
+    /// changes, which [`Self::addr_data`] adds.
+    pub(crate) fn stored_addr_data(
+        &self,
+        addr_type: OutputType,
+        type_index: TypeIndex,
+    ) -> Result<(FundedAddressData, bool)> {
         let vecs = self.vecs;
         Ok(match vecs.primary(addr_type, type_index)?.decode() {
             DecodedAddrState::Funded(index) => (vecs.funded.collect_one(index).data()?, true),

@@ -16,4 +16,5 @@ brk_exit = { workspace = true }
 bitview_plugin_derive = { workspace = true, optional = true }
 bitview_traversable = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
+brk_types = { workspace = true }
 vecdb = { workspace = true }

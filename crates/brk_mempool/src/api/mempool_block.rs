@@ -57,6 +57,12 @@ impl ReadOnlyState {
         }
     }
 
+    /// The currently published template's transactions, in template order.
+    #[must_use]
+    pub fn template_transactions(&self) -> Arc<[Arc<Transaction>]> {
+        self.snapshot().template_transactions().clone()
+    }
+
     /// Validate and capture the historical side of one diff request.
     #[must_use]
     pub fn resolve_mempool_block_diff(

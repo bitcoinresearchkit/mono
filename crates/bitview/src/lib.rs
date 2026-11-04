@@ -36,6 +36,11 @@ pub use config::{Config, DEFAULT_CACHE_BUDGET};
 use bitview_plugin::ComputePluginSet;
 use update::update;
 
+/// How often an idle server reads what the next update will: an update a minute after the last
+/// still finds it in memory, one ten minutes after mostly on disk.
+#[cfg(feature = "price")]
+const WARM_INTERVAL: Duration = Duration::from_secs(30);
+
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
     pub client: Client,
@@ -138,6 +143,8 @@ where
     let server_handle = runtime.spawn(server.serve());
 
     #[cfg(feature = "price")]
+    let template = mempool.read_only_clone();
+    #[cfg(feature = "price")]
     let published = {
         let resolver = query.sync(|q| q.indexer_prevout_resolver());
         let chain = query.sync(bitview_query::Query::clone);
@@ -151,11 +158,20 @@ where
     info!("Waiting for new blocks...");
 
     loop {
+        #[cfg(feature = "price")]
+        let mut warmed = Instant::now();
         // Compare against published state, not a cached node observation: a
         // reorg can replace the tip without changing its height.
         while query.sync(|q| q.tip_blockhash()) == client.get_best_block_hash()? {
             if server_handle.is_finished() {
                 return server_stopped(&runtime, server_handle);
+            }
+            // Idle minutes leave what the next update reads on disk: read it again before it
+            // goes cold, from the template the next block most likely shares.
+            #[cfg(feature = "price")]
+            if warmed.elapsed() >= WARM_INTERVAL {
+                plugins.warm(&template.load().template_transactions());
+                warmed = Instant::now();
             }
             sleep(Duration::from_secs(1));
         }

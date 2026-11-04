@@ -14,12 +14,16 @@ pub use addr::AddrStateRead;
 pub use dependencies::Dependencies;
 pub use has::HasAddresses;
 
+use std::hint::black_box;
+
 use bitview_cohort::{AddressType, AmountRangeId};
 use bitview_distribution::metrics::{CapitalViews, SupplyViews};
 use bitview_distribution::{RealizedCaps, replay::LiveState};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
+use bitview_primitives::TypeIndex;
 use bitview_traversable::Traversable;
-use brk_types::Version;
+use brk_types::{OutputType, Version};
+use rayon::prelude::*;
 use vecdb::{Database, Rw, StorageMode};
 
 use addr::{AddrStateVecs, AddressVecs};
@@ -61,5 +65,18 @@ impl<M: StorageMode> Vecs<M> {
     /// catch-up's or a rollback's write holds the lock.
     pub fn read_state(&self) -> Option<AddrStateRead<'_, M>> {
         self.state.read()
+    }
+}
+
+impl Vecs {
+    /// Reads `addresses`' stored data, as the next update's loads will, keeping nothing. Skipped
+    /// while a catch-up's or a rollback's write holds the state.
+    pub fn warm(&self, addresses: &[(OutputType, TypeIndex)]) {
+        let Some(state) = self.state.read() else {
+            return;
+        };
+        addresses.par_iter().for_each(|&(addr_type, type_index)| {
+            let _ = black_box(state.stored_addr_data(addr_type, type_index));
+        });
     }
 }

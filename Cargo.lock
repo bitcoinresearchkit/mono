@@ -411,6 +411,7 @@ dependencies = [
  "brk_alloc",
  "brk_error",
  "brk_reader",
+ "brk_types",
  "rayon",
  "tracing",
  "vecdb",
@@ -497,6 +498,7 @@ dependencies = [
  "bitview_traversable",
  "brk_error",
  "brk_exit",
+ "brk_types",
  "vecdb",
 ]
 
