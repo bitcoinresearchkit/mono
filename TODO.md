@@ -189,12 +189,16 @@ Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studi
 
 The website is gone: the server serves the showcases, Bitview's front page (`showcases/index.html`) at `/`.
 
-- The explorer, designed from scratch (replaces the `_chain` draft): blocks, transactions and addresses, the next
-  block forming live. Direction chosen 2026-11-04: the Live floor mockup's, mempool.space's model made much better and
-  cleaner (shots of the three mockups in `_notes/explorer-mockups-20261104/`). At `/explorer/`, served but unlisted
-  (home.mjs UNLISTED): the belt of projected and confirmed blocks, the next block live, every block's exact map, fees
-  to get in, block, transaction and address views, search, keys. Two Codex rounds fixed (22 and 9 findings). Left:
-  listed on the front page (card, preview) when the user says; the `_chain` draft removed.
+- The explorer, at `/explorer/`, listed on the front page (2026-11-05: its row, cover, card, sitemap; the latest blocks'
+  tiles open it), rebuilt into one system: every page a block, a transaction or an address, an answer column beside
+  its picture (the rounds of live mockups, sources and sheets, in `_notes/explorer-mockups-20261105/`), at
+  mempool.space's paths under its folder (`block/HEIGHT|HASH`, `tx/TXID`, `address/ADDRESS`, `mempool-block/N`). The
+  home is the forming block's view under the chain strip (no dashboard); a block, its answer beside its exact map; a
+  transaction, a timeline of its moments (sent, each fee raise, now, its block, each confirmation, settled at 6) with
+  the blocks between two of them as one strip, a replaced version its own page, value created and destroyed; an
+  address, its transactions as a timeline. Server side: replacement chains are kept only about an hour after the
+  payment confirms (a replaced version's page goes back to "Not found."), and a transaction's first-seen time is
+  forgotten once it confirms (a confirmed one can't say how long it waited).
 - Ledger, a showcase of its own, at `/ledger/`, served but unlisted: every block a line (time, miner, txs, moved,
   fees, profit, loss), a day starting a page and running over as many as it takes (brought and carried forward, its
   total and margin notes on its last), pages sized to the screen with the columns that fit (no scaling), a crease

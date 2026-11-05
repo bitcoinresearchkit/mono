@@ -95,7 +95,7 @@ if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().
 const folders = new TextDecoder().decode(git.stdout).split("\n").filter(Boolean).map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
 // (On it: in its rows, APPS or DEV, the footer's links not counting; or unlisted, in UNLISTED: served at its address,
 // with its icon, but off the front page and the sitemap, until it's ready to be listed.)
-const UNLISTED = ["/explorer/", "/ledger/"];
+const UNLISTED = ["/ledger/"];
 for (const href of UNLISTED) if ([...apps, ...dev].includes(href)) problems.push(`${href}: in the front page's rows and in UNLISTED (take it out of UNLISTED)`);
 for (const name of folders)
   if (![...apps, ...dev, ...UNLISTED].includes(`/${name}/`))
@@ -121,6 +121,7 @@ const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntr
 const CARDS = {
   studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [1600, 840], settle: 16000 },
   oracle: { url: "/oracle/", settle: 9000 },
+  explorer: { url: "/explorer/", settle: 9000 },
   globe: { url: "/globe/", settle: 9000 },
   trail: { url: "/trail/", settle: 12000 },
   stack: { url: "/stack/", settle: 8000 },
@@ -186,6 +187,7 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 const PICTURES = {
   studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
   oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
+  explorer: { url: "/explorer/", settle: 9000, cover: [8, 60, 1344, 840] },
   globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
   trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
   stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },

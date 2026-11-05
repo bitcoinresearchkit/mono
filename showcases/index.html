@@ -2214,7 +2214,7 @@
 
     <main id="shelves">
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
-      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
@@ -2290,7 +2290,6 @@
         const days = Math.floor(s / 86_400);
         return `${days} day${days > 1 ? "s" : ""}`;
       };
-      const iso = (/** @type {number} */ seconds) => new Date(seconds * 1000).toISOString().slice(0, 10);
 
       // ── What there is: the titles, each its kind, a line, its words, its way in ──
 
@@ -2303,6 +2302,7 @@
       const APPS = /** @type {any[]} */ ([
         { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/", made: "Every series Bitview computes from the chain" },
         { id: "oracle", kind: "Price", line: "Bitcoin's price, read from the chain alone.", href: "/oracle/", live: true, made: "Round-dollar payments in each block" },
+        { id: "explorer", kind: "Blocks", line: "Every block, transaction and address, and what gets you in.", href: "/explorer/", live: true, made: "Each block, the mempool and every transaction's coins" },
         { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since 2011.", href: "/globe/", live: true, made: "Each block's mining pool and its home country" },
         { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the price it last moved at" },
         { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/", made: "The daily price, Bedrock's floors, what young coins paid" },
@@ -2325,6 +2325,7 @@
       const FROM_APPS = {
         "/studio/": { "name": "Studio", "about": "Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." },
         "/oracle/": { "name": "Oracle", "about": "Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." },
+        "/explorer/": { "name": "Explorer", "about": "What it takes to get into the next Bitcoin block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." },
         "/globe/": { "name": "Globe", "about": "Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." },
         "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution." },
         "/stack/": { "name": "Stack", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
@@ -2675,10 +2676,10 @@
         const when = el("div", { className: "ago" }, ago(b.timestamp));
         when.dataset.at = String(b.timestamp);
         const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
-        const tile = el("a", { className: "tile block", href: `/calendar/?view=day&date=${iso(b.timestamp)}` },
+        const tile = el("a", { className: "tile block", href: `/explorer/block/${b.height}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
           el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
-        tile.dataset.open = "calendar";
+        tile.dataset.open = "explorer";
         tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
         tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
         return el("li", {}, tile);

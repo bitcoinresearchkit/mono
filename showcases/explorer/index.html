@@ -6,13 +6,22 @@
     <script src="/assets/launch/launch.js" data-app="Explorer" data-color="#e8890c"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfc" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfa" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
     <title>Explorer · Bitview</title>
-    <meta
-      name="description"
-      content="Bitcoin's blocks, transactions and addresses, live: the next block as it forms, every block's exact map, and what each coin spent had gained or lost since it was born."
-    />
+    <meta name="description" content="What it takes to get into the next Bitcoin block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by showcases/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/explorer/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/explorer/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Explorer · Bitview" />
+    <meta property="og:description" content="What it takes to get into the next Bitcoin block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/explorer.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Explorer: the block forming now, each of its transactions a square, beside what it takes to get in, under the chain's latest blocks" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
       @font-face {
@@ -29,33 +38,37 @@
       }
 
       :root {
-        --bg: #fbfbfc;
-        --raise: #ffffff;
-        --ink: #0f0f12;
-        --soft: #686874;
-        --faint: #a3a3ad;
-        --line: rgb(15 15 18 / 0.08);
-        --tank: #eff0f3;
-        --profit: #14894a;
-        --loss: #d1392f;
-        --miner: #e8890c;
+        --bg: #fbfbfa;
+        --ink: #0e0e10;
+        --soft: #6d6d77;
+        --faint: #b3b3bb;
+        --line: rgb(14 14 16 / 0.08);
+        --hair: rgb(14 14 16 / 0.05);
+        --tank: #f0f0f1;
+        --well: #ffffff;
+        --now: #f7931a;
+        --now-text: #b25a00;
+        --profit: #13874a;
+        --loss: #d23a30;
+        --miner: #f7931a;
         --mono: Lilex, ui-monospace, monospace;
-        --tile: 96px;
-        --map: min(100%, 580px);
+        --gutter: 40px;
         color-scheme: light;
       }
       @media (prefers-color-scheme: dark) {
         :root {
           --bg: #09090b;
-          --raise: #111114;
-          --ink: #f3f3f5;
-          --soft: #8f8f9b;
-          --faint: #54545e;
-          --line: rgb(255 255 255 / 0.075);
-          --tank: #141418;
-          --profit: #36c978;
-          --loss: #ff6b5e;
-          --miner: #f7a23b;
+          --ink: #ededf0;
+          --soft: #8a8a94;
+          --faint: #47474f;
+          --line: rgb(255 255 255 / 0.08);
+          --hair: rgb(255 255 255 / 0.045);
+          --tank: #121215;
+          --well: #151518;
+          --now: #f7931a;
+          --now-text: #f7931a;
+          --profit: #3ccf7f;
+          --loss: #ff6d60;
           color-scheme: dark;
         }
       }
@@ -68,9 +81,10 @@
         margin: 0;
         background: var(--bg);
         color: var(--ink);
-        font: 14px/1.45 Inter, system-ui, sans-serif;
+        font: 14px/1.5 Inter, system-ui, sans-serif;
         font-feature-settings: "tnum", "cv11";
         -webkit-text-size-adjust: none;
+        -webkit-font-smoothing: antialiased;
       }
       a {
         color: inherit;
@@ -80,15 +94,21 @@
         font: inherit;
         color: inherit;
       }
+      h1,
+      h2,
+      h3,
+      p,
+      dl,
+      dd,
+      figure {
+        margin: 0;
+      }
       .vh {
         position: absolute;
         width: 1px;
         height: 1px;
         overflow: hidden;
         clip-path: inset(50%);
-      }
-      .mono {
-        font-family: var(--mono);
       }
       .soft {
         color: var(--soft);
@@ -99,10 +119,23 @@
       .lost {
         color: var(--loss);
       }
+      .unit {
+        color: var(--soft);
+        font-weight: 450;
+        letter-spacing: 0;
+      }
       :focus-visible {
         outline: 2px solid var(--ink);
         outline-offset: 2px;
         border-radius: 6px;
+      }
+      /* A label over its figure: small, spaced capitals. */
+      .label {
+        color: var(--soft);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       /* The bar: the brand, the search, the price. */
@@ -110,15 +143,18 @@
         position: sticky;
         top: 0;
         z-index: 5;
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr minmax(0, 520px) 1fr;
         align-items: center;
-        gap: 16px;
-        height: 56px;
-        padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
-        background: color-mix(in srgb, var(--bg) 86%, transparent);
-        backdrop-filter: blur(16px);
+        gap: 20px;
+        height: 60px;
+        padding: 0 max(var(--gutter), env(safe-area-inset-right)) 0 max(var(--gutter), env(safe-area-inset-left));
+        background: color-mix(in srgb, var(--bg) 85%, transparent);
+        backdrop-filter: blur(20px) saturate(1.5);
+        border-bottom: 1px solid var(--hair);
       }
       .brand {
+        justify-self: start;
         display: inline-flex;
         align-items: center;
         gap: 9px;
@@ -132,47 +168,79 @@
       }
       .find {
         position: relative;
-        flex: 1;
-        max-width: 560px;
-        margin: 0 auto;
+        svg {
+          position: absolute;
+          top: 11px;
+          left: 13px;
+          width: 14px;
+          height: 14px;
+          color: var(--faint);
+          pointer-events: none;
+        }
         input {
           width: 100%;
-          height: 38px;
-          padding: 0 40px 0 16px;
+          height: 36px;
+          padding: 0 36px;
           border: 0;
-          border-radius: 19px;
-          background: var(--raise);
-          box-shadow: inset 0 0 0 1px var(--line);
+          border-radius: 10px;
+          background: var(--tank);
           color: var(--ink);
           font: 13px var(--mono);
           outline: none;
+          transition: background 120ms, box-shadow 120ms;
         }
         input::placeholder {
-          color: var(--faint);
+          color: var(--soft);
           font-family: Inter, sans-serif;
         }
         input:focus {
-          box-shadow: inset 0 0 0 1.5px var(--ink);
+          background: var(--well);
+          box-shadow: 0 0 0 1px var(--line), 0 6px 24px -8px rgb(0 0 0 / 0.25);
+        }
+        input::-webkit-search-cancel-button {
+          display: none;
         }
         kbd {
           position: absolute;
-          top: 10px;
-          right: 15px;
-          color: var(--faint);
+          top: 8px;
+          right: 9px;
+          display: grid;
+          place-items: center;
+          min-width: 20px;
+          height: 20px;
+          border-radius: 5px;
+          box-shadow: inset 0 0 0 1px var(--line);
+          color: var(--soft);
           font: 11px var(--mono);
+        }
+        input:focus ~ kbd {
+          display: none;
         }
         .miss {
           position: absolute;
           top: 44px;
-          left: 16px;
-          color: var(--loss);
+          left: 0;
+          padding: 5px 10px;
+          border-radius: 8px;
+          background: var(--ink);
+          color: var(--bg);
           font-size: 12px;
+          white-space: nowrap;
+        }
+        .miss:empty {
+          display: none;
         }
       }
       .price {
-        min-width: 92px;
-        font: 600 14px var(--mono);
-        text-align: right;
+        justify-self: end;
+        font-size: 14px;
+        font-weight: 550;
+        span {
+          margin-right: 8px;
+          color: var(--soft);
+          font-size: 12px;
+          font-weight: 450;
+        }
       }
       @media (hover: none) {
         .find kbd {
@@ -183,389 +251,331 @@
         }
       }
 
-      /* The belt: projected blocks, now, then the confirmed ones going back. */
-      .belt {
-        position: relative;
-        display: flex;
-        gap: 14px;
-        height: calc(var(--tile) + 74px);
-        padding: 8px 20px 0;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        mask-image: linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent);
-        scrollbar-width: none;
-        &::-webkit-scrollbar {
-          display: none;
-        }
-      }
-      .tiles {
-        display: flex;
-        gap: 14px;
-      }
-      .tile {
-        display: grid;
-        grid-template-rows: 20px var(--tile) auto;
-        gap: 6px;
-        width: var(--tile);
-        padding: 0;
-        border: 0;
-        background: none;
-        cursor: pointer;
-        text-align: left;
-        .over {
-          font: 600 13px var(--mono);
-          white-space: nowrap;
-        }
-        .face {
-          position: relative;
-          overflow: hidden;
-          border-radius: 14px;
-          box-shadow: inset 0 0 0 1px var(--line);
-          transition:
-            box-shadow 160ms,
-            transform 160ms;
-        }
-        .face i {
-          display: block;
-        }
-        .under {
-          color: var(--soft);
-          font-size: 11.5px;
-          line-height: 1.35;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .under b {
-          color: var(--ink);
-          font: 500 12px var(--mono);
-        }
-        &[aria-current="true"] .face {
-          box-shadow:
-            0 0 0 2px var(--bg),
-            0 0 0 4px var(--ink);
-        }
-        &.projected .over {
-          color: var(--soft);
-          font-weight: 500;
-        }
-        &.projected .face {
-          opacity: 0.92;
-        }
-      }
-      @media (hover: hover) {
-        .tile:hover .face {
-          transform: translateY(-2px);
-        }
-      }
-      .now {
-        flex: none;
-        position: relative;
-        width: 1px;
-        margin: 26px 12px 44px;
-        background: var(--faint);
-        span {
-          position: absolute;
-          top: -22px;
-          left: 50%;
-          translate: -50% 0;
-          color: var(--soft);
-          font: 500 11px var(--mono);
-        }
-      }
-      .tile.enter {
-        animation: enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-      @keyframes enter {
-        from {
-          opacity: 0;
-          translate: -24px 0;
-        }
-      }
-
-      /* The page under the belt: the open block, transaction or address, and the side. */
+      /* The page: one view at a time, on one grid. */
       .page {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 300px;
-        gap: 40px;
-        max-width: 1480px;
+        max-width: 1440px;
         margin: 0 auto;
-        padding: 18px 20px 48px;
+        padding: 0 var(--gutter) 96px;
       }
-      .view {
-        min-width: 0;
+      .page > section + section {
+        margin-top: 96px;
       }
-      .head {
+      .sechead {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
-        gap: 6px 12px;
-        min-height: 40px;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px 24px;
+        margin-bottom: 18px;
         h2 {
-          margin: 0;
-          font-size: 24px;
-          font-weight: 650;
-          letter-spacing: -0.02em;
+          font-size: 17px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
         }
-        .step {
-          display: inline-grid;
-          place-items: center;
-          width: 30px;
-          height: 30px;
-          border: 0;
-          border-radius: 15px;
-          background: var(--raise);
-          box-shadow: inset 0 0 0 1px var(--line);
-          cursor: pointer;
-        }
-        .step:disabled {
-          opacity: 0.35;
-          cursor: default;
-        }
-        .live {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
+        p {
           color: var(--soft);
           font-size: 13px;
         }
-        .live::before {
-          content: "";
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--profit);
-          animation: ping 2s ease-out infinite;
-        }
+      }
+
+      .live {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .live::before {
+        content: "";
+        flex: none;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--now);
+        animation: ping 2.4s ease-out infinite;
       }
       @keyframes ping {
         0% {
-          box-shadow: 0 0 0 0 color-mix(in srgb, var(--profit) 60%, transparent);
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--now) 60%, transparent);
         }
         70%,
         100% {
           box-shadow: 0 0 0 7px transparent;
         }
       }
-      .crumb {
-        display: block;
-        min-height: 20px;
-        margin-bottom: 4px;
-        color: var(--soft);
-        font-size: 13px;
-      }
-      .crumb a:hover {
-        color: var(--ink);
-      }
-      .sub {
-        min-height: 22px;
-        margin: 2px 0 0;
-        color: var(--soft);
-        font-size: 13px;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        max-width: 100%;
-        height: 26px;
-        padding: 0 10px;
-        border: 0;
-        border-radius: 13px;
-        background: var(--raise);
-        box-shadow: inset 0 0 0 1px var(--line);
-        color: var(--soft);
-        font: 12px var(--mono);
-        cursor: copy;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .facts {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 16px 24px;
-        margin: 22px 0 24px;
-        div {
-          display: grid;
-          align-content: start;
-          gap: 2px;
-          min-width: 0;
+
+      /* What gets you in: the forming block's answer, large. */
+      .answer {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 18px 0 0 -4px;
+        b {
+          font-size: 104px;
+          font-weight: 200;
+          letter-spacing: -0.06em;
+          line-height: 0.9;
         }
-        dt {
+        span {
+          color: var(--soft);
+          font-size: 20px;
+        }
+      }
+      /* The past week: each hour's cheapest way in, against what gets in now. */
+      .week {
+        margin: 28px 0 24px;
+        svg {
+          display: block;
+          width: 100%;
+          height: 92px;
+          overflow: visible;
+        }
+        text {
+          fill: var(--soft);
+          font: 11px Inter, sans-serif;
+        }
+        figcaption {
+          margin-top: 30px;
           color: var(--soft);
           font-size: 12px;
         }
-        dd {
-          margin: 0;
-          font: 500 15px var(--mono);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        small {
-          color: var(--soft);
-          font: 11.5px Inter, sans-serif;
+        figcaption b {
+          color: var(--ink);
+          font-weight: 550;
         }
       }
-      dl {
-        margin: 0;
-      }
-
-      /* A block: its map, its facts beside it (above it on a phone). */
-      .body {
+      .card {
+        position: fixed;
+        z-index: 10;
+        pointer-events: none;
         display: grid;
-        grid-template-columns: minmax(0, 580px) minmax(200px, 1fr);
-        gap: 40px;
-        align-items: start;
-        margin-top: 22px;
-        .drawing {
-          grid-row: 1;
-          grid-column: 1;
+        gap: 3px;
+        min-width: 200px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: var(--well);
+        box-shadow: 0 0 0 1px var(--line), 0 16px 40px -12px rgb(0 0 0 / 0.4);
+        font-size: 12.5px;
+        white-space: nowrap;
+        header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 4px;
+          font-weight: 600;
         }
-        .facts {
-          grid-template-columns: 1fr 1fr;
-          margin: 0;
-          gap: 22px 24px;
+        header span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--soft);
+          font-weight: 450;
+        }
+        div {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          color: var(--soft);
+        }
+        div b {
+          color: var(--ink);
+          font-weight: 550;
+        }
+        b i {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          margin-right: 6px;
+          border-radius: 2px;
         }
       }
-      @media (width >= 1000px) {
-        :root {
-          --map: min(100%, 580px, max(380px, 100dvh - 380px));
-        }
-      }
-      @media (width < 1180px) {
-        .body {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 22px;
-          .drawing {
-            grid-row: 2;
-          }
-          .facts {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-          }
-        }
+      .card[hidden] {
+        display: none;
       }
 
-      /* A block's map: its transactions folded into rows from the bottom up, each as long as its size. */
-      .map {
+      /* A block's map: every transaction a square, beside the block's answer. */
+      .mapbox {
         position: relative;
-        width: var(--map);
         canvas {
           display: block;
           width: 100%;
           aspect-ratio: 1;
-          border-radius: 16px;
+          border-radius: 6px;
           background: var(--tank);
           touch-action: pan-y;
           cursor: crosshair;
         }
-        .empty {
-          position: absolute;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          padding: 40px;
-          color: var(--soft);
-          text-align: center;
+      }
+      .caption {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 20px;
+        min-height: 36px;
+        padding-top: 12px;
+        color: var(--soft);
+        font-size: 12px;
+        b {
+          color: var(--ink);
+          font-weight: 550;
         }
       }
       .scale {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        width: var(--map);
-        margin-top: 12px;
-        color: var(--soft);
-        font: 11px var(--mono);
-        i {
-          flex: 1;
-          height: 6px;
-          border-radius: 3px;
-        }
-      }
-      .tip {
-        position: fixed;
-        z-index: 10;
-        pointer-events: none;
-        padding: 8px 11px;
-        border-radius: 10px;
-        background: var(--ink);
-        color: var(--bg);
-        font: 12px/1.45 var(--mono);
-        white-space: nowrap;
-        translate: -50% calc(-100% - 14px);
-      }
-      .tip[hidden] {
-        display: none;
-      }
-
-      /* The side: what it takes to get in, and where the chain stands. */
-      .side {
-        display: grid;
-        align-content: start;
-        gap: 28px;
-        section {
-          display: grid;
-          gap: 10px;
-        }
-        h3 {
-          margin: 0;
-          color: var(--soft);
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .row {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          min-height: 22px;
-        }
-        .row b {
-          font: 500 14px var(--mono);
-        }
-        .meter {
-          height: 6px;
-          border-radius: 3px;
-          background: var(--tank);
-          overflow: hidden;
-          i {
-            display: block;
-            height: 100%;
-            background: var(--ink);
-          }
-        }
-      }
-      .fees {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
-        div {
-          display: grid;
-          gap: 4px;
-          padding: 12px;
-          border-radius: 14px;
-          background: var(--raise);
-          box-shadow: inset 0 0 0 1px var(--line);
+        i {
+          width: 120px;
+          height: 6px;
+          border-radius: 3px;
         }
+      }
+      .keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
         span {
-          color: var(--soft);
-          font-size: 11.5px;
-        }
-        b {
-          font: 600 17px var(--mono);
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
         i {
-          width: 100%;
-          height: 3px;
+          width: 8px;
+          height: 8px;
           border-radius: 2px;
         }
       }
+      .steps {
+        display: inline-flex;
+        gap: 6px;
+      }
+      .step {
+        display: inline-grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 16px;
+        background: var(--tank);
+        color: var(--soft);
+        cursor: pointer;
+        svg {
+          width: 15px;
+          height: 15px;
+        }
+      }
+      .step:hover:not(:disabled) {
+        color: var(--ink);
+      }
+      .step:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 26px;
+        padding: 0 11px;
+        border-radius: 13px;
+        background: color-mix(in srgb, var(--c, var(--soft)) 13%, transparent);
+        color: var(--c, var(--soft));
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        height: 28px;
+        padding: 0 11px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--tank);
+        color: var(--soft);
+        font: 12px var(--mono);
+        cursor: copy;
+        overflow: hidden;
+        white-space: nowrap;
+        svg {
+          flex: none;
+          width: 12px;
+          height: 12px;
+          opacity: 0.7;
+        }
+      }
+      .pill:hover {
+        color: var(--ink);
+      }
+      .lens {
+        display: inline-flex;
+        padding: 3px;
+        border-radius: 9px;
+        background: var(--tank);
+        button {
+          height: 26px;
+          padding: 0 12px;
+          border: 0;
+          border-radius: 6px;
+          background: none;
+          color: var(--soft);
+          font-size: 12.5px;
+          font-weight: 550;
+          cursor: pointer;
+        }
+        button[aria-pressed="true"] {
+          background: var(--well);
+          color: var(--ink);
+          box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
+        }
+      }
+      /* What's in a block: each kind's share of its space. */
+      .kinds {
+        display: grid;
+        .kind {
+          display: grid;
+          grid-template-columns: 10px minmax(0, 1fr) 64px 46%;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 0;
+          border-top: 1px solid var(--hair);
+        }
+        i {
+          width: 10px;
+          height: 10px;
+          border-radius: 3px;
+        }
+        span {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        b {
+          font-weight: 500;
+          text-align: right;
+        }
+        em {
+          position: relative;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--hair);
+        }
+        em::after {
+          content: "";
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: var(--w);
+          min-width: 2px;
+          border-radius: 2px;
+          background: var(--c);
+        }
+      }
 
-      /* A transaction: status, its flow, then its coins in and out. */
+      /* A transaction's flow. */
       .flow {
         position: relative;
-        height: 420px;
-        margin: 4px 0 10px;
         svg {
           position: absolute;
           inset: 0;
@@ -575,60 +585,41 @@
         }
         text {
           fill: var(--ink);
-          font: 12px var(--mono);
+          font: 500 12px Lilex, monospace;
         }
         .sub-text {
           fill: var(--soft);
-          font-size: 11px;
+          font: 400 11.5px Inter, sans-serif;
         }
         a:hover text {
           text-decoration: underline;
         }
       }
-      .ages {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 14px;
-        margin-bottom: 26px;
-        color: var(--soft);
-        font-size: 11.5px;
-        span {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-        i {
-          width: 9px;
-          height: 9px;
-          border-radius: 3px;
-        }
-      }
       .sides {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 28px;
+        gap: 56px;
+        align-items: start;
       }
       .list {
-        align-self: start;
         min-width: 0;
+        h3 {
+          display: flex;
+          justify-content: space-between;
+          padding-bottom: 10px;
+        }
         ul {
           display: grid;
           margin: 0;
           padding: 0;
           list-style: none;
         }
-        h3 {
-          margin: 0 0 6px;
-          color: var(--soft);
-          font-size: 12px;
-          font-weight: 500;
-        }
         li {
           display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 1px 12px;
-          padding: 10px 0;
-          border-top: 1px solid var(--line);
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 2px 16px;
+          padding: 12px 0;
+          border-top: 1px solid var(--hair);
         }
         .addr {
           font: 12.5px var(--mono);
@@ -640,91 +631,616 @@
           text-decoration: underline;
         }
         .val {
-          font: 500 12.5px var(--mono);
+          font-weight: 500;
           text-align: right;
+          white-space: nowrap;
         }
         small {
           color: var(--soft);
-          font-size: 11.5px;
+          font-size: 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        small a:hover {
+          color: var(--ink);
         }
         small:last-child {
           text-align: right;
         }
       }
       .more {
-        margin-top: 10px;
+        padding: 12px 0 6px;
+        border-top: 1px solid var(--hair);
         color: var(--soft);
         font-size: 12px;
       }
       .wait {
         display: grid;
-        place-items: center;
+        place-content: center;
+        justify-items: center;
+        gap: 10px;
         min-height: 420px;
         color: var(--soft);
+        text-align: center;
+        a {
+          color: var(--ink);
+          font-weight: 550;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+      }
+      .page.busy > * {
+        opacity: 0.45;
+        transition: opacity 200ms;
+      }
+
+      /* The chain strip, over every block's view: a cell a block, its height, square, median fee and when; the mined
+         ones left of a dotted now line, the forming one and those to come right of it, the open one marked by a ring
+         and a notch on the rule under the strip. */
+      .chain {
+        position: relative;
+        margin: 28px 0 0;
+        border-bottom: 1px solid var(--line);
+        ol {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          margin: 0;
+          padding: 4px 2px 24px;
+          list-style: none;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+      }
+      .cell {
+        position: relative;
+        flex: none;
+        a {
+          display: grid;
+          justify-items: center;
+          width: 76px;
+        }
+        .ch {
+          margin-bottom: 8px;
+          color: var(--soft);
+          font: 500 11.5px var(--mono);
+        }
+        .box {
+          display: block;
+          width: 56px;
+          height: 56px;
+          margin-bottom: 10px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: var(--tank);
+          box-shadow: 0 0 0 1px var(--line);
+          transition: box-shadow 120ms;
+        }
+        canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+        .cf {
+          font-size: 12.5px;
+          font-weight: 550;
+          white-space: nowrap;
+        }
+        .cw {
+          margin-top: 2px;
+          color: var(--soft);
+          font-size: 11.5px;
+          white-space: nowrap;
+        }
+      }
+      .cell a:hover .box {
+        box-shadow: 0 0 0 1px var(--soft);
+      }
+      .cell.on .ch {
+        color: var(--ink);
+      }
+      .cell.on .box {
+        box-shadow: 0 0 0 2px var(--ink);
+      }
+      .cell.next .box {
+        box-shadow: 0 0 0 1.5px var(--now);
+      }
+      .cell.next.on .box {
+        box-shadow: 0 0 0 2px var(--now), 0 0 0 5px color-mix(in srgb, var(--now) 25%, transparent);
+      }
+      .cell.next .ch,
+      .cell.next .cw {
+        color: var(--now-text);
+      }
+      .cell.ahead .box {
+        opacity: 0.55;
+      }
+      .cell.ahead.on .box {
+        opacity: 1;
+      }
+      /* The notch: a turned square on the strip's rule, under the open cell wherever the strip is scrolled to. */
+      .chain::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: var(--at, 50%);
+        width: 9px;
+        height: 9px;
+        border-left: 1px solid var(--line);
+        border-top: 1px solid var(--line);
+        background: var(--bg);
+        transform: translate(-50%, 50%) rotate(45deg);
+        opacity: var(--notch, 0);
+      }
+      .nowline {
+        flex: none;
+        width: 1px;
+        margin: 0 -10px;
+        background: repeating-linear-gradient(to bottom, var(--now) 0 4px, transparent 4px 8px);
+        opacity: 0.7;
+      }
+      /* A view's answer beside its picture: a block's map, a block to come's bands, a transaction's timeline. */
+      .focus .mapbox {
+        width: 100%;
+        max-width: 640px;
+      }
+      .mapbox .bands {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--tank);
+        canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+      }
+      .lead-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px 18px;
+        margin-top: 26px;
+        .lead-title {
+          margin-top: 0;
+        }
+      }
+      .lead-lede .pool {
+        width: 17px;
+        height: 17px;
+        margin-right: 7px;
+        vertical-align: -3px;
+      }
+      .lead-lede b {
+        color: var(--ink);
+        font-weight: 550;
+      }
+      .focus .answer {
+        margin-top: 22px;
+      }
+      .lower {
+        margin-top: 80px;
+      }
+      .lead-addr {
+        margin-top: 18px;
+        color: var(--soft);
+        font: 13px/1.5 var(--mono);
+        overflow-wrap: anywhere;
+      }
+      .lead-addr + .lead-title {
+        margin-top: 14px;
+      }
+      li.in .tdot {
+        background: var(--profit);
+      }
+      li.out .tdot {
+        background: var(--loss);
+      }
+
+      /* A transaction: the answer on the left, its life on the right as one timeline, a row a moment, the line
+         through their marks solid where it's been and dotted where it's to go. */
+      .focus {
+        --sig: var(--soft);
+        display: grid;
+        grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+        gap: 96px;
+        align-items: start;
+        padding-top: 44px;
+      }
+      .focus.waiting,
+      .focus.forming {
+        --sig: var(--now);
+        --sig-text: var(--now-text);
+      }
+      .focus.confirmed,
+      .focus.settled {
+        --sig: var(--profit);
+      }
+      .focus.replaced {
+        --sig: var(--loss);
+      }
+      .lead {
+        position: sticky;
+        top: 84px;
+      }
+      .lead-kicker {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        .chip {
+          --c: var(--sig);
+          color: var(--sig-text, var(--sig));
+        }
+      }
+      .lead-title {
+        margin-top: 26px;
+        font-size: 52px;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+      .lead-lede {
+        margin-top: 14px;
+        color: var(--soft);
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .lead-act {
+        margin-top: 28px;
+        padding-left: 16px;
+        border-left: 2px solid var(--sig);
+        color: var(--soft);
+        font-size: 13.5px;
+        line-height: 1.5;
+        b {
+          display: block;
+          margin-bottom: 5px;
+          color: var(--sig-text, var(--sig));
+          font-size: 17px;
+          font-weight: 600;
+        }
+      }
+      .lead-note {
+        margin-top: 18px;
+        color: var(--soft);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .lead-figs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        > div {
+          display: grid;
+          align-content: start;
+          gap: 4px;
+          min-width: 0;
+        }
+        > .wide {
+          grid-column: 1 / -1;
+        }
+        dd {
+          font-size: 24px;
+          font-weight: 500;
+          letter-spacing: -0.02em;
+          overflow-wrap: anywhere;
+        }
+        dd .unit {
+          font-size: 14px;
+        }
+        small {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2px 18px;
+          color: var(--soft);
+          font-size: 12.5px;
+        }
+        .vc::before,
+        .vd::before {
+          content: "";
+          display: inline-block;
+          width: 7px;
+          height: 7px;
+          margin-right: 7px;
+          border-radius: 2px;
+          background: var(--profit);
+        }
+        .vd::before {
+          background: var(--loss);
+        }
+      }
+      .tt-rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        > li {
+          position: relative;
+          display: grid;
+          grid-template-columns: 96px 32px minmax(0, 1fr);
+          column-gap: 18px;
+          min-height: 48px;
+          padding-bottom: 10px;
+        }
+        > li::before {
+          content: "";
+          position: absolute;
+          top: 14px;
+          bottom: -10px;
+          left: calc(96px + 18px + 15px);
+          width: 2px;
+          background: var(--sig);
+        }
+        > li.dotted::before {
+          background: repeating-linear-gradient(to bottom, var(--faint) 0 4px, transparent 4px 9px);
+        }
+        > li:last-child::before {
+          display: none;
+        }
+        > li.strip {
+          min-height: 0;
+          padding: 2px 0 16px;
+        }
+        > li.strip::before {
+          top: -10px;
+        }
+      }
+      .tt-t {
+        padding-top: 5px;
+        color: var(--soft);
+        font-size: 13px;
+        line-height: 1.35;
+        text-align: right;
+      }
+      li.now .tt-t {
+        color: var(--sig-text, var(--sig));
+        font-weight: 600;
+      }
+      .tt-m {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: start center;
+      }
+      .tdot {
+        width: 12px;
+        height: 12px;
+        margin-top: 8px;
+        border-radius: 50%;
+        background: var(--sig);
+        box-shadow: 0 0 0 5px var(--bg);
+      }
+      li.future .tdot {
+        background: var(--bg);
+        box-shadow: 0 0 0 5px var(--bg), inset 0 0 0 2px var(--faint);
+      }
+      li.now .tdot {
+        width: 16px;
+        height: 16px;
+        margin-top: 6px;
+        background: var(--bg);
+        box-shadow: 0 0 0 5px var(--bg), inset 0 0 0 5px var(--sig), 0 0 0 9px color-mix(in srgb, var(--sig) 22%, transparent);
+      }
+      li.gone .tdot {
+        background: var(--loss);
+      }
+      .tsq,
+      .ssq {
+        display: block;
+        overflow: hidden;
+        background: var(--tank);
+        canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+      }
+      .tsq {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        box-shadow: 0 0 0 5px var(--bg);
+      }
+      li.hit .tsq {
+        box-shadow: 0 0 0 5px var(--bg), 0 0 0 7px var(--sig);
+      }
+      .ssq {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+      }
+      a.ssq:hover {
+        box-shadow: 0 0 0 2px var(--soft);
+      }
+      a.tsq:hover {
+        box-shadow: 0 0 0 5px var(--bg), 0 0 0 7px var(--soft);
+      }
+      li.hit a.tsq:hover {
+        box-shadow: 0 0 0 5px var(--bg), 0 0 0 7px var(--ink);
+      }
+      li:not(.hit) .tsq.come,
+      .ssq.come {
+        opacity: 0.55;
+      }
+      .ssq.ghost {
+        background: none;
+        box-shadow: inset 0 0 0 1.5px var(--faint);
+      }
+      .tt-w {
+        display: grid;
+        gap: 2px;
+        padding-top: 3px;
+        b {
+          font-size: 15px;
+          font-weight: 600;
+        }
+        small {
+          color: var(--soft);
+          font-size: 13px;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+      }
+      li.future:not(.now) .tt-w b {
+        color: var(--soft);
+        font-weight: 500;
+      }
+      li.hit .tt-w b,
+      li.now .tt-w b {
+        color: var(--sig-text, var(--sig));
+      }
+      /* Another version's moments, softer: their words in the soft ink, their dots faint, every word still readable. */
+      li.faint .tt-w b {
+        color: var(--soft);
+        font-weight: 500;
+      }
+      li.faint .tdot {
+        background: var(--faint);
+      }
+      .tt-s {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        small {
+          flex-basis: 100%;
+          margin-top: 6px;
+          color: var(--soft);
+          font-size: 13px;
+        }
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+        .more-n {
+          margin: 0 4px;
+          color: var(--soft);
+          font: 12px var(--mono);
+        }
+      }
+      li.strip.future .tt-s b {
+        color: var(--soft);
+      }
+      .tt-list {
+        margin-top: 6px;
+        font-size: 13px;
+        summary {
+          width: max-content;
+          color: var(--soft);
+          cursor: pointer;
+        }
+        summary:hover {
+          color: var(--ink);
+        }
+        a {
+          display: grid;
+          grid-template-columns: 52px 96px auto;
+          padding: 3px 0;
+          color: var(--soft);
+        }
+        a:hover {
+          color: var(--ink);
+        }
+      }
+      .tt-coins {
+        margin-top: 88px;
       }
 
       @media (width < 1000px) {
-        .page {
+        .focus {
           grid-template-columns: minmax(0, 1fr);
-          gap: 36px;
+          gap: 40px;
+        }
+        .lead {
+          position: static;
         }
       }
-      @media (width < 640px) {
+      @media (width < 720px) {
         :root {
-          --tile: 84px;
-        }
-        .tile .under {
-          font-size: 11px;
+          --gutter: 18px;
         }
         .bar {
+          grid-template-columns: auto minmax(0, 1fr) auto;
           gap: 12px;
-          padding: 0 14px;
         }
-        .brand span {
+        .brand {
+          font-size: 0;
+          gap: 0;
+        }
+        .price span {
           display: none;
         }
-        .price {
-          min-width: 0;
-          font-size: 13px;
+        .answer b {
+          font-size: 88px;
         }
-        .belt {
-          padding: 6px 14px 0;
-          gap: 10px;
-        }
-        .tiles {
-          gap: 10px;
-        }
-        .page {
-          padding: 14px 14px 40px;
-        }
-        .head h2 {
-          font-size: 21px;
-        }
-        .facts {
-          grid-template-columns: 1fr 1fr;
-          gap: 14px 16px;
-        }
-        .flow {
-          height: 360px;
+        .page > section + section {
+          margin-top: 52px;
         }
         .sides {
           grid-template-columns: 1fr;
+          gap: 36px;
+        }
+        .focus {
+          padding-top: 24px;
+        }
+        .lead-title {
+          margin-top: 20px;
+          font-size: 38px;
+        }
+        .lead-lede {
+          font-size: 16.5px;
+        }
+        .lead-figs dd {
+          font-size: 20px;
+        }
+        .tt-rows > li {
+          grid-template-columns: 58px 32px minmax(0, 1fr);
+          column-gap: 12px;
+        }
+        .tt-rows > li::before {
+          left: calc(58px + 12px + 15px);
+        }
+        .tt-t {
+          font-size: 12px;
+        }
+        .tt-coins {
+          margin-top: 56px;
+        }
+        .chain {
+          margin: 12px calc(-1 * var(--gutter)) 0;
+          ol {
+            justify-content: flex-start;
+            padding-inline: var(--gutter);
+          }
+        }
+        .lower {
+          margin-top: 56px;
+        }
+        .kinds .kind {
+          grid-template-columns: 10px minmax(0, 1fr) 52px 28%;
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .tile.enter {
+        .live::before {
           animation: none;
-        }
-        .tile .face {
-          transition: none;
         }
       }
     </style>
   </head>
   <body>
     <header class="bar">
-      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" /><span>Bitview</span></a>
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="find" id="find" role="search" autocomplete="off">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5" /><path d="m14 14-3.4-3.4" /></svg>
         <input
           name="q"
           type="search"
@@ -736,45 +1252,11 @@
         <kbd>/</kbd>
         <span class="miss" id="miss" role="status"></span>
       </form>
-      <span class="price" id="price" title="Bitcoin's price, read from the chain by the oracle"></span>
+      <span class="price" title="Bitcoin's price, read from the chain by the oracle"><span>BTC</span><b id="price">&nbsp;</b></span>
     </header>
     <h1 class="vh">Explorer</h1>
-    <nav class="belt" id="belt" aria-label="Blocks: the projected ones, then the latest">
-      <div class="tiles" id="projected"></div>
-      <div class="now" aria-hidden="true"><span>now</span></div>
-      <div class="tiles" id="confirmed"></div>
-    </nav>
-    <div class="page">
-      <main class="view" id="view"><div class="wait">Loading</div></main>
-      <aside class="side" id="side" aria-label="The chain now">
-        <section>
-          <h3>To get in, sat/vB</h3>
-          <div class="fees" id="fees">
-            <div><span>Next block</span><b>&nbsp;</b><i></i></div>
-            <div><span>In 3 blocks</span><b>&nbsp;</b><i></i></div>
-            <div><span>In 6 blocks</span><b>&nbsp;</b><i></i></div>
-          </div>
-        </section>
-        <section id="mempool">
-          <h3>Mempool</h3>
-          <div class="row"><span>Transactions</span><b>&nbsp;</b></div>
-          <div class="row"><span>Size</span><b>&nbsp;</b></div>
-          <div class="row"><span>Fees waiting</span><b>&nbsp;</b></div>
-        </section>
-        <section id="difficulty">
-          <h3>Difficulty adjustment</h3>
-          <div class="meter"><i style="width: 0"></i></div>
-          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
-          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
-        </section>
-        <section id="halving">
-          <h3>Halving</h3>
-          <div class="meter"><i style="width: 0"></i></div>
-          <div class="row"><span>&nbsp;</span><b>&nbsp;</b></div>
-        </section>
-      </aside>
-    </div>
-    <div class="tip" id="tip" hidden></div>
+    <main class="page" id="view"><div class="wait">Loading</div></main>
+    <div class="card" id="card" hidden></div>
     <script type="module">
       // ---------------------------------------------------------------- Reads, all from the server serving the page.
       const get = async (path) => {
@@ -789,6 +1271,22 @@
         return memo.get(key);
       };
       const priceAt = (h) => once(`price ${h}`, async () => (await series("price", "height", h, h + 1))[0]);
+      // A mined block's transactions, as its map draws them: each one's size and effective fee rate. Kept, as a
+      // mined block's never change (a reorg's replacement has another hash, and so another key).
+      const blockTxs = new Map();
+      const txsOf = (b) => {
+        if (!blockTxs.has(b.id))
+          blockTxs.set(
+            b.id,
+            (async () => {
+              const [start] = await series("first_tx_index", "height", b.height, b.height + 1);
+              const end = start + b.tx_count;
+              const [rates, sizes] = await Promise.all([series("tx_effective_fee_rate", "tx_index", start, end), series("tx_vsize", "tx_index", start, end)]);
+              return { start, txs: sizes.map((s, i) => ({ vsize: s, rate: rates[i], coinbase: i === 0 })) };
+            })().catch((e) => (blockTxs.delete(b.id), Promise.reject(e))),
+          );
+        return blockTxs.get(b.id);
+      };
 
       // ---------------------------------------------------------------- How numbers are written.
       const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
@@ -803,15 +1301,28 @@
         if (a >= 100) return `${s}$${nf(0).format(a)}`;
         return `${s}$${a.toFixed(2)}`;
       };
+      // A small sum in dollars, never rounded to nothing: under a cent is "under $0.01".
+      const cost = (n) => (n < 0.005 ? "under $0.01" : usd(n));
       const signed = (n) => (n >= 0 ? `+${usd(n)}` : usd(n));
       // A price, in whole dollars as written: $78,404.
       const dollars = (n) => (n < 100 ? `$${nf(2, 2).format(n)}` : `$${int(n)}`);
       const plural = (n, word) => `${int(n)} ${word}${n === 1 ? "" : "s"}`;
+      const nth = (n) => `${int(n)}${n % 100 > 10 && n % 100 < 14 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
       const tone = (n) => (n >= 0 ? "gain" : "lost");
-      const rateNum = (r) => nf(r < 10 ? 2 : r < 100 ? 1 : 0).format(r);
+      // A fee rate to the thousandth under 1 sat/vB, where the cheapest rates differ (0.106 against 0.115), and
+      // coarser above.
+      const rateNum = (r) => nf(r < 1 ? 3 : r < 10 ? 2 : r < 100 ? 1 : 0).format(r);
+      const unit = (u) => ` <span class="unit">${u}</span>`;
       const rate = (r) => `${rateNum(r)} sat/vB`;
-      const ceilRate = (r) => (r < 10 ? Math.ceil(r * 100 - 1e-9) / 100 : r < 100 ? Math.ceil(r * 10 - 1e-9) / 10 : Math.ceil(r));
+      const rateU = (r) => `${rateNum(r)}${unit("sat/vB")}`;
+      const btcU = (sats) => `${btc(sats)}${unit("BTC")}`;
+      // A rate rounded up to the places it's written in: what pays at least as much.
+      const ceilRate = (r) => {
+        const k = r < 1 ? 1000 : r < 10 ? 100 : r < 100 ? 10 : 1;
+        return Math.ceil(r * k - 1e-9) / k;
+      };
       const vbytes = (v) => (v >= 1e5 ? `${nf(2, 2).format(v / 1e6)} MvB` : `${int(v)} vB`);
+      const weight = (w) => (w >= 1e5 ? `${nf(2).format(w / 1e6)} MWU` : `${int(w)} WU`);
       const bytes = (b) => (b >= 1e5 ? `${nf(2).format(b / 1e6)} MB` : `${nf(1).format(b / 1e3)} kB`);
       const short = (s, n = 6) => (s.length > 2 * n + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -834,168 +1345,282 @@
       };
       const nowS = () => Date.now() / 1000;
       const ago = (t) => (nowS() - t < 60 ? "just now" : `${span(nowS() - t)} ago`);
-      const when = (t) =>
-        new Date(t * 1000).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+      const clockTime = (t) => new Date(t * 1000).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+      const day = (t) => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      // A moment as a timeline writes it: its time within a day, its day before that, its year only past this one's.
+      const stamp = (t) =>
+        Math.abs(nowS() - t) < 86400
+          ? clockTime(t)
+          : new Date(t * 1000).getFullYear() === new Date().getFullYear()
+            ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+            : day(t);
+      // A simple payment's size: one input and two outputs, all native SegWit.
+      const PAYMENT = 141;
 
-      // ---------------------------------------------------------------- Fee rates as colours: cool to hot, on a log scale.
-      // Most of its range is low, where fees have been since 2024: a tenth of a sat apart reads apart there.
-      const STOPS = [
-        [0.1, [76, 70, 172]],
-        [0.25, [52, 112, 214]],
-        [0.6, [22, 160, 196]],
-        [1.2, [26, 182, 132]],
-        [2.5, [124, 198, 70]],
-        [6, [236, 196, 48]],
-        [15, [244, 140, 44]],
-        [40, [226, 70, 56]],
-        [150, [178, 34, 120]],
-      ];
-      const feeColor = (r) => {
-        const x = Math.log(Math.max(r, STOPS[0][0]));
-        for (let i = 1; i < STOPS.length; i++) {
-          const [r1, c1] = STOPS[i];
-          if (x <= Math.log(r1) || i === STOPS.length - 1) {
-            const [r0, c0] = STOPS[i - 1];
-            const t = Math.min(1, (x - Math.log(r0)) / (Math.log(r1) - Math.log(r0)));
-            return `rgb(${c0.map((c, k) => Math.round(c + (c1[k] - c) * t)).join(" ")})`;
-          }
-        }
+      // ---------------------------------------------------------------- Fee rates as colours, on a log scale.
+      // Made in OKLCH, its hue from indigo through magenta to amber, its lightness moving one way all along: on a dark
+      // ground the cheapest recede and the dearest glow, on a light one the cheapest are pale and the dearest deep.
+      const LOW = 0.1;
+      const HIGH = 200;
+      const RAMPS = {
+        dark: [
+          [0, 0.42, 0.12, 272],
+          [0.3, 0.57, 0.17, 300],
+          [0.55, 0.67, 0.2, 345],
+          [0.75, 0.75, 0.18, 32],
+          [0.9, 0.84, 0.16, 68],
+          [1, 0.92, 0.13, 95],
+        ],
+        light: [
+          [0, 0.8, 0.07, 280],
+          [0.3, 0.66, 0.15, 298],
+          [0.55, 0.58, 0.2, 345],
+          [0.75, 0.6, 0.19, 28],
+          [0.9, 0.64, 0.18, 50],
+          [1, 0.56, 0.19, 30],
+        ],
       };
-      const scaleBar = () =>
-        `<div class="scale"><span>0.1</span><i style="background:linear-gradient(to right,${STOPS.map(([r]) => feeColor(r)).join(",")})"></i><span>150+ sat/vB</span></div>`;
+      const srgb = (L, C, h) => {
+        const a = C * Math.cos((h * Math.PI) / 180);
+        const b = C * Math.sin((h * Math.PI) / 180);
+        const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+        const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+        const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+        const lin = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+        return lin.map((c) => Math.round(255 * Math.min(1, Math.max(0, c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055))));
+      };
+      // 256 steps for each scheme, each read by its place on the log scale.
+      const steps = (anchors) =>
+        Array.from({ length: 256 }, (_, k) => {
+          const t = k / 255;
+          let i = 1;
+          while (i < anchors.length - 1 && t > anchors[i][0]) i++;
+          const [t0, L0, C0, h0] = anchors[i - 1];
+          const [t1, L1, C1, h1] = anchors[i];
+          const u = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+          let dh = h1 - h0;
+          if (dh > 180) dh -= 360;
+          if (dh < -180) dh += 360;
+          return `rgb(${srgb(L0 + (L1 - L0) * u, C0 + (C1 - C0) * u, h0 + dh * u).join(" ")})`;
+        });
+      const RAMP = { dark: steps(RAMPS.dark), light: steps(RAMPS.light) };
+      const lightScheme = matchMedia("(prefers-color-scheme: light)");
+      const ramp = () => RAMP[lightScheme.matches ? "light" : "dark"];
+      const place = (r) => (Math.log(Math.max(r, LOW)) - Math.log(LOW)) / (Math.log(HIGH) - Math.log(LOW));
+      const feeColor = (r) => ramp()[Math.max(0, Math.min(255, Math.round(place(r) * 255)))];
+      const scaleKey = () =>
+        `<span class="scale"><span>0.1</span><i style="background:linear-gradient(to right,${ramp()
+          .filter((_, k) => k % 32 === 0 || k === 255)
+          .join(",")})"></i><span>200+ sat/vB</span></span>`;
 
-      // A tile's face: the block's fee percentiles as bands, the cheapest on top, each as tall as its share of transactions.
-      const SHARES = [0.1, 0.15, 0.25, 0.25, 0.15, 0.1];
-      const face = (range) =>
-        SHARES.map((share, i) => `<i style="height:${share * 100}%;background:${feeColor(Math.sqrt(range[i] * range[i + 1]))}"></i>`).join("");
+      // ---------------------------------------------------------------- What kind each transaction is, for the map's other lens.
+      // Each one's first kind in this order (a coinjoin that writes data is a coinjoin), its colour its own.
+      const KINDS = [
+        ["has_inscription", "Inscriptions", "#e35d9f"],
+        ["is_coinjoin", "CoinJoins", "#8a6cf2"],
+        ["is_consolidation", "Consolidations", "#27b3a1"],
+        ["is_batch_payout", "Batch payouts", "#f0a23a"],
+        ["has_op_return", "OP_RETURN data", "#5f97de"],
+        ["is_cpfp_child", "Paying for a parent", "#8acf55"],
+      ];
+      const OTHER = "rgb(128 128 140 / 0.4)";
+      const kindsOf = (b) =>
+        once(`kinds ${b.id}`, async () => {
+          const { start } = await txsOf(b);
+          const flags = await Promise.all(KINDS.map(([id]) => series(id, "tx_index", start, start + b.tx_count)));
+          return Array.from({ length: b.tx_count }, (_, i) => flags.findIndex((f) => f[i]));
+        });
+
+      // Each pool's logo, from the shared assets (a light ground's own where it has one), the default one if missing.
+      const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
+      const poolMark = (slug) => {
+        const name = /^[a-z0-9-]+$/.test(slug ?? "") ? slug : "unknown";
+        const src = `/assets/pools/${name}${lightScheme.matches && LIGHT_LOGOS.has(name) ? ".light" : ""}.svg`;
+        return `<img class="pool" src="${src}" alt="" onerror="this.onerror=null;this.src='/assets/pools/default${lightScheme.matches ? ".light" : ""}.svg'" />`;
+      };
+      const poolName = (pool) => esc(!pool || pool.name === "Unknown" ? "Unknown miner" : pool.name);
+
+      const ICON = {
+        prev: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3-5 5 5 5"/></svg>`,
+        next: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>`,
+        copy: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.2A1.8 1.8 0 0 0 8.8 2H4a2 2 0 0 0-2 2v4.8c0 .8.5 1.5 1.2 1.7"/></svg>`,
+      };
+
+      // ---------------------------------------------------------------- Packing a block into squares.
+      // The skyline's runs, each [x, width, height], left to right: a square of side s goes where the highest run
+      // under it is lowest (the leftmost of those), always at a run's start; the runs it covers give way to it.
+      function pack(sides, S) {
+        const n = sides.length;
+        const X = new Int16Array(n);
+        const Y = new Int16Array(n);
+        const sky = [[0, S, 0]];
+        let top = 0;
+        for (let i = 0; i < n; i++) {
+          const s = Math.min(sides[i], S);
+          let best = 0;
+          let bestY = Infinity;
+          for (let j = 0; j < sky.length; j++) {
+            const x = sky[j][0];
+            if (x + s > S) break;
+            let y = 0;
+            for (let k = j; k < sky.length && sky[k][0] < x + s && y < bestY; k++) if (sky[k][2] > y) y = sky[k][2];
+            if (y < bestY) {
+              bestY = y;
+              best = j;
+              if (y === 0) break;
+            }
+          }
+          const x = sky[best][0];
+          X[i] = x;
+          Y[i] = bestY;
+          if (bestY + s > top) top = bestY + s;
+          let last = best;
+          while (last + 1 < sky.length && sky[last + 1][0] < x + s) last++;
+          const end = sky[last][0] + sky[last][1];
+          const runs = [[x, s, bestY + s]];
+          if (end > x + s) runs.push([x + s, end - x - s, sky[last][2]]);
+          sky.splice(best, last - best + 1, ...runs);
+          // Neighbours at one height are one run.
+          for (let j = Math.max(1, best); j <= Math.min(sky.length - 1, best + 1); j++)
+            if (sky[j - 1][2] === sky[j][2]) {
+              sky[j - 1][1] += sky[j][1];
+              sky.splice(j, 1);
+              j--;
+            }
+        }
+        return { X, Y, top };
+      }
+      // Squares at scale k (a side's pixels per √vbyte), packed in a D-pixel field.
+      const packAt = (txs, D, k, min) => {
+        const sides = txs.map((t) => Math.max(min, Math.round(Math.sqrt(t.vsize) * k)));
+        return { sides, packed: pack(sides, D), k };
+      };
+      // Sizes cluster (most transactions are a few sizes), so a scale that fits can fall short of the top by a step:
+      // the packing is stretched upright to the block's own fullness (at most an eighth), and sideways the few pixels
+      // the widest row leaves. Rectangles in device pixels, y from the top.
+      function placed(txs, D, capacity, { sides, packed }) {
+        const full = Math.min(1, txs.reduce((a, t) => a + t.vsize, 0) / capacity) * D;
+        const sy = packed.top > 0 ? Math.min(1.125, Math.max(1, full / packed.top), D / packed.top) : 1;
+        let right = 0;
+        for (let i = 0; i < txs.length; i++) right = Math.max(right, packed.X[i] + sides[i]);
+        const sx = right > D * 0.95 ? D / right : 1;
+        const n = txs.length;
+        const x = new Float32Array(n);
+        const y = new Float32Array(n);
+        const w = new Float32Array(n);
+        const h = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+          x[i] = packed.X[i] * sx;
+          w[i] = sides[i] * sx;
+          h[i] = sides[i] * sy;
+          y[i] = D - (packed.Y[i] + sides[i]) * sy;
+        }
+        return { x, y, w, h };
+      }
 
       // ---------------------------------------------------------------- State.
       const $ = (id) => document.getElementById(id);
       const state = {
         tip: null, // the latest block's height
         projected: [], // the template's blocks, next first (stats only)
-        confirmed: [], // the latest blocks and as many older ones as were scrolled to, newest first
+        confirmed: [], // the latest blocks, newest first
         next: null, // the next block's transactions, followed by its diffs
         view: null,
       };
 
-      // ---------------------------------------------------------------- The belt.
-      const projectedTile = (b, i) => `<a class="tile projected" href="?block=next${i ? `-${i}` : ""}" data-ref="next${i ? `-${i}` : ""}">
-          <span class="over">~${(i + 1) * 10} min</span>
-          <span class="face">${face(b.feeRange)}</span>
-          <span class="under"><b>${rateNum(b.medianFee)}</b> sat/vB<br />${plural(b.nTx, "tx")}</span>
-        </a>`;
-      const confirmedTile = (b, enter) => `<a class="tile${enter ? " enter" : ""}" href="?block=${b.height}" data-ref="${b.height}">
-          <span class="over">${int(b.height)}</span>
-          <span class="face">${face(b.extras.feeRange)}</span>
-          <span class="under"><b>${rateNum(b.extras.medianFee)}</b> sat/vB<br /><span data-ago="${b.timestamp}">${ago(b.timestamp)}</span></span>
-        </a>`;
-      function drawProjected() {
-        $("projected").innerHTML = state.projected
-          .slice(0, 8)
-          .map(projectedTile)
-          .reverse()
-          .join("");
-        markCurrent();
-      }
-      function drawConfirmed(entering = 0) {
-        $("confirmed").innerHTML = state.confirmed.map((b, i) => confirmedTile(b, i < entering)).join("");
-        markCurrent();
-      }
-      function markCurrent() {
-        const ref = state.view?.kind === "block" ? String(state.view.ref) : null;
-        for (const t of $("belt").querySelectorAll(".tile")) t.setAttribute("aria-current", t.dataset.ref === ref);
-      }
-      // Older blocks load as the belt is scrolled to its end, a page of 15 at a time.
-      let loadingOlder = false;
-      async function loadOlder() {
-        if (loadingOlder || !state.confirmed.length) return;
-        const tail = state.confirmed.at(-1);
-        if (tail.height === 0) return;
-        loadingOlder = true;
-        try {
-          const read = await get(`/v1/blocks/${tail.height - 1}`);
-          // A new tip may have redrawn the belt while the page was read: then it's asked again as it's scrolled.
-          if (state.confirmed.at(-1) !== tail || read[0]?.id !== tail.previousblockhash) return;
-          const older = read;
-          state.confirmed.push(...older);
-          $("confirmed").insertAdjacentHTML("beforeend", older.map((b) => confirmedTile(b)).join(""));
-          markCurrent();
-        } finally {
-          loadingOlder = false;
-        }
-      }
-      $("belt").addEventListener("scroll", (e) => {
-        const b = e.currentTarget;
-        if (b.scrollLeft + b.clientWidth > b.scrollWidth - 600) loadOlder();
-      });
-      // A vertical wheel moves the belt sideways where it can't move the page's own scroll anyway.
-      $("belt").addEventListener(
-        "wheel",
-        (e) => {
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            e.preventDefault();
-            e.currentTarget.scrollLeft += e.deltaY;
-          }
-        },
-        { passive: false },
-      );
-      // Starting with the now line a third of the way across.
-      const centerNow = () => {
-        const belt = $("belt");
-        const now = belt.querySelector(".now");
-        belt.scrollLeft = now.offsetLeft - belt.clientWidth * 0.36;
-      };
-
       // ---------------------------------------------------------------- The live chain.
       // One read of each kind at a time: a slow answer is never overtaken by the next tick's.
-      const alone = (read) => {
+      function alone(read) {
         let running = null;
         return () => (running ??= read().finally(() => (running = null)));
-      };
+      }
       const readProjected = alone(async () => {
         const [projected, mempool] = await Promise.all([get("/v1/fees/mempool-blocks"), get("/mempool")]);
         state.projected = projected;
         state.mempool = mempool;
-        drawProjected();
-        drawFees();
-        if (state.view?.kind === "block" && /^next-\d+$/.test(state.view.ref)) render();
+        drawHome().catch(() => {});
+        if (state.view?.kind === "block" && /^next-\d+$/.test(state.view.ref)) viewQueued(Number(state.view.ref.slice(5)), true).catch(() => {});
+        recheckTx().catch(() => {});
       });
       // The chain's tip by its hash, so a block replaced at the same height is seen too; its height from the same read.
       const readTip = alone(async () => {
         const hash = await get("/blocks/tip/hash");
         if (hash === state.tipHash) return;
-        const first = state.tipHash === undefined;
+        const was = { hash: state.tipHash, tip: state.tip };
+        const shot = state.tipHash === undefined ? null : snapshot();
         const latest = await get("/v1/blocks");
-        // The latest 15 as the server has them now (a block replaced by a reorg too), then the older ones already
-        // read, if they still join on; after a longer wait than 15 blocks, the belt starts again from the latest.
-        const known = new Set(state.confirmed.map((b) => b.id));
-        const fresh = latest.filter((b) => !known.has(b.id)).length;
-        const joins = state.confirmed.some((b) => b.height === latest.at(-1).height - 1 && b.id === latest.at(-1).previousblockhash);
-        state.confirmed = [...latest, ...(joins ? state.confirmed.filter((b) => b.height < latest.at(-1).height) : [])];
+        state.confirmed = latest;
         state.tip = latest[0].height;
         state.tipHash = latest[0].id;
-        drawConfirmed(first ? 0 : fresh);
-        drawHalving();
         if (!state.booted) return;
         // What's open is read again: a block's confirmations, a transaction's status, an address's balance.
         memo.clear();
         readProjected().catch(() => {});
-        if (state.view?.kind === "block" && state.view.ref === "next") await loadNext().catch(() => {});
-        render();
+        await loadNext().catch(() => {});
+        await render();
+        // Only a block on top of the one shown flies: a replacement, or more than one at once, just appears.
+        if (latest[0].previousblockhash === was.hash && latest[0].height === was.tip + 1) fly(shot, latest[0]);
       });
+      // A block found: the forming block, as it was last drawn, shrinks into the chain strip as its newest square. A copy of
+      // its own flies (the square keeps its map), from where the map is when it starts, only while the same home is open.
+      let flight = null;
+      function snapshot() {
+        const c = $("map");
+        if (state.view?.kind !== "home" || !c?.width || matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
+        const copy = Object.assign(document.createElement("canvas"), { width: c.width, height: c.height });
+        copy.getContext("2d").drawImage(c, 0, 0);
+        return { copy, nav: navigations };
+      }
+      function fly(shot, b) {
+        const bead = document.querySelector(`#chain [data-p="${b.height}"] .box`);
+        const from = $("map")?.getBoundingClientRect();
+        if (!shot || !bead || !from || state.view?.kind !== "home" || shot.nav !== navigations) return;
+        const to = bead.getBoundingClientRect();
+        // Out of sight at either end, nothing to watch.
+        if (from.bottom < 0 || to.top > innerHeight || from.top > innerHeight || to.bottom < 0) return;
+        const { copy } = shot;
+        Object.assign(copy.style, { position: "fixed", left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px`, zIndex: 20, borderRadius: "4px", pointerEvents: "none", transformOrigin: "0 0" });
+        document.body.append(copy);
+        bead.style.opacity = "0";
+        const k = to.width / from.width;
+        flight = copy.animate([{ transform: "none" }, { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px) scale(${k})` }], { duration: 950, easing: "cubic-bezier(0.55, 0, 0.15, 1)" });
+        flight.finished
+          .catch(() => {})
+          .finally(() => {
+            copy.remove();
+            bead.style.opacity = "";
+          });
+      }
       async function readPrice() {
         state.price = Number(await get("/oracle/price"));
         $("price").textContent = `$${int(state.price)}`;
       }
-
-      // The next block's transactions, as the template has them, then only what changed.
+      async function readDifficulty() {
+        state.difficulty = await get("/v1/difficulty-adjustment");
+      }
+      // Each block's cheapest effective fee rate over the past week (1,008 blocks), read again with each new block.
+      // Each block's cheapest effective fee rate and its time, a few more blocks than a week holds, read for each tip
+      // (by its hash: a block replaced at the same height reads them again; a read the tip moved under, again).
+      const readWeek = alone(async () => {
+        for (;;) {
+          const hash = state.tipHash;
+          if (state.week?.hash === hash) return;
+          const end = state.tip + 1;
+          const start = Math.max(0, end - 1200);
+          const [lows, times] = await Promise.all([series("tx_effective_fee_rate_min", "height", start, end), series("timestamp", "height", start, end)]);
+          if (state.tipHash !== hash) continue;
+          state.week = { hash, lows, times };
+          return drawWeek();
+        }
+      });
+      // The next block's transactions, as the template has them, then only what changed. Only the latest read is kept.
       const slim = (t) => ({ txid: t.txid, vsize: Math.ceil(t.weight / 4), rate: t.fee / Math.ceil(t.weight / 4), fee: t.fee, born: 0 });
       let nextReads = 0;
-      async function loadNext() {
+      function loadNext() {
         const n = ++nextReads;
-        const b = await get("/mempool-blocks/0");
-        if (n === nextReads) state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
+        return get("/mempool-blocks/0").then((b) => {
+          if (n === nextReads) state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
+        });
       }
       const followNext = alone(async () => {
         if (!state.next) return;
@@ -1005,7 +1630,7 @@
           diff = await get(`/mempool-blocks/0/diff/${state.next.hash}`);
         } catch {
           await loadNext();
-          return state.view?.ref === "next" && render();
+          return state.view?.kind === "home" && render();
         }
         // A diff applies only to the copy it was asked against (a new block may have replaced it meanwhile).
         if (n !== nextReads || diff.since !== state.next.hash || diff.hash === state.next.hash) return;
@@ -1016,101 +1641,371 @@
           if (Array.isArray(entry)) txs.push(...state.next.txs.slice(entry[0], entry[0] + entry[1]));
           else txs.push({ ...slim(entry), born });
         state.next = { hash: diff.hash, stats: diff.stats, txs };
-        if (state.view?.kind === "block" && state.view.ref === "next") {
+        if (state.view?.kind === "home") {
           map.set(state.next.txs);
-          drawNextFacts();
+          drawForming();
         }
       });
 
-      // ---------------------------------------------------------------- The side.
-      // What it takes to be in a projected block: a full block's cheapest, or, where a block has room to spare or
-      // isn't there at all, the cheapest the mempool holds.
-      const entry = (b) => (b && b.blockVSize >= 995000 ? b.feeRange[0] : Math.min(0.1, ...state.mempool.fee_histogram.map(([r]) => r)));
-      function drawFees() {
-        const p = state.projected;
+      // ---------------------------------------------------------------- What it takes to get in.
+      // A projected block's entry: a full block's cheapest, or, where a block has room to spare or isn't there at
+      // all, the cheapest the mempool holds that pays (one paying nothing gets in only with a child paying for it).
+      // To be in within n blocks, a transaction pays what gets it into one.
+      const floorRate = () => {
+        const rates = state.mempool.fee_histogram.map(([r]) => r).filter((r) => r > 0);
+        return rates.length ? Math.min(...rates) : 0.1;
+      };
+      const entry = (b) => (b && b.blockVSize >= 995000 ? Math.max(b.feeRange[0], floorRate()) : floorRate());
+      const within = (n) => ceilRate(Math.min(...Array.from({ length: n }, (_, i) => entry(state.projected[i]))));
+      const paymentSats = (r) => Math.ceil(r * PAYMENT - 1e-9);
+      const paymentCost = (r) => (state.price ? cost((paymentSats(r) / 1e8) * state.price) : `${int(paymentSats(r))} sats`);
+
+      // ---------------------------------------------------------------- The home: the forming block's view.
+      // Every page is one of three, a block, a transaction or an address; the home is the block forming now: the
+      // chain strip over it, what gets you in beside its map as it fills, then what getting in took each hour of the
+      // past week.
+      async function viewHome() {
+        const v = state.view;
+        const chain = await chainAround({ kind: "next" });
+        if (state.view !== v) return;
+        $("view").innerHTML = `${chainView(chain)}
+          <div class="focus forming">
+            <div class="lead">
+              <p class="lead-kicker"><span class="chip live" id="forming">Forming</span></p>
+              <p class="answer"><b id="answer">&nbsp;</b><span>sat/vB gets you in</span></p>
+              <p class="lead-lede" id="say">&nbsp;</p>
+              <dl class="lead-figs" id="alts">${fig("&nbsp;", "&nbsp;").repeat(4)}</dl>
+              <p class="lead-note" id="chainsay">&nbsp;</p>
+            </div>
+            <figure class="mapbox"><canvas id="map" role="img" aria-label="The next block's transactions, each a square as large as its size, coloured by its fee rate"></canvas>
+              <figcaption class="caption"><span id="next-caption">&nbsp;</span>${scaleKey()}</figcaption></figure>
+          </div>
+          <section class="lower" aria-label="What it took to get in, each hour of the past week">
+            <div class="sechead"><h2>The past week</h2><p>what it took to get in, each hour</p></div>
+            <figure class="week"><svg id="week" role="img" aria-label="Each hour's cheapest way into a block over the past week, against what gets in now"></svg><figcaption id="week-say">&nbsp;</figcaption></figure>
+          </section>`;
+        paintChain(chain);
+        map.mount($("map"), (i, t) => go(url.tx(t.txid)));
+        if (state.next) map.set(state.next.txs);
+        drawForming();
+        readWeek().catch(() => {});
+      }
+      // The template and the queue read again: the strip's blocks to come and the answer with them.
+      async function drawHome() {
+        if (state.view?.kind !== "home" || !$("answer")) return;
+        const v = state.view;
+        const chain = await chainAround({ kind: "next" });
+        if (state.view !== v || !$("chain")) return;
+        // The mined squares kept as drawn: only the forming one and those to come change between blocks.
+        const was = chainState();
+        $("chain").outerHTML = chainView(chain);
+        paintChain(chain, was.scroll, was.drawn);
+        was.refocus();
+        drawForming();
+        drawWeek();
+      }
+
+      // The week's hours, each its cheapest way in, as a line on a log scale, now's answer a dashed line across it, the days marked.
+      function drawWeek() {
+        const svg = $("week");
+        const w = state.week;
+        if (!svg || !w || !w.lows.length || !state.projected.length) return;
+        const W = svg.clientWidth;
+        const H = svg.clientHeight;
+        const now = within(1);
+        // By the hour, by the blocks' own times: the cheapest any block of the hour took (some pools take nothing under
+        // 1 sat/vB, so one block's cheapest says what that pool took, the hour's what it took to get in at all). An hour
+        // with no block has no point; the line runs past it.
+        const t1 = nowS();
+        const t0 = t1 - 7 * 86400;
+        const hours = new Map();
+        w.times.forEach((t, i) => {
+          if (t < t0 || w.lows[i] === null) return;
+          const hour = Math.floor(Math.min(t, t1) / 3600);
+          hours.set(hour, Math.min(hours.get(hour) ?? Infinity, Math.max(0.05, w.lows[i])));
+        });
+        const points = [...hours].sort((a, b) => a[0] - b[0]).map(([hour, r]) => [Math.min(t1, hour * 3600 + 1800), r]);
+        if (!points.length) return;
+        const values = points.map(([, r]) => r);
+        const lo = Math.min(now, ...values) * 0.85;
+        const hi = Math.max(now, ...values) * 1.15;
+        const x = (t) => ((t - t0) / (t1 - t0)) * W;
+        const y = (r) => H - ((Math.log(r) - Math.log(lo)) / (Math.log(hi) - Math.log(lo))) * H;
+        const line = points.map(([t, r], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(r).toFixed(1)}`).join("");
+        const parts = [];
+        // Each midnight a hairline, the day after it named under the chart where it has room.
+        const midnight = new Date(t1 * 1000);
+        midnight.setHours(0, 0, 0, 0);
+        for (let m = midnight.getTime() / 1000; m > t0; m -= 86400) {
+          parts.push(`<line x1="${x(m)}" x2="${x(m)}" y1="0" y2="${H}" style="stroke:var(--hair)"/>`);
+          if (x(m) + 34 < W) parts.push(`<text x="${x(m) + 6}" y="${H + 16}">${new Date(m * 1000).toLocaleDateString("en-US", { weekday: "short" })}</text>`);
+        }
+        parts.push(`<path d="${line} L${x(points.at(-1)[0])},${H} L${x(points[0][0])},${H} Z" style="fill:${feeColor(now)}" opacity="0.12"/>`);
+        parts.push(`<path d="${line}" fill="none" style="stroke:${feeColor(now)}" stroke-width="1.25" stroke-linejoin="round"/>`);
+        parts.push(`<line x1="0" x2="${W}" y1="${y(now)}" y2="${y(now)}" style="stroke:var(--ink)" stroke-dasharray="2 3" opacity="0.6"/>`);
+        parts.push(`<circle cx="${W}" cy="${y(now)}" r="3.5" style="fill:var(--now)"/>`);
+        svg.innerHTML = parts.join("");
+        // How now compares with the week's hours.
+        const dearer = values.filter((r) => r > now).length / values.length;
+        const cheaper = values.filter((r) => r < now).length / values.length;
+        const pct = (f) => `${nf(0).format(f * 100)}%`;
+        $("week-say").innerHTML = `What it took to get in, each hour of the past week: <b>${rateNum(Math.min(...values))}</b> to <b>${rate(Math.max(...values))}</b>.${
+          dearer > cheaper ? ` Now is cheaper than ${pct(dearer)} of them.` : cheaper > dearer ? ` Now is dearer than ${pct(cheaper)} of them.` : ""
+        }`;
+      }
+      // The forming block's answer: what gets you in, what waiting longer saves, what's in it so far and waiting.
+      function drawForming() {
+        if (state.view?.kind !== "home" || !$("answer")) return;
+        const last = state.confirmed[0];
+        if (last) $("forming").textContent = `Forming for ${nowS() - last.timestamp < 60 ? "under a minute" : span(nowS() - last.timestamp)}`;
+        const s = state.next?.stats;
+        if (s) {
+          const fresh = state.next.txs.filter((t) => t.born && performance.now() - t.born < 60000).length;
+          $("next-caption").innerHTML = `<b>${int(s.nTx)}</b> transactions${fresh ? `, ${int(fresh)} just in` : ""}`;
+        }
+        if (!state.mempool || !state.projected.length) return;
+        const r = within(1);
         const m = state.mempool;
-        // To be in within n blocks, a transaction pays at least what it takes to be in one of them.
-        const floor = (n) => Math.min(...Array.from({ length: n }, (_, i) => entry(p[i])));
-        $("fees").innerHTML = [
-          ["Next block", 1],
-          ["In 3 blocks", 3],
-          ["In 6 blocks", 6],
+        $("answer").textContent = rateNum(r);
+        $("say").innerHTML = `<b>${paymentCost(r)}</b> for a simple payment, in this block, about ten minutes away.`;
+        $("alts").innerHTML =
+          fig("Within 30 minutes", rateU(within(3)), paymentCost(within(3))) +
+          fig("Within an hour", rateU(within(6)), paymentCost(within(6))) +
+          (s ? fig("In it so far", `${int(s.nTx)}${unit("txs")}`, `${btc(s.totalFees)} BTC in fees${state.price ? `, ${usd((s.totalFees / 1e8) * state.price)}` : ""}`) : fig("In it so far", "&nbsp;")) +
+          fig("Waiting", `${int(m.count)}${unit("txs")}`, `${nf(1).format(m.vsize / 1e6)} blocks of them`);
+        // Where the chain stands: its next difficulty adjustment and halving.
+        const d = state.difficulty;
+        const halving = (Math.floor(state.tip / 210000) + 1) * 210000;
+        $("chainsay").innerHTML = [
+          d &&
+            `Difficulty <b class="${tone(d.difficultyChange)}">${d.difficultyChange >= 0 ? "+" : "−"}${nf(2).format(Math.abs(d.difficultyChange))}%</b> in ${plural(d.remainingBlocks, "block")}, around ${new Date(d.estimatedRetargetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+          `the halving in ${plural(halving - state.tip, "block")}`,
         ]
-          .map(([name, n]) => `<div><span>${name}</span><b>${rateNum(ceilRate(floor(n)))}</b><i style="background:${feeColor(floor(n))}"></i></div>`)
-          .join("");
-        const rows = $("mempool").querySelectorAll(".row b");
-        rows[0].textContent = int(m.count);
-        rows[1].textContent = vbytes(m.vsize);
-        rows[2].textContent = `${btc(m.total_fee)} BTC`;
+          .filter(Boolean)
+          .join(" · ");
       }
-      async function drawDifficulty() {
-        const d = await get("/v1/difficulty-adjustment");
-        const s = $("difficulty");
-        s.querySelector(".meter i").style.width = `${d.progressPercent}%`;
-        const rows = s.querySelectorAll(".row");
-        rows[0].innerHTML = `<span>${plural(d.remainingBlocks, "block")} to go</span><b class="${tone(d.difficultyChange)}">${d.difficultyChange >= 0 ? "+" : "−"}${nf(2).format(Math.abs(d.difficultyChange))}%</b>`;
-        rows[1].innerHTML = `<span>Around</span><b>${new Date(d.estimatedRetargetDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</b>`;
+
+      // ---- Each mined block's square: its map, small, drawn once its transactions are read, for the clock and the
+      // ledger alike (each copies it at its own size).
+      const THUMB = 144;
+      const thumbs = new Map();
+      // A block's transactions painted small on a canvas, packed as its map packs them.
+      function paintTxs(canvas, txs) {
+        const D = canvas.width;
+        const ctx = canvas.getContext("2d");
+        const k = Math.sqrt((D * D) / Math.max(1e6, txs.reduce((a, t) => a + t.vsize, 0))) * 0.94;
+        const r = placed(txs, D, 1e6, packAt(txs, D, k, 1));
+        const miner = MINER();
+        for (let i = 0; i < txs.length; i++) {
+          ctx.fillStyle = txs[i].coinbase ? miner : feeColor(txs[i].rate);
+          ctx.fillRect(r.x[i], r.y[i], r.w[i], r.h[i]);
+        }
+        return canvas;
       }
-      function drawHalving() {
-        const next = (Math.floor(state.tip / 210000) + 1) * 210000;
-        const s = $("halving");
-        s.querySelector(".meter i").style.width = `${((state.tip % 210000) / 210000) * 100}%`;
-        s.querySelector(".row").innerHTML = `<span>${plural(next - state.tip, "block")} to go</span><b>${int(next)}</b>`;
+      const thumbOf = (b) => {
+        if (!thumbs.has(b.id))
+          thumbs.set(
+            b.id,
+            txsOf(b).then(({ txs }) => paintTxs(Object.assign(document.createElement("canvas"), { width: THUMB, height: THUMB }), txs)).catch((e) => (thumbs.delete(b.id), Promise.reject(e))),
+          );
+        return thumbs.get(b.id);
+      };
+      // A canvas showing a block's square, its median colour until the map is drawn.
+      const square = (b, size, className) => {
+        const canvas = Object.assign(document.createElement("canvas"), { className });
+        canvas.width = canvas.height = Math.round(size * Math.max(2, devicePixelRatio));
+        canvas.style.background = feeColor(b.extras.medianFee);
+        thumbOf(b)
+          .then((src) => {
+            canvas.getContext("2d").drawImage(src, 0, 0, canvas.width, canvas.height);
+            canvas.style.background = "var(--tank)";
+          })
+          .catch(() => {});
+        return canvas;
+      };
+      // ---------------------------------------------------------------- The chain strip, over every block's view.
+      // The blocks around the one open, each its square, median fee and when: the mined ones to the left, the forming
+      // one, those to come to the right, the open one marked and kept in view however narrow the screen.
+      const SIDE = 6; // blocks shown each side of the open one
+      // Places along the chain: a mined block by its height, the forming one tip + 1, the i-th to come tip + 1 + i.
+      async function chainAround(open) {
+        const end = state.tip + state.projected.length; // the last place to come
+        const at = open.kind === "mined" ? open.h : open.kind === "next" ? state.tip + 1 : state.tip + 1 + open.i;
+        const lo = Math.max(0, Math.min(at - SIDE, end - 2 * SIDE));
+        const hi = Math.min(end, lo + 2 * SIDE);
+        // The mined ones, from the latest blocks known or read a page (ten, the newest first) or two.
+        const top = Math.min(hi, state.tip);
+        const known = new Map(state.confirmed.map((b) => [b.height, b]));
+        if (lo <= top && !(known.has(lo) && known.has(top))) for (const b of (await Promise.all([top, top - 10].filter((h) => h >= lo).map((h) => get(`/v1/blocks/${h}`)))).flat()) known.set(b.height, b);
+        const cells = [];
+        for (let p = lo; p <= hi; p++) {
+          const on = p === at;
+          if (p <= state.tip) {
+            const b = known.get(p);
+            if (b) cells.push({ p, on, kind: "mined", b, href: url.block(p), fee: b.extras.medianFee, when: stamp(b.timestamp) });
+          } else {
+            const i = p - state.tip - 1;
+            const q = state.projected[i];
+            if (q) cells.push({ p, on, kind: i ? "ahead" : "next", i, href: url.ahead(i), fee: q.medianFee, when: i ? `~${clockTime(nowS() + (i + 1) * 600)}` : "forming" });
+          }
+        }
+        return cells;
+      }
+      function chainView(cells) {
+        return `<nav class="chain" id="chain" aria-label="The chain around this block"><ol>${cells
+          .map(
+            (c) => `${c.kind === "next" ? `<li class="nowline" aria-hidden="true"></li>` : ""}<li class="cell ${c.kind}${c.on ? " on" : ""}" data-p="${c.p}">
+              <a href="${c.href}"${c.on ? ` aria-current="page"` : ""} aria-label="${c.kind === "mined" ? `Block ${int(c.p)}` : c.kind === "next" ? "The block forming now" : `The ${nth(c.i + 1)} block to come`}">
+                <span class="ch">${int(c.p)}</span><span class="box"></span><span class="cf">${rateU(c.fee)}</span><span class="cw">${c.when}</span>
+              </a></li>`,
+          )
+          .join("")}</ol></nav>`;
+      }
+      // The strip as it is, to draw it again the same: its scroll, its drawn mined squares, the cell with the focus.
+      function chainState() {
+        const nav = $("chain");
+        const focused = document.activeElement?.closest?.("#chain .cell")?.dataset.p;
+        return {
+          scroll: nav ? nav.querySelector("ol").scrollLeft : null,
+          drawn: new Map([...(nav?.querySelectorAll(".cell.mined") ?? [])].map((li) => [li.dataset.p, li.querySelector("canvas")])),
+          refocus: () => focused && $("chain")?.querySelector(`[data-p="${focused}"] a`)?.focus({ preventScroll: true }),
+        };
+      }
+      // Each cell's square, and the open one in view.
+      function paintChain(cells, keep = null, drawn = new Map()) {
+        const ol = $("chain")?.querySelector("ol");
+        if (!ol) return;
+        for (const c of cells) {
+          const box = ol.querySelector(`[data-p="${c.p}"] .box`);
+          box.append(c.kind === "mined" ? (drawn.get(String(c.p)) ?? square(c.b, 56, "")) : c.kind === "next" ? formingSquare(56) : bandsOf(state.projected[c.i], 56));
+        }
+        const on = ol.querySelector(".on");
+        if (!on) return;
+        if (keep !== null) ol.scrollLeft = keep;
+        else if (ol.scrollWidth > ol.clientWidth) ol.scrollLeft = on.offsetLeft - (ol.clientWidth - on.offsetWidth) / 2;
+        // The notch follows the open cell as the strip scrolls, shown while the cell is in view.
+        const nav = ol.parentElement;
+        const place = () => {
+          const x = on.offsetLeft - ol.scrollLeft + on.offsetWidth / 2;
+          nav.style.setProperty("--at", `${x}px`);
+          nav.style.setProperty("--notch", x > 0 && x < nav.clientWidth ? 1 : 0);
+        };
+        ol.addEventListener("scroll", place, { passive: true });
+        place();
+      }
+      // The forming block's square, from what's in it now.
+      function formingSquare(size) {
+        const c = document.createElement("canvas");
+        c.width = c.height = Math.round(size * Math.max(2, devicePixelRatio));
+        if (state.next?.txs.length) paintTxs(c, state.next.txs);
+        return c;
+      }
+
+      // A card over its target, kept inside the window: under it where there's no room above.
+      function placeCard(card, cx, top, bottom) {
+        card.hidden = false;
+        const { width, height } = card.getBoundingClientRect();
+        card.style.left = `${Math.min(innerWidth - width - 8, Math.max(8, cx - width / 2))}px`;
+        card.style.top = `${top - height - 12 >= 8 ? top - height - 12 : bottom + 12}px`;
       }
 
       // ---------------------------------------------------------------- A block's map.
-      // One canvas, drawn again only when its transactions change or a new one's glow fades.
+      // Every transaction a square, its area its size, packed from the bottom left in the block's order (the
+      // highest paying at the bottom, as a block fills): each set on the lowest ground it fits, then the leftmost.
+      // One canvas, drawn again only when its transactions change, its size or its lens does, or a new one's glow fades.
+      const MINER = () => getComputedStyle(document.documentElement).getPropertyValue("--miner");
       const map = (() => {
         let canvas;
         let txs = [];
-        let ends = []; // each transaction's end along the strip, in vbytes
+        let colors = [];
+        let colorOf = (t) => feeColor(t.rate);
+        let describe = null;
         let capacity = 1e6;
         let onOpen = null;
         let glowing = false;
         let lit = -1;
-        const ROW = 7;
-        const GAP = 1;
+        let layout = null; // { S, D, gap, rects, hit }: rectangles in device pixels; hit by CSS pixel
+        let fitted = null; // the scale the last layout took, at its size in device pixels
         const GLOW = 2400;
 
-        function geometry() {
-          const S = canvas.clientWidth;
-          const rows = Math.floor(S / (ROW + GAP));
-          return { S, rows, perPx: capacity / (rows * S) };
+        // Sides in whole device pixels (at least two to a CSS pixel, so even a phone's smallest squares round finely),
+        // the area of each its share of the block. Squares never tile perfectly: where they'd overflow, the largest
+        // scale that fits, found by halving (a full block then fills the map to its top).
+        function lay() {
+          const S = Math.round(canvas.clientWidth);
+          if (!S) return null;
+          const Q = Math.max(2, Math.round(devicePixelRatio));
+          const D = S * Q;
+          const gap = Q >= 3 ? 2 : Q;
+          const ceiling = Math.sqrt((D * D) / capacity);
+          const at = (k) => packAt(txs, D, k, gap + 2);
+          const fits = (t) => t.packed.top <= D;
+          const done = (best) => {
+            fitted = { D, k: best.k };
+            return finish(S, Q, D, gap, best);
+          };
+          // From the scale last found for this size, in small steps: the next block's updates change it little.
+          if (fitted?.D === D && fitted.k <= ceiling) {
+            let best = at(fitted.k);
+            for (let i = 0; i < 6 && !fits(best); i++) best = at(best.k * 0.993);
+            // Found where a step up overflows; one still fitting after three is a different block: searched afresh.
+            if (fits(best))
+              for (let i = 0; i < 3; i++) {
+                const up = at(best.k * 1.007);
+                if (!fits(up)) return done(best);
+                best = up;
+              }
+          }
+          let hi = ceiling;
+          let best = at(hi);
+          if (!fits(best)) {
+            let lo = hi;
+            while (!fits(best)) (hi = lo), (lo *= 0.85), (best = at(lo));
+            for (let i = 0; i < 6; i++) {
+              const tried = at((lo + hi) / 2);
+              if (fits(tried)) (lo = tried.k), (best = tried);
+              else hi = tried.k;
+            }
+          }
+          return done(best);
+        }
+        // Which transaction each CSS pixel shows, for the pointer.
+        function finish(S, Q, D, gap, best) {
+          const rects = placed(txs, D, capacity, best);
+          const hit = new Int32Array(S * S).fill(-1);
+          for (let i = 0; i < txs.length; i++) {
+            const x0 = Math.floor(rects.x[i] / Q);
+            const x1 = Math.min(S, Math.ceil((rects.x[i] + rects.w[i]) / Q));
+            const y0 = Math.max(0, Math.floor(rects.y[i] / Q));
+            const y1 = Math.min(S, Math.ceil((rects.y[i] + rects.h[i]) / Q));
+            for (let y = y0; y < y1; y++) hit.fill(i, y * S + x0, y * S + x1);
+          }
+          return { S, D, gap, rects, hit };
         }
         function draw() {
           if (!canvas?.isConnected) return false;
-          const { S, perPx } = geometry();
-          const dpr = devicePixelRatio;
-          const side = Math.round(S * dpr);
-          if (canvas.width !== side || canvas.height !== side) canvas.width = canvas.height = side;
+          const S = Math.round(canvas.clientWidth);
+          if (!layout || layout.S !== S || layout.D !== S * Math.max(2, Math.round(devicePixelRatio))) layout = lay();
+          if (!layout) return false;
+          const { D, gap, rects } = layout;
+          if (canvas.width !== D || canvas.height !== D) canvas.width = canvas.height = D;
           const ctx = canvas.getContext("2d");
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          ctx.clearRect(0, 0, S, S);
+          ctx.clearRect(0, 0, D, D);
           const now = performance.now();
           let fresh = false;
-          let at = 0;
           for (let i = 0; i < txs.length; i++) {
-            const t = txs[i];
-            let len = t.vsize / perPx;
-            const age = t.born ? now - t.born : GLOW;
-            const hot = age < GLOW;
-            fresh ||= hot;
-            ctx.fillStyle = t.coinbase ? getComputedStyle(canvas).getPropertyValue("--miner") : feeColor(t.rate);
-            while (len > 0.01) {
-              const row = Math.floor(at / S);
-              const x = at % S;
-              const run = Math.min(len, S - x);
-              const y = S - (row + 1) * (ROW + GAP);
-              ctx.globalAlpha = 1;
-              ctx.fillRect(x, y, run, ROW);
-              if (hot || i === lit) {
-                ctx.globalAlpha = i === lit ? 0.7 : 1 - age / GLOW;
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(x, y, run, ROW);
-                ctx.fillStyle = feeColor(t.rate);
-              }
-              at += run;
-              len -= run;
+            const w = rects.w[i] - gap;
+            const h = rects.h[i] - gap;
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(rects.x[i], rects.y[i], w, h);
+            const age = txs[i].born ? now - txs[i].born : GLOW;
+            if (age < GLOW) fresh = true;
+            const l = i === lit ? 0.6 : age < GLOW ? 1 - age / GLOW : 0;
+            if (l > 0) {
+              ctx.globalAlpha = l;
+              ctx.fillStyle = "#fff";
+              ctx.fillRect(rects.x[i], rects.y[i], w, h);
             }
           }
           ctx.globalAlpha = 1;
@@ -1124,27 +2019,14 @@
         }
         // Which transaction lies under a point on the canvas.
         function at(e) {
+          if (!layout) return -1;
           const r = canvas.getBoundingClientRect();
-          const { S, rows, perPx } = geometry();
-          const x = e.clientX - r.left;
-          const y = e.clientY - r.top;
-          // Row r is drawn from y = S - (r + 1)(ROW + GAP) for ROW pixels, its gap under it: measured up from the
-          // bottom (t), it covers r(ROW + GAP) + GAP < t <= (r + 1)(ROW + GAP), and a point in a gap is on nothing.
-          const t = S - y;
-          const row = Math.ceil(t / (ROW + GAP)) - 1;
-          if (x < 0 || x >= S || row < 0 || row >= rows || t - row * (ROW + GAP) <= GAP) return -1;
-          const v = (row * S + x) * perPx;
-          if (v >= (ends.at(-1) ?? 0)) return -1;
-          let lo = 0;
-          let hi = ends.length - 1;
-          while (lo < hi) {
-            const mid = (lo + hi) >> 1;
-            if (ends[mid] > v) hi = mid;
-            else lo = mid + 1;
-          }
-          return lo;
+          const x = Math.floor(((e.clientX - r.left) / r.width) * layout.S);
+          const y = Math.floor(((e.clientY - r.top) / r.height) * layout.S);
+          if (x < 0 || y < 0 || x >= layout.S || y >= layout.S) return -1;
+          return layout.hit[y * layout.S + x];
         }
-        const tip = $("tip");
+        const card = $("card");
         const light = (i) => {
           if (i === lit) return;
           lit = i;
@@ -1153,174 +2035,215 @@
         function hover(e) {
           const i = at(e);
           light(i);
-          if (i < 0) return (tip.hidden = true);
+          if (i < 0) return (card.hidden = true);
           const t = txs[i];
-          tip.hidden = false;
-          tip.style.left = `${e.clientX}px`;
-          tip.style.top = `${e.clientY}px`;
-          tip.innerHTML = t.coinbase
-            ? "The coinbase: the miner's reward"
-            : `${rate(t.rate)} · ${vbytes(t.vsize)}${t.fee !== undefined ? ` · ${int(t.fee)} sats` : ""}`;
+          card.innerHTML = t.coinbase
+            ? `<header>The coinbase</header><div>the miner's reward</div>`
+            : `<header><span><b><i style="background:${colors[i]}"></i></b>${rate(t.rate)}</span>${describe?.(i) ? `<span>${describe(i)}</span>` : ""}</header><div>Size<b>${vbytes(t.vsize)}</b></div>${
+                t.fee !== undefined ? `<div>Fee<b>${int(t.fee)} sats${state.price ? `, ${cost((t.fee / 1e8) * state.price)}` : ""}</b></div>` : ""
+              }`;
+          placeCard(card, e.clientX, e.clientY - 4, e.clientY + 16);
         }
+        const recolor = () => (colors = txs.map((t, i) => (t.coinbase ? MINER() : colorOf(t, i))));
         return {
           mount(el, open) {
             canvas = el;
             onOpen = open;
+            layout = null;
+            colorOf = (t) => feeColor(t.rate);
+            describe = null;
             canvas.addEventListener("pointermove", hover);
             canvas.addEventListener("pointerleave", () => {
-              tip.hidden = true;
+              card.hidden = true;
               light(-1);
             });
             canvas.addEventListener("click", (e) => {
               const i = at(e);
               if (i >= 0) onOpen(i, txs[i]);
             });
-            new ResizeObserver(draw).observe(canvas);
+            new ResizeObserver(() => draw()).observe(canvas);
           },
           set(list, size = 1e6) {
             txs = list;
             lit = -1;
-            let sum = 0;
-            ends = list.map((t) => (sum += t.vsize));
-            capacity = Math.max(size, sum);
+            capacity = Math.max(size, list.reduce((s, t) => s + t.vsize, 0));
+            layout = null;
+            recolor();
             draw() && glow();
+          },
+          // A lens: each transaction's colour, and a word on it for the pointer.
+          lens(color, say = null) {
+            colorOf = color;
+            describe = say;
+            recolor();
+            draw();
           },
         };
       })();
 
-      // ---------------------------------------------------------------- Views.
-      const fact = (name, value, note = "") => `<div><dt>${name}</dt><dd>${value}</dd>${note ? `<small>${note}</small>` : ""}</div>`;
-      const copyPill = (text, label = short(text, 10)) =>
-        `<button class="pill" type="button" data-copy="${esc(text)}" title="Copy">${esc(label)}</button>`;
+      // ---------------------------------------------------------------- Where each place lives: mempool.space's paths
+      // under the explorer's own folder (served the page at any address under it).
+      const BASE = location.pathname.match(/^(.*?\/explorer\/)/)?.[1] ?? "/explorer/";
+      const url = {
+        block: (ref) => `${BASE}block/${ref}`,
+        ahead: (i) => (i ? `${BASE}mempool-block/${i}` : BASE),
+        tx: (txid) => `${BASE}tx/${txid}`,
+        address: (a) => `${BASE}address/${encodeURIComponent(a)}`,
+      };
+      const linkTo = (r) => (r.kind === "home" ? BASE : r.kind === "tx" ? url.tx(r.txid) : r.kind === "address" ? url.address(r.address) : /^next-\d+$/.test(r.ref) ? url.ahead(Number(r.ref.slice(5))) : url.block(r.ref));
 
-      function blockShell({ crumb = "", title, extra = "", sub = "", facts = "", mapNote = "" }) {
-        return `<span class="crumb">${crumb}</span>
-          <div class="head">${title}${extra}</div>
-          <p class="sub" id="block-sub">${sub}</p>
-          <div class="body">
-            <dl class="facts" id="block-facts">${facts}</dl>
-            <div class="drawing">
-              <div class="map"><canvas id="map" role="img" aria-label="The block's transactions, each as much of it as its size, coloured by its fee rate"></canvas>${
-                mapNote ? `<div class="empty">${mapNote}</div>` : ""
-              }</div>
-              ${scaleBar()}
-            </div>
-          </div>`;
-      }
+      // ---------------------------------------------------------------- Views past the home.
+      const fig = (name, value, note = "") => `<div><dt class="label">${name}</dt><dd>${value}</dd><small>${note || "&nbsp;"}</small></div>`;
+      const copyPill = (text, label = short(text, 8)) =>
+        `<button class="pill" type="button" data-copy="${esc(text)}" title="Copy ${esc(text)}"><span>${esc(label)}</span>${ICON.copy}</button>`;
 
-      function drawNextFacts() {
-        const s = state.next.stats;
-        $("block-facts").innerHTML =
-          fact("Transactions", int(s.nTx)) +
-          fact("Size", vbytes(s.blockVSize), bytes(s.blockSize)) +
-          fact("Fees", `${btc(s.totalFees)}`, state.price ? usd((s.totalFees / 1e8) * state.price) : "") +
-          fact("Median fee", rate(s.medianFee)) +
-          fact("Fee range", `${rateNum(s.feeRange[0])}–${rateNum(s.feeRange.at(-1))}`, "sat/vB");
-      }
+      // ---------------------------------------------------------------- A block's view: the chain strip, then its answer
+      // beside its map (a block to come, its fee rates as bands), then what's inside it.
+      const neighbours = (h) => `<span class="steps"><button class="step" type="button" data-go="${h - 1}" ${h === 0 ? "disabled" : ""} aria-label="The block before">${ICON.prev}</button><button class="step" type="button" data-go="${h + 1}" ${h >= state.tip ? "disabled" : ""} aria-label="The block after">${ICON.next}</button></span>`;
+      const lensSwitch = `<div class="lens" id="lens" role="group" aria-label="Colour the map by"><button type="button" data-lens="fee" aria-pressed="true">Fee rate</button><button type="button" data-lens="kind" aria-pressed="false">Kind</button></div>`;
+      // Wide: a figure across the whole row of figures.
+      const wide = (html) => html.replace("<div>", `<div class="wide">`);
 
-      // Each view writes only while it's still the one asked for: a slower read for a view since left is dropped.
-      const waiting = (n) => fact("&nbsp;", "&nbsp;", "&nbsp;").repeat(n);
-      const nextTitle = { title: `<h2>Next block</h2>`, extra: `<span class="live">forming from the mempool</span>` };
-      async function viewNext() {
-        const v = state.view;
-        if (!state.next) {
-          $("view").innerHTML = blockShell({ ...nextTitle, sub: "&nbsp;", facts: waiting(5) });
-          await loadNext();
-        }
-        if (state.view !== v) return;
-        $("view").innerHTML = blockShell({
-          ...nextTitle,
-          sub: `Block ${int(state.tip + 1)}, as Bitcoin Core would mine it now · about 10 minutes`,
-        });
-        drawNextFacts();
-        map.mount($("map"), (i, t) => go(`?tx=${t.txid}`));
-        map.set(state.next.txs);
-      }
-
-      function viewQueued(n) {
+      async function viewQueued(n, again = false) {
         const b = state.projected[n];
-        if (!b) return go("?block=next", true);
-        $("view").innerHTML = blockShell({
-          title: `<h2>${n + 1}${["st", "nd", "rd"][n] ?? "th"} block to come</h2>`,
-          sub: `In about ${(n + 1) * 10} minutes, if the mempool stays as it is`,
-          facts:
-            fact("Transactions", int(b.nTx)) +
-            fact("Size", vbytes(b.blockVSize), bytes(b.blockSize)) +
-            fact("Fees", btc(b.totalFees)) +
-            fact("Median fee", rate(b.medianFee)) +
-            fact("Fee range", `${rateNum(b.feeRange[0])}–${rateNum(b.feeRange.at(-1))}`, "sat/vB"),
-          mapNote: "Only the next block's transactions are projected one by one.",
-        });
+        if (!b) return go(BASE, true);
+        const v = state.view;
+        const chain = await chainAround({ kind: "ahead", i: n });
+        if (state.view !== v) return;
+        const was = again ? chainState() : null;
+        $("view").innerHTML = `${chainView(chain)}
+          <div class="focus ahead">
+            <div class="lead">
+              <p class="lead-kicker"><span class="chip">To come</span></p>
+              <h2 class="lead-title">The ${nth(n + 1)} block to come</h2>
+              <p class="lead-lede">In about ${span((n + 1) * 600)}, if the mempool stays as it is.</p>
+              <dl class="lead-figs">
+                ${fig("To get in", rateU(ceilRate(entry(b))), `${paymentCost(entry(b))} a payment`)}
+                ${fig("Transactions", int(b.nTx), vbytes(b.blockVSize))}
+                ${fig("Fees", btcU(b.totalFees), state.price ? usd((b.totalFees / 1e8) * state.price) : "")}
+                ${fig("Median fee", rateU(b.medianFee), `${rateNum(b.feeRange[0])} to ${rate(b.feeRange.at(-1))}`)}
+              </dl>
+            </div>
+            <figure class="mapbox"><span class="bands" id="bands"></span>
+              <figcaption class="caption"><span>Its fee rates, the cheapest at the top, as tall as it's full</span>${scaleKey()}</figcaption></figure>
+          </div>`;
+        paintChain(chain, was?.scroll ?? null);
+        was?.refocus();
+        $("bands").append(bandsOf(b, 640));
       }
 
-      const blockTitle = (h) => `<button class="step" type="button" data-go="${h + 1}" ${h >= state.tip ? "disabled" : ""} aria-label="Newer block">‹</button>
-            <h2>Block ${int(h)}</h2>
-            <button class="step" type="button" data-go="${h - 1}" ${h === 0 ? "disabled" : ""} aria-label="Older block">›</button>`;
       async function viewBlock(ref) {
         const v = state.view;
-        if (/^\d+$/.test(ref) && !document.getElementById("map")) $("view").innerHTML = blockShell({ title: blockTitle(+ref), sub: "&nbsp;", facts: waiting(9) });
-        const hash = /^\d+$/.test(ref) ? await get(`/block-height/${ref}`) : ref;
+        const hash = isHeight(ref) ? await get(`/block-height/${ref}`) : ref;
         const b = await get(`/v1/block/${hash}`);
         const h = b.height;
-        // A block opened by its hash is shown, linked and found on the belt by its height.
+        // A block opened by its hash is shown, and linked, by its height.
         if (state.view === v && v.ref !== String(h)) {
           v.ref = String(h);
-          history.replaceState(null, "", `?block=${h}`);
-          markCurrent();
+          history.replaceState(null, "", url.block(h));
+          document.title = `Block ${int(h)} · Explorer · Bitview`;
         }
-        const [first, profit, loss, cdd, price] = await Promise.all([
-          series("first_tx_index", "height", h, h + 1),
+        const [[profit], [loss], [destroyed], [cdd], price, chain] = await Promise.all([
           series("realized_profit", "height", h, h + 1),
           series("realized_loss", "height", h, h + 1),
+          series("value_destroyed", "height", h, h + 1),
           series("coindays_destroyed", "height", h, h + 1),
           priceAt(h),
+          chainAround({ kind: "mined", h }),
         ]);
         if (state.view !== v) return;
         const x = b.extras;
-        $("view").innerHTML = blockShell({
-          title: blockTitle(h),
-          extra: copyPill(b.id),
-          sub: `${esc(x.pool.name === "Unknown" ? "Unknown miner" : x.pool.name)} · ${when(b.timestamp)} · ${ago(b.timestamp)} · ${plural(state.tip - h + 1, "confirmation")}`,
-          facts:
-            fact("Transactions", int(b.tx_count)) +
-            fact("Size", bytes(b.size), `${nf(2).format(b.weight / 1e6)} MWU`) +
-            fact("Fees", btc(x.totalFees), usd((x.totalFees / 1e8) * price)) +
-            fact("Reward", btc(x.reward), usd((x.reward / 1e8) * price)) +
-            fact("Median fee", rate(x.medianFee)) +
-            fact("Fee range", `${rateNum(x.feeRange[0])}–${rateNum(x.feeRange.at(-1))}`, "sat/vB") +
-            fact("Realized", `<span class="gain">+${usd(profit[0])}</span>`, `<span class="lost">−${usd(loss[0])}</span> in loss`) +
-            fact("Coin-days destroyed", int(cdd[0])) +
-            fact("Price", dollars(price), "read from this block's own payments"),
-        });
+        const lone = b.tx_count === 1;
+        // Value created and destroyed, as Studio counts them: its coins at the price spent and at the prices they came
+        // in at, the difference what it realized.
+        const realized = profit - loss;
+        $("view").innerHTML = `${chainView(chain)}
+          <div class="focus">
+            <div class="lead">
+              <p class="lead-kicker"><span class="chip">Mined</span>${copyPill(b.id)}</p>
+              <div class="lead-head"><h2 class="lead-title">Block ${int(h)}</h2>${neighbours(h)}</div>
+              <p class="lead-lede">Mined by <b>${poolMark(x.pool?.slug)}${poolName(x.pool)}</b> at ${clockTime(b.timestamp)} on ${day(b.timestamp)}, <span data-ago="${b.timestamp}">${ago(b.timestamp)}</span>. ${plural(state.tip - h + 1, "confirmation")}.</p>
+              <p class="lead-note">${
+                lone
+                  ? "The coinbase alone: no transaction paid to get in."
+                  : !x.feeRange.at(-1)
+                    ? `${plural(b.tx_count - 1, "transaction")} besides the coinbase, none of them paying a fee.`
+                    : `${plural(b.tx_count - 1, "transaction")} besides the coinbase paid from ${rateNum(x.feeRange[0])} to ${rate(x.feeRange.at(-1))}, half of them more than ${rate(x.medianFee)}.`
+              }</p>
+              <dl class="lead-figs">
+                ${fig("Fees", btcU(x.totalFees), `${price ? `${usd((x.totalFees / 1e8) * price)} · ` : ""}reward ${btc(x.reward)} BTC`)}
+                ${fig("Size", bytes(b.size), weight(b.weight))}
+                ${wide(
+                  destroyed || profit || loss
+                    ? fig("Realized", `<span class="${tone(realized)}">${signed(realized)}</span>`, `<span class="vc">value created ${usd(destroyed + realized)}</span><span class="vd">value destroyed ${usd(destroyed)}</span>`)
+                    : fig("Realized", "Nothing", "it spent no coins"),
+                )}
+                ${fig("Coin-days destroyed", int(cdd), "by the coins it spent")}
+                ${fig("Price", price ? dollars(price) : "—", price ? "read from its own payments" : "none read this early")}
+              </dl>
+            </div>
+            <figure class="mapbox"><canvas id="map" role="img" aria-label="The block's transactions, each a square as large as its size, coloured by its fee rate or its kind"></canvas>
+              <figcaption class="caption">${lone ? "" : lensSwitch}<span id="legend">${scaleKey()}</span></figcaption></figure>
+          </div>
+          ${lone ? "" : `<section class="lower"><div class="sechead"><h2>Inside</h2><p>by share of its space</p></div><div class="kinds" id="kinds">${`<div class="kind"><i></i><span>&nbsp;</span><b></b><em></em></div>`.repeat(5)}</div></section>`}`;
+        paintChain(chain);
         // Its map, exact: every transaction's size and effective fee rate, by its place in the chain.
-        const start = first[0];
-        const end = start + b.tx_count;
-        const [rates, sizes] = await Promise.all([
-          series("tx_effective_fee_rate", "tx_index", start, end),
-          series("tx_vsize", "tx_index", start, end),
-        ]);
+        const { start, txs } = await txsOf(b);
         if (state.view !== v) return;
         map.mount($("map"), async (i) => {
           const txid = await get(`/tx-index/${start + i}`);
-          if (state.view === v) go(`?tx=${txid}`);
+          if (state.view === v) go(url.tx(txid));
         });
-        map.set(
-          sizes.map((v, i) => ({ vsize: v, rate: rates[i], coinbase: i === 0 })),
-          1e6,
-        );
+        map.set(txs, 1e6);
+        if (lone) return;
+        // What kinds fill it, by their share of its space, and the lens that colours by them.
+        const kinds = await kindsOf(b);
+        if (state.view !== v) return;
+        const space = [...KINDS.map(() => 0), 0];
+        const count = [...KINDS.map(() => 0), 0];
+        let total = 0;
+        for (let i = 1; i < txs.length; i++) {
+          const k = kinds[i] < 0 ? KINDS.length : kinds[i];
+          space[k] += txs[i].vsize;
+          count[k]++;
+          total += txs[i].vsize;
+        }
+        const named = [...KINDS.map(([, name, color], k) => [name, color, k]), ["Everything else", OTHER, KINDS.length]].filter(([, , k]) => count[k]);
+        $("kinds").innerHTML = named
+          .map(([name, color, k]) => {
+            const share = total ? space[k] / total : 0;
+            return `<div class="kind" style="--c:${color};--w:${(share * 100).toFixed(1)}%"><i style="background:${color}"></i><span>${name} <span class="soft">${int(count[k])}</span></span><b>${nf(1).format(share * 100)}%</b><em></em></div>`;
+          })
+          .join("");
+        $("lens").onclick = (e) => {
+          const button = e.target.closest("[data-lens]");
+          if (!button) return;
+          for (const other of $("lens").querySelectorAll("button")) other.setAttribute("aria-pressed", other === button);
+          if (button.dataset.lens === "kind") {
+            map.lens(
+              (t, i) => (kinds[i] < 0 ? OTHER : KINDS[kinds[i]][2]),
+              (i) => (kinds[i] < 0 ? null : KINDS[kinds[i]][1]),
+            );
+            $("legend").innerHTML = `<span class="keys">${named.map(([name, color]) => `<span><i style="background:${color}"></i>${name}</span>`).join("")}</span>`;
+          } else {
+            map.lens((t) => feeColor(t.rate));
+            $("legend").innerHTML = scaleKey();
+          }
+        };
       }
 
       // A transaction's coins in: each one's birth, the price then, and what its spend made of it.
       const AGES = [
-        ["under 1 month", 30.44 * 86400, "#f2c14e"],
-        ["1 to 6 months", 182.6 * 86400, "#f08a4b"],
-        ["6 months to 1 year", 365.25 * 86400, "#e05a6d"],
-        ["1 to 2 years", 2 * 365.25 * 86400, "#b5579f"],
-        ["2 to 4 years", 4 * 365.25 * 86400, "#7a5cc7"],
-        ["4 to 8 years", 8 * 365.25 * 86400, "#4a78d1"],
-        ["over 8 years", Infinity, "#2fa3a8"],
+        ["under 1 month", 30.44 * 86400, "#f0b429"],
+        ["1 to 6 months", 182.6 * 86400, "#ef7d3c"],
+        ["6 months to 1 year", 365.25 * 86400, "#e0525f"],
+        ["1 to 2 years", 2 * 365.25 * 86400, "#bc4f9c"],
+        ["2 to 4 years", 4 * 365.25 * 86400, "#7f5bd0"],
+        ["4 to 8 years", 8 * 365.25 * 86400, "#4479d6"],
+        ["over 8 years", Infinity, "#21a3a6"],
       ];
-      const ageColor = (s) => (s === null ? "var(--faint)" : AGES.find(([, upTo]) => s < upTo)[2]);
+      const ageIndex = (s) => AGES.findIndex(([, upTo]) => s < upTo);
+      const ageColor = (s) => (s === null ? "var(--faint)" : AGES[ageIndex(s)][2]);
       const BIRTHS = 60; // inputs whose births are read one by one; past that, only their amounts
 
       async function readTx(txid) {
@@ -1359,6 +2282,8 @@
           vsize,
           rate: tx.fee / vsize,
           effective: cpfp?.effectiveFeePerVsize ?? tx.fee / vsize,
+          // The vB its effective rate is over: its own, its waiting parents' and the child paying for it.
+          package: vsize + (cpfp?.ancestors ?? []).reduce((s, a) => s + a.weight / 4, 0) + (cpfp?.bestDescendant ? cpfp.bestDescendant.weight / 4 : 0),
           price: spendPrice,
           inputs,
           outputs,
@@ -1369,62 +2294,371 @@
         };
       }
 
-      // Where a waiting transaction stands: the first projected block whose cheapest it pays.
-      // Where a waiting transaction stands: in the next block if the template holds it, else the first projected block
-      // its effective rate (with the transactions it confirms with) gets it into.
-      const placeOf = (t) => {
-        if (state.next?.txs.some((x) => x.txid === t.tx.txid)) return 0;
-        const i = state.projected.findIndex((b) => t.effective >= entry(b));
-        return i < 0 ? state.projected.length : i;
-      };
+      // ---------------------------------------------------------------- A transaction: its life as one timeline.
+      // On the left the answer: where it is, when, the one thing to do about it, what it moved, paid and realized. On
+      // the right its moments in time order (sent, each fee raise, now, in a block, settled), the blocks between two
+      // of them one strip of squares, counted, with the rates they took.
+      const SETTLE = 6; // the confirmations most services wait for
+      const STRIP = 14; // squares a strip draws: a longer run shows its latest, its count says how many
+      // The waiting transactions paying more than a rate, in vB, from the mempool's histogram.
+      const aheadOf = (r) => (state.mempool?.fee_histogram ?? []).reduce((s, [rr, vs]) => (rr > r ? s + vs : s), 0);
+      // What each block to come takes from, as the queue stands: the rate where the transactions paying more fill it
+      // (the reckoning that places a transaction in the queue), the next block's from its template.
+      function takesFrom() {
+        const queue = [...(state.mempool?.fee_histogram ?? [])].sort((a, b) => b[0] - a[0]);
+        const cut = [];
+        let sum = 0;
+        for (const [r, vs] of queue) {
+          sum += vs;
+          while (sum >= (cut.length + 1) * 1e6 && cut.length < state.projected.length) cut.push(r);
+        }
+        return (i) => (i === 0 ? entry(state.projected[0]) : (cut[i] ?? entry(state.projected[i])));
+      }
+      // A block to come: its fee rates in bands from its cheapest (top) to its dearest (bottom), each as tall as the
+      // share of the block it stands for, all as tall as the block is full.
+      const SHARES = [0.1, 0.15, 0.25, 0.25, 0.15, 0.1]; // between its 7 fee percentiles: min, 10, 25, 50, 75, 90, max
+      function bandsOf(b, size) {
+        const c = document.createElement("canvas");
+        c.width = c.height = Math.round(size * Math.max(2, devicePixelRatio));
+        const ctx = c.getContext("2d");
+        const f = b.feeRange;
+        const full = Math.min(1, b.blockVSize / 1e6);
+        let y = c.height * (1 - full);
+        SHARES.forEach((share, k) => {
+          const h = c.height * full * share;
+          ctx.fillStyle = feeColor(Math.sqrt(Math.max(f[k], 0.1) * Math.max(f[k + 1], 0.1)));
+          ctx.fillRect(0, y, c.width, h + 0.5);
+          y += h;
+        });
+        return c;
+      }
+      const heightAt = async (t) => (await get(`/v1/mining/blocks/timestamp/${Math.floor(t)}`)).height;
+      const minerOf = (b) => (b.extras.pool && b.extras.pool.name !== "Unknown" ? b.extras.pool.name : null);
 
+      // Every version of a payment its replacements made, oldest first, each with the one that replaced it.
+      async function versionsOf(txid) {
+        const root = (await get(`/v1/tx/${txid}/rbf`).catch(() => null))?.replacements;
+        if (!root) return null;
+        const all = [];
+        const walk = (n, by, depth) => {
+          all.push({ ...n.tx, time: n.time, by, depth });
+          for (const c of n.replaces) walk(c, n.tx, depth + 1);
+        };
+        walk(root, null, 0);
+        return { all: all.sort((a, b) => a.time - b.time || b.depth - a.depth), latest: root.tx };
+      }
+
+      // What the page says of a transaction: where it is, when, and what it paid, moved and realized.
+      async function factsOf(t) {
+        const txid = t.tx.txid;
+        const usdAt = (sats, price) => (price ? (sats / 1e8) * price : null);
+        const [vs, [seen]] = await Promise.all([versionsOf(txid), t.confirmed ? [0] : get(`/v1/transaction-times?txId[]=${txid}`).catch(() => [0])]);
+        const k = { txid, effective: t.effective, paid: t.tx.fee, paidUsd: usdAt(t.tx.fee, t.price), value: t.value, valueUsd: usdAt(t.value, t.price), coinbase: !!t.inputs[0].coinbase };
+        k.coins = `${plural(t.inputs.length, "coin")} in, ${int(t.outputs.length)} out`;
+        k.signals = t.tx.vin.some((v) => v.sequence < 0xfffffffe);
+        if (vs?.all.length > 1) {
+          k.versions = vs.all;
+          k.first = vs.all[0];
+          k.me = vs.all.find((x) => x.txid === txid);
+        }
+        // Value created and destroyed, as Studio counts them: its coins at the price they're spent at, and at the
+        // prices they came in at; the difference is what spending them realizes. A coin that came in still waiting came
+        // in at today's price (it creates what it destroys), one from before Bitcoin had a price at $0 (all it creates
+        // is profit). A spend with no price has neither; past the coins whose births are read, the rest stay out.
+        const priced = t.inputs.filter((c) => !c.coinbase && c.pnl !== undefined);
+        if (t.price && priced.length) {
+          k.created = priced.reduce((s, c) => s + (c.value / 1e8) * t.price, 0);
+          k.destroyed = priced.reduce((s, c) => s + (c.value / 1e8) * (c.unconfirmed ? t.price : c.price), 0);
+          k.realized = k.created - k.destroyed;
+          k.pricedAll = priced.length === t.inputs.filter((c) => !c.coinbase).length;
+        }
+        if (!t.confirmed) {
+          k.state = "waiting";
+          k.sent = k.first?.time ?? (seen || null);
+          // Its place: the next block if the template holds it, else behind all that pays more, a block a million vB.
+          k.inNext = !!state.next?.txs.some((x) => x.txid === txid);
+          k.ahead = k.inNext ? 0 : aheadOf(t.effective);
+          k.place = k.inNext ? 0 : Math.max(1, Math.floor(k.ahead / 1e6));
+          k.slot = Math.min(k.place, state.projected.length - 1); // the projected block it's in, the last holding all the rest
+          k.far = !k.inNext && k.place >= state.projected.length - 1 && state.projected.at(-1).blockVSize > 1.05e6;
+          // Paying nothing and not in the template: it gets in only with a transaction spending it that pays for both.
+          k.stuck = !k.inNext && t.effective <= 0;
+          k.eta = nowS() + (k.place + 1) * 600;
+          k.settleEta = k.eta + (SETTLE - 1) * 600;
+          k.need = entry(state.projected[0]);
+          k.bump = k.inNext ? 0 : Math.max(0, Math.ceil((k.need - t.effective) * t.package));
+          k.bumpUsd = usdAt(k.bump, state.price);
+          k.title = k.inNext ? "In the next block" : k.stuck ? "Paying nothing" : k.far ? "Far back in the queue" : `About ${k.place + 1} blocks away`;
+          k.lede = k.inNext
+            ? `About ten minutes from now, around ${clockTime(k.eta)}.`
+            : k.stuck
+              ? "It gets into a block only with a transaction spending it that pays for both."
+              : k.far
+              ? `${nf(1).format(k.ahead / 1e6)} blocks of transactions pay more. ${span((k.place + 1) * 600)} at best.`
+              : `Around ${clockTime(k.eta)}, if nothing paying more comes first.`;
+          return k;
+        }
+        const block = await get(`/v1/block/${t.tx.status.block_hash}`);
+        k.height = t.height;
+        k.time = t.time;
+        k.conf = state.tip - t.height + 1;
+        k.state = k.conf >= SETTLE ? "settled" : "confirmed";
+        k.sent = k.first?.time ?? null;
+        k.settleEta = k.conf < SETTLE ? nowS() + (SETTLE - k.conf) * 600 : null;
+        const floor = block.extras.feeRange[0];
+        const times = floor > 0 && !k.coinbase ? t.effective / floor : null;
+        const floorSats = Math.ceil(floor * t.vsize);
+        k.title = k.state === "settled" ? "Settled" : "Confirmed";
+        k.lede =
+          k.state === "settled"
+            ? `In block ${int(k.height)}${nowS() - k.time > 365.25 * 86400 ? ` on ${day(k.time)}` : `, ${ago(k.time)}`}: ${int(k.conf)} confirmations deep.`
+            : `In block ${int(k.height)}, ${ago(k.time)}: ${k.conf} of the ${SETTLE} confirmations most services wait for.`;
+        k.say = k.coinbase
+          ? "New coins: the miner's reward, with no fee."
+          : times === null
+            ? `It paid ${btc(k.paid)} BTC in fees.`
+            : times < 1.05
+              ? `It paid ${rate(t.effective)}, the least of any transaction in its block${block.weight < 3.6e6 ? ", which had room to spare" : ""}.`
+              : `It paid ${rate(t.effective)}, ${nf(times < 10 ? 1 : 0).format(times)} times the ${rate(floor)} the cheapest in its block paid: ${t.price ? cost(usdAt(floorSats, t.price)) : `${int(floorSats)} sats`} would have done.`;
+        return k;
+      }
+
+      // A version its replacement took the place of: gone from the queue, so read from its replacement tree alone.
+      async function replacedOf(txid) {
+        const vs = await versionsOf(txid);
+        const me = vs?.all.find((x) => x.txid === txid);
+        if (!me?.by) return null;
+        const by = vs.all.find((x) => x.txid === me.by.txid);
+        const newest = await get(`/tx/${vs.latest.txid}`).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+        const k = { state: "replaced", txid, effective: me.rate, paid: me.fee, paidUsd: state.price ? (me.fee / 1e8) * state.price : null, value: me.value, versions: vs.all, first: vs.all[0], me, by, latest: vs.latest };
+        k.latestIn = newest?.status.confirmed ? newest.status.block_height : null;
+        k.latestGone = !newest;
+        k.title = "Replaced";
+        k.lede = `Its sender replaced it ${span(by.time - me.time)} after sending it, with a version paying ${rate(by.rate)} instead of ${rate(me.rate)}. This one can no longer confirm.`;
+        k.say = `${k.latestIn ? `The payment's latest version is in block ${int(k.latestIn)}.` : k.latestGone ? "The payment's latest version isn't in the queue any more." : "The payment's latest version is waiting to confirm."} ${me.rbf ? "This version signalled replace-by-fee." : "This version didn't signal replace-by-fee; nodes took the replacement anyway."}`;
+        return k;
+      }
+
+      // Blocks a to b as a strip: the count, the latest STRIP of them, and the cheapest rate each took (all of them).
+      async function stripOf(a, b) {
+        const n = b - a + 1;
+        if (n <= 0) return null;
+        const from = Math.max(a, b - STRIP + 1);
+        const [pages, floors] = await Promise.all([
+          Promise.all((from <= b - 10 ? [b - 10, b] : [b]).map((h) => get(`/v1/blocks/${h}`))),
+          series("tx_effective_fee_rate_min", "height", a, b + 1),
+        ]);
+        const at = new Map(pages.flat().map((x) => [x.height, x]));
+        const blocks = [];
+        for (let h = from; h <= b; h++) if (at.has(h)) blocks.push(at.get(h));
+        const paying = floors.filter((f) => f > 0);
+        return { kind: "strip", n, blocks, more: n - blocks.length, lo: paying.length ? Math.min(...paying) : 0, hi: Math.max(0, ...floors) };
+      }
+      const rates = (lo, hi) => (rateNum(lo) === rateNum(hi) ? rate(lo) : `${rateNum(lo)} to ${rate(hi)}`);
+
+      // Its moments in time order, each a row; between two, the blocks mined or to come as a strip.
+      async function momentsOf(k) {
+        const usdOf = (sats) => (state.price ? cost((sats / 1e8) * state.price) : `${int(sats)} sats`);
+        const moment = (at, mark, title, note, more = {}) => ({ kind: "moment", at, mark, title, note, ...more });
+        const versionMoments = (list) =>
+          list.map((x, i) =>
+            moment(x.time, "dot", x === k.first ? "Sent" : "Fee raised", `${x === k.first ? "paying" : "to"} ${rate(x.rate)}, ${usdOf(x.fee)}${x.txid === k.txid ? " · this version" : ""}`, {
+              href: x.txid === k.txid ? null : url.tx(x.txid),
+              txid: x.txid,
+            }),
+          );
+        // Moments with the blocks mined after each up to the next (the last's up to a height), as strips.
+        const withStrips = async (list, until) => {
+          const hs = await Promise.all(list.map((m) => heightAt(m.at)));
+          const strips = await Promise.all(list.map((m, i) => stripOf(hs[i] + 1, i + 1 < list.length ? hs[i + 1] : until)));
+          return list.flatMap((m, i) => (strips[i] ? [m, { ...strips[i], say: `${plural(strips[i].n, "block")} without it`, sub: `taking from ${rates(strips[i].lo, strips[i].hi)}` }] : [m]));
+        };
+        const rows = [];
+        if (k.state === "waiting") {
+          const sent = k.versions ? versionMoments(k.versions) : k.sent ? [moment(k.sent, "dot", "Sent", `paying ${rate(k.effective)}, ${usdOf(k.paid)}`)] : [];
+          rows.push(...(sent.length ? await withStrips(sent, state.tip) : []));
+          rows.push(moment(nowS(), "now", "Now, in the queue", k.inNext ? "next in line" : k.stuck ? "paying nothing, behind everything that pays" : `${nf(1).format(k.ahead / 1e6)} blocks of transactions pay more`));
+          if (k.stuck) return rows;
+          const takes = takesFrom();
+          if (k.place > 0)
+            rows.push({ kind: "strip", come: Array.from({ length: k.slot }, (_, i) => i), more: k.place - k.slot, n: k.place, say: `${plural(k.place, "block")} ahead of it`, sub: `taking from ${rates(takes(k.slot - 1), takes(0))}` });
+          rows.push(
+            moment(k.eta, "come", k.far ? "In a block, at best" : "In a block", k.far ? `about the ${nth(k.place + 1)} block to come` : `the ${k.place ? nth(k.place + 1) : "next"} block, which takes from ${rate(ceilRate(takes(k.slot)))}`, { slot: k.slot, hit: true }),
+          );
+          rows.push({ kind: "strip", ghosts: SETTLE - 1, n: SETTLE - 1, say: `${SETTLE - 1} more blocks`, sub: "each one more confirmation" });
+          rows.push(moment(k.settleEta, "dot", "Settled", `${SETTLE} confirmations`));
+        } else if (k.state === "replaced") {
+          const mine = versionMoments(k.versions.filter((x) => x.time <= k.me.time));
+          rows.push(...(await withStrips([...mine, moment(k.by.time, "gone", "Replaced", `by a version paying ${rate(k.by.rate)}`)], await heightAt(k.by.time))));
+          // The payment after: its later raises and its latest version, softer, another version's story.
+          const later = versionMoments(k.versions.filter((x) => x.time > k.me.time && x.txid !== k.by.txid)).map((m) => ({ ...m, faint: true }));
+          rows.push(...later);
+          rows.push(
+            moment(later.at(-1)?.at ?? k.by.time, "dot", k.latestIn ? `Its latest version, in block ${int(k.latestIn)}` : k.latestGone ? "Its latest version, gone from the queue" : "Its latest version is waiting", `paying ${rate(k.latest.rate)}`, {
+              href: url.tx(k.latest.txid),
+              faint: true,
+            }),
+          );
+        } else {
+          const h = k.height;
+          const top = Math.min(state.tip, h + SETTLE - 1);
+          const [mined, sent] = await Promise.all([
+            get(`/v1/blocks/${top}`).then((x) => x.filter((b) => b.height >= h && b.height <= top).reverse()),
+            k.versions ? withStrips(versionMoments(k.versions), h - 1) : [],
+          ]);
+          rows.push(...sent);
+          const its = mined[0];
+          rows.push(moment(its.timestamp, "block", `In block ${int(h)}`, `1st confirmation${minerOf(its) ? ` · ${minerOf(its)}` : ""}`, { b: its, hit: true }));
+          const after = mined.slice(1, SETTLE - 1);
+          if (after.length) rows.push({ kind: "strip", blocks: after, n: after.length, more: 0, say: after.length === 1 ? "the 2nd confirmation" : `confirmations 2 to ${after.length + 1}` });
+          if (k.conf < SETTLE) {
+            const left = SETTLE - k.conf - 1;
+            if (left) rows.push({ kind: "strip", ghosts: left, n: left, say: `${plural(left, "block")} to come` });
+            rows.push(moment(k.settleEta, "dot", "Settled", `the ${nth(SETTLE)} confirmation`));
+          } else {
+            const sixth = mined[SETTLE - 1];
+            rows.push(moment(sixth.timestamp, "block", "Settled", `block ${int(sixth.height)}, the ${nth(SETTLE)} confirmation`, { b: sixth, hit: true }));
+            if (k.conf > SETTLE) rows.push({ kind: "strip", n: k.conf - SETTLE, more: k.conf - SETTLE, say: `${plural(k.conf - SETTLE, "block")} since` });
+          }
+        }
+        // Raises with no block mined between them, three or more in a row, fold into one, each version listed under it.
+        const out = [];
+        for (let i = 0; i < rows.length; ) {
+          let j = i;
+          while (j < rows.length && rows[j].title === "Fee raised" && rows[j].faint === rows[i].faint) j++;
+          if (j - i >= 3) {
+            const run = rows.slice(i, j);
+            const list = run.map((m) => k.versions.find((x) => x.txid === m.txid));
+            const before = k.versions[k.versions.indexOf(list[0]) - 1] ?? list[0];
+            out.push({ ...run.at(-1), title: `Fee raised ${run.length} times`, note: `from ${rate(before.rate)} to ${rate(list.at(-1).rate)}${list.at(-1).txid === k.txid ? " · this version" : ""}`, list, href: null });
+            i = j;
+          } else out.push(rows[i++]);
+        }
+        return out;
+      }
+
+      // The answer column.
+      const STATE = { waiting: "Waiting", confirmed: "Confirmed", settled: "Settled", replaced: "Replaced" };
+      function answerOf(k) {
+        const W = k.state === "waiting";
+        const money = (u, sats) => (u !== null ? cost(u) : `${btc(sats)} BTC`);
+        const none = k.realized !== undefined && Math.abs(k.realized) < 0.005;
+        const bump = k.bumpUsd === null ? `${int(k.bump)} sats` : k.bumpUsd < 0.005 ? "Under $0.01" : usd(k.bumpUsd);
+        const realized =
+          k.state === "replaced" || k.coinbase
+            ? ""
+            : k.created === undefined
+              ? fig("Realized", "—", "no price this early")
+              : wide(fig(
+                  W ? "Would realize" : "Realized",
+                  `<span class="${none ? "" : tone(k.realized)}">${none ? "Nothing" : signed(k.realized)}</span>`,
+                  `<span class="vc">value created ${usd(k.created)}</span><span class="vd">value destroyed ${usd(k.destroyed)}${k.pricedAll ? "" : `, of its first ${BIRTHS} coins`}</span>`,
+                ));
+        return `<div class="lead">
+            <p class="lead-kicker"><span class="chip">${STATE[k.state]}${k.state === "confirmed" ? `, ${k.conf} of ${SETTLE}` : ""}</span>${copyPill(k.txid)}</p>
+            <h2 class="lead-title">${k.title}</h2>
+            <p class="lead-lede">${k.lede}</p>
+            ${W && !k.inNext ? `<p class="lead-act"><b>${bump} more gets it into the next block.</b>Its sender can raise the fee, or its receiver can spend it with a fee that covers both.</p>` : ""}
+            ${W ? `<p class="lead-note">Not final until it's in a block: ${k.signals ? "it signals that its sender may replace it" : "its sender can still replace it"}.</p>` : `<p class="lead-note">${k.say}</p>`}
+            <dl class="lead-figs">
+              ${fig("Moved", btcU(k.value), k.state === "replaced" ? "" : k.valueUsd !== null ? usd(k.valueUsd) : k.coins)}
+              ${k.coinbase ? "" : fig(W ? "Pays" : "Paid", money(k.paidUsd, k.paid), `${int(k.paid)} sats · ${rate(k.effective)}`)}
+              ${k.state === "replaced" ? wide(fig("Its replacement", money(state.price ? (k.by.fee / 1e8) * state.price : null, k.by.fee), rate(k.by.rate))) : realized}
+            </dl>
+          </div>`;
+      }
+      // The timeline: each moment a row, its time, its mark on the line and what it was; each strip its squares.
+      function timelineOf(rows) {
+        const now = nowS() + 1;
+        const past = (r) => (r.kind === "moment" ? r.at <= now && r.mark !== "come" : !r.come && !r.ghosts);
+        return rows
+          .map((r, i) => {
+            const cls = `${past(r) ? "past" : "future"} ${rows[i + 1] && past(rows[i + 1]) ? "" : "dotted"}`;
+            if (r.kind === "strip") {
+              const squares = r.blocks
+                ? r.blocks.map((b) => `<a class="ssq" href="${url.block(b.height)}" data-block="${b.height}" aria-label="Block ${int(b.height)}"></a>`).join("")
+                : r.come
+                  ? r.come.map((s) => `<span class="ssq come" data-slot="${s}"></span>`).join("")
+                  : `<span class="ssq ghost"></span>`.repeat(r.ghosts ?? 0);
+              const more = r.more > 0 && (r.blocks?.length || r.come?.length) ? `<span class="more-n">+${int(r.more)}</span>` : "";
+              return `<li class="strip ${cls}"><span class="tt-t"></span><span class="tt-m"></span>
+                <span class="tt-s">${r.blocks ? more + squares : squares + more}<small><b>${r.say}</b>${r.sub ? `, ${r.sub}` : ""}</small></span></li>`;
+            }
+            const mark =
+              r.mark === "block"
+                ? `<a class="tsq" href="${url.block(r.b.height)}" data-block="${r.b.height}" aria-label="Block ${int(r.b.height)}"></a>`
+                : r.mark === "come"
+                  ? `<a class="tsq come" href="${url.ahead(r.slot)}" data-slot="${r.slot}" aria-label="The block it should get into"></a>`
+                  : `<i class="tdot"></i>`;
+            const href = r.href ?? (r.mark === "block" ? url.block(r.b.height) : null);
+            const list = r.list
+              ? `<details class="tt-list"><summary>${int(r.list.length)} versions, ${clockTime(r.list[0].time)} to ${clockTime(r.list.at(-1).time)}</summary>${r.list
+                  .map((x) => `<a href="${url.tx(x.txid)}"><span>${clockTime(x.time)}</span><span>${rate(x.rate)}</span><span>${state.price ? cost((x.fee / 1e8) * state.price) : `${int(x.fee)} sats`}</span></a>`)
+                  .join("")}</details>`
+              : "";
+            return `<li class="moment ${r.mark} ${cls} ${r.hit ? "hit" : ""} ${r.faint ? "faint" : ""}">
+              <span class="tt-t">${r.mark === "now" ? "now" : `${past(r) ? "" : "~"}${stamp(r.at)}`}</span><span class="tt-m">${mark}</span>
+              <span class="tt-w"><b>${href ? `<a href="${href}">${r.title}</a>` : r.title}</b><small>${r.note}</small>${list}</span></li>`;
+          })
+          .join("");
+      }
+      function paintTimeline(rows) {
+        const blocks = new Map(rows.flatMap((r) => (r.b ? [r.b] : (r.blocks ?? []))).map((b) => [b.height, b]));
+        for (const el of document.querySelectorAll(".tt-rows [data-block]")) el.append(square(blocks.get(+el.dataset.block), el.classList.contains("tsq") ? 32 : 18, ""));
+        for (const el of document.querySelectorAll(".tt-rows [data-slot]")) el.append(bandsOf(state.projected[+el.dataset.slot], el.classList.contains("tsq") ? 32 : 18));
+      }
+      // Its coins: where they went, then each coin in and out.
+      function coinsOf(t) {
+        const ages = [...new Set(t.inputs.filter((c) => c.age !== null && !c.coinbase).map((c) => ageIndex(c.age)))].sort((a, b) => a - b);
+        return `
+          <section class="tt-coins">
+            <div class="sechead"><h2>Where its coins went</h2><p>${ages.length ? `held for ${ages.map((i) => AGES[i][0]).join(", ")}` : ""}</p></div>
+            <figure><div class="flow" id="flow"><svg id="flow-svg" role="img" aria-label="The coins in, by how long they had been held, and the coins out"></svg></div>
+              <figcaption class="caption"><span class="keys">${ages.map((i) => `<span><i style="background:${AGES[i][2]}"></i>${AGES[i][0]}</span>`).join("")}</span></figcaption></figure>
+          </section>
+          <section>
+            <div class="sides">
+              <div class="list"><h3 class="label"><span>In</span><span>${plural(t.inputs.length, "coin")}</span></h3><ul>${t.inputs.slice(0, 200).map(inputRow).join("")}</ul>${t.inputs.length > 200 ? `<p class="more">The first 200 listed.</p>` : ""}</div>
+              <div class="list"><h3 class="label"><span>Out</span><span>${plural(t.outputs.length, "coin")}</span></h3><ul>${t.outputs.slice(0, 200).map(outputRow).join("")}</ul>${t.outputs.length > 200 ? `<p class="more">The first 200 listed.</p>` : ""}</div>
+            </div>
+          </section>`;
+      }
+      // Between blocks, a waiting transaction's page is read again when its place in the queue changes, the template
+      // takes it in or leaves it out, or it's replaced.
+      async function recheckTx() {
+        const v = state.view;
+        const k = v?.facts;
+        if (v?.kind !== "tx" || k?.state !== "waiting") return;
+        const inNext = !!state.next?.txs.some((x) => x.txid === k.txid);
+        const place = inNext ? 0 : Math.max(1, Math.floor(aheadOf(k.effective) / 1e6));
+        const root = (await get(`/v1/tx/${k.txid}/rbf`).catch(() => null))?.replacements?.tx.txid;
+        if (state.view === v && (inNext !== k.inNext || place !== k.place || (root && root !== k.txid))) render();
+      }
       async function viewTx(txid) {
         const v = state.view;
-        const t = await readTx(txid);
+        const t = await readTx(txid).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+        const k = t ? await factsOf(t) : await replacedOf(txid);
+        if (!k) throw Object.assign(new Error("Not found"), { status: 404 });
+        const moments = await momentsOf(k);
         if (state.view !== v) return;
-        const coinbase = t.inputs[0].coinbase;
-        let status;
-        if (t.confirmed)
-          status = `Confirmed in <a href="?block=${t.height}"><b>block ${int(t.height)}</b></a> · ${when(t.time)} · ${plural(state.tip - t.height + 1, "confirmation")}`;
-        else {
-          const n = placeOf(t);
-          status = `<span class="live">waiting</span> · ${n === 0 ? "in the next block" : `about ${n + 1} blocks away, ~${(n + 1) * 10} minutes`} at ${rate(t.effective)}${
-            Math.abs(t.effective - t.rate) > 0.005 ? ` with the transactions it confirms with (${rate(t.rate)} on its own)` : ""
-          }`;
-        }
-        const net = t.profit - t.loss;
-        $("view").innerHTML = `
-          <span class="crumb">${t.confirmed ? `<a href="?block=${t.height}">Block ${int(t.height)}</a> ›` : `<a href="?block=next">Mempool</a> ›`}</span>
-          <div class="head"><h2>Transaction</h2>${copyPill(txid)}</div>
-          <p class="sub">${status}</p>
-          <dl class="facts">
-            ${fact("Moved", `${btc(t.value)}`, usd((t.value / 1e8) * t.price))}
-            ${coinbase ? fact("Kind", "Coinbase", "the miner's reward") : fact("Fee", `${int(t.tx.fee)} sats`, `${rate(t.rate)} · ${usd((t.tx.fee / 1e8) * t.price)}`)}
-            ${fact("Size", vbytes(t.vsize), `${int(t.tx.weight)} WU`)}
-            ${coinbase ? "" : fact("Realized", `<span class="${tone(net)}">${signed(net)}</span>`, [t.profit >= 0.005 && `<span class="gain">+${usd(t.profit)}</span>`, t.loss >= 0.005 && `<span class="lost">−${usd(t.loss)}</span>`, t.partial && `the first ${BIRTHS} coins`].filter(Boolean).join(" · "))}
-            ${fact("Coins", `${int(t.inputs.length)} in · ${int(t.outputs.length)} out`)}
-          </dl>
-          <div class="flow" id="flow"><svg id="flow-svg" role="img" aria-label="The coins in, by how long they had slept, and the coins out"></svg></div>
-          <div class="ages">${AGES.map(([name, , c]) => `<span><i style="background:${c}"></i>${name}</span>`).join("")}</div>
-          <div class="sides">
-            <section class="list"><h3>In</h3><ul>${t.inputs.slice(0, 200).map(inputRow).join("")}</ul></section>
-            <section class="list"><h3>Out</h3><ul>${t.outputs.slice(0, 200).map(outputRow).join("")}</ul></section>
-          </div>
-          ${t.inputs.length > 200 || t.outputs.length > 200 ? `<p class="more">The first 200 of each listed.</p>` : ""}`;
+        v.facts = k;
+        $("view").innerHTML = `<div class="focus ${k.state}">${answerOf(k)}<ol class="tt-rows" aria-label="Its life, moment by moment">${timelineOf(moments)}</ol></div>${t ? coinsOf(t) : ""}`;
+        paintTimeline(moments);
+        if (!t) return;
         state.flow = t;
         drawFlow();
       }
       const addrLink = (a, type) =>
-        a ? `<a class="addr" href="?address=${a}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
+        a ? `<a class="addr" href="${url.address(a)}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
       const inputRow = (c) =>
         c.coinbase
           ? `<li><span class="addr soft">New coins, the coinbase</span><span class="val">${btc(c.value)}</span></li>`
           : `<li>${addrLink(c.address, c.type)}<span class="val">${btc(c.value)}</span>
-              <small>${c.age === null ? `<a href="?tx=${c.from}">from its transaction</a>` : c.unconfirmed ? "unconfirmed" : `<a href="?tx=${c.from}">born ${int(c.height)}</a> · held ${span(c.age)}`}</small>
+              <small>${c.age === null ? `<a href="${url.tx(c.from)}">from its transaction</a>` : c.unconfirmed ? "unconfirmed" : `<a href="${url.tx(c.from)}">born in ${int(c.height)}</a> · held ${span(c.age)}`}</small>
               <small>${c.pnl !== undefined && !c.unconfirmed ? `<span class="${tone(c.pnl)}">${signed(c.pnl)}</span>` : ""}</small></li>`;
       const outputRow = (o) =>
         `<li>${addrLink(o.address, o.type)}<span class="val">${btc(o.value)}</span>
-          <small>${o.spentBy ? `<a href="?tx=${o.spentBy}">spent</a>` : o.type === "op_return" ? "data" : "unspent"}</small><small></small></li>`;
+          <small>${o.spentBy ? `<a href="${url.tx(o.spentBy)}">spent</a>` : o.type === "op_return" ? "data" : "unspent"}</small><small></small></li>`;
 
       // Labels kept apart, between lo and hi: each wants its band's middle, pushed down to a gap, then back up to fit
       // (as many as fit are asked for).
@@ -1439,28 +2673,31 @@
         return out;
       };
       const FLOW_MAX = 24; // coins drawn on each side; the rest join one band
+      const LABEL = 36; // a label's height: its amount, and a line under it
 
       function drawFlow() {
         const t = state.flow;
         const svg = $("flow-svg");
         if (!svg) return;
-        const { width: W, height: H } = svg.getBoundingClientRect();
-        const narrow = W < 560;
-        const L = narrow ? 96 : 176;
-        const R = W - (narrow ? 104 : 190);
-        const mid = (L + R) / 2;
-        const top = 8;
-        const usable = H - 16;
         const fold = (list, make) => (list.length <= FLOW_MAX ? list : [...list.slice(0, FLOW_MAX - 1), make(list.slice(FLOW_MAX - 1))]);
         const ins = fold(t.inputs, (rest) => ({ value: rest.reduce((s, c) => s + c.value, 0), age: null, rest: rest.length }));
         const outs = [
           ...fold(t.outputs, (rest) => ({ value: rest.reduce((s, o) => s + o.value, 0), rest: rest.length })),
           ...(t.tx.fee ? [{ value: t.tx.fee, fee: true }] : []),
         ];
+        // As tall as its labels need, at least enough for a trunk to read as one.
+        $("flow").style.height = `${Math.min(460, Math.max(180, Math.max(ins.length, outs.length) * LABEL + 24))}px`;
+        const { width: W, height: H } = svg.getBoundingClientRect();
+        const narrow = W < 560;
+        const L = narrow ? 92 : 168;
+        const R = W - (narrow ? 96 : 176);
+        const mid = (L + R) / 2;
+        const top = 6;
+        const usable = H - 12;
         const total = t.value;
         const band = (x0, a0, a1, x1, b0, b1, fill, op) => {
           const c = (x0 + x1) / 2;
-          return `<path d="M${x0},${a0} C${c},${a0} ${c},${b0} ${x1},${b0} L${x1},${b1} C${c},${b1} ${c},${a1} ${x0},${a1} Z" fill="${fill}" opacity="${op}"/>`;
+          return `<path d="M${x0},${a0} C${c},${a0} ${c},${b0} ${x1},${b0} L${x1},${b1} C${c},${b1} ${c},${a1} ${x0},${a1} Z" style="fill:${fill}" opacity="${op}"/>`;
         };
         if (!(total > 0)) {
           svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" class="sub-text">Nothing of value moved.</text>`;
@@ -1473,17 +2710,25 @@
           return { gap, k: (usable - gap * (n - 1) - MIN * n) / total };
         };
         const parts = [];
+        // Each coin's colour, full at its side, thinning into the trunk: one gradient a colour.
+        const fades = new Map();
+        const fade = (color) => {
+          if (!fades.has(color)) fades.set(color, `fade${fades.size}`);
+          return fades.get(color);
+        };
         const sIn = side(ins.length, 6);
-        const kIn = sIn.k; // the trunk's scale, both sides meeting in it
+        // The trunk, where both sides meet, narrower than either: each side's coins fan into it.
+        const kIn = (usable * 0.6) / total;
         const trunkH = total * kIn;
         const ty = top + (usable - trunkH) / 2;
         let y = top;
         let ty0 = ty;
         const inMid = [];
         for (const c of ins) {
-          const h = MIN + c.value * kIn;
+          const h = MIN + c.value * sIn.k;
           const color = c.coinbase ? "var(--miner)" : ageColor(c.age);
-          parts.push(band(L, y, y + h, mid, ty0, ty0 + c.value * kIn, color, 0.92));
+          parts.push(band(L, y, y + h, mid, ty0, ty0 + c.value * kIn, `url(#${fade(color)})`, 1));
+          parts.push(`<rect x="${L - 3}" y="${y}" width="3" height="${h}" rx="1" style="fill:${color}"/>`);
           inMid.push(y + h / 2);
           y += h + sIn.gap;
           ty0 += c.value * kIn;
@@ -1495,7 +2740,9 @@
         for (const o of outs) {
           const h = MIN + o.value * sOut.k;
           const th = o.value * kIn;
-          parts.push(band(mid, to, to + th, R, yo, yo + h, o.fee ? "var(--miner)" : "var(--ink)", o.fee ? 0.95 : o.spentBy ? 0.2 : 0.34));
+          const fill = o.fee ? "var(--miner)" : "var(--soft)";
+          parts.push(band(mid, to, to + th, R, yo, yo + h, fill, o.fee ? 0.95 : o.spentBy ? 0.22 : 0.4));
+          parts.push(`<rect x="${R}" y="${yo}" width="3" height="${h}" rx="1" style="fill:${o.fee ? "var(--miner)" : "var(--ink)"}" opacity="${o.fee ? 1 : 0.55}"/>`);
           outMid.push(yo + h / 2);
           yo += h + sOut.gap;
           to += th;
@@ -1504,11 +2751,11 @@
           const text = `<text x="${x}" y="${yy - 2}" text-anchor="${anchor}">${first}</text><text class="sub-text" x="${x}" y="${yy + 13}" text-anchor="${anchor}">${second}</text>`;
           return href ? `<a href="${href}">${text}</a>` : text;
         };
-        // As many labels as fit a side, 34px apart: its first coins and its last (the folded rest, the fee), each by its band.
-        const room = Math.max(2, Math.floor((H - 18 - (top + 10)) / 34) + 1);
+        // As many labels as fit a side, a label apart: its first coins and its last (the folded rest, the fee).
+        const room = Math.max(2, Math.floor((H - 18 - (top + 10)) / LABEL) + 1);
         const labelled = (mids, tail) => {
           const keep = mids.length <= room ? mids.map((_, i) => i) : [...Array(room - tail).keys(), ...mids.map((_, i) => i).slice(-tail)];
-          const at = spread(keep.map((i) => mids[i]), 34, top + 10, H - 18);
+          const at = spread(keep.map((i) => mids[i]), LABEL, top + 10, H - 18);
           return keep.map((i, k) => [i, at[k]]);
         };
         for (const [i, y] of labelled(inMid, 1)) {
@@ -1518,19 +2765,25 @@
             : c.rest
               ? `and ${int(c.rest)} more`
               : c.pnl !== undefined && !c.unconfirmed
-                ? `<tspan class="${tone(c.pnl)}" style="fill:var(--${c.pnl >= 0 ? "profit" : "loss"})">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
+                ? `<tspan style="fill:var(--${c.pnl >= 0 ? "profit" : "loss"})">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
                 : esc(short(c.address ?? c.type, 5));
-          parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? `?tx=${c.from}` : null));
+          parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? url.tx(c.from) : null));
         }
         for (const [i, y] of labelled(outMid, t.tx.fee ? 2 : 1)) {
           const o = outs[i];
           const second = o.fee ? (narrow ? "fee" : "fee, to the miner") : o.rest ? `and ${int(o.rest)} more` : esc(short(o.address ?? (o.type === "op_return" ? "OP_RETURN" : o.type), 5));
-          parts.push(label(R + 12, y, "start", btc(o.value), second, o.address && !o.rest ? `?address=${o.address}` : null));
+          parts.push(label(R + 14, y, "start", btc(o.value), second, o.address && !o.rest ? url.address(o.address) : null));
         }
-        svg.innerHTML = parts.join("");
+        const defs = [...fades].map(
+          ([color, id]) =>
+            `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${L}" x2="${R}" y1="0" y2="0"><stop offset="0" style="stop-color:${color}" stop-opacity="0.95"/><stop offset="0.5" style="stop-color:${color}" stop-opacity="0.5"/><stop offset="1" style="stop-color:${color}" stop-opacity="0.32"/></linearGradient>`,
+        );
+        svg.innerHTML = `<defs>${defs.join("")}</defs>${parts.join("")}`;
       }
-      new ResizeObserver(() => drawFlow()).observe(document.documentElement);
 
+      // ---------------------------------------------------------------- An address: what it holds on the left, its
+      // transactions on the right as a timeline (each what came in or went out, and what it held after), the coins it
+      // holds under them.
       async function viewAddress(address) {
         const v = state.view;
         const [a, txs, listed] = await Promise.all([
@@ -1539,85 +2792,153 @@
           get(`/address/${address}/utxo`).catch((e) => (e.status === 400 ? null : Promise.reject(e))),
         ]);
         const utxos = listed ?? [];
+        const price = state.price ?? Number(await get("/oracle/price"));
         if (state.view !== v) return;
         const c = a.chain_stats;
         // The server's own balance (exact past what a double holds), its coins as listed (waiting ones too).
         const balance = c.balance ?? c.funded_txo_sum - c.spent_txo_sum;
-        const price = state.price ?? Number(await get("/oracle/price"));
-        if (state.view !== v) return;
-        const value = (balance / 1e8) * price;
         const basis = c.realized_price;
         // A basis of $0 is real (coins from before Bitcoin had a price); only a held balance has one to show.
         const held = balance > 0 && Number.isFinite(basis);
         const unreal = held ? (balance / 1e8) * (price - basis) : null;
         const pending = a.mempool_stats.funded_txo_sum - a.mempool_stats.spent_txo_sum;
-        // Its coins, the oldest first, each with how long it has slept.
-        const coins = utxos
-          .map((u) => ({ ...u, age: u.status.confirmed ? nowS() - u.status.block_time : null }))
-          .sort((x, y) => (y.age ?? -1) - (x.age ?? -1));
         const net = (tx) =>
           tx.vout.reduce((s, o) => s + (o.scriptpubkey_address === address ? o.value : 0), 0) -
-          tx.vin.reduce((s, v) => s + (v.prevout?.scriptpubkey_address === address ? v.prevout.value : 0), 0);
+          tx.vin.reduce((s, x) => s + (x.prevout?.scriptpubkey_address === address ? x.prevout.value : 0), 0);
+        // Its listed transactions oldest first, each with what it held after: back from today's balance, a net at a time.
+        const mined = txs.filter((tx) => tx.status.confirmed).reverse();
+        const waiting = txs.filter((tx) => !tx.status.confirmed).reverse();
+        const afters = [];
+        for (let i = mined.length - 1, then = balance; i >= 0; then -= net(mined[i]), i--) afters[i] = then;
+        const moment = (tx, n, then) => ({
+          kind: "moment",
+          at: tx.status.confirmed ? tx.status.block_time : nowS(),
+          mark: "dot",
+          dir: n > 0 ? "in" : n < 0 ? "out" : "",
+          title: `<a href="${url.tx(tx.txid)}">${n > 0 ? `Received ${btc(n)} BTC` : n < 0 ? `Sent ${btc(-n)} BTC` : "Moved its own coins"}</a>`,
+          note: tx.status.confirmed ? `block ${int(tx.status.block_height)} · then held ${btc(then)} BTC` : "waiting to confirm",
+          wait: !tx.status.confirmed,
+        });
+        const earlier = c.tx_count - mined.length;
+        const rows = [
+          ...(earlier > 0 ? [{ kind: "strip", n: earlier, say: `${plural(earlier, "earlier transaction")}`, sub: `${btc(c.funded_txo_sum)} BTC received in all, ${btc(c.spent_txo_sum)} BTC sent` }] : []),
+          ...mined.map((tx, i) => moment(tx, net(tx), afters[i])),
+          { kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)} BTC`, note: `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` },
+          ...waiting.map((tx) => moment(tx, net(tx), 0)),
+        ];
+        // Its coins, the oldest first, each with how long it has been held.
+        const coins = utxos.map((u) => ({ ...u, age: u.status.confirmed ? nowS() - u.status.block_time : null })).sort((x, y) => (y.age ?? -1) - (x.age ?? -1));
         $("view").innerHTML = `
-          <span class="crumb">Address · ${esc(a.address_type ?? "")}</span>
-          <div class="head"><h2 class="mono" style="font-size:18px;overflow-wrap:anywhere">${esc(address)}</h2></div>
-          <p class="sub">${plural(c.tx_count, "confirmed transaction")}${listed ? ` · ${plural(utxos.length, "coin")} unspent` : ""}${pending ? ` · ${pending > 0 ? "+" : ""}${btc(pending)} BTC waiting` : ""}</p>
-          <dl class="facts">
-            ${fact("Balance", `${btc(balance)}`, usd(value))}
-            ${fact("Received", btc(c.funded_txo_sum))}
-            ${fact("Sent", btc(c.spent_txo_sum))}
-            ${held ? fact("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
-            ${held ? fact("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
-          </dl>
-          <div class="sides">
-            <section class="list"><h3>Coins, oldest first</h3><ul>${
-              coins
-                .slice(0, 100)
-                .map(
-                  (u) => `<li><a class="addr" href="?tx=${u.txid}">${short(u.txid, 8)}:${u.vout}</a><span class="val">${btc(u.value)}</span>
-                    <small>${u.age === null ? "unconfirmed" : `held ${span(u.age)}`}</small><small>${u.status.confirmed ? `block ${int(u.status.block_height)}` : ""}</small></li>`,
-                )
-                .join("") || `<li><small>None: it holds nothing now.</small></li>`
-            }</ul></section>
-            <section class="list"><h3>Latest transactions</h3><ul>${txs
-              .map((tx) => {
-                const n = net(tx);
-                return `<li><a class="addr" href="?tx=${tx.txid}">${short(tx.txid, 8)}</a><span class="val ${n >= 0 ? "gain" : "lost"}">${n >= 0 ? "+" : "−"}${btc(Math.abs(n))}</span>
-                  <small>${tx.status.confirmed ? ago(tx.status.block_time) : "waiting"}</small><small>${tx.status.confirmed ? `block ${int(tx.status.block_height)}` : ""}</small></li>`;
-              })
-              .join("")}</ul></section>
+          <div class="focus address">
+            <div class="lead">
+              <p class="lead-kicker"><span class="chip">Address</span>${a.address_type ? `<span class="chip">${esc(a.address_type)}</span>` : ""}${copyPill(address)}</p>
+              <p class="lead-addr">${esc(address)}</p>
+              <h2 class="lead-title">${balance ? `Holds ${btc(balance)} BTC` : "Holds nothing"}</h2>
+              <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)} BTC and sent ${btc(c.spent_txo_sum)} BTC over ${plural(c.tx_count, "transaction")}.</p>
+              ${pending ? `<p class="lead-note"><b>${pending > 0 ? "+" : "−"}${btc(Math.abs(pending))} BTC</b> waiting to confirm.</p>` : ""}
+              <dl class="lead-figs">
+                ${held ? fig("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
+                ${held ? fig("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
+                ${listed ? fig("Coins held", int(coins.length), coins[0]?.age ? `the oldest for ${span(coins[0].age)}` : "") : fig("Coins held", "Many", "more than the server lists")}
+                ${fig("Transactions", int(c.tx_count), a.mempool_stats.tx_count ? `and ${int(a.mempool_stats.tx_count)} waiting` : "confirmed")}
+              </dl>
+            </div>
+            <ol class="tt-rows" aria-label="Its transactions, oldest first">${addressRows(rows)}</ol>
           </div>
-          ${coins.length > 100 ? `<p class="more">The oldest 100 of ${int(coins.length)} coins listed.</p>` : ""}
-          ${listed ? "" : `<p class="more">More coins than the server lists one by one.</p>`}`;
+          ${
+            coins.length || !listed
+              ? `<section class="lower"><div class="sechead"><h2>Coins held</h2><p>the oldest first</p></div>
+            <div class="list"><ul>${coins
+              .slice(0, 100)
+              .map(
+                (u) => `<li><a class="addr" href="${url.tx(u.txid)}">${short(u.txid, 8)}:${u.vout}</a><span class="val">${btc(u.value)}</span>
+                  <small>${u.age === null ? "unconfirmed" : `held ${span(u.age)}`}</small><small>${u.status.confirmed ? `block ${int(u.status.block_height)}` : ""}</small></li>`,
+              )
+              .join("")}</ul>${coins.length > 100 ? `<p class="more">The oldest 100 of ${int(coins.length)} listed.</p>` : ""}${listed ? "" : `<p class="more">More coins than the server lists one by one.</p>`}</div></section>`
+              : ""
+          }`;
+      }
+      // An address's timeline: as a transaction's, each moment its time, mark and what it was, green in and red out.
+      function addressRows(rows) {
+        return rows
+          .map((r, i) => {
+            const cls = `${r.wait ? "future" : "past"} ${rows[i + 1] && !rows[i + 1].wait ? "" : "dotted"}`;
+            if (r.kind === "strip") return `<li class="strip ${cls}"><span class="tt-t"></span><span class="tt-m"></span><span class="tt-s"><small><b>${r.say}</b>, ${r.sub}</small></span></li>`;
+            return `<li class="moment ${r.mark} ${r.dir} ${cls}">
+              <span class="tt-t">${r.mark === "now" ? "now" : r.wait ? "waiting" : stamp(r.at)}</span><span class="tt-m"><i class="tdot"></i></span>
+              <span class="tt-w"><b>${r.title}</b><small>${r.note}</small></span></li>`;
+          })
+          .join("");
       }
 
-      // ---------------------------------------------------------------- Routes: ?block=next|next-N|height|hash, ?tx=, ?address=.
+      // ---------------------------------------------------------------- Routes: mempool.space's, under the explorer's folder.
+      // The home (the block forming now); block/HEIGHT or block/HASH; mempool-block/N, the N-th block to come (0 the
+      // forming one, so the home); tx/TXID; address/ADDRESS. Anything else isn't a place.
       function parse() {
-        const q = new URLSearchParams(location.search);
-        if (q.has("tx")) return { kind: "tx", txid: q.get("tx").toLowerCase() };
-        // Bech32 is written in lowercase everywhere the server answers: an address typed or linked in capitals too.
-        if (q.has("address")) {
-          const a = q.get("address");
-          return { kind: "address", address: /^bc1/i.test(a) || /^([0-9a-f]{66}|[0-9a-f]{130})$/i.test(a) ? a.toLowerCase() : a };
-        }
-        const ref = q.get("block") ?? "next";
-        return { kind: "block", ref: /^\d+$/.test(ref) ? String(Number(ref)) : ref };
+        const [kind, ref, more] = location.pathname.slice(BASE.length).replace(/\/$/, "").split("/").map(decodeURIComponent);
+        const route =
+          more !== undefined
+            ? null
+            : !kind
+              ? { kind: "home" }
+              : !ref
+                ? null
+                : kind === "tx"
+                  ? { kind: "tx", txid: ref.toLowerCase() }
+                  : kind === "address"
+                    ? { kind: "address", address: addressCase(ref) }
+                    : kind === "block"
+                      ? { kind: "block", ref: isHeight(ref) ? String(Number(ref)) : ref.toLowerCase() }
+                      : kind === "mempool-block" && /^\d+$/.test(ref)
+                        ? Number(ref)
+                          ? { kind: "block", ref: `next-${Number(ref)}` }
+                          : { kind: "home" }
+                        : null;
+        if (!route) return { kind: "missing" };
+        // Each place at one address: mempool-block/0 is the home, a height written 0974674 is 974674.
+        const canonical = linkTo(route);
+        if (canonical !== location.pathname) history.replaceState(null, "", canonical + location.hash);
+        return route;
       }
+      // A block by its height (seven digits at most, for some time yet), else by its hash.
+      const isHeight = (r) => /^\d{1,7}$/.test(r);
+      // Bech32 is written in lowercase everywhere the server answers: an address typed or linked in capitals too.
+      const addressCase = (a) => (/^bc1/i.test(a) || /^([0-9a-f]{66}|[0-9a-f]{130})$/i.test(a) ? a.toLowerCase() : a);
       const fail = (e) =>
-        ($("view").innerHTML = `<div class="wait">${e?.status === 404 || e?.status === 400 ? "Not found." : "The server didn't answer. It will be tried again as the chain moves."}</div>`);
+        ($("view").innerHTML =
+          e?.status === 404 || e?.status === 400
+            ? `<div class="wait"><p>No block, transaction or address by that.</p><a href="${BASE}">Back to the block forming now</a></div>`
+            : `<div class="wait"><p>The server didn't answer. It will be tried again as the chain moves.</p></div>`);
       async function render() {
+        flight?.cancel();
         const v = (state.view = parse());
-        markCurrent();
-        $("tip").hidden = true;
-        document.title = `${v.kind === "tx" ? "Transaction" : v.kind === "address" ? "Address" : v.ref === "next" ? "Next block" : /^\d+$/.test(v.ref) ? `Block ${int(+v.ref)}` : "Block"} · Explorer · Bitview`;
+        const slow = setTimeout(() => state.view === v && $("view").classList.add("busy"), 250);
+        $("card").hidden = true;
+        document.title = `${
+          v.kind === "home" || v.kind === "missing"
+            ? "Explorer"
+            : v.kind === "tx"
+              ? "Transaction · Explorer"
+              : v.kind === "address"
+                ? "Address · Explorer"
+                : isHeight(v.ref)
+                  ? `Block ${int(+v.ref)} · Explorer`
+                  : /^next-\d+$/.test(v.ref)
+                    ? `The ${nth(Number(v.ref.slice(5)) + 1)} block to come · Explorer`
+                    : "Block · Explorer"
+        } · Bitview`;
         try {
-          if (v.kind === "tx") await viewTx(v.txid);
+          if (v.kind === "missing") throw Object.assign(new Error("No such address"), { status: 404 });
+          if (v.kind === "home") await viewHome();
+          else if (v.kind === "tx") await viewTx(v.txid);
           else if (v.kind === "address") await viewAddress(v.address);
-          else if (v.ref === "next") await viewNext();
-          else if (/^next-\d+$/.test(v.ref)) viewQueued(Number(v.ref.slice(5)));
+          else if (/^next-\d+$/.test(v.ref)) await viewQueued(Number(v.ref.slice(5)));
           else await viewBlock(v.ref);
         } catch (e) {
           if (state.view === v) fail(e);
+        } finally {
+          clearTimeout(slow);
+          if (state.view === v) $("view").classList.remove("busy");
         }
       }
       let navigations = 0;
@@ -1632,35 +2953,43 @@
         render();
       });
       document.addEventListener("click", (e) => {
-        const a = e.target.closest("a[href^='?']");
+        const a = e.target.closest("a[href]");
+        if (a && !a.getAttribute("href").startsWith(BASE)) return;
         if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
           e.preventDefault();
           go(a.getAttribute("href"));
           return;
         }
         const step = e.target.closest("[data-go]");
-        if (step && !step.disabled) return go(`?block=${step.dataset.go}`);
+        if (step && !step.disabled) return go(url.block(step.dataset.go));
         const copy = e.target.closest("[data-copy]");
         if (copy) {
           navigator.clipboard.writeText(copy.dataset.copy);
-          const was = copy.textContent;
-          copy.textContent = "Copied";
-          setTimeout(() => (copy.textContent = was), 1200);
+          const label = copy.querySelector("span");
+          const was = label.textContent;
+          label.textContent = "Copied";
+          setTimeout(() => (label.textContent = was), 1200);
         }
+      });
+      document.addEventListener("pointermove", (e) => {
+        if (!e.target.closest?.("#map")) $("card").hidden = true;
       });
 
       // ---------------------------------------------------------------- Search: a height, a block hash, a txid or an address.
       // What's searched resolves to a link; only the latest search, while nothing else was opened since, goes there.
       let searches = 0;
       async function resolve(q) {
-        if (/^\d{1,7}$/.test(q)) return Number(q) <= state.tip ? `?block=${Number(q)}` : { miss: `No block ${int(+q)} yet.` };
+        if (/^\d{1,7}$/.test(q)) return Number(q) <= state.tip ? url.block(Number(q)) : { miss: `No block ${int(+q)} yet.` };
         if (/^[0-9a-f]{64}$/i.test(q)) {
           const id = q.toLowerCase();
-          if (id.startsWith("00000000") && (await get(`/block/${id}/status`).then(() => true, () => false))) return `?block=${id}`;
-          return (await get(`/tx/${id}/status`).then(() => true, () => false)) ? `?tx=${id}` : { miss: "No block or transaction with that id." };
+          // (A block's status, like a transaction's, answers for any id: the block itself is asked for.)
+          if (id.startsWith("00000000") && (await get(`/v1/block/${id}`).then(() => true, () => false))) return url.block(id);
+          // (A transaction's status answers for any id, so the transaction itself is asked for.)
+          if (await get(`/tx/${id}`).then(() => true, () => false)) return url.tx(id);
+          return (await get(`/v1/tx/${id}/rbf`).catch(() => null))?.replacements ? url.tx(id) : { miss: "No block or transaction with that id." };
         }
         const v = await get(`/v1/validate-address/${encodeURIComponent(q)}`).catch(() => null);
-        return v?.isvalid ? `?address=${v.address}` : { miss: "Not a block, transaction or address." };
+        return v?.isvalid ? url.address(v.address) : { miss: "Not a block, transaction or address." };
       }
       $("find").addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -1671,11 +3000,15 @@
         const from = navigations;
         const to = await resolve(q);
         if (ask !== searches || navigations !== from) return;
-        if (typeof to === "string") go(to);
-        else $("miss").textContent = to.miss;
+        if (typeof to === "string") {
+          e.target.q.value = "";
+          e.target.q.blur();
+          go(to);
+        } else $("miss").textContent = to.miss;
       });
+      $("find").q.addEventListener("input", () => ($("miss").textContent = ""));
 
-      // ---------------------------------------------------------------- Keys: / to search, ← and → along the belt, Escape back.
+      // ---------------------------------------------------------------- Keys: / to search, ← and → between blocks, Escape back.
       addEventListener("keydown", (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const typing = document.activeElement?.matches("input");
@@ -1688,43 +3021,41 @@
           if (e.key === "Escape") document.activeElement.blur();
           return;
         }
-        if (e.key === "Escape" && state.view?.kind !== "block") return history.length > 1 ? history.back() : go("?block=next");
-        if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && state.view?.kind === "block") {
-          const tiles = [...$("belt").querySelectorAll(".tile")];
-          const i = tiles.findIndex((t) => t.getAttribute("aria-current") === "true");
-          const next = i < 0 ? null : tiles[i + (e.key === "ArrowRight" ? 1 : -1)];
-          if (next) {
+        if (e.key === "Escape" && state.view?.kind !== "home") return history.length > 1 ? history.back() : go(BASE);
+        if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && state.view?.kind === "block" && isHeight(state.view.ref)) {
+          const h = Number(state.view.ref) + (e.key === "ArrowLeft" ? -1 : 1);
+          if (h >= 0 && h <= state.tip) {
             e.preventDefault();
-            go(next.getAttribute("href"), true);
-            next.scrollIntoView({ inline: "nearest", block: "nearest" });
-            if (next === tiles.at(-1)) loadOlder();
+            go(url.block(h), true);
           }
         }
       });
 
-      // Each "ago" ticks on its own minute.
+      // Each "ago" ticks, the forming block's wait with them.
       setInterval(() => {
         for (const el of document.querySelectorAll("[data-ago]")) el.textContent = ago(Number(el.dataset.ago));
-      }, 30000);
+        drawForming();
+      }, 15000);
+      new ResizeObserver(() => drawFlow()).observe(document.documentElement);
 
       // A phone's search field says less, in the room it has.
-      const narrowBar = matchMedia("(width < 640px)");
+      const narrowBar = matchMedia("(width < 720px)");
       const placeholder = () => ($("find").q.placeholder = narrowBar.matches ? "Height, txid or address" : "Search a block, transaction or address");
       narrowBar.addEventListener("change", placeholder);
       placeholder();
+      // Fee colours and pool logos are each scheme's own: drawn again on a change.
+      lightScheme.addEventListener("change", () => (thumbs.clear(), render()));
 
       // ---------------------------------------------------------------- Start.
       // Each read on its own: one failing leaves the others shown, and the timers try it again.
-      await Promise.allSettled([readTip(), readProjected(), readPrice()]);
-      centerNow();
+      await Promise.allSettled([readTip(), readProjected(), readPrice(), loadNext(), readDifficulty()]);
       render();
       state.booted = true;
-      drawDifficulty();
       setInterval(followNext, 4000);
       setInterval(() => readTip().catch(() => {}), 10000);
       setInterval(() => readProjected().catch(() => {}), 10000);
       setInterval(() => readPrice().catch(() => {}), 30000);
-      setInterval(() => drawDifficulty().catch(() => {}), 60000);
+      setInterval(() => readDifficulty().catch(() => {}), 120000);
     </script>
   </body>
 </html>
