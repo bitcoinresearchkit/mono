@@ -38,8 +38,9 @@ impl Level {
         self.runs.len()
     }
 
+    /// Whether no two tables of the level overlap: one run, or none.
     pub fn is_disjoint(&self) -> bool {
-        self.run_count() == 1
+        self.run_count() <= 1
     }
 
     pub fn is_empty(&self) -> bool {
