@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bitview::QueryPluginSet;
 use bitview_default::DefaultPlugins;
 use bitview_plugin::{
@@ -7,6 +9,7 @@ use bitview_plugin_indexer::HasIndexer;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_reader::Reader;
+use brk_types::Transaction;
 use vecdb::{Ro, Rw, StorageMode};
 
 use crate::near_full_blocks::{Dependencies, Vecs as NearFullBlocks};
@@ -68,5 +71,9 @@ impl ComputePluginSet for Plugins {
 
     fn write_published(&mut self) -> Result<()> {
         self.defaults.write_published()
+    }
+
+    fn warm(&self, txs: &[Arc<Transaction>]) {
+        self.defaults.warm(txs)
     }
 }
