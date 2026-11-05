@@ -14,11 +14,11 @@ use crate::section::{CohortCompute, Imports, Section};
 pub struct Realized<M: StorageMode = Rw> {
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
-    #[traversable(lead = "Realized profit: what sellers gained over what their coins cost.")]
+    #[traversable(lead = "Realized profit: what spent coins were worth above what they cost.")]
     pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Loss realized by the cohort's outputs: creation-date value minus
     /// spending value, counted only for losing spends.
-    #[traversable(lead = "Realized loss: what sellers lost against what their coins cost.")]
+    #[traversable(lead = "Realized loss: what spent coins were worth below what they cost.")]
     pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Net realized profit and loss of the cohort's outputs when spent:
     /// realized profit minus realized loss.
@@ -46,7 +46,7 @@ pub struct Realized<M: StorageMode = Rw> {
     /// over the window divided by their creation-time value (value destroyed); undefined (null)
     /// when that value is zero.
     #[traversable(
-        lead = "SOPR (spent output profit ratio): what coins sold for against what they cost. Above 1, sellers take profits; below 1, they sell at a loss."
+        lead = "SOPR (spent output profit ratio): what spent coins were worth against what they cost. Above 1, coins are spent at a profit; below 1, at a loss."
     )]
     pub sopr: RollingWindows<Multiple, M>,
     /// Gross realized profit and loss over the window divided by the realized cap; undefined
