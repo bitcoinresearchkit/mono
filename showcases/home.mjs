@@ -6,8 +6,9 @@
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
 // server's too) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
-// page's head checked as a link to it previews and a search engine reads it, and the sitemap (sitemap.xml) written from
-// the rows. Run it after changing an app, and before a release:
+// page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
+// the rows, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
+// before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
@@ -100,6 +101,32 @@ for (const href of UNLISTED) if ([...apps, ...dev].includes(href)) problems.push
 for (const name of folders)
   if (![...apps, ...dev, ...UNLISTED].includes(`/${name}/`))
     problems.push(`/${name}/: an app not in the front page's rows (add it to APPS or DEV, to UNLISTED to serve it unlisted, or name its folder _${name} to keep it off)`);
+
+// ── The stars on GitHub ──
+
+// (How many have starred the repository, as GitHub says now, written into every page's count, a link's
+// <b class="stars-count">: pages never ask GitHub themselves, so nothing waits on it, moves as it answers or fails, and no
+// node tells it who reads them. Two figures and a "+", rounded down, so a count stays true as more star it. Left as it
+// is when GitHub doesn't answer; never checked, as it moves on its own.)
+/** A count as two figures and a "+", rounded down: 176 "170+", 1,234 "1.2k+", 47,321 "47k+", 1,250,000 "1.2M+". */
+const atLeast = (/** @type {number} */ n) => {
+  const power = n >= 1e6 ? 2 : n >= 1e3 ? 1 : 0, value = n / 1000 ** power;
+  const step = 10 ** (Math.floor(Math.log10(Math.max(value, 1))) - 1);
+  return `${+(Math.floor(value / step + 1e-9) * step).toFixed(1)}${["", "k", "M"][power]}+`;
+};
+if (!check) {
+  const repo = await fetch("https://api.github.com/repos/bitcoinresearchkit/mono", { signal: AbortSignal.timeout(10_000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (typeof repo?.stargazers_count !== "number") console.log("The stars on GitHub: GitHub didn't answer, every page's count left as it is");
+  else {
+    const count = `<b class="stars-count">${atLeast(repo.stargazers_count)}</b>`, written = [];
+    // (Every page git knows, but one deleted and not yet committed as such.)
+    for (const file of ["index.html", ...new TextDecoder().decode(git.stdout).split("\n").filter(Boolean)].filter((file) => existsSync(join(HERE, file)))) {
+      const at = join(HERE, file), was = readFileSync(at, "utf8"), now = was.replace(/<b class="stars-count">[^<]*<\/b>/g, count);
+      if (now !== was) (writeFileSync(at, now), written.push(file), at === PAGE && (html = now));
+    }
+    console.log(`The stars on GitHub: ${repo.stargazers_count}, written as ${atLeast(repo.stargazers_count)}${written.length ? ` into ${written.join(", ")}` : ", as every page has it"}`);
+  }
+}
 
 // ── Every app's icon ──
 

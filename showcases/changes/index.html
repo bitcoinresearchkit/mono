@@ -115,15 +115,15 @@
         overflow-wrap: anywhere;
       }
 
-      /* ── The bar: the brand, the search, the way back to the API ── */
+      /* ── The bar: the brand, the search, the ways back to the API and to GitHub ── */
 
       .bar {
         position: sticky;
         top: 0;
         z-index: 3;
         display: grid;
-        /* (The same room either side, so the search sits in the middle.) */
-        grid-template-columns: minmax(110px, 1fr) minmax(0, 560px) minmax(110px, 1fr);
+        /* (The same room either side, so the search sits in the middle; where there isn't, each side as much as it holds.) */
+        grid-template-columns: minmax(max-content, 1fr) minmax(0, 560px) minmax(max-content, 1fr);
         align-items: center;
         gap: 16px;
         height: 56px;
@@ -134,7 +134,7 @@
         @media (width < 640px) {
           grid-template-columns: auto minmax(0, 1fr);
 
-          .to-api {
+          .ends {
             display: none;
           }
         }
@@ -155,15 +155,44 @@
         }
       }
 
-      .to-api {
+      .ends {
         justify-self: end;
-        color: var(--soft);
-        font-weight: 500;
-        text-decoration: none;
+        display: flex;
+        gap: 20px;
+        white-space: nowrap;
 
-        &:hover {
-          color: var(--ink);
+        a {
+          color: var(--soft);
+          font-weight: 500;
+          text-decoration: none;
+
+          &:hover {
+            color: var(--ink);
+          }
         }
+      }
+
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
       }
 
       .search {
@@ -332,7 +361,7 @@
       }
 
       /* (The sections, each with how many rows it has: where to go, as the page scrolls.) */
-      nav {
+      .body > nav {
         position: sticky;
         top: 80px;
         align-self: start;
@@ -582,7 +611,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <input type="search" id="q" placeholder="An id, an endpoint, a word" aria-label="Find what changed" autocomplete="off" spellcheck="false" />
       </form>
-      <a class="to-api" href="/api">API reference</a>
+      <nav class="ends" aria-label="Elsewhere"><a href="/api">API reference</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>
     </header>
     <div class="page">
       <h1>Changes</h1>

@@ -929,6 +929,29 @@
         }
       }
 
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
       /* An arrow in words (a way on, a way out of the site): drawn, at the text's size, on its line. */
       .glyph {
         flex: none;
@@ -2238,7 +2261,7 @@
         </div>
         <div>
           <h3>Run your own</h3>
-          <a href="/dev/">Guide</a><a href="/brk/">Bitcoin Research Kit</a><a href="/benchmarks/">Benchmarks</a><a href="https://github.com/bitcoinresearchkit/mono">Source<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
+          <a href="/dev/">Guide</a><a href="/brk/">Bitcoin Research Kit</a><a href="/benchmarks/">Benchmarks</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span><svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a>
         </div>
       </div>
     </footer>

@@ -125,6 +125,40 @@
         text-transform: uppercase;
       }
 
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      /* (Where the bar has no room for them beside the way home and the sections: its words for screen readers alone, the star and the count shown.) */
+      @media (width < 360px) {
+        .bar .stars-words {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
       /* ── The bar ── */
 
       .bar {
@@ -587,7 +621,7 @@
         <a class="brand" href="#top" aria-label="Bitcoin Research Kit"><span class="mark" aria-hidden="true">BRK</span><span class="long">Bitcoin Research Kit</span></a>
         <a href="#crates">Crates</a>
         <a href="#example">Example</a>
-        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </header>
 
@@ -598,7 +632,7 @@
         <p class="lede">Bitcoin Core RPC, its block files in chain order, the live mempool, a price read from the chain, Bitcoin's types and typed storage: each its own crate. Use one, or the parts you need; <a href="https://bitview.dev">Bitview</a> is built from all of them.</p>
         <div class="actions">
           <a class="button primary" href="#crates">Browse the crates</a>
-          <a class="button" href="https://github.com/bitcoinresearchkit/mono">Source on GitHub ↗</a>
+          <a class="button" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg>Star on GitHub</a>
         </div>
         <ul class="facts" aria-label="The workspace">
           <li>10 crates on crates.io</li>
@@ -691,7 +725,7 @@
       <nav aria-label="Elsewhere">
         <a href="https://bitview.dev">Bitview</a>
         <a href="https://bitview.space">bitview.space</a>
-        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </div></footer>
 

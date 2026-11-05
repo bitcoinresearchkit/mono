@@ -133,6 +133,40 @@
 
       /* ── The bar ── */
 
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      /* (Where the bar has no room for them beside the way home and Run it: its words for screen readers alone, the star and the count shown.) */
+      @media (width < 360px) {
+        .bar .stars-words {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
       .bar {
         position: sticky;
         top: 0;
@@ -167,6 +201,7 @@
         a:not(.brand) {
           color: var(--soft);
           font-size: 14px;
+          white-space: nowrap;
           text-decoration: none;
 
           &:hover {
@@ -721,7 +756,7 @@
         <a href="#run">Run it</a>
         <a class="optional" href="#serves">What it serves</a>
         <a class="optional" href="#built">How it's built</a>
-        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </header>
 
@@ -861,7 +896,7 @@ fn main() -&gt; Result&lt;()&gt; {
         <a href="https://bitview.space">bitview.space</a>
         <a href="/benchmarks/">Benchmarks</a>
         <a href="https://bitcoinresearchkit.org">Bitcoin Research Kit</a>
-        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </div></footer>
 
