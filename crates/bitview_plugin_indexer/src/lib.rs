@@ -427,8 +427,8 @@ impl Indexer {
         let hash_at = |height| blockhash.collect_one(height).expect("indexed height");
 
         // A node behind our tip (restarting, reindexing, back from a crash) would look like a
-        // reorg to its height.
-        let node_height = client.wait_for_node_at(tip)?;
+        // reorg to its height; one whose chain left ours below our tip is one.
+        let node_height = client.wait_for_node_at(tip, hash_at)?;
         // Down our own hashes, not the node's parent links: a block the node lost in a crash
         // and the network orphaned since is unknown to it.
         let mut height = tip;

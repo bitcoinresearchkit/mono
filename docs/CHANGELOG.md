@@ -14,6 +14,22 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   `/hashrate` or `/blocks` answers 404 `unknown_pool`, as an unknown slug does: it read past the pool table and
   ended the server (release builds abort on a panic), or answered an empty pool for the testnet ids
 - The custom plugin example builds again: it forwards the idle warm-up to the default composition
+- A reorg to a shorter (heavier) chain is followed at once: the index stayed on the orphaned tip, serving its blocks
+  and transactions as confirmed, until the node's chain grew past it
+- Blocks a miner could make no longer stop debug builds: an output script over 10,000 bytes (counted spendable, as
+  before in release, with a warning; Core leaves it out of its UTXO set) and a bare-multisig-looking script with more
+  than 255 pushes (no longer read as P2MS)
+- A block file rewritten while it's read is an error, not another block's transactions under the first one's header;
+  a corrupted transaction count fails decoding instead of aborting on the allocation
+- RPC batches (block hashes, mempool fetches) are retried as single calls are, through lost connections and the
+  node's warm-up: a node restarting mid-batch ended the update, and with it the server
+- `LOG` takes a level and `RUST_LOG` a filter, and either one that doesn't parse stops startup with its name and value
+  (a typo had muted every log line, errors included); an empty one counts as unset
+- No home directory needed with `--bitviewdir` and `--bitcoindir` (it panicked without `HOME`); without one, the
+  missing default is an error naming the flag
+- The RPC password no longer shows when the connection settings or a client are printed for debugging
+- The vintage and halving-epoch cohorts warn on every update once the chain is in their last listed period (they're
+  kept one ahead: vintages to 2027, epochs to 5), and a block they miss logs an error instead of a debug build's panic
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

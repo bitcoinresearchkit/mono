@@ -14,7 +14,8 @@ use brk_store::Store;
 use brk_types::{
     AddressBytes, OutPoint, OutputType, Sats, SigOpCount, SigOps32, TxIndex, Unit, Vout,
 };
-use vecdb::{BytesVec, WritableVec, likely};
+use tracing::warn;
+use vecdb::{BytesVec, WritableVec, likely, unlikely};
 
 use super::{BlockProcessor, transaction::ComputedTx};
 use crate::{
@@ -39,13 +40,14 @@ impl<'a> BlockProcessor<'a> {
         outputs.extend(txs.iter().flat_map(|ct| &ct.tx.output).map(|txout| {
             let script = &txout.script_pubkey;
             let output_type = OutputType::from(script);
-            // Core leaves larger scripts out of its UTXO set as unspendable; none exist,
-            // which keeps the UTXO set's totals equal to Core's.
-            debug_assert!(
-                output_type == OutputType::OpReturn || script.len() <= MAX_SCRIPT_SIZE,
-                "unspendable {}-byte script outside Core's UTXO set",
-                script.len()
-            );
+            // Core leaves larger scripts out of its UTXO set as unspendable. None is on chain; one a
+            // miner puts in a block counts as spendable here, and the UTXO set's totals leave Core's.
+            if unlikely(output_type != OutputType::OpReturn && script.len() > MAX_SCRIPT_SIZE) {
+                warn!(
+                    "A {}-byte output script, which Core leaves out of its UTXO set, counts as spendable",
+                    script.len()
+                );
+            }
             // With the accurate sigop count a spend executes; the legacy count, for the
             // transaction's total, stays in the data (see `script_legacy_sigops`). A P2MS script
             // can hold extra signature opcodes before its CHECKMULTISIG and an unknown one

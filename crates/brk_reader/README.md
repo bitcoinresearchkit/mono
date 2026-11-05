@@ -18,7 +18,7 @@ bytes, so testnet, signet and regtest are not supported). The reader needs:
 // Bitcoin Core's default data directory, cookie file and RPC port
 let node = ConnectArgs::default();
 let client = node.client()?;
-let reader = Reader::new(node.blocks_dir(), &client)?;
+let reader = Reader::new(node.blocks_dir()?, &client)?;
 
 // Everything from genesis to the current tip
 for block in reader.after(None)? {
@@ -75,7 +75,7 @@ canonical chain ──► Reader thread ──► Parser pool ──► Receiver
 1. **`CanonicalRange`** asks bitcoind up front for the canonical
    block hash at every height in the target window, in sequential
    JSON-RPC batches of 2,000 heights (one round trip each), no per-block
-   RPC chatter. A failed batch fails the read: batches are not retried.
+   RPC chatter. A batch is retried as single calls are (lost connections, the node warming up).
 2. **Reader thread** walks blk files, scans each for block magic, and
    for every block found hashes its 80-byte header and looks the hash
    up in the canonical map. Orphans short-circuit before the block

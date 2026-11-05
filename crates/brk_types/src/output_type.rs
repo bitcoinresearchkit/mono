@@ -7,12 +7,14 @@ use vecdb::Error as VecdbError;
 use vecdb::Result as VecdbResult;
 
 use bitcoin::{
-    AddressType, ScriptBuf,
+    AddressType, Script, ScriptBuf,
+    opcodes::Opcode,
     opcodes::all::{
-        OP_CHECKSIG, OP_DUP, OP_EQUAL, OP_EQUALVERIFY, OP_HASH160, OP_PUSHBYTES_0, OP_PUSHBYTES_2,
-        OP_PUSHBYTES_20, OP_PUSHBYTES_32, OP_PUSHBYTES_33, OP_PUSHBYTES_65, OP_PUSHNUM_1,
-        OP_RETURN,
+        OP_CHECKMULTISIG, OP_CHECKSIG, OP_DUP, OP_EQUAL, OP_EQUALVERIFY, OP_HASH160,
+        OP_PUSHBYTES_0, OP_PUSHBYTES_2, OP_PUSHBYTES_20, OP_PUSHBYTES_32, OP_PUSHBYTES_33,
+        OP_PUSHBYTES_65, OP_PUSHNUM_1, OP_PUSHNUM_16, OP_RETURN,
     },
+    script::Instruction,
 };
 use brk_error::Error;
 #[cfg(feature = "schemars")]
@@ -199,10 +201,50 @@ impl From<&ScriptBuf> for OutputType {
                 Self::P2PK65
             }
             _ if bytes[0] == OP_RETURN.to_u8() => Self::OpReturn,
-            _ if script.is_multisig() => Self::P2MS,
+            _ if is_multisig(script) => Self::P2MS,
             _ => Self::UnknownScript,
         }
     }
+}
+
+/// Bare multisig as rust-bitcoin's `Script::is_multisig` reads it (`OP_m`, pushes, `OP_n` equal to
+/// their count, `OP_CHECKMULTISIG`, m at most n), step for step, with the pushes counted past 255:
+/// its u8 counter overflows there (a panic with overflow checks, a P2MS misread without), and an
+/// output script is anything a miner puts in a block.
+fn is_multisig(script: &Script) -> bool {
+    let mut instructions = script.instructions();
+    let Some(Ok(Instruction::Op(op))) = instructions.next() else {
+        return false;
+    };
+    let Some(required) = pushnum(op) else {
+        return false;
+    };
+    let mut keys = 0usize;
+    while let Some(Ok(instruction)) = instructions.next() {
+        match instruction {
+            Instruction::PushBytes(_) => keys += 1,
+            Instruction::Op(op) => {
+                if pushnum(op).is_some_and(|total| total != keys) {
+                    return false;
+                }
+                break;
+            }
+        }
+    }
+    if required > keys {
+        return false;
+    }
+    matches!(
+        instructions.next(),
+        Some(Ok(Instruction::Op(OP_CHECKMULTISIG)))
+    ) && instructions.next().is_none()
+}
+
+/// The number `OP_1` to `OP_16` push (rust-bitcoin's `decode_pushnum`, crate-private there).
+fn pushnum(op: Opcode) -> Option<usize> {
+    (OP_PUSHNUM_1.to_u8()..=OP_PUSHNUM_16.to_u8())
+        .contains(&op.to_u8())
+        .then(|| usize::from(op.to_u8() - OP_PUSHNUM_1.to_u8()) + 1)
 }
 
 impl From<AddressType> for OutputType {

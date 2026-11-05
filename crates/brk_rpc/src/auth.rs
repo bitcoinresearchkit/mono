@@ -1,15 +1,27 @@
 use std::{
-    fs, io,
+    fmt, fs, io,
     path::{Path, PathBuf},
 };
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Auth {
     None,
     UserPass(String, String),
     CookieFile(PathBuf),
+}
+
+/// The password never shows, wherever an `Auth` (or a client or connection holding one) is
+/// formatted.
+impl fmt::Debug for Auth {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => f.write_str("None"),
+            Self::UserPass(user, _) => f.debug_tuple("UserPass").field(user).field(&"…").finish(),
+            Self::CookieFile(path) => f.debug_tuple("CookieFile").field(path).finish(),
+        }
+    }
 }
 
 /// A cookie read failure that names the file (a bare "Permission denied" says nothing).

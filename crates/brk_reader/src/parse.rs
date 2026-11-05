@@ -8,6 +8,10 @@ use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
 
 pub const HEADER_LEN: usize = 80;
 
+/// The smallest serialized transaction: version, one input (outpoint, empty script, sequence), one
+/// output (value, empty script) and lock time.
+const MIN_TX_LEN: usize = 60;
+
 /// The canonical offset and header of the block in `bytes`, `None` for any other block. A block
 /// of the range that does not follow its canonical predecessor is an error: the range was resolved
 /// across a reorg. Decodes the header onto a stack buffer so `bytes` stays untouched: the body
@@ -45,7 +49,15 @@ pub fn parse_canonical_body(
 ) -> Result<ReadBlock> {
     debug_assert!(bytes.len() >= HEADER_LEN);
     xor_state.bytes(&mut bytes, xor_bytes);
+    // Read again for its body: Core rewriting the file in place since (crash recovery) would put
+    // another block's transactions under the header found first.
+    let reread = Header::consensus_decode_from_finite_reader(&mut &bytes[..HEADER_LEN])
+        .expect("an 80-byte header always decodes");
+    if reread != header {
+        return Err(Error::Internal("Block file changed while it was read"));
+    }
     let bitcoin_hash = header.block_hash();
+    let len = bytes.len();
 
     let mut cursor = Cursor::new(bytes);
     cursor.set_position(HEADER_LEN as u64);
@@ -55,8 +67,13 @@ pub fn parse_canonical_body(
     // safety: our cursor is already a bounded `Vec<u8>`, so the
     // wrapping is pure overhead and compounds across ~2000 tx fields.
     let tx_count = VarInt::consensus_decode_from_finite_reader(&mut cursor)?.0 as usize;
-    let mut txdata = Vec::with_capacity(tx_count);
-    let mut tx_offsets = Vec::with_capacity(tx_count);
+    if tx_count == 0 {
+        return Err(Error::Internal("Block without a coinbase"));
+    }
+    // A count the bytes can't hold (a corrupted file) fails decoding below, not allocating here.
+    let capacity = tx_count.min(len / MIN_TX_LEN);
+    let mut txdata = Vec::with_capacity(capacity);
+    let mut tx_offsets = Vec::with_capacity(capacity);
     for _ in 0..tx_count {
         tx_offsets.push(cursor.position() as u32);
         let tx = Transaction::consensus_decode_from_finite_reader(&mut cursor)?;

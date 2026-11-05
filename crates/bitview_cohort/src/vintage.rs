@@ -116,18 +116,21 @@ define_cohort_id!(
 );
 
 impl<T> Vintage<T> {
+    /// The cohort of coins created at `timestamp`; none past the last listed year (see
+    /// [`VintageId::LAST_YEAR`]).
     pub fn get_mut(&mut self, timestamp: Timestamp) -> Option<&mut T> {
         let year = Date::from(timestamp).year();
-        let id = year
-            .checked_sub(2009)
+        year.checked_sub(2009)
             .and_then(|offset| VintageId::ALL.get(usize::from(offset)))
-            .copied();
-        debug_assert!(id.is_some(), "no vintage cohort for {year}");
-        id.map(|id| id.select_mut(self))
+            .map(|id| id.select_mut(self))
     }
 }
 
 impl VintageId {
+    /// The last year listed. The list runs a year ahead: a block in this year means the next
+    /// year's cohort must be added before it begins (see [`creation_cohorts_ahead`]).
+    pub const LAST_YEAR: u16 = 2009 + Self::ALL.len() as u16 - 1;
+
     pub const fn cohort(self) -> CohortId {
         CohortId::Vintage(self)
     }

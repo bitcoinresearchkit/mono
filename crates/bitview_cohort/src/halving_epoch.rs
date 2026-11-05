@@ -52,13 +52,9 @@ define_cohort_id!(
 
 impl<T> ByHalvingEpoch<T> {
     pub fn get_mut(&mut self, height: Height) -> Option<&mut T> {
-        let halving = usize::from(HalvingEpoch::from(height));
-        let id = HalvingEpochId::ALL.get(halving).copied();
-        debug_assert!(
-            id.is_some(),
-            "no halving epoch cohort for halving {halving}"
-        );
-        id.map(|id| id.select_mut(self))
+        HalvingEpochId::ALL
+            .get(usize::from(HalvingEpoch::from(height)))
+            .map(|id| id.select_mut(self))
     }
 }
 
@@ -66,4 +62,38 @@ impl HalvingEpochId {
     pub const fn cohort(self) -> CohortId {
         CohortId::HalvingEpoch(self)
     }
+}
+
+/// What the creation-period cohorts (vintages, halving epochs) need for a block at `height` and
+/// `timestamp`, if anything. They're listed one period ahead: a block in the last listed year or
+/// epoch means the next must be added to the tree before it begins; past it, coins of the period
+/// go to no cohort of the kind.
+pub fn creation_cohorts_ahead(height: Height, timestamp: brk_types::Timestamp) -> Option<String> {
+    let year = bitview_primitives::Date::from(timestamp).year();
+    let epoch = usize::from(HalvingEpoch::from(height));
+    let last_epoch = HalvingEpochId::ALL.len() - 1;
+    // The first period the list lacks: the next one, or one already reached.
+    let next_year = crate::VintageId::LAST_YEAR + 1;
+    let next_epoch = last_epoch + 1;
+    let mut missing = Vec::new();
+    if year + 1 >= next_year {
+        let when = if year >= next_year {
+            "now: its coins are in none"
+        } else {
+            "before it begins"
+        };
+        missing.push(format!("vintage_{next_year} ({when})"));
+    }
+    if epoch + 1 >= next_epoch {
+        let when = if epoch >= next_epoch {
+            "now: its coins are in none"
+        } else {
+            "before it begins"
+        };
+        missing.push(format!(
+            "halving_epoch_{next_epoch} (from height {}, {when})",
+            next_epoch * brk_types::BLOCKS_PER_HALVING as usize
+        ));
+    }
+    (!missing.is_empty()).then(|| format!("Creation-period cohorts to add: {}", missing.join("; ")))
 }

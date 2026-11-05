@@ -69,8 +69,8 @@ impl Client {
         self.0.call_with_retry("getblockheader", &(hash,))
     }
     /// The canonical block hashes of the inclusive height range `start..=end`, in height order,
-    /// in sequential batches of `BATCH_CHUNK` (2,000) requests. A failed batch returns its error
-    /// at once: batches are not retried like single calls.
+    /// in sequential batches of `BATCH_CHUNK` (2,000) requests, each retried as single calls are
+    /// (lost connections, the node warming up).
     pub fn get_block_hashes_range<H1, H2>(&self, start: H1, end: H2) -> Result<Vec<BlockHash>>
     where
         H1: Into<u64>,
@@ -244,29 +244,54 @@ impl Client {
     }
 
     pub fn wait_for_synced_node(&self) -> Result<()> {
-        self.wait_for_node_at(Height::ZERO).map(|_| ())
+        self.wait_until(|info| Ok(info.headers == info.blocks))
+            .map(|_| ())
     }
 
-    /// Waits until the node has validated every header it knows and its chain reaches `height`,
-    /// returning the lowest height it reported meanwhile: a node back from a crash comes back
-    /// below the blocks it lost. `headers == blocks` alone passes such a node: until its peers
-    /// return them, it knows of no header left to validate.
-    pub fn wait_for_node_at(&self, height: Height) -> Result<Height> {
-        let is_synced = |info: &GetBlockchainInfo| {
-            info.headers == info.blocks && info.blocks >= i64::from(*height)
-        };
+    /// Waits until the node has validated every header it knows and either its chain reaches
+    /// `height` or it left `ours` (our block at a height), returning the lowest height it reported
+    /// meanwhile. A node below `height` with no header left to validate is behind (back from a
+    /// crash, it comes back below the blocks it lost; until its peers return them it knows of no
+    /// header left to validate) while our block at its height is in its best chain; once it isn't,
+    /// its chain left ours, shorter (heavier): a reorg to find, not a node to wait for. Free while the
+    /// node is at `height` or above. Left as is: a node back from a crash on the branch it had just
+    /// left (ours lost with it) is followed there, then back once it recovers ours: the index always
+    /// matches the node, the blocks between reindexed twice.
+    pub fn wait_for_node_at(
+        &self,
+        height: Height,
+        ours: impl Fn(Height) -> BlockHash,
+    ) -> Result<Height> {
+        self.wait_until(|info| {
+            if info.headers != info.blocks {
+                return Ok(false);
+            }
+            if info.blocks >= i64::from(*height) {
+                return Ok(true);
+            }
+            let tip = Height::from(info.blocks as u64);
+            Ok(!self.is_in_best_chain(&ours(tip))?)
+        })
+    }
 
+    /// Polls the node every second until `done`, returning the lowest height it reported.
+    fn wait_until(
+        &self,
+        mut done: impl FnMut(&GetBlockchainInfo) -> Result<bool>,
+    ) -> Result<Height> {
         let mut info = self.get_blockchain_info()?;
         let mut lowest = info.blocks;
-        if !is_synced(&info) {
+        if !done(&info)? {
             info!("Waiting for node to sync...");
+            loop {
+                sleep(Duration::from_secs(1));
+                info = self.get_blockchain_info()?;
+                lowest = lowest.min(info.blocks);
+                if done(&info)? {
+                    break;
+                }
+            }
         }
-        while !is_synced(&info) {
-            sleep(Duration::from_secs(1));
-            info = self.get_blockchain_info()?;
-            lowest = lowest.min(info.blocks);
-        }
-
         Ok(Height::from(lowest as u64))
     }
 

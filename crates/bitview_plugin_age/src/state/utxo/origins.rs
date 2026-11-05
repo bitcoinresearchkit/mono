@@ -1,6 +1,7 @@
 use bitview_cohort::Age;
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_types::{Cents, Height, Sats, Timestamp};
+use tracing::error;
 
 use crate::{
     compute::ComputeContext,
@@ -101,11 +102,13 @@ impl UTXOStates {
     ) {
         let snapshot = CostBasisSnapshot::from_utxo(price, &supply);
         self.age_range.under_1h.increment_snapshot(&snapshot);
-        if let Some(v) = self.halving_epoch.get_mut(height) {
-            v.increment_snapshot(&snapshot);
+        match self.halving_epoch.get_mut(height) {
+            Some(v) => v.increment_snapshot(&snapshot),
+            None => error!("No halving epoch cohort for block {height}: its coins are in none"),
         }
-        if let Some(v) = self.vintage.get_mut(timestamp) {
-            v.increment_snapshot(&snapshot);
+        match self.vintage.get_mut(timestamp) {
+            Some(v) => v.increment_snapshot(&snapshot),
+            None => error!("No vintage cohort for block {height}'s year: its coins are in none"),
         }
     }
 }

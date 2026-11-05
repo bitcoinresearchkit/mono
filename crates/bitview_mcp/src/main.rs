@@ -8,7 +8,7 @@ use std::{
 
 use arguments::Arguments;
 use axum::serve;
-use brk_logger::init_with_default_level;
+use brk_logger::{LevelFilter, init_with_default_level};
 use manifest::Catalog;
 use page::Pages;
 use tokio::net::TcpListener;
@@ -29,7 +29,7 @@ const BIND_START: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    init_with_default_level(None, "info")?;
+    init_with_default_level(None, LevelFilter::INFO)?;
 
     let Arguments {
         api_url,

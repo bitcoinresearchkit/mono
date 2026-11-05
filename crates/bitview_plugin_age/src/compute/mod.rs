@@ -17,7 +17,9 @@ use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use crate::{Dependencies, Vecs, live::LiveState, state::UTXOStates};
+use bitview_cohort::creation_cohorts_ahead;
 use origin_targets::OriginTargets;
+use tracing::warn;
 
 const OUTPUT_CAPACITY: usize = 2_048;
 
@@ -104,6 +106,10 @@ impl ComputePlugin for Vecs {
                 &mut cursor,
             )?;
             self.save(chunk.end, chunk.end == end, exit)?;
+        }
+        let tip = Height::from(end - 1);
+        if let Some(warning) = creation_cohorts_ahead(tip, ctx.height_to_timestamp[end - 1]) {
+            warn!("{warning}");
         }
         self.live = Some(LiveState {
             origins,

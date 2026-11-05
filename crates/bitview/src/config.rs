@@ -67,8 +67,12 @@ impl Config {
     pub fn import() -> Result<RunConfig> {
         let (config_args, dump) = Self::parse_args()?;
 
-        let config =
-            Self::read(&default_bitview_dir().join("config.toml"))?.with_overrides(config_args);
+        // Without a home directory there's no config.toml: the flags alone.
+        let config = match default_bitview_dir() {
+            Some(dir) => Self::read(&dir.join("config.toml"))?,
+            None => Self::default(),
+        }
+        .with_overrides(config_args);
         if dump {
             config.dump()?;
             exit(0);
@@ -399,23 +403,26 @@ impl Config {
     /// [`ConnectArgs::client`] must find RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
         let connect_args = self.connect_args();
-        let blocks_path = connect_args.blocks_dir();
+        let blocks_path = connect_args.blocks_dir()?;
         if !blocks_path.is_dir() {
             return Err(Error::NotFound(format!(
                 "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir (run with -h for help)",
                 blocks_path.display()
             )));
         }
+        let data_path = match self.bitviewdir.as_deref() {
+            Some(dir) => expand_home(dir),
+            None => default_bitview_dir().ok_or_else(|| {
+                Error::NotFound("no home directory to put ~/.bitview in: set --bitviewdir".into())
+            })?,
+        };
         Ok(RunConfig {
             client: connect_args.client()?,
             blocks_path,
             server: ServerConfig {
                 bind: self.serverbind.unwrap_or(DEFAULT_BIND),
                 port: self.serverport.unwrap_or_default(),
-                data_path: self
-                    .bitviewdir
-                    .as_deref()
-                    .map_or_else(default_bitview_dir, expand_home),
+                data_path,
                 website: self.website.clone().unwrap_or_default(),
                 cdn_cache_mode: if self.cdn.unwrap_or(false) {
                     CdnCacheMode::Aggressive
