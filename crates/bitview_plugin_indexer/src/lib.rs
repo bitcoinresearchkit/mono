@@ -61,7 +61,6 @@ pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;
 pub use vecs::{BlockCount, FeatureVecs, FlagView};
-pub use warm::Touched;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;

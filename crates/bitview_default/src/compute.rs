@@ -9,7 +9,6 @@ use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
 use bitview_plugin_cointime::Dependencies as CointimeDependencies;
 use bitview_plugin_entry::Dependencies as EntryDependencies;
 use bitview_plugin_holders::Dependencies as HoldersDependencies;
-use bitview_plugin_indexer::Touched;
 use bitview_plugin_inputs::Dependencies as InputsDependencies;
 use bitview_plugin_mappings::Dependencies as MappingsDependencies;
 use bitview_plugin_market::Dependencies as MarketDependencies;
@@ -411,12 +410,9 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     // The reads an update spends most of its time on when idle minutes left them on disk: the
-    // indexer's lookups, the spend index's entries and the addresses' data.
+    // indexer's lookups and the addresses' data. Not the spend index: its writes read their pages
+    // from disk either way (rawdb's indexed writes on macOS).
     fn warm(&self, txs: &[Arc<Transaction>]) {
-        let Touched { spent, addresses } = self.indexer.warm(txs);
-        join(
-            || self.outputs.spent.warm(&spent),
-            || self.addresses.warm(&addresses),
-        );
+        self.addresses.warm(&self.indexer.warm(txs));
     }
 }
