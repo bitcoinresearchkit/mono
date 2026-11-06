@@ -68,7 +68,9 @@ fn compact_parameter(param: &mut Map<String, Value>) {
     let Some(Value::Object(mut schema)) = param.shift_remove("schema") else {
         return;
     };
-    for key in ["enum", "default", "minimum", "maximum"] {
+    for key in [
+        "enum", "default", "minimum", "maximum", "minItems", "maxItems", "minLength", "maxLength",
+    ] {
         if let Some(value) = schema.shift_remove(key)
             && !value.is_null()
         {

@@ -20,8 +20,6 @@ mod logo;
 mod manifest;
 mod page;
 mod server;
-#[cfg(test)]
-mod tests;
 mod upstream;
 mod upstream_response;
 

@@ -23,7 +23,7 @@ pub struct TxStatus {
     /// Block timestamp (only present if confirmed)
     #[cfg_attr(feature = "schemars", schemars(example = Some(1759000868)))]
     #[serde(skip_serializing_if = "Option::is_none")]
-    block_time: Option<Timestamp>,
+    pub block_time: Option<Timestamp>,
 }
 
 impl TxStatus {

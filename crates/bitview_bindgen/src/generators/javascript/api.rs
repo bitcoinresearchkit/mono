@@ -4,7 +4,7 @@ use crate::{
     Endpoint, Parameter, Ty, TypeSchemas,
     generators::{
         javascript::{keep::keep_expr, types::js_type},
-        normalize_return_type, write_description,
+        jsdoc_continued, normalize_return_type, write_description,
     },
     to_camel_case,
 };
@@ -245,7 +245,7 @@ fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
 /// Format param description with dash prefix, or empty string if no description.
 fn format_param_desc(desc: Option<&str>) -> String {
     match desc {
-        Some(d) if !d.is_empty() => format!(" - {}", d),
+        Some(d) if !d.is_empty() => format!(" - {}", jsdoc_continued(d, "   *")),
         _ => String::new(),
     }
 }

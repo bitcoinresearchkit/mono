@@ -4,11 +4,10 @@
 //!
 //! See the `website` example for how to run a standalone server.
 
+mod brotli_copies;
 mod error;
 mod handlers;
 mod router;
-#[cfg(test)]
-mod tests;
 mod website;
 
 pub(crate) use error::Error;

@@ -27,6 +27,14 @@ pub(crate) fn write_description(output: &mut String, desc: &str, prefix: &str, e
     }
 }
 
+/// A description on one JSDoc tag's line, its further lines continuing the comment under
+/// `prefix` (its ` *` column): a bare line would sit outside the comment's markup.
+pub(crate) fn jsdoc_continued(desc: &str, prefix: &str) -> String {
+    desc.lines()
+        .collect::<Vec<_>>()
+        .join(&format!("\n{prefix}   "))
+}
+
 /// Replace generic types with their Any variants in return types.
 /// Used by JS and Python generators.
 pub(crate) fn normalize_return_type(return_type: &str) -> String {

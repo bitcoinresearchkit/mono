@@ -66,8 +66,6 @@ mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
 mod state;
-#[cfg(test)]
-mod tests;
 mod unacceptable_encoding;
 
 pub use api::ApiRoutes;

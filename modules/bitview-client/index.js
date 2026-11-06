@@ -24,7 +24,7 @@
  * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
  * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address without
-confirmed activity
+ *   confirmed activity
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
@@ -44,7 +44,7 @@ confirmed activity
  * @typedef {Object} AddressHashPrefixParam
  * @property {AddressOutputType} addressType
  * @property {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
-address payload bytes.
+ *   address payload bytes.
  */
 /**
  * Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
@@ -87,7 +87,7 @@ address payload bytes.
  *
  * @typedef {Object} AddressTxsQuery
  * @property {(Txid|null)=} afterTxid - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
-cursor skips the mempool). One that is neither answers 422.
+ *   cursor skips the mempool). One that is neither answers 422.
  * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
  */
 /**
@@ -97,9 +97,10 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {(Hex|null)=} scriptPubKey - The scriptPubKey in hex
  * @property {?boolean=} isscript - Whether the address is P2SH, P2WSH or P2TR
  * @property {?boolean=} iswitness
- * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+ * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
  * @property {(Hex|null)=} witnessProgram - Witness program in hex
- * @property {?number[]=} errorLocations - Error locations: an empty array for invalid addresses, omitted for valid ones
+ * @property {?number[]=} errorLocations - Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none;
+ *   omitted for valid ones
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
@@ -116,8 +117,13 @@ cursor skips the mempool). One that is neither answers 422.
  *
  * @typedef {Object} BlockExtras
  * @property {Sats} totalFees - Total fees in satoshis
- * @property {FeeRate} medianFee - Median fee rate in sat/vB
- * @property {FeeRate[]} feeRange - Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+ * @property {FeeRate} medianFee - Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space
+ *   paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle
+ *   0.25% of a 4M WU block instead)
+ * @property {FeeRate[]} feeRange - Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the
+ *   percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks
+ *   transactions by count), min and max the lower/higher of the 1st/99th percentile and the
+ *   extreme rate in the block's last/first 2% of vsize
  * @property {Sats} reward - Total block reward (subsidy + fees) in satoshis
  * @property {BlockPool} pool
  * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
@@ -128,7 +134,7 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {string} coinbaseSignature - Coinbase output script in ASM format
  * @property {string} coinbaseSignatureAscii - Coinbase scriptsig with each byte read as the Unicode code point of the same value
  * @property {number} avgTxSize - Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
-2 decimals
+ *   2 decimals
  * @property {number} totalInputs - Total number of inputs (excluding coinbase)
  * @property {number} totalOutputs
  * @property {Sats} totalOutputAmt - Total output amount in satoshis, coinbase excluded
@@ -139,16 +145,16 @@ cursor skips the mempool). One that is neither answers 422.
  * @property {Weight} segwitTotalWeight
  * @property {Hex} header - Raw 80-byte block header as hex
  * @property {number} utxoSetChange - UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
-inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
+ *   inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
  * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
-sequence isn't final), from timestamp 1,771,507,776 on; null before
+ *   sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
  * @property {BlockOrphan[]} orphans - Stale blocks at this height (always empty, not yet supported)
  * @property {?number=} matchRate - Share of the expected block template the block matched, from mempool.space's own audits
-(always null: it needs the mempool as it was)
+ *   (always null: it needs the mempool as it was)
  * @property {(Sats|null)=} expectedFees - Fees of the expected block template (always null: it needs the mempool as it was)
  * @property {(Weight|null)=} expectedWeight - Weight of the expected block template (always null: it needs the mempool as it was)
  * @property {Dollars} price - USD price at block height
@@ -373,7 +379,7 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {CpfpEntry[]} ancestors
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Feerate of the chunk holding the transaction when its block's relatives are linearized
-(sat/vB).
+ *   (sat/vB).
  * @property {CpfpCluster} cluster - The transaction's relatives in its block.
  */
 /**
@@ -445,15 +451,15 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(CpfpEntry|null)=} bestDescendant - Best (highest fee rate) descendant, if any.
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (sat/vB).
-This is the seed's chunk feerate after lift-merging, i.e. the
-rate Core/mempool.space would surface for this tx.
+ *   This is the seed's chunk feerate after lift-merging, i.e. the
+ *   rate Core/mempool.space would surface for this tx.
  * @property {SigOps} sigops - BIP-141 sigop cost for the seed tx (witness sigops count as 1,
-legacy and P2SH-redeem sigops count as 4).
+ *   legacy and P2SH-redeem sigops count as 4).
  * @property {Sats} fee - Transaction fee (sats).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
  * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
-(matches mempool.space).
+ *   (matches mempool.space).
  */
 /**
  * A quote currency prices are served in: USD only.
@@ -514,9 +520,9 @@ legacy and P2SH-redeem sigops count as 4).
  * @property {Height} nextRetargetHeight
  * @property {number} timeAvg - Average block time in current epoch (milliseconds)
  * @property {number} adjustedTimeAvg - Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
-blocks, where it spans the last 503 blocks, those before the retarget scaled by it
+ *   blocks, where it spans the last 503 blocks, those before the retarget scaled by it
  * @property {number} timeOffset - Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on
-mainnet, as mempool.space
+ *   mainnet, as mempool.space
  * @property {number} expectedBlocks - Blocks expected at the 10-minute target between the epoch's first block and the tip block
  */
 /**
@@ -653,7 +659,7 @@ mainnet, as mempool.space
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
  * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
-asking the node
+ *   asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
@@ -743,10 +749,10 @@ asking the node
  *
  * @typedef {Object} Logs
  * @property {number} startedUnixMs - When this server process began its log, in Unix milliseconds: another than the last answer's shows the
-server restarted.
+ *   server restarted.
  * @property {LogLine[]} lines
  * @property {string} next - Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the
-`seq` of the next line it will log; to pass back as it is, not to read.
+ *   `seq` of the next line it will log; to pass back as it is, not to read.
  */
 /**
  * Where a reader of the log left off.
@@ -759,14 +765,14 @@ server restarted.
  *
  * @typedef {Object} MempoolBlock
  * @property {number} blockSize - Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
-or coinbase.
+ *   or coinbase.
  * @property {number} blockVSize - Sum of the transactions' virtual sizes in vbytes
  * @property {number} nTx - Number of transactions in the projected block
  * @property {Sats} totalFees - Total fees in satoshis
  * @property {FeeRate} medianFee - Median fee rate in sat/vB
  * @property {FeeRate[]} feeRange - Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
-[0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
-later projected ones
+ *   [0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
+ *   later projected ones
  */
 /**
  * A projected mempool block with its transactions: block 0 is Bitcoin Core's
@@ -789,9 +795,9 @@ later projected ones
  * @property {MempoolBlockHash} since - Echoed prior hash the diff was computed against.
  * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
  * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
-`[start, count]`, or a full transaction body.
+ *   `[start, count]`, or a full transaction body.
  * @property {Txid[]} removed - Txids that left the projected next block since `since`
-(confirmed, evicted, replaced, or pushed past block 0).
+ *   (confirmed, evicted, replaced, or pushed past block 0).
  */
 /**
  * One stretch of the new block in a `MempoolBlockDiff`.
@@ -837,8 +843,8 @@ later projected ones
  * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes)
  * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
  * @property {number[][]} feeHistogram - Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
-entry the vsize of the transactions paying from its fee rate up to the previous entry's,
-a bin closing at the first fee rate change past 50,000 vB
+ *   entry the vsize of the transactions paying from its fee rate up to the previous entry's,
+ *   a bin closing at the first fee rate change past 50,000 vB
  */
 /**
  * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
@@ -919,22 +925,22 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {Object} OracleBlock
  * @property {Height} height - The block's height; live with the mempool, the next block's.
  * @property {BlockHash} hash - The confirmed block it was read at: this block's hash; live with the mempool, the tip's
-(block `height - 1`), the one the mempool is blended onto.
+ *   (block `height - 1`), the one the mempool is blended onto.
  * @property {boolean} mempool - Whether it's the live reading with the mempool blended in as the next block (`outputs` the
-mempool's), rather than a confirmed block's.
+ *   mempool's), rather than a confirmed block's.
  * @property {Dollars} price - The price it found, in dollars: `bin` as a price, to the cent.
  * @property {number} bin - The bin it picked, refined between bins by a parabola through the best score and its
-neighbours.
+ *   neighbours.
  * @property {number} firstBin - The search window's first candidate bin: 12 below the block before's answer, rounded, 24
-candidates in all.
+ *   candidates in all.
  * @property {number[]} scores - Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar
-amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),
-the histogram's count where that amount lands if $100 is at the candidate, over that
-amount's peak in the window, summed. The highest is the pick's bin; all zero when the window
-held no payments at all, and the oracle kept the block before's answer.
+ *   amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),
+ *   the histogram's count where that amount lands if $100 is at the candidate, over that
+ *   amount's peak in the window, summed. The highest is the pick's bin; all zero when the window
+ *   held no payments at all, and the oracle kept the block before's answer.
  * @property {number[]} histogram - The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
-before it (live, the mempool's as the next block's), each block's counts weighted
-`(2/7) * (5/7)^age`, the newest at age 0.
+ *   before it (live, the mempool's as the next block's), each block's counts weighted
+ *   `(2/7) * (5/7)^age`, the newest at age 0.
  * @property {OracleOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
  */
 /**
@@ -943,7 +949,7 @@ before it (live, the mempool's as the next block's), each block's counts weighte
  * @typedef {Object} OracleBlockPayments
  * @property {Height} height
  * @property {number} firstBucket - The first bucket's index: the window's first bin's lower edge (half a bin under it) over
-`step`.
+ *   `step`.
  * @property {number[]} counts - The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
  */
 /**
@@ -954,7 +960,7 @@ before it (live, the mempool's as the next block's), each block's counts weighte
  * @typedef {Object} OracleOutputs
  * @property {number} coinbase - The coinbase's: new coins, not payments.
  * @property {number} fanOut - Those of transactions with more outputs than the fan-out cap (250; 100 before height
-630,000): batch payouts.
+ *   630,000): batch payouts.
  * @property {number} opReturn - Those of transactions carrying an OP_RETURN output: data, not payments.
  * @property {number} taproot - Taproot outputs: mostly protocol traffic.
  * @property {number} dust - Under 1,000 sats.
@@ -1134,9 +1140,9 @@ before it (live, the mempool's as the next block's), each block's counts weighte
  * @property {number} estimatedHashrate - Estimated hashrate based on blocks mined (H/s)
  * @property {?number=} reportedHashrate - Self-reported hashrate (if available, H/s)
  * @property {?number=} avgBlockHealth - Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
-the mempool as it was)
+ *   the mempool as it was)
  * @property {string} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats),
-as a decimal string
+ *   as a decimal string
  */
 /**
  * @typedef {Object} PoolDetailInfo
@@ -1187,9 +1193,9 @@ as a decimal string
  * @property {number} emptyBlocks - Number of empty (coinbase-only) blocks mined in the time period
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {?number=} avgMatchRate - Mean share of the expected block template the pool's blocks matched, from mempool.space's
-own audits (always null: it needs the mempool as it was)
+ *   own audits (always null: it needs the mempool as it was)
  * @property {?string=} avgFeeDelta - Mean relative difference of the pool's fees from the expected template's, a decimal
-string at mempool.space, from its own audits (always null: it needs the mempool as it was)
+ *   string at mempool.space, from its own audits (always null: it needs the mempool as it was)
  * @property {number} poolUniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
  */
@@ -1209,7 +1215,7 @@ string at mempool.space, from its own audits (always null: it needs the mempool 
  * @property {FeeRate} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
  * @property {FeeRate} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {FeeRate} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
-it; `minimumFee` when no third projected block exists
+ *   it; `minimumFee` when no third projected block exists
  * @property {FeeRate} minimumFee - The node's current mempool minimum fee rate, rounded up to 0.001 sat/vB (at least 0.001)
  */
 /**
@@ -1257,7 +1263,7 @@ it; `minimumFee` when no third projected block exists
  * @property {Timestamp} time
  * @property {boolean} rbf - BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
  * @property {?boolean=} fullRbf - Only populated on the root `tx` of an RBF response. `true` iff
-this tx displaced at least one non-signaling predecessor.
+ *   this tx displaced at least one non-signaling predecessor.
  */
 /**
  * Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
@@ -1267,7 +1273,7 @@ this tx displaced at least one non-signaling predecessor.
  * @property {number} halfHourFee - Fee rate for confirmation within ~30 minutes (second projected block)
  * @property {number} hourFee - Fee rate for confirmation within ~1 hour (third projected block)
  * @property {number} economyFee - Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
-it; `minimumFee` when no third projected block exists
+ *   it; `minimumFee` when no third projected block exists
  * @property {number} minimumFee - The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)
  */
 /**
@@ -1277,12 +1283,12 @@ it; `minimumFee` when no third projected block exists
  * @typedef {Object} ReplacementNode
  * @property {RbfTx} tx
  * @property {Timestamp} time - First-seen timestamp, duplicated here to match mempool.space's
-on-the-wire shape.
+ *   on-the-wire shape.
  * @property {boolean} fullRbf - Any predecessor in this subtree was non-signaling.
  * @property {?number=} interval - Seconds between this node's `time` and the successor that
-replaced it. Omitted on the root of an RBF response.
+ *   replaced it. Omitted on the root of an RBF response.
  * @property {?boolean=} mined - `Some(true)` iff this node's tx is currently confirmed. Absent
-on serialization otherwise.
+ *   on serialization otherwise.
  * @property {ReplacementNode[]} replaces
  */
 /**
@@ -1343,7 +1349,7 @@ on serialization otherwise.
  * @property {?string=} description - Human-readable metric definition, when documented
  * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN)
+ *   undefined one (e.g. NaN)
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {?string=} unit - What the value type measures, when documented (e.g. "A duration in days.")
  */
@@ -1355,14 +1361,14 @@ undefined one (e.g. NaN)
  * @property {string} kind - The value type, by its schema's name (e.g., "Sats", "Ratio").
  * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
-undefined one (e.g. NaN).
+ *   undefined one (e.g. NaN).
  * @property {?string=} description - Human-readable metric definition, when documented.
  * @property {JsonType} type - What the values are on the wire.
  */
 /**
  * Comma-separated list of series names
  *
- * Deserialization permits at most 32 normalized names and 2,048 decoded input
+ * Deserialization permits at most 32 names, each exact, and 2,048 decoded input
  * string bytes. For arrays, the byte budget is shared by their string values.
  *
  * @typedef {string} SeriesList
@@ -1408,7 +1414,7 @@ undefined one (e.g. NaN).
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
  * @property {Height} tipHeight - Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
-asking the node
+ *   asking the node
  * @property {Height} blocksBehind - Number of blocks behind the tip
  * @property {string} lastIndexedAt - Human-readable timestamp of the last indexed block (ISO 8601)
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
@@ -1577,15 +1583,15 @@ asking the node
  *
  * @typedef {Object} UrpdBuckets
  * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
-coins' creation prices round to (four significant digits of the price in cents).
+ *   coins' creation prices round to (four significant digits of the price in cents).
  * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or
-`mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
+ *   `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
  * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
-each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
-of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
-buckets therefore need not sum to the cohort's realized cap series.
+ *   each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
+ *   of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
+ *   buckets therefore need not sum to the cohort's realized cap series.
  * @property {Dollars[]} unrealizedPnl - Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid
-capital, rounded to the cent once. Can be negative.
+ *   capital, rounded to the cent once. Can be negative.
  */
 /**
  * A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).
@@ -1652,7 +1658,7 @@ capital, rounded to the cent once. Can be negative.
  * @property {Height} height
  * @property {BlockHash} hash
  * @property {Date} date - UTC date of the represented block's monotonic timestamp (the running maximum of block
-times).
+ *   times).
  * @property {number} count - Number of unspent outputs.
  * @property {Bitcoin} supply - BTC held by the unspent outputs.
  * @property {UtxoOrigins} origins - Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
@@ -1662,14 +1668,14 @@ times).
  *
  * @typedef {Object} UtxoSetDiff
  * @property {Height} first - First block of the diff; it applies to the set after block `first - 1` (the empty set for
-block 0).
+ *   block 0).
  * @property {Height} last - Last block of the diff, described by `hash` and `date`.
  * @property {BlockHash} hash - Hash of block `last`.
  * @property {Date} date - UTC date of block `last`'s monotonic timestamp.
  * @property {UtxoChanges} created - Outputs created, one row per block, including those spent again within the range (which
-`spent` lists too).
+ *   `spent` lists too).
  * @property {UtxoChanges} spent - Outputs removed, one row per creation height in ascending order: spent outputs, plus the
-coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
+ *   coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 overwrote.
  */
 /**
  * Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
@@ -1679,7 +1685,7 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
 /**
  * @typedef {Object} ValidateAddressParam
  * @property {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
-anything else answers 400, as mempool.space does
+ *   anything else answers 400, as mempool.space does
  */
 /**
  * Schema or computation version of a stored vector: when it changes, the data is reset and
@@ -8465,7 +8471,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {AddressOutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
-address payload bytes.
+   *   address payload bytes.
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AddressHashPrefixMatches>}
    */
@@ -8503,7 +8509,7 @@ address payload bytes.
    *
    * @param {Address} address
    * @param {Txid=} [after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
-cursor skips the mempool). One that is neither answers 422.
+   *   cursor skips the mempool). One that is neither answers 422.
    * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
@@ -8612,7 +8618,7 @@ cursor skips the mempool). One that is neither answers 422.
    * Endpoint: `GET /api/v1/validate-address/{address}`
    *
    * @param {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
-anything else answers 400, as mempool.space does
+   *   anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AddressValidation>}
    */

@@ -67,6 +67,15 @@ impl ReadOnlyState {
         Ok(pending)
     }
 
+    /// Whether the live mempool tx `txid` touches `addr`.
+    pub fn addr_has_tx(&self, addr: &AddressBytes, txid: &Txid, tip: &BlockHash) -> Result<bool> {
+        let state = self.pool()?.resolved_at(tip)?;
+        Ok(state
+            .addrs
+            .get(addr)
+            .is_some_and(|entry| entry.txids.contains(txid)))
+    }
+
     /// Live mempool txs touching `addr`, newest first by `first_seen`, after the
     /// `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
     /// that isn't one of the address's transactions has none after it. Shares immutable

@@ -1199,6 +1199,7 @@ dependencies = [
  "axum",
  "bitview_http",
  "brk_logger",
+ "brotli",
  "include_dir",
  "rapidhash",
  "serde",

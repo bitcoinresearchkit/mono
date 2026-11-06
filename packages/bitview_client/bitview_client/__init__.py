@@ -105,7 +105,7 @@ ServerVersion = str
 SeriesName = str
 # Comma-separated list of series names
 #
-# Deserialization permits at most 32 normalized names and 2,048 decoded input
+# Deserialization permits at most 32 names, each exact, and 2,048 decoded input
 # string bytes. For arrays, the byte budget is shared by their string values.
 SeriesList = str
 # A mean duration in seconds.
@@ -1774,8 +1774,8 @@ class BlockExtras(_BlockExtrasRequired, total=False):
 
     Attributes:
         totalFees: Total fees in satoshis
-        medianFee: Median fee rate in sat/vB
-        feeRange: Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+        medianFee: Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
+        feeRange: Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
         reward: Total block reward (subsidy + fees) in satoshis
         avgFee: Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
         avgFeeRate: Average fee rate in sat/vB
@@ -1851,9 +1851,9 @@ class AddressValidation(_AddressValidationRequired, total=False):
         address: The validated address
         scriptPubKey: The scriptPubKey in hex
         isscript: Whether the address is P2SH, P2WSH or P2TR
-        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+        witness_version: Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
         witness_program: Witness program in hex
-        error_locations: Error locations: an empty array for invalid addresses, omitted for valid ones
+        error_locations: Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none; omitted for valid ones
         error: Error message for invalid addresses
     """
     address: Union[Address, None]

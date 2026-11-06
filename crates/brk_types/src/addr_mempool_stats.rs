@@ -20,7 +20,7 @@ pub struct AddressMempoolStats {
 
     /// Number of unconfirmed transaction inputs spending from this address
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
-    spent_txo_count: u32,
+    pub spent_txo_count: u32,
 
     /// Total amount in satoshis being spent in unconfirmed transactions
     #[cfg_attr(feature = "schemars", schemars(example = Sats::new(0)))]

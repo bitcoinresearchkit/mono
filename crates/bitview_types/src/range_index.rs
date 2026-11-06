@@ -10,7 +10,9 @@ use serde::{Deserialize, Deserializer, de::Error};
 pub enum RangeIndex {
     Int(i64),
     Date(Date),
-    Timestamp(Timestamp),
+    /// An instant, to the nanosecond (see [`Self::Timestamp`]'s uses: a calendar bucket floors it,
+    /// a block search rounds it up, as blocks are stamped in whole seconds).
+    Timestamp(JiffTimestamp),
 }
 
 impl JsonSchema for RangeIndex {
@@ -57,7 +59,7 @@ impl From<Date> for RangeIndex {
 
 impl From<Timestamp> for RangeIndex {
     fn from(t: Timestamp) -> Self {
-        Self::Timestamp(t)
+        Self::Timestamp(JiffTimestamp::from(t))
     }
 }
 
@@ -66,7 +68,7 @@ impl fmt::Display for RangeIndex {
         match self {
             Self::Int(i) => write!(f, "{i}"),
             Self::Date(d) => write!(f, "{d}"),
-            Self::Timestamp(t) => write!(f, "{}", JiffTimestamp::from(*t)),
+            Self::Timestamp(t) => write!(f, "{t}"),
         }
     }
 }
@@ -89,7 +91,7 @@ impl<'de> Deserialize<'de> for RangeIndex {
             if secs < 0 || secs > u32::MAX as i64 {
                 return Err(Error::custom(format!("timestamp out of range: {s}")));
             }
-            return Ok(Self::Timestamp(Timestamp::new(secs as u32)));
+            return Ok(Self::Timestamp(ts));
         }
         Err(Error::custom(format!(
             "expected integer, YYYY-MM-DD, or ISO 8601 timestamp: {s}"

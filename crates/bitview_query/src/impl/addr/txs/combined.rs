@@ -36,7 +36,8 @@ impl Query {
     /// Select both parts against the same indexed chain, `limit` transactions in all: the
     /// mempool's first, the chain's filling the rest, as mempool.space pages. `after_txid`
     /// continues from a mempool or a confirmed transaction (a confirmed one skips the
-    /// mempool); one that's neither is `UnknownAfterTxid`. Mempool bodies are immutable shared
+    /// mempool), one outside the address's history giving an empty page (as Esplora); one
+    /// that's neither is `UnknownAfterTxid`. Mempool bodies are immutable shared
     /// values; a prefix pin keeps selected chain rows stable.
     pub fn resolve_addr_txs(
         &self,
@@ -58,10 +59,19 @@ impl Query {
         };
         let mempool = match (&mempool, confirmed_cursor) {
             (Some(mempool), false) => {
-                if let Some(txid) = &after_txid
-                    && !anchored(mempool.contains_txid(txid, &tip))?
-                {
-                    return Err(Error::UnknownAfterTxid);
+                if let Some(txid) = &after_txid {
+                    if !anchored(mempool.contains_txid(txid, &tip))? {
+                        return Err(Error::UnknownAfterTxid);
+                    }
+                    // Another address's pending transaction: nothing after it here, as a
+                    // confirmed cursor outside the history has nothing before it.
+                    if !anchored(mempool.addr_has_tx(&addr, txid, &tip))? {
+                        return Ok(ResolvedAddrTxs {
+                            guard: guard.into_inner(),
+                            mempool: Vec::new(),
+                            chain: None,
+                        });
+                    }
                 }
                 anchored(mempool.addr_txs(&addr, after_txid.as_ref(), limit, &tip))?
             }

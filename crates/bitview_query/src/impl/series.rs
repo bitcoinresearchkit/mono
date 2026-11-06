@@ -508,7 +508,17 @@ impl Query {
         match ri {
             RangeIndex::Int(i) => Ok((i, true)),
             RangeIndex::Date(date) => self.date_to_i64(date, index, read),
-            RangeIndex::Timestamp(ts) => self.timestamp_to_i64(ts, index, read),
+            RangeIndex::Timestamp(instant) => {
+                // A calendar bucket holds the instant's second; a block stamped in whole seconds is
+                // before it only if stamped before its next whole second.
+                let second = Timestamp::new(instant.as_second() as u32);
+                let block_bound = if instant.subsec_nanosecond() == 0 {
+                    second
+                } else {
+                    Timestamp::new(second.saturating_add(1))
+                };
+                self.timestamp_to_i64(second, block_bound, index, read)
+            }
         }
     }
 
@@ -521,12 +531,15 @@ impl Query {
         // A date before 1970 lies before every index's first row, like 1970 itself.
         let seconds = u32::try_from((i64::from(days) * 86_400).max(0))
             .map_err(|_| Error::InvalidParam(format!("date out of timestamp range: {date}")))?;
-        self.timestamp_to_i64(Timestamp::new(seconds), index, read)
+        let ts = Timestamp::new(seconds);
+        self.timestamp_to_i64(ts, ts, index, read)
     }
 
+    /// `ts` in a calendar index; `block_bound` (`ts` rounded up to a whole second) for a block's.
     fn timestamp_to_i64(
         &self,
         ts: Timestamp,
+        block_bound: Timestamp,
         index: Index,
         read: &SeriesRead,
     ) -> Result<(i64, bool)> {
@@ -555,7 +568,7 @@ impl Query {
             }
         };
         // Past the last block: the selected series' exclusive end.
-        Ok(match self.height_for_timestamp(ts, read)? {
+        Ok(match self.height_for_timestamp(block_bound, read)? {
             Some(height) => {
                 let height = Height::from(height);
                 (

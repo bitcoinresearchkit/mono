@@ -23,6 +23,8 @@ mod parse;
 mod pipeline;
 mod reader_inner;
 mod scan;
+#[cfg(test)]
+mod tests;
 mod xor_bytes;
 mod xor_index;
 

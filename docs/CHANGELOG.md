@@ -17,6 +17,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The mining statistics are tagged by the chain's tip: a revalidation answers 304 before building (`/blocks/*/all`'s
   304s took 31-46 ms; now under 1 ms)
 - `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
+- Static files (the showcases) go out in brotli at its best quality once a copy is made, in the background, for
+  each file: Studio's page 903 KB → 562 KB (the response layer compresses at its fastest, right for the API)
 
 ### Bug Fixes
 
@@ -43,6 +45,19 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The server's log tail (`/api/server/logs`) keeps at most 1,024 bytes of a line: a request's URI is whatever its
   client sent, and every read of the tail copies all of them
 - `GET /api/v1/mining/reward-stats/0` answers 400 from the path itself ("expected a nonzero usize")
+- `GET /api/v1/validate-address/{address}` answers as Bitcoin Core's `validateaddress` (mempool.space's source): a
+  public key's hex is no address (was `isvalid: true`); Core's errors and its fields per type (P2A, future witness
+  versions); Bech32 in lowercase; a checksum's single wrong character located (Core locates up to two)
+- `GET /api/series/bulk` takes names exactly, as the single-series routes (it lowercased them and read `-` as `_`)
+- A range bound's fraction of a second counts: a block stamped in whole seconds is before `…:05.5` when stamped at
+  `:05` or earlier (the fraction was dropped)
+- `GET /api/address/{address}/txs?after_txid=` with another address's pending transaction gives an empty page, as a
+  confirmed one outside the history does (it skipped to the newest confirmed)
+- The website names every file's type (CSS, WebAssembly, `application/octet-stream` otherwise), and a moved page's
+  redirect keeps the path's encoding (`/series/a%3Fb` no longer turns into a query)
+- The compact API summary (`/api.json`) keeps array and string bounds (`txId[]`'s 1 to 100)
+- The Rust client's mempool block, recent transaction, address mempool stats and status types have public fields
+- The JS client's JSDoc keeps multi-line descriptions inside their comments
 - The vintage and halving-epoch cohorts warn on every update once the chain is in their last listed period (they're
   kept one ahead: vintages to 2027, epochs to 5), and a block they miss logs an error instead of a debug build's panic
 

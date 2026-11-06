@@ -1,7 +1,7 @@
 # Historical prices
 
 `GET /api/v1/historical-price` returns completed four-hour BTC/USD closes,
-oldest first, labeled by interval end. A timestamp selects the latest nonempty
+newest first (as mempool.space), labeled by interval end. A timestamp selects the latest nonempty
 completed close at or before it. Closes start at the first priced interval
 (block 74,641, 2010-08-16): earlier unpriced intervals are skipped, and a
 timestamp before the first close returns an empty list. The current partial

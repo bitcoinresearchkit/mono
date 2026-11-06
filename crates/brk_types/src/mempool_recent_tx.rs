@@ -10,11 +10,11 @@ use crate::{Sats, Transaction, Txid, VSize};
 pub struct MempoolRecentTx {
     pub txid: Txid,
     /// Transaction fee (sats)
-    fee: Sats,
+    pub fee: Sats,
     /// Virtual size (vbytes)
-    vsize: VSize,
+    pub vsize: VSize,
     /// Total output value (sats)
-    value: Sats,
+    pub value: Sats,
 }
 
 impl From<(&Txid, &Transaction)> for MempoolRecentTx {

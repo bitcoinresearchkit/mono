@@ -25,14 +25,17 @@ static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new
 /// A file to serve, with the content type its name declares. Embedded content carries its hash
 /// (release only), computed once.
 pub(crate) struct File {
+    /// The file found (a folder's `index.html` for its address).
+    pub(crate) path: PathBuf,
     pub(crate) contents: Bytes,
     pub(crate) hash: Option<&'static str>,
-    pub(crate) content_type: Option<&'static str>,
+    pub(crate) content_type: &'static str,
 }
 
 impl File {
     fn fresh(contents: Vec<u8>, path: &Path) -> Self {
         Self {
+            path: path.to_owned(),
             contents: contents.into(),
             hash: None,
             content_type: content_type(path),
@@ -41,6 +44,7 @@ impl File {
 
     fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
         Self {
+            path: file.path().to_owned(),
             contents: Bytes::from_static(file.contents()),
             hash: (!cfg!(debug_assertions)).then(|| embedded_hash(file)),
             content_type: content_type(file.path()),
@@ -53,9 +57,11 @@ pub(crate) fn hash(contents: &[u8]) -> String {
     format!("{:016x}", rapidhash_v3(contents))
 }
 
-/// The content type a file's name declares, for the kinds the showcases use.
-fn content_type(path: &Path) -> Option<&'static str> {
-    Some(match path.extension()?.to_str()? {
+/// The content type a file's name declares: the kinds a site holds, bytes otherwise.
+fn content_type(path: &Path) -> &'static str {
+    match path.extension().and_then(|extension| extension.to_str()).unwrap_or_default() {
+        "css" => "text/css",
+        "wasm" => "application/wasm",
         "js" | "mjs" => "application/javascript",
         "json" => "application/json",
         "html" => "text/html",
@@ -69,8 +75,8 @@ fn content_type(path: &Path) -> Option<&'static str> {
         "svg" => "image/svg+xml",
         "ico" => "image/x-icon",
         "webmanifest" => "application/manifest+json",
-        _ => return None,
-    })
+        _ => "application/octet-stream",
+    }
 }
 
 /// Website configuration:

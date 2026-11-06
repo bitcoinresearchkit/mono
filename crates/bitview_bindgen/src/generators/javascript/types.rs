@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::{
     Ty, TypeSchemas,
-    generators::{MANUAL_GENERIC_TYPES, write_description},
+    generators::{MANUAL_GENERIC_TYPES, jsdoc_continued, write_description},
     is_rust_concrete_generic, rust_array_element_type,
 };
 
@@ -42,7 +42,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                     let prop_desc = prop_schema
                         .get("description")
                         .and_then(|d| d.as_str())
-                        .map(|d| format!(" - {}", d))
+                        .map(|d| format!(" - {}", jsdoc_continued(d, " *")))
                         .unwrap_or_default();
                     writeln!(
                         output,
@@ -55,7 +55,7 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
                 // JSDoc @property takes identifiers only: quote keys like `24h` in a type literal.
                 for (prop_name, prop_schema) in props {
                     if let Some(desc) = prop_schema.get("description").and_then(|d| d.as_str()) {
-                        writeln!(output, " * - `{}`: {}", prop_name, desc).unwrap();
+                        writeln!(output, " * - `{}`: {}", prop_name, jsdoc_continued(desc, " *")).unwrap();
                     }
                 }
                 let fields = props

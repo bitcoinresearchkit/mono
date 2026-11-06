@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt, mem};
+use std::{borrow::Cow, fmt};
 
 use derive_more::Deref;
 use schemars::JsonSchema;
@@ -9,7 +9,7 @@ use bitview_primitives::SeriesName;
 
 /// Comma-separated list of series names
 ///
-/// Deserialization permits at most 32 normalized names and 2,048 decoded input
+/// Deserialization permits at most 32 names, each exact, and 2,048 decoded input
 /// string bytes. For arrays, the byte budget is shared by their string values.
 #[derive(Clone, Debug, Deref, JsonSchema)]
 #[schemars(
@@ -94,38 +94,21 @@ impl fmt::Display for SeriesList {
     }
 }
 
+/// The names as given, each exact (as the single-series routes take one): split on commas only,
+/// empty ones skipped.
 fn sanitize<'a, S: Into<Cow<'a, str>>>(
     dirty: impl Iterator<Item = S>,
 ) -> Result<Vec<SeriesName>, &'static str> {
     let mut clean = Vec::new();
-    for s in dirty {
-        let s = s.into();
-        if s.bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
-        {
-            if !s.is_empty() {
-                if clean.len() == MAX_SERIES {
-                    return Err("At most 32 series may be requested");
-                }
-                clean.push(SeriesName::from(s.into_owned()));
-            }
+    for name in dirty {
+        let name = name.into();
+        if name.is_empty() {
             continue;
         }
-        let mut current = String::new();
-        // A final separator flushes the last name through the same bound check.
-        for c in s.to_lowercase().chars().chain([' ']) {
-            match c {
-                ' ' | ',' | '+' if !current.is_empty() => {
-                    if clean.len() == MAX_SERIES {
-                        return Err("At most 32 series may be requested");
-                    }
-                    clean.push(SeriesName::from(mem::take(&mut current)));
-                }
-                '-' => current.push('_'),
-                c if c.is_alphanumeric() || c == '_' => current.push(c),
-                _ => {}
-            }
+        if clean.len() == MAX_SERIES {
+            return Err("At most 32 series may be requested");
         }
+        clean.push(SeriesName::from(name.into_owned()));
     }
     Ok(clean)
 }

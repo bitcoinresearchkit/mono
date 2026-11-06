@@ -11361,7 +11361,7 @@
               ]
             },
             "SeriesList": {
-              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 normalized names and 2,048 decoded input\nstring bytes. For arrays, the byte budget is shared by their string values.",
+              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. For arrays, the byte budget is shared by their string values.",
               "type": "string",
               "examples": [
                 "date,price_close",

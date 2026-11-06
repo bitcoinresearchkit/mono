@@ -9,7 +9,7 @@ use axum::{
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
-    Error, Website,
+    Error, Website, brotli_copies,
     website::{File, hash},
 };
 
@@ -22,16 +22,17 @@ pub async fn file_handler(
     uri: Uri,
     ExtractPath(path): ExtractPath<String>,
 ) -> Result<Response<Body>, Error> {
-    if let Some(to) = moved(&path, uri.query()) {
+    if let Some(to) = moved(uri.path(), uri.query()) {
         return Ok(Redirect::permanent(&to).into_response());
     }
     serve(website, path, headers).await
 }
 
 /// Where a request under a moved page's old folder goes now: the same place under the new one, its query kept.
+/// From the path as sent (still percent-encoded), so what it encodes stays encoded in `Location`.
 pub(crate) fn moved(path: &str, query: Option<&str>) -> Option<String> {
-    let path = sanitize(path);
-    let (folder, rest) = path.split_once('/').unwrap_or((&path, ""));
+    let path = path.trim_start_matches('/');
+    let (folder, rest) = path.split_once('/').unwrap_or((path, ""));
     let (_, to) = MOVED.iter().find(|(from, _)| *from == folder)?;
     let query = query.map(|query| format!("?{query}")).unwrap_or_default();
     Some(format!("/{to}/{rest}{query}"))
@@ -78,6 +79,7 @@ fn respond(
 ) -> Result<Response<Body>, Error> {
     let path = sanitize(path);
     let File {
+        path: file,
         contents,
         hash: file_hash,
         content_type,
@@ -91,10 +93,13 @@ fn respond(
         insert_caching(response.headers_mut(), etag);
         return Ok(response);
     }
-    let mut response = Response::new(Body::from(contents));
+    let copy = brotli_copies::copy(&file, &contents, content_type, request_headers);
+    let brotli = copy.is_some();
+    let mut response = Response::new(Body::from(copy.unwrap_or(contents)));
     let headers = response.headers_mut();
-    if let Some(content_type) = content_type {
-        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+    if brotli {
+        headers.insert(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
     }
     insert_caching(headers, etag);
 
