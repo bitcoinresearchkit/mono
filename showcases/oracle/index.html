@@ -344,7 +344,7 @@
         justify-content: space-between;
         gap: 8px 24px;
         padding: 10px 0 max(16px, env(safe-area-inset-bottom));
-        color: var(--faint);
+        color: var(--soft);
         font-size: 12px;
       }
 
@@ -374,15 +374,14 @@
         display: inline-flex;
         flex: none;
         align-items: center;
-
-        b {
-          font-weight: inherit;
-        }
-
         gap: 8px;
         color: var(--soft);
         text-decoration: none;
         white-space: nowrap;
+
+        b {
+          font-weight: inherit;
+        }
 
         &:hover {
           color: var(--ink);
@@ -408,13 +407,20 @@
         }
       }
 
+      /* (A phone's foot: the key kept, its words wrapped over the way down to how it's read.) */
       @media (max-width: 640px) {
-        .legend {
-          display: none;
+        .foot {
+          flex-direction: column;
+          justify-content: center;
+          gap: 10px;
         }
 
-        .foot {
-          justify-content: center;
+        .legend {
+          max-width: 44ch;
+
+          > span:last-child {
+            white-space: normal;
+          }
         }
       }
 
@@ -657,16 +663,16 @@
       .plate {
         position: relative;
         height: clamp(260px, 36vh, 340px);
+        cursor: grab;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
 
         /* A block being read: the one before stays, dimmed, until it's here. */
         &[aria-busy="true"] svg {
           opacity: 0.5;
           transition: opacity 0.2s;
         }
-        cursor: grab;
-        touch-action: pan-y;
-        user-select: none;
-        -webkit-user-select: none;
 
         &.dragging {
           cursor: grabbing;
@@ -810,15 +816,14 @@
       /* (The instrument's key: each mark as it's drawn, then what it is.) */
       .key {
         display: grid;
+        gap: 6px;
+        padding: 0;
+        list-style: none;
 
         /* (Its own marks: not the instrument's (an SVG's .window is faint by opacity).) */
         i {
           opacity: 1;
         }
-
-        gap: 6px;
-        padding: 0;
-        list-style: none;
 
         li {
           display: grid;
@@ -1068,12 +1073,12 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1px;
         margin: 32px 0 0;
+        border: 1px solid var(--line);
+        background: var(--line);
 
         @media (min-width: 900px) {
           grid-template-columns: repeat(4, minmax(0, 1fr));
         }
-        border: 1px solid var(--line);
-        background: var(--line);
 
         div {
           padding: 16px;
