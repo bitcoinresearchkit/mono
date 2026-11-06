@@ -32,7 +32,12 @@ impl PendingView {
 
     /// Whether `txid`, pooled, is still pending as the reader sees it.
     pub(crate) fn pending(&self, txid: &Txid) -> bool {
-        self.settled.is_empty() || !self.settled.contains(&TxKey::from(txid))
+        self.pending_key(&TxKey::from(txid))
+    }
+
+    /// [`Self::pending`] by the transaction's key.
+    pub(crate) fn pending_key(&self, key: &TxKey) -> bool {
+        self.settled.is_empty() || !self.settled.contains(key)
     }
 }
 

@@ -1,12 +1,14 @@
-use std::{cmp::Reverse, collections::BinaryHeap};
-
 use brk_error::{Error, Result};
 use brk_types::{
     AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout,
 };
 use rapidhash::RapidHashSet;
 
-use crate::{PendingView, PublishedTx, ReadOnlyState, key::TxKey};
+use crate::{
+    PendingView, PublishedTx, ReadOnlyState,
+    state::Pool,
+    stores::addr_tracker::{AddrEntry, AddrTx},
+};
 
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
@@ -21,20 +23,33 @@ pub struct PendingUtxos {
 }
 
 impl ReadOnlyState {
+    /// `addr`'s entry, none without pending transactions: `StateUpdating` while one paying it is
+    /// still resolving (its view isn't complete yet), unless a newer block settled it.
+    fn addr_entry<'a>(
+        state: &'a Pool,
+        addr: &AddressBytes,
+        view: &PendingView,
+    ) -> Result<Option<&'a AddrEntry>> {
+        if state.addrs.awaited(addr).any(|key| view.pending_key(key)) {
+            return Err(Error::StateUpdating);
+        }
+        Ok(state.addrs.get(addr))
+    }
+
     /// The address's pending statistics.
     pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
         let state = self.pool()?.at(view.tip())?;
-        let Some(entry) = state.addrs.get(addr) else {
+        let Some(entry) = Self::addr_entry(state, addr, view)? else {
             return Ok(AddressMempoolStats::default());
         };
-        if view.settles_nothing() || entry.txids.iter().all(|txid| view.pending(txid)) {
+        if view.settles_nothing() || entry.txs.iter().all(|tx| view.pending_key(&tx.key)) {
             return Ok(entry.stats.clone());
         }
         // Folded again without what the newer blocks settled.
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
         let mut stats = AddressMempoolStats::default();
-        for txid in entry.txids.iter().filter(|txid| view.pending(txid)) {
-            let Some(record) = state.txs.record(txid) else {
+        for tx in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
+            let Some(record) = state.txs.record_by_key(&tx.key) else {
                 continue;
             };
             for prevout in record.tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
@@ -54,15 +69,15 @@ impl ReadOnlyState {
     pub fn addr_pending_utxos(&self, addr: &AddressBytes, view: &PendingView) -> Result<PendingUtxos> {
         let state = self.pool()?.at(view.tip())?;
         let mut pending = PendingUtxos::default();
-        let Some(entry) = state.addrs.get(addr) else {
+        let Some(entry) = Self::addr_entry(state, addr, view)? else {
             return Ok(pending);
         };
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
-        for txid in entry.txids.iter().filter(|txid| view.pending(txid)) {
-            let Some(record) = state.txs.record(txid) else {
+        for at in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
+            let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };
-            pending.token ^= *TxKey::from(txid);
+            pending.token ^= *at.key;
             let tx = &record.tx;
             for txin in &tx.input {
                 if txin.prevout.as_ref().is_some_and(pays) {
@@ -99,18 +114,19 @@ impl ReadOnlyState {
         if view.pending(txid) && state.addrs.is_waiting(txid) {
             return Err(Error::StateUpdating);
         }
-        Ok(view.pending(txid)
-            && state
-                .addrs
-                .get(addr)
-                .is_some_and(|entry| entry.txids.contains(txid)))
+        let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
+            return Ok(false);
+        };
+        Ok(Self::addr_entry(state, addr, view)?
+            .is_some_and(|entry| entry.txs.contains(&AddrTx::from(record))))
     }
 
-    /// Pending txs touching `addr`, newest first by `first_seen`, after the
-    /// `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
-    /// that isn't one of the address's transactions has none after it. Shares immutable
-    /// bodies from one completed publication; later prevout fills use copy-on-write and
-    /// cannot mutate this selection.
+    /// Pending txs touching `addr`, newest first by `first_seen` (ties by txid prefix, then key),
+    /// after the `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
+    /// that isn't one of the address's transactions has none after it. O(log n + the page) in
+    /// the address's pending transactions (more past the chain's newer blocks: those settled are
+    /// skipped). Shares immutable bodies from one completed publication; later prevout fills use
+    /// copy-on-write and cannot mutate this selection.
     pub fn addr_txs(
         &self,
         addr: &AddressBytes,
@@ -119,50 +135,24 @@ impl ReadOnlyState {
         view: &PendingView,
     ) -> Result<Vec<PublishedTx>> {
         let state = self.pool()?.at(view.tip())?;
-        let Some(entry) = state.addrs.get(addr) else {
+        let Some(entry) = Self::addr_entry(state, addr, view)? else {
             return Ok(Vec::new());
         };
-        if limit == 0 {
-            return Ok(Vec::new());
-        }
-        // Page order: the smallest timestamp is at the heap root; the txid prefix breaks
-        // equal-time ties deterministically.
-        let order = |txid: &Txid, first_seen| {
-            Reverse((first_seen, TxidPrefix::from(txid), TxKey::from(txid)))
-        };
-        let after = match after {
+        let cursor = match after {
             None => None,
-            Some(txid) => match (entry.txids.contains(txid) && view.pending(txid))
-                .then(|| state.txs.record(txid))
-            {
-                Some(Some(record)) => Some(order(txid, record.entry.first_seen)),
-                _ => return Ok(Vec::new()),
+            Some(txid) => match state.txs.record(txid).filter(|_| view.pending(txid)) {
+                Some(record) => Some(AddrTx::from(record)),
+                None => return Ok(Vec::new()),
             },
         };
-        // Retain only the requested page.
-        let mut newest = BinaryHeap::with_capacity(limit.min(entry.txids.len()));
-        for txid in entry.txids.iter().filter(|txid| view.pending(txid)) {
-            let Some(record) = state.txs.record(txid) else {
-                continue;
-            };
-            let candidate = order(txid, record.entry.first_seen);
-            if after.as_ref().is_some_and(|after| candidate <= *after) {
-                continue;
-            }
-            if newest.len() < limit {
-                newest.push(candidate);
-            } else if let Some(mut oldest) = newest.peek_mut()
-                && candidate < *oldest
-            {
-                *oldest = candidate;
-            }
-        }
-        let transactions = newest
-            .into_sorted_vec()
-            .into_iter()
-            .filter_map(|Reverse((_, _, key))| state.txs.record_by_key(&key))
+        let Some(newest) = entry.txs.newest_before(cursor.as_ref()) else {
+            return Ok(Vec::new());
+        };
+        Ok(newest
+            .filter(|tx| view.pending_key(&tx.key))
+            .filter_map(|tx| state.txs.record_by_key(&tx.key))
+            .take(limit)
             .map(PublishedTx::from_record)
-            .collect();
-        Ok(transactions)
+            .collect())
     }
 }

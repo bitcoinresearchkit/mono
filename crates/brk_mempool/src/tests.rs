@@ -585,9 +585,12 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let c = raw(confirmed(81), 700);
     let d = raw(bitcoin::OutPoint::new(c.compute_txid(), 0), 300);
     let u = raw(confirmed(82), 200);
-    // Its prevout resolves late; its child's (h's output) at once.
-    let h = raw(confirmed(83), 50);
-    let hc = raw(bitcoin::OutPoint::new(h.compute_txid(), 0), 25);
+    // Its prevout resolves late; its child's (h's output) at once. Both pay another address.
+    let other_script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([8; 20]));
+    let mut h = raw(confirmed(83), 50);
+    h.output[0].script_pubkey = other_script.clone();
+    let mut hc = raw(bitcoin::OutPoint::new(h.compute_txid(), 0), 25);
+    hc.output[0].script_pubkey = other_script.clone();
     let txs = [&m, &k, &c, &d, &u, &h, &hc];
     let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
     let mut state = State::default();
@@ -642,13 +645,18 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
         read.addr_has_tx(&addr, &id(&hc), &at).is_err(),
         "what it touches isn't known yet"
     );
+    let other = TxOut::from((other_script.clone(), Sats::ZERO)).addr_bytes().unwrap();
+    assert!(
+        read.addr_stats(&other, &at).is_err(),
+        "an address a resolving transaction pays isn't complete yet"
+    );
 
     // Past the pool's tip: a block mined m and spent c's input in another transaction.
-    let other = id(&raw(confirmed(81), 1));
+    let conflict = id(&raw(confirmed(81), 1));
     let to_spend = |outpoint: bitcoin::OutPoint| (Txid::from(outpoint.txid), Vout::from(0usize));
     let reader = BlockHash::from(bitcoin::BlockHash::from_byte_array([2; 32]));
     let spends = || -> brk_error::Result<_> {
-        Ok([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), other)])
+        Ok([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), conflict)])
     };
     let behind = read.view_behind(reader, spends).unwrap();
     let again = read
@@ -684,10 +692,28 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
         holes.iter().map(|&hole| (hole, funding.clone())).collect::<RapidHashMap<_, _>>()
     });
     let read = publish(&state, &read);
-    let stats = read.addr_stats(&addr, &read.view_at(&tip).unwrap()).unwrap();
-    assert_eq!(stats.tx_count, 7, "h, then hc behind it");
-    assert_eq!(u64::from(stats.funded_txo_sum), 2_800 + 50 + 25);
-    assert_eq!(u64::from(stats.spent_txo_sum), 4 * 5_000 + 1_000 + 700 + 50);
+    let at = read.view_at(&tip).unwrap();
+    let stats = read.addr_stats(&addr, &at).unwrap();
+    assert_eq!(stats.tx_count, 6, "h spends one of its outputs");
+    assert_eq!(u64::from(stats.spent_txo_sum), 4 * 5_000 + 1_000 + 700);
+    let stats = read.addr_stats(&other, &at).unwrap();
+    assert_eq!(stats.tx_count, 2, "h, then hc behind it");
+    assert_eq!(u64::from(stats.funded_txo_sum), 50 + 25);
+    assert_eq!(u64::from(stats.spent_txo_sum), 50);
+    // Pages: newest first, a cursor continuing after itself, ending past the oldest.
+    let page = |after: Option<&Txid>, limit| -> Vec<Txid> {
+        read.addr_txs(&addr, after, limit, &at)
+            .unwrap()
+            .iter()
+            .map(|published| published.tx.txid)
+            .collect()
+    };
+    let all = page(None, 10);
+    assert_eq!(all.len(), 6);
+    let (first, second) = (page(None, 2), page(Some(&all[1]), 10));
+    assert_eq!(first, all[..2]);
+    assert_eq!(second, all[2..]);
+    assert!(page(Some(&all[5]), 10).is_empty());
 }
 
 /// After a reorg: what a dropped block mined reads vanished, or replaced by a conflict the new
@@ -972,6 +998,48 @@ fn unseen_confirmed_replacers_root_their_trees() {
     let trees = read.recent_rbf_trees(false, &tip).unwrap();
     assert_eq!(trees.len(), 1, "one tree, rooted at the conflict");
     assert_eq!(trees[0].txid, conflict);
+}
+
+/// An address's transactions in page order, past the inline vector's spill and back: inserts and
+/// removals in any order keep it sorted, and pages read newest first before a cursor.
+#[test]
+fn address_transactions_keep_page_order() {
+    use crate::stores::addr_tracker::{AddrEntry, AddrTx};
+    use brk_types::TxidPrefix;
+    let tx = |seed: u32| AddrTx {
+        first_seen: Timestamp::from((seed % 7) as usize),
+        prefix: TxidPrefix::from(&txid((seed % 251) as u8)),
+        key: crate::key::TxKey::from(&txid((seed % 251) as u8)),
+    };
+    let mut entry = AddrEntry::default();
+    let mut model: Vec<AddrTx> = Vec::new();
+    let mut state = 0x1234_5678u64;
+    let mut next = |bound: u64| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state % bound
+    };
+    for _ in 0..5_000 {
+        let candidate = tx(next(120) as u32);
+        if next(3) == 0 {
+            entry.txs.remove(&candidate);
+            model.retain(|t| *t != candidate);
+        } else {
+            entry.txs.insert(candidate);
+            if !model.contains(&candidate) {
+                model.push(candidate);
+            }
+        }
+        model.sort_unstable();
+        assert_eq!(entry.txs.len(), model.len());
+        assert!(entry.txs.iter().copied().eq(model.iter().copied()));
+        if let Some(cursor) = model.get(model.len() / 2) {
+            let before: Vec<AddrTx> = entry.txs.newest_before(Some(cursor)).unwrap().copied().collect();
+            let expected: Vec<AddrTx> = model.iter().filter(|t| *t < cursor).rev().copied().collect();
+            assert_eq!(before, expected);
+        }
+    }
 }
 
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {

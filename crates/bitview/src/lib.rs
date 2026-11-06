@@ -153,7 +153,20 @@ where
     let template = mempool.read_only_clone();
     #[cfg(feature = "price")]
     let published = {
-        let resolver = query.sync(|q| q.indexer_prevout_resolver());
+        // The indexer first; what it can't give (a parent above its tip, or a script it reads
+        // from a block file that won't read), Core's UTXO set.
+        let indexer = query.sync(|q| q.indexer_prevout_resolver());
+        let node = brk_mempool::rpc_resolver(client.clone());
+        let resolver = move |holes: &[_]| {
+            let mut resolved = indexer(holes);
+            let rest: Vec<_> = holes
+                .iter()
+                .filter(|hole| !resolved.contains_key(*hole))
+                .copied()
+                .collect();
+            resolved.extend(node(&rest));
+            resolved
+        };
         let chain = query.sync(bitview_query::Query::clone);
         let published = mempool.chain_waker();
         thread::spawn(move || {

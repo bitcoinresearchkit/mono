@@ -33,7 +33,7 @@ pub use json::JsonBody;
 pub use read_only::ReadOnlyMempool;
 use snapshot::Snapshot;
 pub use state::ReadOnlyState;
-pub use steps::TxRemoval;
+pub use steps::{TxRemoval, prevouts::rpc_resolver};
 
 use snapshot::Rebuilder;
 use state::State;

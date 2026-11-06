@@ -45,7 +45,7 @@ impl State {
             if !tx.is_resolved() || tx.input.iter().any(|i| self.addrs.is_waiting(&i.txid)) {
                 continue;
             }
-            self.addrs.fold(tx);
+            self.addrs.fold(record);
             next.extend(self.pooled_children(tx));
         }
     }
@@ -65,7 +65,7 @@ impl State {
             let Some(record) = self.txs.record(&child) else {
                 continue;
             };
-            self.addrs.unfold(&record.tx);
+            self.addrs.unfold(record);
             next.extend(self.pooled_children(&record.tx));
         }
     }
@@ -82,7 +82,7 @@ impl State {
             {
                 continue;
             }
-            self.addrs.unfold(&record.tx);
+            self.addrs.unfold(record);
             self.hold_descendants(txid);
         }
     }
