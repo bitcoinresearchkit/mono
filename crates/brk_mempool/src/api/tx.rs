@@ -5,7 +5,7 @@ use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vou
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
-    PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
+    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
@@ -50,70 +50,73 @@ impl ReadOnlyState {
         }))
     }
 
-    /// Spend status for a live mempool transaction's output, or `None` when
-    /// the parent is not in the mempool. Parent presence, output bounds, and
-    /// the spender are resolved from one publication.
+    /// Spend status for a pending transaction's output, or `None` when the parent isn't pending
+    /// in `view`. Parent presence, output bounds, and the spender are resolved from one
+    /// publication.
     pub fn outspend_if_present(
         &self,
         txid: &Txid,
         vout: Vout,
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<Option<TxOutspend>> {
         // Spends are known from inputs' outpoints: no prevout needs resolving.
-        let state = self.pool()?.at(tip)?;
-        let Some(transaction) = state.txs.get(txid) else {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(transaction) = state.txs.get(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         if usize::from(vout) >= transaction.output.len() {
             return Ok(Some(TxOutspend::UNSPENT));
         }
-        Ok(Some(Self::outspend_for(state, txid, vout)))
+        Ok(Some(Self::outspend_for(state, txid, vout, view)))
     }
 
-    /// Current mempool spend status for an output whose parent may be
-    /// confirmed. The spender's full input list is checked to rule out key
-    /// collisions.
-    pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
-        let state = self.pool()?.at(tip)?;
-        Ok(Self::outspend_for(state, txid, vout))
+    /// Pending spend status for an output whose parent may be confirmed. The spender's full
+    /// input list is checked to rule out key collisions.
+    pub fn outspend(&self, txid: &Txid, vout: Vout, view: &PendingView) -> Result<TxOutspend> {
+        let state = self.pool()?.at(view.tip())?;
+        Ok(Self::outspend_for(state, txid, vout, view))
     }
 
-    /// Spend statuses for every output of a live mempool transaction, or
-    /// `None` when the parent is not in the mempool. The complete array is
-    /// resolved from one publication.
+    /// Spend statuses for every output of a pending transaction, or `None` when the parent
+    /// isn't pending in `view`. The complete array is resolved from one publication.
     pub fn outspends_if_present(
         &self,
         txid: &Txid,
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<Option<Vec<TxOutspend>>> {
-        let state = self.pool()?.at(tip)?;
-        let Some(transaction) = state.txs.get(txid) else {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(transaction) = state.txs.get(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         let mut outspends = vec![TxOutspend::UNSPENT; transaction.output.len()];
-        Self::overlay_outspends(state, txid, &mut outspends);
+        Self::overlay_outspends(state, txid, &mut outspends, view);
         Ok(Some(outspends))
     }
 
-    /// Overlay mempool spends onto unresolved outputs of a confirmed parent.
+    /// Overlay pending spends onto unresolved outputs of a confirmed parent.
     /// Returns immediately when every output is already confirmed spent.
     /// The complete overlay uses the acquired publication.
     pub fn merge_outspends(
         &self,
         txid: &Txid,
         outspends: &mut [TxOutspend],
-        tip: &BlockHash,
+        view: &PendingView,
     ) -> Result<()> {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        let state = self.pool()?.at(tip)?;
-        Self::overlay_outspends(state, txid, outspends);
+        let state = self.pool()?.at(view.tip())?;
+        Self::overlay_outspends(state, txid, outspends, view);
         Ok(())
     }
 
-    fn outspend_for(state: &Pool, txid: &Txid, vout: Vout) -> TxOutspend {
-        let Some((spender, vin)) = state.outpoint_spends.spender(&state.txs, txid, vout) else {
+    /// A spender the newer blocks settled (`view`) spends nothing any more.
+    fn outspend_for(state: &Pool, txid: &Txid, vout: Vout, view: &PendingView) -> TxOutspend {
+        let Some((spender, vin)) = state
+            .outpoint_spends
+            .spender(&state.txs, txid, vout)
+            .filter(|(spender, _)| view.pending(&spender.entry.txid))
+        else {
             return TxOutspend::UNSPENT;
         };
         TxOutspend {
@@ -126,7 +129,12 @@ impl ReadOnlyState {
 
     /// Resolve a spender's inputs once for the whole parent, retaining exact
     /// outpoint validation and never replacing a confirmed spend.
-    fn overlay_outspends(state: &Pool, txid: &Txid, outspends: &mut [TxOutspend]) {
+    fn overlay_outspends(
+        state: &Pool,
+        txid: &Txid,
+        outspends: &mut [TxOutspend],
+        view: &PendingView,
+    ) {
         let parent = TxKey::from(txid);
         let mut scanned = FxHashSet::default();
         for index in 0..outspends.len() {
@@ -140,7 +148,11 @@ impl ReadOnlyState {
             if !scanned.insert(spender_key) {
                 continue;
             }
-            let Some(spender) = state.txs.record_by_key(&spender_key) else {
+            let Some(spender) = state
+                .txs
+                .record_by_key(&spender_key)
+                .filter(|spender| view.pending(&spender.entry.txid))
+            else {
                 continue;
             };
             for (vin, input) in spender.tx.input.iter().enumerate() {

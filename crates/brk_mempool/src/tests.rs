@@ -180,8 +180,9 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
 }
 
 /// What block 0 leaves of a component packs as the clusters it now forms (a miss of one piece
-/// defers that piece alone), and equal feerates go as Core 31's chunk index orders them: the
-/// chunk whose greatest txid is lower first.
+/// defers that piece alone), equal feerates go as Core 31's chunk index orders them (the chunk
+/// whose greatest txid is lower first), and what Core's block builder would never take waits in
+/// the catch-all.
 #[test]
 fn projected_blocks_split_leftovers_and_order_ties() {
     let tx = |seed: u8, fee: u64, weight: u64, parents: &[usize]| SnapTx {
@@ -226,6 +227,17 @@ fn projected_blocks_split_leftovers_and_order_ties() {
     // Equal feerates: the lower greatest txid first, whatever the push order.
     let txs = with_children(vec![tx(9, 1_000, 400, &[]), tx(5, 1_000, 400, &[])]);
     assert_eq!(packed(&txs, &[false, false]), [vec![1, 0]]);
+    // Below Core's block floor (an operator's negative delta): never packed, in the catch-all.
+    let mut txs = with_children(vec![tx(6, 1_000, 400, &[]), tx(7, 1_000, 400, &[])]);
+    txs[1].modified = -500;
+    let projection = partition(&txs, &chunks(&txs), &[false, false], 7);
+    assert!(projection.overflow);
+    let blocks: Vec<Vec<usize>> = projection
+        .blocks
+        .iter()
+        .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect())
+        .collect();
+    assert_eq!(blocks, [vec![0], vec![1]]);
 }
 
 /// Core's budgets are strict: a block holds transactions up to 3,991,999 WU and 79,599 sigops; the
@@ -634,9 +646,17 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     // Past the pool's tip: a block mined m and spent c's input in another transaction.
     let other = id(&raw(confirmed(81), 1));
     let to_spend = |outpoint: bitcoin::OutPoint| (Txid::from(outpoint.txid), Vout::from(0usize));
-    let behind = read
-        .view_behind([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), other)])
+    let reader = BlockHash::from(bitcoin::BlockHash::from_byte_array([2; 32]));
+    let spends = || -> brk_error::Result<_> {
+        Ok([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), other)])
+    };
+    let behind = read.view_behind(reader, spends).unwrap();
+    let again = read
+        .view_behind(reader, || -> brk_error::Result<[_; 0]> {
+            panic!("read once for the moment")
+        })
         .unwrap();
+    assert!(Arc::ptr_eq(&again, &behind), "one view for every read of that moment");
     let stats = read.addr_stats(&addr, &behind).unwrap();
     assert_eq!(stats.tx_count, 2, "k and u");
     assert_eq!(u64::from(stats.funded_txo_sum), 800);

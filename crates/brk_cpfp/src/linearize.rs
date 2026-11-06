@@ -12,13 +12,15 @@
 //!
 //! Larger components (a block's, or a mempool's under an older node's or a raised limit) take the
 //! best remaining ancestor set instead (ties: the larger set, then the earlier transaction), then
-//! chunk that order: a group paying more than the chunk before it merges into it. Ancestor sets
-//! are immutable bitsets, one row per transaction in a single flat buffer; taking a set subtracts
-//! its fee and size from every remaining candidate that contains its members, O(n²) work and n²/8
-//! bytes. Beyond [`ANCESTOR_MAX`] members (2 MiB of rows) that would let one component stall a
-//! rebuild or exhaust memory, so the component's own topological order is chunked: O(n), optimal
-//! for a chain (a block-filling one's shape), a fair order for the wide shallow ones a crafted
-//! mempool cluster can take.
+//! Core's PostLinearize over that order (two passes, never worse: connected chunks, optimal for
+//! trees either way up), chunked: a transaction paying more than the chunk before it merges into
+//! it. Ancestor sets are immutable bitsets, one row per transaction in a single flat buffer;
+//! taking a set subtracts its fee and size from every remaining candidate that contains its
+//! members, O(n²) work; with the descendant rows and the passes' group sets, about n²/2 bytes.
+//! Beyond [`ANCESTOR_MAX`] members (8 MiB of rows) that would let one component stall a rebuild or
+//! exhaust memory, so the component's own topological order is chunked: O(n), optimal for a chain
+//! (a block-filling one's shape), a fair order for the wide shallow ones a crafted mempool cluster
+//! can take.
 //!
 //! Sizes are the caller's weights (sigop-adjusted for the mempool, as Core 31 linearizes) and fees
 //! the ranked ones (Core's modified fees, signed: an operator's delta can make one negative):
@@ -31,8 +33,8 @@ use std::cmp::Ordering;
 use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
 
 /// A ranked fee's published rate over `weight`: zero for one at or below zero.
-fn published_rate(fee: i64, weight: Weight) -> FeeRate {
-    FeeRate::from((Sats::from(u64::try_from(fee).unwrap_or(0)), weight))
+fn published_rate(fee: impl Into<i128>, weight: Weight) -> FeeRate {
+    FeeRate::from((Sats::from(u64::try_from(fee.into()).unwrap_or(0)), weight))
 }
 
 use crate::cluster::Node;
@@ -51,6 +53,9 @@ pub(crate) struct Scratch {
     flow: Flow,
     /// Row `i` (`ceil(n / 64)` words) is transaction `i`'s ancestor set, itself included.
     ancestors: Vec<u64>,
+    /// Row `i`: transaction `i`'s descendants, itself included.
+    descendants: Vec<u64>,
+    post: Post,
     /// Each candidate's remaining ancestor set totals.
     sets: Vec<Totals>,
     remaining: Vec<bool>,
@@ -65,17 +70,18 @@ struct Totals {
     count: usize,
 }
 
-/// A chunk: `order[previous end..end]`, with its summed fee and size.
+/// A chunk: `order[previous end..end]`, with its summed fee (wide: past 4,096 members the
+/// fees can sum past 64 bits) and size.
 struct Chunk {
     end: usize,
-    fee: i64,
+    fee: i128,
     weight: Weight,
 }
 
 /// `a`'s feerate against `b`'s, exactly: fee_a / weight_a vs fee_b / weight_b (weights positive).
-fn compare_rates(a: (i64, Weight), b: (i64, Weight)) -> Ordering {
-    let (fee_a, weight_a) = (i128::from(a.0), i128::from(u64::from(a.1)));
-    let (fee_b, weight_b) = (i128::from(b.0), i128::from(u64::from(b.1)));
+fn compare_rates(a: (impl Into<i128>, Weight), b: (impl Into<i128>, Weight)) -> Ordering {
+    let (fee_a, weight_a) = (a.0.into(), i128::from(u64::from(a.1)));
+    let (fee_b, weight_b) = (b.0.into(), i128::from(u64::from(b.1)));
     (fee_a * weight_b).cmp(&(fee_b * weight_a))
 }
 
@@ -97,12 +103,45 @@ fn members(row: &[u64]) -> impl Iterator<Item = usize> + '_ {
     })
 }
 
-fn ancestor_sets(
+/// The best remaining ancestor sets, then Core's PostLinearize over that order, chunked.
+pub(crate) fn ancestor_sets(
     nodes: &[Node],
     parents: &[CpfpClusterTxIndex],
     scratch: &mut Scratch,
     emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
 ) {
+    greedy(nodes, parents, scratch);
+    let words = nodes.len().div_ceil(64);
+    let Scratch {
+        ancestors,
+        descendants,
+        post,
+        order,
+        chunks,
+        ..
+    } = scratch;
+    // Each transaction's descendants, itself included: the ancestor rows transposed.
+    descendants.clear();
+    descendants.resize(ancestors.len(), 0);
+    for index in 0..nodes.len() {
+        for ancestor in members(&ancestors[index * words..][..words]) {
+            descendants[ancestor * words + index / 64] |= 1u64 << (index % 64);
+        }
+    }
+    // Back to front over descendants, then front to back over ancestors, as Core.
+    post.pass(nodes, descendants, words, order, true);
+    post.pass(nodes, ancestors, words, order, false);
+    chunks.clear();
+    for (end, &index) in order.iter().enumerate() {
+        let node = &nodes[u32::from(index) as usize];
+        push_group(chunks, end + 1, node.modified, node.weight);
+    }
+    emit_chunks(order, chunks, emit);
+}
+
+/// The best remaining ancestor set, repeatedly (ties: the larger set, then the earlier
+/// transaction), into `scratch.order`.
+fn greedy(nodes: &[Node], parents: &[CpfpClusterTxIndex], scratch: &mut Scratch) {
     let n = nodes.len();
     let words = n.div_ceil(64);
     let Scratch {
@@ -110,7 +149,6 @@ fn ancestor_sets(
         sets,
         remaining,
         order,
-        chunks,
         ..
     } = scratch;
     ancestors.clear();
@@ -119,7 +157,6 @@ fn ancestor_sets(
     remaining.clear();
     remaining.resize(n, true);
     order.clear();
-    chunks.clear();
 
     for (index, node) in nodes.iter().enumerate() {
         let (earlier, row) = ancestors.split_at_mut(index * words);
@@ -187,15 +224,123 @@ fn ancestor_sets(
                 }
             }
         }
-
-        push_group(
-            chunks,
-            order.len(),
-            sets[selected].fee,
-            sets[selected].weight,
-        );
     }
-    emit_chunks(order, chunks, emit);
+}
+
+/// No previous transaction in a group: its first.
+const NO_PREVIOUS: usize = usize::MAX;
+
+/// Core's PostLinearize state (`cluster_linearize.h`), entry 0 the list's sentinel: groups in a
+/// list, each a run of the order, linked from its last transaction back to its first.
+#[derive(Default)]
+pub(crate) struct Post {
+    previous_tx: Vec<usize>,
+    first_tx: Vec<usize>,
+    previous_group: Vec<usize>,
+    fee: Vec<i64>,
+    weight: Vec<u64>,
+    /// Each group's members and what it depends on (rows of `words`).
+    members: Vec<u64>,
+    deps: Vec<u64>,
+}
+
+impl Post {
+    /// One pass over `order` (`rev`: back to front, parents and children swapped, feerates
+    /// negated): each transaction joins the list as its own group, then moves ahead of every
+    /// lower-feerate group before it, merging with one it depends on and swapping past one it
+    /// doesn't. The order it leaves is never worse; one pass makes chunks connected, a back to
+    /// front one is optimal when each transaction has at most one parent, a front to back one
+    /// when each has at most one child.
+    fn pass(
+        &mut self,
+        nodes: &[Node],
+        deps: &[u64],
+        words: usize,
+        order: &mut [CpfpClusterTxIndex],
+        rev: bool,
+    ) {
+        let n = order.len();
+        self.previous_tx.clear();
+        self.previous_tx.resize(n + 1, NO_PREVIOUS);
+        self.first_tx.clear();
+        self.first_tx.resize(n + 1, 0);
+        self.previous_group.clear();
+        self.previous_group.resize(n + 1, 0);
+        // The sentinel pays nothing over nothing: no group is ever above it.
+        self.fee.clear();
+        self.fee.resize(n + 1, 0);
+        self.weight.clear();
+        self.weight.resize(n + 1, 0);
+        self.members.clear();
+        self.members.resize((n + 1) * words, 0);
+        self.deps.clear();
+        self.deps.resize((n + 1) * words, 0);
+        let above = |a: (i64, u64), b: (i64, u64)| {
+            i128::from(a.0) * i128::from(b.1) > i128::from(b.0) * i128::from(a.1)
+        };
+        for i in 0..n {
+            let tx = u32::from(order[if rev { n - 1 - i } else { i }]) as usize;
+            let current = tx + 1;
+            self.members[current * words + tx / 64] |= 1u64 << (tx % 64);
+            self.deps[current * words..][..words].copy_from_slice(&deps[tx * words..][..words]);
+            let modified = nodes[tx].modified;
+            self.fee[current] = if rev { -modified } else { modified };
+            self.weight[current] = u64::from(nodes[tx].weight);
+            self.first_tx[current] = current;
+            self.previous_group[current] = self.previous_group[0];
+            self.previous_group[0] = current;
+            let mut next = 0;
+            let mut previous = self.previous_group[current];
+            while above(
+                (self.fee[current], self.weight[current]),
+                (self.fee[previous], self.weight[previous]),
+            ) {
+                let depends = (0..words).any(|word| {
+                    self.deps[current * words + word] & self.members[previous * words + word] != 0
+                });
+                if depends {
+                    for word in 0..words {
+                        self.members[current * words + word] |=
+                            self.members[previous * words + word];
+                        self.deps[current * words + word] |= self.deps[previous * words + word];
+                    }
+                    self.fee[current] += self.fee[previous];
+                    self.weight[current] += self.weight[previous];
+                    let first = self.first_tx[current];
+                    self.previous_tx[first] = previous;
+                    self.first_tx[current] = self.first_tx[previous];
+                    previous = self.previous_group[previous];
+                    self.previous_group[current] = previous;
+                } else {
+                    let before = self.previous_group[previous];
+                    self.previous_group[next] = previous;
+                    self.previous_group[previous] = current;
+                    self.previous_group[current] = before;
+                    next = previous;
+                    previous = before;
+                }
+            }
+        }
+        // From the last group back, each from its last transaction back: written from the end, or
+        // (a back to front pass's list being reversed) from the start.
+        let mut group = self.previous_group[0];
+        let mut written = 0;
+        while group != 0 {
+            let mut tx = group;
+            while tx != NO_PREVIOUS {
+                let index = CpfpClusterTxIndex::from((tx - 1) as u32);
+                if rev {
+                    order[written] = index;
+                } else {
+                    order[n - 1 - written] = index;
+                }
+                written += 1;
+                tx = self.previous_tx[tx];
+            }
+            group = self.previous_group[group];
+        }
+        debug_assert_eq!(written, n, "every transaction written once");
+    }
 }
 
 /// The given topological order, each transaction a group, chunked.
@@ -217,7 +362,11 @@ fn topological(
 /// Appends the group ending at `end` of the order: one paying more than the chunk before it
 /// joins that chunk, so chunk feerates never increase.
 fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: i64, weight: Weight) {
-    let mut chunk = Chunk { end, fee, weight };
+    let mut chunk = Chunk {
+        end,
+        fee: i128::from(fee),
+        weight,
+    };
     while let Some(last) = chunks.last()
         && compare_rates((chunk.fee, chunk.weight), (last.fee, last.weight)).is_gt()
     {

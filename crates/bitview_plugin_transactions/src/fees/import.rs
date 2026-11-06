@@ -14,7 +14,7 @@ use crate::{
 const VERSION: Version = Version::new(5);
 /// Bump this when chunking changes (`brk_cpfp::Cluster::linearize`, or the weights it measures
 /// over): effective rates and CPFP roles.
-const CHUNK_VERSION: Version = Version::new(4);
+const CHUNK_VERSION: Version = Version::new(5);
 
 impl Vecs {
     pub(crate) fn import(

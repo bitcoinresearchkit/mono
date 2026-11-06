@@ -5,6 +5,8 @@ use brk_types::{
 };
 
 use crate::linearize::{Scratch, linearize};
+#[cfg(test)]
+use crate::linearize::ancestor_sets;
 
 /// One member: the fee it pays (served), the fee it ranks by (Core's modified fee: what it pays
 /// plus an operator's delta, which can be negative), its weight and its range in
@@ -44,6 +46,8 @@ impl Cluster {
     }
 
     /// [`Self::push`], ranked by `modified` instead (Core's modified fee), `fee` still served.
+    /// `modified` is within [`Sats::MAX_MONEY`] either way (the caller clamps an operator's
+    /// delta): a tier's sums then fit, 4,096 members at 21 million bitcoin each.
     pub fn push_ranked(
         &mut self,
         fee: Sats,
@@ -58,6 +62,10 @@ impl Cluster {
                 .iter()
                 .all(|&parent| (u32::from(parent) as usize) < self.nodes.len()),
             "CPFP parents must precede their children"
+        );
+        debug_assert!(
+            modified.unsigned_abs() <= u64::from(Sats::MAX_MONEY),
+            "a modified fee past MAX_MONEY"
         );
         self.nodes.push(Node {
             fee,
@@ -76,6 +84,15 @@ impl Cluster {
     /// remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize.rs`).
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
+    }
+
+    /// [`Self::linearize`] through the ancestor-set tier, whatever the size.
+    #[cfg(test)]
+    pub(crate) fn linearize_ancestor_sets(
+        &mut self,
+        emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
+    ) {
+        ancestor_sets(&self.nodes, &self.parents, &mut self.scratch, emit);
     }
 
     /// The cluster as served for the member `seed`, and the seed's effective feerate: that of

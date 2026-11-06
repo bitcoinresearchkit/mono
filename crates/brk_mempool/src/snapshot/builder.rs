@@ -4,7 +4,7 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::{Txid, Weight};
+use brk_types::{Sats, Txid, Weight};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
@@ -78,9 +78,13 @@ impl Snapshot {
 
     fn live_tx(record: &TxRecord, fee_delta: i64) -> SnapTx {
         let e = &record.entry;
+        // Within MAX_MONEY either way (an operator's delta can be any 64-bit amount): the one
+        // ranking fee linearization, packing and the block floor all read.
+        let max = i64::try_from(u64::from(Sats::MAX_MONEY)).unwrap();
         let modified = i64::try_from(u64::from(e.fee))
             .unwrap()
-            .saturating_add(fee_delta);
+            .saturating_add(fee_delta)
+            .clamp(-max, max);
         SnapTx {
             txid: e.txid,
             fee: e.fee,

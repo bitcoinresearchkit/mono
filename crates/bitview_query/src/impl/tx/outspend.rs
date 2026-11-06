@@ -3,19 +3,19 @@ use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txi
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, RepresentationId, Result, r#impl::mempool::anchored};
+use crate::{Error, OptionData, Query, RepresentationId, Result};
 
 impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = Self::lookup_mempool(mempool);
+        let pending = self.pending(mempool, &pin)?;
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             // An output no known transaction holds is unspent, as Esplora answers.
             Err(Error::UnknownTxid) => {
-                return Ok(match mempool {
-                    Some((mempool, tip)) => mempool.outspend_if_present(txid, vout, &tip)?,
+                return Ok(match &pending {
+                    Some((mempool, view)) => mempool.outspend_if_present(txid, vout, view)?,
                     None => None,
                 }
                 .unwrap_or(TxOutspend::UNSPENT));
@@ -29,12 +29,12 @@ impl Query {
         if confirmed.spent {
             return Ok(confirmed);
         }
-        // Confirmed spends answer first; the pool, at its own tip, adds a pending spend of the rest.
-        Ok(mempool
-            .map(|(mempool, tip)| anchored(mempool.outspend(txid, vout, &tip).map(Some)))
-            .transpose()?
-            .flatten()
-            .unwrap_or(TxOutspend::UNSPENT))
+        // Confirmed spends answer first; the pool, as the pin sees it, adds a pending spend of the
+        // rest.
+        Ok(match &pending {
+            Some((mempool, view)) => mempool.outspend(txid, vout, view)?,
+            None => TxOutspend::UNSPENT,
+        })
     }
 
     /// Resolve and serialize one outspend exactly once, identifying confirmed
@@ -49,20 +49,20 @@ impl Query {
     fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let mempool = Self::lookup_mempool(mempool);
+        let pending = self.pending(mempool, &pin)?;
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
+                let (mempool, view) = pending.ok_or(Error::UnknownTxid)?;
                 return mempool
-                    .outspends_if_present(txid, &tip)?
+                    .outspends_if_present(txid, &view)?
                     .ok_or(Error::UnknownTxid);
             }
             Err(error) => return Err(error),
         };
         let mut outspends = self.resolve_outspends(outputs.first, outputs.len, safe)?;
-        if let Some((mempool, tip)) = mempool {
-            anchored(mempool.merge_outspends(txid, &mut outspends, &tip))?;
+        if let Some((mempool, view)) = pending {
+            mempool.merge_outspends(txid, &mut outspends, &view)?;
         }
         Ok(outspends)
     }

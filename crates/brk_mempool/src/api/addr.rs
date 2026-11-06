@@ -2,30 +2,11 @@ use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_error::{Error, Result};
 use brk_types::{
-    AddressBytes, AddressMempoolStats, BlockHash, Sats, TxOut, Txid, TxidPrefix, Vout,
+    AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout,
 };
-use rapidhash::{RapidHashMap, RapidHashSet};
-use rustc_hash::FxHashSet;
+use rapidhash::RapidHashSet;
 
-use crate::{
-    PublishedTx, ReadOnlyState,
-    key::{OutpointKey, TxKey},
-};
-
-/// The pool as a reader pinned at a chain tip sees it: at that tip, as published; behind it,
-/// without what the chain's newer blocks settled: the transactions they mined, those they
-/// conflicted (spent an input of) and those descending from a conflicted one.
-pub struct PendingView {
-    /// The pool's tip: the view reads only the publication it was made from.
-    tip: BlockHash,
-    settled: FxHashSet<TxKey>,
-}
-
-impl PendingView {
-    fn pending(&self, txid: &Txid) -> bool {
-        self.settled.is_empty() || !self.settled.contains(&TxKey::from(txid))
-    }
-}
+use crate::{PendingView, PublishedTx, ReadOnlyState, key::TxKey};
 
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
@@ -40,73 +21,13 @@ pub struct PendingUtxos {
 }
 
 impl ReadOnlyState {
-    /// The pool for a reader at `tip`, when it's there.
-    pub fn view_at(&self, tip: &BlockHash) -> Result<PendingView> {
-        self.pool()?.at(tip)?;
-        Ok(PendingView {
-            tip: *tip,
-            settled: FxHashSet::default(),
-        })
-    }
-
-    /// The pool for a reader past its tip: `spends` are the newer blocks' inputs, each the
-    /// outpoint it spends and its transaction. O(their inputs, the pooled spenders' inputs, and
-    /// what they settle's outputs).
-    pub fn view_behind(
-        &self,
-        spends: impl IntoIterator<Item = ((Txid, Vout), Txid)>,
-    ) -> Result<PendingView> {
-        let state = self.pool()?;
-        let spends: RapidHashMap<(Txid, Vout), Txid> = spends.into_iter().collect();
-        // The pooled spenders of those outpoints, each checked once against its own inputs: mined
-        // when a block spends one of them by the transaction itself, conflicted when by another.
-        let mut candidates: Vec<TxKey> = spends
-            .keys()
-            .filter_map(|&(txid, vout)| {
-                state
-                    .outpoint_spends
-                    .get(&OutpointKey::new(TxKey::from(&txid), vout))
-            })
-            .collect();
-        candidates.sort_unstable();
-        candidates.dedup();
-        let mut settled = FxHashSet::default();
-        let mut conflicted = Vec::new();
-        for record in candidates.iter().filter_map(|key| state.txs.record_by_key(key)) {
-            let tx = &record.tx;
-            let Some(spender) = tx
-                .input
-                .iter()
-                .find_map(|input| spends.get(&(input.txid, input.vout)))
-            else {
-                continue;
-            };
-            settled.insert(record.entry.key());
-            if *spender != tx.txid {
-                conflicted.push(record);
-            }
-        }
-        // What spends a conflicted transaction's outputs can't confirm either.
-        while let Some(record) = conflicted.pop() {
-            for child in state.outpoint_spends.children(&state.txs, &record.tx) {
-                if settled.insert(child.entry.key()) {
-                    conflicted.push(child);
-                }
-            }
-        }
-        Ok(PendingView {
-            tip: state.tip,
-            settled,
-        })
-    }
-
     /// The address's pending statistics.
     pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
-        let state = self.pool()?.at(&view.tip)?;
+        let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(AddressMempoolStats::default());
         };
-        if entry.txids.iter().all(|txid| view.pending(txid)) {
+        if view.settles_nothing() || entry.txids.iter().all(|txid| view.pending(txid)) {
             return Ok(entry.stats.clone());
         }
         // Folded again without what the newer blocks settled.
@@ -131,7 +52,7 @@ impl ReadOnlyState {
 
     /// The address's pending spends and unspent pending outputs.
     pub fn addr_pending_utxos(&self, addr: &AddressBytes, view: &PendingView) -> Result<PendingUtxos> {
-        let state = self.pool()?.at(&view.tip)?;
+        let state = self.pool()?.at(view.tip())?;
         let mut pending = PendingUtxos::default();
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(pending);
@@ -167,14 +88,14 @@ impl ReadOnlyState {
 
     /// Whether `txid` is pending in `view`.
     pub fn is_pending(&self, txid: &Txid, view: &PendingView) -> Result<bool> {
-        let state = self.pool()?.at(&view.tip)?;
+        let state = self.pool()?.at(view.tip())?;
         Ok(view.pending(txid) && state.txs.contains(txid))
     }
 
     /// Whether the pending tx `txid` touches `addr`: `StateUpdating` while it waits to fold in
     /// (what it touches isn't known yet).
     pub fn addr_has_tx(&self, addr: &AddressBytes, txid: &Txid, view: &PendingView) -> Result<bool> {
-        let state = self.pool()?.at(&view.tip)?;
+        let state = self.pool()?.at(view.tip())?;
         if view.pending(txid) && state.addrs.is_waiting(txid) {
             return Err(Error::StateUpdating);
         }
@@ -197,7 +118,7 @@ impl ReadOnlyState {
         limit: usize,
         view: &PendingView,
     ) -> Result<Vec<PublishedTx>> {
-        let state = self.pool()?.at(&view.tip)?;
+        let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(Vec::new());
         };

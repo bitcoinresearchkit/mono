@@ -17,15 +17,6 @@ pub use rbf::ResolvedRbf;
 /// stalled.
 const MAX_POOL_LAG: usize = 6;
 
-/// A lookup of the pool at its own tip, or none before its first publication: the confirmed data
-/// answers alone meanwhile.
-pub(crate) fn anchored<T: Default>(view: brk_error::Result<T>) -> Result<T> {
-    match view {
-        Err(brk_error::Error::StateUpdating) => Ok(T::default()),
-        view => Ok(view?),
-    }
-}
-
 /// A body the pool built once, and its content hash as its identity.
 fn published_json((bytes, hash): JsonBody) -> Result<(Vec<u8>, RepresentationId)> {
     Ok((bytes.to_vec(), RepresentationId::Content(hash)))
@@ -79,12 +70,25 @@ impl Query {
         })
     }
 
-    /// The pool as `pin` sees it, if it can: see [`Self::with_pending`].
+    /// `mempool` with its view as `pin` sees it, if it has one ([`Self::with_pending`]).
+    pub(crate) fn pending(
+        &self,
+        mempool: Option<Arc<ReadOnlyState>>,
+        pin: &ReadPin,
+    ) -> Result<Option<(Arc<ReadOnlyState>, Arc<PendingView>)>> {
+        let Some(mempool) = mempool else {
+            return Ok(None);
+        };
+        Ok(self.pending_view(&mempool, pin)?.map(|view| (mempool, view)))
+    }
+
+    /// The pool as `pin` sees it, if it can: see [`Self::with_pending`]. Behind the pin, made once
+    /// per publication and pin tip, every read of that moment sharing it.
     pub(crate) fn pending_view(
         &self,
         mempool: &ReadOnlyState,
         pin: &ReadPin,
-    ) -> Result<Option<PendingView>> {
+    ) -> Result<Option<Arc<PendingView>>> {
         let Some(pool_tip) = mempool.tip() else {
             return Ok(None);
         };
@@ -101,27 +105,31 @@ impl Query {
         if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
             return Ok(None);
         }
-        // Every input of the blocks past the pool's tip: the outpoint it spends, and its spender.
-        let vecs = self.indexer().vecs();
-        let first = vecs
-            .inputs
-            .first_txin_index
-            .collect_one(height.incremented())
-            .data()?;
-        let mut outpoint = vecs.inputs.outpoint.cursor();
-        let mut spender = vecs.inputs.tx_index.cursor();
-        let txid = vecs.transactions.txid.reader();
-        let inputs = usize::from(first)..usize::from(lengths.txin_index);
-        let mut spends = Vec::with_capacity(inputs.len());
-        for input in inputs {
-            let spent: OutPoint = outpoint.get(input).data()?;
-            if spent.is_coinbase() {
-                continue;
+        // Every input of the blocks past the pool's tip: the outpoint it spends, and its spender
+        // (read once for the moment, by the first read of it).
+        let spends = || -> Result<Vec<_>> {
+            let vecs = self.indexer().vecs();
+            let first = vecs
+                .inputs
+                .first_txin_index
+                .collect_one(height.incremented())
+                .data()?;
+            let mut outpoint = vecs.inputs.outpoint.cursor();
+            let mut spender = vecs.inputs.tx_index.cursor();
+            let txid = vecs.transactions.txid.reader();
+            let inputs = usize::from(first)..usize::from(lengths.txin_index);
+            let mut spends = Vec::with_capacity(inputs.len());
+            for input in inputs {
+                let spent: OutPoint = outpoint.get(input).data()?;
+                if spent.is_coinbase() {
+                    continue;
+                }
+                let tx: TxIndex = spender.get(input).data()?;
+                spends.push(((txid.get(spent.tx_index()), spent.vout()), txid.get(tx)));
             }
-            let tx: TxIndex = spender.get(input).data()?;
-            spends.push(((txid.get(spent.tx_index()), spent.vout()), txid.get(tx)));
-        }
-        Ok(Some(mempool.view_behind(spends)?))
+            Ok(spends)
+        };
+        Ok(Some(mempool.view_behind(tip, spends)?))
     }
 
     fn require_mempool(&self) -> Result<Arc<ReadOnlyState>> {

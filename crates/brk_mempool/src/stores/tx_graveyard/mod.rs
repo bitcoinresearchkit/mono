@@ -19,9 +19,9 @@ const RETENTION: Duration = Duration::from_hours(1);
 /// How long a replacement tree stays once its newest version left the pool (mempool.space's):
 /// while that one is pending, the whole tree does.
 const TREE_RETENTION: Duration = Duration::from_hours(24);
-/// The bodies the graveyard holds at most (serialized bytes): past it, the oldest lone tombstones
-/// go first, then the oldest trees, then the oldest replaced versions of pending ones (a flood of
-/// cheap replacements can't grow it further).
+/// The bodies the graveyard holds at most (serialized bytes): past it, the oldest replaced
+/// versions go first, each with what it replaced (a flood of cheap replacements can't grow it
+/// further, nor push out the rest), then the oldest trees, then the oldest lone tombstones.
 const MAX_BYTES: u64 = 256 << 20;
 /// The longest replacement chain an eviction check follows (the RBF listings' work bound).
 const MAX_WALK: usize = 4_096;
@@ -43,8 +43,8 @@ struct Burial {
 /// retention, `order`'s front leaves: a version whose replacer is still known stays with that
 /// replacer's tree, a tree's newest version moves to `trees` (taking its tree when it goes), any
 /// other goes. `predecessors_by_replacer[by]` lists exactly the `Replaced { by }` tombstones,
-/// `replaced` counts them, `bytes` sums the held bodies. `replacements` drops stale entries at its
-/// front, and all of them once they outnumber the current ones (past `2 * replaced + 1,024`).
+/// `replaced` counts them, `bytes` sums the held bodies. `order` and `replacements` drop stale
+/// entries at their fronts, and all of them once they outnumber the current ones.
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
@@ -399,37 +399,19 @@ impl TxGraveyard {
         self.cycle += 1;
     }
 
-    /// Lets go of what's past its retention, and of the oldest past [`MAX_BYTES`]: a lone
-    /// tombstone after [`RETENTION`]; a replaced version with its tree; a tree's newest version,
-    /// once it isn't `live`, [`TREE_RETENTION`] after it left, taking the tree. O(k) in what
-    /// leaves the queues; stale entries (re-burials, exhumes) are skipped.
+    /// Lets go of what's past its retention, then of the oldest past [`MAX_BYTES`]. Retention: a
+    /// lone tombstone after [`RETENTION`]; a replaced version with its tree; a tree's newest
+    /// version, once it isn't `live`, [`TREE_RETENTION`] after it left, taking the tree. Past the
+    /// cap: the oldest replaced versions first, each with what it replaced (a flood of cheap
+    /// replacements pays for itself before anything else), then the oldest trees, then the oldest
+    /// lone tombstones. O(k) in what leaves the queues; stale entries (re-burials, exhumes) are
+    /// skipped.
     pub fn evict_old(&mut self, live: impl Fn(&Txid) -> bool) {
-        while let Some(&(t, txid)) = self.order.front() {
-            if t.elapsed() < RETENTION && self.bytes <= MAX_BYTES {
-                break;
-            }
-            self.order.pop_front();
-            if self.current(&txid, t).is_none() || self.replacer_known(&txid, &live) {
-                continue;
-            }
-            if self.predecessors_by_replacer.contains_key(&txid) {
-                self.trees.push_back((t, txid));
-            } else {
-                self.remove(&txid);
-            }
-        }
-        while let Some(&(t, txid)) = self.trees.front() {
-            if t.elapsed() < TREE_RETENTION && self.bytes <= MAX_BYTES {
-                break;
-            }
-            self.trees.pop_front();
-            if self.current(&txid, t).is_some() && !self.replacer_known(&txid, &live) {
-                self.remove_tree(txid);
-            }
-        }
+        self.evict_order(&live, false);
+        self.evict_trees(&live, false);
         // A replaced version stays listed as long as its tombstone: its entry leaves when stale,
-        // or with it past the cap (the oldest first, so a tree loses its earliest versions). The
-        // listing reads this queue: a change to it is a change readers see.
+        // or with it past the cap. The listing reads this queue: a change to it is a change
+        // readers see.
         let listed = self.replacements.len();
         while let Some(&(t, txid)) = self.replacements.front() {
             let stale = self.current(&txid, t).is_none();
@@ -438,20 +420,63 @@ impl TxGraveyard {
             }
             self.replacements.pop_front();
             if !stale {
-                self.remove(&txid);
+                self.remove_tree(txid);
             }
         }
-        // Stale entries behind a long-pending tree's: dropped once they outnumber the current.
+        self.evict_trees(&live, true);
+        self.evict_order(&live, true);
+        // Stale entries behind a current head (a long-pending tree's, an hour's burials): dropped
+        // once they outnumber the current.
+        let tombstones = &self.tombstones;
+        let current = |(t, txid): &(Instant, Txid)| {
+            tombstones
+                .get(txid)
+                .is_some_and(|tombstone| tombstone.removed_at == *t)
+        };
         if self.replacements.len() > 2 * self.replaced + 1_024 {
-            let tombstones = &self.tombstones;
-            self.replacements.retain(|(t, txid)| {
-                tombstones
-                    .get(txid)
-                    .is_some_and(|tombstone| tombstone.removed_at == *t)
-            });
+            self.replacements.retain(current);
+        }
+        if self.order.len() > 2 * self.tombstones.len() + 1_024 {
+            self.order.retain(current);
         }
         if self.replacements.len() != listed {
             self.revision = self.revision.wrapping_add(1);
+        }
+    }
+
+    /// `order`'s front past [`RETENTION`] (`over_cap`: or while past [`MAX_BYTES`]): a version
+    /// whose replacer is still known stays with its tree, a tree's newest version moves to
+    /// `trees`, any other leaves.
+    fn evict_order(&mut self, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
+        while let Some(&(t, txid)) = self.order.front() {
+            // A stale head leaves whatever its age.
+            let current = self.current(&txid, t).is_some();
+            if current && t.elapsed() < RETENTION && !(over_cap && self.bytes > MAX_BYTES) {
+                break;
+            }
+            self.order.pop_front();
+            if !current || self.replacer_known(&txid, live) {
+                continue;
+            }
+            if self.predecessors_by_replacer.contains_key(&txid) {
+                self.trees.push_back((t, txid));
+            } else {
+                self.remove(&txid);
+            }
+        }
+    }
+
+    /// `trees`' front past [`TREE_RETENTION`] (`over_cap`: or while past [`MAX_BYTES`]): each
+    /// takes its tree, unless pending again.
+    fn evict_trees(&mut self, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
+        while let Some(&(t, txid)) = self.trees.front() {
+            if t.elapsed() < TREE_RETENTION && !(over_cap && self.bytes > MAX_BYTES) {
+                break;
+            }
+            self.trees.pop_front();
+            if self.current(&txid, t).is_some() && !self.replacer_known(&txid, live) {
+                self.remove_tree(txid);
+            }
         }
     }
 }

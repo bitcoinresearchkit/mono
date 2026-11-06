@@ -100,7 +100,8 @@ impl Chunks {
 /// Blocks after block 0 (the `excluded` members), each member with the feerate it was packed at.
 pub struct Projection {
     pub blocks: Vec<Vec<(TxIndex, FeeRate)>>,
-    /// Whether the last block holds more than a block could: what was left past the others.
+    /// Whether the last block is a catch-all: what was left past the others, more than a block
+    /// could hold, or what Core's block builder would never take (below its floor).
     pub overflow: bool,
 }
 
@@ -180,8 +181,9 @@ struct Candidate {
     /// The published feerate; the order compares `fee / policy` exactly, as the linearization
     /// did, so a component's chunks never reorder.
     rate: FeeRate,
-    /// Modified fee, what the order ranks by (negative under a negative delta).
-    fee: i64,
+    /// Modified fee, what the order ranks by (negative under a negative delta); wide, a chunk past
+    /// 4,096 members summing past 64 bits.
+    fee: i128,
     /// Sigop-adjusted weight.
     policy: Weight,
     /// The policy weight of its component's run of equal-feerate chunks through this one: Core's
@@ -202,7 +204,7 @@ impl Candidate {
 }
 
 fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
-    let per_weight = |fee: i64, policy: Weight| (i128::from(fee), i128::from(u64::from(policy)));
+    let per_weight = |fee: i128, policy: Weight| (fee, i128::from(u64::from(policy)));
     // `b`'s feerate against `a`'s, exactly (weights positive): the higher first.
     let by_rate = |(fee_a, weight_a): (i128, i128), (fee_b, weight_b): (i128, i128)| {
         (fee_b * weight_a).cmp(&(fee_a * weight_b))
@@ -213,7 +215,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
         let mut prefix = Weight::default();
         for c in range.0..range.1 {
             let members = || chunks.members(c).iter().map(|m| &txs[m.as_usize()]);
-            let fee: i64 = members().map(|t| t.modified).sum();
+            let fee: i128 = members().map(|t| i128::from(t.modified)).sum();
             let policy: Weight = members().map(|t| t.sigops.adjust_weight(t.weight)).sum();
             let rate = per_weight(fee, policy);
             // A component's chunk feerates never increase: an equal one extends the run.
@@ -244,11 +246,19 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
             .then(a.chunk.cmp(&b.chunk))
     });
 
+    // Core's block builder stops at the first chunk below `-blockmintxfee` (its default, 1 sat/kvB,
+    // over the chunk's vsize rounded up): only an operator's delta takes one there, and from it on
+    // nothing is mined; those go to the catch-all.
+    let mineable = cands
+        .iter()
+        .position(|cand| cand.fee * 1_000 < i128::from(u64::from(cand.policy).div_ceil(4)))
+        .unwrap_or(cands.len());
+
     let mut blocks: Vec<Vec<(TxIndex, FeeRate)>> = Vec::new();
     // The pass a component last missed a chunk in, plus one: its later chunks wait for the next.
     let mut missed: Vec<u32> = vec![0; chunks.components.len()];
     let mut pass = 0;
-    let mut pending: Vec<usize> = (0..cands.len()).collect();
+    let mut pending: Vec<usize> = (0..mineable).collect();
     let mut deferred: Vec<usize> = Vec::new();
     // Set once nothing left fits a block: what's left goes to the last.
     let mut stuck = false;
@@ -292,6 +302,20 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
         }
         pending.clear();
         mem::swap(&mut pending, &mut deferred);
+    }
+    if mineable < cands.len() {
+        let unmined = cands[mineable..].iter().flat_map(|cand| {
+            chunks
+                .members(cand.chunk as usize)
+                .iter()
+                .map(|&m| (m, cand.rate))
+        });
+        let full = blocks.len() == num_blocks;
+        match blocks.last_mut() {
+            Some(last) if overflow || full => last.extend(unmined),
+            _ => blocks.push(unmined.collect()),
+        }
+        overflow = true;
     }
     Projection { blocks, overflow }
 }

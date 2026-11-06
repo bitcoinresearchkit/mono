@@ -1,11 +1,11 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
 use rapidhash::RapidHashSet;
 
 use crate::{
-    JsonBody, RbfNode, Snapshot, json,
+    JsonBody, PendingView, RbfNode, Snapshot, json,
     stores::{AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore},
 };
 
@@ -24,6 +24,8 @@ pub(crate) struct Pool {
     pub info_json: JsonBody,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
+    /// The last view made for a reader past this pool's tip (the moment after a block), shared.
+    pub behind: Mutex<Option<Arc<PendingView>>>,
 }
 
 impl Pool {
@@ -68,6 +70,7 @@ impl Pool {
             graph,
             info_json,
             recent_trees: Default::default(),
+            behind: Mutex::default(),
         }
     }
 

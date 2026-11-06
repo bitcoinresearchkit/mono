@@ -8,11 +8,13 @@ pub mod addr;
 pub mod fees;
 pub mod histogram;
 pub mod mempool_block;
+pub mod pending;
 pub mod published_tx;
 pub mod rbf;
 pub mod tx;
 
-pub use addr::{PendingUtxos, PendingView};
+pub use addr::PendingUtxos;
+pub use pending::PendingView;
 pub use mempool_block::MempoolBlockSource;
 pub use published_tx::{PublishedEntry, PublishedTx};
 pub use rbf::{RbfForTx, RbfNode};
