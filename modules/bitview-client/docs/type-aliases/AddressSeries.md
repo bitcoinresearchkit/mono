@@ -8,7 +8,7 @@
 
 > **AddressSeries** = `object`
 
-Defined in: modules/bitview-client/index.js:5826
+Defined in: [modules/bitview-client/index.js:5893](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5893)
 
 ## Type Parameters
 

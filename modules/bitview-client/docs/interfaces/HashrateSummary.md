@@ -6,7 +6,7 @@
 
 # Interface: HashrateSummary
 
-Defined in: modules/bitview-client/index.js:639
+Defined in: [modules/bitview-client/index.js:645](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L645)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:639
 
 > **currentDifficulty**: `number`
 
-Defined in: modules/bitview-client/index.js:643
+Defined in: [modules/bitview-client/index.js:649](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L649)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: modules/bitview-client/index.js:643
 
 > **currentHashrate**: `number`
 
-Defined in: modules/bitview-client/index.js:642
+Defined in: [modules/bitview-client/index.js:648](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L648)
 
 Current network hashrate over the trailing 7 days (H/s)
 
@@ -32,7 +32,7 @@ Current network hashrate over the trailing 7 days (H/s)
 
 > **difficulty**: [`DifficultyEntry`](DifficultyEntry.md)[]
 
-Defined in: modules/bitview-client/index.js:641
+Defined in: [modules/bitview-client/index.js:647](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L647)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: modules/bitview-client/index.js:641
 
 > **hashrates**: [`HashrateEntry`](HashrateEntry.md)[]
 
-Defined in: modules/bitview-client/index.js:640
+Defined in: [modules/bitview-client/index.js:646](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L646)

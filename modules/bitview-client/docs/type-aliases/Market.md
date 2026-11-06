@@ -8,7 +8,7 @@
 
 > **Market** = `object`
 
-Defined in: modules/bitview-client/index.js:3842
+Defined in: [modules/bitview-client/index.js:3901](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3901)
 
 ## Type Parameters
 

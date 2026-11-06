@@ -6,7 +6,7 @@
 
 # Interface: TxidsParam
 
-Defined in: modules/bitview-client/index.js:1537
+Defined in: [modules/bitview-client/index.js:1545](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1545)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: modules/bitview-client/index.js:1537
 
 > **txId**: `string`[]
 
-Defined in: modules/bitview-client/index.js:1538
+Defined in: [modules/bitview-client/index.js:1546](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1546)
 
 Transaction IDs to look up (max 100 per request).

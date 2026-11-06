@@ -2,13 +2,13 @@
 
 ***
 
-[bitview-client](../globals.md) / MiningValueFlow
+[bitview-client](../globals.md) / TxValue
 
-# Type Alias: MiningValueFlow
+# Type Alias: TxValue
 
-> **MiningValueFlow** = `object`
+> **TxValue** = `object`
 
-Defined in: modules/bitview-client/index.js:4328
+Defined in: [modules/bitview-client/index.js:4402](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4402)
 
 ## Type Parameters
 

@@ -11,10 +11,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 ### Breaking Changes
 
 - JavaScript client: a value the memory cache holds (`memCache`, on by default) is shared by every caller of its URL
-  and now frozen deeply, so one caller changing it can't change the others' answers. Copy it before changing it, or
-  pass `memCache: false` for values of your own (about 2 ms to freeze a ~10 MB projected block on desktop Chromium,
-  once per fresh body). Byte bodies (`Uint8Array`) can't be frozen: don't change them. A `no-store` answer drops its
-  URL's cached value rather than reusing it on a matching ETag
+  and now frozen deeply, so one caller changing it can't change the others' answers, and typed so (`Frozen<…>`,
+  readonly all the way down, on every GET method's JSON answer, `getJson<T>` and series data; `any` and `unknown` stay
+  as they are). Copy it before changing it, or pass `memCache: false` for values of your own (typed readonly all the
+  same: a copy you change takes its own type) (about 2 ms to freeze a ~10 MB projected block on desktop Chromium, once
+  per fresh body). Byte bodies (`Uint8Array`) can't be frozen: don't change them. A `no-store` answer drops its URL's
+  cached value rather than reusing it on a matching ETag
 - statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
   to open, asking for a rebuild of the state
 

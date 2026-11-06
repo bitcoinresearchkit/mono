@@ -8,7 +8,7 @@
 
 > **MobileMedianCapitalizedPriceMedian** = `object`
 
-Defined in: modules/bitview-client/index.js:2844
+Defined in: [modules/bitview-client/index.js:2903](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2903)
 
 ## Type Parameters
 

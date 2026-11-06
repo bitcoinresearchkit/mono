@@ -6,7 +6,7 @@
 
 # Interface: SeriesPattern\<T\>
 
-Defined in: modules/bitview-client/index.js:2072
+Defined in: [modules/bitview-client/index.js:2122](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2122)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: modules/bitview-client/index.js:2072
 
 > **by**: `Readonly`\<`Partial`\<`Record`\<[`Index`](../type-aliases/Index.md), [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\>\>\>\>
 
-Defined in: modules/bitview-client/index.js:2074
+Defined in: [modules/bitview-client/index.js:2124](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2124)
 
 Index endpoints as lazy getters
 
@@ -30,7 +30,7 @@ Index endpoints as lazy getters
 
 > **get**: (`index`) => [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\> \| `undefined`
 
-Defined in: modules/bitview-client/index.js:2076
+Defined in: [modules/bitview-client/index.js:2126](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2126)
 
 #### Parameters
 
@@ -48,7 +48,7 @@ Defined in: modules/bitview-client/index.js:2076
 
 > **indexes**: () => readonly [`Index`](../type-aliases/Index.md)[]
 
-Defined in: modules/bitview-client/index.js:2075
+Defined in: [modules/bitview-client/index.js:2125](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2125)
 
 #### Returns
 
@@ -60,4 +60,4 @@ readonly [`Index`](../type-aliases/Index.md)[]
 
 > **name**: `string`
 
-Defined in: modules/bitview-client/index.js:2073
+Defined in: [modules/bitview-client/index.js:2123](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2123)

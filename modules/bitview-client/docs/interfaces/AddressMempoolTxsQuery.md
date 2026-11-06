@@ -6,7 +6,7 @@
 
 # Interface: AddressMempoolTxsQuery
 
-Defined in: modules/bitview-client/index.js:63
+Defined in: [modules/bitview-client/index.js:63](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L63)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: modules/bitview-client/index.js:63
 
 > `optional` **maxTxs?**: `number` \| `null`
 
-Defined in: modules/bitview-client/index.js:64
+Defined in: [modules/bitview-client/index.js:64](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L64)
 
 Transactions to return, at most 50 (the default); larger values return 50.

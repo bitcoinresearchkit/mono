@@ -98,14 +98,20 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     let fetch_call = if endpoint.returns_binary() {
         format!("this.{verb}Bytes({args})")
     } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
-        "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }, _SERIES_KEEP))".to_string()
+        "_wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
     } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
-        "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) }, _SERIES_KEEP)).map(_wrapSeriesData)".to_string()
+        "(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
-        // Map keys are data: they stay as sent while field names are camelCased.
-        match response.and_then(|ty| keep_expr(ty, schemas)) {
-            Some(keep) => format!("this.{verb}Json({args}, {keep})"),
-            None => format!("this.{verb}Json({args})"),
+        // Map keys are data: they stay as sent while field names are camelCased. A GET reads
+        // through the cache as `getJson` does, typed by the method (its `Frozen` return).
+        let keep = response.and_then(|ty| keep_expr(ty, schemas));
+        match (post, keep) {
+            (false, keep) => format!(
+                "this._getCached(path, 'json', _readJson({}), {options})",
+                keep.as_deref().unwrap_or("undefined")
+            ),
+            (true, Some(keep)) => format!("this.postJson({args}, {keep})"),
+            (true, None) => format!("this.postJson({args})"),
         }
     } else if endpoint.response_kind.text_is_numeric() && post {
         format!("Number(await this.postText({args}))")
@@ -134,6 +140,16 @@ fn build_return_type(endpoint: &Endpoint) -> String {
         || "Uint8Array".to_owned(),
         |ty| normalize_return_type(&js_type(ty)),
     );
+    // A JSON answer to a GET may be the memory cache's, shared and frozen (`_deepFreeze`); a
+    // series, wrapped with its methods, types its own data so.
+    let series = endpoint.response_kind.ty().is_some_and(|ty| {
+        ty.is_ref("SeriesData") || matches!(ty, Ty::List(item) if item.is_ref("SeriesData"))
+    });
+    let base = if endpoint.method == "GET" && endpoint.returns_json() && base != "*" && !series {
+        format!("Frozen<{base}>")
+    } else {
+        base
+    };
     if endpoint.supports_csv {
         format!("{} | string", base)
     } else {

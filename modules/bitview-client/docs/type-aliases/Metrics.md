@@ -8,7 +8,7 @@
 
 > **Metrics** = `object`
 
-Defined in: modules/bitview-client/index.js:5117
+Defined in: [modules/bitview-client/index.js:5184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5184)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: RbfResponse
 
-Defined in: modules/bitview-client/index.js:1242
+Defined in: [modules/bitview-client/index.js:1250](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1250)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:1242
 
 > `optional` **replacements?**: [`ReplacementNode`](ReplacementNode.md) \| `null`
 
-Defined in: modules/bitview-client/index.js:1243
+Defined in: [modules/bitview-client/index.js:1251](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1251)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: modules/bitview-client/index.js:1243
 
 > `optional` **replaces?**: `string`[] \| `null`
 
-Defined in: modules/bitview-client/index.js:1244
+Defined in: [modules/bitview-client/index.js:1252](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1252)

@@ -8,6 +8,6 @@
 
 > **RawLockTime** = `number`
 
-Defined in: modules/bitview-client/index.js:1235
+Defined in: [modules/bitview-client/index.js:1243](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1243)
 
 ## Type Parameters

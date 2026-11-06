@@ -6,7 +6,7 @@
 
 # Interface: ClientFetchOptions\<T\>
 
-Defined in: modules/bitview-client/index.js:2034
+Defined in: [modules/bitview-client/index.js:2084](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2084)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: modules/bitview-client/index.js:2034
 
 > `optional` **cache?**: `boolean`
 
-Defined in: modules/bitview-client/index.js:2036
+Defined in: [modules/bitview-client/index.js:2086](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2086)
 
 Use HTTP/browser/client caches. Set false for a no-store network fetch.
 
@@ -30,9 +30,9 @@ Use HTTP/browser/client caches. Set false for a no-store network fetch.
 
 > `optional` **memCache?**: `boolean`
 
-Defined in: modules/bitview-client/index.js:2037
+Defined in: [modules/bitview-client/index.js:2087](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2087)
 
-Use the parsed in-memory response cache. Set false for large one-shot reads.
+Use the parsed in-memory response cache, whose values are shared and frozen deeply (bytes can't be frozen: don't change them). Set false for large one-shot reads, or a value of your own to change.
 
 ***
 
@@ -40,7 +40,7 @@ Use the parsed in-memory response cache. Set false for large one-shot reads.
 
 > `optional` **onValue?**: (`value`) => `void`
 
-Defined in: modules/bitview-client/index.js:2038
+Defined in: [modules/bitview-client/index.js:2088](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2088)
 
 Receive stale/fresh values as they arrive
 
@@ -60,6 +60,6 @@ Receive stale/fresh values as they arrive
 
 > `optional` **signal?**: `AbortSignal`
 
-Defined in: modules/bitview-client/index.js:2035
+Defined in: [modules/bitview-client/index.js:2085](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2085)
 
 Abort this request

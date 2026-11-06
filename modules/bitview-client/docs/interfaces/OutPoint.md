@@ -6,7 +6,7 @@
 
 # Interface: OutPoint
 
-Defined in: modules/bitview-client/index.js:983
+Defined in: [modules/bitview-client/index.js:991](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L991)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:983
 
 > **txIndex**: `number`
 
-Defined in: modules/bitview-client/index.js:984
+Defined in: [modules/bitview-client/index.js:992](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L992)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: modules/bitview-client/index.js:984
 
 > **vout**: `number`
 
-Defined in: modules/bitview-client/index.js:985
+Defined in: [modules/bitview-client/index.js:993](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L993)

@@ -6,7 +6,7 @@
 
 # Interface: DifficultyEntry
 
-Defined in: modules/bitview-client/index.js:530
+Defined in: [modules/bitview-client/index.js:536](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L536)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:530
 
 > **adjustment**: `number`
 
-Defined in: modules/bitview-client/index.js:534
+Defined in: [modules/bitview-client/index.js:540](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L540)
 
 Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
@@ -24,7 +24,7 @@ Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
 > **difficulty**: `number`
 
-Defined in: modules/bitview-client/index.js:533
+Defined in: [modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L539)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: modules/bitview-client/index.js:533
 
 > **height**: `number`
 
-Defined in: modules/bitview-client/index.js:532
+Defined in: [modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L538)
 
 ***
 
@@ -40,6 +40,6 @@ Defined in: modules/bitview-client/index.js:532
 
 > **time**: `number`
 
-Defined in: modules/bitview-client/index.js:531
+Defined in: [modules/bitview-client/index.js:537](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L537)
 
 Unix timestamp of the difficulty adjustment

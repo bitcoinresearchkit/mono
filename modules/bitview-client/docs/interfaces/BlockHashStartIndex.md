@@ -6,7 +6,7 @@
 
 # Interface: BlockHashStartIndex
 
-Defined in: modules/bitview-client/index.js:207
+Defined in: [modules/bitview-client/index.js:213](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L213)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:207
 
 > **hash**: `string`
 
-Defined in: modules/bitview-client/index.js:208
+Defined in: [modules/bitview-client/index.js:214](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L214)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: modules/bitview-client/index.js:208
 
 > **startIndex**: `number`
 
-Defined in: modules/bitview-client/index.js:209
+Defined in: [modules/bitview-client/index.js:215](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L215)
 
 Starting transaction index within the block (0-based)

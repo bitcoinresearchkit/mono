@@ -6,7 +6,7 @@
 
 # Interface: DateSkippedBuilder\<T\>
 
-Defined in: modules/bitview-client/index.js:2051
+Defined in: [modules/bitview-client/index.js:2101](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2101)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: modules/bitview-client/index.js:2051
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: modules/bitview-client/index.js:2053
+Defined in: [modules/bitview-client/index.js:2103](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2103)
 
 Fetch from skipped position to end
 
@@ -44,7 +44,7 @@ Fetch from skipped position to end
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: modules/bitview-client/index.js:2054
+Defined in: [modules/bitview-client/index.js:2104](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2104)
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: modules/bitview-client/index.js:2054
 
 > **take**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2052
+Defined in: [modules/bitview-client/index.js:2102](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2102)
 
 Take n items after skipped position
 
@@ -82,7 +82,7 @@ Take n items after skipped position
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: modules/bitview-client/index.js:2055
+Defined in: [modules/bitview-client/index.js:2105](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2105)
 
 Attaches callbacks for the resolution and/or rejection of the Promise.
 

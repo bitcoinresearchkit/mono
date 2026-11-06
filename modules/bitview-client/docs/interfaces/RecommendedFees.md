@@ -6,7 +6,7 @@
 
 # Interface: RecommendedFees
 
-Defined in: modules/bitview-client/index.js:1265
+Defined in: [modules/bitview-client/index.js:1273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1273)
 
 ## Properties
 
@@ -14,10 +14,10 @@ Defined in: modules/bitview-client/index.js:1265
 
 > **economyFee**: `number`
 
-Defined in: modules/bitview-client/index.js:1269
+Defined in: [modules/bitview-client/index.js:1277](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1277)
 
 Smoothed, fullness-adjusted third-block fee estimate, bounded by `minimumFee` and twice
-it; `minimumFee` when no third projected block exists
+  it; `minimumFee` when no third projected block exists
 
 ***
 
@@ -25,7 +25,7 @@ it; `minimumFee` when no third projected block exists
 
 > **fastestFee**: `number`
 
-Defined in: modules/bitview-client/index.js:1266
+Defined in: [modules/bitview-client/index.js:1274](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1274)
 
 Fee rate for fastest confirmation (next block)
 
@@ -35,7 +35,7 @@ Fee rate for fastest confirmation (next block)
 
 > **halfHourFee**: `number`
 
-Defined in: modules/bitview-client/index.js:1267
+Defined in: [modules/bitview-client/index.js:1275](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1275)
 
 Fee rate for confirmation within ~30 minutes (second projected block)
 
@@ -45,7 +45,7 @@ Fee rate for confirmation within ~30 minutes (second projected block)
 
 > **hourFee**: `number`
 
-Defined in: modules/bitview-client/index.js:1268
+Defined in: [modules/bitview-client/index.js:1276](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1276)
 
 Fee rate for confirmation within ~1 hour (third projected block)
 
@@ -55,6 +55,6 @@ Fee rate for confirmation within ~1 hour (third projected block)
 
 > **minimumFee**: `number`
 
-Defined in: modules/bitview-client/index.js:1271
+Defined in: [modules/bitview-client/index.js:1279](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1279)
 
 The node's current mempool minimum fee rate, rounded up to a whole sat/vB (at least 1)

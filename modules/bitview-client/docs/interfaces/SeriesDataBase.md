@@ -6,7 +6,7 @@
 
 # Interface: SeriesDataBase\<T\>
 
-Defined in: modules/bitview-client/index.js:1968
+Defined in: [modules/bitview-client/index.js:2018](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2018)
 
 ## Type Parameters
 
@@ -18,11 +18,11 @@ Defined in: modules/bitview-client/index.js:1968
 
 ### data
 
-> **data**: `T`[]
+> **data**: readonly [`Frozen`](../type-aliases/Frozen.md)\<`T`\>[]
 
-Defined in: modules/bitview-client/index.js:1974
+Defined in: [modules/bitview-client/index.js:2024](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2024)
 
-The series data (`null` where a value is missing or undefined)
+The series data (`null` where a value is missing or undefined), frozen when the memory cache shares it
 
 ***
 
@@ -30,7 +30,7 @@ The series data (`null` where a value is missing or undefined)
 
 > **end**: `number`
 
-Defined in: modules/bitview-client/index.js:1973
+Defined in: [modules/bitview-client/index.js:2023](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2023)
 
 End index (exclusive)
 
@@ -38,15 +38,15 @@ End index (exclusive)
 
 ### entries
 
-> **entries**: () => \[`number`, `T`\][]
+> **entries**: () => \[`number`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\][]
 
-Defined in: modules/bitview-client/index.js:1978
+Defined in: [modules/bitview-client/index.js:2028](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2028)
 
 Get [index, value] pairs
 
 #### Returns
 
-\[`number`, `T`\][]
+\[`number`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\][]
 
 ***
 
@@ -54,7 +54,7 @@ Get [index, value] pairs
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: modules/bitview-client/index.js:1970
+Defined in: [modules/bitview-client/index.js:2020](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2020)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: modules/bitview-client/index.js:1970
 
 > **indexes**: () => `number`[]
 
-Defined in: modules/bitview-client/index.js:1976
+Defined in: [modules/bitview-client/index.js:2026](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2026)
 
 #### Returns
 
@@ -74,7 +74,7 @@ Defined in: modules/bitview-client/index.js:1976
 
 > **isDateBased**: `boolean`
 
-Defined in: modules/bitview-client/index.js:1975
+Defined in: [modules/bitview-client/index.js:2025](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2025)
 
 ***
 
@@ -82,7 +82,7 @@ Defined in: modules/bitview-client/index.js:1975
 
 > **keys**: () => `number`[]
 
-Defined in: modules/bitview-client/index.js:1977
+Defined in: [modules/bitview-client/index.js:2027](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2027)
 
 Alias for indexes
 
@@ -96,7 +96,7 @@ Alias for indexes
 
 > **start**: `number`
 
-Defined in: modules/bitview-client/index.js:1972
+Defined in: [modules/bitview-client/index.js:2022](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2022)
 
 Start index (inclusive)
 
@@ -104,15 +104,15 @@ Start index (inclusive)
 
 ### toMap
 
-> **toMap**: () => `Map`\<`number`, `T`\>
+> **toMap**: () => `Map`\<`number`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\>
 
-Defined in: modules/bitview-client/index.js:1979
+Defined in: [modules/bitview-client/index.js:2029](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2029)
 
 Convert to Map<index, value>
 
 #### Returns
 
-`Map`\<`number`, `T`\>
+`Map`\<`number`, [`Frozen`](../type-aliases/Frozen.md)\<`T`\>\>
 
 ***
 
@@ -120,7 +120,7 @@ Convert to Map<index, value>
 
 > **type**: `string`
 
-Defined in: modules/bitview-client/index.js:1971
+Defined in: [modules/bitview-client/index.js:2021](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2021)
 
 Value type (e.g. "Ratio", "Sats", "Cents")
 
@@ -130,4 +130,4 @@ Value type (e.g. "Ratio", "Sats", "Cents")
 
 > **version**: `number`
 
-Defined in: modules/bitview-client/index.js:1969
+Defined in: [modules/bitview-client/index.js:2019](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2019)

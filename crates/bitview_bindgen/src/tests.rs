@@ -85,7 +85,8 @@ fn javascript_methods_forward_their_keep_rules() {
         output[start..].split("\n  }\n").next().unwrap().to_owned()
     };
     assert!(output.contains(r#"const _SERIES_KEEP = { "data": true };"#));
-    assert!(method("getOpenapi").contains("memCache }, true)"), "{}", method("getOpenapi"));
-    assert!(method("getSeries").contains("}, _SERIES_KEEP))"), "{}", method("getSeries"));
-    assert!(method("getSeriesBulk").contains("}, _SERIES_KEEP)).map"), "{}", method("getSeriesBulk"));
+    assert!(method("getOpenapi").contains("_readJson(true)"), "{}", method("getOpenapi"));
+    for name in ["getSeries", "getSeriesBulk"] {
+        assert!(method(name).contains("_readJson(_SERIES_KEEP)"), "{}", method(name));
+    }
 }

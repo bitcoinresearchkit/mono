@@ -8,6 +8,6 @@
 
 > **ExchangeRates** = `Object`
 
-Defined in: modules/bitview-client/index.js:600
+Defined in: [modules/bitview-client/index.js:606](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L606)
 
 ## Type Parameters

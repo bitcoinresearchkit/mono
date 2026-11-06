@@ -8,7 +8,7 @@
 
 > **Inscription** = `object`
 
-Defined in: modules/bitview-client/index.js:4676
+Defined in: [modules/bitview-client/index.js:4736](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4736)
 
 ## Type Parameters
 
@@ -37,3 +37,7 @@ Defined in: modules/bitview-client/index.js:4676
 ### sum
 
 > **sum**: [`Windows`](Windows.md)\<[`Count`](Count.md)\>
+
+### value
+
+> **value**: [`TxValue`](TxValue.md)

@@ -8,7 +8,7 @@
 
 > **CointimeRange** = `object`
 
-Defined in: modules/bitview-client/index.js:4912
+Defined in: [modules/bitview-client/index.js:4979](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4979)
 
 ## Type Parameters
 

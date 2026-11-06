@@ -8,6 +8,6 @@
 
 > **BytesFract** = `number`
 
-Defined in: modules/bitview-client/index.js:342
+Defined in: [modules/bitview-client/index.js:348](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L348)
 
 ## Type Parameters

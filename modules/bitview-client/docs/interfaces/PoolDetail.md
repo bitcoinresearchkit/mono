@@ -6,7 +6,7 @@
 
 # Interface: PoolDetail
 
-Defined in: modules/bitview-client/index.js:1130
+Defined in: [modules/bitview-client/index.js:1138](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1138)
 
 ## Properties
 
@@ -14,10 +14,10 @@ Defined in: modules/bitview-client/index.js:1130
 
 > `optional` **avgBlockHealth?**: `number` \| `null`
 
-Defined in: modules/bitview-client/index.js:1136
+Defined in: [modules/bitview-client/index.js:1144](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1144)
 
 Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
-the mempool as it was)
+  the mempool as it was)
 
 ***
 
@@ -25,7 +25,7 @@ the mempool as it was)
 
 > **blockCount**: [`PoolBlockCounts`](../type-aliases/PoolBlockCounts.md)
 
-Defined in: modules/bitview-client/index.js:1132
+Defined in: [modules/bitview-client/index.js:1140](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1140)
 
 ***
 
@@ -33,7 +33,7 @@ Defined in: modules/bitview-client/index.js:1132
 
 > **blockShare**: [`PoolBlockShares`](../type-aliases/PoolBlockShares.md)
 
-Defined in: modules/bitview-client/index.js:1133
+Defined in: [modules/bitview-client/index.js:1141](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1141)
 
 ***
 
@@ -41,7 +41,7 @@ Defined in: modules/bitview-client/index.js:1133
 
 > **estimatedHashrate**: `number`
 
-Defined in: modules/bitview-client/index.js:1134
+Defined in: [modules/bitview-client/index.js:1142](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1142)
 
 Estimated hashrate based on blocks mined (H/s)
 
@@ -51,7 +51,7 @@ Estimated hashrate based on blocks mined (H/s)
 
 > **pool**: [`PoolDetailInfo`](PoolDetailInfo.md)
 
-Defined in: modules/bitview-client/index.js:1131
+Defined in: [modules/bitview-client/index.js:1139](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1139)
 
 ***
 
@@ -59,7 +59,7 @@ Defined in: modules/bitview-client/index.js:1131
 
 > `optional` **reportedHashrate?**: `number` \| `null`
 
-Defined in: modules/bitview-client/index.js:1135
+Defined in: [modules/bitview-client/index.js:1143](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1143)
 
 Self-reported hashrate (if available, H/s)
 
@@ -69,7 +69,7 @@ Self-reported hashrate (if available, H/s)
 
 > **totalReward**: `string`
 
-Defined in: modules/bitview-client/index.js:1138
+Defined in: [modules/bitview-client/index.js:1146](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1146)
 
 Total reward earned by this pool: coinbase output value of every block it mined (sats),
-as a decimal string
+  as a decimal string

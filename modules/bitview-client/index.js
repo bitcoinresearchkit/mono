@@ -1787,6 +1787,20 @@ const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
 
 /** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
+
+/**
+ * A JSON value as the memory cache shares it, frozen deeply (`_deepFreeze`): readonly all the way
+ * down, `any` and `unknown` left as they are. Plain data only (a series, with its methods, types its
+ * own data so).
+ * @template T
+ * @typedef {unknown extends T ? T : FrozenObject<T>} Frozen
+ */
+
+/**
+ * `Frozen`'s readonly mapping of a known type (a primitive maps to itself).
+ * @template T
+ * @typedef {{ readonly [K in keyof T]: Frozen<T[K]> }} FrozenObject
+ */
 /** @type {Map<string, string>} */
 const _camelNames = new Map();
 /** `tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are. @param {string} key */
@@ -1798,6 +1812,12 @@ const _camelName = (key) => {
   }
   return name;
 };
+
+/**
+ * `getJson`'s body reader: the JSON, its field names camelCased (map keys as `keep` says).
+ * @param {*} keep
+ */
+const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(await res.json(), keep);
 
 /**
  * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
@@ -1957,19 +1977,19 @@ function _wrapSeriesData(raw) {
       return this.indexes();
     },
     entries() {
-      /** @type {Array<[number, T]>} */
+      /** @type {Array<[number, Frozen<T>]>} */
       const result = new Array(data.length);
       for (let i = 0; i < data.length; i++) result[i] = [start + i, data[i]];
       return result;
     },
     toMap() {
-      /** @type {Map<number, T>} */
+      /** @type {Map<number, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(start + i, data[i]);
       return map;
     },
     *[Symbol.iterator]() {
-      for (let i = 0; i < data.length; i++) yield /** @type {[number, T]} */ ([start + i, data[i]]);
+      for (let i = 0; i < data.length; i++) yield /** @type {[number, Frozen<T>]} */ ([start + i, data[i]]);
     },
     // DateSeriesData methods (only meaningful for date-based indexes)
     dates() {
@@ -1979,13 +1999,13 @@ function _wrapSeriesData(raw) {
       return result;
     },
     dateEntries() {
-      /** @type {Array<[globalThis.Date, T]>} */
+      /** @type {Array<[globalThis.Date, Frozen<T>]>} */
       const result = [];
       for (let i = 0; i < data.length; i++) result.push([indexToDate(index, start + i), data[i]]);
       return result;
     },
     toDateMap() {
-      /** @type {Map<globalThis.Date, T>} */
+      /** @type {Map<globalThis.Date, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(indexToDate(index, start + i), data[i]);
       return map;
@@ -2001,22 +2021,22 @@ function _wrapSeriesData(raw) {
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
- * @property {T[]} data - The series data (`null` where a value is missing or undefined)
+ * @property {readonly Frozen<T>[]} data - The series data (`null` where a value is missing or undefined), frozen when the memory cache shares it
  * @property {boolean} isDateBased
  * @property {() => number[]} indexes
  * @property {() => number[]} keys - Alias for indexes
- * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
- * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
+ * @property {() => Array<[number, Frozen<T>]>} entries - Get [index, value] pairs
+ * @property {() => Map<number, Frozen<T>>} toMap - Convert to Map<index, value>
  */
 
-/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, T]>} SeriesData */
+/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, Frozen<T>]>} SeriesData */
 
 /**
  * @template T
  * @typedef {Object} DateSeriesDataExtras
  * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries
- * @property {() => Map<globalThis.Date, T>} toDateMap
+ * @property {() => Array<[globalThis.Date, Frozen<T>]>} dateEntries
+ * @property {() => Map<globalThis.Date, Frozen<T>>} toDateMap
  */
 
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
@@ -2372,15 +2392,17 @@ class BitviewClientBase {
   }
 
   /**
-   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
-   * @template T
+   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`). The
+   * value may be the memory cache's, shared and frozen: typed so, as `Frozen<T>` for the `T` given
+   * (`getJson<T>(…)`, or a cast in JavaScript: `unknown` otherwise).
+   * @template [T=unknown]
    * @param {string} path
-   * @param {ClientFetchOptions<T>} [options]
+   * @param {ClientFetchOptions<Frozen<T>>} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
-   * @returns {Promise<T>}
+   * @returns {Promise<Frozen<T>>}
    */
   getJson(path, options, keep) {
-    return this._getCached(path, 'json', async (res) => _camelKeys(await res.json(), keep), options);
+    return this._getCached(path, 'json', _readJson(keep), options);
   }
 
   /**
@@ -2467,7 +2489,8 @@ class BitviewClientBase {
       : { ...(arg ?? {}), ...(options ?? {}) };
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
+    // `getJson`'s reader, typed as the series it is (its data already frozen).
+    const raw = await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { ...requestOptions, onValue: wrappedOnValue });
     return _wrapSeriesData(raw);
   }
 }
@@ -8050,8 +8073,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {AddressOutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressHashPrefixMatches>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressHashPrefixMatches>>}
    */
   getAddressPayloadHashPrefixMatches(addressType, payload, nibbles, options = {}) {
     _validateAddressPayloadForType(addressType, payload);
@@ -8076,24 +8099,24 @@ class BitviewClient extends BitviewClientBase {
    * Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
    *
    * Endpoint: `GET /health`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Health) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Health>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Health>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Health>>}
    */
   async getHealth({ signal, onValue, cache, memCache } = {}) {
     const path = `/health`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
    * API version
    *
    * Endpoint: `GET /version`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ServerVersion) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ServerVersion>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ServerVersion>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<ServerVersion>>}
    */
   async getVersion({ signal, onValue, cache, memCache } = {}) {
     const path = `/version`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8102,12 +8125,12 @@ class BitviewClient extends BitviewClientBase {
    * Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
    *
    * Endpoint: `GET /api/server/sync`
-   * @param {{ signal?: AbortSignal, onValue?: (value: SyncStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SyncStatus>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SyncStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<SyncStatus>>}
    */
   async getSyncStatus({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/server/sync`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8118,15 +8141,15 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/server/logs`
    *
    * @param {string=} [after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Logs) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Logs>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Logs>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Logs>>}
    */
   async getLogs(after, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (after !== undefined) params.set('after', String(after));
     const query = params.toString();
     const path = `/api/server/logs${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8135,12 +8158,12 @@ class BitviewClient extends BitviewClientBase {
    * Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
    *
    * Endpoint: `GET /api/server/disk`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DiskUsage) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DiskUsage>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DiskUsage>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<DiskUsage>>}
    */
   async getDiskUsage({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/server/disk`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8149,12 +8172,12 @@ class BitviewClient extends BitviewClientBase {
    * The available series as a tree of categories and subcategories.
    *
    * Endpoint: `GET /api/series`
-   * @param {{ signal?: AbortSignal, onValue?: (value: TreeNode) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TreeNode>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TreeNode>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TreeNode>>}
    */
   async getSeriesTree({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8163,12 +8186,12 @@ class BitviewClient extends BitviewClientBase {
    * Returns the number of series available per index type.
    *
    * Endpoint: `GET /api/series/count`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DetailedSeriesCount) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DetailedSeriesCount>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DetailedSeriesCount>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<DetailedSeriesCount>>}
    */
   async getSeriesCount({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/count`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, { "by_db": true });
+    return this._getCached(path, 'json', _readJson({ "by_db": true }), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8177,12 +8200,12 @@ class BitviewClient extends BitviewClientBase {
    * Returns every index a series can be read at, by the name series routes take.
    *
    * Endpoint: `GET /api/series/indexes`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Index[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Index[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Index[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Index[]>>}
    */
   async listIndexes({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/indexes`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8194,8 +8217,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {number=} [page] - Zero-based page number (default: 0)
    * @param {number=} [per_page] - Results per page, 1 to 1,000 (default: 1000)
-   * @param {{ signal?: AbortSignal, onValue?: (value: PaginatedSeries) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PaginatedSeries>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PaginatedSeries>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PaginatedSeries>>}
    */
   async listSeries(page, per_page, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8203,7 +8226,7 @@ class BitviewClient extends BitviewClientBase {
     if (per_page !== undefined) params.set('per_page', String(per_page));
     const query = params.toString();
     const path = `/api/series/list${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8215,8 +8238,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
    * @param {number=} [limit] - Maximum number of results, 1 to 1,000 (default: 100)
-   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesName[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SeriesName[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SeriesName[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<SeriesName[]>>}
    */
   async searchSeries(q, limit, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8224,7 +8247,7 @@ class BitviewClient extends BitviewClientBase {
     if (limit !== undefined) params.set('limit', String(limit));
     const query = params.toString();
     const path = `/api/series/search${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8235,12 +8258,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/{series}`
    *
    * @param {SeriesName} series
-   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SeriesInfo>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SeriesInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<SeriesInfo>>}
    */
   async getSeriesInfo(series, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8268,7 +8291,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return _wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }, _SERIES_KEEP));
+    return _wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }));
   }
 
   /**
@@ -8284,8 +8307,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
    * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<*[] | string>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<*[]> | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<*[]> | string>}
    */
   async getSeriesData(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8296,7 +8319,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/data${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8313,7 +8336,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getSeriesLatest(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/latest`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8323,12 +8346,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: number) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<number>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<number>>}
    */
   async getSeriesLen(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/len`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8340,12 +8363,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Version) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Version>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Version>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Version>>}
    */
   async getSeriesVersion(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/version`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8375,7 +8398,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/bulk${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return (await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) }, _SERIES_KEEP)).map(_wrapSeriesData);
+    return (await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData);
   }
 
   /**
@@ -8384,12 +8407,12 @@ class BitviewClient extends BitviewClientBase {
    * Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
    *
    * Endpoint: `GET /api/urpd`
-   * @param {{ signal?: AbortSignal, onValue?: (value: UrpdCohort[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UrpdCohort[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UrpdCohort[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<UrpdCohort[]>>}
    */
   async listUrpdCohorts({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/urpd`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8402,8 +8425,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {UrpdCohort} cohort
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Urpd>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Urpd>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Urpd>>}
    */
   async getUrpdLatest(cohort, agg, weight, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8411,7 +8434,7 @@ class BitviewClient extends BitviewClientBase {
     if (weight !== undefined) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8425,8 +8448,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Urpd>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Urpd>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Urpd>>}
    */
   async getUrpd(cohort, point, agg, weight, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8434,7 +8457,7 @@ class BitviewClient extends BitviewClientBase {
     if (weight !== undefined) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}/${encodeURIComponent(point)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8445,12 +8468,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
    *
    * Endpoint: `GET /api/v1/difficulty-adjustment`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustment) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustment>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustment>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<DifficultyAdjustment>>}
    */
   async getDifficultyAdjustment({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/difficulty-adjustment`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8461,12 +8484,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
    *
    * Endpoint: `GET /api/v1/prices`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PricePoint) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PricePoint>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PricePoint>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PricePoint>>}
    */
   async getPrices({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/prices`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8480,8 +8503,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Timestamp=} [timestamp] - UNIX timestamp: the latest close at or before it
    * @param {Currency=} [currency] - Quote currency: USD, the only one served
-   * @param {{ signal?: AbortSignal, onValue?: (value: HistoricalPrice) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HistoricalPrice>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HistoricalPrice>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<HistoricalPrice>>}
    */
   async getHistoricalPrice(timestamp, currency, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8489,7 +8512,7 @@ class BitviewClient extends BitviewClientBase {
     if (currency !== undefined) params.set('currency', String(currency));
     const query = params.toString();
     const path = `/api/v1/historical-price${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, { "exchangeRates": true });
+    return this._getCached(path, 'json', _readJson({ "exchangeRates": true }), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8502,12 +8525,12 @@ class BitviewClient extends BitviewClientBase {
    * @param {AddressOutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
    *   address payload bytes.
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressHashPrefixMatches>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressHashPrefixMatches>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressHashPrefixMatches>>}
    */
   async getAddressHashPrefixMatches(address_type, prefix, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/hash-prefix/${encodeURIComponent(address_type)}/${encodeURIComponent(prefix)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8520,12 +8543,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressStats) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressStats>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressStats>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressStats>>}
    */
   async getAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/${encodeURIComponent(address)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8541,8 +8564,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {Txid=} [after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
    *   cursor skips the mempool). One that is neither answers 422.
    * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getAddressTxs(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8550,7 +8573,7 @@ class BitviewClient extends BitviewClientBase {
     if (max_txs !== undefined) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8564,15 +8587,15 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Address} address
    * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getAddressConfirmedTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (max_txs !== undefined) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8587,15 +8610,15 @@ class BitviewClient extends BitviewClientBase {
    * @param {Address} address
    * @param {Txid} after_txid - Last txid from the previous page (return transactions strictly older than this)
    * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getAddressConfirmedTxsAfter(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (max_txs !== undefined) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8609,15 +8632,15 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Address} address
    * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getAddressMempoolTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (max_txs !== undefined) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/mempool${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8630,12 +8653,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}/utxo`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: Utxo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Utxo[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Utxo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Utxo[]>>}
    */
   async getAddressUtxos(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/address/${encodeURIComponent(address)}/utxo`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8649,12 +8672,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
    *   anything else answers 400, as mempool.space does
-   * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<AddressValidation>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressValidation>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressValidation>>}
    */
   async validateAddress(address, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/validate-address/${encodeURIComponent(address)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8665,12 +8688,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfo>>}
    */
   async getBlock(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8683,12 +8706,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfoV1>>}
    */
   async getBlockV1(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/block/${encodeURIComponent(hash)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8737,12 +8760,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`
    *
    * @param {Timestamp} timestamp
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockTimestamp) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockTimestamp>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockTimestamp>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockTimestamp>>}
    */
   async getBlockByTimestamp(timestamp, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/timestamp/${encodeURIComponent(timestamp)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8773,12 +8796,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/status`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockStatus>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockStatus>>}
    */
   async getBlockStatus(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/status`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8838,12 +8861,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/txids`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Txid[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Txid[]>>}
    */
   async getBlockTxids(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txids`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8856,12 +8879,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/txs`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxs(hash, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txs`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8875,12 +8898,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {BlockHash} hash
    * @param {BlockTxIndex} start_index - Starting transaction index within the block (0-based)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxsFromIndex(hash, start_index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block/${encodeURIComponent(hash)}/txs/${encodeURIComponent(start_index)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8891,12 +8914,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
    *
    * Endpoint: `GET /api/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocks({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8909,12 +8932,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfo[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocksFromHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8925,12 +8948,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
    *
    * Endpoint: `GET /api/v1/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8943,12 +8966,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1FromHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8957,12 +8980,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
    *
    * Endpoint: `GET /api/v1/mining/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolInfo[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolInfo[]>>}
    */
   async getPools({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pools`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8975,12 +8998,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolsSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolsSummary>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolsSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolsSummary>>}
    */
   async getPoolRanking(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pools/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -8993,12 +9016,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolDetail) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolDetail>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolDetail>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolDetail>>}
    */
   async getPool(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9009,12 +9032,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrate({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/pools`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9027,12 +9050,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/pools/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9045,12 +9068,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PoolHashrateEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolHashrate(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/hashrate`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9063,12 +9086,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocks(slug, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9082,12 +9105,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {PoolSlug} slug
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockInfoV1[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocksFromHeight(slug, height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9098,12 +9121,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate`
-   * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HashrateSummary>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HashrateSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrate({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9116,12 +9139,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<HashrateSummary>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HashrateSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/hashrate/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9130,12 +9153,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
    *
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments`
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustmentEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustmentEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustments({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/difficulty-adjustments`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9148,12 +9171,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<DifficultyAdjustmentEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustmentEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustmentsByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/difficulty-adjustments/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9166,12 +9189,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`
    *
    * @param {number} block_count - Number of recent blocks to include
-   * @param {{ signal?: AbortSignal, onValue?: (value: RewardStats) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RewardStats>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RewardStats>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<RewardStats>>}
    */
   async getRewardStats(block_count, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/reward-stats/${encodeURIComponent(block_count)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9184,12 +9207,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeesEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeesEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockFeesEntry[]>>}
    */
   async getBlockFees(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fees/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9202,12 +9225,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockRewardsEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockRewardsEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockRewardsEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockRewardsEntry[]>>}
    */
   async getBlockRewards(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/rewards/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9220,12 +9243,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeeRatesEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeeRatesEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockFeeRatesEntry[]>>}
    */
   async getBlockFeeRates(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9238,12 +9261,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesPreciseEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockFeeRatesPreciseEntry[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeeRatesPreciseEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockFeeRatesPreciseEntry[]>>}
    */
   async getBlockFeeRatesPrecise(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}/precise`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9256,12 +9279,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockSizesWeights) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockSizesWeights>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockSizesWeights>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockSizesWeights>>}
    */
   async getBlockSizesWeights(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/sizes-weights/${encodeURIComponent(time_period)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9272,12 +9295,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
    * Endpoint: `GET /api/v1/fees/mempool-blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlock[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlock[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlock[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolBlock[]>>}
    */
   async getMempoolBlocks({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/mempool-blocks`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9288,12 +9311,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
    *
    * Endpoint: `GET /api/v1/fees/recommended`
-   * @param {{ signal?: AbortSignal, onValue?: (value: RecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RecommendedFees>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RecommendedFees>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<RecommendedFees>>}
    */
   async getRecommendedFees({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/recommended`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9304,12 +9327,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *
    * Endpoint: `GET /api/v1/fees/precise`
-   * @param {{ signal?: AbortSignal, onValue?: (value: PreciseRecommendedFees) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<PreciseRecommendedFees>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PreciseRecommendedFees>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<PreciseRecommendedFees>>}
    */
   async getPreciseFees({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fees/precise`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9318,12 +9341,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
    *
    * Endpoint: `GET /api/mempool`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolInfo>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolInfo>>}
    */
   async getMempool({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9334,12 +9357,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*
    *
    * Endpoint: `GET /api/mempool/txids`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Txid[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Txid[]>>}
    */
   async getMempoolTxids({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/txids`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9350,12 +9373,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
    *
    * Endpoint: `GET /api/mempool/recent`
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolRecentTx[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolRecentTx[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolRecentTx[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolRecentTx[]>>}
    */
   async getMempoolRecent({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/recent`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9366,12 +9389,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
    *
    * Endpoint: `GET /api/v1/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ReplacementNode[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ReplacementNode[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ReplacementNode[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getReplacements({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/replacements`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9382,12 +9405,12 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*
    *
    * Endpoint: `GET /api/v1/fullrbf/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: ReplacementNode[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<ReplacementNode[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ReplacementNode[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getFullrbfReplacements({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/fullrbf/replacements`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9398,12 +9421,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
    * @param {MempoolBlockIndex} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockContent) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlockContent>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlockContent>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolBlockContent>>}
    */
   async getMempoolBlock(index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool-blocks/${encodeURIComponent(index)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9415,12 +9438,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {MempoolBlockIndex} index
    * @param {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
-   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockDiff) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MempoolBlockDiff>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlockDiff>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolBlockDiff>>}
    */
   async getMempoolBlockDiff(index, since, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool-blocks/${encodeURIComponent(index)}/diff/${encodeURIComponent(since)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9449,12 +9472,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/cpfp/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Cpfp) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Cpfp>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Cpfp>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Cpfp>>}
    */
   async getCpfp(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/cpfp/${encodeURIComponent(txid)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9467,12 +9490,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/tx/{txid}/rbf`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: RbfResponse) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<RbfResponse>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RbfResponse>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<RbfResponse>>}
    */
   async getTxRbf(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/tx/${encodeURIComponent(txid)}/rbf`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9483,12 +9506,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Transaction) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Transaction>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Transaction>>}
    */
   async getTx(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9535,12 +9558,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/merkle-proof`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: MerkleProof) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<MerkleProof>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MerkleProof>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MerkleProof>>}
    */
   async getTxMerkleProof(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/merkle-proof`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9554,12 +9577,12 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Txid} txid
    * @param {Vout} vout - Output index
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxOutspend) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxOutspend>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxOutspend>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TxOutspend>>}
    */
   async getTxOutspend(txid, vout, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/outspend/${encodeURIComponent(vout)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9572,12 +9595,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/outspends`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxOutspend[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxOutspend[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxOutspend[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TxOutspend[]>>}
    */
   async getTxOutspends(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/outspends`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9608,12 +9631,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/status`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: TxStatus) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<TxStatus>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TxStatus>>}
    */
   async getTxStatus(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx/${encodeURIComponent(txid)}/status`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9626,15 +9649,15 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/transaction-times`
    *
    * @param {Txid[]} txids - Transaction IDs to look up (max 100 per request).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Timestamp[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Timestamp[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Timestamp[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Timestamp[]>>}
    */
   async getTransactionTimes(txids, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     for (const _v of txids) params.append('txId[]', String(_v));
     const query = params.toString();
     const path = `/api/v1/transaction-times${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9661,12 +9684,12 @@ class BitviewClient extends BitviewClientBase {
    * The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
    *
    * Endpoint: `GET /api/utxo-set`
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSet>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSet>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSetLatest({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9677,12 +9700,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/utxo-set/{point}`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSet>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSet>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSet(point, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set/${encodeURIComponent(point)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9693,12 +9716,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/utxo-set/{point}/diff`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSetDiff) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<UtxoSetDiff>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSetDiff>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<UtxoSetDiff>>}
    */
   async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set/${encodeURIComponent(point)}/diff`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9707,12 +9730,12 @@ class BitviewClient extends BitviewClientBase {
    * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
    *
    * Endpoint: `GET /api/oracle/price`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Dollars>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Dollars>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Dollars>>}
    */
   async getLivePrice({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/price`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9721,12 +9744,12 @@ class BitviewClient extends BitviewClientBase {
    * The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
    *
    * Endpoint: `GET /api/oracle/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleBlock>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OracleBlock>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<OracleBlock>>}
    */
   async getOracleLive({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/live`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9737,12 +9760,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/oracle/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleBlock>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OracleBlock>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<OracleBlock>>}
    */
   async getOracleBlock(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/blocks/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9753,12 +9776,12 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/oracle/payments/{start}`
    *
    * @param {Height} start - The first block's height.
-   * @param {{ signal?: AbortSignal, onValue?: (value: OraclePayments) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OraclePayments>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OraclePayments>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<OraclePayments>>}
    */
   async getOraclePayments(start, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/payments/${encodeURIComponent(start)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9772,7 +9795,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getOpenapi({ signal, onValue, cache, memCache } = {}) {
     const path = `/openapi.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
   /**
@@ -9786,7 +9809,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getApi({ signal, onValue, cache, memCache } = {}) {
     const path = `/api.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache }, true);
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 
 }

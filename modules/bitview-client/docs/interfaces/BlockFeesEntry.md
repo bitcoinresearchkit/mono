@@ -6,7 +6,7 @@
 
 # Interface: BlockFeesEntry
 
-Defined in: modules/bitview-client/index.js:190
+Defined in: [modules/bitview-client/index.js:196](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L196)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:190
 
 > **avgFees**: `number`
 
-Defined in: modules/bitview-client/index.js:193
+Defined in: [modules/bitview-client/index.js:199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L199)
 
 Mean fees per block in this bucket, rounded half up (sats)
 
@@ -24,7 +24,7 @@ Mean fees per block in this bucket, rounded half up (sats)
 
 > **avgHeight**: `number`
 
-Defined in: modules/bitview-client/index.js:191
+Defined in: [modules/bitview-client/index.js:197](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L197)
 
 Average block height in this bucket
 
@@ -34,7 +34,7 @@ Average block height in this bucket
 
 > **timestamp**: `number`
 
-Defined in: modules/bitview-client/index.js:192
+Defined in: [modules/bitview-client/index.js:198](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L198)
 
 Average block timestamp in this bucket
 
@@ -44,6 +44,6 @@ Average block timestamp in this bucket
 
 > **USD**: `number`
 
-Defined in: modules/bitview-client/index.js:194
+Defined in: [modules/bitview-client/index.js:200](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L200)
 
 Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)

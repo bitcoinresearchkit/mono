@@ -8,7 +8,7 @@
 
 > **HoldersCostBasis** = `object`
 
-Defined in: modules/bitview-client/index.js:3713
+Defined in: [modules/bitview-client/index.js:3772](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3772)
 
 ## Type Parameters
 

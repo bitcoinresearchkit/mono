@@ -12,6 +12,20 @@ const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
 
 /** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
+
+/**
+ * A JSON value as the memory cache shares it, frozen deeply (`_deepFreeze`): readonly all the way
+ * down, `any` and `unknown` left as they are. Plain data only (a series, with its methods, types its
+ * own data so).
+ * @template T
+ * @typedef {unknown extends T ? T : FrozenObject<T>} Frozen
+ */
+
+/**
+ * `Frozen`'s readonly mapping of a known type (a primitive maps to itself).
+ * @template T
+ * @typedef {{ readonly [K in keyof T]: Frozen<T[K]> }} FrozenObject
+ */
 /** @type {Map<string, string>} */
 const _camelNames = new Map();
 /** `tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are. @param {string} key */
@@ -23,6 +37,12 @@ const _camelName = (key) => {
   }
   return name;
 };
+
+/**
+ * `getJson`'s body reader: the JSON, its field names camelCased (map keys as `keep` says).
+ * @param {*} keep
+ */
+const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(await res.json(), keep);
 
 /**
  * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
@@ -182,19 +202,19 @@ function _wrapSeriesData(raw) {
       return this.indexes();
     },
     entries() {
-      /** @type {Array<[number, T]>} */
+      /** @type {Array<[number, Frozen<T>]>} */
       const result = new Array(data.length);
       for (let i = 0; i < data.length; i++) result[i] = [start + i, data[i]];
       return result;
     },
     toMap() {
-      /** @type {Map<number, T>} */
+      /** @type {Map<number, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(start + i, data[i]);
       return map;
     },
     *[Symbol.iterator]() {
-      for (let i = 0; i < data.length; i++) yield /** @type {[number, T]} */ ([start + i, data[i]]);
+      for (let i = 0; i < data.length; i++) yield /** @type {[number, Frozen<T>]} */ ([start + i, data[i]]);
     },
     // DateSeriesData methods (only meaningful for date-based indexes)
     dates() {
@@ -204,13 +224,13 @@ function _wrapSeriesData(raw) {
       return result;
     },
     dateEntries() {
-      /** @type {Array<[globalThis.Date, T]>} */
+      /** @type {Array<[globalThis.Date, Frozen<T>]>} */
       const result = [];
       for (let i = 0; i < data.length; i++) result.push([indexToDate(index, start + i), data[i]]);
       return result;
     },
     toDateMap() {
-      /** @type {Map<globalThis.Date, T>} */
+      /** @type {Map<globalThis.Date, Frozen<T>>} */
       const map = new Map();
       for (let i = 0; i < data.length; i++) map.set(indexToDate(index, start + i), data[i]);
       return map;
@@ -226,22 +246,22 @@ function _wrapSeriesData(raw) {
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {number} start - Start index (inclusive)
  * @property {number} end - End index (exclusive)
- * @property {T[]} data - The series data (`null` where a value is missing or undefined)
+ * @property {readonly Frozen<T>[]} data - The series data (`null` where a value is missing or undefined), frozen when the memory cache shares it
  * @property {boolean} isDateBased
  * @property {() => number[]} indexes
  * @property {() => number[]} keys - Alias for indexes
- * @property {() => Array<[number, T]>} entries - Get [index, value] pairs
- * @property {() => Map<number, T>} toMap - Convert to Map<index, value>
+ * @property {() => Array<[number, Frozen<T>]>} entries - Get [index, value] pairs
+ * @property {() => Map<number, Frozen<T>>} toMap - Convert to Map<index, value>
  */
 
-/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, T]>} SeriesData */
+/** @template T @typedef {SeriesDataBase<T> & Iterable<[number, Frozen<T>]>} SeriesData */
 
 /**
  * @template T
  * @typedef {Object} DateSeriesDataExtras
  * @property {() => globalThis.Date[]} dates - Get dates for each data point
- * @property {() => Array<[globalThis.Date, T]>} dateEntries
- * @property {() => Map<globalThis.Date, T>} toDateMap
+ * @property {() => Array<[globalThis.Date, Frozen<T>]>} dateEntries
+ * @property {() => Map<globalThis.Date, Frozen<T>>} toDateMap
  */
 
 /** @template T @typedef {SeriesData<T> & DateSeriesDataExtras<T>} DateSeriesData */
@@ -597,15 +617,17 @@ class BitviewClientBase {
   }
 
   /**
-   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
-   * @template T
+   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`). The
+   * value may be the memory cache's, shared and frozen: typed so, as `Frozen<T>` for the `T` given
+   * (`getJson<T>(…)`, or a cast in JavaScript: `unknown` otherwise).
+   * @template [T=unknown]
    * @param {string} path
-   * @param {ClientFetchOptions<T>} [options]
+   * @param {ClientFetchOptions<Frozen<T>>} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
-   * @returns {Promise<T>}
+   * @returns {Promise<Frozen<T>>}
    */
   getJson(path, options, keep) {
-    return this._getCached(path, 'json', async (res) => _camelKeys(await res.json(), keep), options);
+    return this._getCached(path, 'json', _readJson(keep), options);
   }
 
   /**
@@ -692,7 +714,8 @@ class BitviewClientBase {
       : { ...(arg ?? {}), ...(options ?? {}) };
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
+    // `getJson`'s reader, typed as the series it is (its data already frozen).
+    const raw = await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { ...requestOptions, onValue: wrappedOnValue });
     return _wrapSeriesData(raw);
   }
 }

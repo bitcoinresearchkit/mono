@@ -8,7 +8,7 @@
 
 > **TransactionsFlagged** = `object`
 
-Defined in: modules/bitview-client/index.js:4694
+Defined in: [modules/bitview-client/index.js:4756](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4756)
 
 ## Type Parameters
 
@@ -33,3 +33,7 @@ Defined in: modules/bitview-client/index.js:4694
 ### sum
 
 > **sum**: [`Windows`](Windows.md)\<[`Count`](Count.md)\>
+
+### value
+
+> **value**: [`TxValue`](TxValue.md)

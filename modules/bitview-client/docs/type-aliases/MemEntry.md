@@ -8,7 +8,7 @@
 
 > **\_MemEntry**\<`T`\> = `object`
 
-Defined in: modules/bitview-client/index.js:1778
+Defined in: [modules/bitview-client/index.js:1789](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1789)
 
 ## Type Parameters
 

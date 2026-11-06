@@ -8,7 +8,7 @@
 
 > **Halving** = `object`
 
-Defined in: modules/bitview-client/index.js:4387
+Defined in: [modules/bitview-client/index.js:4446](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4446)
 
 ## Type Parameters
 

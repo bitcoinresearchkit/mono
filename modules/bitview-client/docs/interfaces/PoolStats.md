@@ -6,7 +6,7 @@
 
 # Interface: PoolStats
 
-Defined in: modules/bitview-client/index.js:1181
+Defined in: [modules/bitview-client/index.js:1189](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1189)
 
 ## Properties
 
@@ -14,10 +14,10 @@ Defined in: modules/bitview-client/index.js:1181
 
 > `optional` **avgFeeDelta?**: `string` \| `null`
 
-Defined in: modules/bitview-client/index.js:1191
+Defined in: [modules/bitview-client/index.js:1199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1199)
 
 Mean relative difference of the pool's fees from the expected template's, a decimal
-string at mempool.space, from its own audits (always null: it needs the mempool as it was)
+  string at mempool.space, from its own audits (always null: it needs the mempool as it was)
 
 ***
 
@@ -25,10 +25,10 @@ string at mempool.space, from its own audits (always null: it needs the mempool 
 
 > `optional` **avgMatchRate?**: `number` \| `null`
 
-Defined in: modules/bitview-client/index.js:1189
+Defined in: [modules/bitview-client/index.js:1197](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1197)
 
 Mean share of the expected block template the pool's blocks matched, from mempool.space's
-own audits (always null: it needs the mempool as it was)
+  own audits (always null: it needs the mempool as it was)
 
 ***
 
@@ -36,7 +36,7 @@ own audits (always null: it needs the mempool as it was)
 
 > **blockCount**: `number`
 
-Defined in: modules/bitview-client/index.js:1185
+Defined in: [modules/bitview-client/index.js:1193](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1193)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: modules/bitview-client/index.js:1185
 
 > **emptyBlocks**: `number`
 
-Defined in: modules/bitview-client/index.js:1187
+Defined in: [modules/bitview-client/index.js:1195](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1195)
 
 Number of empty (coinbase-only) blocks mined in the time period
 
@@ -54,7 +54,7 @@ Number of empty (coinbase-only) blocks mined in the time period
 
 > **link**: `string`
 
-Defined in: modules/bitview-client/index.js:1184
+Defined in: [modules/bitview-client/index.js:1192](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1192)
 
 Pool website URL
 
@@ -64,7 +64,7 @@ Pool website URL
 
 > **name**: `string`
 
-Defined in: modules/bitview-client/index.js:1183
+Defined in: [modules/bitview-client/index.js:1191](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1191)
 
 ***
 
@@ -72,7 +72,7 @@ Defined in: modules/bitview-client/index.js:1183
 
 > **poolId**: `number`
 
-Defined in: modules/bitview-client/index.js:1182
+Defined in: [modules/bitview-client/index.js:1190](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1190)
 
 One-based pool ID, matching mempool.space's `id`
 
@@ -82,7 +82,7 @@ One-based pool ID, matching mempool.space's `id`
 
 > **poolUniqueId**: `number`
 
-Defined in: modules/bitview-client/index.js:1193
+Defined in: [modules/bitview-client/index.js:1201](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1201)
 
 Zero-based pool ID, matching mempool.space's `unique_id`
 
@@ -92,7 +92,7 @@ Zero-based pool ID, matching mempool.space's `unique_id`
 
 > **rank**: `number`
 
-Defined in: modules/bitview-client/index.js:1186
+Defined in: [modules/bitview-client/index.js:1194](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1194)
 
 Pool ranking by block count (1 = most blocks)
 
@@ -102,7 +102,7 @@ Pool ranking by block count (1 = most blocks)
 
 > **share**: `number`
 
-Defined in: modules/bitview-client/index.js:1194
+Defined in: [modules/bitview-client/index.js:1202](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1202)
 
 Pool's share of total blocks (0.0 - 1.0)
 
@@ -112,6 +112,6 @@ Pool's share of total blocks (0.0 - 1.0)
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: modules/bitview-client/index.js:1188
+Defined in: [modules/bitview-client/index.js:1196](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1196)
 
 URL-friendly pool identifier

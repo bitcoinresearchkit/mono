@@ -6,7 +6,7 @@
 
 # Interface: CpfpInfo
 
-Defined in: modules/bitview-client/index.js:443
+Defined in: [modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L449)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:443
 
 > **adjustedVsize**: `number`
 
-Defined in: modules/bitview-client/index.js:454
+Defined in: [modules/bitview-client/index.js:460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L460)
 
 Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
 
@@ -24,7 +24,7 @@ Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
 
 > **ancestors**: [`CpfpEntry`](CpfpEntry.md)[]
 
-Defined in: modules/bitview-client/index.js:444
+Defined in: [modules/bitview-client/index.js:450](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L450)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: modules/bitview-client/index.js:444
 
 > `optional` **bestDescendant?**: [`CpfpEntry`](CpfpEntry.md) \| `null`
 
-Defined in: modules/bitview-client/index.js:445
+Defined in: [modules/bitview-client/index.js:451](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L451)
 
 Best (highest fee rate) descendant, if any.
 
@@ -42,10 +42,10 @@ Best (highest fee rate) descendant, if any.
 
 > `optional` **cluster?**: [`CpfpCluster`](CpfpCluster.md) \| `null`
 
-Defined in: modules/bitview-client/index.js:455
+Defined in: [modules/bitview-client/index.js:461](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L461)
 
 Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
-(matches mempool.space).
+  (matches mempool.space).
 
 ***
 
@@ -53,7 +53,7 @@ Cluster the seed belongs to; omitted when the seed has no ancestors and no desce
 
 > **descendants**: [`CpfpEntry`](CpfpEntry.md)[]
 
-Defined in: modules/bitview-client/index.js:446
+Defined in: [modules/bitview-client/index.js:452](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L452)
 
 ***
 
@@ -61,11 +61,11 @@ Defined in: modules/bitview-client/index.js:446
 
 > **effectiveFeePerVsize**: `number`
 
-Defined in: modules/bitview-client/index.js:447
+Defined in: [modules/bitview-client/index.js:453](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L453)
 
 Effective fee rate considering CPFP relationships (sat/vB).
-This is the seed's chunk feerate after lift-merging, i.e. the
-rate Core/mempool.space would surface for this tx.
+  This is the seed's chunk feerate after lift-merging, i.e. the
+  rate Core/mempool.space would surface for this tx.
 
 ***
 
@@ -73,7 +73,7 @@ rate Core/mempool.space would surface for this tx.
 
 > **fee**: `number`
 
-Defined in: modules/bitview-client/index.js:452
+Defined in: [modules/bitview-client/index.js:458](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L458)
 
 Transaction fee (sats).
 
@@ -83,10 +83,10 @@ Transaction fee (sats).
 
 > **sigops**: `number`
 
-Defined in: modules/bitview-client/index.js:450
+Defined in: [modules/bitview-client/index.js:456](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L456)
 
 BIP-141 sigop cost for the seed tx (witness sigops count as 1,
-legacy and P2SH-redeem sigops count as 4).
+  legacy and P2SH-redeem sigops count as 4).
 
 ***
 
@@ -94,6 +94,6 @@ legacy and P2SH-redeem sigops count as 4).
 
 > **vsize**: `number`
 
-Defined in: modules/bitview-client/index.js:453
+Defined in: [modules/bitview-client/index.js:459](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L459)
 
 Virtual size of the seed tx (vbytes).

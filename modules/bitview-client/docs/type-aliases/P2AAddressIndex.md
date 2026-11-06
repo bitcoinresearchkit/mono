@@ -8,6 +8,6 @@
 
 > **P2AAddressIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: modules/bitview-client/index.js:1000
+Defined in: [modules/bitview-client/index.js:1008](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1008)
 
 ## Type Parameters

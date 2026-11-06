@@ -6,7 +6,7 @@
 
 # Interface: SeriesEndpoint\<T\>
 
-Defined in: modules/bitview-client/index.js:2000
+Defined in: [modules/bitview-client/index.js:2050](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2050)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: modules/bitview-client/index.js:2000
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: modules/bitview-client/index.js:2006
+Defined in: [modules/bitview-client/index.js:2056](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2056)
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: modules/bitview-client/index.js:2007
+Defined in: [modules/bitview-client/index.js:2057](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2057)
 
 Fetch all data as CSV
 
@@ -64,7 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2003
+Defined in: [modules/bitview-client/index.js:2053](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2053)
 
 #### Parameters
 
@@ -82,7 +82,7 @@ Defined in: modules/bitview-client/index.js:2003
 
 > **get**: (`index`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2001
+Defined in: [modules/bitview-client/index.js:2051](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2051)
 
 #### Parameters
 
@@ -100,7 +100,7 @@ Defined in: modules/bitview-client/index.js:2001
 
 > **last**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2004
+Defined in: [modules/bitview-client/index.js:2054](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2054)
 
 #### Parameters
 
@@ -118,7 +118,7 @@ Defined in: modules/bitview-client/index.js:2004
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: modules/bitview-client/index.js:2008
+Defined in: [modules/bitview-client/index.js:2058](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2058)
 
 Get total number of data points
 
@@ -132,7 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: modules/bitview-client/index.js:2011
+Defined in: [modules/bitview-client/index.js:2061](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2061)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: modules/bitview-client/index.js:2011
 
 > **skip**: (`n`) => [`SkippedBuilder`](SkippedBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2005
+Defined in: [modules/bitview-client/index.js:2055](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2055)
 
 Skip first n items, chain with take()
 
@@ -160,7 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: modules/bitview-client/index.js:2002
+Defined in: [modules/bitview-client/index.js:2052](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2052)
 
 #### Parameters
 
@@ -182,7 +182,7 @@ Defined in: modules/bitview-client/index.js:2002
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: modules/bitview-client/index.js:2010
+Defined in: [modules/bitview-client/index.js:2060](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2060)
 
 Thenable (await endpoint)
 
@@ -224,7 +224,7 @@ A Promise for the completion of which ever callback is executed.
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: modules/bitview-client/index.js:2009
+Defined in: [modules/bitview-client/index.js:2059](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2059)
 
 #### Returns
 

@@ -6,7 +6,7 @@
 
 # Interface: UrpdQuery
 
-Defined in: modules/bitview-client/index.js:1607
+Defined in: [modules/bitview-client/index.js:1615](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1615)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:1607
 
 > `optional` **agg?**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: modules/bitview-client/index.js:1608
+Defined in: [modules/bitview-client/index.js:1616](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1616)
 
 Aggregation strategy. Default: raw (no aggregation).
 
@@ -24,6 +24,6 @@ Aggregation strategy. Default: raw (no aggregation).
 
 > `optional` **weight?**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: modules/bitview-client/index.js:1609
+Defined in: [modules/bitview-client/index.js:1617](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1617)
 
 Supply weighting. Default: none (unweighted).

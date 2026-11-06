@@ -6,7 +6,7 @@
 
 # Interface: Health
 
-Defined in: modules/bitview-client/index.js:646
+Defined in: [modules/bitview-client/index.js:652](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L652)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: modules/bitview-client/index.js:646
 
 > **blocksBehind**: `number`
 
-Defined in: modules/bitview-client/index.js:657
+Defined in: [modules/bitview-client/index.js:663](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L663)
 
 Number of blocks behind the tip
 
@@ -24,7 +24,7 @@ Number of blocks behind the tip
 
 > **computedHeight**: `number`
 
-Defined in: modules/bitview-client/index.js:654
+Defined in: [modules/bitview-client/index.js:660](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L660)
 
 Height of the last computed block (series)
 
@@ -34,7 +34,7 @@ Height of the last computed block (series)
 
 > **indexedHeight**: `number`
 
-Defined in: modules/bitview-client/index.js:653
+Defined in: [modules/bitview-client/index.js:659](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L659)
 
 Height of the last indexed block
 
@@ -44,7 +44,7 @@ Height of the last indexed block
 
 > **lastIndexedAt**: `string`
 
-Defined in: modules/bitview-client/index.js:658
+Defined in: [modules/bitview-client/index.js:664](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L664)
 
 Human-readable timestamp of the last indexed block (ISO 8601)
 
@@ -54,7 +54,7 @@ Human-readable timestamp of the last indexed block (ISO 8601)
 
 > **lastIndexedAtUnix**: `number`
 
-Defined in: modules/bitview-client/index.js:659
+Defined in: [modules/bitview-client/index.js:665](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L665)
 
 Unix timestamp of the last indexed block
 
@@ -64,7 +64,7 @@ Unix timestamp of the last indexed block
 
 > **service**: `"brk"`
 
-Defined in: modules/bitview-client/index.js:648
+Defined in: [modules/bitview-client/index.js:654](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L654)
 
 ***
 
@@ -72,7 +72,7 @@ Defined in: modules/bitview-client/index.js:648
 
 > **startedAt**: `string`
 
-Defined in: modules/bitview-client/index.js:651
+Defined in: [modules/bitview-client/index.js:657](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L657)
 
 Server start time (ISO 8601)
 
@@ -82,7 +82,7 @@ Server start time (ISO 8601)
 
 > **status**: `"healthy"`
 
-Defined in: modules/bitview-client/index.js:647
+Defined in: [modules/bitview-client/index.js:653](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L653)
 
 ***
 
@@ -90,7 +90,7 @@ Defined in: modules/bitview-client/index.js:647
 
 > **timestamp**: `string`
 
-Defined in: modules/bitview-client/index.js:650
+Defined in: [modules/bitview-client/index.js:656](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L656)
 
 Current server time (ISO 8601)
 
@@ -100,10 +100,10 @@ Current server time (ISO 8601)
 
 > **tipHeight**: `number`
 
-Defined in: modules/bitview-client/index.js:655
+Defined in: [modules/bitview-client/index.js:661](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L661)
 
 Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
-asking the node
+  asking the node
 
 ***
 
@@ -111,7 +111,7 @@ asking the node
 
 > **uptimeSeconds**: `number`
 
-Defined in: modules/bitview-client/index.js:652
+Defined in: [modules/bitview-client/index.js:658](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L658)
 
 Uptime in seconds
 
@@ -121,4 +121,4 @@ Uptime in seconds
 
 > **version**: `string`
 
-Defined in: modules/bitview-client/index.js:649
+Defined in: [modules/bitview-client/index.js:655](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L655)

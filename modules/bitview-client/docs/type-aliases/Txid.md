@@ -8,6 +8,6 @@
 
 > **Txid** = `string`
 
-Defined in: modules/bitview-client/index.js:1523
+Defined in: [modules/bitview-client/index.js:1531](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1531)
 
 ## Type Parameters

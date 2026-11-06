@@ -6,7 +6,7 @@
 
 # Interface: SeriesParam
 
-Defined in: modules/bitview-client/index.js:1377
+Defined in: [modules/bitview-client/index.js:1385](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1385)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: modules/bitview-client/index.js:1377
 
 > **series**: `string`
 
-Defined in: modules/bitview-client/index.js:1378
+Defined in: [modules/bitview-client/index.js:1386](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1386)

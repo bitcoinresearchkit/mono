@@ -8,6 +8,6 @@
 
 > **SigOps** = `number`
 
-Defined in: modules/bitview-client/index.js:1400
+Defined in: [modules/bitview-client/index.js:1408](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1408)
 
 ## Type Parameters
