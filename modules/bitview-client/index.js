@@ -1778,7 +1778,7 @@ const _SERIES_KEEP = { "data": true };
  * @property {string} baseUrl
  * @property {number} [timeout] - Request timeout in milliseconds, the download included. Default: 30000
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
+ * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled. Every caller of a URL shares the value it holds, frozen deeply (bytes, a Uint8Array, can't be frozen: don't change them): copy it before changing it, or disable the cache to own every value
  */
 
 const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
@@ -1797,6 +1797,25 @@ const _camelName = (key) => {
     _camelNames.set(key, name);
   }
   return name;
+};
+
+/**
+ * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
+ * caller of its URL gets the same object, so none may change it. Typed arrays (byte bodies) can't
+ * be frozen and stay as they are; strings already can't change.
+ * @template T
+ * @param {T} value
+ * @returns {T}
+ */
+const _deepFreeze = (value) => {
+  if (value === null || typeof value !== 'object' || ArrayBuffer.isView(value) || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) _deepFreeze(value[i]);
+  } else {
+    for (const key in value) _deepFreeze(/** @type {Record<string, unknown>} */ (value)[key]);
+  }
+  return value;
 };
 
 /**
@@ -2045,7 +2064,7 @@ function _wrapSeriesData(raw) {
  * @typedef {Object} ClientFetchOptions
  * @property {AbortSignal} [signal] - Abort this request
  * @property {boolean} [cache] - Use HTTP/browser/client caches. Set false for a no-store network fetch.
- * @property {boolean} [memCache] - Use the parsed in-memory response cache. Set false for large one-shot reads.
+ * @property {boolean} [memCache] - Use the parsed in-memory response cache, whose values are shared and frozen deeply (bytes can't be frozen: don't change them). Set false for large one-shot reads, or a value of your own to change.
  * @property {(value: T) => void} [onValue] - Receive stale/fresh values as they arrive
  */
 
@@ -2212,7 +2231,7 @@ class BitviewClientBase {
       const oldest = this._memCache.keys().next().value;
       if (oldest !== undefined) this._memCache.delete(oldest);
     }
-    this._memCache.set(key, { etag, value });
+    this._memCache.set(key, { etag, value: _deepFreeze(value) });
   }
 
   /**
@@ -2255,7 +2274,7 @@ class BitviewClientBase {
    *
    * Layers:
    * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
-   *   skip the parse entirely.
+   *   skip the parse entirely. A value it holds is shared by every caller, so it's frozen deeply.
    * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
    *
    * @template T
@@ -2301,10 +2320,13 @@ class BitviewClientBase {
       if (onValue) onValue(memHit.value);
       const res = await this.get(path, { signal, etag: memHit.etag });
       const netEtag = res.headers.get('ETag');
-      if (res.status === 304 || (netEtag && netEtag === memHit.etag)) {
+      const keep = storable(res);
+      if (res.status === 304 || (keep && netEtag && netEtag === memHit.etag)) {
         await res.body?.cancel();
         return memHit.value;
       }
+      // Now `no-store`: the URL's cached value goes, and this answer is the caller's own.
+      if (!keep) this._memCache.delete(key);
       return fresh(res);
     }
 
@@ -2336,8 +2358,11 @@ class BitviewClientBase {
     networkSettled = true;
     const netEtag = res.headers.get('ETag');
     // memCache already holds this ETag (our stale snapshot or a concurrent request) → reuse, skip
-    // the parse; deliver it unless this request already showed that very value.
-    const populated = useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
+    // the parse; deliver it unless this request already showed that very value. A `no-store`
+    // answer drops the URL's cached value instead and is the caller's own.
+    const keep = storable(res);
+    if (!keep && useMemCache) this._memCache.delete(key);
+    const populated = keep && useMemCache ? /** @type {_MemEntry<T> | undefined} */ (this._memGet(key)) : undefined;
     if (populated && netEtag && netEtag === populated.etag) {
       await res.body?.cancel();
       if (onValue && shown?.value !== populated.value) onValue(populated.value);
