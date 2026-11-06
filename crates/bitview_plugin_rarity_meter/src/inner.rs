@@ -205,9 +205,9 @@ impl RarityMeterInner {
             let target = &price.cents.height;
             target.header().computed_version() != target.header().vec_version() + version
         }) || self.level.height.header().computed_version()
-            != self.level.height.header().vec_version() + self.prices_version() + spot.version()
+            != self.level.height.header().vec_version() + (self.prices_version() + spot.version())
             || self.score.height.header().computed_version()
-                != self.score.height.header().vec_version() + version + spot.version()
+                != self.score.height.header().vec_version() + (version + spot.version())
             || self.prices_len() != prices_end
             || self.level.height.len() != score_end
             || self.score.height.len() != score_end

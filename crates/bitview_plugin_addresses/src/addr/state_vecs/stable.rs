@@ -1,4 +1,5 @@
-use bitview_primitives::{ByAddrType, EmptyAddressData, FundedAddressData, TypeIndex};
+use bitview_primitives::{ByAddrType, TypeIndex};
+use crate::addr::{EmptyAddressData, FundedAddressData};
 use brk_types::{Height, OutputType};
 use rustc_hash::FxHashMap;
 

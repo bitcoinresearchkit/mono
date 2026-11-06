@@ -34,25 +34,13 @@ macro_rules! impl_int_format {
             const UNDEFINED: bool = true;
 
             #[inline(always)]
+            fn is_undefined(&self) -> bool {
+                self.is_nan()
+            }
+
+            #[inline(always)]
             fn write_to(&self, buf: &mut Vec<u8>) {
                 vecdb::Formattable::write_to(&self.0, buf)
-            }
-
-            #[inline(always)]
-            fn fmt_json(&self, buf: &mut Vec<u8>) {
-                if vecdb::unlikely(self.is_nan()) {
-                    buf.extend_from_slice(b"null");
-                } else {
-                    self.write_to(buf);
-                }
-            }
-
-            /// Undefined: an empty CSV cell (JSON writes `null`).
-            #[inline(always)]
-            fn fmt_csv(&self, buf: &mut Vec<u8>) {
-                if !vecdb::unlikely(self.is_nan()) {
-                    self.write_to(buf);
-                }
             }
         }
     };
@@ -177,10 +165,16 @@ macro_rules! impl_float_ord_format {
             const UNDEFINED: bool = true;
 
             #[inline(always)]
+            fn is_undefined(&self) -> bool {
+                vecdb::Formattable::is_undefined(&self.0)
+            }
+
+            #[inline(always)]
             fn write_to(&self, buf: &mut Vec<u8>) {
                 vecdb::Formattable::write_to(&self.0, buf)
             }
 
+            /// The float's own: one finiteness check on the hot path.
             #[inline(always)]
             fn fmt_json(&self, buf: &mut Vec<u8>) {
                 vecdb::Formattable::fmt_json(&self.0, buf)

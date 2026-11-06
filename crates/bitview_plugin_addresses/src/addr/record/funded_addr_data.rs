@@ -3,20 +3,13 @@ use std::{
     result::Result as StdResult,
 };
 
+use bitview_primitives::SupplyState;
 use brk_types::{Cents, CentsSats, OutputType, Sats};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use vecdb::{Bytes, Formattable, OverflowVecValue, Result, Version};
 
-use crate::EmptyAddressData;
-
-#[cfg(feature = "storage")]
-use vecdb::Result;
-
-#[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable, OverflowVecValue, Version};
-
-#[cfg(feature = "storage")]
-use crate::FundedAddressDataCompact;
+use super::{EmptyAddressData, FundedAddressDataCompact};
 
 const CENTS_SATS_96_LIMIT: u128 = 1_u128 << 96;
 
@@ -70,7 +63,6 @@ impl CentsSats96 {
     }
 
     #[inline]
-    #[cfg(feature = "storage")]
     fn to_bytes(self) -> [u8; 12] {
         let mut bytes = [0; 12];
         bytes[0..4].copy_from_slice(&self.0[0].to_le_bytes());
@@ -80,7 +72,6 @@ impl CentsSats96 {
     }
 
     #[inline]
-    #[cfg(feature = "storage")]
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
         Ok(Self([
             u32::from_bytes(&bytes[0..4])?,
@@ -274,7 +265,6 @@ impl Display for FundedAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 impl Formattable for FundedAddressData {
     fn write_to(&self, buf: &mut Vec<u8>) {
         use std::io::Write;
@@ -294,7 +284,6 @@ impl Formattable for FundedAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 // SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
 // value the contract requires; the values are encoded, not in native layout.
 unsafe impl Bytes for FundedAddressData {
@@ -323,7 +312,6 @@ unsafe impl Bytes for FundedAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 impl OverflowVecValue for FundedAddressData {
     type Compact = FundedAddressDataCompact;
 
@@ -363,5 +351,15 @@ impl OverflowVecValue for FundedAddressData {
     #[inline(always)]
     fn from_overflow_index(index: usize) -> Self::Compact {
         FundedAddressDataCompact::from_overflow_index(index)
+    }
+}
+
+impl From<&FundedAddressData> for SupplyState {
+    #[inline]
+    fn from(value: &FundedAddressData) -> Self {
+        Self {
+            utxo_count: value.utxo_count() as u64,
+            value: value.balance(),
+        }
     }
 }

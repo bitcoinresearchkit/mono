@@ -6,8 +6,7 @@ use std::{
 };
 
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, AddrTypeId, BlockHashPrefix, ByAddrType,
-    Index40, TxOutIndex, TypeIndex,
+    AddrHash, AddrTypeId, BlockHashPrefix, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::{OptionData, Result};
 use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
@@ -24,10 +23,12 @@ use checkpoint::{
     DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
 };
 
+mod addr_keys;
 mod checkpoint;
 mod transaction;
 mod utxo;
 
+pub(crate) use addr_keys::{AddrIndexOutPoint, AddrIndexTxIndex};
 pub(crate) use transaction::TransactionStoresMut;
 pub use utxo::{UtxoKey, Utxos};
 

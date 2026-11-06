@@ -33,14 +33,13 @@ impl Vecs {
 
 impl AccountingSources<'_> {
     pub fn version(&self) -> Version {
-        Version::combine_all(
-            self.supplies
-                .iter()
-                .map(|v| v.version())
-                .chain(self.loss_supplies.iter().map(|v| v.version()))
-                .chain(self.cap_raw.iter().map(|v| v.version()))
-                .chain(self.capitalized_cap_raw.iter().map(|v| v.version())),
-        )
+        self.supplies
+            .iter()
+            .map(|v| v.version())
+            .chain(self.loss_supplies.iter().map(|v| v.version()))
+            .chain(self.cap_raw.iter().map(|v| v.version()))
+            .chain(self.capitalized_cap_raw.iter().map(|v| v.version()))
+            .sum::<Version>()
     }
 
     pub fn min_len(&self) -> usize {

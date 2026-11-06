@@ -8,20 +8,35 @@ pub trait Formattable {
     /// Whether a value can be missing (`Option`), written as JSON `null`.
     const MISSING: bool = false;
 
-    /// Write formatted UTF-8 bytes; the default `fmt_csv` and `fmt_json` delegate here.
-    fn write_to(&self, buf: &mut Vec<u8>);
-
-    /// Write one CSV cell. Override for types needing CSV escaping ([`escape_csv_cell`]) or an
-    /// empty cell for undefined values.
+    /// Whether this value is undefined (NaN, or the type's sentinel): JSON `null`, an empty CSV
+    /// cell, and a value statistics leave out. A type that has one declares [`Self::UNDEFINED`].
     #[inline(always)]
-    fn fmt_csv(&self, buf: &mut Vec<u8>) {
-        self.write_to(buf);
+    fn is_undefined(&self) -> bool {
+        false
     }
 
-    /// Write in JSON format. Override for types needing JSON wrapping (e.g., string quotes).
+    /// Write formatted UTF-8 bytes; the default `fmt_csv` and `fmt_json` delegate here for a
+    /// defined value.
+    fn write_to(&self, buf: &mut Vec<u8>);
+
+    /// Write one CSV cell, empty for an undefined value. Override for types needing CSV escaping
+    /// ([`escape_csv_cell`]).
+    #[inline(always)]
+    fn fmt_csv(&self, buf: &mut Vec<u8>) {
+        if !crate::unlikely(self.is_undefined()) {
+            self.write_to(buf);
+        }
+    }
+
+    /// Write in JSON format, `null` for an undefined value. Override for types needing JSON
+    /// wrapping (e.g., string quotes).
     #[inline(always)]
     fn fmt_json(&self, buf: &mut Vec<u8>) {
-        self.write_to(buf);
+        if crate::unlikely(self.is_undefined()) {
+            buf.extend_from_slice(b"null");
+        } else {
+            self.write_to(buf);
+        }
     }
 }
 
@@ -86,6 +101,11 @@ macro_rules! impl_formattable_float {
                 const UNDEFINED: bool = true;
 
                 #[inline(always)]
+                fn is_undefined(&self) -> bool {
+                    !self.is_finite()
+                }
+
+                #[inline(always)]
                 fn write_to(&self, buf: &mut Vec<u8>) {
                     if self.is_finite() {
                         buf.extend_from_slice(ryu::Buffer::new().format_finite(*self).as_bytes());
@@ -137,6 +157,12 @@ impl<T: Formattable, const N: usize> Formattable for [T; N] {
 impl<T: Formattable> Formattable for Option<T> {
     const UNDEFINED: bool = T::UNDEFINED;
     const MISSING: bool = true;
+
+    /// A present value's own; a missing one is missing, not undefined.
+    #[inline]
+    fn is_undefined(&self) -> bool {
+        self.as_ref().is_some_and(T::is_undefined)
+    }
 
     #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {

@@ -10,7 +10,7 @@ mod has;
 mod import;
 mod state;
 
-pub use addr::AddrStateRead;
+pub use addr::{AddrStateRead, FundedAddressData};
 pub use dependencies::Dependencies;
 pub use has::HasAddresses;
 

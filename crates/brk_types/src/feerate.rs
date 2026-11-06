@@ -296,19 +296,15 @@ impl Formattable for FeeRate {
     const UNDEFINED: bool = true;
 
     #[inline(always)]
+    fn is_undefined(&self) -> bool {
+        self.is_nan()
+    }
+
+    #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         if !self.is_nan() {
             let mut value = Buffer::new();
             buf.extend_from_slice(value.format(f64::from(*self)).as_bytes());
-        }
-    }
-
-    #[inline(always)]
-    fn fmt_json(&self, buf: &mut Vec<u8>) {
-        if self.is_nan() {
-            buf.extend_from_slice(b"null");
-        } else {
-            self.write_to(buf);
         }
     }
 }

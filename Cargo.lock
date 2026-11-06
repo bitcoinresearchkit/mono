@@ -524,6 +524,8 @@ dependencies = [
  "parking_lot",
  "rayon",
  "rustc-hash",
+ "schemars",
+ "serde",
  "smallvec",
  "tracing",
  "vecdb",
@@ -1386,6 +1388,8 @@ name = "brk_oracle"
 version = "0.13.0"
 dependencies = [
  "brk_types",
+ "schemars",
+ "serde",
 ]
 
 [[package]]

@@ -36,11 +36,12 @@ impl SortedWindow {
                 sorted: ExactOrderStats::from_sorted(Vec::new()),
             };
         }
+        // (An empty window starts after its row: at `next`.)
         let start = window_starts
             .collect_one_at(next - 1)
             .unwrap()
             .to_usize()
-            .max(first);
+            .clamp(first, next);
         let mut values = VecDeque::with_capacity(next - start);
         source.for_each_range_at(start, next, |value| values.push_back(f64::from(value)));
         let sorted = ExactOrderStats::from_unsorted(values.iter().copied().collect());
@@ -51,11 +52,12 @@ impl SortedWindow {
         }
     }
 
-    /// Enters row `index`'s value and drops the rows before its window `start`.
+    /// Enters row `index`'s value and drops the rows before its window `start`: every one, its
+    /// own included, for an empty window (`start` past `index`), whose statistics are NaN.
     #[inline]
     pub(crate) fn push(&mut self, index: usize, value: f64, start: usize) {
         debug_assert_eq!(index, self.start + self.values.len(), "rows enter in order");
-        debug_assert!(start <= index, "a window holds its own row");
+        let start = start.min(index + 1);
         self.values.push_back(value);
         self.sorted.insert(value);
         while self.start < start {
@@ -68,17 +70,29 @@ impl SortedWindow {
 
     #[inline]
     pub(crate) fn min(&self) -> f64 {
-        self.sorted.first()
+        if self.values.is_empty() {
+            f64::NAN
+        } else {
+            self.sorted.first()
+        }
     }
 
     #[inline]
     pub(crate) fn max(&self) -> f64 {
-        self.sorted.last()
+        if self.values.is_empty() {
+            f64::NAN
+        } else {
+            self.sorted.last()
+        }
     }
 
-    /// Percentiles (0.0-1.0, ascending) at the nearest rank.
+    /// Percentiles (0.0-1.0, ascending) at the nearest rank, NaN for an empty window.
     #[inline]
     pub(crate) fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
-        self.sorted.percentiles(ps)
+        if self.values.is_empty() {
+            [f64::NAN; N]
+        } else {
+            self.sorted.percentiles(ps)
+        }
     }
 }

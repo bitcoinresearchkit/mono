@@ -1,4 +1,4 @@
-use bitview_primitives::FundedAddressData;
+use crate::addr::FundedAddressData;
 use brk_types::{OutputType, Sats};
 use derive_more::Deref;
 

@@ -20,11 +20,12 @@ impl Inputs {
     /// `version` combined with each input's version, in order.
     pub fn new<'a>(version: Version, inputs: impl IntoIterator<Item = &'a dyn AnyVec>) -> Self {
         let mut len = usize::MAX;
-        let version =
-            Version::combine_all(iter::once(version).chain(inputs.into_iter().map(|input| {
+        let version = iter::once(version)
+            .chain(inputs.into_iter().map(|input| {
                 len = len.min(input.len());
                 input.version()
-            })));
+            }))
+            .sum::<Version>();
         Self { version, len }
     }
 

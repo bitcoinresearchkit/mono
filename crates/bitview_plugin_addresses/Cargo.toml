@@ -25,6 +25,8 @@ derive_more = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
 smallvec = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["derive", "pco"] }

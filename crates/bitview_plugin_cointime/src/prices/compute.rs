@@ -1,11 +1,11 @@
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height};
+use brk_types::{Bitcoin, Cents, Height};
 use vecdb::{ComputeVec, ReadableVec};
 
 use super::{
-    super::{activity, cap, supply},
+    super::{cap, supply},
     Vecs,
 };
 
@@ -14,28 +14,25 @@ impl Vecs {
         &mut self,
         from: Height,
         holders: &HoldersVecs,
-        activity: &activity::Vecs,
         supply: &supply::Vecs,
         cap: &cap::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let realized_price = &holders.cohorts.all.cost_basis.by_coin.avg.cents.height;
-
+        // Realized cap over each part of the supply, rounded once (the realized price over
+        // liveliness divided an already rounded cent: ±45% in 2010-11).
+        let realized_cap = &holders.cohorts.all.capital.total.cents.height;
         self.vaulted_cents.compute_transform2(
             from,
-            realized_price,
-            &activity.liveliness_source.height,
-            |(_, price, liveliness, ..)| {
-                Cents::from(f64::from(price) / f64::from(liveliness.complement()))
-            },
+            realized_cap,
+            &supply.vaulted.btc.height,
+            |(_, cap, supply, ..)| per_coin(cap, supply),
             exit,
         )?;
-
         self.active_cents.compute_transform2(
             from,
-            realized_price,
-            &activity.liveliness_source.height,
-            |(_, price, liveliness, ..)| Cents::from(f64::from(price) / f64::from(liveliness)),
+            realized_cap,
+            &supply.active.btc.height,
+            |(_, cap, supply, ..)| per_coin(cap, supply),
             exit,
         )?;
 
@@ -68,5 +65,16 @@ impl Vecs {
         self.active.compute_ratio(from, spot, exit)?;
         self.true_market_mean.compute_ratio(from, spot, exit)?;
         self.cointime.compute_ratio(from, spot, exit)
+    }
+}
+
+/// A cap's price per coin of a supply, undefined without supply (as the realized price): zero
+/// before the first price, where every coin is valued at zero.
+fn per_coin(cap: Cents, supply: Bitcoin) -> Cents {
+    let supply = f64::from(supply);
+    if supply > 0.0 {
+        Cents::from(f64::from(cap) / supply)
+    } else {
+        Cents::NAN
     }
 }

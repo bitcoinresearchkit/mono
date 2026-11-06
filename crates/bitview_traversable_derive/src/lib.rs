@@ -256,9 +256,9 @@ fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream)
     let fragments = field
         .lead
         .as_deref()
-        .map(|lead| quote! { bitview_traversable::Fragment::Lead(#lead) })
+        .map(|lead| quote! { ::bitview_traversable::Fragment::Lead(#lead) })
         .into_iter()
-        .chain(field.description.as_deref().map(|detail| quote! { bitview_traversable::Fragment::Detail(#detail) }))
+        .chain(field.description.as_deref().map(|detail| quote! { ::bitview_traversable::Fragment::Detail(#detail) }))
         .collect::<Vec<_>>();
     if fragments.is_empty() {
         return collect;
@@ -270,7 +270,7 @@ fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream)
         #collect
         #(
             let popped = description_fragments.pop();
-            debug_assert_eq!(popped, Some(#expected));
+            ::std::debug_assert_eq!(popped, ::std::option::Option::Some(#expected));
         )*
     }}
 }
@@ -387,7 +387,7 @@ fn substitute_mode(
                 let projects = matches!(trees.get(i + 1), Some(TokenTree::Punct(p))
                     if p.as_char() == ':' && p.spacing() == Spacing::Joint);
                 out.extend(if projects {
-                    quote! { <#to as bitview_traversable::StorageMode> }
+                    quote! { <#to as ::bitview_traversable::StorageMode> }
                 } else {
                     to.clone()
                 });
@@ -516,27 +516,27 @@ fn gen_traversable(
             },
         );
         return quote! {
-            impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
-                fn to_tree_node(&self) -> bitview_traversable::TreeNode {
+            impl #impl_generics ::bitview_traversable::Traversable for #name #ty_generics #where_clause {
+                fn to_tree_node(&self) -> ::bitview_traversable::TreeNode {
                     self.0.to_tree_node()
                 }
 
-                fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+                fn iter_any_exportable(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_exportable()
                 }
 
-                fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+                fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                     self.0.iter_any_visible()
                 }
 
-                fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn bitview_traversable::AnyStoredVec> {
+                fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
                     self.0.iter_any_stored_mut()
                 }
 
-                fn collect_series_descriptions<'a>(
-                    &'a self,
-                    description_fragments: &mut Vec<bitview_traversable::Fragment>,
-                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+                fn collect_series_descriptions<'__series>(
+                    &'__series self,
+                    description_fragments: &mut ::std::vec::Vec<::bitview_traversable::Fragment>,
+                    descriptions: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::Fragment>>,
                 ) {
                     #collect_description
                 }
@@ -551,31 +551,31 @@ fn gen_traversable(
     let where_clause = build_where_clause(generics, &traversed_types);
 
     let to_tree_node_body = generate_field_traversals(client, &visible, merge);
-    let exportable_vec = quote! { &dyn bitview_traversable::AnyExportableVec };
+    let exportable_vec = quote! { &dyn ::bitview_traversable::AnyExportableVec };
     let exportable = collect_iters(&traversed, "iter_any_exportable", &exportable_vec);
     let visible_iter = collect_iters(&visible, "iter_any_visible", &exportable_vec);
     let stored = collect_iters(
         &traversed,
         "iter_any_stored_mut",
-        &quote! { &mut dyn bitview_traversable::AnyStoredVec },
+        &quote! { &mut dyn ::bitview_traversable::AnyStoredVec },
     );
     let description_impl = generate_description_impl(&visible);
 
     quote! {
-        impl #impl_generics bitview_traversable::Traversable for #name #ty_generics #where_clause {
-            fn to_tree_node(&self) -> bitview_traversable::TreeNode {
+        impl #impl_generics ::bitview_traversable::Traversable for #name #ty_generics #where_clause {
+            fn to_tree_node(&self) -> ::bitview_traversable::TreeNode {
                 { #to_tree_node_body }
             }
 
-            fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+            fn iter_any_exportable(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                 #exportable
             }
 
-            fn iter_any_visible(&self) -> impl Iterator<Item = &dyn bitview_traversable::AnyExportableVec> {
+            fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
                 #visible_iter
             }
 
-            fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn bitview_traversable::AnyStoredVec> {
+            fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
                 #stored
             }
 
@@ -590,8 +590,8 @@ fn build_where_clause(generics: &Generics, traversed_types: &[&Type]) -> ProcMac
     let original_predicates = generics.where_clause.as_ref().map(|w| &w.predicates);
     quote! {
         where
-            #(#traversed_types: bitview_traversable::Traversable,)*
-            #(#generic_params: Send + Sync,)*
+            #(#traversed_types: ::bitview_traversable::Traversable,)*
+            #(#generic_params: ::std::marker::Send + ::std::marker::Sync,)*
             #original_predicates
     }
 }
@@ -613,10 +613,10 @@ fn collect_iters(
         })
         .collect();
     match iters.as_slice() {
-        [] => quote! { std::iter::empty() },
+        [] => quote! { ::std::iter::empty() },
         [only] => quote! { #only },
         [first, rest @ ..] => quote! {
-            let mut vecs: Vec<#item> = #first.collect();
+            let mut vecs: ::std::vec::Vec<#item> = #first.collect();
             #(vecs.extend(#rest);)*
             vecs.into_iter()
         },
@@ -654,11 +654,11 @@ fn generate_field_traversals(
                 .unwrap_or_else(|| field_name.to_string());
             return quote! {
                 match self.#member.to_tree_node() {
-                    bitview_traversable::TreeNode::Branch(map) => {
+                    ::bitview_traversable::TreeNode::Branch(map) => {
                         collected.merge_fields(map);
                     }
-                    leaf @ bitview_traversable::TreeNode::Leaf(_) => {
-                        collected.merge_field(String::from(#leaf_key), leaf);
+                    leaf @ ::bitview_traversable::TreeNode::Leaf(_) => {
+                        collected.merge_field(::std::string::String::from(#leaf_key), leaf);
                     }
                 }
             };
@@ -684,32 +684,32 @@ fn generate_field_traversals(
 
         let build_wrapped = |base: ProcMacro2TokenStream| -> ProcMacro2TokenStream {
             wrap_path.iter().rev().fold(base, |inner, key| {
-                quote! { bitview_traversable::TreeNode::wrap(#key, #inner) }
+                quote! { ::bitview_traversable::TreeNode::wrap(#key, #inner) }
             })
         };
 
         let node_expr = build_wrapped(quote! { self.#member.to_tree_node() });
         quote! {
-            collected.merge_field(String::from(#outer_key), #node_expr);
+            collected.merge_field(::std::string::String::from(#outer_key), #node_expr);
         }
     });
 
     let final_expr = if merge {
-        quote! { bitview_traversable::TreeNode::Branch(collected).merge_branches() }
+        quote! { ::bitview_traversable::TreeNode::Branch(collected).merge_branches() }
     } else {
-        quote! { bitview_traversable::TreeNode::Branch(collected) }
+        quote! { ::bitview_traversable::TreeNode::Branch(collected) }
     };
 
     // The branch records its client name, for client type names.
     let client_name = match client {
-        Some(name) => quote! { Some(#name) },
-        None => quote! { None },
+        Some(name) => quote! { ::std::option::Option::Some(#name) },
+        None => quote! { ::std::option::Option::None },
     };
     quote! {
-        let mut collected = bitview_traversable::TreeBranch::default();
+        let mut collected = ::bitview_traversable::TreeBranch::default();
         #(#field_operations)*
         let mut node = #final_expr;
-        if let bitview_traversable::TreeNode::Branch(branch) = &mut node {
+        if let ::bitview_traversable::TreeNode::Branch(branch) = &mut node {
             branch.client_name = #client_name;
         }
         node
@@ -734,10 +734,10 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     });
 
     quote! {
-        fn collect_series_descriptions<'a>(
-            &'a self,
-            description_fragments: &mut Vec<bitview_traversable::Fragment>,
-            descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        fn collect_series_descriptions<'__series>(
+            &'__series self,
+            description_fragments: &mut ::std::vec::Vec<::bitview_traversable::Fragment>,
+            descriptions: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::Fragment>>,
         ) {
             #(#fields)*
         }
@@ -745,8 +745,9 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
 }
 
 /// `ReadOnlyClone` for a derived type: a `StorageMode` param maps `Rw` to `Ro`. Otherwise container
-/// params (unbounded, or used as a bare non-skipped field type) propagate it; without any, nothing
-/// is generated.
+/// params (held by a traversed field: unbounded, or as its whole type) propagate it; a param only
+/// skipped fields hold stays itself, those fields cloned. Without a container, nothing is
+/// generated.
 fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2TokenStream {
     let generics = &input.generics;
     let name = &input.ident;
@@ -776,10 +777,15 @@ fn gen_read_only_clone(input: &DeriveInput, fields: &[FieldModel]) -> ProcMacro2
     };
 
     let bare_field_params = find_bare_field_params(fields, &type_params);
+    let traversed = |tp: &TypeParam| {
+        fields
+            .iter()
+            .any(|field| !field.skipped && type_contains_ident(field.ty, &tp.ident))
+    };
 
     let container_params: Vec<&Ident> = type_params
         .iter()
-        .filter(|tp| !is_bounded(tp) || bare_field_params.contains(&&tp.ident))
+        .filter(|tp| traversed(tp) && (!is_bounded(tp) || bare_field_params.contains(&&tp.ident)))
         .map(|tp| &tp.ident)
         .collect();
 
@@ -819,12 +825,12 @@ fn gen_read_only_clone_field_value(
         return quote! { () };
     }
     if field.skipped || !is_relevant(ty) {
-        return quote! { self.#member.clone() };
+        return quote! { ::std::clone::Clone::clone(&self.#member) };
     }
     if is_box_type(ty) {
-        quote! { Box::new(bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
+        quote! { ::std::boxed::Box::new(::bitview_traversable::ReadOnlyClone::read_only_clone(&*self.#member)) }
     } else {
-        quote! { bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
+        quote! { ::bitview_traversable::ReadOnlyClone::read_only_clone(&self.#member) }
     }
 }
 
@@ -880,8 +886,8 @@ fn gen_read_only_clone_storage_mode(
         })
     };
 
-    let ty_args_rw = make_ty_args(quote! { bitview_traversable::Rw });
-    let ty_args_ro = make_ty_args(quote! { bitview_traversable::Ro });
+    let ty_args_rw = make_ty_args(quote! { ::bitview_traversable::Rw });
+    let ty_args_ro = make_ty_args(quote! { ::bitview_traversable::Ro });
 
     // With other type params, the conversion of each field depending on them is
     // stated: fields holding `M` convert through `ReadOnlyClone`, projections
@@ -897,7 +903,7 @@ fn gen_read_only_clone_storage_mode(
         .filter_map(|f| -> Option<WherePredicate> {
             let ty = f.ty;
             if f.skipped {
-                return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: Clone });
+                return type_projects_param(ty, &other_params).then(|| parse_quote! { #ty: ::std::clone::Clone });
             }
             let generic = other_params.iter().any(|p| type_contains_ident(ty, p));
             if generic && type_contains_ident(ty, mode_param) {
@@ -905,16 +911,16 @@ fn gen_read_only_clone_storage_mode(
                 let rw = substitute_mode(
                     quote! { #ty },
                     mode_param,
-                    &quote! { bitview_traversable::Rw },
+                    &quote! { ::bitview_traversable::Rw },
                 );
                 let ro = substitute_mode(
                     quote! { #ty },
                     mode_param,
-                    &quote! { bitview_traversable::Ro },
+                    &quote! { ::bitview_traversable::Ro },
                 );
-                Some(parse_quote! { #rw: bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
+                Some(parse_quote! { #rw: ::bitview_traversable::ReadOnlyClone<ReadOnly = #ro> })
             } else if type_projects_param(ty, &other_params) {
-                Some(parse_quote! { #ty: Clone })
+                Some(parse_quote! { #ty: ::std::clone::Clone })
             } else {
                 None
             }
@@ -924,8 +930,8 @@ fn gen_read_only_clone_storage_mode(
     // The impl keeps every other param, its bounds and the struct's predicates, with the mode
     // param they name now `Rw`; `ReadOnly` instantiates the struct with `Ro`, so those naming
     // the mode param also hold with `Ro`.
-    let rw = quote! { bitview_traversable::Rw };
-    let ro = quote! { bitview_traversable::Ro };
+    let rw = quote! { ::bitview_traversable::Rw };
+    let ro = quote! { ::bitview_traversable::Ro };
     let mut mode_predicates: Vec<WherePredicate> = Vec::new();
     // The mode param's own inline bounds besides `StorageMode` hold for both modes (`?Sized`
     // relaxes a param and means nothing on a concrete type).
@@ -998,7 +1004,7 @@ fn gen_read_only_clone_storage_mode(
     let body = gen_read_only_clone_body(name, fields, |ty| type_contains_ident(ty, mode_param));
 
     quote! {
-        impl #impl_generics bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
+        impl #impl_generics ::bitview_traversable::ReadOnlyClone for #name<#(#ty_args_rw),*> #where_clause {
             type ReadOnly = #name<#(#ty_args_ro),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {
@@ -1039,11 +1045,11 @@ fn gen_read_only_clone_generics(
         if !tp.bounds.is_empty() {
             let bounds = &tp.bounds;
             extra_where.push(parse_quote! {
-                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+                <#ident as ::bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
             });
         }
         tp.bounds
-            .push(parse_quote!(bitview_traversable::ReadOnlyClone));
+            .push(parse_quote!(::bitview_traversable::ReadOnlyClone));
     }
     for pred in generics.where_clause.iter().flat_map(|w| &w.predicates) {
         if let WherePredicate::Type(pt) = pred
@@ -1054,8 +1060,19 @@ fn gen_read_only_clone_generics(
             let ident = &seg.ident;
             let bounds = &pt.bounds;
             extra_where.push(parse_quote! {
-                <#ident as bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
+                <#ident as ::bitview_traversable::ReadOnlyClone>::ReadOnly: #bounds
             });
+        }
+    }
+    // A field the projection clones (no container in it) keeps its type: one holding another
+    // param needs that type to clone.
+    let type_params: Vec<&Ident> = generics.type_params().map(|tp| &tp.ident).collect();
+    for field in fields.iter().filter(|field| !is_write_only_type(field.ty)) {
+        let ty = field.ty;
+        let converted =
+            !field.skipped && container_params.iter().any(|tp| type_contains_ident(ty, tp));
+        if !converted && type_params.iter().any(|tp| type_contains_ident(ty, tp)) {
+            extra_where.push(parse_quote! { #ty: ::std::clone::Clone });
         }
     }
     impl_generics
@@ -1067,7 +1084,7 @@ fn gen_read_only_clone_generics(
     let ro_ty_args = collect_ty_args(generics, |tp| {
         let id = &tp.ident;
         if is_container(id) {
-            quote! { <#id as bitview_traversable::ReadOnlyClone>::ReadOnly }
+            quote! { <#id as ::bitview_traversable::ReadOnlyClone>::ReadOnly }
         } else {
             quote! { #id }
         }
@@ -1080,7 +1097,7 @@ fn gen_read_only_clone_generics(
     });
 
     quote! {
-        impl #impl_generics bitview_traversable::ReadOnlyClone for #name #ty_generics #where_clause {
+        impl #impl_generics ::bitview_traversable::ReadOnlyClone for #name #ty_generics #where_clause {
             type ReadOnly = #name<#(#ro_ty_args),*>;
 
             fn read_only_clone(&self) -> Self::ReadOnly {

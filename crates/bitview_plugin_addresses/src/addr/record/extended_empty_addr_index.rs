@@ -3,14 +3,11 @@ use std::{
     ops::Add,
 };
 
+use bitview_primitives::TypeIndex;
 use brk_types::CheckedSub;
 use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::TypeIndex;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
 /// Index into the sidecar for empty-address data that does not fit inline.
@@ -28,7 +25,7 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     Deserialize,
     JsonSchema,
 )]
-#[cfg_attr(feature = "storage", derive(Pco))]
+#[derive(Pco)]
 pub struct ExtendedEmptyAddressIndex(TypeIndex);
 
 impl From<TypeIndex> for ExtendedEmptyAddressIndex {
@@ -75,14 +72,12 @@ impl CheckedSub for ExtendedEmptyAddressIndex {
     }
 }
 
-#[cfg(feature = "storage")]
 impl PrintableIndex for ExtendedEmptyAddressIndex {
     fn to_string() -> &'static str {
         "extended_empty_address_index"
     }
 }
 
-#[cfg(feature = "storage")]
 impl VecIndex for ExtendedEmptyAddressIndex {
     const INITIAL_CAPACITY: usize = 1 << 30;
 }
@@ -93,7 +88,6 @@ impl Display for ExtendedEmptyAddressIndex {
     }
 }
 
-#[cfg(feature = "storage")]
 impl Formattable for ExtendedEmptyAddressIndex {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {

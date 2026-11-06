@@ -1,4 +1,4 @@
-use crate::{EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
+use super::{EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
 
 /// Decoded form of an address's four-byte primary state.
 #[derive(Debug, Clone)]

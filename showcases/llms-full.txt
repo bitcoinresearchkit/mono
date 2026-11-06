@@ -309,7 +309,7 @@ Returns: JSON `DifficultyAdjustment`
 
 Projected mempool blocks
 
-Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
+Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
 
 Returns: JSON `MempoolBlock[]`
 
@@ -395,7 +395,7 @@ Returns: JSON `Txid[]`
 
 Projected mempool block
 
-A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
 Parameters:
 - `index` (path, MempoolBlockIndex, required)
@@ -1136,9 +1136,9 @@ Returns: JSON `ServerVersion`
 - `scriptPubKey`: `Hex | null` — The scriptPubKey in hex
 - `isscript`: `boolean | null` — Whether the address is P2SH, P2WSH or P2TR
 - `iswitness`: `boolean | null`
-- `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
+- `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
 - `witness_program`: `Hex | null` — Witness program in hex
-- `error_locations`: `integer[] | null` — Error locations: an empty array for invalid addresses, omitted for valid ones
+- `error_locations`: `integer[] | null` — Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none; omitted for valid ones
 - `error`: `string | null` — Error message for invalid addresses
 
 ### `Bitcoin`
@@ -1148,8 +1148,8 @@ Returns: JSON `ServerVersion`
 ### `BlockExtras`
 
 - `totalFees`: `Sats` (required) — Total fees in satoshis
-- `medianFee`: `FeeRate` (required) — Median fee rate in sat/vB
-- `feeRange`: `FeeRate[]` (required) — Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+- `medianFee`: `FeeRate` (required) — Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
+- `feeRange`: `FeeRate[]` (required) — Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
 - `reward`: `Sats` (required) — Total block reward (subsidy + fees) in satoshis
 - `pool`: `BlockPool` (required)
 - `avgFee`: `Sats` (required) — Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
@@ -1417,7 +1417,7 @@ Returns: JSON `ServerVersion`
 
 ### `EmptyCpfp`
 
-- `ancestors`: `value[]` (required)
+- `ancestors`: `CpfpEntry[]` (required) — Always empty.
 
 ### `ExchangeRates`
 
@@ -1511,7 +1511,7 @@ Returns: JSON `ServerVersion`
 ### `MempoolBlock`
 
 - `blockSize`: `integer` (required) — Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header or coinbase.
-- `blockVSize`: `number` (required) — Sum of the transactions' virtual sizes in vbytes
+- `blockVSize`: `number` (required) — The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
 - `nTx`: `integer` (required) — Number of transactions in the projected block
 - `totalFees`: `Sats` (required) — Total fees in satoshis
 - `medianFee`: `FeeRate` (required) — Median fee rate in sat/vB
@@ -1521,7 +1521,7 @@ Returns: JSON `ServerVersion`
 
 - `hash`: `MempoolBlockHash` (required) — Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
 - `stats`: `MempoolBlock` (required)
-- `transactions`: `Transaction[]` (required) — Full transaction bodies in `getblocktemplate` order.
+- `transactions`: `Transaction[]` (required) — Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
 
 ### `MempoolBlockDiff`
 
@@ -1529,7 +1529,7 @@ Returns: JSON `ServerVersion`
 - `since`: `MempoolBlockHash` (required) — Echoed prior hash the diff was computed against.
 - `stats`: `MempoolBlock` (required) — Stats of the new block; they can change while every transaction is retained.
 - `order`: `MempoolBlockDiffEntry[]` (required) — The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
-- `removed`: `Txid[]` (required) — Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
+- `removed`: `Txid[]` (required) — Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
 
 ### `MempoolBlockDiffEntry`
 
@@ -1573,9 +1573,9 @@ Returns: JSON `ServerVersion`
 - `hash`: `BlockHash` (required) — The confirmed block it was read at: this block's hash; live with the mempool, the tip's (block `height - 1`), the one the mempool is blended onto.
 - `mempool`: `boolean` (required) — Whether it's the live reading with the mempool blended in as the next block (`outputs` the mempool's), rather than a confirmed block's.
 - `price`: `Dollars` (required) — The price it found, in dollars: `bin` as a price, to the cent.
-- `bin`: `number` (required) — The bin it picked, refined between bins by a parabola through the best score and its neighbours.
+- `bin`: `number` (required) — The bin it picked, refined between bins by a parabola through its score and its neighbours' when it's their local maximum.
 - `first_bin`: `integer` (required) — The search window's first candidate bin: 12 below the block before's answer, rounded, 24 candidates in all.
-- `scores`: `number[]` (required) — Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k), the histogram's count where that amount lands if $100 is at the candidate, over that amount's peak in the window, summed. The highest is the pick's bin; all zero when the window held no payments at all, and the oracle kept the block before's answer.
+- `scores`: `number[]` (required) — Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k), the histogram's count where that amount lands if $100 is at the candidate, over that amount's peak in the window, summed. The pick is the highest of the candidates with counts on at least two amounts; without one, or with all zero (no payments in the window), the oracle kept the block before's answer.
 - `histogram`: `number[]` (required) — The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks' before it (live, the mempool's as the next block's), each block's counts weighted `(2/7) * (5/7)^age`, the newest at age 0.
 - `outputs`: `OracleOutputs` (required) — The block's own outputs (live, the mempool's) as the oracle's filter judged them.
 

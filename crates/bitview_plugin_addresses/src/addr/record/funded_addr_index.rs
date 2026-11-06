@@ -3,14 +3,11 @@ use std::{
     ops::Add,
 };
 
+use bitview_primitives::TypeIndex;
 use brk_types::CheckedSub;
 use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::TypeIndex;
-
-#[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
 #[derive(
@@ -27,7 +24,7 @@ use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
     Deserialize,
     JsonSchema,
 )]
-#[cfg_attr(feature = "storage", derive(Pco))]
+#[derive(Pco)]
 pub struct FundedAddressIndex(TypeIndex);
 
 impl From<TypeIndex> for FundedAddressIndex {
@@ -66,14 +63,12 @@ impl CheckedSub<FundedAddressIndex> for FundedAddressIndex {
         CheckedSub::checked_sub(self.0, rhs.0).map(Self)
     }
 }
-#[cfg(feature = "storage")]
 impl PrintableIndex for FundedAddressIndex {
     fn to_string() -> &'static str {
         "funded_address_index"
     }
 }
 
-#[cfg(feature = "storage")]
 impl VecIndex for FundedAddressIndex {
     const INITIAL_CAPACITY: usize = 70_000_000;
 }
@@ -84,7 +79,6 @@ impl Display for FundedAddressIndex {
     }
 }
 
-#[cfg(feature = "storage")]
 impl Formattable for FundedAddressIndex {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {

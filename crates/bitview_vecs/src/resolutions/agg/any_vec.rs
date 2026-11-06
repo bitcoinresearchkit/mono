@@ -1,6 +1,6 @@
 use vecdb::{AnyVec, VecIndex, VecValue, Version};
 
-use super::LazyAggVec;
+use super::{AggFold, LazyAggVec};
 
 impl<I, O, S1I, S1T, Strat> AnyVec for LazyAggVec<I, O, S1I, S1T, Strat>
 where
@@ -8,7 +8,7 @@ where
     O: VecValue,
     S1I: VecIndex,
     S1T: VecValue,
-    Strat: 'static,
+    Strat: AggFold<O, S1I, S1T>,
 {
     fn version(&self) -> Version {
         self.version + self.source.version() + self.mapping.version()
@@ -19,7 +19,7 @@ where
     }
 
     fn len(&self) -> usize {
-        self.mapping.len()
+        Strat::len(&*self.source, &self.mapping.load())
     }
 
     fn is_mutable(&self) -> bool {

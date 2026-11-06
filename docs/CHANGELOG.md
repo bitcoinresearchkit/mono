@@ -26,6 +26,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   `From<Dollars> for CentsCompact`, which nothing called (it saturated to the NaN sentinel)
 - statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
   to open, asking for a rebuild of the state
+- Types with one user moved to it: `brk_types::Histogram` to `brk_oracle::Histogram`; from `bitview_primitives`,
+  the address-index store keys (`AddrIndexOutPoint`, `AddrIndexTxIndex`) to the indexer, private, and the
+  address-state records (`AddressState`, `DecodedAddrState`, `FundedAddressData`, `EmptyAddressData`,
+  `FundedAddressIndex`, `ExtendedEmptyAddressIndex`) to `bitview_plugin_addresses`, which exports
+  `FundedAddressData`
+- `sats_per_dollar` is null while the spot price is zero (before block 74,641, August 2010), at every index: it
+  read 0, as though a dollar bought nothing; the clients type it nullable (`Cents::sats_per_dollar()` returns an
+  `Option`)
 
 ### New Features
 
@@ -76,6 +84,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- The indexer re-imports once (version 46): an address's output keys hold the whole 32-bit output position (they
+  kept 16 bits, so two outputs of one transaction to one address, 65,536 positions apart, would have shared a key;
+  no transaction has that many outputs yet), and EPOBC's rule from v0.13.0 (no Taproot first input) applies to the whole history: it changed
+  without a re-import, so blocks indexed before it kept the old rule
 - A reserved pool slug (`dummy146` and the 89 others no pool has) in `GET /api/v1/mining/pool/{slug}`,
   `/hashrate` or `/blocks` answers 404 `unknown_pool`, as an unknown slug does: it read past the pool table and
   ended the server (release builds abort on a panic), or answered an empty pool for the testnet ids

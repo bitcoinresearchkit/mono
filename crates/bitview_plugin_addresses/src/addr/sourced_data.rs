@@ -1,4 +1,4 @@
-use bitview_primitives::{ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex};
+use crate::addr::{ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex};
 use derive_more::{Deref, DerefMut};
 
 /// The persistent representation address data came from.

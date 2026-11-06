@@ -196,6 +196,8 @@ macro_rules! scalar {
 
     ($(#[$meta:meta])* float $name:ident(f64)) => {
         $crate::scalar::scalar!(@float $(#[$meta])* $name(f64));
+
+        impl $crate::F64Backed for $name {}
     };
 
     (@float $(#[$meta:meta])* $name:ident($repr:ty)) => {
@@ -305,3 +307,8 @@ macro_rules! scalar {
 }
 
 pub(crate) use scalar;
+
+/// A value type that holds every `f64` exactly, both ways: the whole state a stateful statistic
+/// (the exponential average) resumes from, so a resumed run continues bit for bit where an
+/// uninterrupted one would be. Every `f64` scalar is one.
+pub trait F64Backed: From<f64> + Into<f64> {}

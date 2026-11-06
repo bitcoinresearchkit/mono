@@ -1,4 +1,5 @@
-use bitview_primitives::{FundedAddressData, TypeIndex};
+use bitview_primitives::TypeIndex;
+use bitview_plugin_addresses::FundedAddressData;
 use bitview_types::{AddressChainStats, AddressStats};
 use brk_types::{Address, Dollars, OutputType, Sats};
 

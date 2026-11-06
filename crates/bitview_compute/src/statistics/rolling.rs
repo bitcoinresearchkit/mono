@@ -3,8 +3,9 @@ use std::{
     ops::{AddAssign, SubAssign},
 };
 
+use bitview_primitives::F64Backed;
 use brk_exit::Exit;
-use vecdb::{ComputeVec, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version};
+use vecdb::{ComputeVec, Formattable, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version};
 
 use super::Retained;
 
@@ -13,7 +14,9 @@ pub trait ComputeRollingStats {
     type I: VecIndex;
     type T: VecValue;
 
-    /// For each index i, computes sum of values from `window_starts[i]` to i (inclusive).
+    /// For each index i, computes sum of values from `window_starts[i]` to i (inclusive); an
+    /// undefined value counts as zero, so it never stays in the sum past its window. A window
+    /// starting after its row sums to zero.
     fn compute_rolling_sum<A>(
         &mut self,
         max_from: Self::I,
@@ -23,13 +26,14 @@ pub trait ComputeRollingStats {
     ) -> Result<()>
     where
         A: VecValue,
-        Self::T: From<A> + Default + AddAssign + SubAssign;
+        Self::T: From<A> + Default + AddAssign + SubAssign + Formattable;
 
     /// For each index i, computes mean of values from `window_starts[i]` to i (inclusive); an
     /// undefined value counts as zero. Every 1,024th row rebuilds its window's f64 sum from the
     /// values and the rows after continue from it, so a row's value depends on its position
     /// alone: a resumed run matches an uninterrupted one bit for bit, and rounding never builds
-    /// up past one stride. The `retained` window continues the previous update when current.
+    /// up past one stride. A window starting after its row is empty: NaN. The `retained` window
+    /// continues the previous update when current.
     fn compute_rolling_average<A>(
         &mut self,
         max_from: Self::I,
@@ -45,7 +49,8 @@ pub trait ComputeRollingStats {
 
     /// For each index `i`, computes an exponential moving average with
     /// `α = 2/(span+1)` where `span = i - window_starts[i] + 1`. A one-row window seeds the
-    /// average with its value; a window starting after its row is empty: NaN.
+    /// average with its value; a window starting after its row is empty: NaN. The stored output
+    /// is the whole state, so it holds an `f64` exactly.
     fn compute_rolling_ema<A>(
         &mut self,
         max_from: Self::I,
@@ -55,9 +60,11 @@ pub trait ComputeRollingStats {
     ) -> Result<()>
     where
         A: VecValue,
-        f64: From<A> + From<Self::T>,
-        Self::T: From<f64> + Default;
+        f64: From<A>,
+        Self::T: F64Backed;
 
+    /// Computes the all time high of a source's values: undefined values are skipped, and the
+    /// high stays at the first value until a defined one arrives.
     fn compute_all_time_high<A>(
         &mut self,
         max_from: Self::I,
@@ -65,12 +72,12 @@ pub trait ComputeRollingStats {
         exit: &Exit,
     ) -> Result<()>
     where
-        Self::T: From<A> + Ord + Default,
+        Self::T: From<A> + Ord + Formattable,
         A: VecValue;
 
     /// Computes the all time low of a source's values above the default: zero and undefined
-    /// values (which sort below it) are skipped, and the low stays at the first value until one
-    /// above the default arrives.
+    /// values are skipped, and the low stays at the first value until one above the default
+    /// arrives.
     fn compute_all_time_low<A>(
         &mut self,
         max_from: Self::I,
@@ -78,7 +85,7 @@ pub trait ComputeRollingStats {
         exit: &Exit,
     ) -> Result<()>
     where
-        Self::T: From<A> + Ord + Default,
+        Self::T: From<A> + Ord + Default + Formattable,
         A: VecValue;
 }
 
@@ -108,7 +115,12 @@ impl AverageWindow {
         f64: From<A>,
     {
         debug_assert!(anchor.is_multiple_of(ANCHOR_STRIDE));
-        let start = window_starts.collect_one_at(anchor).unwrap().to_usize();
+        // (An empty window starts after its row: nothing before the anchor.)
+        let start = window_starts
+            .collect_one_at(anchor)
+            .unwrap()
+            .to_usize()
+            .min(anchor);
         let mut values = VecDeque::with_capacity(anchor - start);
         source.for_each_range_at(start, anchor, |value| values.push_back(f64::from(value)));
         Self {
@@ -119,11 +131,13 @@ impl AverageWindow {
     }
 
     /// Enters row `index`'s value, drops the rows before its window `start`, and returns the
-    /// window's mean. A row at a multiple of [`ANCHOR_STRIDE`] rebuilds the sum from its
-    /// window's values; the rows after add the entering value and remove the leaving ones.
+    /// window's mean, NaN for an empty window (`start` past `index`). A row at a multiple of
+    /// [`ANCHOR_STRIDE`] rebuilds the sum from its window's values; the rows after add the
+    /// entering value and remove the leaving ones.
     #[inline]
     fn push(&mut self, index: usize, value: f64, start: usize) -> f64 {
         debug_assert_eq!(index, self.start + self.values.len(), "rows enter in order");
+        let start = start.min(index + 1);
         debug_assert!(self.start <= start, "window starts never move back");
         self.values.push_back(value);
         if index.is_multiple_of(ANCHOR_STRIDE) {
@@ -139,8 +153,15 @@ impl AverageWindow {
                 self.sum -= defined(self.values.pop_front().unwrap());
                 self.start += 1;
             }
+            // An empty window's sum is zero exactly, not what rounding left of the removals.
+            if self.values.is_empty() {
+                self.sum = 0.0;
+            }
         }
-        self.sum / (index - start + 1) as f64
+        match index + 1 - start {
+            0 => f64::NAN,
+            len => self.sum / len as f64,
+        }
     }
 }
 
@@ -160,7 +181,7 @@ where
     ) -> Result<()>
     where
         A: VecValue,
-        V::T: From<A> + Default + AddAssign + SubAssign,
+        V::T: From<A> + Default + AddAssign + SubAssign + Formattable,
     {
         // Cursor for the leaving-value reads — persists across batches so each
         // compressed page is decompressed at most once instead of once per element.
@@ -173,9 +194,11 @@ where
             |this, range| {
                 let (skip, end) = (range.start, range.end);
 
+                // (A window starting after its row is empty: no later row leaves it.)
+                let within = |index: usize, start: V::I| V::I::from(start.to_usize().min(index + 1));
                 let (mut running_sum, mut prev_start) = if skip > 0 {
                     let prev_idx = skip - 1;
-                    let prev_start = window_starts.collect_one_at(prev_idx).unwrap();
+                    let prev_start = within(prev_idx, window_starts.collect_one_at(prev_idx).unwrap());
                     let sum = this.collect_one_at(prev_idx).unwrap();
                     if leaving.position() < prev_start.to_usize() {
                         leaving.advance(prev_start.to_usize() - leaving.position());
@@ -188,15 +211,29 @@ where
                 let starts_batch = window_starts.collect_range_at(skip, end);
                 let values_batch = values.collect_range_at(skip, end);
 
-                for (start, value) in starts_batch.into_iter().zip(values_batch) {
-                    running_sum += V::T::from(value);
+                for (index, (start, value)) in
+                    (skip..).zip(starts_batch.into_iter().zip(values_batch))
+                {
+                    let start = within(index, start);
+                    let value = V::T::from(value);
+                    if !value.is_undefined() {
+                        running_sum += value;
+                    }
 
                     if prev_start < start {
                         let n = start.to_usize() - prev_start.to_usize();
                         leaving.for_each(n, |v: A| {
-                            running_sum -= V::T::from(v);
+                            let v = V::T::from(v);
+                            if !v.is_undefined() {
+                                running_sum -= v;
+                            }
                         });
                         prev_start = start;
+                        // An empty window's sum is zero exactly, not what rounding left of the
+                        // removals.
+                        if start.to_usize() == index + 1 {
+                            running_sum = V::T::default();
+                        }
                     }
 
                     this.push(running_sum.clone());
@@ -260,11 +297,11 @@ where
     ) -> Result<()>
     where
         A: VecValue,
-        f64: From<A> + From<V::T>,
-        V::T: From<f64> + Default,
+        f64: From<A>,
+        V::T: F64Backed,
     {
-        // The stored output is the whole state: it must hold `prev` exactly (an f64-backed type), so a
-        // resume continues bit for bit where an uninterrupted run would be.
+        // The stored output is the whole state (`F64Backed` holds `prev` exactly), so a resume
+        // continues bit for bit where an uninterrupted run would be.
         self.compute_to(
             max_from,
             window_starts.len().min(values.len()),
@@ -273,7 +310,7 @@ where
                 let (skip, end) = (range.start, range.end);
 
                 let mut prev = if skip > 0 {
-                    f64::from(this.collect_one_at(skip - 1).unwrap())
+                    this.collect_one_at(skip - 1).unwrap().into()
                 } else {
                     0.0_f64
                 };
@@ -292,12 +329,7 @@ where
                             alpha * value + (1.0 - alpha) * prev
                         }
                     };
-                    let out = V::T::from(prev);
-                    debug_assert!(
-                        f64::from(out.clone()) == prev || prev.is_nan(),
-                        "exponential average state must be stored exactly"
-                    );
-                    this.push(out);
+                    this.push(V::T::from(prev));
                 }
 
                 Ok(())
@@ -313,10 +345,18 @@ where
         exit: &Exit,
     ) -> Result<()>
     where
-        V::T: From<A> + Ord + Default,
+        V::T: From<A> + Ord + Formattable,
         A: VecValue,
     {
-        compute_all_time_extreme(self, max_from, source, exit, |prev, v| prev.max(v))
+        compute_all_time_extreme(self, max_from, source, exit, |prev, v| {
+            if v.is_undefined() {
+                prev
+            } else if prev.is_undefined() {
+                v
+            } else {
+                prev.max(v)
+            }
+        })
     }
 
     fn compute_all_time_low<A>(
@@ -326,14 +366,14 @@ where
         exit: &Exit,
     ) -> Result<()>
     where
-        V::T: From<A> + Ord + Default,
+        V::T: From<A> + Ord + Default + Formattable,
         A: VecValue,
     {
+        let skipped = |value: &V::T| value.is_undefined() || *value <= V::T::default();
         compute_all_time_extreme(self, max_from, source, exit, |prev, v| {
-            let undefined = V::T::default();
-            if v <= undefined {
+            if skipped(&v) {
                 prev
-            } else if prev <= undefined {
+            } else if skipped(&prev) {
                 v
             } else {
                 prev.min(v)
@@ -350,7 +390,7 @@ fn compute_all_time_extreme<V: StoredVec, A, F>(
     compare: F,
 ) -> Result<()>
 where
-    V::T: From<A> + Ord + Default,
+    V::T: From<A>,
     A: VecValue,
     F: Fn(V::T, V::T) -> V::T,
 {

@@ -40,7 +40,7 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(15);
+const VERSION: Version = Version::new(16);
 
 impl Component {
     /// `price` is the reference price's id: the bands are `<price>_rarity_<percentile>` and their
@@ -104,8 +104,11 @@ impl Component {
         if block_decay_pct.len() != expected_len {
             block_decay_pct.reset();
             if start > START_HEIGHT {
-                let historical = ratio_source.collect_range_at(START_HEIGHT, start);
-                block_decay_pct.add_bulk(START_HEIGHT, &historical);
+                let mut height = START_HEIGHT;
+                ratio_source.for_each_range_at(START_HEIGHT, start, |ratio| {
+                    block_decay_pct.add(height, f64::from(ratio));
+                    height += 1;
+                });
             }
         }
         let mut out = [0.0; RARITY_PERCENTILES_LEN];

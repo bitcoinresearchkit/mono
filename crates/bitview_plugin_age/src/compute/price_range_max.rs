@@ -60,7 +60,8 @@ impl PriceRangeMax {
         );
     }
 
-    /// The highest price from `from` through `to`, both included.
+    /// The highest price from `from` through `to`, both included, held at `CentsCompact`'s
+    /// ceiling ($42,949,672.94) when over it.
     #[inline]
     pub fn range_max(&self, from: Height, to: Height) -> Cents {
         let (start, end) = (from.to_usize(), to.to_usize());

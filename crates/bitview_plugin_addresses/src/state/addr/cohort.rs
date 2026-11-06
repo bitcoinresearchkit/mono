@@ -1,5 +1,6 @@
 use bitview_cohort::{AmountRange, AmountRangeId};
-use bitview_primitives::{FundedAddressData, SupplyState};
+use bitview_primitives::SupplyState;
+use crate::addr::FundedAddressData;
 use brk_types::{Cents, CentsSats, Sats};
 
 use super::{super::CohortState, super::MinimalRealizedState};

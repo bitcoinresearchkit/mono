@@ -987,3 +987,13 @@ impl Drop for TempDir {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+
+/// One composition, `+`: a bump of one component never cancels another's (plain addition let
+/// `(0 + 1) + 1` meet `(0 + 2) + 2` once mixed with `combine`), and the order counts.
+#[test]
+fn versions_compose_without_cancelling() {
+    let (one, two, three) = (Version::ONE, Version::TWO, Version::new(3));
+    assert_ne!(Version::ZERO + one + one, Version::ZERO + two + two);
+    assert_ne!(one + two, two + one);
+    assert_eq!([one, two, three].into_iter().sum::<Version>(), Version::ZERO + one + two + three);
+}

@@ -70,14 +70,8 @@ impl Vecs {
                 self.caps
                     .compute(indexer, holders, &self.activity, &self.value, exit)?;
                 let from = indexer.compute_start().height;
-                self.prices.compute(
-                    from,
-                    holders,
-                    &self.activity,
-                    &self.supply,
-                    &self.caps,
-                    exit,
-                )?;
+                self.prices
+                    .compute(from, holders, &self.supply, &self.caps, exit)?;
                 self.prices
                     .compute_ratios(from, &prices.spot.cents.height, exit)
             },

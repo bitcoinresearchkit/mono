@@ -11,7 +11,7 @@ where
 {
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<O>) {
         let mapping = self.mapping.load();
-        let to = to.min(mapping.len());
+        let to = to.min(Strat::len(&*self.source, &mapping));
         if from >= to {
             return;
         }
@@ -21,7 +21,7 @@ where
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(O)) {
         let mapping = self.mapping.load();
-        let to = to.min(mapping.len());
+        let to = to.min(Strat::len(&*self.source, &mapping));
         if from >= to {
             return;
         }
@@ -40,7 +40,7 @@ where
         Self: Sized,
     {
         let mapping = self.mapping.load();
-        let to = to.min(mapping.len());
+        let to = to.min(Strat::len(&*self.source, &mapping));
         if from >= to {
             return Ok(init);
         }
@@ -50,7 +50,7 @@ where
     #[inline]
     fn collect_one_at(&self, index: usize) -> Option<O> {
         let mapping = self.mapping.load();
-        if index >= mapping.len() {
+        if index >= Strat::len(&*self.source, &mapping) {
             return None;
         }
         Strat::collect_one(&*self.source, &mapping, index)
@@ -61,7 +61,8 @@ where
             return;
         }
         let mapping = self.mapping.load();
-        let indices = &indices[..indices.partition_point(|&index| index < mapping.len())];
+        let len = Strat::len(&*self.source, &mapping);
+        let indices = &indices[..indices.partition_point(|&index| index < len)];
         if indices.is_empty() {
             return;
         }

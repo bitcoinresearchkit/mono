@@ -53,6 +53,13 @@ impl<I: Copy + Into<usize>, V> RangeMap<I, V> {
             .map_or(len, |&next| next.into().min(len));
         self.first_indexes[index].into().min(end)..end
     }
+
+    /// Number of ranges that start below `len`: those a source of `len` indexes reaches.
+    #[inline]
+    pub fn reached(&self, len: usize) -> usize {
+        self.first_indexes
+            .partition_point(|&first| first.into() < len)
+    }
 }
 
 impl<I: Ord + Copy, V> RangeMap<I, V> {

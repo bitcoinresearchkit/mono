@@ -10,7 +10,8 @@ use super::{Retained, window::SortedWindow};
 
 pub trait ComputeRollingMedianFromStarts<I: VecIndex, T> {
     /// Rolling median, continuing the `retained` window when it is current. Rows before `first`
-    /// have none (NaN), and no window reaches before it (dollar values: the first price).
+    /// have none (NaN), and no window reaches before it (dollar values: the first price). A
+    /// window starting after its row is empty: NaN.
     fn compute_rolling_median_from_starts<A>(
         &mut self,
         max_from: I,

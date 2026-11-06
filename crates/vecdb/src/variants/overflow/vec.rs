@@ -250,7 +250,7 @@ where
     T: OverflowVecValue,
 {
     fn import_with(mut options: ImportOptions) -> Result<Self> {
-        options.version = options.version.combine(VERSION).combine(T::VERSION);
+        options.version = options.version + VERSION + T::VERSION;
         let overflow_name = format!("{}_overflow", options.name);
         let overflow_options = ImportOptions {
             name: &overflow_name,

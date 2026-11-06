@@ -57,9 +57,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(lead = "Bitcoin's price in US dollars, block by block: from exchanges' history at first, then estimated from the chain itself.")]
     pub spot: Price<PerBlock<Cents, M>>,
     /// Whole satoshis one US dollar buys at the spot price, rounded down: 100,000,000 divided
-    /// by the price in USD per BTC. 0 while the spot price is zero.
+    /// by the price in USD per BTC. Null while the spot price is zero.
     #[traversable(lead = "Sats per dollar: how many satoshis one US dollar buys.")]
-    sats_per_dollar: LazyPerBlock<Sats, Cents>,
+    sats_per_dollar: LazyPerBlock<Option<Sats>, Cents>,
     /// The oracle's exact reference bin at each height (the spot price before rounding to
     /// cents), so an update resumes the oracle where the previous one left it.
     #[traversable(hidden)]

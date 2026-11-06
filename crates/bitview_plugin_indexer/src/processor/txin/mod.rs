@@ -5,7 +5,7 @@ pub use resolver::InputResolver;
 pub use source::InputSource;
 
 use bitview_primitives::{
-    AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, TxInIndex, TxOutIndex, TypeIndex,
+    ByAddrType, TxInIndex, TxOutIndex, TypeIndex,
 };
 use brk_store::Store;
 use brk_types::{OutPoint, OutputType, Sats, TxIndex, Txid, TxidPrefix, Unit};
@@ -14,7 +14,7 @@ use vecdb::{PcoVec, WritableVec, unlikely};
 use super::{transaction::ComputedTx, txout::ProcessedOutput};
 use crate::{
     InputsVecs,
-    stores::{UtxoKey, Utxos},
+    stores::{AddrIndexOutPoint, AddrIndexTxIndex, UtxoKey, Utxos},
 };
 
 #[allow(clippy::too_many_arguments)]

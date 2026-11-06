@@ -28,10 +28,14 @@ impl UTXOStates {
             let origin_timestamp = ctx.height_to_timestamp[origin];
             let age = Age::new(last_timestamp, origin_timestamp);
 
+            // The table holds prices over `CentsCompact`'s ceiling at it, as the cost-basis maps
+            // do: the peak is never below the send's own price, so the regret never goes negative.
             let peak_price = if sent.value == Sats::ZERO {
                 Cents::ZERO
             } else {
-                ctx.price_range_max.range_max(receive_height, send_height)
+                ctx.price_range_max
+                    .range_max(receive_height, send_height)
+                    .max(current_price)
             };
 
             // Pre-compute once for cohorts sharing the sent supply.

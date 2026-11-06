@@ -3,14 +3,9 @@ use std::fmt::{Display, Formatter, Result};
 use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use vecdb::{Bytes, Formattable, OverflowVecValue, Result as VecdbResult, Version};
 
-use crate::FundedAddressData;
-
-#[cfg(feature = "storage")]
-use vecdb::Result as VecdbResult;
-
-#[cfg(feature = "storage")]
-use vecdb::{Bytes, Formattable, OverflowVecValue, Version};
+use super::FundedAddressData;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
@@ -54,7 +49,6 @@ impl Display for EmptyAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 impl Formattable for EmptyAddressData {
     fn write_to(&self, buf: &mut Vec<u8>) {
         use std::io::Write;
@@ -74,7 +68,6 @@ impl Formattable for EmptyAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 // SAFETY: `Array` is `[u8; size_of::<Self>()]`, so `to_bytes` returns exactly the bytes per
 // value the contract requires; the values are encoded, not in native layout.
 unsafe impl Bytes for EmptyAddressData {
@@ -97,7 +90,6 @@ unsafe impl Bytes for EmptyAddressData {
     }
 }
 
-#[cfg(feature = "storage")]
 impl OverflowVecValue for EmptyAddressData {
     type Compact = u64;
 

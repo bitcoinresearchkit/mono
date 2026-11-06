@@ -8,7 +8,9 @@ homepage.workspace = true
 repository.workspace = true
 
 [features]
-schemars = ["brk_types/schemars"]
+schemars = ["dep:schemars"]
 
 [dependencies]
 brk_types = { workspace = true }
+schemars = { workspace = true, optional = true }
+serde = { workspace = true }

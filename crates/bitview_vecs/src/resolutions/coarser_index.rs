@@ -6,10 +6,10 @@ use vecdb::{ReadableVec, VecIndex, VecValue};
 
 use crate::AggFold;
 
-/// Aggregation strategy for epoch-based indices.
-///
-/// The mapping supplies the output length while the index determines the
-/// corresponding source height.
+/// Aggregation strategy for epoch-based indices: each epoch's value is the source's at the
+/// epoch's last height, or at the source's last row for the epoch it is in. The output stops at
+/// the epochs the source reaches, so a source behind the mapping never answers a later epoch
+/// with an earlier one's value.
 pub struct CoarserIndex<I>(PhantomData<I>);
 
 impl<I, O, S1I> AggFold<O, S1I, O> for CoarserIndex<I>
@@ -19,6 +19,14 @@ where
     S1I: VecIndex + FromCoarserIndex<I>,
 {
     #[inline]
+    fn len<MI: VecIndex, S: ReadableVec<S1I, O> + ?Sized>(
+        source: &S,
+        mapping: &RangeMap<S1I, MI>,
+    ) -> usize {
+        mapping.reached(source.visible_len())
+    }
+
+    #[inline]
     fn try_fold<
         MI: VecIndex,
         S: ReadableVec<S1I, O> + ?Sized,
@@ -27,16 +35,15 @@ where
         F: FnMut(B, O) -> Result<B, E>,
     >(
         source: &S,
-        mapping: &RangeMap<S1I, MI>,
+        _mapping: &RangeMap<S1I, MI>,
         from: usize,
         to: usize,
         init: B,
         f: F,
     ) -> Result<B, E> {
-        let mapping_len = mapping.len();
         let source_len = source.visible_len();
 
-        let indices: Vec<usize> = (from..to.min(mapping_len))
+        let indices: Vec<usize> = (from..to)
             .map(|i| S1I::max_from(I::from(i), source_len))
             .collect();
 

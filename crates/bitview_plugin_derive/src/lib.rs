@@ -90,12 +90,12 @@ fn derive_plugin_inner(mut input: DeriveInput) -> Result<ProcMacro2TokenStream> 
         .generics
         .make_where_clause()
         .predicates
-        .push(parse_quote!(Self: bitview_plugin::PluginData + Send + Sync));
+        .push(parse_quote!(Self: ::bitview_plugin::PluginData + ::std::marker::Send + ::std::marker::Sync));
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     Ok(quote! {
-        impl #impl_generics bitview_plugin::Plugin for #name #ty_generics #where_clause {
-            fn storage(&self) -> bitview_plugin::PluginStorage {
+        impl #impl_generics ::bitview_plugin::Plugin for #name #ty_generics #where_clause {
+            fn storage(&self) -> ::bitview_plugin::PluginStorage {
                 #storage
             }
         }
@@ -133,7 +133,7 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
         let ty = field.ty;
         let inner = boxed_inner(&ty);
         let reference = if inner.is_some() {
-            quote! { self.#ident.as_ref() }
+            quote! { &*self.#ident }
         } else {
             quote! { &self.#ident }
         };
@@ -152,13 +152,13 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
         match kind {
             FieldKind::Plugin => {
                 visits.push(quote! { visit(#reference); });
-                predicates.push(parse_quote!(#field_ty: bitview_plugin::Plugin));
+                predicates.push(parse_quote!(#field_ty: ::bitview_plugin::Plugin));
             }
             FieldKind::Flatten => {
                 visits.push(quote! {
-                    bitview_plugin::PluginSet::for_each_plugin(#reference, visit);
+                    ::bitview_plugin::PluginSet::for_each_plugin(#reference, visit);
                 });
-                predicates.push(parse_quote!(#field_ty: bitview_plugin::PluginSet));
+                predicates.push(parse_quote!(#field_ty: ::bitview_plugin::PluginSet));
             }
             FieldKind::Skip => {}
         }
@@ -167,16 +167,16 @@ fn derive_plugin_set_inner(input: DeriveInput) -> Result<ProcMacro2TokenStream> 
     let where_clause = generics.make_where_clause();
     where_clause
         .predicates
-        .push(parse_quote!(Self: Send + Sync));
+        .push(parse_quote!(Self: ::std::marker::Send + ::std::marker::Sync));
     where_clause.predicates.extend(predicates);
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     Ok(quote! {
-        impl #impl_generics bitview_plugin::PluginSet for #name #ty_generics #where_clause {
-            fn for_each_plugin<'a>(
-                &'a self,
-                visit: &mut dyn FnMut(&'a dyn bitview_plugin::Plugin),
+        impl #impl_generics ::bitview_plugin::PluginSet for #name #ty_generics #where_clause {
+            fn for_each_plugin<'__plugins>(
+                &'__plugins self,
+                visit: &mut dyn ::std::ops::FnMut(&'__plugins dyn ::bitview_plugin::Plugin),
             ) {
                 #(#visits)*
             }

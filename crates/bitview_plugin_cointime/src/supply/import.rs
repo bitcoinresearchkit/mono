@@ -1,7 +1,6 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::Ratio64;
-use bitview_vecs::{LazyIndexedVec, LazySpotValuePerBlock};
+use bitview_vecs::LazySpotValuePerBlock;
 use brk_types::{Cents, Height, Version};
 use vecdb::ReadableBoxedVec;
 
@@ -15,28 +14,23 @@ impl Vecs {
         activity: &activity::Vecs,
         all_chain: &AllChainSources,
     ) -> Self {
-        let vaulted = LazyIndexedVec::new(
-            "vaulted_supply_sats_source",
-            Version::ZERO,
-            &activity.liveliness_source.height,
-            &all_chain.supply,
-            |_, liveliness, supply| supply * Ratio64::new(f64::from(liveliness.complement())),
-        );
-        let active = LazyIndexedVec::new(
-            "active_supply_sats_source",
-            Version::ZERO,
-            &activity.liveliness_source.height,
-            &all_chain.supply,
-            |_, liveliness, supply| supply * Ratio64::new(f64::from(liveliness)),
-        );
-
-        let vaulted = LazySpotValuePerBlock::from_sats_source(
-            "vaulted_supply",
-            version,
-            &vaulted,
-            mappings,
-            spot_price,
-        );
+        // Split once: active rounded, vaulted the rest, so the two always sum to the supply.
+        let split = |name, complement: bool| {
+            let weighted = if complement {
+                LazySpotValuePerBlock::from_weighted_supply::<true>
+            } else {
+                LazySpotValuePerBlock::from_weighted_supply::<false>
+            };
+            weighted(
+                name,
+                version,
+                &all_chain.supply,
+                &activity.liveliness_source.height,
+                mappings,
+                spot_price,
+            )
+        };
+        let vaulted = split("vaulted_supply", true);
         Self {
             hodled_or_lost: LazySpotValuePerBlock::identity(
                 "hodled_or_lost_supply",
@@ -44,13 +38,7 @@ impl Vecs {
                 &vaulted,
             ),
             vaulted,
-            active: LazySpotValuePerBlock::from_sats_source(
-                "active_supply",
-                version,
-                &active,
-                mappings,
-                spot_price,
-            ),
+            active: split("active_supply", false),
         }
     }
 }

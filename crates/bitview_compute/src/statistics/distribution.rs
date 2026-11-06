@@ -14,7 +14,8 @@ const CHUNK: usize = 20_000;
 
 /// Compute all 7 rolling distribution stats (min, max, p10, p25, median, p75, p90)
 /// from one sorted window, continuing the `retained` window when it is current. Rows before
-/// `first` have none (NaN), and no window reaches before it (dollar values: the first price).
+/// `first` have none (NaN), and no window reaches before it (dollar values: the first price). A
+/// window starting after its row is empty: NaN.
 pub fn compute_rolling_distribution_from_starts<I, T, A, P: CachePolicy>(
     max_from: I,
     first: usize,

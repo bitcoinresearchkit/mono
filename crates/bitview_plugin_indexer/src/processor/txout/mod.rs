@@ -7,7 +7,7 @@ pub use processed::{ProcessedOutput, ProcessedOutputData, is_single_sig};
 
 use bitcoin::constants::WITNESS_SCALE_FACTOR;
 use bitview_primitives::{
-    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, ByAddrType, Index40, TxOutIndex, TypeIndex,
+    AddrHash, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::Result;
 use brk_store::Store;
@@ -21,7 +21,7 @@ use super::{BlockProcessor, transaction::ComputedTx};
 use crate::{
     AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs,
     constants::overwritten_tx_index,
-    stores::{UtxoKey, Utxos},
+    stores::{AddrIndexOutPoint, AddrIndexTxIndex, UtxoKey, Utxos},
 };
 
 /// Consensus's script size limit: Core treats a larger locking script as unspendable.
@@ -196,7 +196,10 @@ pub fn finalize_outputs(
             processed.data = ProcessedOutputData::Resolved(type_index);
 
             // OP_RETURN outputs can never be spent. A BIP30 duplicate coinbase (two, in 2010)
-            // replaces its original's entry, as in Bitcoin Core.
+            // replaces its original's entry, as in Bitcoin Core. (The store's deletes are weak:
+            // were one of those outputs spent, compaction would uncover the original's entry under
+            // the same key, a UTXO Core never lets be spent twice. Both are unspent to this day,
+            // so it never happens: no special path for it.)
             if !output_type.is_unspendable() {
                 utxos.insert(
                     UtxoKey::new(txid_prefix, vout_index),

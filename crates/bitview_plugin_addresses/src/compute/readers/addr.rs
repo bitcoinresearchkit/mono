@@ -1,7 +1,5 @@
-use bitview_primitives::{
-    AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
-    FundedAddressIndex, TypeIndex,
-};
+use bitview_primitives::TypeIndex;
+use crate::addr::{AddressState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex};
 use brk_types::OutputType;
 use vecdb::{BytesVecReader, OverflowVecReader};
 

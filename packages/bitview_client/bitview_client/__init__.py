@@ -2225,40 +2225,41 @@ class SeriesPattern(Protocol[T]):
 
 
 _i1 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch', 'height')
-_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch')
-_i3 = ('minute10',)
-_i4 = ('minute30',)
-_i5 = ('hour1',)
-_i6 = ('hour4',)
-_i7 = ('hour12',)
-_i8 = ('day1',)
-_i9 = ('day3',)
-_i10 = ('week1',)
-_i11 = ('month1',)
-_i12 = ('month3',)
-_i13 = ('month6',)
-_i14 = ('year1',)
-_i15 = ('year10',)
-_i16 = ('halving_epoch',)
-_i17 = ('difficulty_epoch',)
-_i18 = ('height',)
-_i19 = ('tx_index',)
-_i20 = ('txin_index',)
+_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch', 'height')
+_i3 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch')
+_i4 = ('minute10',)
+_i5 = ('minute30',)
+_i6 = ('hour1',)
+_i7 = ('hour4',)
+_i8 = ('hour12',)
+_i9 = ('day1',)
+_i10 = ('day3',)
+_i11 = ('week1',)
+_i12 = ('month1',)
+_i13 = ('month3',)
+_i14 = ('month6',)
+_i15 = ('year1',)
+_i16 = ('year10',)
+_i17 = ('halving_epoch',)
+_i18 = ('difficulty_epoch',)
+_i19 = ('height',)
+_i20 = ('tx_index',)
 _i21 = ('txin_index',)
-_i22 = ('txout_index',)
+_i22 = ('txin_index',)
 _i23 = ('txout_index',)
-_i24 = ('empty_script_output_index',)
-_i25 = ('op_return_output_index',)
-_i26 = ('p2a_address_index',)
-_i27 = ('p2ms_output_index',)
-_i28 = ('p2pk33_address_index',)
-_i29 = ('p2pk65_address_index',)
-_i30 = ('p2pkh_address_index',)
-_i31 = ('p2sh_address_index',)
-_i32 = ('p2tr_address_index',)
-_i33 = ('p2wpkh_address_index',)
-_i34 = ('p2wsh_address_index',)
-_i35 = ('unknown_script_output_index',)
+_i24 = ('txout_index',)
+_i25 = ('empty_script_output_index',)
+_i26 = ('op_return_output_index',)
+_i27 = ('p2a_address_index',)
+_i28 = ('p2ms_output_index',)
+_i29 = ('p2pk33_address_index',)
+_i30 = ('p2pk65_address_index',)
+_i31 = ('p2pkh_address_index',)
+_i32 = ('p2sh_address_index',)
+_i33 = ('p2tr_address_index',)
+_i34 = ('p2wpkh_address_index',)
+_i35 = ('p2wsh_address_index',)
+_i36 = ('unknown_script_output_index',)
 
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
@@ -2293,6 +2294,33 @@ class SeriesPattern1(Generic[T]):
 
 class _SeriesPattern2By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def minute10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
+    def minute30(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def hour1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def hour4(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour12(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def day1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def day3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def week1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def month1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def month3(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month6(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def year1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def year10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def halving_epoch(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def difficulty_epoch(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
+    def height(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'height')
+
+class SeriesPattern2(Generic[T]):
+    by: _SeriesPattern2By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern2By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i2)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i2 else None
+
+class _SeriesPattern3By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
     def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
     def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
     def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
@@ -2308,18 +2336,6 @@ class _SeriesPattern2By(Generic[T]):
     def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
     def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
     def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
-
-class SeriesPattern2(Generic[T]):
-    by: _SeriesPattern2By[T]
-    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern2By(c, n)
-    @property
-    def name(self) -> str: return self._n
-    def indexes(self) -> List[str]: return list(_i2)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i2 else None
-
-class _SeriesPattern3By(Generic[T]):
-    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
 
 class SeriesPattern3(Generic[T]):
     by: _SeriesPattern3By[T]
@@ -2331,7 +2347,7 @@ class SeriesPattern3(Generic[T]):
 
 class _SeriesPattern4By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
+    def minute10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute10')
 
 class SeriesPattern4(Generic[T]):
     by: _SeriesPattern4By[T]
@@ -2343,7 +2359,7 @@ class SeriesPattern4(Generic[T]):
 
 class _SeriesPattern5By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
+    def minute30(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'minute30')
 
 class SeriesPattern5(Generic[T]):
     by: _SeriesPattern5By[T]
@@ -2355,7 +2371,7 @@ class SeriesPattern5(Generic[T]):
 
 class _SeriesPattern6By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
+    def hour1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour1')
 
 class SeriesPattern6(Generic[T]):
     by: _SeriesPattern6By[T]
@@ -2367,7 +2383,7 @@ class SeriesPattern6(Generic[T]):
 
 class _SeriesPattern7By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
+    def hour4(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour4')
 
 class SeriesPattern7(Generic[T]):
     by: _SeriesPattern7By[T]
@@ -2379,7 +2395,7 @@ class SeriesPattern7(Generic[T]):
 
 class _SeriesPattern8By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
+    def hour12(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'hour12')
 
 class SeriesPattern8(Generic[T]):
     by: _SeriesPattern8By[T]
@@ -2391,7 +2407,7 @@ class SeriesPattern8(Generic[T]):
 
 class _SeriesPattern9By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
+    def day1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day1')
 
 class SeriesPattern9(Generic[T]):
     by: _SeriesPattern9By[T]
@@ -2403,7 +2419,7 @@ class SeriesPattern9(Generic[T]):
 
 class _SeriesPattern10By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
+    def day3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'day3')
 
 class SeriesPattern10(Generic[T]):
     by: _SeriesPattern10By[T]
@@ -2415,7 +2431,7 @@ class SeriesPattern10(Generic[T]):
 
 class _SeriesPattern11By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
+    def week1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'week1')
 
 class SeriesPattern11(Generic[T]):
     by: _SeriesPattern11By[T]
@@ -2427,7 +2443,7 @@ class SeriesPattern11(Generic[T]):
 
 class _SeriesPattern12By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
+    def month1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month1')
 
 class SeriesPattern12(Generic[T]):
     by: _SeriesPattern12By[T]
@@ -2439,7 +2455,7 @@ class SeriesPattern12(Generic[T]):
 
 class _SeriesPattern13By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
+    def month3(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month3')
 
 class SeriesPattern13(Generic[T]):
     by: _SeriesPattern13By[T]
@@ -2451,7 +2467,7 @@ class SeriesPattern13(Generic[T]):
 
 class _SeriesPattern14By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
+    def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
 
 class SeriesPattern14(Generic[T]):
     by: _SeriesPattern14By[T]
@@ -2463,7 +2479,7 @@ class SeriesPattern14(Generic[T]):
 
 class _SeriesPattern15By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
+    def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
 
 class SeriesPattern15(Generic[T]):
     by: _SeriesPattern15By[T]
@@ -2475,7 +2491,7 @@ class SeriesPattern15(Generic[T]):
 
 class _SeriesPattern16By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
 
 class SeriesPattern16(Generic[T]):
     by: _SeriesPattern16By[T]
@@ -2487,7 +2503,7 @@ class SeriesPattern16(Generic[T]):
 
 class _SeriesPattern17By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
+    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
 
 class SeriesPattern17(Generic[T]):
     by: _SeriesPattern17By[T]
@@ -2499,7 +2515,7 @@ class SeriesPattern17(Generic[T]):
 
 class _SeriesPattern18By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
+    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
 
 class SeriesPattern18(Generic[T]):
     by: _SeriesPattern18By[T]
@@ -2511,7 +2527,7 @@ class SeriesPattern18(Generic[T]):
 
 class _SeriesPattern19By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def tx_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'tx_index')
+    def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
 
 class SeriesPattern19(Generic[T]):
     by: _SeriesPattern19By[T]
@@ -2523,7 +2539,7 @@ class SeriesPattern19(Generic[T]):
 
 class _SeriesPattern20By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txin_index')
+    def tx_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'tx_index')
 
 class SeriesPattern20(Generic[T]):
     by: _SeriesPattern20By[T]
@@ -2535,7 +2551,7 @@ class SeriesPattern20(Generic[T]):
 
 class _SeriesPattern21By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txin_index')
+    def txin_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern21(Generic[T]):
     by: _SeriesPattern21By[T]
@@ -2543,11 +2559,11 @@ class SeriesPattern21(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i21)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i21 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i21 else None
 
 class _SeriesPattern22By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txout_index')
+    def txin_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txin_index')
 
 class SeriesPattern22(Generic[T]):
     by: _SeriesPattern22By[T]
@@ -2555,11 +2571,11 @@ class SeriesPattern22(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i22)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i22 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i22 else None
 
 class _SeriesPattern23By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txout_index')
+    def txout_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern23(Generic[T]):
     by: _SeriesPattern23By[T]
@@ -2567,11 +2583,11 @@ class SeriesPattern23(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i23)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i23 else None
 
 class _SeriesPattern24By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_script_output_index')
+    def txout_index(self) -> SeriesEndpoint[Optional[T]]: return SeriesEndpoint(self._c, self._n, 'txout_index')
 
 class SeriesPattern24(Generic[T]):
     by: _SeriesPattern24By[T]
@@ -2579,11 +2595,11 @@ class SeriesPattern24(Generic[T]):
     @property
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i24)
-    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i24 else None
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[Optional[T]], DateSeriesEndpoint[Optional[T]]]]: return _endpoint(self.by._c, self._n, index) if index in _i24 else None
 
 class _SeriesPattern25By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def op_return_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_output_index')
+    def empty_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_script_output_index')
 
 class SeriesPattern25(Generic[T]):
     by: _SeriesPattern25By[T]
@@ -2595,7 +2611,7 @@ class SeriesPattern25(Generic[T]):
 
 class _SeriesPattern26By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2a_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2a_address_index')
+    def op_return_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_output_index')
 
 class SeriesPattern26(Generic[T]):
     by: _SeriesPattern26By[T]
@@ -2607,7 +2623,7 @@ class SeriesPattern26(Generic[T]):
 
 class _SeriesPattern27By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2ms_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2ms_output_index')
+    def p2a_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2a_address_index')
 
 class SeriesPattern27(Generic[T]):
     by: _SeriesPattern27By[T]
@@ -2619,7 +2635,7 @@ class SeriesPattern27(Generic[T]):
 
 class _SeriesPattern28By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk33_address_index')
+    def p2ms_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2ms_output_index')
 
 class SeriesPattern28(Generic[T]):
     by: _SeriesPattern28By[T]
@@ -2631,7 +2647,7 @@ class SeriesPattern28(Generic[T]):
 
 class _SeriesPattern29By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk65_address_index')
+    def p2pk33_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk33_address_index')
 
 class SeriesPattern29(Generic[T]):
     by: _SeriesPattern29By[T]
@@ -2643,7 +2659,7 @@ class SeriesPattern29(Generic[T]):
 
 class _SeriesPattern30By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pkh_address_index')
+    def p2pk65_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pk65_address_index')
 
 class SeriesPattern30(Generic[T]):
     by: _SeriesPattern30By[T]
@@ -2655,7 +2671,7 @@ class SeriesPattern30(Generic[T]):
 
 class _SeriesPattern31By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2sh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2sh_address_index')
+    def p2pkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2pkh_address_index')
 
 class SeriesPattern31(Generic[T]):
     by: _SeriesPattern31By[T]
@@ -2667,7 +2683,7 @@ class SeriesPattern31(Generic[T]):
 
 class _SeriesPattern32By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2tr_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2tr_address_index')
+    def p2sh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2sh_address_index')
 
 class SeriesPattern32(Generic[T]):
     by: _SeriesPattern32By[T]
@@ -2679,7 +2695,7 @@ class SeriesPattern32(Generic[T]):
 
 class _SeriesPattern33By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wpkh_address_index')
+    def p2tr_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2tr_address_index')
 
 class SeriesPattern33(Generic[T]):
     by: _SeriesPattern33By[T]
@@ -2691,7 +2707,7 @@ class SeriesPattern33(Generic[T]):
 
 class _SeriesPattern34By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wsh_address_index')
+    def p2wpkh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wpkh_address_index')
 
 class SeriesPattern34(Generic[T]):
     by: _SeriesPattern34By[T]
@@ -2703,7 +2719,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def unknown_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_script_output_index')
+    def p2wsh_address_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'p2wsh_address_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -2712,6 +2728,18 @@ class SeriesPattern35(Generic[T]):
     def name(self) -> str: return self._n
     def indexes(self) -> List[str]: return list(_i35)
     def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i35 else None
+
+class _SeriesPattern36By(Generic[T]):
+    def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
+    def unknown_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_script_output_index')
+
+class SeriesPattern36(Generic[T]):
+    by: _SeriesPattern36By[T]
+    def __init__(self, c: BitviewClient, n: str): self._n, self.by = n, _SeriesPattern36By(c, n)
+    @property
+    def name(self) -> str: return self._n
+    def indexes(self) -> List[str]: return list(_i36)
+    def get(self, index: Index) -> Optional[Union[SeriesEndpoint[T], DateSeriesEndpoint[T]]]: return _endpoint(self.by._c, self._n, index) if index in _i36 else None
 
 class _Child:
     """A series-tree child, materialized on first access. Its series name (a leaf) or base (a node)
@@ -3320,7 +3348,7 @@ class Rate(_Node):
 
 
 class PerTxDistribution(_Node, Generic[A]):
-    tx: SeriesPattern19[A] = _at(SeriesPattern19, '*')
+    tx: SeriesPattern20[A] = _at(SeriesPattern20, '*')
     min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
     max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
     p10: SeriesPattern1[A] = _at(SeriesPattern1, '*_p10')
@@ -3467,8 +3495,8 @@ class Coinbase(_Node):
 
 
 class OpReturnValue(_Node):
-    btc: SeriesPattern18[Optional[Bitcoin]] = _at(SeriesPattern18, '*')
-    usd: SeriesPattern18[Optional[Dollars]] = _at(SeriesPattern18, '*_usd')
+    btc: SeriesPattern19[Optional[Bitcoin]] = _at(SeriesPattern19, '*')
+    usd: SeriesPattern19[Optional[Dollars]] = _at(SeriesPattern19, '*_usd')
 
 
 class ValueFlow(_Node):
@@ -3563,7 +3591,7 @@ class Windows(_Node, Generic[A]):
 
 
 class NewAddressCount(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*')
     sum: Windows[Count] = _at(Windows, '*_sum')
 
 
@@ -3666,15 +3694,15 @@ class AgeCreationSupply(_Node):
 
 
 class DataBytesSeries(_Node):
-    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_bytes')
+    block: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_bytes')
     cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
     sum: Windows[Bytes] = _at(Windows, '*_bytes_sum')
     chain_share: Share = _at(Share, '*_chain_share')
 
 
 class Inscription(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
@@ -3683,8 +3711,8 @@ class Inscription(_Node):
 
 
 class TransactionsFlagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
@@ -3699,14 +3727,14 @@ class Patterns(_Node):
 
 class Fees(_Node):
     fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
-    fee_rate: SeriesPattern19[Optional[FeeRate]] = _at(SeriesPattern19, '*_fee_rate')
+    fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_fee_rate')
     effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
     cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
     cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
 
 
 class TxCount(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_count_sum')
     share: Share = _at(Share, '*_share')
@@ -3714,8 +3742,8 @@ class TxCount(_Node):
 
 
 class Flagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
     share: Share = _at(Share, '*_tx_share')
@@ -3758,7 +3786,7 @@ class Features(_Node):
 
 
 class Fullness(_Node):
-    block: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Optional[Percent]] = _at(SeriesPattern19, '*')
     avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
     min: Windows[Optional[Percent]] = _at(Windows, '*_min')
     max: Windows[Optional[Percent]] = _at(Windows, '*_max')
@@ -3770,7 +3798,7 @@ class Fullness(_Node):
 
 
 class Flow(_Node, Generic[A]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[A] = _at(Windows, '*_sum')
 
@@ -4099,7 +4127,7 @@ class ByKind(_Node):
 
 
 class OpReturn(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
     output_count: Flow[Count] = _at(Flow, '*_output_count')
     data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
@@ -4145,7 +4173,7 @@ class SpendableType(_Node):
 
 
 class FlowStats(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[A] = _at(Windows, '*_sum')
     avg: Windows[B] = _at(Windows, '*_avg')
@@ -4159,7 +4187,7 @@ class FlowStats(_Node, Generic[A, B]):
 
 
 class Outputs(_Node):
-    spending_txin_index: SeriesPattern23[TxInIndex] = _at(SeriesPattern23, 'spending_txin_index')
+    spending_txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, 'spending_txin_index')
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
     spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
@@ -4174,7 +4202,7 @@ class Inputs(_Node):
 
 
 class Averaged(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     avg: Windows[B] = _at(Windows, '*_avg')
 
 
@@ -4266,7 +4294,7 @@ class Pool(_Node):
 
 
 class Pools(_Node):
-    block_pool: SeriesPattern18[PoolSlug] = _at(SeriesPattern18, 'block_*')
+    block_pool: SeriesPattern19[PoolSlug] = _at(SeriesPattern19, 'block_*')
     unknown: Pool = _at(Pool, '*_unknown')
     blockfills: Pool = _at(Pool, '*_blockfills')
     ultimuspool: Pool = _at(Pool, '*_ultimuspool')
@@ -4447,134 +4475,134 @@ class Blocks(_Node):
 
 
 class Price(_Node):
-    open: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_open')
-    high: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_high')
-    low: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_low')
-    close: SeriesPattern2[Optional[Dollars]] = _at(SeriesPattern2, '*_close')
-    ohlc: SeriesPattern2[OHLCDollars] = _at(SeriesPattern2, '*_ohlc')
+    open: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_open')
+    high: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_high')
+    low: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_low')
+    close: SeriesPattern3[Optional[Dollars]] = _at(SeriesPattern3, '*_close')
+    ohlc: SeriesPattern3[OHLCDollars] = _at(SeriesPattern3, '*_ohlc')
     spot: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    sats_per_dollar: SeriesPattern1[Sats] = _at(SeriesPattern1, 'sats_per_dollar')
+    sats_per_dollar: SeriesPattern2[Sats] = _at(SeriesPattern2, 'sats_per_dollar')
 
 
 class Timestamps(_Node):
-    monotonic: SeriesPattern18[Timestamp] = _at(SeriesPattern18, '*_monotonic')
-    period_start: SeriesPattern2[Timestamp] = _at(SeriesPattern2, '*')
+    monotonic: SeriesPattern19[Timestamp] = _at(SeriesPattern19, '*_monotonic')
+    period_start: SeriesPattern3[Timestamp] = _at(SeriesPattern3, '*')
 
 
 class TxoutIndex(_Node):
-    identity: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, '*')
+    identity: SeriesPattern23[TxOutIndex] = _at(SeriesPattern23, '*')
 
 
 class TxinIndex(_Node):
-    identity: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, '*')
+    identity: SeriesPattern21[TxInIndex] = _at(SeriesPattern21, '*')
 
 
 class MappingsTxIndex(_Node):
-    identity: SeriesPattern19[TxIndex] = _at(SeriesPattern19, '*_index')
-    input_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_input_count')
-    output_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_output_count')
+    identity: SeriesPattern20[TxIndex] = _at(SeriesPattern20, '*_index')
+    input_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_input_count')
+    output_count: SeriesPattern20[Count] = _at(SeriesPattern20, '*_output_count')
 
 
 class MappingsYear10(_Node):
+    date: SeriesPattern16[Date] = _at(SeriesPattern16, '*')
+    first_height: SeriesPattern16[Height] = _at(SeriesPattern16, 'first_height')
+
+
+class MappingsYear1(_Node):
     date: SeriesPattern15[Date] = _at(SeriesPattern15, '*')
     first_height: SeriesPattern15[Height] = _at(SeriesPattern15, 'first_height')
 
 
-class MappingsYear1(_Node):
+class MappingsMonth6(_Node):
     date: SeriesPattern14[Date] = _at(SeriesPattern14, '*')
     first_height: SeriesPattern14[Height] = _at(SeriesPattern14, 'first_height')
 
 
-class MappingsMonth6(_Node):
+class MappingsMonth3(_Node):
     date: SeriesPattern13[Date] = _at(SeriesPattern13, '*')
     first_height: SeriesPattern13[Height] = _at(SeriesPattern13, 'first_height')
 
 
-class MappingsMonth3(_Node):
+class MappingsMonth1(_Node):
     date: SeriesPattern12[Date] = _at(SeriesPattern12, '*')
     first_height: SeriesPattern12[Height] = _at(SeriesPattern12, 'first_height')
 
 
-class MappingsMonth1(_Node):
+class MappingsWeek1(_Node):
     date: SeriesPattern11[Date] = _at(SeriesPattern11, '*')
     first_height: SeriesPattern11[Height] = _at(SeriesPattern11, 'first_height')
 
 
-class MappingsWeek1(_Node):
+class MappingsDay3(_Node):
     date: SeriesPattern10[Date] = _at(SeriesPattern10, '*')
     first_height: SeriesPattern10[Height] = _at(SeriesPattern10, 'first_height')
 
 
-class MappingsDay3(_Node):
+class MappingsDay1(_Node):
     date: SeriesPattern9[Date] = _at(SeriesPattern9, '*')
     first_height: SeriesPattern9[Height] = _at(SeriesPattern9, 'first_height')
 
 
-class MappingsDay1(_Node):
-    date: SeriesPattern8[Date] = _at(SeriesPattern8, '*')
-    first_height: SeriesPattern8[Height] = _at(SeriesPattern8, 'first_height')
-
-
 class MappingsHour12(_Node):
-    first_height: SeriesPattern7[Height] = _at(SeriesPattern7, '*')
+    first_height: SeriesPattern8[Height] = _at(SeriesPattern8, '*')
 
 
 class MappingsHour4(_Node):
-    first_height: SeriesPattern6[Height] = _at(SeriesPattern6, '*')
+    first_height: SeriesPattern7[Height] = _at(SeriesPattern7, '*')
 
 
 class MappingsHour1(_Node):
-    first_height: SeriesPattern5[Height] = _at(SeriesPattern5, '*')
+    first_height: SeriesPattern6[Height] = _at(SeriesPattern6, '*')
 
 
 class MappingsMinute30(_Node):
-    first_height: SeriesPattern4[Height] = _at(SeriesPattern4, '*')
+    first_height: SeriesPattern5[Height] = _at(SeriesPattern5, '*')
 
 
 class MappingsMinute10(_Node):
-    first_height: SeriesPattern3[Height] = _at(SeriesPattern3, '*')
+    first_height: SeriesPattern4[Height] = _at(SeriesPattern4, '*')
 
 
 class MappingsHalvingEpoch(_Node):
-    first_height: SeriesPattern16[Height] = _at(SeriesPattern16, '*')
-
-
-class MappingsDifficultyEpoch(_Node):
     first_height: SeriesPattern17[Height] = _at(SeriesPattern17, '*')
 
 
+class MappingsDifficultyEpoch(_Node):
+    first_height: SeriesPattern18[Height] = _at(SeriesPattern18, '*')
+
+
 class MappingsHeight(_Node):
-    minute10: SeriesPattern18[Minute10] = _at(SeriesPattern18, '*_minute10')
-    minute30: SeriesPattern18[Minute30] = _at(SeriesPattern18, '*_minute30')
-    hour1: SeriesPattern18[Hour1] = _at(SeriesPattern18, '*_hour1')
-    hour4: SeriesPattern18[Hour4] = _at(SeriesPattern18, '*_hour4')
-    hour12: SeriesPattern18[Hour12] = _at(SeriesPattern18, '*_hour12')
-    day1: SeriesPattern18[Day1] = _at(SeriesPattern18, '*_day1')
-    day3: SeriesPattern18[Day3] = _at(SeriesPattern18, '*_day3')
-    difficulty_epoch: SeriesPattern18[DifficultyEpoch] = _at(SeriesPattern18, 'difficulty_epoch')
-    halving_epoch: SeriesPattern18[HalvingEpoch] = _at(SeriesPattern18, 'halving_epoch')
-    week1: SeriesPattern18[Week1] = _at(SeriesPattern18, '*_week1')
-    month1: SeriesPattern18[Month1] = _at(SeriesPattern18, '*_month1')
-    month3: SeriesPattern18[Month3] = _at(SeriesPattern18, '*_month3')
-    month6: SeriesPattern18[Month6] = _at(SeriesPattern18, '*_month6')
-    year1: SeriesPattern18[Year1] = _at(SeriesPattern18, '*_year1')
-    year10: SeriesPattern18[Year10] = _at(SeriesPattern18, '*_year10')
+    minute10: SeriesPattern19[Minute10] = _at(SeriesPattern19, '*_minute10')
+    minute30: SeriesPattern19[Minute30] = _at(SeriesPattern19, '*_minute30')
+    hour1: SeriesPattern19[Hour1] = _at(SeriesPattern19, '*_hour1')
+    hour4: SeriesPattern19[Hour4] = _at(SeriesPattern19, '*_hour4')
+    hour12: SeriesPattern19[Hour12] = _at(SeriesPattern19, '*_hour12')
+    day1: SeriesPattern19[Day1] = _at(SeriesPattern19, '*_day1')
+    day3: SeriesPattern19[Day3] = _at(SeriesPattern19, '*_day3')
+    difficulty_epoch: SeriesPattern19[DifficultyEpoch] = _at(SeriesPattern19, 'difficulty_epoch')
+    halving_epoch: SeriesPattern19[HalvingEpoch] = _at(SeriesPattern19, 'halving_epoch')
+    week1: SeriesPattern19[Week1] = _at(SeriesPattern19, '*_week1')
+    month1: SeriesPattern19[Month1] = _at(SeriesPattern19, '*_month1')
+    month3: SeriesPattern19[Month3] = _at(SeriesPattern19, '*_month3')
+    month6: SeriesPattern19[Month6] = _at(SeriesPattern19, '*_month6')
+    year1: SeriesPattern19[Year1] = _at(SeriesPattern19, '*_year1')
+    year10: SeriesPattern19[Year10] = _at(SeriesPattern19, '*_year10')
 
 
 class MappingsOpReturn(_Node):
-    identity: SeriesPattern25[OpReturnOutputIndex] = _at(SeriesPattern25, '*')
+    identity: SeriesPattern26[OpReturnOutputIndex] = _at(SeriesPattern26, '*')
 
 
 class MappingsUnknownScript(_Node):
-    identity: SeriesPattern35[UnknownScriptOutputIndex] = _at(SeriesPattern35, '*')
+    identity: SeriesPattern36[UnknownScriptOutputIndex] = _at(SeriesPattern36, '*')
 
 
 class EmptyScript(_Node):
-    identity: SeriesPattern24[EmptyScriptOutputIndex] = _at(SeriesPattern24, '*')
+    identity: SeriesPattern25[EmptyScriptOutputIndex] = _at(SeriesPattern25, '*')
 
 
 class MappingsP2ms(_Node):
-    identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
+    identity: SeriesPattern28[P2MSOutputIndex] = _at(SeriesPattern28, '*')
 
 
 class Script(_Node):
@@ -4585,67 +4613,67 @@ class Script(_Node):
 
 
 class MappingsP2a(_Node):
-    identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
-    address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
+    identity: SeriesPattern27[P2AAddressIndex] = _at(SeriesPattern27, '*_index')
+    address: SeriesPattern27[Address] = _at(SeriesPattern27, '*')
 
 
 class MappingsP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
-    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
-
-
-class MappingsP2wsh(_Node):
-    identity: SeriesPattern34[P2WSHAddressIndex] = _at(SeriesPattern34, '*_index')
-    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
-
-
-class MappingsP2wpkh(_Node):
-    identity: SeriesPattern33[P2WPKHAddressIndex] = _at(SeriesPattern33, '*_index')
+    identity: SeriesPattern33[P2TRAddressIndex] = _at(SeriesPattern33, '*_index')
     address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
+class MappingsP2wsh(_Node):
+    identity: SeriesPattern35[P2WSHAddressIndex] = _at(SeriesPattern35, '*_index')
+    address: SeriesPattern35[Address] = _at(SeriesPattern35, '*')
+
+
+class MappingsP2wpkh(_Node):
+    identity: SeriesPattern34[P2WPKHAddressIndex] = _at(SeriesPattern34, '*_index')
+    address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
+
+
 class MappingsP2sh(_Node):
-    identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
-    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
+    identity: SeriesPattern32[P2SHAddressIndex] = _at(SeriesPattern32, '*_index')
+    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
 class MappingsP2pkh(_Node):
-    identity: SeriesPattern30[P2PKHAddressIndex] = _at(SeriesPattern30, '*_index')
-    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
+    identity: SeriesPattern31[P2PKHAddressIndex] = _at(SeriesPattern31, '*_index')
+    address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
 
 
 class MappingsP2pk33(_Node):
-    identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
-    address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
-
-
-class MappingsP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
+    identity: SeriesPattern29[P2PK33AddressIndex] = _at(SeriesPattern29, '*_index')
     address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
 
 
+class MappingsP2pk65(_Node):
+    identity: SeriesPattern30[P2PK65AddressIndex] = _at(SeriesPattern30, '*_index')
+    address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
+
+
 class IndexerOpReturn(_Node):
-    first_index: SeriesPattern18[OpReturnOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_output_tx_index')
-    protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
-    post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, 'post_*_bytes')
+    first_index: SeriesPattern19[OpReturnOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern26[TxIndex] = _at(SeriesPattern26, '*_output_tx_index')
+    protocol: SeriesPattern26[OpReturnKind] = _at(SeriesPattern26, '*_protocol')
+    post_op_return_bytes: SeriesPattern26[Bytes] = _at(SeriesPattern26, 'post_*_bytes')
 
 
 class IndexerUnknownScript(_Node):
-    first_index: SeriesPattern18[UnknownScriptOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
-    legacy_sigop_cost: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigop_cost')
+    first_index: SeriesPattern19[UnknownScriptOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern36[TxIndex] = _at(SeriesPattern36, '*_output_tx_index')
+    legacy_sigop_cost: SeriesPattern36[SigOps] = _at(SeriesPattern36, '*_legacy_sigop_cost')
 
 
 class ScriptType(_Node):
-    first_index: SeriesPattern18[EmptyScriptOutputIndex] = _at(SeriesPattern18, 'first_*_index')
-    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
+    first_index: SeriesPattern19[EmptyScriptOutputIndex] = _at(SeriesPattern19, 'first_*_index')
+    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
 
 
 class IndexerP2ms(_Node):
-    first_index: SeriesPattern18[P2MSOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
-    tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_output_tx_index')
-    legacy_sigop_cost: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigop_cost')
+    first_index: SeriesPattern19[P2MSOutputIndex] = _at(SeriesPattern19, 'first_*_output_index')
+    tx_index: SeriesPattern28[TxIndex] = _at(SeriesPattern28, '*_output_tx_index')
+    legacy_sigop_cost: SeriesPattern28[SigOps] = _at(SeriesPattern28, '*_legacy_sigop_cost')
 
 
 class Scripts(_Node):
@@ -4655,43 +4683,43 @@ class Scripts(_Node):
 
 
 class IndexerP2a(_Node):
-    first_index: SeriesPattern18[P2AAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
+    first_index: SeriesPattern19[P2AAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern27[P2ABytes] = _at(SeriesPattern27, '*_bytes')
 
 
 class IndexerP2tr(_Node):
-    first_index: SeriesPattern18[P2TRAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
+    first_index: SeriesPattern19[P2TRAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern33[P2TRBytes] = _at(SeriesPattern33, '*_bytes')
 
 
 class IndexerP2wsh(_Node):
-    first_index: SeriesPattern18[P2WSHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
+    first_index: SeriesPattern19[P2WSHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern35[P2WSHBytes] = _at(SeriesPattern35, '*_bytes')
 
 
 class IndexerP2wpkh(_Node):
-    first_index: SeriesPattern18[P2WPKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
+    first_index: SeriesPattern19[P2WPKHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern34[P2WPKHBytes] = _at(SeriesPattern34, '*_bytes')
 
 
 class IndexerP2sh(_Node):
-    first_index: SeriesPattern18[P2SHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
+    first_index: SeriesPattern19[P2SHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern32[P2SHBytes] = _at(SeriesPattern32, '*_bytes')
 
 
 class IndexerP2pkh(_Node):
-    first_index: SeriesPattern18[P2PKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
+    first_index: SeriesPattern19[P2PKHAddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern31[P2PKHBytes] = _at(SeriesPattern31, '*_bytes')
 
 
 class IndexerP2pk33(_Node):
-    first_index: SeriesPattern18[P2PK33AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
+    first_index: SeriesPattern19[P2PK33AddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern29[P2PK33Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
 class IndexerP2pk65(_Node):
-    first_index: SeriesPattern18[P2PK65AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
-    bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
+    first_index: SeriesPattern19[P2PK65AddressIndex] = _at(SeriesPattern19, 'first_*_address_index')
+    bytes: SeriesPattern30[P2PK65Bytes] = _at(SeriesPattern30, '*_bytes')
 
 
 class Addrs(_Node, Generic[A, B, C, D, E, F, G, H]):
@@ -4731,24 +4759,24 @@ class Mappings(_Node):
 
 
 class IndexerOutputs(_Node):
-    first_txout_index: SeriesPattern18[TxOutIndex] = _at(SeriesPattern18, 'first_txout_index')
-    value: SeriesPattern22[Sats] = _at(SeriesPattern22, '*_value')
-    output_type: SeriesPattern22[OutputType] = _at(SeriesPattern22, '*_type')
-    type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_index')
+    first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
+    value: SeriesPattern23[Sats] = _at(SeriesPattern23, '*_value')
+    output_type: SeriesPattern23[OutputType] = _at(SeriesPattern23, '*_type')
+    type_index: SeriesPattern23[TypeIndex] = _at(SeriesPattern23, 'type_index')
 
 
 class IndexerInputs(_Node):
-    first_txin_index: SeriesPattern18[TxInIndex] = _at(SeriesPattern18, 'first_txin_*')
-    outpoint: SeriesPattern21[OutPoint] = _at(SeriesPattern21, 'outpoint')
-    txout_index: SeriesPattern21[TxOutIndex] = _at(SeriesPattern21, 'spent_txout_*')
-    tx_index: SeriesPattern20[TxIndex] = _at(SeriesPattern20, 'input_tx_*')
-    output_type: SeriesPattern20[OutputType] = _at(SeriesPattern20, 'output_type')
-    type_index: SeriesPattern21[TypeIndex] = _at(SeriesPattern21, 'type_*')
-    value: SeriesPattern20[Sats] = _at(SeriesPattern20, 'input_value')
+    first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_*')
+    outpoint: SeriesPattern22[OutPoint] = _at(SeriesPattern22, 'outpoint')
+    txout_index: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, 'spent_txout_*')
+    tx_index: SeriesPattern21[TxIndex] = _at(SeriesPattern21, 'input_tx_*')
+    output_type: SeriesPattern21[OutputType] = _at(SeriesPattern21, 'output_type')
+    type_index: SeriesPattern22[TypeIndex] = _at(SeriesPattern22, 'type_*')
+    value: SeriesPattern21[Sats] = _at(SeriesPattern21, 'input_value')
 
 
 class CountSeries(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*')
 
 
 class VersionCount(_Node, Generic[A]):
@@ -4772,13 +4800,13 @@ class Transactions(_Node):
 
 
 class IndexerFeature(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
 
 
 class Feature(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'has_*')
+    block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
 
 
 class TransactionFeatures(_Node):
@@ -4810,29 +4838,29 @@ class TransactionFeatures(_Node):
 
 
 class IndexerTransactions(_Node):
-    first_tx_index: SeriesPattern18[TxIndex] = _at(SeriesPattern18, 'first_*_index')
-    txid: SeriesPattern19[Txid] = _at(SeriesPattern19, 'txid')
-    version: SeriesPattern19[TxVersion] = _at(SeriesPattern19, '*_version')
-    locktime: SeriesPattern19[RawLockTime] = _at(SeriesPattern19, '*_locktime')
-    weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
-    size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
-    sigop_cost: SeriesPattern19[SigOps] = _at(SeriesPattern19, '*_sigop_cost')
-    first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_index')
-    first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
+    first_tx_index: SeriesPattern19[TxIndex] = _at(SeriesPattern19, 'first_*_index')
+    txid: SeriesPattern20[Txid] = _at(SeriesPattern20, 'txid')
+    version: SeriesPattern20[TxVersion] = _at(SeriesPattern20, '*_version')
+    locktime: SeriesPattern20[RawLockTime] = _at(SeriesPattern20, '*_locktime')
+    weight: SeriesPattern20[Weight] = _at(SeriesPattern20, '*_weight')
+    size: SeriesPattern20[Bytes] = _at(SeriesPattern20, '*_size')
+    sigop_cost: SeriesPattern20[SigOps] = _at(SeriesPattern20, '*_sigop_cost')
+    first_txin_index: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, 'first_txin_index')
+    first_txout_index: SeriesPattern20[TxOutIndex] = _at(SeriesPattern20, 'first_txout_index')
     features: TransactionFeatures = _at(TransactionFeatures, 'sighash')
     versions: VersionCount[CountSeries] = _at((VersionCount, CountSeries), '*_count')
 
 
 class IndexerBlocks(_Node):
-    blockhash: SeriesPattern18[BlockHash] = _at(SeriesPattern18, 'blockhash')
-    coinbase_tag: SeriesPattern18[CoinbaseTag] = _at(SeriesPattern18, 'coinbase_tag')
-    timestamp: SeriesPattern18[Timestamp] = _at(SeriesPattern18, 'timestamp')
-    median_time: SeriesPattern18[Timestamp] = _at(SeriesPattern18, 'median_time')
-    size: SeriesPattern18[Bytes] = _at(SeriesPattern18, 'block_size')
-    weight: SeriesPattern18[Weight] = _at(SeriesPattern18, 'block_weight')
-    segwit_tx_count: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
-    segwit_tx_size: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_size')
-    segwit_tx_weight: SeriesPattern18[Weight] = _at(SeriesPattern18, '*_weight')
+    blockhash: SeriesPattern19[BlockHash] = _at(SeriesPattern19, 'blockhash')
+    coinbase_tag: SeriesPattern19[CoinbaseTag] = _at(SeriesPattern19, 'coinbase_tag')
+    timestamp: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'timestamp')
+    median_time: SeriesPattern19[Timestamp] = _at(SeriesPattern19, 'median_time')
+    size: SeriesPattern19[Bytes] = _at(SeriesPattern19, 'block_size')
+    weight: SeriesPattern19[Weight] = _at(SeriesPattern19, 'block_weight')
+    segwit_tx_count: SeriesPattern19[Count] = _at(SeriesPattern19, '*_count')
+    segwit_tx_size: SeriesPattern19[Bytes] = _at(SeriesPattern19, '*_size')
+    segwit_tx_weight: SeriesPattern19[Weight] = _at(SeriesPattern19, '*_weight')
 
 
 class Indexer(_Node):

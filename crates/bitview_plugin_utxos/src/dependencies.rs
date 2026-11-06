@@ -14,7 +14,7 @@ impl Dependencies<'_> {
     pub(crate) fn version(&self) -> Version {
         let v = self.indexer.vecs();
         Version::ONE
-            + Version::combine_all([
+            + ([
                 self.price.spot.cents.height.version(),
                 v.inputs.value.version(),
                 v.outputs.first_txout_index.version(),
@@ -24,5 +24,7 @@ impl Dependencies<'_> {
                 v.inputs.txout_index.version(),
                 v.inputs.output_type.version(),
             ])
+            .into_iter()
+            .sum::<Version>()
     }
 }

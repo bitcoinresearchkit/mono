@@ -60,11 +60,15 @@ pub fn extract_json_type(schema: &Value) -> JsonType {
 }
 
 fn extract_json_type_inner(node: &Value, root: &Value) -> JsonType {
-    if let Some(value_type) = node
-        .get("type")
-        .and_then(Value::as_str)
-        .and_then(JsonType::parse)
-    {
+    if let Some(value_type) = node.get("type").and_then(|value_type| match value_type {
+        Value::String(name) => JsonType::parse(name),
+        // A nullable value's: `["integer", "null"]`.
+        Value::Array(names) => names
+            .iter()
+            .filter_map(|name| name.as_str().and_then(JsonType::parse))
+            .find(|value_type| *value_type != JsonType::Null),
+        _ => None,
+    }) {
         return value_type;
     }
 

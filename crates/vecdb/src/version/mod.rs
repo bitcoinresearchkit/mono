@@ -26,7 +26,7 @@ impl Version {
         Self(v)
     }
 
-    /// Combines ordered version components without component cancellation from addition.
+    /// Mixes `other` into this version, in order; `+` and `Sum` compose with it.
     pub(crate) const fn combine(self, other: Self) -> Self {
         Self(
             self.0
@@ -36,11 +36,6 @@ impl Version {
                     .wrapping_add(self.0 << 6)
                     .wrapping_add(self.0 >> 2),
         )
-    }
-
-    #[inline]
-    pub fn combine_all(versions: impl IntoIterator<Item = Self>) -> Self {
-        versions.into_iter().fold(Self::ZERO, Self::combine)
     }
 
     pub fn write(&self, path: &Path) -> Result<(), io::Error> {

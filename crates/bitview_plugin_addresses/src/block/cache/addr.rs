@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
-use bitview_primitives::{ByAddrType, DecodedAddrState, TypeIndex};
+use bitview_primitives::{ByAddrType, TypeIndex};
+use crate::addr::DecodedAddrState;
 use brk_error::Result;
 use brk_types::OutputType;
 use rayon::{ThreadPool, ThreadPoolBuilder, current_num_threads, prelude::*};

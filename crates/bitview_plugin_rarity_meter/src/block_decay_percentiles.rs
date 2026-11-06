@@ -1,5 +1,4 @@
 use bitview_compute::FenwickTree;
-use bitview_primitives::PriceRatio;
 
 pub const START_HEIGHT: usize = 210_000;
 const HALF_LIFE_BLOCKS: usize = 210_000;
@@ -46,20 +45,8 @@ impl BlockDecayPercentiles {
         2.0_f64.powf((height - START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64)
     }
 
-    pub fn add_bulk(&mut self, start_height: usize, values: &[PriceRatio]) {
-        for (offset, &value) in values.iter().enumerate() {
-            self.len += 1;
-            let value = f64::from(value);
-            if value.is_nan() {
-                continue;
-            }
-            let weight = Self::weight(start_height + offset);
-            self.mass += weight;
-            self.tree.add_raw(Self::to_bucket(value), &weight);
-        }
-        self.tree.build_in_place();
-    }
-
+    /// One add per block, the only path: a restart's rebuild sums in the same order as live
+    /// updates, so a quantile at a tie lands in the same bucket either way.
     #[inline]
     pub fn add(&mut self, height: usize, value: f64) {
         self.len += 1;

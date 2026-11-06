@@ -4,7 +4,7 @@ use std::{
     iter,
 };
 
-use schemars::{JsonSchema, SchemaGenerator};
+use schemars::{JsonSchema, generate::SchemaSettings};
 use serde::Serialize;
 use serde_json::to_value;
 use vecdb::{
@@ -152,8 +152,12 @@ where
         leaf.nullable = indexes.clone();
     }
 
+    // The values as the API writes them (schemars' default describes what deserializes).
     // Serializing (not `Schema::to_value`) applies schemars' canonical keyword order.
-    let schema = SchemaGenerator::default().into_root_schema_for::<V::T>();
+    let schema = SchemaSettings::default()
+        .for_serialize()
+        .into_generator()
+        .into_root_schema_for::<V::T>();
     let schema_json = to_value(schema).expect("a schema serializes to JSON");
     let mut leaf = SeriesLeafWithSchema::new(leaf, schema_json);
     if V::T::MISSING {

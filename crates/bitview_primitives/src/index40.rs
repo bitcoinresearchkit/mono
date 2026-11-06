@@ -164,6 +164,11 @@ where
     const MISSING: bool = T::MISSING;
 
     #[inline(always)]
+    fn is_undefined(&self) -> bool {
+        self.get().is_undefined()
+    }
+
+    #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
         self.get().write_to(buf)
     }

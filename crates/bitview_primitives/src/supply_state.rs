@@ -9,7 +9,6 @@ use std::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::FundedAddressData;
 use brk_types::Sats;
 
 #[cfg(feature = "storage")]
@@ -54,16 +53,6 @@ impl SubAssign<&SupplyState> for SupplyState {
         );
         self.utxo_count -= rhs.utxo_count;
         self.value = self.value - rhs.value;
-    }
-}
-
-impl From<&FundedAddressData> for SupplyState {
-    #[inline]
-    fn from(value: &FundedAddressData) -> Self {
-        Self {
-            utxo_count: value.utxo_count() as u64,
-            value: value.balance(),
-        }
     }
 }
 

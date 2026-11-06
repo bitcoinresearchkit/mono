@@ -1,10 +1,9 @@
+use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable};
 
-use crate::{DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
-use brk_types::Sats;
+use super::{DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
 
 const PAYLOAD_BITS: u32 = 30;
 const PAYLOAD_MASK: u32 = (1 << PAYLOAD_BITS) - 1;
@@ -29,7 +28,7 @@ const COUNT_HEAVY_TRANSFER_BITS: u32 = 23;
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
 )]
-#[cfg_attr(feature = "storage", derive(Bytes))]
+#[derive(Bytes)]
 #[serde(transparent)]
 pub struct AddressState(u32);
 
@@ -132,7 +131,6 @@ impl AddressState {
     }
 }
 
-#[cfg(feature = "storage")]
 impl Formattable for AddressState {
     #[inline(always)]
     fn write_to(&self, buf: &mut Vec<u8>) {
