@@ -23,7 +23,7 @@ derive_more = { workspace = true }
 rangeindex = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }
 
 [dev-dependencies]
 brk_reader = { workspace = true }

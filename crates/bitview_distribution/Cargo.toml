@@ -19,7 +19,7 @@ bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 schemars = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }
 rustc-hash = { workspace = true }
 rayon = { workspace = true }
 bitview_plugin_indexer = { workspace = true }

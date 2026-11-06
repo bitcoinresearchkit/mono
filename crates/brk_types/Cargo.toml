@@ -23,7 +23,7 @@ schemars = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 sha2 = { workspace = true }
-vecdb = { workspace = true, optional = true }
+vecdb = { workspace = true, optional = true, features = ["derive", "pco", "serde"] }
 
 [dev-dependencies]
 serde_json = { workspace = true }

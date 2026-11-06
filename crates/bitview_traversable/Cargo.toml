@@ -22,4 +22,4 @@ indexmap = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }

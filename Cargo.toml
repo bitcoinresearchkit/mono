@@ -130,7 +130,7 @@ tower-http = "0.7.1"
 tower-layer = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 ureq = "3.5.0"
-vecdb = { path = "crates/vecdb", version = "0.13.0", features = ["derive", "serde", "pco"] }
+vecdb = { path = "crates/vecdb", version = "0.13.0" }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.13.0" }
 
 

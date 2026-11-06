@@ -142,8 +142,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   in the Rust and the JavaScript quickmatch alike
 - `vecdb`'s derives name `Result::Ok` in full: a crate with its own `Ok` in scope can use them
 - Workspace dependencies carry no features of their own: each crate names what it uses (tokio's multi-thread
-  runtime only for bitview, devtools and mcp, tower-http's layers for the server, ureq's JSON for the Rust client;
-  tower-http's `trace` for the website example alone)
+  runtime only for bitview, devtools and mcp, tower-http's layers for the server, ureq's JSON for the Rust client,
+  tower-http's `trace` for the website example alone, vecdb's derives, pco and serde for `brk_types`,
+  `bitview_primitives` and the crates using PcoVec: `brk_error` builds without them)
 - blk: a bare field prints a line for every block, an empty one included (an empty string skipped its line); blk
   checks that its block files are the node's network, as bitviewd does
 - mmpl: an unchanged pool (its txids' hash) skips rebuilding and diffing the txid set every cycle

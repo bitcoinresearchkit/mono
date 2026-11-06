@@ -26,4 +26,4 @@ rustc-hash = { workspace = true }
 schemars = { workspace = true }
 smallvec = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }

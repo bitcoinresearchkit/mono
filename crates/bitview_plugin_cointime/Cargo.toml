@@ -26,4 +26,4 @@ bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 rayon = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }

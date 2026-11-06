@@ -21,4 +21,4 @@ derive_more = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
-vecdb = { workspace = true, features = ["zstd"] }
+vecdb = { workspace = true, features = ["pco", "zstd"] }

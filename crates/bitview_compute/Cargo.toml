@@ -17,4 +17,4 @@ brk_error = { workspace = true, features = ["vecdb"] }
 brk_types = { workspace = true, features = ["storage"] }
 schemars = { workspace = true }
 serde = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }
