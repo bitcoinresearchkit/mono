@@ -51,8 +51,31 @@ impl Chunks {
         self.components.push(self.chunks.len() as u32);
     }
 
+    /// Each member's chunk, by `TxIndex` (`len` members).
+    pub fn chunk_of(&self, len: usize) -> Vec<u32> {
+        let mut chunk_of = vec![u32::MAX; len];
+        for c in 0..self.chunks.len() {
+            for m in self.members(c) {
+                chunk_of[m.as_usize()] = c as u32;
+            }
+        }
+        chunk_of
+    }
+
+    /// The chunks of the component holding chunk `c`, in linearization order.
+    pub fn component_chunks(&self, c: usize) -> std::ops::Range<usize> {
+        let i = self.components.partition_point(|&end| end as usize <= c);
+        let start = i.checked_sub(1).map_or(0, |p| self.components[p] as usize);
+        start..self.components[i] as usize
+    }
+
+    /// Chunk `c`'s feerate.
+    pub fn rate(&self, c: usize) -> FeeRate {
+        self.chunks[c].1
+    }
+
     /// Chunk `c`'s members.
-    fn members(&self, c: usize) -> &[TxIndex] {
+    pub fn members(&self, c: usize) -> &[TxIndex] {
         let start = c.checked_sub(1).map_or(0, |p| self.chunks[p].0 as usize);
         &self.txs[start..self.chunks[c].0 as usize]
     }

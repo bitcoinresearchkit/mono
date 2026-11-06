@@ -40,6 +40,10 @@ pub struct Snapshot {
     pub fees: RecommendedFees,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
+    /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
+    /// CPFP answers read them instead of linearizing again.
+    chunks: partition::Chunks,
+    chunk_of: Vec<u32>,
     /// The blocks served with their transactions: block 0 and the projection's, but a last one
     /// holding more than a block (what's left, mempool.space's catch-all).
     served: Vec<ServedBlock>,
@@ -68,8 +72,10 @@ impl Snapshot {
         block0: Vec<TxIndex>,
         rest: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
+        chunks: partition::Chunks,
         min_fee: FeeRate,
     ) -> Self {
+        let chunk_of = chunks.chunk_of(txs.len());
         let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
         let precise_fees = fees::precise(&block_stats, min_fee);
         let fees = fees::whole(&block_stats, min_fee);
@@ -81,6 +87,8 @@ impl Snapshot {
             fees,
             min_fee,
             key_to_idx,
+            chunks,
+            chunk_of,
             served: Vec::new(),
             content_revision: 0,
             template_missing: false,

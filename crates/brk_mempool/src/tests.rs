@@ -4,8 +4,8 @@ use bitcoin::hashes::Hash;
 use bitcoin::{ScriptBuf, Witness};
 use brk_cpfp::Cluster;
 use brk_types::{
-    BlockHash, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction, TxIn, TxStatus,
-    Txid, VSize, Vout, Weight,
+    BlockHash, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction,
+    TxIn, TxStatus, Txid, VSize, Vout, Weight,
 };
 use rapidhash::RapidHashSet;
 use serde_json::{Value, to_value};
@@ -115,12 +115,44 @@ fn pool(n: usize) -> Vec<SnapTx> {
     last.weight = Weight::from(3_995_000u64);
     last.vsize = VSize::from(last.weight);
     last.fee = Sats::from(100_000_000u64);
+    last.modified = 100_000_000;
     for i in 0..n {
         for p in txs[i].parents.clone() {
             txs[p.as_usize()].children.push(TxIndex::from(i));
         }
     }
     txs
+}
+
+/// A CPFP answer read from the snapshot's linearization is the one a fresh linearization gives:
+/// the same cluster, chunks and effective rate, for every member of random pools.
+#[test]
+fn cpfp_answers_match_a_fresh_linearization() {
+    let txs = pool(2_000);
+    let snapshot = Snapshot::build(
+        txs.clone(),
+        Vec::new(),
+        &[],
+        KeyIndex::default(),
+        chunks(&txs),
+        FeeRate::default(),
+    );
+    for i in 0..txs.len() {
+        let seed = TxIndex::from(i);
+        let ours = snapshot.cpfp_info_at(seed, txs[i].sigops);
+        let mut graph = Cluster::default();
+        let members = cluster::load(&txs, &cluster::walk(&txs, seed), &mut graph);
+        let local = members.iter().position(|&m| m == seed).unwrap() as u32;
+        let (cluster, rate) = graph.project(CpfpClusterTxIndex::from(local), |l| {
+            let t = &txs[members[l].as_usize()];
+            (t.txid, t.weight)
+        });
+        assert_eq!(
+            to_value(&ours.cluster).unwrap(),
+            to_value(&cluster).unwrap()
+        );
+        assert_eq!(ours.effective_fee_per_vsize, rate);
+    }
 }
 
 /// Every component's chunks, as the snapshot builds them.
@@ -417,7 +449,12 @@ fn rebuilds_follow_the_view_gaps() {
         &Confirmed::default(),
         &state,
     );
-    applier::apply(&mut state, &Snapshot::default(), diff);
+    applier::apply(
+        &mut state,
+        &Snapshot::default(),
+        diff,
+        &Confirmed::default(),
+    );
     state.template_only = template_only;
 
     let mut rebuilder = Rebuilder::default();
@@ -495,6 +532,7 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
         block0,
         &indexed[1..],
         KeyIndex::default(),
+        Chunks::default(),
         FeeRate::default(),
     );
     let bodies = blocks[..=later]

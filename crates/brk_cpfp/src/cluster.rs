@@ -91,17 +91,38 @@ impl Cluster {
             return (None, published_rate(node.modified, node.weight));
         }
         let mut chunks = Vec::new();
-        let mut seed_chunk = None;
         self.linearize(|txs, feerate| {
-            if txs.contains(&seed) {
-                seed_chunk = Some((chunks.len() as u32, feerate));
-            }
             chunks.push(CpfpClusterChunk {
                 txs: txs.to_vec(),
                 feerate,
             });
         });
-        let (chunk_index, rate) = seed_chunk.expect("every member is in a chunk");
+        self.project_from(seed, member, chunks)
+    }
+
+    /// [`Self::project`] from this cluster's linearization made already: its chunks in order,
+    /// each its members' local indices ascending.
+    pub fn project_from(
+        &self,
+        seed: CpfpClusterTxIndex,
+        member: impl Fn(usize) -> (Txid, Weight),
+        chunks: Vec<CpfpClusterChunk>,
+    ) -> (Option<CpfpCluster>, FeeRate) {
+        if self.nodes.len() == 1 {
+            let node = &self.nodes[u32::from(seed) as usize];
+            return (None, published_rate(node.modified, node.weight));
+        }
+        debug_assert_eq!(
+            chunks.iter().map(|chunk| chunk.txs.len()).sum::<usize>(),
+            self.nodes.len(),
+            "every member in one chunk"
+        );
+        let (chunk_index, rate) = chunks
+            .iter()
+            .enumerate()
+            .find(|(_, chunk)| chunk.txs.contains(&seed))
+            .map(|(i, chunk)| (i as u32, chunk.feerate))
+            .expect("every member is in a chunk");
         let txs = self
             .nodes
             .iter()

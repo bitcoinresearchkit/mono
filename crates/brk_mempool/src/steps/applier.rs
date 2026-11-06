@@ -6,14 +6,17 @@ use crate::{
     Snapshot, TxRemoval,
     key::TxKey,
     state::{State, TxEntry},
-    steps::preparer::{PoolDiff, TxAddition},
+    steps::{
+        Confirmed,
+        preparer::{PoolDiff, TxAddition},
+    },
 };
 
 /// Applies a prepared diff to private working state: re-assert promoted
-/// spends, bury removals, insert additions, then evict old tombstones. A
-/// burial keeps its chunk rate from the previous cycle's graph, or its own fee
-/// rate if that graph lacks it.
-pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff) {
+/// spends, bury removals, insert additions, mark what the new blocks confirmed among the buried,
+/// then evict old tombstones. A burial keeps its chunk rate from the previous cycle's graph, or
+/// its own fee rate if that graph lacks it.
+pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confirmed: &Confirmed) {
     let PoolDiff {
         live_len,
         added,
@@ -38,7 +41,9 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff) {
         state.graveyard.exhume(&entry.txid);
         insert_one(state, tx, entry, listed);
     }
-    state.graveyard.evict_old();
+    state.graveyard.mark_mined(confirmed.txids());
+    let txs = &state.txs;
+    state.graveyard.evict_old(|txid| txs.contains(txid));
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {

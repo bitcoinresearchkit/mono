@@ -50,6 +50,10 @@ impl Confirmed {
         self.txids.contains(txid)
     }
 
+    pub fn txids(&self) -> impl Iterator<Item = &Txid> {
+        self.txids.iter()
+    }
+
     /// The confirmed transaction spending an outpoint `inputs` spend, other than the transaction
     /// itself: a conflict that took its place.
     pub fn conflict<'a>(

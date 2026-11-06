@@ -63,6 +63,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- `/api/v1/cpfp/{txid}` for a pending transaction reads its cluster's chunks from the snapshot instead of
+  linearizing the cluster again on each request (up to ~3.6 ms of CPU for a crafted 64-transaction cluster)
 - Chain reads (tip, blocks, transactions, addresses) run as many at once as there are cores (they ran one at a time):
   `/api/tx/{txid}` from 10k to 39k requests a second at 12 clients and 5.2k to 37k at 48 (p99 46 → 3 ms), on a dev
   build. The mining statistics, which read the whole history, wait apart under their own admission: a client looping
@@ -105,6 +107,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   mainnet before, where blocks 2-8 change every second)
 - `/api/v1/replacements` gives each tree its own work budget: one oversized tree no longer ends the listing early;
   a tree whose replacer a block confirmed unseen stays rooted at the last transaction the pool knows
+- RBF history stays as mempool.space's does: a replacement tree as long as its newest version is pending, and 24
+  hours after it left (an hour after each burial before, even with the replacer pending); a replaced version a
+  block confirmed after all reads mined. The graveyard holds 256 MiB of bodies at most: past it the oldest lone
+  tombstones go first, then the oldest trees (a flood of cheap replacements grew it without bound)
 - Fee tiers compare a projected block's weight with mempool.space's 500,000 and 950,000 vB thresholds exactly (its
   vsize was rounded down first)
 - The indexer re-imports once (version 46): an address's output keys hold the whole 32-bit output position (they

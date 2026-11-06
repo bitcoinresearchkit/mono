@@ -141,7 +141,7 @@ impl Mempool {
         );
         // A panic after this point requires restoring private indexes before reuse.
         self.needs_recovery = true;
-        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff);
+        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
         self.last_tip = Some(rpc.tip_hash);
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);

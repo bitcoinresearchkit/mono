@@ -113,7 +113,8 @@ impl Rebuilder {
         }
 
         let missing = blocks[0].0.len() != gbt_txids.len();
-        let mut snapshot = Snapshot::build(txs, block0, &projection.blocks, key_to_idx, min_fee);
+        let mut snapshot =
+            Snapshot::build(txs, block0, &projection.blocks, key_to_idx, chunks, min_fee);
         snapshot.set_served(blocks, state.txs.content_revision(), missing);
         snapshot.template_only = state.template_only.clone();
         snapshot.unloaded = unloaded.clone();

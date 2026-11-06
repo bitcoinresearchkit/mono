@@ -8,8 +8,10 @@
 
 use brk_cpfp::Cluster;
 use brk_error::Result;
-use brk_types::{BlockHash, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid};
-use rustc_hash::FxHashSet;
+use brk_types::{
+    BlockHash, CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
+};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
 use crate::ReadOnlyState;
@@ -31,24 +33,49 @@ impl ReadOnlyState {
 }
 
 impl Snapshot {
-    fn cpfp_info_at(&self, seed_idx: TxIndex, sigops: SigOps) -> CpfpInfo {
+    /// From this snapshot's linearization of the seed's component: a request maps its chunks
+    /// onto the members' order, never linearizing again.
+    pub(crate) fn cpfp_info_at(&self, seed_idx: TxIndex, sigops: SigOps) -> CpfpInfo {
         let seed = &self.txs[seed_idx.as_usize()];
         let mut graph = Cluster::default();
         let members = cluster::load(&self.txs, &cluster::walk(&self.txs, seed_idx), &mut graph);
-        let seed_local = members
+        let local: FxHashMap<TxIndex, u32> = members
             .iter()
-            .position(|&i| i == seed_idx)
-            .expect("the seed is in its own cluster") as u32;
+            .enumerate()
+            .map(|(i, &m)| (m, i as u32))
+            .collect();
+        let seed_local = local[&seed_idx];
+        let chunks = self
+            .chunks
+            .component_chunks(self.chunk_of[seed_idx.as_usize()] as usize)
+            .map(|c| {
+                let mut txs: Vec<CpfpClusterTxIndex> = self
+                    .chunks
+                    .members(c)
+                    .iter()
+                    .map(|m| CpfpClusterTxIndex::from(local[m]))
+                    .collect();
+                txs.sort_unstable_by_key(|tx| u32::from(*tx));
+                CpfpClusterChunk {
+                    txs,
+                    feerate: self.chunks.rate(c),
+                }
+            })
+            .collect();
         CpfpInfo::new(
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents),
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children),
             seed.fee,
             seed.weight,
             sigops,
-            graph.project(CpfpClusterTxIndex::from(seed_local), |local| {
-                let t = &self.txs[members[local].as_usize()];
-                (t.txid, t.weight)
-            }),
+            graph.project_from(
+                CpfpClusterTxIndex::from(seed_local),
+                |local| {
+                    let t = &self.txs[members[local].as_usize()];
+                    (t.txid, t.weight)
+                },
+                chunks,
+            ),
         )
     }
 
