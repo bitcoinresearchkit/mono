@@ -53,7 +53,7 @@
         --faint: light-dark(#5d6573, #7d8594);
         --line: light-dark(rgb(15 18 23 / 0.1), rgb(255 255 255 / 0.08));
         --line2: light-dark(rgb(15 18 23 / 0.18), rgb(255 255 255 / 0.15));
-        --spark: light-dark(rgb(15 18 23 / 0.22), rgb(255 255 255 / 0.2));
+        --spark: light-dark(rgb(15 18 23 / 0.3), rgb(255 255 255 / 0.3));
         --ok: light-dark(#13804a, #4ade80);
         --warn: light-dark(#9a5b00, #f5b74a);
         --warn-bg: light-dark(rgb(240 165 30 / 0.1), rgb(245 183 74 / 0.08));
@@ -380,16 +380,14 @@
           font: 500 12px var(--mono);
         }
 
+        /* (A level's color, beside its name.) */
         .dot {
+          display: inline-block;
           width: 7px;
           height: 7px;
-          margin-left: 3px;
-          border: 0;
+          margin-right: 7px;
           border-radius: 50%;
-        }
-
-        &[aria-pressed="true"] .dot {
-          box-shadow: 0 0 0 3px var(--raise), 0 0 0 4px var(--ink);
+          vertical-align: 1px;
         }
       }
 
@@ -527,7 +525,7 @@
         width: 100%;
         min-height: 27px;
         border: 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+        border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
         background: none;
         font: 12.5px var(--mono);
         text-align: left;
@@ -1170,7 +1168,7 @@
         for (const [group, keys] of Object.entries(GROUPS)) {
           html += `<div class="group"><h2>${TITLES[group]}</h2>${keys
             .filter(([key]) => group !== "levels" || key === "error" || key === "warn" || count(group, key) || view.levels.has(key))
-            .map(([key, label, dot]) => `<button type="button" class="facet" data-group="${group}" data-key="${group}:${key}" aria-pressed="${view[group].has(key)}">${dot ? `<i class="dot" style="background:${dot}"></i>` : "<i></i>"}<span>${label}</span><b>${num(count(group, key))}</b></button>`)
+            .map(([key, label, dot]) => `<button type="button" class="facet" data-group="${group}" data-key="${group}:${key}" aria-pressed="${view[group].has(key)}"><i></i><span>${dot ? `<i class="dot" style="background:${dot}"></i>` : ""}${label}</span><b>${num(count(group, key))}</b></button>`)
             .join("")}</div>`;
         }
         html += `<div class="group"><h2>Slowest <span>count · over</span></h2>${SLOW.map((p) => {
