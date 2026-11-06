@@ -156,8 +156,8 @@
       }
 
       #lede {
-        color: var(--faint);
-        font-size: 15px;
+        color: var(--text);
+        font-size: 16px;
       }
 
       .page {
@@ -400,7 +400,7 @@
 
       .week {
         margin-bottom: 2px;
-        color: var(--faint);
+        color: var(--soft);
         font-size: 10px;
         text-align: center;
       }
@@ -440,7 +440,7 @@
 
         /* (A day still to come, or before the chain: its date, faintly, not to be opened.) */
         &:disabled {
-          opacity: 0.45;
+          opacity: 0.6;
           cursor: default;
         }
 
@@ -1223,7 +1223,7 @@
         $("forward").setAttribute("aria-label", day ? "The day after" : `${y + 1}`);
         /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= 2009;
         /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
-        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found";
+        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found; a dot, a day in the notes";
         $("leaders-title").textContent = day ? "Pools, by blocks" : "Pools, by days led";
         document.title = `${day ? at.date : y} · Calendar · Bitview`;
       }
