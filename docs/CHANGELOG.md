@@ -110,6 +110,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   mainnet before, where blocks 2-8 change every second)
 - `/api/v1/replacements` gives each tree its own work budget: one oversized tree no longer ends the listing early;
   a tree whose replacer a block confirmed unseen stays rooted at the last transaction the pool knows
+- While Bitcoin Core reloads its saved mempool after a restart, the mirror waits (readers keep its last view): the
+  partial listing read the not-yet-reloaded transactions as gone, filling the graveyard with pending ones
+- Shown rates are what transactions pay: an operator's `prioritisetransaction` deltas order the projected blocks as
+  Core's block builder does, but no longer reach effective rates, block stats, fee tiers or CPFP answers
+- An address page continuing from a pending transaction answers 503 while the pool's address view isn't ready (it
+  answered an empty page, ending pagination early, or 422 `unknown_after_txid`)
+- Held fee tiers stand at most 10 minutes after the last complete view, then the fee endpoints answer 503
 - `/api/v1/tx/{txid}/rbf` answers a history past its bounds (63 versions, 4,096 transactions) with 400
   `limit_exceeded` instead of 500 (it was 32 versions); `/api/v1/replacements` no longer lists a lone transaction
   as a tree when its replacer was confirmed unseen

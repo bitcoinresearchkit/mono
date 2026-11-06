@@ -4,7 +4,7 @@ use brk_types::{
     CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, Weight,
 };
 
-use crate::linearize::{Scratch, linearize, published_rate};
+use crate::linearize::{Scratch, linearize};
 
 /// One member: the fee it pays (served), the fee it ranks by (Core's modified fee: what it pays
 /// plus an operator's delta, which can be negative), its weight and its range in
@@ -87,8 +87,9 @@ impl Cluster {
         member: impl Fn(usize) -> (Txid, Weight),
     ) -> (Option<CpfpCluster>, FeeRate) {
         if self.nodes.len() == 1 {
+            // A lone transaction's rate is what it pays (its ranked fee only orders).
             let node = &self.nodes[u32::from(seed) as usize];
-            return (None, published_rate(node.modified, node.weight));
+            return (None, FeeRate::from((node.fee, node.weight)));
         }
         let mut chunks = Vec::new();
         self.linearize(|txs, feerate| {
@@ -109,8 +110,9 @@ impl Cluster {
         chunks: Vec<CpfpClusterChunk>,
     ) -> (Option<CpfpCluster>, FeeRate) {
         if self.nodes.len() == 1 {
+            // A lone transaction's rate is what it pays (its ranked fee only orders).
             let node = &self.nodes[u32::from(seed) as usize];
-            return (None, published_rate(node.modified, node.weight));
+            return (None, FeeRate::from((node.fee, node.weight)));
         }
         debug_assert_eq!(
             chunks.iter().map(|chunk| chunk.txs.len()).sum::<usize>(),

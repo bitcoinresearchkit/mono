@@ -9,4 +9,7 @@ pub struct MempoolState {
     /// mempool, in txid byte order: Core's block builder ranks by base fee plus delta. Empty on a
     /// node without `getprioritisedtransactions` (before Core 27).
     pub fee_deltas: Box<[(Txid, i64)]>,
+    /// The node finished loading its saved mempool before the listing was taken: until then a
+    /// transaction missing from it may only be unread yet.
+    pub loaded: bool,
 }

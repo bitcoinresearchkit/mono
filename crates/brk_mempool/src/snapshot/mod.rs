@@ -8,7 +8,11 @@ pub mod rebuilder;
 pub mod snap_tx;
 pub mod tx_index;
 
-use std::{hash::Hasher, sync::Arc};
+use std::{
+    hash::Hasher,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
@@ -26,6 +30,10 @@ pub use tx_index::TxIndex;
 
 use crate::key::TxKey;
 
+/// How long an incomplete view holds a complete one's fee tiers over: about a block. Past it the
+/// fee endpoints answer `StateUpdating` until a complete view returns.
+const HELD_FEES_MAX: Duration = Duration::from_secs(600);
+
 #[derive(Default)]
 pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
@@ -38,9 +46,12 @@ pub struct Snapshot {
     pub(crate) block_stats: Vec<BlockStats>,
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
-    /// Whether `fees` and `precise_fees` come from a complete view: blocks after block 0 built
-    /// from part of the pool (still loading, or a stale template) would quote too low.
-    pub(crate) fees_complete: bool,
+    /// When a complete view last stood behind `fees` and `precise_fees` (this one's build, or for
+    /// tiers held over, the last tick that saw a complete view), and whether this snapshot holds
+    /// them over (built itself from part of the pool, still loading or under a stale template, its
+    /// own blocks after block 0 would quote too low). None before the first complete view.
+    pub(crate) fees_from: Option<Instant>,
+    pub(crate) fees_held: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -88,7 +99,8 @@ impl Snapshot {
             block_stats,
             precise_fees,
             fees,
-            fees_complete: true,
+            fees_from: Some(Instant::now()),
+            fees_held: false,
             min_fee,
             key_to_idx,
             chunks,
@@ -173,13 +185,14 @@ impl Snapshot {
         self.content_revision
     }
 
-    /// [`Self::ensure_projection`], with tiers from a complete view.
+    /// [`Self::ensure_projection`], with tiers from a complete view: its own, or one held over
+    /// for at most [`HELD_FEES_MAX`].
     pub(crate) fn ensure_fees(&self) -> Result<()> {
         self.ensure_projection()?;
-        if !self.fees_complete {
-            return Err(QueryError::StateUpdating);
+        match self.fees_from {
+            Some(from) if !self.fees_held || from.elapsed() <= HELD_FEES_MAX => Ok(()),
+            _ => Err(QueryError::StateUpdating),
         }
-        Ok(())
     }
 
     /// A default snapshot is not an observed empty mempool. A real publication

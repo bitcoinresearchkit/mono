@@ -4,7 +4,7 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::{FeeRate, Sats, Txid, Weight};
+use brk_types::{Txid, Weight};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
@@ -29,8 +29,8 @@ pub struct ChunkCache(FxHashMap<Box<[MemberId]>, Linearized>);
 struct Linearized {
     /// Chunk after chunk, each member's position among the key's members, in topological order.
     order: Box<[u32]>,
-    /// Each chunk's end in `order` and feerate.
-    chunks: Box<[(u32, FeeRate)]>,
+    /// Each chunk's end in `order` (its rate is what its members pay, read when used).
+    chunks: Box<[u32]>,
 }
 
 impl Snapshot {
@@ -89,10 +89,7 @@ impl Snapshot {
             weight: e.weight,
             size: e.size,
             sigops: record.policy_sigops(),
-            chunk_rate: FeeRate::from((
-                Sats::from(u64::try_from(modified).unwrap_or(0)),
-                record.policy_weight(),
-            )),
+            chunk_rate: record.own_rate(),
             parents: SmallVec::new(),
             children: SmallVec::new(),
         }
@@ -149,9 +146,11 @@ impl Snapshot {
                 Self::linearize_component(snap_txs, &component, &members, &mut graph)
             });
             let mut start = 0;
-            for &(end, rate) in &linearized.chunks {
+            for &end in &linearized.chunks {
                 let positions = &linearized.order[start..end as usize];
                 let txs = positions.iter().map(|&p| members[p as usize].1);
+                // Ordered by modified fees, shown by what the chunk pays.
+                let rate = cluster::paid_rate(snap_txs, txs.clone());
                 for m in txs.clone() {
                     snap_txs[m.as_usize()].chunk_rate = rate;
                 }
@@ -180,12 +179,12 @@ impl Snapshot {
         let locals = cluster::load(snap_txs, component, graph);
         let mut order = Vec::with_capacity(component.len());
         let mut chunks = Vec::new();
-        graph.linearize(|txs, rate| {
+        graph.linearize(|txs, _| {
             order.extend(
                 txs.iter()
                     .map(|&local| position[&locals[u32::from(local) as usize]]),
             );
-            chunks.push((order.len() as u32, rate));
+            chunks.push(order.len() as u32);
         });
         Linearized {
             order: order.into(),

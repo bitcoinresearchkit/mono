@@ -127,9 +127,9 @@ pub fn partition(
             rest.extend(members.iter().filter(|m| !excluded[m.as_usize()]));
             for piece in pieces(txs, &rest, excluded) {
                 let order = cluster::load(txs, &piece, &mut graph);
-                graph.linearize(|local, rate| {
+                graph.linearize(|local, _| {
                     let members = local.iter().map(|&l| order[u32::from(l) as usize]);
-                    left.push_chunk(members, rate);
+                    left.push_chunk(members.clone(), cluster::paid_rate(txs, members));
                 });
                 left.end_component();
             }

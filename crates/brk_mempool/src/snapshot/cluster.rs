@@ -5,7 +5,7 @@
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_cpfp::Cluster;
-use brk_types::CpfpClusterTxIndex;
+use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, TxIndex};
@@ -102,4 +102,17 @@ fn topo_sort(
         }
     }
     out
+}
+
+/// A chunk's feerate by what its members pay (base fees) over their policy weight: what is shown.
+/// Linearization and packing rank by modified fees instead; without an operator's delta the two
+/// agree.
+pub fn paid_rate(txs: &[SnapTx], members: impl IntoIterator<Item = TxIndex>) -> FeeRate {
+    let (fee, weight) = members
+        .into_iter()
+        .map(|m| &txs[m.as_usize()])
+        .fold((Sats::ZERO, Weight::default()), |(fee, weight), t| {
+            (fee + t.fee, weight + t.sigops.adjust_weight(t.weight))
+        });
+    FeeRate::from((fee, weight))
 }

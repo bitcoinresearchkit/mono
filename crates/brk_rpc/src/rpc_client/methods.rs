@@ -105,12 +105,14 @@ impl Client {
         let template_args = (json!({ "rules": ["segwit"] }),);
         let calls = [
             RpcCall::new("getblocktemplate", &template_args)?,
-            RpcCall::new("getrawmempool", &(false,))?,
+            // Before the listing (Core runs a batch in order): a load reported finished was
+            // finished when the listing was taken.
             RpcCall::new("getmempoolinfo", &NO_ARGS)?,
+            RpcCall::new("getrawmempool", &(false,))?,
             RpcCall::new("getprioritisedtransactions", &NO_ARGS)?,
         ];
         // The batch answers every request, a missing response as an item error.
-        let [template_raw, txids_raw, info_raw, deltas_raw] =
+        let [template_raw, info_raw, txids_raw, deltas_raw] =
             <[_; 4]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
         let (template_raw, txids_raw, info_raw) = (template_raw?, txids_raw?, info_raw?);
 
@@ -128,6 +130,7 @@ impl Client {
                 min_fee,
                 tip_hash,
                 fee_deltas,
+                loaded: info.loaded,
             },
             block_template,
         ))

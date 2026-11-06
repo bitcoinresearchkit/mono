@@ -31,7 +31,7 @@ use std::cmp::Ordering;
 use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
 
 /// A ranked fee's published rate over `weight`: zero for one at or below zero.
-pub(crate) fn published_rate(fee: i64, weight: Weight) -> FeeRate {
+fn published_rate(fee: i64, weight: Weight) -> FeeRate {
     FeeRate::from((Sats::from(u64::try_from(fee).unwrap_or(0)), weight))
 }
 

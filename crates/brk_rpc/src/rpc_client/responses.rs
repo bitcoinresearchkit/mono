@@ -44,6 +44,9 @@ pub struct GetMempoolInfo {
     /// In BTC per kvB.
     #[serde(rename = "mempoolminfee")]
     pub mempool_min_fee: f64,
+    /// Whether the node finished loading its saved mempool (false while it reloads after a
+    /// restart: the listing then lacks what it hasn't read back yet).
+    pub loaded: bool,
 }
 
 /// `getblockchaininfo`.

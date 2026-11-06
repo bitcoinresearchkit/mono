@@ -177,6 +177,55 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
     chunks
 }
 
+/// What block 0 leaves of a component packs as the clusters it now forms (a miss of one piece
+/// defers that piece alone), and equal feerates go as Core 31's chunk index orders them: the
+/// chunk whose greatest txid is lower first.
+#[test]
+fn projected_blocks_split_leftovers_and_order_ties() {
+    let tx = |seed: u8, fee: u64, weight: u64, parents: &[usize]| SnapTx {
+        txid: txid(seed),
+        fee: Sats::from(fee),
+        modified: fee as i64,
+        vsize: VSize::from(Weight::from(weight)),
+        weight: Weight::from(weight),
+        size: 0,
+        sigops: SigOps::ZERO,
+        chunk_rate: FeeRate::default(),
+        parents: parents.iter().map(|&p| TxIndex::from(p)).collect(),
+        children: SmallVec::new(),
+    };
+    let with_children = |mut txs: Vec<SnapTx>| {
+        for i in 0..txs.len() {
+            for p in txs[i].parents.clone() {
+                txs[p.as_usize()].children.push(TxIndex::from(i));
+            }
+        }
+        txs
+    };
+    let packed = |txs: &[SnapTx], excluded: &[bool]| {
+        partition(txs, &chunks(txs), excluded, 7)
+            .blocks
+            .iter()
+            .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect::<Vec<_>>())
+            .collect::<Vec<_>>()
+    };
+    // Block 0 took A (0), the parent of B (1) and C (2). D (3) fills most of the next block, so B
+    // misses it; C, its own cluster now, still fits.
+    let txs = with_children(vec![
+        tx(1, 1_000, 400, &[]),
+        tx(2, 2_000_000, 1_000_000, &[0]),
+        tx(3, 4_000, 4_000, &[0]),
+        tx(4, 9_000_000, 3_000_000, &[]),
+    ]);
+    assert_eq!(
+        packed(&txs, &[true, false, false, false]),
+        [vec![3, 2], vec![1]]
+    );
+    // Equal feerates: the lower greatest txid first, whatever the push order.
+    let txs = with_children(vec![tx(9, 1_000, 400, &[]), tx(5, 1_000, 400, &[])]);
+    assert_eq!(packed(&txs, &[false, false]), [vec![1, 0]]);
+}
+
 /// Core's budgets are strict: a block holds transactions up to 3,991,999 WU and 79,599 sigops; the
 /// chunk reaching either limit waits for the next block.
 #[test]

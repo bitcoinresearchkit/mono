@@ -126,8 +126,13 @@ impl Mempool {
             );
         }
         // A block arriving during the fetch can leave the listing past the template's tip: nothing
-        // of such a cycle is applied (its removals would be classified without that block).
-        if rpc.tip_hash != tip_before || self.client.get_best_block_hash()? != tip_before {
+        // of such a cycle is applied (its removals would be classified without that block). Nor
+        // while the node reloads its saved mempool: its listing lacks what it hasn't read back yet,
+        // which would read as gone (readers keep the last publication meanwhile).
+        if !rpc.loaded
+            || rpc.tip_hash != tip_before
+            || self.client.get_best_block_hash()? != tip_before
+        {
             return Err(Error::StateUpdating);
         }
         let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.last_tip);

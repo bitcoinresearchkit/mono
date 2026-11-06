@@ -1,6 +1,6 @@
 //! Builds the writer's graph; only completed candidates become public.
 
-use std::{mem, sync::Arc};
+use std::{mem, sync::Arc, time::Instant};
 
 use brk_types::{FeeRate, Transaction, Txid, Vout};
 use rapidhash::RapidHashSet;
@@ -17,6 +17,8 @@ const NUM_BLOCKS: usize = 8;
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
     chunks: ChunkCache,
+    /// The last tick that saw a complete view, rebuilt or not: held fee tiers expire from it.
+    last_complete: Option<Instant>,
 }
 
 impl Rebuilder {
@@ -36,6 +38,10 @@ impl Rebuilder {
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
     ) {
+        let complete = state.template_only.is_empty() && unloaded.is_empty();
+        if complete {
+            self.last_complete = Some(Instant::now());
+        }
         let snapshot = &self.snapshot;
         if snapshot.ensure_projection().is_ok()
             && snapshot.min_fee == min_fee
@@ -48,15 +54,25 @@ impl Rebuilder {
             return;
         }
 
-        self.snapshot = Arc::new(Self::build_snapshot(
+        let mut snapshot = Self::build_snapshot(
             state,
             gbt_txids,
             min_fee,
             fee_deltas,
             unloaded,
             &mut self.chunks,
-            &self.snapshot,
-        ));
+        );
+        // An incomplete view's blocks after block 0 hold part of the pool: the last complete
+        // view's tiers stand meanwhile (none before the first), raised to Core's current floor,
+        // expiring from the last tick that saw a complete view.
+        if !complete {
+            let previous = &self.snapshot;
+            snapshot.fees_from = previous.fees_from.and(self.last_complete);
+            snapshot.fees_held = true;
+            snapshot.fees = fees::floored_whole(&previous.fees, min_fee);
+            snapshot.precise_fees = fees::floored_precise(&previous.precise_fees, min_fee);
+        }
+        self.snapshot = Arc::new(snapshot);
     }
 
     fn build_snapshot(
@@ -66,7 +82,6 @@ impl Rebuilder {
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         cache: &mut ChunkCache,
-        previous: &Snapshot,
     ) -> Snapshot {
         let complete = state.template_only.is_empty() && unloaded.is_empty();
         let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, fee_deltas, cache);
@@ -121,13 +136,6 @@ impl Rebuilder {
         snapshot.template_only = state.template_only.clone();
         snapshot.unloaded = unloaded.clone();
         snapshot.fee_deltas = fee_deltas.into();
-        // An incomplete view's blocks after block 0 hold part of the pool: the last complete
-        // view's tiers stand meanwhile (none before the first), raised to Core's current floor.
-        if !complete {
-            snapshot.fees_complete = previous.fees_complete;
-            snapshot.fees = fees::floored_whole(&previous.fees, min_fee);
-            snapshot.precise_fees = fees::floored_precise(&previous.precise_fees, min_fee);
-        }
         snapshot
     }
 

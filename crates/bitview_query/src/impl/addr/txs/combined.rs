@@ -59,21 +59,25 @@ impl Query {
         };
         let mempool = match (&mempool, confirmed_cursor) {
             (Some(mempool), false) => {
+                // A pending cursor needs the pool's address view: one not ready answers 503 (the
+                // client retries), never a page cut short or an unknown cursor.
                 if let Some(txid) = &after_txid {
-                    if !anchored(mempool.contains_txid(txid, &tip))? {
-                        return Err(Error::UnknownAfterTxid);
-                    }
-                    // Another address's pending transaction: nothing after it here, as a
-                    // confirmed cursor outside the history has nothing before it.
-                    if !anchored(mempool.addr_has_tx(&addr, txid, &tip))? {
+                    if !mempool.addr_has_tx(&addr, txid, &tip)? {
+                        if !mempool.contains_txid(txid, &tip)? {
+                            return Err(Error::UnknownAfterTxid);
+                        }
+                        // Another address's pending transaction: nothing after it here, as a
+                        // confirmed cursor outside the history has nothing before it.
                         return Ok(ResolvedAddrTxs {
                             guard: guard.into_inner(),
                             mempool: Vec::new(),
                             chain: None,
                         });
                     }
+                    mempool.addr_txs(&addr, after_txid.as_ref(), limit, &tip)?
+                } else {
+                    anchored(mempool.addr_txs(&addr, None, limit, &tip))?
                 }
-                anchored(mempool.addr_txs(&addr, after_txid.as_ref(), limit, &tip))?
             }
             (None, false) if after_txid.is_some() => return Err(Error::UnknownAfterTxid),
             _ => Vec::new(),
