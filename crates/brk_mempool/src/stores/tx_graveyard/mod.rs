@@ -3,12 +3,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use brk_types::{FeeRate, Transaction, Txid, Vout};
+use brk_types::{BlockHash, FeeRate, Transaction, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet, fast::RandomState};
 use smallvec::SmallVec;
 
+pub mod file;
 pub mod tombstone;
 
+pub use file::GraveyardFile;
 pub use tombstone::TxTombstone;
 
 use crate::{
@@ -79,11 +81,29 @@ pub struct TxGraveyard {
     unloaded_since: RapidHashMap<Txid, u64>,
     /// The current cycle's number.
     cycle: u64,
+    /// The tip whose blocks it was last told (`confirm`): the next cycle reads the blocks since,
+    /// and so does one after a restart (it is saved with it).
+    told: Option<BlockHash>,
+    /// Tree heads past retention that Core lists again but the pool hasn't loaded: checked every
+    /// pass (`trees` stays in time order), each tree going once its head is neither.
+    held: Vec<(Instant, Txid)>,
 }
 
 impl TxGraveyard {
     pub fn revision(&self) -> u64 {
         self.revision
+    }
+
+    pub fn told(&self) -> Option<BlockHash> {
+        self.told
+    }
+
+    /// Every block up to `tip` told: a change publications and saves carry.
+    pub fn set_told(&mut self, tip: BlockHash) {
+        if self.told != Some(tip) {
+            self.told = Some(tip);
+            self.revision = self.revision.wrapping_add(1);
+        }
     }
 
     pub fn get(&self, txid: &Txid) -> Option<&TxTombstone> {
@@ -157,6 +177,36 @@ impl TxGraveyard {
     pub fn bury(&mut self, record: TxRecord, chunk_rate: FeeRate, removal: TxRemoval) {
         let txid = record.entry.txid;
         let removed_at = Instant::now();
+        self.insert(record, chunk_rate, removal, removed_at);
+        if matches!(removal, TxRemoval::Vanished) {
+            self.vanished.push((txid, removed_at));
+        }
+    }
+
+    /// A tombstone read back from disk, buried when it was (oldest first, as the queues keep
+    /// time order).
+    fn restore(
+        &mut self,
+        record: TxRecord,
+        chunk_rate: FeeRate,
+        removal: TxRemoval,
+        removed_at: Instant,
+    ) {
+        debug_assert!(
+            self.order.iter().next_back().is_none_or(|(t, _)| *t <= removed_at),
+            "restored in burial order"
+        );
+        self.insert(record, chunk_rate, removal, removed_at);
+    }
+
+    fn insert(
+        &mut self,
+        record: TxRecord,
+        chunk_rate: FeeRate,
+        removal: TxRemoval,
+        removed_at: Instant,
+    ) {
+        let txid = record.entry.txid;
         self.bytes += record.entry.size;
         let tombstone = TxTombstone {
             record,
@@ -178,9 +228,6 @@ impl TxGraveyard {
                 .or_default()
                 .push(txid);
             self.replacements.push_back((removed_at, txid));
-        }
-        if matches!(removal, TxRemoval::Vanished) {
-            self.vanished.push((txid, removed_at));
         }
         self.order.push_back((removed_at, txid));
         self.revision = self.revision.wrapping_add(1);
@@ -474,14 +521,33 @@ impl TxGraveyard {
     }
 
     /// `trees`' front past [`TREE_RETENTION`] (`over_cap`: or while past [`MAX_BYTES`]): each
-    /// takes its tree, unless pending again.
+    /// takes its tree, unless pending again. A head Core lists again but the pool hasn't loaded
+    /// yet (after a restart, or past the fetch cap) keeps it, `held`: its arrival exhumes it,
+    /// its predecessors staying with it.
     fn evict_trees(&mut self, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
+        let mut held = mem::take(&mut self.held);
+        held.retain(|&(t, txid)| {
+            if self.current(&txid, t).is_none() || self.replacer_known(&txid, live) {
+                return false;
+            }
+            if live(&txid) {
+                return true;
+            }
+            self.remove_tree(txid);
+            false
+        });
+        self.held = held;
         while let Some(&(t, txid)) = self.trees.front() {
             if t.elapsed() < TREE_RETENTION && !(over_cap && self.bytes > MAX_BYTES) {
                 break;
             }
             self.trees.pop_front();
-            if self.current(&txid, t).is_some() && !self.replacer_known(&txid, live) {
+            if self.current(&txid, t).is_none() || self.replacer_known(&txid, live) {
+                continue;
+            }
+            if live(&txid) {
+                self.held.push((t, txid));
+            } else {
                 self.remove_tree(txid);
             }
         }

@@ -6,7 +6,7 @@
 //! publication shares them, and a write copies only the shard or chunk it lands in, so one costs
 //! what changed since the last. Transaction bodies are shared and use copy-on-write for fills.
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use arc_swap::ArcSwap;
 use brk_rpc::Client;
@@ -37,6 +37,31 @@ pub use steps::TxRemoval;
 
 use snapshot::Rebuilder;
 use state::State;
+use stores::{TxGraveyard, tx_graveyard::GraveyardFile};
+
+/// Saves the graveyard of the last publication, from any thread (a shutdown's).
+#[derive(Clone)]
+pub struct GraveyardSaver {
+    file: Arc<GraveyardFile>,
+    read_only: ReadOnlyMempool,
+}
+
+impl GraveyardSaver {
+    /// Nothing before the first publication: the last save stands.
+    pub fn save(&self) {
+        let published = self.read_only.load();
+        let Some(pool) = published.pool.as_deref() else {
+            return;
+        };
+        match self
+            .file
+            .save(&pool.graveyard, |txid| pool.pending_head(txid), pool.published_at)
+        {
+            Ok(()) => tracing::info!("Saved mempool graveyard to {}", self.file.path().display()),
+            Err(error) => tracing::warn!(%error, "mempool graveyard: save failed"),
+        }
+    }
+}
 
 /// Single owner of the mutable pool and update pipeline.
 pub struct Mempool {
@@ -46,11 +71,15 @@ pub struct Mempool {
     read_only: ReadOnlyMempool,
     needs_recovery: bool,
     chain: ChainWaker,
-    /// The tip of the last completed cycle: the blocks after it tell what they confirmed.
-    last_tip: Option<brk_types::BlockHash>,
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was complete): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
+    /// Cycles in a row whose new blocks couldn't all be read.
+    unread_cycles: u32,
+    /// Where the graveyard is kept, and when a save was last tried.
+    graveyard_file: Option<(Arc<GraveyardFile>, Instant)>,
+    /// The graveyard read back at start: what a recovery before the first publication restores.
+    loaded_graveyard: TxGraveyard,
 }
 
 impl Mempool {
@@ -64,8 +93,24 @@ impl Mempool {
             },
             needs_recovery: false,
             chain: ChainWaker::default(),
-            last_tip: None,
             withheld: None,
+            unread_cycles: 0,
+            graveyard_file: None,
+            loaded_graveyard: TxGraveyard::default(),
+        }
+    }
+
+    /// Keeps the graveyard (RBF trees, removal reasons, first sightings) at `path` across
+    /// restarts: read back now, the last publication's saved every few minutes while it
+    /// changes. Save it at shutdown with the returned handle.
+    pub fn keep_graveyard(&mut self, path: PathBuf) -> GraveyardSaver {
+        let file = GraveyardFile::new(path);
+        self.loaded_graveyard = file.load();
+        self.state.graveyard = self.loaded_graveyard.clone();
+        self.graveyard_file = Some((file.clone(), Instant::now()));
+        GraveyardSaver {
+            file,
+            read_only: self.read_only.clone(),
         }
     }
 

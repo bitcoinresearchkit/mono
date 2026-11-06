@@ -11,6 +11,9 @@ publication per query.
 
 ```rust,ignore
 let mut mempool = Mempool::new(&rpc_client);
+// Optional: the graveyard (RBF trees, removal reasons, first sightings) outlives restarts.
+let graveyard = mempool.keep_graveyard(data_dir.join("mempool").join("graveyard"));
+exit.register_cleanup(move || graveyard.save());
 let reader = mempool.read_only_clone();
 let chain = mempool.chain_waker();
 
@@ -27,6 +30,12 @@ confirmed prevouts (Bitview resolves them from its own indexer), and `published_
 tip readers pair the pool with: a pool is published only at that tip. A cycle at a tip the chain
 hasn't published yet is withheld, and goes out the moment the chain publishes it and calls
 `chain.published()` (a cycle starts at once if none was).
+
+`keep_graveyard` reads the graveyard back (ages carried over the downtime, what a body
+determines derived from it, a file that doesn't read set aside) and saves the last publication's
+every 5 minutes while it changes; `GraveyardSaver::save` saves it at shutdown. The pending heads
+of replacement trees go with it, so a restart finds each tree whether its head is still pending,
+confirmed meanwhile (the blocks since the saved tip are read) or gone.
 
 `tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
 from the node's UTXO set (`gettxout`, the mempool's spends not counted), so no `txindex` is

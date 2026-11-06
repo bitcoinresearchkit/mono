@@ -1,12 +1,17 @@
-use std::sync::{Arc, Mutex, OnceLock};
+use std::{
+    sync::{Arc, Mutex, OnceLock},
+    time::Instant,
+};
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
+use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
 use rapidhash::RapidHashSet;
 
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
-    stores::{AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore},
+    stores::{
+        AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore, tx_store::TxRecord,
+    },
 };
 
 use super::State;
@@ -24,6 +29,8 @@ pub(crate) struct Pool {
     pub info_json: JsonBody,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
+    /// When it was published: of two saves of the graveyard, the later publication's wins.
+    pub published_at: Instant,
     /// The last view made for a reader past this pool's tip (the moment after a block), shared.
     pub behind: Mutex<Option<Arc<PendingView>>>,
 }
@@ -70,8 +77,19 @@ impl Pool {
             graph,
             info_json,
             recent_trees: Default::default(),
+            published_at: Instant::now(),
             behind: Mutex::default(),
         }
+    }
+
+    /// A pending transaction's record and chunk rate, as a burial would keep them.
+    pub fn pending_head(&self, txid: &Txid) -> Option<(&TxRecord, FeeRate)> {
+        let record = self.txs.record(txid)?;
+        let rate = self
+            .graph
+            .chunk_rate_for(txid)
+            .unwrap_or_else(|| record.own_rate());
+        Some((record, rate))
     }
 
     pub fn matches(&self, state: &State, tip: &BlockHash, graph: &Arc<Snapshot>) -> bool {

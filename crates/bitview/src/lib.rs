@@ -133,6 +133,13 @@ where
     // Only the chain and price reads use the mempool: without them no driver runs.
     #[cfg(feature = "price")]
     let mut mempool = Mempool::new(&client);
+    // The RBF trees, removal reasons and first sightings outlive restarts: saved every few
+    // minutes, and the last publication's at shutdown.
+    #[cfg(feature = "price")]
+    {
+        let graveyard = mempool.keep_graveyard(server.data_path.join("mempool").join("graveyard"));
+        exit.register_cleanup(move || graveyard.save());
+    }
     #[cfg(feature = "price")]
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
     #[cfg(not(feature = "price"))]

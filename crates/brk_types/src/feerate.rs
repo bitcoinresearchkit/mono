@@ -53,6 +53,12 @@ impl FeeRate {
         Self(milli_sats_per_vbyte)
     }
 
+    /// Milli-sats per vbyte, what [`Self::from_milli`] takes.
+    #[inline]
+    pub const fn milli(self) -> u64 {
+        self.0
+    }
+
     #[inline]
     const fn is_nan(self) -> bool {
         self.0 == u64::MAX

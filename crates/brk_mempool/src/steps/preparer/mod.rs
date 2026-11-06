@@ -61,6 +61,7 @@ pub fn prepare(
     );
 
     PoolDiff {
+        listed: live,
         added,
         promoted,
         removed,

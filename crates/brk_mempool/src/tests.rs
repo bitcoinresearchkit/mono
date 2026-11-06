@@ -836,6 +836,106 @@ fn copy_on_write_containers_match_their_models() {
     assert!(queue.iter().copied().eq(queue_model.iter().copied()));
 }
 
+/// The graveyard saved and read back: every tombstone, its removal (a replacement's link
+/// included), body, prevouts, entry and chunk rate; a file that doesn't read is set aside, and
+/// nothing is read in its place.
+#[test]
+fn graveyard_outlives_a_restart() {
+    use crate::stores::tx_graveyard::GraveyardFile;
+    let dir = std::env::temp_dir().join(format!("bitview-graveyard-{}", std::process::id()));
+    let file = GraveyardFile::new(dir.join("graveyard"));
+    let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([3; 20]));
+    // A body as the preparer builds one: weight, size and fee its entry's, sigops counted.
+    let body = |seed: u8| {
+        let mut tx = spending(seed, &[(txid(90 + seed), Vout::from(0usize))]);
+        tx.input[0].prevout = Some(TxOut::from((script.clone(), Sats::from(5_000u64))));
+        tx.input[0].sequence = 0xffff_fffd;
+        tx.output = vec![TxOut::from((script.clone(), Sats::from(4_000u64)))];
+        let raw = bitcoin::Transaction::from(&tx);
+        tx.txid = Txid::from(raw.compute_txid());
+        tx.total_size = raw.total_size();
+        tx.weight = Weight::from(raw.weight());
+        tx.fee = Sats::from(1_000u64);
+        tx.refresh_sigops();
+        (tx, raw)
+    };
+    let replacer = body(2).0.txid;
+    // 4 was replaced by 5, pending when saved: its tree's head goes with it.
+    let (head, head_raw) = body(5);
+    let mut graveyard = TxGraveyard::default();
+    let mut buried = Vec::new();
+    for (seed, removal) in [
+        (1, TxRemoval::Replaced { by: replacer }),
+        (2, TxRemoval::Mined),
+        (3, TxRemoval::Vanished),
+        (4, TxRemoval::Replaced { by: head.txid }),
+    ] {
+        let (tx, raw) = body(seed);
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: raw.compute_wtxid(),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::from(1_700_000_000usize + usize::from(seed)),
+        };
+        buried.push(tx.txid);
+        let record = TxRecord::new(Arc::new(tx), TxEntry::new(&info, raw.total_size() as u64, true));
+        graveyard.bury(record, FeeRate::from_milli(1_234 * u64::from(seed)), removal);
+    }
+    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])));
+    let head_info = MempoolEntryInfo {
+        txid: head.txid,
+        wtxid: head_raw.compute_wtxid(),
+        vsize: VSize::from(head.weight),
+        weight: head.weight,
+        fee: head.fee,
+        first_seen: Timestamp::from(1_700_000_005usize),
+    };
+    let head = TxRecord::new(
+        Arc::new(head),
+        TxEntry::new(&head_info, head_raw.total_size() as u64, true),
+    );
+    let head_rate = FeeRate::from_milli(7_777);
+    file.save(
+        &graveyard,
+        |txid| (*txid == head.entry.txid).then_some((&head, head_rate)),
+        std::time::Instant::now(),
+    )
+    .unwrap();
+    let loaded = file.load();
+    for txid in &buried {
+        let (original, back) = (graveyard.get(txid).unwrap(), loaded.get(txid).unwrap());
+        assert_eq!(format!("{:?}", back.removal), format!("{:?}", original.removal));
+        assert_eq!(back.chunk_rate, original.chunk_rate);
+        assert_eq!(back.record.entry.first_seen, original.record.entry.first_seen);
+        assert_eq!(back.record.entry.wtxid, original.record.entry.wtxid);
+        assert!(back.record.entry.rbf);
+        assert_eq!(back.record.digest, original.record.digest, "the same body, prevouts too");
+        assert!(back.removed_at <= std::time::Instant::now());
+    }
+    assert_eq!(
+        loaded.predecessors_of(&replacer).map(|(txid, _)| *txid).collect::<Vec<_>>(),
+        [buried[0]],
+        "the replacement's link"
+    );
+    assert_eq!(loaded.told(), graveyard.told(), "the tip its blocks were told");
+    let restored_head = loaded.get(&head.entry.txid).expect("the pending head");
+    assert!(matches!(restored_head.removal, TxRemoval::Vanished));
+    assert_eq!(restored_head.chunk_rate, head_rate);
+    assert_eq!(restored_head.record.entry.first_seen, head.entry.first_seen);
+    assert_eq!(
+        loaded.predecessors_of(&head.entry.txid).map(|(txid, _)| *txid).collect::<Vec<_>>(),
+        [buried[3]]
+    );
+    assert_eq!(file.saved_revision(), Some(graveyard.revision()));
+    // Corrupt: set aside, an empty graveyard instead.
+    std::fs::write(file.path(), b"not a graveyard").unwrap();
+    assert_eq!(file.load().replacements_recent_first().count(), 0);
+    assert!(file.path().with_extension("unread").exists());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }

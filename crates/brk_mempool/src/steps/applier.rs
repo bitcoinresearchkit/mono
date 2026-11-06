@@ -18,6 +18,7 @@ use crate::{
 /// its own fee rate if that graph lacks it.
 pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confirmed: &Confirmed) {
     let PoolDiff {
+        listed,
         added,
         promoted,
         removed,
@@ -77,8 +78,11 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
             }
         }
     }
-    let txs = &state.txs;
-    state.graveyard.evict_old(|txid| txs.contains(txid));
+    // Pending is what Core lists, loaded or not: while the pool loads (after a restart, or past
+    // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
+    state
+        .graveyard
+        .evict_old(|txid| listed.contains(&TxKey::from(txid)));
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {

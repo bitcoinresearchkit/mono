@@ -4,6 +4,7 @@ use std::{
     any::Any,
     panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -22,6 +23,11 @@ use crate::{
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
+/// Cycles in a row a block that won't read is tried again before it's let go.
+const MAX_UNREAD_CYCLES: u32 = 10;
+/// How often a changed graveyard is saved (`Mempool::keep_graveyard`): a crash loses at most this
+/// much of it.
+const SAVE_EVERY: Duration = Duration::from_secs(300);
 
 impl Mempool {
     /// Drive one update per second. Overrunning cycles resume immediately.
@@ -59,6 +65,7 @@ impl Mempool {
                     Self::panic_msg(&payload)
                 );
             }
+            self.save_graveyard_if_due();
             if !loaded && let Some(pool) = &self.read_only.load().pool {
                 info!(
                     "Loaded mempool ({} transactions) in {:?}",
@@ -104,18 +111,22 @@ impl Mempool {
     fn restore_published(&mut self) {
         self.withheld = None;
         let published = self.read_only.load();
-        self.state = published
-            .pool
-            .as_ref()
-            .map_or_else(State::default, |pool| pool.restore());
+        // Before the first publication, what started it: the graveyard read back, if any.
+        self.state = published.pool.as_ref().map_or_else(
+            || State {
+                graveyard: self.loaded_graveyard.clone(),
+                ..State::default()
+            },
+            |pool| pool.restore(),
+        );
         self.rebuilder.restore(
             published
                 .pool
                 .as_ref()
                 .map_or_else(Arc::default, |pool| pool.graph.clone()),
         );
-        // The blocks after the restored pool's tip are still to classify its removals by.
-        self.last_tip = published.pool.as_ref().map(|pool| pool.tip);
+        // The blocks after those the restored graveyard was told are still to classify its
+        // removals by: it carries that tip.
         self.needs_recovery = false;
     }
 
@@ -152,7 +163,7 @@ impl Mempool {
         {
             return Err(Error::StateUpdating);
         }
-        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.last_tip);
+        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.state.graveyard.told());
         let diff = preparer::prepare(
             &rpc.live_txids,
             &template_only,
@@ -166,8 +177,19 @@ impl Mempool {
         self.withheld = None;
         self.needs_recovery = true;
         applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
-        if !confirmed.incomplete {
-            self.last_tip = Some(rpc.tip_hash);
+        // An unread block is read again next cycle; one that never reads (pruned since) is let go
+        // after a few, what it confirmed reading as vanished.
+        self.unread_cycles = if confirmed.incomplete {
+            self.unread_cycles + 1
+        } else {
+            0
+        };
+        if self.unread_cycles == 0 || self.unread_cycles >= MAX_UNREAD_CYCLES {
+            if self.unread_cycles > 0 {
+                warn!("mempool: blocks since the last cycle unreadable, let go");
+            }
+            self.unread_cycles = 0;
+            self.state.graveyard.set_told(rpc.tip_hash);
         }
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
@@ -201,6 +223,32 @@ impl Mempool {
             }
         }
         Ok(coherent_tip)
+    }
+
+    /// Saves the last publication's graveyard when it changed since the last save that
+    /// succeeded, every [`SAVE_EVERY`], on a thread of its own (the publication shares it). A
+    /// publication, as the shutdown save's: the later one always wins.
+    fn save_graveyard_if_due(&mut self) {
+        let Some((file, tried)) = &mut self.graveyard_file else {
+            return;
+        };
+        let published = self.read_only.load();
+        let Some(pool) = published.pool.clone() else {
+            return;
+        };
+        if tried.elapsed() < SAVE_EVERY || file.saved_revision() == Some(pool.graveyard.revision())
+        {
+            return;
+        }
+        *tried = Instant::now();
+        let file = file.clone();
+        thread::spawn(move || {
+            if let Err(error) =
+                file.save(&pool.graveyard, |txid| pool.pending_head(txid), pool.published_at)
+            {
+                warn!(%error, "mempool graveyard: save failed");
+            }
+        });
     }
 
     fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {
