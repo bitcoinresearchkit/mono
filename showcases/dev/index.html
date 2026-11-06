@@ -33,8 +33,8 @@
         --raised: light-dark(#ebe9e3, #1c1c1a);
         --ink: light-dark(#121211, #f1f0ec);
         --text: light-dark(#383732, #c9c7c0);
-        --soft: light-dark(#5f5d56, #95928a);
-        --faint: light-dark(#6c6a63, #85827b);
+        --soft: light-dark(#5f5d56, #a19e96);
+        --faint: light-dark(#6c6a63, #8f8c85);
         --rule: light-dark(rgb(18 18 17 / 0.14), rgb(241 240 236 / 0.13));
         --hair: light-dark(rgb(18 18 17 / 0.08), rgb(241 240 236 / 0.07));
         --accent: light-dark(#ad470b, #ff8a3d);
@@ -81,7 +81,7 @@
       a {
         color: inherit;
         text-underline-offset: 0.2em;
-        text-decoration-color: var(--rule);
+        text-decoration-color: color-mix(in oklab, var(--soft) 70%, transparent);
 
         &:hover {
           color: var(--accent);
@@ -219,7 +219,7 @@
       /* ── The hero: what it is, then its specs ── */
 
       .hero {
-        padding-top: 64px;
+        padding-top: 40px;
 
         @media (min-width: 760px) {
           padding-top: 96px;
@@ -775,7 +775,7 @@
           <div><dt>Peak memory</dt><dd>8.4 GiB<small>16 GB recommended</small></dd></div>
           <div><dt>On disk</dt><dd>290 GiB<small>beside Bitcoin Core's</small></dd></div>
           <div><dt>Series</dt><dd>21,154<small>across their indexes</small></dd></div>
-          <div><dt>API operations</dt><dd>98<small>series, blocks, mempool…</small></dd></div>
+          <div><dt>API operations</dt><dd>98<small>series, blocks, mempool and more</small></dd></div>
         </dl>
         <p class="specs-foot">Measured on an Apple M6 Mac mini, 16 GB, external NVMe SSD; every run on <a href="/benchmarks/">Benchmarks</a>.</p>
       </section>
