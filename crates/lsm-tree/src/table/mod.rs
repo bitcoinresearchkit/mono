@@ -231,7 +231,7 @@ impl Table {
         Ok(IndexBlock::new(block))
     }
 
-    /// Opens a table file of `level`, pinning what the level's policies pin.
+    /// Opens a table file of canonical `level`, pinning what that level's policies pin.
     pub fn recover(
         file_path: PathBuf,
         global_seqno: u64,

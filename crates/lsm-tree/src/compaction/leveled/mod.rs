@@ -190,14 +190,7 @@ impl Strategy {
         }
 
         // Find the level that corresponds to L1
-        #[expect(clippy::map_unwrap_or)]
-        let first_non_empty_level = version
-            .iter_levels()
-            .enumerate()
-            .skip(1)
-            .find(|(_, lvl)| !lvl.is_empty())
-            .map(|(idx, _)| idx)
-            .unwrap_or_else(|| version.level_count() - 1);
+        let first_non_empty_level = version.canonical_l1();
 
         let mut canonical_l1_idx = first_non_empty_level;
 

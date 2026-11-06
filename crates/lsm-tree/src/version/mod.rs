@@ -26,6 +26,33 @@ use std::{
 
 pub const DEFAULT_LEVEL_COUNT: u8 = 7;
 
+/// The physical level that canonical L1 maps to: the first level below L0 holding tables, or the
+/// last level while none does.
+///
+/// Leveled compaction fills a tree from the bottom, so a table's canonical level, not its physical
+/// one, picks its block layout when it's written and its pinning when it's opened.
+pub fn canonical_l1(holds_tables: impl ExactSizeIterator<Item = bool>) -> usize {
+    let last = holds_tables.len().saturating_sub(1);
+    holds_tables
+        .enumerate()
+        .skip(1)
+        .find_map(|(idx, holds)| holds.then_some(idx))
+        .unwrap_or(last)
+}
+
+/// The canonical level of tables at `physical`, given [`canonical_l1`].
+pub fn canonical_level(physical: usize, canonical_l1: usize) -> usize {
+    if physical == 0 {
+        0
+    } else {
+        debug_assert!(
+            physical >= canonical_l1,
+            "no level above canonical L1 holds tables"
+        );
+        physical + 1 - canonical_l1
+    }
+}
+
 fn level_contains_any(level: &Level, ids: &FxHashSet<u32>) -> bool {
     level
         .iter()
@@ -107,6 +134,11 @@ impl Version {
     /// Returns the number of levels.
     pub fn level_count(&self) -> usize {
         self.levels.len()
+    }
+
+    /// The physical level that canonical L1 maps to, see [`canonical_l1`].
+    pub fn canonical_l1(&self) -> usize {
+        canonical_l1(self.levels.iter().map(|level| !level.is_empty()))
     }
 
     /// Returns an iterator through all levels.

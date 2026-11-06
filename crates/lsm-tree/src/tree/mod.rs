@@ -16,7 +16,7 @@ use crate::{
     mvcc_stream::MvccStream,
     range,
     run_reader::RunReader,
-    version::{Level, Run, Version, recovery::Recovery},
+    version::{Level, Run, Version, canonical_l1, canonical_level, recovery::Recovery},
 };
 
 pub mod ingest;
@@ -270,6 +270,9 @@ impl Tree {
         let tables_path = path.join(TABLES_FOLDER);
         fs::create_dir_all(&tables_path)?;
 
+        // Each table is pinned by the canonical level it sits at, as compaction pins its outputs;
+        // a level shift since a table was opened can change what that is.
+        let canonical_l1 = canonical_l1(recovery.table_ids.iter().map(|runs| !runs.is_empty()));
         let mut live = FxHashSet::default();
         let mut levels = Vec::with_capacity(recovery.table_ids.len());
         for (level, runs) in recovery.table_ids.iter().enumerate() {
@@ -282,8 +285,13 @@ impl Tree {
                     if !file.try_exists()? {
                         return Err(Error::Unrecoverable);
                     }
-                    let recovered =
-                        Table::recover(file, table.global_seqno, tree_id, level, config)?;
+                    let recovered = Table::recover(
+                        file,
+                        table.global_seqno,
+                        tree_id,
+                        canonical_level(level, canonical_l1),
+                        config,
+                    )?;
                     // The file must hold the table the manifest lists under its name.
                     if recovered.id() != table.id {
                         return Err(Error::Unrecoverable);

@@ -52,6 +52,8 @@ impl Tree {
             return Ok(());
         }
 
+        // Moved tables keep the pinning they were opened with; a reopen pins them by their new
+        // canonical level.
         self.versions.publish(&self.config.path, |current| {
             Ok(current.with_moved(&input.table_ids, input.dest_level.into()))
         })
