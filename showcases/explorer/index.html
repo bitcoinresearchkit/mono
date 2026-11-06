@@ -305,8 +305,9 @@
       /* What gets you in: the forming block's answer, large. */
       .answer {
         display: flex;
+        flex-wrap: wrap;
         align-items: baseline;
-        gap: 12px;
+        gap: 4px 12px;
         margin: 18px 0 0 -4px;
         b {
           font-size: 104px;
@@ -314,9 +315,11 @@
           letter-spacing: -0.06em;
           line-height: 0.9;
         }
+        /* (Its words kept together: beside the figure where they fit, under it where they don't, never split.) */
         span {
           color: var(--soft);
           font-size: 20px;
+          white-space: nowrap;
         }
       }
       /* The past week: each hour's cheapest way in, against what gets in now. */
