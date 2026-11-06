@@ -90,7 +90,7 @@ The oracle slides this stencil across the EMA histogram within the search window
 2. **Normalize** each value by dividing by that offset's peak within the search window: this gives rare amounts like $3 equal voting weight to common amounts like $100
 3. **Sum** the 19 normalized values into a single score
 
-The position with the highest score is where the fingerprint best matches the histogram. In the slow cold-start regime each score also adds `shape_weight` times the candidate's match against a slowly learned arm profile (see [Configuration](#configuration)). When no arm carries mass anywhere in the window, the previous reference bin is kept.
+The position with the highest score is where the fingerprint best matches the histogram. In the slow cold-start regime each score also adds `shape_weight` times the candidate's match against a slowly learned arm profile (see [Configuration](#configuration)). Only a candidate with mass on at least two of its arms can win: an empty one, or one arm's lone hit, never moves the oracle. When no candidate qualifies, or no arm carries mass anywhere in the window, the previous reference bin is kept.
 
 ### 5. Convert bin to price
 
@@ -157,24 +157,24 @@ Both detect round dollar amounts in a log-scale histogram of output values; they
 
 ## Accuracy
 
-Tested over 596,251 exchange-covered blocks after running the oracle from height 340,000 through height 952,314. Error is measured per block as distance from the oracle estimate to the exchange high/low range at that height. If the oracle falls within the range, the error is zero.
+Tested over 634,803 exchange-covered blocks after running the oracle from height 340,000 through height 974,802. Error is measured per block as distance from the oracle estimate to the exchange high/low range at that height. If the oracle falls within the range, the error is zero. The exchange tape is Bitview v0.1.9's prices through height 941,899 (2026-03-23), then Binance BTCUSDT minute candles built per block the same way (each block's open the previous block's minute close; its high and low over the minutes since; its close its own minute's), from [bitcoinresearchkit/price](https://github.com/bitcoinresearchkit/price).
 
-Measured with version 5. Version 6 only corrects pre-oracle prices (heights 337,525 to 339,998), so its oracle prices are identical. Seeding from the corrected price at 339,999 ($232.04) was tried and rejected: it changed 156 blocks of the first ten days for slightly worse (mean error against Bitfinex closes 1.30%, was 1.23%; block 340,000 at $203.00).
+Measured with version 6, its candidates needing mass on at least two arms: an empty candidate (the slow regime scored its shape 0, above a supported candidate's poor shape) or one arm's lone hit no longer moves the oracle. Over this range that guard changes no block, so the version and the stored prices stand. Seeding from the corrected price at 339,999 ($232.04) was tried and rejected: it changed 156 blocks of the first ten days for slightly worse (mean error against Bitfinex closes 1.30%, was 1.23%; block 340,000 at $203.00).
 
 ### Per-block
 
 | Metric | Value |
 |--------|-------|
-| Median error | 0.15% |
-| 95th percentile | 1.2% |
-| 99th percentile | 3.4% |
-| 99.9th percentile | 15.6% |
-| RMSE | 0.97% |
+| Median error | 0.14% |
+| 95th percentile | 1.1% |
+| 99th percentile | 3.2% |
+| 99.9th percentile | 14.6% |
+| RMSE | 0.95% |
 | Max error | 33.8% |
 | Bias | +0.06 bins |
-| Blocks > 5% error | 3,233 (0.542%) |
-| Blocks > 10% error | 1,323 |
-| Blocks > 20% error | 154 |
+| Blocks > 5% error | 3,117 (0.491%) |
+| Blocks > 10% error | 1,232 |
+| Blocks > 20% error | 109 |
 
 ### Daily candles
 
@@ -182,29 +182,29 @@ Oracle daily OHLC built from per-block prices vs exchange daily OHLC:
 
 | | Median | RMSE | Max |
 |-------|--------|------|-----|
-| Open | 0.24% | 1.07% | 29.1% |
-| High | 0.58% | 1.47% | 27.3% |
-| Low | 0.53% | 1.95% | 55.1% |
-| Close | 0.27% | 1.18% | 29.2% |
+| Open | 0.23% | 1.03% | 29.1% |
+| High | 0.57% | 1.43% | 27.3% |
+| Low | 0.51% | 1.89% | 55.1% |
+| Close | 0.27% | 1.14% | 29.2% |
 
 ### By year
 
 | Year | Blocks | Median | RMSE | Max | >5% | >10% | >20% | Price range |
 |------|--------|--------|------|-----|-----|------|------|-------------|
-| 2015 | 51,249 | 0.26% | 1.67% | 33.8% | 916 | 449 | 25 | $198–$500 |
-| 2016 | 54,753 | 0.33% | 0.80% | 16.9% | 150 | 33 | 0 | $351–$989 |
-| 2017 | 55,959 | 0.45% | 2.05% | 28.6% | 1,527 | 606 | 67 | $0–$19,892 |
-| 2018 | 54,531 | 0.18% | 1.31% | 31.6% | 411 | 207 | 62 | $3,129–$17,178 |
-| 2019 | 54,272 | 0.16% | 0.59% | 17.4% | 100 | 16 | 0 | $3,338–$13,868 |
-| 2020 | 53,102 | 0.10% | 0.42% | 11.6% | 61 | 3 | 0 | $3,858–$29,322 |
-| 2021 | 52,733 | 0.07% | 0.47% | 14.4% | 42 | 9 | 0 | $27,678–$69,000 |
-| 2022 | 53,230 | 0.07% | 0.32% | 6.8% | 10 | 0 | 0 | $15,460–$48,240 |
-| 2023 | 54,032 | 0.10% | 0.25% | 6.6% | 5 | 0 | 0 | $16,490–$44,700 |
-| 2024 | 53,367 | 0.10% | 0.28% | 6.7% | 7 | 0 | 0 | $38,555–$108,298 |
-| 2025 | 53,113 | 0.11% | 0.25% | 5.8% | 4 | 0 | 0 | $74,409–$126,198 |
-| 2026 | 5,910 | 0.10% | 0.27% | 3.2% | 0 | 0 | 0 | $60,000–$97,900 |
+| 2015 | 51,182 | 0.26% | 1.73% | 33.8% | 910 | 429 | 25 | $198–$500 |
+| 2016 | 54,851 | 0.33% | 0.80% | 16.9% | 145 | 33 | 0 | $351–$989 |
+| 2017 | 55,928 | 0.45% | 2.07% | 28.6% | 1,447 | 543 | 63 | $0–$19,892 |
+| 2018 | 54,498 | 0.18% | 1.27% | 28.8% | 397 | 200 | 21 | $3,129–$17,178 |
+| 2019 | 54,232 | 0.16% | 0.59% | 17.2% | 95 | 16 | 0 | $3,338–$13,868 |
+| 2020 | 53,222 | 0.10% | 0.42% | 11.6% | 61 | 3 | 0 | $3,858–$29,322 |
+| 2021 | 52,686 | 0.07% | 0.47% | 14.4% | 40 | 8 | 0 | $27,678–$69,000 |
+| 2022 | 53,188 | 0.07% | 0.32% | 6.8% | 8 | 0 | 0 | $15,460–$48,240 |
+| 2023 | 53,999 | 0.10% | 0.25% | 6.6% | 4 | 0 | 0 | $16,490–$44,700 |
+| 2024 | 53,473 | 0.10% | 0.28% | 6.7% | 7 | 0 | 0 | $38,555–$108,298 |
+| 2025 | 53,082 | 0.11% | 0.25% | 5.5% | 3 | 0 | 0 | $74,409–$126,198 |
+| 2026 | 44,462 | 0.11% | 0.25% | 3.5% | 0 | 0 | 0 | $57,800–$97,900 |
 
-The largest errors cluster in the early cold-start, where thin 2015 on-chain volume gives a weaker round-dollar pattern: the 33.8% max error sits at height 341,498 (oracle ~$287 vs exchange ~$213) during the first weeks of warm-up. A second cluster sits just below the 508,000 regime switch, where the slow EMA lagged the fast early-2018 rally (~31.6% at height 507,278, oracle ~$6,685 vs exchange ~$8,800) before handing off to the fast default. The thin pre-2018 mix means 2015, 2017, and 2018 carry the bulk of the error (1.67%, 2.05%, and 1.31% RMSE). From 2019 the signal strengthens: by 2020 the oracle reaches 0.1% median accuracy, and since 2022 no block exceeds 10% error.
+The largest errors cluster in the early cold-start, where thin 2015 on-chain volume gives a weaker round-dollar pattern: the 33.8% max error sits at height 341,498 (oracle ~$287 vs exchange ~$213) during the first weeks of warm-up. A second cluster sits just below the 508,000 regime switch, where the slow EMA lagged the fast early-2018 rally (24.0% at height 507,278, oracle ~$6,685 vs exchange ~$8,800) before handing off to the fast default; the fast EMA's worst is the November 2018 crash (28.8% at height 550,890, oracle ~$5,564 vs exchange ~$4,310). The thin pre-2018 mix means 2015, 2017, and 2018 carry the bulk of the error (1.73%, 2.07%, and 1.27% RMSE). From 2019 the signal strengthens: by 2020 the oracle reaches 0.1% median accuracy, and since 2022 no block exceeds 10% error.
 
 ### Why no outlier smoothing?
 
@@ -215,4 +215,4 @@ Post-hoc smoothing, for example correcting any block whose price deviates more t
 
 ## Changelog
 
-Algorithm changes are recorded in the workspace [changelog](../../docs/CHANGELOG.md); each one bumps `VERSION` so downstream consumers recompute stored prices.
+Algorithm changes are recorded in the workspace [changelog](../../docs/CHANGELOG.md); each one that changes a published price bumps `VERSION` so downstream consumers recompute stored prices (the two-arm minimum changes none over the whole history, so it kept version 6).

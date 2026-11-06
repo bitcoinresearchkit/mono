@@ -167,6 +167,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   transaction, a child of an unloaded parent, and their descendants
 - JavaScript client: `getOpenapi()` and `getApi()` return the documents as sent (their keys and `{after_txid}`-style
   path templates were camelCased, breaking the spec); series values come as sent too, without a walk over every item
+- The oracle moves only to a candidate with mass on at least two of its stencil's arms: an empty one (the slow
+  regime scored its shape 0, above a supported candidate's poor shape) or one arm's lone hit after an empty window
+  held it no longer. It changes no block from 340,000 to 974,802, checked against the exchange tape, so the oracle's
+  version and every stored price stand; the README's accuracy tables now run through 974,802
 - lsm-tree: an empty level counts as disjoint (a trivial move into one failed a debug assertion, ending dev builds'
   compaction worker); a reopened tree pins its tables by their canonical level, as compaction does (after a restart
   only L0 stayed pinned, so the hash-index stores' whole filters were read from disk)

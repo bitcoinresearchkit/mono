@@ -839,15 +839,16 @@
  * @property {boolean} mempool - Whether it's the live reading with the mempool blended in as the next block (`outputs` the
  *   mempool's), rather than a confirmed block's.
  * @property {Dollars} price - The price it found, in dollars: `bin` as a price, to the cent.
- * @property {number} bin - The bin it picked, refined between bins by a parabola through the best score and its
- *   neighbours.
+ * @property {number} bin - The bin it picked, refined between bins by a parabola through its score and its neighbours'
+ *   when it's their local maximum.
  * @property {number} firstBin - The search window's first candidate bin: 12 below the block before's answer, rounded, 24
  *   candidates in all.
  * @property {number[]} scores - Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar
  *   amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),
  *   the histogram's count where that amount lands if $100 is at the candidate, over that
- *   amount's peak in the window, summed. The highest is the pick's bin; all zero when the window
- *   held no payments at all, and the oracle kept the block before's answer.
+ *   amount's peak in the window, summed. The pick is the highest of the candidates with counts on
+ *   at least two amounts; without one, or with all zero (no payments in the window), the oracle
+ *   kept the block before's answer.
  * @property {number[]} histogram - The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
  *   before it (live, the mempool's as the next block's), each block's counts weighted
  *   `(2/7) * (5/7)^age`, the newest at age 0.

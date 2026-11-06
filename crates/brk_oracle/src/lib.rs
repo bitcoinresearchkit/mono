@@ -27,6 +27,8 @@ mod filter;
 mod scale;
 mod seed;
 mod stencil;
+#[cfg(test)]
+mod tests;
 mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
@@ -131,7 +133,8 @@ impl Oracle {
     }
 
     /// The search behind the last block's pick, `prev_bin` the reference before it: the window's
-    /// first candidate bin and each candidate's score, as the oracle ranked them. Exact from
+    /// first candidate bin and each candidate's score. The pick is the best candidate with mass on
+    /// two arms, or the reference without one, so the highest score isn't always it. Exact from
     /// [`START_HEIGHT_FAST`] on; below it, the slow regime's shape profile has already learned
     /// from the pick it scored.
     pub fn search(&self, prev_bin: f64) -> Option<Search> {

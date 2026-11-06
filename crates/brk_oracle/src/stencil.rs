@@ -105,9 +105,10 @@ impl Stencil {
         ref_bin
     }
 
-    /// Every candidate's score in the window around `prev_bin`, as [`pick`](Self::pick) ranks them:
-    /// the window's first bin and the scores in bin order, all zero without any evidence (when
-    /// `pick` keeps its reference). `None` without a searchable bin.
+    /// Every candidate's score in the window around `prev_bin`, in bin order, as
+    /// [`pick`](Self::pick) scores them (it takes the best one with mass on two arms): the window's
+    /// first bin and the scores, all zero without any evidence (when `pick` keeps its reference).
+    /// `None` without a searchable bin.
     pub fn scores(
         &self,
         ema: &HistogramEma,
@@ -221,23 +222,29 @@ impl<'a> CandidateScorer<'a> {
         total + self.shape.score(self.ema, bin as i64)
     }
 
-    fn best_bin(&self) -> (usize, f64) {
-        let mut bins = self.range.clone();
-        let mut best_bin = bins.next().expect("candidate range must not be empty");
-        let mut best_score = self.score(best_bin);
-
-        for bin in bins {
-            let candidate = self.score(bin);
-            if candidate > best_score {
-                best_score = candidate;
-                best_bin = bin;
-            }
-        }
-
-        (best_bin, best_score)
+    /// Whether a candidate has mass on at least two arms: an empty one, or one arm's lone hit,
+    /// can't move the oracle (the slow regime scores an empty center's shape 0, above a supported
+    /// candidate's poor shape).
+    fn supported(&self, bin: usize) -> bool {
+        STENCIL_OFFSETS
+            .iter()
+            .filter(|&&offset| bin_value(self.ema, bin as i64 + offset as i64) > 0.0)
+            .nth(1)
+            .is_some()
     }
 
-    /// Parabolic sub-bin interpolation for fractional precision.
+    /// The best-scoring supported candidate (the first among equals), `None` without one.
+    fn best_bin(&self) -> Option<(usize, f64)> {
+        self.range
+            .clone()
+            .filter(|&bin| self.supported(bin))
+            .map(|bin| (bin, self.score(bin)))
+            .reduce(|best, candidate| if candidate.1 > best.1 { candidate } else { best })
+    }
+
+    /// Parabolic sub-bin interpolation for fractional precision, around a local maximum only:
+    /// the best supported candidate can sit beside a higher unsupported one, where the parabola
+    /// would push it onto that neighbour (its own bin then).
     fn interpolated_bin(&self, best_bin: usize, best_score: f64) -> f64 {
         let score_center = best_score;
         let score_left = if best_bin > self.range.start {
@@ -250,6 +257,9 @@ impl<'a> CandidateScorer<'a> {
         } else {
             score_center
         };
+        if score_left > score_center || score_right > score_center {
+            return best_bin as f64;
+        }
         let denom = score_left - 2.0 * score_center + score_right;
         let sub_bin = if denom.abs() > 1e-10 {
             (0.5 * (score_left - score_right) / denom).clamp(-0.5, 0.5)
@@ -307,6 +317,9 @@ fn find_best_bin(
     if !scorer.has_evidence() {
         return prev_bin;
     }
-    let (best_bin, best_score) = scorer.best_bin();
-    scorer.interpolated_bin(best_bin, best_score)
+    // Without a supported candidate the reference holds too.
+    match scorer.best_bin() {
+        Some((best_bin, best_score)) => scorer.interpolated_bin(best_bin, best_score),
+        None => prev_bin,
+    }
 }

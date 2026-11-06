@@ -882,6 +882,8 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_oracle",
+ "brk_reader",
+ "brk_rpc",
  "brk_types",
  "derive_more",
  "rangeindex",
