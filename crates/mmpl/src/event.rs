@@ -3,7 +3,8 @@
 //! objects) so `jq -c 'select(...)'` works without `..` walks.
 
 use brk_types::{
-    BlockHash, FeeRate, Height, MempoolBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid, VSize,
+    BlockHash, FeeRate, Height, MempoolBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid,
+    VSize,
 };
 use serde::Serialize;
 
@@ -67,7 +68,11 @@ pub enum Event {
 #[derive(Serialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum LeaveReason {
-    Replaced { by: Txid },
+    Replaced {
+        by: Txid,
+    },
+    /// A block confirmed it.
+    Mined,
     Vanished,
 }
 

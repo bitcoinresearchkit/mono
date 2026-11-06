@@ -51,8 +51,9 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
     graph.clear();
     for &p in &order {
         let t = &txs[component[p].as_usize()];
-        graph.push(
+        graph.push_ranked(
             t.fee,
+            t.modified,
             t.sigops.adjust_weight(t.weight),
             t.parents
                 .iter()

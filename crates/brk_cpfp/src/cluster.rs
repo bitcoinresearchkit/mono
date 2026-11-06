@@ -4,11 +4,14 @@ use brk_types::{
     CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, Weight,
 };
 
-use crate::linearize::{Scratch, linearize};
+use crate::linearize::{Scratch, linearize, published_rate};
 
-/// One member: its fee, weight and range in [`Cluster::parents`]' flat buffer.
+/// One member: the fee it pays (served), the fee it ranks by (Core's modified fee: what it pays
+/// plus an operator's delta, which can be negative), its weight and its range in
+/// [`Cluster::parents`]' flat buffer.
 pub(crate) struct Node {
     pub fee: Sats,
+    pub modified: i64,
     pub weight: Weight,
     pub parents: Range<usize>,
 }
@@ -30,10 +33,21 @@ impl Cluster {
     }
 
     /// `weight` is what feerates are measured over (the mempool's sigop-adjusted, as Core's);
-    /// `parents` must be local indices of earlier members.
+    /// `parents` must be local indices of earlier members. It ranks by what it pays.
     pub fn push(
         &mut self,
         fee: Sats,
+        weight: Weight,
+        parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
+    ) {
+        self.push_ranked(fee, i64::try_from(u64::from(fee)).unwrap(), weight, parents);
+    }
+
+    /// [`Self::push`], ranked by `modified` instead (Core's modified fee), `fee` still served.
+    pub fn push_ranked(
+        &mut self,
+        fee: Sats,
+        modified: i64,
         weight: Weight,
         parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
     ) {
@@ -47,6 +61,7 @@ impl Cluster {
         );
         self.nodes.push(Node {
             fee,
+            modified,
             weight,
             parents: start..self.parents.len(),
         });
@@ -73,7 +88,7 @@ impl Cluster {
     ) -> (Option<CpfpCluster>, FeeRate) {
         if self.nodes.len() == 1 {
             let node = &self.nodes[u32::from(seed) as usize];
-            return (None, FeeRate::from((node.fee, node.weight)));
+            return (None, published_rate(node.modified, node.weight));
         }
         let mut chunks = Vec::new();
         let mut seed_chunk = None;

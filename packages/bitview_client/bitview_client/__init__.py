@@ -399,7 +399,7 @@ class MempoolInfo(TypedDict):
 
     Attributes:
         count: Number of transactions in the mempool
-        vsize: Total virtual size of all transactions in the mempool (vbytes)
+        vsize: Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin Core's `getmempoolinfo` `bytes` and every fee rate measure it
         total_fee: Total fees of all transactions in the mempool (satoshis)
         fee_histogram: Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
     """
@@ -831,9 +831,11 @@ class RbfTx(_RbfTxRequired, total=False):
     Attributes:
         value: Sum of output amounts.
         rbf: BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-        fullRbf: Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
+        fullRbf: On a transaction that replaced others: whether one it directly replaced didn't signal (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
+        mined: `true` when this transaction is confirmed; absent otherwise.
     """
     fullRbf: Optional[bool]
+    mined: Optional[bool]
 
 class _ReplacementNodeRequired(TypedDict):
     tx: RbfTx
@@ -850,7 +852,7 @@ class ReplacementNode(_ReplacementNodeRequired, total=False):
         time: First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
         fullRbf: Any predecessor in this subtree was non-signaling.
         interval: Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
-        mined: `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
+        mined: On a tree's root: `true` when a transaction anywhere in the tree is confirmed (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
     """
     interval: Optional[int]
     mined: Optional[bool]

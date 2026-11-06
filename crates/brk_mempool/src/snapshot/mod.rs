@@ -17,8 +17,8 @@ use brk_types::{
     Txid,
 };
 use builder::KeyIndex;
-pub use rebuilder::Rebuilder;
 use rapidhash::RapidHashSet;
+pub use rebuilder::Rebuilder;
 use rustc_hash::FxHasher;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
@@ -49,6 +49,8 @@ pub struct Snapshot {
     /// a rebuild from the same view, gaps included, reuses it.
     pub(crate) template_only: RapidHashSet<Txid>,
     pub(crate) unloaded: RapidHashSet<Txid>,
+    /// The operator's fee deltas it ranked by: a rebuild under the same ones reuses it.
+    pub(crate) fee_deltas: Box<[(Txid, i64)]>,
 }
 
 /// A projected block's bodies in block order, frozen at publication, and its content identity.
@@ -84,6 +86,7 @@ impl Snapshot {
             template_missing: false,
             template_only: RapidHashSet::default(),
             unloaded: RapidHashSet::default(),
+            fee_deltas: Box::default(),
         }
     }
 

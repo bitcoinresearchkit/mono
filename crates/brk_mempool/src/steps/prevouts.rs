@@ -38,7 +38,9 @@ where
 
 /// Default resolver: `getrawtransaction` once per parent txid, batched by the
 /// RPC client. Requires bitcoind with `txindex=1`.
-pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
+pub fn rpc_resolver(
+    client: Client,
+) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
     move |holes: &[(Txid, Vout)]| {
         if holes.is_empty() {
             return RapidHashMap::default();
@@ -90,7 +92,7 @@ fn gather(
             let vin = Vin::from(i);
             if let Some(parent) = txs.get(&txin.txid).or_else(|| {
                 graveyard
-                    .get_vanished(&txin.txid)
+                    .get_unreplaced(&txin.txid)
                     .map(|tomb| tomb.record.tx.as_ref())
             }) && let Some(out) = parent.output.get(usize::from(txin.vout))
             {

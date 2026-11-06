@@ -26,6 +26,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   `From<Dollars> for CentsCompact`, which nothing called (it saturated to the NaN sentinel)
 - statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
   to open, asking for a rebuild of the state
+- RBF trees (`/api/v1/tx/{txid}/rbf`, `/api/v1/replacements`) read as mempool.space's: a transaction's `fullRbf` is
+  whether one it directly replaced didn't signal (it covered the whole subtree), absent on one that replaced none;
+  a replaced leaf's tree `fullRbf` is its own non-signaling; `tx.mined` marks the confirmed transaction and the
+  root's `mined` a tree with any confirmed member (it marked each node)
+- `/api/mempool`'s `vsize` and fee histogram measure sigop-adjusted vsize, as Bitcoin Core's `getmempoolinfo` and
+  every fee rate do (BIP141 vsize before; they differ for sigop-heavy transactions)
+- mmpl: a `leave` event's reason is `mined` when a block confirmed the transaction (it read `vanished`), and
+  `replaced` names a confirmed conflict too; `enter` reads the entry, so a node without `txindex` streams too
 - Types with one user moved to it: `brk_types::Histogram` to `brk_oracle::Histogram`; from `bitview_primitives`,
   the address-index store keys (`AddrIndexOutPoint`, `AddrIndexTxIndex`) to the indexer, private, and the
   address-state records (`AddressState`, `DecodedAddrState`, `FundedAddressData`, `EmptyAddressData`,
@@ -84,6 +92,21 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Projected blocks 2-8 pack as Core 31's block builder ranks: by modified fees (a node operator's
+  `prioritisetransaction` deltas, polled each cycle, negative ones included; block 0 already had them), equal
+  feerates in Core's chunk order (the shorter equal-feerate run within its cluster, then the lower greatest txid;
+  they went by the cluster's first txid), and what block 0 leaves of a cluster split into the clusters it now
+  forms (one piece's miss deferred the others)
+- A transaction a new block confirmed leaves the mempool as mined, and one a confirmed conflict displaced as
+  replaced by it (both read vanished); a block arriving while a cycle fetches no longer misfiles what it confirmed
+- A pending transaction's body waits only for its own inputs' prevouts, and membership, outspend and RBF reads for
+  none: one unresolved input anywhere held them all back
+- `/api/mempool-blocks/{index}/diff/{hash}` diffs from a block served up to two minutes ago (about ten seconds on
+  mainnet before, where blocks 2-8 change every second)
+- `/api/v1/replacements` gives each tree its own work budget: one oversized tree no longer ends the listing early;
+  a tree whose replacer a block confirmed unseen stays rooted at the last transaction the pool knows
+- Fee tiers compare a projected block's weight with mempool.space's 500,000 and 950,000 vB thresholds exactly (its
+  vsize was rounded down first)
 - The indexer re-imports once (version 46): an address's output keys hold the whole 32-bit output position (they
   kept 16 bits, so two outputs of one transaction to one address, 65,536 positions apart, would have shared a key;
   no transaction has that many outputs yet), and EPOBC's rule from v0.13.0 (no Taproot first input) applies to the whole history: it changed

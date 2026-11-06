@@ -1546,7 +1546,7 @@ Returns: JSON `ServerVersion`
 ### `MempoolInfo`
 
 - `count`: `integer` (required) — Number of transactions in the mempool
-- `vsize`: `VSize` (required) — Total virtual size of all transactions in the mempool (vbytes)
+- `vsize`: `VSize` (required) — Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin Core's `getmempoolinfo` `bytes` and every fee rate measure it
 - `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (satoshis)
 - `fee_histogram`: `number[][]` (required) — Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
 
@@ -1724,7 +1724,8 @@ Returns: JSON `ServerVersion`
 - `rate`: `FeeRate` (required)
 - `time`: `Timestamp` (required)
 - `rbf`: `boolean` (required) — BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-- `fullRbf`: `boolean | null` — Only populated on the root `tx` of an RBF response. `true` iff this tx displaced at least one non-signaling predecessor.
+- `fullRbf`: `boolean | null` — On a transaction that replaced others: whether one it directly replaced didn't signal (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
+- `mined`: `boolean | null` — `true` when this transaction is confirmed; absent otherwise.
 
 ### `RecommendedFees`
 
@@ -1740,7 +1741,7 @@ Returns: JSON `ServerVersion`
 - `time`: `Timestamp` (required) — First-seen timestamp, duplicated here to match mempool.space's on-the-wire shape.
 - `fullRbf`: `boolean` (required) — Any predecessor in this subtree was non-signaling.
 - `interval`: `integer | null` — Seconds between this node's `time` and the successor that replaced it. Omitted on the root of an RBF response.
-- `mined`: `boolean | null` — `Some(true)` iff this node's tx is currently confirmed. Absent on serialization otherwise.
+- `mined`: `boolean | null` — On a tree's root: `true` when a transaction anywhere in the tree is confirmed (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
 - `replaces`: `ReplacementNode[]` (required)
 
 ### `RetainedRun`

@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::VecDeque,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
@@ -7,9 +11,12 @@ use crate::{Snapshot, snapshot::ServedBlock};
 
 use super::{Pool, State};
 
-/// Past served blocks kept for diffs: the latest publications' (eight blocks each at most), a
-/// block unchanged across publications kept once.
-const HISTORY: usize = 80;
+/// How long a served block stays available to diff from once newer ones replace it: a client
+/// polling every few seconds to a minute or two always diffs (blocks 1+ change on nearly every
+/// publication on mainnet; bodies are shared, so a past block costs its pointer array).
+const HISTORY_AGE: Duration = Duration::from_secs(120);
+/// A bound on past blocks however fast publications come: eight blocks a second for two minutes.
+const HISTORY_MAX: usize = 8 * 120;
 
 /// All published mempool read data. Replaced through one ArcSwap.
 ///
@@ -20,8 +27,9 @@ pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
-    /// Each past served block, by its index.
-    history: VecDeque<(usize, ServedBlock)>,
+    /// Each past served block, by its index, with when it was last served: the current ones
+    /// refreshed at each publication, a replaced one's time its replacement.
+    history: VecDeque<(Instant, usize, ServedBlock)>,
 }
 
 impl ReadOnlyState {
@@ -59,12 +67,25 @@ impl ReadOnlyState {
 
     /// Publishes `graph`'s projection, its served blocks remembered for diffs.
     pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>, tip: BlockHash) {
+        let now = Instant::now();
+        // The outgoing blocks were served until now: their retention starts here.
+        let outgoing = self.projection.served_blocks();
+        for (at, index, past) in &mut self.history {
+            if outgoing
+                .get(*index)
+                .is_some_and(|block| block.hash == past.hash)
+            {
+                *at = now;
+            }
+        }
         for (index, block) in graph.served_blocks().iter().enumerate() {
             self.history
-                .retain(|(i, past)| (*i, past.hash) != (index, block.hash));
-            self.history.push_back((index, block.clone()));
+                .retain(|(_, i, past)| (*i, past.hash) != (index, block.hash));
+            self.history.push_back((now, index, block.clone()));
         }
-        while self.history.len() > HISTORY {
+        self.history
+            .retain(|(at, ..)| now.duration_since(*at) <= HISTORY_AGE);
+        while self.history.len() > HISTORY_MAX {
             self.history.pop_front();
         }
         self.projection = graph;
@@ -93,7 +114,7 @@ impl ReadOnlyState {
     ) -> Option<Arc<[Arc<Transaction>]>> {
         self.history
             .iter()
-            .find(|(i, past)| (*i, past.hash) == (index, hash))
-            .map(|(_, past)| past.bodies.clone())
+            .find(|(_, i, past)| (*i, past.hash) == (index, hash))
+            .map(|(.., past)| past.bodies.clone())
     }
 }

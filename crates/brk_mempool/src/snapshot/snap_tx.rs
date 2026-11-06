@@ -11,7 +11,12 @@ use super::TxIndex;
 #[derive(Clone, Debug)]
 pub struct SnapTx {
     pub txid: Txid,
+    /// What it pays: shown, and summed into a block's fees.
     pub fee: Sats,
+    /// What Core's block builder ranks it by: `fee` plus the operator's `prioritisetransaction`
+    /// delta, negative when that is. Linearization and packing use it, so its chunk rate is
+    /// Core's (`getmempoolentry`'s `fees.chunk`).
+    pub modified: i64,
     pub vsize: VSize,
     pub weight: Weight,
     /// Serialized tx size in bytes (witness + non-witness).

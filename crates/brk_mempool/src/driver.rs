@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 use crate::{
     Mempool, State,
     steps::{
-        Fetched, applier,
+        Confirmed, Fetched, applier,
         fetcher::{self, MAX_TX_FETCHES_PER_CYCLE},
         preparer, prevouts,
     },
@@ -98,6 +98,8 @@ impl Mempool {
                 .as_ref()
                 .map_or_else(Arc::default, |pool| pool.graph.clone()),
         );
+        // The blocks after the restored pool's tip are still to classify its removals by.
+        self.last_tip = published.pool.as_ref().map(|pool| pool.tip);
         self.needs_recovery = false;
     }
 
@@ -123,19 +125,24 @@ impl Mempool {
                 "mempool new-tx fetch hit the per-cycle cap"
             );
         }
-        if rpc.tip_hash != tip_before {
+        // A block arriving during the fetch can leave the listing past the template's tip: nothing
+        // of such a cycle is applied (its removals would be classified without that block).
+        if rpc.tip_hash != tip_before || self.client.get_best_block_hash()? != tip_before {
             return Err(Error::StateUpdating);
         }
+        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.last_tip);
         let diff = preparer::prepare(
             &rpc.live_txids,
             &template_only,
             new_entries,
             new_txs,
+            &confirmed,
             &self.state,
         );
         // A panic after this point requires restoring private indexes before reuse.
         self.needs_recovery = true;
         applier::apply(&mut self.state, self.rebuilder.snapshot(), diff);
+        self.last_tip = Some(rpc.tip_hash);
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
@@ -151,8 +158,13 @@ impl Mempool {
                 .copied()
                 .collect()
         };
-        self.rebuilder
-            .tick(&self.state, &block_template_txids, rpc.min_fee, &unloaded);
+        self.rebuilder.tick(
+            &self.state,
+            &block_template_txids,
+            rpc.min_fee,
+            &rpc.fee_deltas,
+            &unloaded,
+        );
         if coherent_tip {
             // Never ahead of the chain readers pair the pool with.
             if gate().is_none_or(|published| published == rpc.tip_hash) {

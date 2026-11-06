@@ -4,7 +4,7 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::{FeeRate, Weight};
+use brk_types::{FeeRate, Sats, Txid, Weight};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
@@ -16,12 +16,15 @@ use crate::{
 
 pub type KeyIndex = FxHashMap<TxKey, TxIndex>;
 
-/// Each multi-transaction component's linearization from the last rebuild, by its members (keys
-/// and policy weights, sorted): those fix its graph (a txid fixes inputs and fee; a witness
-/// variant or a prevout fill can change the weight), so an unchanged one is reused as is. Only
-/// the components of the latest rebuild are kept.
+/// A component member's identity for the cache: its key, policy weight and modified fee.
+type MemberId = (TxKey, Weight, i64);
+
+/// Each multi-transaction component's linearization from the last rebuild, by its members (keys,
+/// policy weights and modified fees, sorted): those fix its graph (a txid fixes inputs and fee; a
+/// witness variant or a prevout fill can change the weight, an operator's delta the modified
+/// fee), so an unchanged one is reused as is. Only the components of the latest rebuild are kept.
 #[derive(Default)]
-pub struct ChunkCache(FxHashMap<Box<[(TxKey, Weight)]>, Linearized>);
+pub struct ChunkCache(FxHashMap<Box<[MemberId]>, Linearized>);
 
 struct Linearized {
     /// Chunk after chunk, each member's position among the key's members, in topological order.
@@ -31,8 +34,10 @@ struct Linearized {
 }
 
 impl Snapshot {
+    /// `fee_deltas`: the operator's deltas, in txid byte order.
     pub(crate) fn build_txs(
         txs: &TxStore,
+        fee_deltas: &[(Txid, i64)],
         cache: &mut ChunkCache,
     ) -> (Vec<SnapTx>, KeyIndex, Chunks) {
         let n = txs.len();
@@ -42,9 +47,14 @@ impl Snapshot {
             key_to_idx.insert(*key, TxIndex::from(i));
             keys.push(*key);
         }
+        let delta_of = |txid: &Txid| {
+            fee_deltas
+                .binary_search_by(|(other, _)| other.cmp(txid))
+                .map_or(0, |i| fee_deltas[i].1)
+        };
         let mut snap_txs: Vec<SnapTx> = txs
             .records()
-            .map(|(_, record)| Self::live_tx(record))
+            .map(|(_, record)| Self::live_tx(record, delta_of(&record.entry.txid)))
             .collect();
         // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
         // return after its child arrived), each checked by its full txid.
@@ -66,16 +76,23 @@ impl Snapshot {
         (snap_txs, key_to_idx, chunks)
     }
 
-    fn live_tx(record: &TxRecord) -> SnapTx {
+    fn live_tx(record: &TxRecord, fee_delta: i64) -> SnapTx {
         let e = &record.entry;
+        let modified = i64::try_from(u64::from(e.fee))
+            .unwrap()
+            .saturating_add(fee_delta);
         SnapTx {
             txid: e.txid,
             fee: e.fee,
+            modified,
             vsize: e.vsize,
             weight: e.weight,
             size: e.size,
             sigops: record.policy_sigops(),
-            chunk_rate: record.own_rate(),
+            chunk_rate: FeeRate::from((
+                Sats::from(u64::try_from(modified).unwrap_or(0)),
+                record.policy_weight(),
+            )),
             parents: SmallVec::new(),
             children: SmallVec::new(),
         }
@@ -99,8 +116,8 @@ impl Snapshot {
         let mut chunks = Chunks::default();
         let mut visited = vec![false; n];
         let mut graph = Cluster::default();
-        let mut kept: FxHashMap<Box<[(TxKey, Weight)]>, Linearized> = FxHashMap::default();
-        let mut members: Vec<((TxKey, Weight), TxIndex)> = Vec::new();
+        let mut kept: FxHashMap<Box<[MemberId]>, Linearized> = FxHashMap::default();
+        let mut members: Vec<(MemberId, TxIndex)> = Vec::new();
         for seed in 0..n {
             if visited[seed] {
                 continue;
@@ -117,10 +134,17 @@ impl Snapshot {
             for &m in &component {
                 visited[m.as_usize()] = true;
                 let t = &snap_txs[m.as_usize()];
-                members.push(((keys[m.as_usize()], t.sigops.adjust_weight(t.weight)), m));
+                members.push((
+                    (
+                        keys[m.as_usize()],
+                        t.sigops.adjust_weight(t.weight),
+                        t.modified,
+                    ),
+                    m,
+                ));
             }
             members.sort_unstable_by_key(|&(id, _)| id);
-            let id: Box<[(TxKey, Weight)]> = members.iter().map(|&(id, _)| id).collect();
+            let id: Box<[MemberId]> = members.iter().map(|&(id, _)| id).collect();
             let linearized = cache.0.remove(&id).unwrap_or_else(|| {
                 Self::linearize_component(snap_txs, &component, &members, &mut graph)
             });
@@ -145,16 +169,22 @@ impl Snapshot {
     fn linearize_component(
         snap_txs: &[SnapTx],
         component: &[TxIndex],
-        members: &[((TxKey, Weight), TxIndex)],
+        members: &[(MemberId, TxIndex)],
         graph: &mut Cluster,
     ) -> Linearized {
-        let position: FxHashMap<TxIndex, u32> =
-            members.iter().enumerate().map(|(p, &(_, m))| (m, p as u32)).collect();
+        let position: FxHashMap<TxIndex, u32> = members
+            .iter()
+            .enumerate()
+            .map(|(p, &(_, m))| (m, p as u32))
+            .collect();
         let locals = cluster::load(snap_txs, component, graph);
         let mut order = Vec::with_capacity(component.len());
         let mut chunks = Vec::new();
         graph.linearize(|txs, rate| {
-            order.extend(txs.iter().map(|&local| position[&locals[u32::from(local) as usize]]));
+            order.extend(
+                txs.iter()
+                    .map(|&local| position[&locals[u32::from(local) as usize]]),
+            );
             chunks.push((order.len() as u32, rate));
         });
         Linearized {

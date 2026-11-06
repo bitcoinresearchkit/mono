@@ -15,6 +15,7 @@ use brk_types::{MempoolEntryInfo, Transaction, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
 use rustc_hash::FxHashSet;
 
+use super::Confirmed;
 use crate::{State, key::TxKey};
 
 pub mod pool_diff;
@@ -30,6 +31,7 @@ pub fn prepare(
     template_only: &RapidHashSet<Txid>,
     new_entries: Vec<MempoolEntryInfo>,
     mut new_txs: RapidHashMap<Txid, BitcoinTransaction>,
+    confirmed: &Confirmed,
     state: &State,
 ) -> PoolDiff {
     let live: FxHashSet<TxKey> = live_txids.iter().map(TxKey::from).collect();
@@ -47,7 +49,7 @@ pub fn prepare(
         })
         .collect();
     let promoted = promoted(&live, template_only, state);
-    let mut removed = classify_removals(&live, &added, &promoted, state);
+    let mut removed = classify_removals(&live, &added, &promoted, confirmed, state);
     // A pooled txid fetched again is a template's witness variant: its record leaves for the
     // new body, which takes its place (and first sighting) in the same apply.
     removed.extend(
@@ -88,6 +90,7 @@ fn classify_removals(
     live: &FxHashSet<TxKey>,
     added: &[TxAddition],
     promoted: &[TxKey],
+    confirmed: &Confirmed,
     state: &State,
 ) -> Vec<(TxKey, TxRemoval)> {
     let spent_by = build_spent_by(added, promoted, state);
@@ -100,24 +103,31 @@ fn classify_removals(
             }
             Some((
                 *key,
-                removal_reason(*key, &record.tx, &spent_by, live, state),
+                removal_reason(*key, &record.tx, &spent_by, live, confirmed, state),
             ))
         })
         .collect()
 }
 
-/// Replaced when a conflicting tx arrives this cycle or is already live: a
-/// stale template can keep the loser in the pool one or more cycles beside
-/// its replacer, which is then no longer an arrival when the loser leaves.
-/// The stored spender key is checked before any input scan, so a tx still
-/// owning its own outpoints (mined, expired) costs one lookup per input.
+/// Mined when a new block confirmed it. Replaced when a conflicting tx arrives this cycle, is
+/// already live (a stale template can keep the loser in the pool one or more cycles beside its
+/// replacer, which is then no longer an arrival when the loser leaves), or was confirmed by a new
+/// block. The stored spender key is checked before any input scan, so a tx still owning its own
+/// outpoints (expired) costs one lookup per input.
 fn removal_reason(
     key: TxKey,
     tx: &Transaction,
     spent_by: &RapidHashMap<(Txid, Vout), Txid>,
     live: &FxHashSet<TxKey>,
+    confirmed: &Confirmed,
     state: &State,
 ) -> TxRemoval {
+    if confirmed.mined(&tx.txid) {
+        return TxRemoval::Mined;
+    }
+    if let Some(by) = confirmed.conflict(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout))) {
+        return TxRemoval::Replaced { by };
+    }
     tx.input
         .iter()
         .find_map(|i| {

@@ -36,9 +36,7 @@ impl Query {
         // Enrich at the publication the tree was resolved against.
         let read = self.read_indexer_at(self.read_pin(rbf.pin));
         let RbfForTx { root, replaces } = rbf.source;
-        let replacements = root
-            .map(|node| read.enrich_rbf_node(node, None))
-            .transpose()?;
+        let replacements = root.map(|node| read.enrich_rbf_tree(node)).transpose()?;
         let replaces = (!replaces.is_empty()).then_some(replaces);
         Ok(RbfResponse {
             replacements,
@@ -63,7 +61,7 @@ impl Query {
         let trees = mempool.recent_rbf_trees(full_rbf_only, RECENT_REPLACEMENTS_LIMIT, &tip)?;
         trees
             .into_iter()
-            .map(|node| read.enrich_rbf_node(node, None))
+            .map(|node| read.enrich_rbf_tree(node))
             .collect()
     }
 
@@ -78,6 +76,17 @@ impl Query {
 }
 
 impl IndexerRead<'_> {
+    /// A tree from its root: each node enriched, and the root marked `mined` when any of its
+    /// transactions is.
+    fn enrich_rbf_tree(&self, root: RbfNode) -> Result<ReplacementNode> {
+        fn any_mined(node: &ReplacementNode) -> bool {
+            node.tx.mined.is_some() || node.replaces.iter().any(any_mined)
+        }
+        let mut root = self.enrich_rbf_node(root, None)?;
+        root.mined = any_mined(&root).then_some(true);
+        Ok(root)
+    }
+
     /// Layer `mined` and effective fee rate onto an owned RBF tree.
     fn enrich_rbf_node(
         &self,
@@ -89,7 +98,7 @@ impl IndexerRead<'_> {
             .map(|duration| *duration);
         let (mined, rate) = self.rbf_status_and_rate(&node)?;
         let first_seen = node.first_seen;
-        let replaces = node
+        let replaces: Vec<ReplacementNode> = node
             .replaces
             .into_iter()
             .map(|child| self.enrich_rbf_node(child, Some(first_seen)))
@@ -103,12 +112,13 @@ impl IndexerRead<'_> {
                 rate,
                 time: first_seen,
                 rbf: node.rbf,
-                full_rbf: Some(node.full_rbf),
+                full_rbf: (!replaces.is_empty()).then_some(node.replaced_non_signaling),
+                mined,
             },
             time: first_seen,
             full_rbf: node.full_rbf,
             interval,
-            mined,
+            mined: None,
             replaces,
         })
     }

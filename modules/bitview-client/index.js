@@ -750,7 +750,8 @@
  *
  * @typedef {Object} MempoolInfo
  * @property {number} count - Number of transactions in the mempool
- * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes)
+ * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
+ *   Core's `getmempoolinfo` `bytes` and every fee rate measure it
  * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
  * @property {number[][]} feeHistogram - Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
  *   entry the vsize of the transactions paying from its fee rate up to the previous entry's,
@@ -1159,8 +1160,9 @@
  * @property {FeeRate} rate
  * @property {Timestamp} time
  * @property {boolean} rbf - BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
- * @property {?boolean=} fullRbf - Only populated on the root `tx` of an RBF response. `true` iff
- *   this tx displaced at least one non-signaling predecessor.
+ * @property {?boolean=} fullRbf - On a transaction that replaced others: whether one it directly replaced didn't signal
+ *   (mempool.space's `tx.fullRbf`). Absent on one that replaced none.
+ * @property {?boolean=} mined - `true` when this transaction is confirmed; absent otherwise.
  */
 /**
  * Recommended fee rates in whole sat/vB (`/api/v1/fees/recommended`)
@@ -1184,8 +1186,8 @@
  * @property {boolean} fullRbf - Any predecessor in this subtree was non-signaling.
  * @property {?number=} interval - Seconds between this node's `time` and the successor that
  *   replaced it. Omitted on the root of an RBF response.
- * @property {?boolean=} mined - `Some(true)` iff this node's tx is currently confirmed. Absent
- *   on serialization otherwise.
+ * @property {?boolean=} mined - On a tree's root: `true` when a transaction anywhere in the tree is confirmed
+ *   (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
  * @property {ReplacementNode[]} replaces
  */
 /**

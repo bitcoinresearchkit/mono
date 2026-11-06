@@ -87,7 +87,10 @@ impl<'a> Vecs<'a> {
     fn finish_build(
         mut builder: Builder<'a>,
         mut catalog: TreeNode,
-        descriptions_by_plugin: Vec<(&'a str, BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>)>,
+        descriptions_by_plugin: Vec<(
+            &'a str,
+            BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        )>,
     ) -> Self {
         let Resolution {
             shared,

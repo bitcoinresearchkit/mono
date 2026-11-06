@@ -22,13 +22,14 @@ mod stores;
 mod tests;
 
 pub use api::{
-    MempoolBlockSource, PendingUtxos, PublishedTx, RbfForTx, RbfNode, ResolvedMempoolBlockDiff,
+    MempoolBlockSource, PendingUtxos, PublishedEntry, PublishedTx, RbfForTx, RbfNode,
+    ResolvedMempoolBlockDiff,
 };
 pub use chain_waker::ChainWaker;
 pub use read_only::ReadOnlyMempool;
 use snapshot::Snapshot;
 pub use state::ReadOnlyState;
-use steps::TxRemoval;
+pub use steps::TxRemoval;
 
 use snapshot::Rebuilder;
 use state::State;
@@ -41,6 +42,8 @@ pub struct Mempool {
     read_only: ReadOnlyMempool,
     needs_recovery: bool,
     chain: ChainWaker,
+    /// The tip of the last completed cycle: the blocks after it tell what they confirmed.
+    last_tip: Option<brk_types::BlockHash>,
 }
 
 impl Mempool {
@@ -54,6 +57,7 @@ impl Mempool {
             },
             needs_recovery: false,
             chain: ChainWaker::default(),
+            last_tip: None,
         }
     }
 

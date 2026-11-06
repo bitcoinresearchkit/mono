@@ -21,7 +21,7 @@ impl TxTombstone {
     pub fn replaced_by(&self) -> Option<&Txid> {
         match &self.removal {
             TxRemoval::Replaced { by } => Some(by),
-            TxRemoval::Vanished => None,
+            TxRemoval::Mined | TxRemoval::Vanished => None,
         }
     }
 }

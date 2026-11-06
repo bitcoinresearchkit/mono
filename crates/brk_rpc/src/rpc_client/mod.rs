@@ -11,6 +11,7 @@ use crate::Auth;
 #[cfg(feature = "async")]
 use crate::AsyncClient;
 
+mod block_spends;
 mod block_template;
 mod http;
 mod inner;
@@ -21,6 +22,7 @@ mod responses;
 mod rpc_call;
 mod txid_array_parser;
 
+pub use block_spends::BlockSpends;
 pub use inner::ClientInner;
 pub use mempool_state::MempoolState;
 pub use responses::GetBlockHeaderVerbose;

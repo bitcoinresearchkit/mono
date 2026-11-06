@@ -14,17 +14,19 @@ const PRIORITY_FACTOR: FeeRate = FeeRate::from_milli(500);
 const MIN_FASTEST_FEE: FeeRate = FeeRate::from_milli(1_000);
 const MIN_HALF_HOUR_FEE: FeeRate = FeeRate::from_milli(500);
 /// At or below this projected-block vsize, the block carries no fee
-/// signal and the tier collapses to `min_fee`.
+/// signal and the tier collapses to the floor.
 const EMPTY_BLOCK_VSIZE: u64 = 500_000;
 /// Above this projected-block vsize, no taper applies. Between
 /// `EMPTY_BLOCK_VSIZE` and this threshold, the final-block fee is
 /// scaled linearly by `(vsize - EMPTY_BLOCK_VSIZE) / EMPTY_BLOCK_VSIZE`.
 const FULL_BLOCK_VSIZE: u64 = 950_000;
 
-/// Literal port of mempool.space's `getPreciseRecommendedFee`
-/// (backend/src/api/fee-api.ts). `min_fee` is bitcoind's live
-/// `mempoolminfee` in sat/vB and acts as a floor for every tier
-/// while the mempool is purging by fee.
+/// mempool.space's `getPreciseRecommendedFee` (backend/src/api/fee-api.ts), its tier formula
+/// over Bitview's projected blocks. One input differs: a block's median is the vsize-weighted
+/// median of its members' effective rates (Core's `getblockstats` rule, as every Bitview median),
+/// where mempool.space averages the middle 0.25% of a 4M WU block padded below with its unused
+/// space; the two agree on full blocks. `min_fee` is bitcoind's live `mempoolminfee` in sat/vB
+/// and floors every tier while the mempool is purging by fee.
 pub fn precise(stats: &[BlockStats], min_fee: FeeRate) -> PreciseRecommendedFees {
     let fees = recommend(stats, min_fee, PRECISE);
     PreciseRecommendedFees {
@@ -55,6 +57,12 @@ fn recommend(stats: &[BlockStats], min_fee: FeeRate, increment: FeeRate) -> Prec
     let first = block_fee(stats, 0, None, minimum_fee, increment);
     let second = block_fee(stats, 1, Some(first), minimum_fee, increment);
     let third = block_fee(stats, 2, Some(second), minimum_fee, increment);
+    debug_assert!(
+        [first, second, third]
+            .iter()
+            .all(|tier| *tier == tier.ceil_to(increment)),
+        "every tier a multiple of the increment"
+    );
 
     let economy = third.clamp(minimum_fee, minimum_fee * 2.0);
     let hour = minimum_fee.max(third).max(economy);
@@ -70,18 +78,18 @@ fn recommend(stats: &[BlockStats], min_fee: FeeRate, increment: FeeRate) -> Prec
     }
 }
 
-/// Optimized median for the i-th projected block, or `min_fee` if
-/// the block doesn't exist. `prev` is the prior tier's optimized
-/// fee, used to smooth toward continuity.
+/// Optimized median for the i-th projected block, or `floor` (the rounded minimum fee) if the
+/// block doesn't exist. `prev` is the prior tier's optimized fee, used to smooth toward
+/// continuity.
 fn block_fee(
     stats: &[BlockStats],
     i: usize,
     prev: Option<FeeRate>,
-    min_fee: FeeRate,
+    floor: FeeRate,
     increment: FeeRate,
 ) -> FeeRate {
-    stats.get(i).map_or(min_fee, |b| {
-        optimize_median_fee(b, stats.get(i + 1), prev, min_fee, increment)
+    stats.get(i).map_or(floor, |b| {
+        optimize_median_fee(b, stats.get(i + 1), prev, floor, increment)
     })
 }
 
@@ -91,18 +99,19 @@ fn optimize_median_fee(
     block: &BlockStats,
     next_block: Option<&BlockStats>,
     previous_fee: Option<FeeRate>,
-    min_fee: FeeRate,
+    floor: FeeRate,
     increment: FeeRate,
 ) -> FeeRate {
     let median = block.fee_range[3];
     let use_fee = previous_fee.map_or(median, |prev| FeeRate::mean(median, prev));
-    let vsize = u64::from(block.total_weight) / 4;
-    if vsize <= EMPTY_BLOCK_VSIZE || median < min_fee {
-        return min_fee;
+    // mempool.space's `blockVSize` is the weight's exact quarter: the thresholds compare weight.
+    let weight = u64::from(block.total_weight);
+    if weight <= 4 * EMPTY_BLOCK_VSIZE || median < floor {
+        return floor;
     }
-    if vsize <= FULL_BLOCK_VSIZE && next_block.is_none() {
-        let multiplier = (vsize - EMPTY_BLOCK_VSIZE) as f64 / EMPTY_BLOCK_VSIZE as f64;
-        return (use_fee * multiplier).round_to(increment).max(min_fee);
+    if weight <= 4 * FULL_BLOCK_VSIZE && next_block.is_none() {
+        let multiplier = (weight - 4 * EMPTY_BLOCK_VSIZE) as f64 / (4 * EMPTY_BLOCK_VSIZE) as f64;
+        return (use_fee * multiplier).round_to(increment).max(floor);
     }
-    use_fee.ceil_to(increment).max(min_fee)
+    use_fee.ceil_to(increment).max(floor)
 }

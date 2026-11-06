@@ -1,35 +1,57 @@
 use std::hash::{Hash, Hasher};
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
-    PublishedTx, ReadOnlyState,
+    PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
 
 impl ReadOnlyState {
+    /// Why a transaction left the pool, while the graveyard remembers it (an hour): `None` for
+    /// one live or unknown.
+    pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.graveyard.get(txid).map(|tomb| tomb.removal))
+    }
+
     pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         Ok(state.txs.contains(txid))
     }
 
     /// Capture an immutable live body or its recently vanished fallback from
-    /// one completed publication. Replaced tombstones are excluded.
+    /// one completed publication. Replaced tombstones are excluded. A body whose own inputs
+    /// aren't all resolved yet answers `StateUpdating`, alone: others read meanwhile.
     pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
-        let state = self.pool()?.resolved_at(tip)?;
-        Ok(state
-            .txs
-            .record(txid)
-            .map(PublishedTx::from_record)
-            .or_else(|| {
-                state
-                    .graveyard
-                    .get_vanished(txid)
-                    .map(|tomb| PublishedTx::from_record(&tomb.record))
-            }))
+        let state = self.pool()?.at(tip)?;
+        let record = state.txs.record(txid).or_else(|| {
+            state
+                .graveyard
+                .get_unreplaced(txid)
+                .map(|tomb| &tomb.record)
+        });
+        let Some(record) = record else {
+            return Ok(None);
+        };
+        if record.tx.input.iter().any(|input| input.prevout.is_none()) {
+            return Err(Error::StateUpdating);
+        }
+        Ok(Some(PublishedTx::from_record(record)))
+    }
+
+    /// A live transaction's entry facts (Core's fee, vsize and first sighting): what needs no
+    /// input resolved.
+    pub fn entry(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedEntry>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.txs.entry(txid).map(|entry| PublishedEntry {
+            fee: entry.fee,
+            vsize: entry.vsize,
+            first_seen: entry.first_seen,
+        }))
     }
 
     /// Spend status for a live mempool transaction's output, or `None` when
@@ -41,7 +63,8 @@ impl ReadOnlyState {
         vout: Vout,
         tip: &BlockHash,
     ) -> Result<Option<TxOutspend>> {
-        let state = self.pool()?.resolved_at(tip)?;
+        // Spends are known from inputs' outpoints: no prevout needs resolving.
+        let state = self.pool()?.at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
@@ -55,7 +78,7 @@ impl ReadOnlyState {
     /// confirmed. The spender's full input list is checked to rule out key
     /// collisions.
     pub fn outspend(&self, txid: &Txid, vout: Vout, tip: &BlockHash) -> Result<TxOutspend> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         Ok(Self::outspend_for(state, txid, vout))
     }
 
@@ -67,7 +90,7 @@ impl ReadOnlyState {
         txid: &Txid,
         tip: &BlockHash,
     ) -> Result<Option<Vec<TxOutspend>>> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         let Some(transaction) = state.txs.get(txid) else {
             return Ok(None);
         };
@@ -88,7 +111,7 @@ impl ReadOnlyState {
         if outspends.iter().all(|outspend| outspend.spent) {
             return Ok(());
         }
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         Self::overlay_outspends(state, txid, outspends);
         Ok(())
     }

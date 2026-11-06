@@ -43,11 +43,12 @@ impl ReadOnlyState {
     /// Rejects histories exceeding 4096 traversal steps or 32 nested nodes;
     /// never returns a silently truncated tree.
     pub fn rbf_for_tx(&self, txid: &Txid, tip: &BlockHash) -> Result<RbfForTx> {
-        let state = self.pool()?.resolved_at(tip)?;
+        // Trees read entries and outputs, never prevouts: no input needs resolving.
+        let state = self.pool()?.at(tip)?;
         let mut remaining = MAX_RBF_WORK;
         let root_txid = state
             .graveyard
-            .replacement_root_of(*txid, &mut remaining)
+            .replacement_root_of(*txid, &mut remaining, |txid| state.txs.contains(txid))
             .ok_or(Exceeded::Work)?;
         let replaces: Vec<_> = state
             .graveyard
@@ -71,44 +72,49 @@ impl ReadOnlyState {
     /// Recent terminal-replacer trees, most-recent first, deduplicated
     /// by root, capped at `limit`. `full_rbf_only` drops trees with no
     /// non-signaling predecessor.
-    /// The whole request shares one work budget, charged for discarded
-    /// candidates and stale graveyard entries too. Once it runs out the
-    /// listing ends with the complete trees found so far; a tree nested
-    /// deeper than `rbf_for_tx` allows is skipped, never truncated.
+    /// Each tree has `rbf_for_tx`'s budget: one larger or nested deeper is skipped, never
+    /// truncated, and the listing goes on. The whole request is bounded too (`limit + 1` trees'
+    /// budgets, charged for discarded candidates and stale graveyard entries): once that runs out
+    /// the listing ends with the complete trees found so far.
     pub fn recent_rbf_trees(
         &self,
         full_rbf_only: bool,
         limit: usize,
         tip: &BlockHash,
     ) -> Result<Vec<RbfNode>> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         if limit == 0 {
             return Ok(Vec::new());
         }
         let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
-        let mut remaining = MAX_RBF_WORK;
+        let mut total = MAX_RBF_WORK.saturating_mul(limit.saturating_add(1));
         let mut trees = Vec::new();
         for candidate in state.graveyard.replacements_recent_first() {
-            let Some(left) = remaining.checked_sub(1) else {
+            let Some(left) = total.checked_sub(1) else {
                 break;
             };
-            remaining = left;
-            let Some((_, by)) = candidate else { continue };
-            let Some(root) = state.graveyard.replacement_root_of(*by, &mut remaining) else {
-                break;
-            };
-            if !seen.insert(root) {
+            total = left;
+            // From the replaced transaction: a replacer the pool never saw (a confirmed conflict)
+            // leaves the walk rooted at the last member it knows.
+            let Some((replaced, _)) = candidate else {
                 continue;
-            }
-            match Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0) {
-                Ok(Some(node)) if !full_rbf_only || node.full_rbf => {
-                    trees.push(node);
-                    if trees.len() == limit {
-                        break;
-                    }
+            };
+            let mut remaining = MAX_RBF_WORK.min(total);
+            let built = state
+                .graveyard
+                .replacement_root_of(*replaced, &mut remaining, |txid| state.txs.contains(txid))
+                .filter(|root| seen.insert(*root))
+                .map(|root| {
+                    Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0)
+                });
+            total -= MAX_RBF_WORK.min(total) - remaining;
+            if let Some(Ok(Some(node))) = built
+                && (!full_rbf_only || node.full_rbf)
+            {
+                trees.push(node);
+                if trees.len() == limit {
+                    break;
                 }
-                Ok(_) | Err(Exceeded::Depth) => {}
-                Err(Exceeded::Work) => break,
             }
         }
         // Resolve rates only for returned trees, after filtering and admission.
@@ -143,7 +149,13 @@ impl ReadOnlyState {
             }
         }
 
-        let full_rbf = replaces.iter().any(|c| !c.rbf || c.full_rbf);
+        let replaced_non_signaling = replaces.iter().any(|c| !c.rbf);
+        // mempool.space's tree flag: a replaced leaf's own non-signaling, a replacer's subtree's.
+        let full_rbf = if replaces.is_empty() {
+            !entry.rbf
+        } else {
+            replaced_non_signaling || replaces.iter().any(|c| c.full_rbf)
+        };
         let value: Sats = tx.output.iter().map(|o| o.value).sum();
 
         Ok(Some(RbfNode {
@@ -155,6 +167,7 @@ impl ReadOnlyState {
             rate,
             in_mempool,
             rbf: entry.rbf,
+            replaced_non_signaling,
             full_rbf,
             replaces,
         }))

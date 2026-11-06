@@ -33,11 +33,13 @@ impl Rebuilder {
         state: &State,
         gbt_txids: &[Txid],
         min_fee: FeeRate,
+        fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
     ) {
         let snapshot = &self.snapshot;
         if snapshot.ensure_projection().is_ok()
             && snapshot.min_fee == min_fee
+            && *snapshot.fee_deltas == *fee_deltas
             && snapshot.template_only == state.template_only
             && snapshot.unloaded == *unloaded
             && snapshot.content_revision == state.txs.content_revision()
@@ -50,6 +52,7 @@ impl Rebuilder {
             state,
             gbt_txids,
             min_fee,
+            fee_deltas,
             unloaded,
             &mut self.chunks,
         ));
@@ -59,11 +62,12 @@ impl Rebuilder {
         state: &State,
         gbt_txids: &[Txid],
         min_fee: FeeRate,
+        fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         cache: &mut ChunkCache,
     ) -> Snapshot {
         let complete = state.template_only.is_empty() && unloaded.is_empty();
-        let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, cache);
+        let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, fee_deltas, cache);
         let (bodies, digests): (Vec<_>, Vec<_>) = gbt_txids
             .iter()
             .filter_map(|txid| state.txs.record(txid))
@@ -113,6 +117,7 @@ impl Rebuilder {
         snapshot.set_served(blocks, state.txs.content_revision(), missing);
         snapshot.template_only = state.template_only.clone();
         snapshot.unloaded = unloaded.clone();
+        snapshot.fee_deltas = fee_deltas.into();
         snapshot
     }
 

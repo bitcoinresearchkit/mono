@@ -58,16 +58,28 @@ fn address_output_types() {
 #[test]
 fn values_round_half_up_and_widen_past_u64() {
     let at = |sats: u64, cents_per_btc: u64| Sats::from(sats).value_at(Cents::from(cents_per_btc));
-    assert_eq!(at(1, 50_000_000), Cents::from(1u64), "half a cent rounds up");
+    assert_eq!(
+        at(1, 50_000_000),
+        Cents::from(1u64),
+        "half a cent rounds up"
+    );
     assert_eq!(at(1, 49_999_999), Cents::from(0u64));
     // 21M BTC at $100M: the u64 product overflows, the u128 path takes it.
     let (supply, price) = (2_100_000_000_000_000u64, 10_000_000_000u64);
     assert!(supply.checked_mul(price).is_none());
     assert_eq!(at(supply, price), Cents::from(210_000_000_000_000_000u64));
-    for (sats, price) in [(1, 50_000_000), (123_456_789, 6_543_210_987), (u32::MAX as u64, 99)] {
+    for (sats, price) in [
+        (1, 50_000_000),
+        (123_456_789, 6_543_210_987),
+        (u32::MAX as u64, 99),
+    ] {
         let exact = CentsSats::from_price_sats(Cents::from(price), Sats::from(sats)).to_cents();
         assert_eq!(at(sats, price), exact, "both paths round alike");
     }
     assert!(Sats::from(1u64).value_at(Cents::NAN).is_nan());
-    assert!(CentsSats::from_price_sats(Cents::from(1u64), Sats::from(1u64)).realized_price(Sats::ZERO).is_nan());
+    assert!(
+        CentsSats::from_price_sats(Cents::from(1u64), Sats::from(1u64))
+            .realized_price(Sats::ZERO)
+            .is_nan()
+    );
 }

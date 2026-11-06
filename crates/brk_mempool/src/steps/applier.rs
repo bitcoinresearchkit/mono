@@ -47,7 +47,7 @@ fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: Tx
     let chunk_rate = prev_snapshot
         .chunk_rate_for(&txid)
         .unwrap_or_else(|| record.own_rate());
-    state.info.remove(&record.tx, record.entry.fee);
+    state.info.remove(record.entry.vsize, record.entry.fee);
     state.addrs.remove_tx(&record.tx);
     state.outpoint_spends.remove_spends(&record.tx, *key);
     state.graveyard.bury(record, chunk_rate, reason);
@@ -59,7 +59,7 @@ fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: Tx
 fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry, listed: bool) {
     let tx = Arc::new(tx);
     let key = entry.key();
-    state.info.add(&tx, entry.fee);
+    state.info.add(entry.vsize, entry.fee);
     state.addrs.add_tx(&tx);
     state.outpoint_spends.insert_spends(&tx, key, listed);
     state.txs.insert(tx, entry);

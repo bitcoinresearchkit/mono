@@ -6,8 +6,8 @@ pub mod tx_entry;
 
 use brk_types::{MempoolInfo, Txid};
 pub(crate) use pool::Pool;
-pub use read_only::ReadOnlyState;
 use rapidhash::RapidHashSet;
+pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
 
 use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore};

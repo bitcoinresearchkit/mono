@@ -20,13 +20,20 @@
 //! for a chain (a block-filling one's shape), a fair order for the wide shallow ones a crafted
 //! mempool cluster can take.
 //!
-//! Sizes are the caller's weights (sigop-adjusted for the mempool, as Core 31 linearizes): feerates
-//! compare as exact fractions of them, and a chunk's published feerate is its fee over its weight's
-//! exact quarter, as Core's chunks and mempool.space's effective feerates are.
+//! Sizes are the caller's weights (sigop-adjusted for the mempool, as Core 31 linearizes) and fees
+//! the ranked ones (Core's modified fees, signed: an operator's delta can make one negative):
+//! feerates compare as exact fractions of them, and a chunk's published feerate is its fee over its
+//! weight's exact quarter, as Core's chunks and mempool.space's effective feerates are (none below
+//! zero).
 
 use std::cmp::Ordering;
 
 use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
+
+/// A ranked fee's published rate over `weight`: zero for one at or below zero.
+pub(crate) fn published_rate(fee: i64, weight: Weight) -> FeeRate {
+    FeeRate::from((Sats::from(u64::try_from(fee).unwrap_or(0)), weight))
+}
 
 use crate::cluster::Node;
 
@@ -53,7 +60,7 @@ pub(crate) struct Scratch {
 }
 
 struct Totals {
-    fee: Sats,
+    fee: i64,
     weight: Weight,
     count: usize,
 }
@@ -61,14 +68,14 @@ struct Totals {
 /// A chunk: `order[previous end..end]`, with its summed fee and size.
 struct Chunk {
     end: usize,
-    fee: Sats,
+    fee: i64,
     weight: Weight,
 }
 
-/// `a`'s feerate against `b`'s, exactly: fee_a / weight_a vs fee_b / weight_b.
-fn compare_rates(a: (Sats, Weight), b: (Sats, Weight)) -> Ordering {
-    let (fee_a, weight_a) = (u128::from(u64::from(a.0)), u128::from(u64::from(a.1)));
-    let (fee_b, weight_b) = (u128::from(u64::from(b.0)), u128::from(u64::from(b.1)));
+/// `a`'s feerate against `b`'s, exactly: fee_a / weight_a vs fee_b / weight_b (weights positive).
+fn compare_rates(a: (i64, Weight), b: (i64, Weight)) -> Ordering {
+    let (fee_a, weight_a) = (i128::from(a.0), i128::from(u64::from(a.1)));
+    let (fee_b, weight_b) = (i128::from(b.0), i128::from(u64::from(b.1)));
     (fee_a * weight_b).cmp(&(fee_b * weight_a))
 }
 
@@ -125,12 +132,12 @@ fn ancestor_sets(
             }
         }
         let mut totals = Totals {
-            fee: Sats::ZERO,
+            fee: 0,
             weight: Weight::default(),
             count: 0,
         };
         for ancestor in members(row) {
-            totals.fee += nodes[ancestor].fee;
+            totals.fee += nodes[ancestor].modified;
             totals.weight += nodes[ancestor].weight;
             totals.count += 1;
         }
@@ -174,14 +181,19 @@ fn ancestor_sets(
             for &removed in group {
                 let removed = u32::from(removed) as usize;
                 if contains(row, removed) {
-                    set.fee -= nodes[removed].fee;
+                    set.fee -= nodes[removed].modified;
                     set.weight -= nodes[removed].weight;
                     set.count -= 1;
                 }
             }
         }
 
-        push_group(chunks, order.len(), sets[selected].fee, sets[selected].weight);
+        push_group(
+            chunks,
+            order.len(),
+            sets[selected].fee,
+            sets[selected].weight,
+        );
     }
     emit_chunks(order, chunks, emit);
 }
@@ -197,14 +209,14 @@ fn topological(
     chunks.clear();
     for (index, node) in nodes.iter().enumerate() {
         order.push(CpfpClusterTxIndex::from(index as u32));
-        push_group(chunks, index + 1, node.fee, node.weight);
+        push_group(chunks, index + 1, node.modified, node.weight);
     }
     emit_chunks(order, chunks, emit);
 }
 
 /// Appends the group ending at `end` of the order: one paying more than the chunk before it
 /// joins that chunk, so chunk feerates never increase.
-fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: Sats, weight: Weight) {
+fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: i64, weight: Weight) {
     let mut chunk = Chunk { end, fee, weight };
     while let Some(last) = chunks.last()
         && compare_rates((chunk.fee, chunk.weight), (last.fee, last.weight)).is_gt()
@@ -226,7 +238,7 @@ fn emit_chunks(
     for chunk in chunks {
         let txs = &mut order[start..chunk.end];
         txs.sort_unstable_by_key(|index| u32::from(*index));
-        emit(txs, FeeRate::from((chunk.fee, chunk.weight)));
+        emit(txs, published_rate(chunk.fee, chunk.weight));
         start = chunk.end;
     }
 }
@@ -264,9 +276,9 @@ fn set_members(set: Set) -> impl Iterator<Item = usize> {
     })
 }
 
-fn totals(nodes: &[Node], set: Set) -> (Sats, Weight) {
-    set_members(set).fold((Sats::ZERO, Weight::default()), |(fee, weight), index| {
-        (fee + nodes[index].fee, weight + nodes[index].weight)
+fn totals(nodes: &[Node], set: Set) -> (i64, Weight) {
+    set_members(set).fold((0, Weight::default()), |(fee, weight), index| {
+        (fee + nodes[index].modified, weight + nodes[index].weight)
     })
 }
 
@@ -303,9 +315,9 @@ fn exact(
         // the smallest closure paying exactly as much is the group.
         loop {
             let (fee, weight) = totals(nodes, best);
-            let (p, q) = (i128::from(u64::from(fee)), i128::from(u64::from(weight)));
+            let (p, q) = (i128::from(fee), i128::from(u64::from(weight)));
             let weight = |index: usize| {
-                i128::from(u64::from(nodes[index].fee)) * q
+                i128::from(nodes[index].modified) * q
                     - i128::from(u64::from(nodes[index].weight)) * p
             };
             let (closure, value) = scratch.flow.max_closure(remaining, &direct, weight);
@@ -317,8 +329,8 @@ fn exact(
             // lone member is one).
             if best.count_ones() > 1
                 && let Some(smaller) = scratch
-                .flow
-                .smallest_tight_closure(remaining, &direct, &ancestors, best, weight)
+                    .flow
+                    .smallest_tight_closure(remaining, &direct, &ancestors, best, weight)
             {
                 best = smaller;
             }
@@ -326,7 +338,8 @@ fn exact(
         }
         txs.clear();
         txs.extend(set_members(best).map(|index| CpfpClusterTxIndex::from(index as u32)));
-        emit(&txs, FeeRate::from(totals(nodes, best)));
+        let (fee, weight) = totals(nodes, best);
+        emit(&txs, published_rate(fee, weight));
         remaining &= !best;
     }
 }

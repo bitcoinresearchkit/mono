@@ -109,7 +109,7 @@ impl Pool {
             .map(|entry| entry.first_seen)
             .or_else(|| {
                 self.graveyard
-                    .get_vanished(txid)
+                    .get_unreplaced(txid)
                     .map(|tomb| tomb.record.entry.first_seen)
             })
     }

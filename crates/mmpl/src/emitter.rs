@@ -6,8 +6,8 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use brk_error::{Error, Result};
-use brk_mempool::{RbfNode, ReadOnlyState};
+use brk_error::Result;
+use brk_mempool::{ReadOnlyState, TxRemoval};
 use brk_rpc::Client;
 use brk_types::{BlockHash, FeeRate, MempoolBlockHash, PreciseRecommendedFees, Sats, Txid, VSize};
 use rustc_hash::FxHashSet;
@@ -66,30 +66,24 @@ impl Emitter {
         let (mut added, mut removed) = (0, 0);
         if let Some(now) = &txids {
             for txid in now.difference(&self.prev_txids) {
-                let Some(published) = state.transaction(txid, &tip)? else {
+                let Some(entry) = state.entry(txid, &tip)? else {
                     continue;
                 };
                 added += 1;
                 events.push(Event::Enter {
                     t,
                     txid: *txid,
-                    vsize: published.vsize,
-                    fee: published.tx.fee,
-                    rate: FeeRate::from((published.tx.fee, published.vsize)),
-                    first_seen: published.first_seen,
+                    vsize: entry.vsize,
+                    fee: entry.fee,
+                    rate: FeeRate::from((entry.fee, entry.vsize)),
+                    first_seen: entry.first_seen,
                 });
             }
             for txid in self.prev_txids.difference(now) {
-                let replacer = match state.rbf_for_tx(txid, &tip) {
-                    Ok(rbf) => rbf.root.as_ref().and_then(|root| replacer_of(root, txid)),
-                    // A history past the RBF traversal bounds stays unclassified: retrying the
-                    // cycle would hit it again until it ages out, stalling the stream.
-                    Err(Error::Internal(_)) => None,
-                    Err(e) => return Err(e),
-                };
-                let reason = match replacer {
-                    Some(by) => LeaveReason::Replaced { by },
-                    None => LeaveReason::Vanished,
+                let reason = match state.removal(txid, &tip)? {
+                    Some(TxRemoval::Replaced { by }) => LeaveReason::Replaced { by },
+                    Some(TxRemoval::Mined) => LeaveReason::Mined,
+                    Some(TxRemoval::Vanished) | None => LeaveReason::Vanished,
                 };
                 removed += 1;
                 events.push(Event::Leave {
@@ -160,17 +154,6 @@ impl Emitter {
         }
         Ok(())
     }
-}
-
-/// The tx that directly replaced `txid` in the replacement tree under `node`.
-fn replacer_of(node: &RbfNode, txid: &Txid) -> Option<Txid> {
-    node.replaces.iter().find_map(|child| {
-        if child.txid == *txid {
-            Some(node.txid)
-        } else {
-            replacer_of(child, txid)
-        }
-    })
 }
 
 fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {

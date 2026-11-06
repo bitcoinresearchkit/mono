@@ -37,24 +37,33 @@ impl TxGraveyard {
         self.tombstones.get(txid)
     }
 
-    /// Tombstone iff the tx vanished from the pool (mined, expired, or
-    /// dropped); `Replaced` tombstones are excluded.
-    pub fn get_vanished(&self, txid: &Txid) -> Option<&TxTombstone> {
+    /// Tombstone iff the tx left the pool without a replacer (mined, expired, or dropped);
+    /// `Replaced` tombstones are excluded.
+    pub fn get_unreplaced(&self, txid: &Txid) -> Option<&TxTombstone> {
         let tomb = self.tombstones.get(txid)?;
-        matches!(tomb.removal, TxRemoval::Vanished).then_some(tomb)
+        tomb.replaced_by().is_none().then_some(tomb)
     }
 
-    /// Walk forward through `Replaced { by }` to the terminal replacer.
-    /// Returns the first txid in the chain that isn't a `Replaced`
-    /// tombstone: live, `Vanished`, or unknown (chain broken because an
-    /// intermediate `by` aged out of the graveyard).
+    /// Walk forward through `Replaced { by }` to the terminal replacer: the first txid in the
+    /// chain that isn't a `Replaced` tombstone (live, or buried otherwise), or the last one whose
+    /// replacer is neither `live` nor buried (aged out, or a conflict a block confirmed without
+    /// the pool seeing it): the history the pool still knows stays rooted there.
     /// Every step consumes the caller's shared budget, so cycles also terminate;
     /// `None` once it runs out.
-    pub fn replacement_root_of(&self, mut txid: Txid, remaining: &mut usize) -> Option<Txid> {
+    pub fn replacement_root_of(
+        &self,
+        mut txid: Txid,
+        remaining: &mut usize,
+        live: impl Fn(&Txid) -> bool,
+    ) -> Option<Txid> {
         loop {
             *remaining = remaining.checked_sub(1)?;
             match self.tombstones.get(&txid).map(|t| &t.removal) {
-                Some(TxRemoval::Replaced { by }) => txid = *by,
+                Some(TxRemoval::Replaced { by })
+                    if live(by) || self.tombstones.contains_key(by) =>
+                {
+                    txid = *by
+                }
                 _ => return Some(txid),
             }
         }

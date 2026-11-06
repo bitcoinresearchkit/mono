@@ -82,7 +82,10 @@ enum Kind {
     PubkeyHash,
     ScriptHash,
     /// P2WPKH (0, 20 bytes), P2WSH (0, 32), P2TR (1, 32) and versions Core doesn't know yet.
-    Witness { version: u8, program: Vec<u8> },
+    Witness {
+        version: u8,
+        program: Vec<u8>,
+    },
     Anchor,
 }
 
@@ -153,10 +156,14 @@ fn decode(s: &str) -> Result<Destination, Invalid> {
     }
     match (version, checksum) {
         (0, Checksum::Bech32m) => {
-            return Err(invalid("Version 0 witness address must use Bech32 checksum"));
+            return Err(invalid(
+                "Version 0 witness address must use Bech32 checksum",
+            ));
         }
         (1.., Checksum::Bech32) => {
-            return Err(invalid("Version 1+ witness address must use Bech32m checksum"));
+            return Err(invalid(
+                "Version 1+ witness address must use Bech32m checksum",
+            ));
         }
         _ => {}
     }
@@ -173,7 +180,11 @@ fn decode(s: &str) -> Result<Destination, Invalid> {
     let address = s.to_ascii_lowercase();
     if version == 1 && program == [0x4e, 0x73] {
         let script = vec![0x51, 0x02, 0x4e, 0x73];
-        return Ok(Destination { address, script, kind: Kind::Anchor });
+        return Ok(Destination {
+            address,
+            script,
+            kind: Kind::Anchor,
+        });
     }
     if version > 16 {
         return Err(invalid("Invalid Bech32 address witness version"));
@@ -188,7 +199,11 @@ fn decode(s: &str) -> Result<Destination, Invalid> {
     let op = if version == 0 { 0x00 } else { 0x50 + version };
     let mut script = vec![op, program.len() as u8];
     script.extend_from_slice(&program);
-    Ok(Destination { address, script, kind: Kind::Witness { version, program } })
+    Ok(Destination {
+        address,
+        script,
+        kind: Kind::Witness { version, program },
+    })
 }
 
 fn decode_base58(s: &str) -> Result<Destination, Invalid> {
@@ -208,13 +223,23 @@ fn decode_base58(s: &str) -> Result<Destination, Invalid> {
                 }
                 _ => return Err(invalid("Invalid or unsupported Base58-encoded address.")),
             };
-            let kind = if data[0] == PUBKEY_PREFIX { Kind::PubkeyHash } else { Kind::ScriptHash };
-            Ok(Destination { address: s.to_owned(), script, kind })
+            let kind = if data[0] == PUBKEY_PREFIX {
+                Kind::PubkeyHash
+            } else {
+                Kind::ScriptHash
+            };
+            Ok(Destination {
+                address: s.to_owned(),
+                script,
+                kind,
+            })
         }
         _ if base58::decode(s).is_ok_and(|data| data.len() <= 100) => Err(invalid(
             "Invalid checksum or length of Base58 address (P2PKH or P2SH)",
         )),
-        _ => Err(invalid("Invalid or unsupported Segwit (Bech32) or Base58 encoding.")),
+        _ => Err(invalid(
+            "Invalid or unsupported Segwit (Bech32) or Base58 encoding.",
+        )),
     }
 }
 
@@ -250,7 +275,10 @@ fn bech32_data(s: &str) -> Option<(Checksum, Vec<u8>)> {
 }
 
 fn symbol(c: u8) -> Option<u8> {
-    CHARSET.iter().position(|&x| x == c.to_ascii_lowercase()).map(|i| i as u8)
+    CHARSET
+        .iter()
+        .position(|&x| x == c.to_ascii_lowercase())
+        .map(|i| i as u8)
 }
 
 /// Core's `CheckCharacters`: characters outside 33 to 126, and letters of the other case than

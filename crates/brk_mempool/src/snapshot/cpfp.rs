@@ -8,9 +8,7 @@
 
 use brk_cpfp::Cluster;
 use brk_error::Result;
-use brk_types::{
-    BlockHash, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
-};
+use brk_types::{BlockHash, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid};
 use rustc_hash::FxHashSet;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};

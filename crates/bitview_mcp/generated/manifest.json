@@ -6683,6 +6683,12 @@
                     "boolean",
                     "null"
                   ]
+                },
+                "mined": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 }
               }
             },
@@ -10815,6 +10821,12 @@
                     "boolean",
                     "null"
                   ]
+                },
+                "mined": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 }
               }
             },
@@ -13196,6 +13208,12 @@
                   "type": "boolean"
                 },
                 "fullRbf": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "mined": {
                   "type": [
                     "boolean",
                     "null"

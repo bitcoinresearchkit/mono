@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use bitcoin::hashes::Hash;
-use brk_cpfp::Cluster;
 use bitcoin::{ScriptBuf, Witness};
+use brk_cpfp::Cluster;
 use brk_types::{
     BlockHash, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction, TxIn, TxStatus,
     Txid, VSize, Vout, Weight,
@@ -21,7 +21,7 @@ use crate::{
         partition::{Chunks, partition},
         rebuilder::withhold,
     },
-    steps::{applier, preparer},
+    steps::{Confirmed, applier, preparer},
     stores::tx_store::TxRecord,
 };
 
@@ -96,9 +96,11 @@ fn pool(n: usize) -> Vec<SnapTx> {
             if i > 0 && next(3) == 0 {
                 parents.push(TxIndex::from(i - 1 - next(i.min(20) as u64) as usize));
             }
+            let fee = Sats::from(next(40_000));
             SnapTx {
                 txid: Txid::from(bitcoin::Txid::from_byte_array(bytes)),
-                fee: Sats::from(next(40_000)),
+                fee,
+                modified: u64::from(fee) as i64,
                 vsize: sigops.adjust_vsize(VSize::from(weight)),
                 weight,
                 size: 0,
@@ -150,6 +152,7 @@ fn projected_blocks_stop_short_of_each_budget() {
     let tx = |seed: u8, fee: u64, weight: u64, sigops: u64| SnapTx {
         txid: txid(seed),
         fee: Sats::from(fee),
+        modified: fee as i64,
         vsize: SigOps::new(sigops).adjust_vsize(VSize::from(Weight::from(weight))),
         weight: Weight::from(weight),
         size: 0,
@@ -167,7 +170,11 @@ fn projected_blocks_stop_short_of_each_budget() {
             .collect::<Vec<_>>()
     };
     // Weight: 3,000,000 + 991,999 fill the block to one WU short; one more WU waits.
-    let by_weight = [tx(1, 3_000_000, 3_000_000, 0), tx(2, 900_000, 991_999, 0), tx(3, 0, 1, 0)];
+    let by_weight = [
+        tx(1, 3_000_000, 3_000_000, 0),
+        tx(2, 900_000, 991_999, 0),
+        tx(3, 0, 1, 0),
+    ];
     assert_eq!(packed(&by_weight), [vec![0, 1], vec![2]]);
     // Sigops: 79,599 fill the block to one short; one more waits.
     let by_sigops = [tx(1, 10_000_000, 1_600_000, 79_599), tx(2, 1, 400, 1)];
@@ -204,7 +211,11 @@ fn served_blocks_publish_and_diff() {
         "an unchanged block keeps its hash"
     );
     let built = to_value(captured.build()).unwrap();
-    assert_eq!(built["hash"], to_value(since).unwrap(), "a capture outlives newer publications");
+    assert_eq!(
+        built["hash"],
+        to_value(since).unwrap(),
+        "a capture outlives newer publications"
+    );
     let bodies: Vec<&Value> = built["transactions"]
         .as_array()
         .unwrap()
@@ -218,7 +229,11 @@ fn served_blocks_publish_and_diff() {
         .map(|tx| &tx["txid"])
         .collect();
     let id = |tx: &Arc<Transaction>| to_value(tx.txid).unwrap();
-    assert_eq!(txids, [&id(&b), &id(&c), &id(&d)], "its own bodies, in its order");
+    assert_eq!(
+        txids,
+        [&id(&b), &id(&c), &id(&d)],
+        "its own bodies, in its order"
+    );
     assert_eq!(bodies[1], 0, "c's body as it was then");
     assert_ne!(served(&state, 1).hash(), since);
     let diff = state
@@ -246,8 +261,12 @@ fn served_blocks_publish_and_diff() {
         "block 1's hash is no copy of block 0"
     );
 
-    for seed in 100..180 {
-        state.publish_projection(snapshot(&[&[&a], &[&body(seed)]], 1), tip);
+    // Past the history's bound (block 0 unchanged, each block 1 another pair of bodies).
+    for first in 100..140 {
+        for second in 140..170 {
+            let block = [&body(first), &body(second)];
+            state.publish_projection(snapshot(&[&[&a], &block], 1), tip);
+        }
     }
     assert!(
         state
@@ -278,6 +297,7 @@ fn incomplete_views_withhold_what_cannot_follow_block_0() {
         .map(|tx| SnapTx {
             txid: tx.txid,
             fee: tx.fee,
+            modified: u64::from(tx.fee) as i64,
             vsize: VSize::from(tx.weight),
             weight: tx.weight,
             size: tx.total_size as u64,
@@ -328,9 +348,16 @@ fn entries_pair_only_with_their_own_witness_variant() {
     let state = State::default();
     let added = |entry: MempoolEntryInfo| {
         let bodies = [(txid, fetched.clone())].into_iter().collect();
-        preparer::prepare(&[txid], &RapidHashSet::default(), vec![entry], bodies, &state)
-            .added
-            .len()
+        preparer::prepare(
+            &[txid],
+            &RapidHashSet::default(),
+            vec![entry],
+            bodies,
+            &Confirmed::default(),
+            &state,
+        )
+        .added
+        .len()
     };
     assert_eq!(added(entry(&described)), 0, "another variant's entry");
     assert_eq!(added(entry(&fetched)), 1, "its own entry");
@@ -377,16 +404,26 @@ fn rebuilds_follow_the_view_gaps() {
             first_seen: Timestamp::now(),
         })
         .collect();
-    let bodies = [&p, &t, &r, &c].iter().map(|&tx| (id(tx), tx.clone())).collect();
+    let bodies = [&p, &t, &r, &c]
+        .iter()
+        .map(|&tx| (id(tx), tx.clone()))
+        .collect();
     let live = [id(&p), id(&r), id(&c), Txid::from(unloaded_parent), id(&t)];
-    let diff = preparer::prepare(&live, &template_only, entries, bodies, &state);
+    let diff = preparer::prepare(
+        &live,
+        &template_only,
+        entries,
+        bodies,
+        &Confirmed::default(),
+        &state,
+    );
     applier::apply(&mut state, &Snapshot::default(), diff);
     state.template_only = template_only;
 
     let mut rebuilder = Rebuilder::default();
     let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
     let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
-        rebuilder.tick(state, &[id(&t)], FeeRate::default(), unloaded);
+        rebuilder.tick(state, &[id(&t)], FeeRate::default(), &[], unloaded);
         let snapshot = rebuilder.snapshot().clone();
         let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
             .iter()
@@ -398,16 +435,26 @@ fn rebuilds_follow_the_view_gaps() {
     let (first, later) = tick(&state, &unloaded);
     assert_eq!(later, set(&[id(&p)]), "r and c withheld");
     let (again, _) = tick(&state, &unloaded);
-    assert!(Arc::ptr_eq(&first, &again), "the same view reuses its snapshot");
+    assert!(
+        Arc::ptr_eq(&first, &again),
+        "the same view reuses its snapshot"
+    );
 
     unloaded.clear();
     let (loaded, later) = tick(&state, &unloaded);
     assert!(!Arc::ptr_eq(&again, &loaded), "the unloaded gap changed");
-    assert_eq!(later, set(&[id(&p), id(&c)]), "c follows once its parent isn't missing");
+    assert_eq!(
+        later,
+        set(&[id(&p), id(&c)]),
+        "c follows once its parent isn't missing"
+    );
 
     state.template_only.clear();
     let (listed, later) = tick(&state, &unloaded);
-    assert!(!Arc::ptr_eq(&loaded, &listed), "the template-only gap changed");
+    assert!(
+        !Arc::ptr_eq(&loaded, &listed),
+        "the template-only gap changed"
+    );
     assert_eq!(later, set(&[id(&p), id(&r), id(&c)]));
 }
 
@@ -428,6 +475,7 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
                     txs.push(SnapTx {
                         txid: tx.txid,
                         fee: tx.fee,
+                        modified: u64::from(tx.fee) as i64,
                         vsize: VSize::from(tx.weight),
                         weight: tx.weight,
                         size: tx.total_size as u64,

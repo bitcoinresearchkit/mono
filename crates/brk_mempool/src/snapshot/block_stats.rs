@@ -45,9 +45,11 @@ impl BlockStats {
         let mut stats = vec![Self::compute(block0, txs, CORE_PERCENTILES)];
         // Projected blocks descend by rate. Read backwards so sort's ascending-run check
         // avoids sorting them again.
-        stats.extend(rest.iter().map(|block| {
-            Self::compute(block.iter().rev().copied(), txs, PROJECTED_PERCENTILES)
-        }));
+        stats.extend(
+            rest.iter().map(|block| {
+                Self::compute(block.iter().rev().copied(), txs, PROJECTED_PERCENTILES)
+            }),
+        );
         stats
     }
 

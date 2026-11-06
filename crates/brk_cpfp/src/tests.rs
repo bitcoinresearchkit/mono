@@ -65,7 +65,9 @@ fn ours(fees: &[u64], weights: &[u64], parents: &[Vec<usize>]) -> Vec<(u64, u64)
         cluster.push(
             Sats::from(fees[i]),
             Weight::from(weights[i]),
-            parents[i].iter().map(|&p| CpfpClusterTxIndex::from(p as u32)),
+            parents[i]
+                .iter()
+                .map(|&p| CpfpClusterTxIndex::from(p as u32)),
         );
     }
     let mut chunks: Vec<(u64, u64)> = Vec::new();
@@ -75,13 +77,19 @@ fn ours(fees: &[u64], weights: &[u64], parents: &[Vec<usize>]) -> Vec<(u64, u64)
         // In order: each member after its parents, earlier chunks' or this one's earlier members.
         for &i in &members {
             assert!(!placed[i], "a member in two chunks");
-            assert!(parents[i].iter().all(|&p| placed[p]), "a member before its parents");
+            assert!(
+                parents[i].iter().all(|&p| placed[p]),
+                "a member before its parents"
+            );
             placed[i] = true;
         }
         let chunk = members
             .iter()
             .fold((0, 0), |(f, w), &i| (f + fees[i], w + weights[i]));
-        assert_eq!(rate, FeeRate::from((Sats::from(chunk.0), Weight::from(chunk.1))));
+        assert_eq!(
+            rate,
+            FeeRate::from((Sats::from(chunk.0), Weight::from(chunk.1)))
+        );
         if let Some(&(fee, weight)) = chunks.last() {
             let later = u128::from(chunk.0) * u128::from(weight);
             let earlier = u128::from(fee) * u128::from(chunk.1);
@@ -150,4 +158,30 @@ fn every_tier_linearizes() {
             .collect();
         ours(&fees, &weights, &parents);
     }
+}
+
+/// A negative modified fee ranks the package as Core does: a parent paying 1,000 sats with a
+/// -2,000 delta and its child paying 3,000 chunk together at 2,000 sats over 800 WU (10 sat/vB),
+/// below a lone 12 sat/vB transaction; served fees stay what they paid.
+#[test]
+fn negative_modified_fees_rank_signed() {
+    let mut cluster = Cluster::default();
+    cluster.push_ranked(Sats::from(1_000u64), -1_000, Weight::from(400u64), []);
+    cluster.push_ranked(
+        Sats::from(3_000u64),
+        3_000,
+        Weight::from(400u64),
+        [CpfpClusterTxIndex::from(0)],
+    );
+    let mut chunks = Vec::new();
+    cluster.linearize(|txs, rate| chunks.push((txs.len(), rate)));
+    assert_eq!(
+        chunks,
+        [(
+            2,
+            FeeRate::from((Sats::from(2_000u64), Weight::from(800u64)))
+        )]
+    );
+    assert!(chunks[0].1 < FeeRate::from((Sats::from(1_200u64), Weight::from(400u64))));
+    assert_eq!(cluster.fee(0), Sats::from(1_000u64));
 }

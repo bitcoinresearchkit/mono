@@ -4,14 +4,14 @@ use bitcoin::{
     BlockHash as BitcoinBlockHash, Network, Transaction, Txid as BitcoinTxid, consensus::encode,
 };
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
+use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid, Vout};
 use corepc_jsonrpc::error::Error as JsonRpcError;
 use rapidhash::RapidHashMap;
 use serde_json::{from_str, json, value::RawValue};
 use tracing::{debug, info};
 
 use super::{
-    Client, ClientInner,
+    BlockSpends, Client, ClientInner,
     mempool_entry::MempoolEntry,
     mempool_state::MempoolState,
     responses::{
@@ -126,8 +126,8 @@ impl Client {
     }
 
     /// Core's projected next block (`getblocktemplate`), the live mempool txids
-    /// (`getrawmempool false`) and `mempoolminfee` (`getmempoolinfo`), in one
-    /// batched round trip. GBT carries each tx's full body and stats, so block 0
+    /// (`getrawmempool false`), `mempoolminfee` (`getmempoolinfo`) and the operator's fee deltas
+    /// (`getprioritisedtransactions`), in one batched round trip. GBT carries each tx's full body and stats, so block 0
     /// is exact even when a tx vanishes from the mempool listing between the GBT
     /// and `getrawmempool` calls; no follow-up entry fetch can race it.
     pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Vec<BlockTemplateTx>)> {
@@ -136,10 +136,11 @@ impl Client {
             RpcCall::new("getblocktemplate", &template_args)?,
             RpcCall::new("getrawmempool", &(false,))?,
             RpcCall::new("getmempoolinfo", &NO_ARGS)?,
+            RpcCall::new("getprioritisedtransactions", &NO_ARGS)?,
         ];
         // The batch answers every request, a missing response as an item error.
-        let [template_raw, txids_raw, info_raw] =
-            <[_; 3]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
+        let [template_raw, txids_raw, info_raw, deltas_raw] =
+            <[_; 4]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
         let (template_raw, txids_raw, info_raw) = (template_raw?, txids_raw?, info_raw?);
 
         let live_txids = TxidArrayParser::parse(txids_raw.get())?;
@@ -148,15 +149,69 @@ impl Client {
         let block_template = ClientInner::build_gbt(template.transactions)?;
         let info: GetMempoolInfo = from_str(info_raw.get())?;
         let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
+        let fee_deltas = Self::build_fee_deltas(deltas_raw);
 
         Ok((
             MempoolState {
                 live_txids,
                 min_fee,
                 tip_hash,
+                fee_deltas,
             },
             block_template,
         ))
+    }
+
+    /// The nonzero deltas of transactions in the mempool, in txid byte order. A node without the
+    /// call (before Core 27) has none to report: an error reads as none.
+    fn build_fee_deltas(raw: Result<Box<RawValue>>) -> Box<[(Txid, i64)]> {
+        #[derive(serde::Deserialize)]
+        struct Prioritised {
+            fee_delta: i64,
+            in_mempool: bool,
+        }
+        let parsed =
+            raw.and_then(|raw| Ok(from_str::<RapidHashMap<Txid, Prioritised>>(raw.get())?));
+        let mut deltas: Vec<(Txid, i64)> = match parsed {
+            Ok(map) => map
+                .into_iter()
+                .filter(|(_, p)| p.in_mempool && p.fee_delta != 0)
+                .map(|(txid, p)| (txid, p.fee_delta))
+                .collect(),
+            Err(error) => {
+                debug!(%error, "getprioritisedtransactions: no fee deltas");
+                Vec::new()
+            }
+        };
+        deltas.sort_unstable_by_key(|(txid, _)| **txid);
+        deltas.into()
+    }
+
+    /// Block `hash`'s transactions and what their inputs spend (`getblock` raw, decoded once).
+    pub fn get_block_spends(&self, hash: &BlockHash) -> Result<BlockSpends> {
+        let bitcoin_hash: &BitcoinBlockHash = hash.into();
+        let hex: String = self.0.call_with_retry("getblock", &(bitcoin_hash, 0))?;
+        let block: bitcoin::Block = encode::deserialize_hex(&hex)?;
+        let mut spends = Vec::new();
+        let txids = block
+            .txdata
+            .iter()
+            .map(|tx| {
+                let txid = Txid::from(tx.compute_txid());
+                if !tx.is_coinbase() {
+                    spends.extend(tx.input.iter().map(|input| {
+                        let outpoint = &input.previous_output;
+                        ((Txid::from(outpoint.txid), Vout::from(outpoint.vout)), txid)
+                    }));
+                }
+                txid
+            })
+            .collect();
+        Ok(BlockSpends {
+            prev: BlockHash::from(block.header.prev_blockhash),
+            txids,
+            spends,
+        })
     }
 
     /// `getmempoolentry` for every txid of `entries_only` and `full`, plus `getrawtransaction`

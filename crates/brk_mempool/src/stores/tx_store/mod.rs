@@ -94,7 +94,10 @@ impl TxStore {
         recent.retain(|(_, sample)| sample.txid != entry.txid);
         let at = recent.partition_point(|(seen, _)| *seen > entry.first_seen);
         if at < RECENT_CAP {
-            recent.insert(at, (entry.first_seen, MempoolRecentTx::from((&entry.txid, tx))));
+            recent.insert(
+                at,
+                (entry.first_seen, MempoolRecentTx::from((&entry.txid, tx))),
+            );
             recent.truncate(RECENT_CAP);
         }
     }

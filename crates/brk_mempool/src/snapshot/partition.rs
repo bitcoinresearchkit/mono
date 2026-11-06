@@ -1,8 +1,10 @@
-//! Projected blocks 1..N, packed as Core's block assembler packs, from base fees within Core's
-//! default budgets (an operator's `prioritisetransaction` deltas and mining options shape only
-//! block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
+//! Projected blocks 1..N, packed as Core's block assembler packs, by modified fees (the operator's
+//! `prioritisetransaction` deltas included) within Core's default budgets (mining options shape
+//! only block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
 //! descending feerate, in dependency order, each block within Core's weight and sigop budgets.
-//! Components that block 0 took part of are linearized again without those members. A chunk that
+//! Equal feerates go as Core 31's chunk index orders them: the shorter run of equal-feerate chunks
+//! within its cluster first, then the chunk whose greatest txid is lower. What block 0 left of a
+//! component is split into the clusters it now forms, each linearized again. A chunk that
 //! doesn't fit waits for the next block, and so does the rest of its component (Core's block
 //! builder skips the cluster); a block closes once 1,000 chunks in a row failed with it within
 //! 4,000 WU of full (Core's `BlockAssembler`). As Core's, a candidate is tested at its
@@ -14,7 +16,8 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::{FeeRate, Sats, SigOps, Txid, Weight};
+use brk_types::{FeeRate, SigOps, Txid, Weight};
+use rustc_hash::FxHashMap;
 
 use super::{SnapTx, TxIndex, cluster};
 
@@ -99,12 +102,15 @@ pub fn partition(
         } else if taken < members.len() {
             rest.clear();
             rest.extend(members.iter().filter(|m| !excluded[m.as_usize()]));
-            rest.sort_unstable_by(|&a, &b| txs[a.as_usize()].txid.cmp(&txs[b.as_usize()].txid));
-            let order = cluster::load(txs, &rest, &mut graph);
-            graph.linearize(|local, rate| {
-                let members = local.iter().map(|&l| order[u32::from(l) as usize]);
-                left.push_chunk(members, rate);
-            });
+            for piece in pieces(txs, &rest, excluded) {
+                let order = cluster::load(txs, &piece, &mut graph);
+                graph.linearize(|local, rate| {
+                    let members = local.iter().map(|&l| order[u32::from(l) as usize]);
+                    left.push_chunk(members, rate);
+                });
+                left.end_component();
+            }
+            continue;
         } else {
             continue;
         }
@@ -116,17 +122,50 @@ pub fn partition(
     projection
 }
 
+/// The clusters `rest` (what block 0 left of one component) forms without the excluded members,
+/// each in txid order, as [`cluster::walk`] gives a component.
+fn pieces(txs: &[SnapTx], rest: &[TxIndex], excluded: &[bool]) -> Vec<Vec<TxIndex>> {
+    let mut piece_of: FxHashMap<TxIndex, usize> = FxHashMap::default();
+    let mut pieces: Vec<Vec<TxIndex>> = Vec::new();
+    for &seed in rest {
+        if piece_of.contains_key(&seed) {
+            continue;
+        }
+        let id = pieces.len();
+        piece_of.insert(seed, id);
+        let mut piece = vec![seed];
+        let mut stack = vec![seed];
+        while let Some(m) = stack.pop() {
+            let t = &txs[m.as_usize()];
+            for &n in t.parents.iter().chain(&t.children) {
+                if !excluded[n.as_usize()] && !piece_of.contains_key(&n) {
+                    piece_of.insert(n, id);
+                    piece.push(n);
+                    stack.push(n);
+                }
+            }
+        }
+        piece.sort_unstable_by(|&a, &b| txs[a.as_usize()].txid.cmp(&txs[b.as_usize()].txid));
+        pieces.push(piece);
+    }
+    pieces
+}
+
 struct Candidate {
     chunk: u32,
     component: u32,
     /// The published feerate; the order compares `fee / policy` exactly, as the linearization
     /// did, so a component's chunks never reorder.
     rate: FeeRate,
-    fee: Sats,
+    /// Modified fee, what the order ranks by (negative under a negative delta).
+    fee: i64,
     /// Sigop-adjusted weight.
     policy: Weight,
-    /// The component's first member: ties between components break by it, the same on every node.
-    key: Txid,
+    /// The policy weight of its component's run of equal-feerate chunks through this one: Core's
+    /// first tie-break (`m_main_equal_feerate_chunk_prefix_size`).
+    prefix: Weight,
+    /// Its members' greatest txid (Core's fallback order compares the bytes): the second.
+    max_txid: Txid,
     /// Actual weight, what a block counts (a candidate is tested at `policy`, as Core's).
     weight: Weight,
     sigops: SigOps,
@@ -140,35 +179,45 @@ impl Candidate {
 }
 
 fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
+    let per_weight = |fee: i64, policy: Weight| (i128::from(fee), i128::from(u64::from(policy)));
+    // `b`'s feerate against `a`'s, exactly (weights positive): the higher first.
+    let by_rate = |(fee_a, weight_a): (i128, i128), (fee_b, weight_b): (i128, i128)| {
+        (fee_b * weight_a).cmp(&(fee_a * weight_b))
+    };
     let mut cands: Vec<Candidate> = Vec::with_capacity(chunks.chunks.len());
     for (component, range) in chunks.components().enumerate() {
-        let key = txs[chunks.span(range)[0].as_usize()].txid;
+        let mut run: Option<(i128, i128)> = None;
+        let mut prefix = Weight::default();
         for c in range.0..range.1 {
             let members = || chunks.members(c).iter().map(|m| &txs[m.as_usize()]);
+            let fee: i64 = members().map(|t| t.modified).sum();
+            let policy: Weight = members().map(|t| t.sigops.adjust_weight(t.weight)).sum();
+            let rate = per_weight(fee, policy);
+            // A component's chunk feerates never increase: an equal one extends the run.
+            prefix = match run {
+                Some(previous) if by_rate(previous, rate).is_eq() => prefix + policy,
+                _ => policy,
+            };
+            run = Some(rate);
             cands.push(Candidate {
                 chunk: c as u32,
                 component: component as u32,
                 rate: chunks.chunks[c].1,
-                fee: members().map(|t| t.fee).sum(),
-                policy: members().map(|t| t.sigops.adjust_weight(t.weight)).sum(),
-                key,
+                fee,
+                policy,
+                prefix,
+                max_txid: members().map(|t| t.txid).max_by(|a, b| a.cmp(b)).unwrap(),
                 weight: members().map(|t| t.weight).sum(),
                 sigops: members().map(|t| t.sigops).sum(),
             });
         }
     }
-    // A component's chunks keep their order: their feerates never increase, ties go by chunk.
-    let per_weight = |c: &Candidate| {
-        (
-            u128::from(u64::from(c.fee)),
-            u128::from(u64::from(c.policy)),
-        )
-    };
+    // Core 31's mining order: feerate, then the equal-feerate run, then the greatest txid. A
+    // component's chunks keep their order (an equal-feerate later one has the longer run).
     cands.sort_unstable_by(|a, b| {
-        let ((fee_a, weight_a), (fee_b, weight_b)) = (per_weight(a), per_weight(b));
-        (fee_b * weight_a)
-            .cmp(&(fee_a * weight_b))
-            .then_with(|| a.key.cmp(&b.key))
+        by_rate(per_weight(a.fee, a.policy), per_weight(b.fee, b.policy))
+            .then(a.prefix.cmp(&b.prefix))
+            .then_with(|| a.max_txid.cmp(&b.max_txid))
             .then(a.chunk.cmp(&b.chunk))
     });
 

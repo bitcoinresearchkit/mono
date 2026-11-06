@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{FeeRate, Sats, Transaction, VSize};
+use crate::{FeeRate, Sats, VSize};
 
 /// Mempool statistics with incrementally maintained fee histogram.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -13,7 +13,8 @@ pub struct MempoolInfo {
     /// Number of transactions in the mempool
     #[cfg_attr(feature = "schemars", schemars(example = 5000))]
     pub count: usize,
-    /// Total virtual size of all transactions in the mempool (vbytes)
+    /// Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
+    /// Core's `getmempoolinfo` `bytes` and every fee rate measure it
     pub vsize: VSize,
     /// Total fees of all transactions in the mempool (satoshis)
     pub total_fee: Sats,
@@ -29,23 +30,25 @@ pub struct MempoolInfo {
 }
 
 impl MempoolInfo {
+    /// `vsize`: the entry's, sigop-adjusted (Core's `GetTxSize`).
     #[inline]
-    pub fn add(&mut self, tx: &Transaction, fee: Sats) {
+    pub fn add(&mut self, vsize: VSize, fee: Sats) {
         self.count += 1;
-        self.vsize += tx.vsize();
+        self.vsize += vsize;
         self.total_fee += fee;
-        let rate = FeeRate::from((fee, tx.vsize()));
-        *self.fee_histogram.entry(rate).or_insert(VSize::from(0u64)) += tx.vsize();
+        let rate = FeeRate::from((fee, vsize));
+        *self.fee_histogram.entry(rate).or_insert(VSize::from(0u64)) += vsize;
     }
 
+    /// `vsize`: the same the transaction was added with.
     #[inline]
-    pub fn remove(&mut self, tx: &Transaction, fee: Sats) {
+    pub fn remove(&mut self, vsize: VSize, fee: Sats) {
         self.count -= 1;
-        self.vsize -= tx.vsize();
+        self.vsize -= vsize;
         self.total_fee -= fee;
-        let rate = FeeRate::from((fee, tx.vsize()));
+        let rate = FeeRate::from((fee, vsize));
         if let Some(v) = self.fee_histogram.get_mut(&rate) {
-            *v -= tx.vsize();
+            *v -= vsize;
             if u64::from(*v) == 0 {
                 self.fee_histogram.remove(&rate);
             }
