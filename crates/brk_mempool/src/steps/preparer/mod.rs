@@ -61,7 +61,6 @@ pub fn prepare(
     );
 
     PoolDiff {
-        live_len: live.len(),
         added,
         promoted,
         removed,

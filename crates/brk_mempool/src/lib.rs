@@ -2,7 +2,9 @@
 //!
 //! Fetch, prepare, apply, resolve inputs, and build the graph on the writer.
 //! Readers keep the last complete state until one atomic replacement publishes
-//! its successor. Transaction bodies are shared and use copy-on-write for fills.
+//! its successor. The stores are copy-on-write (sharded maps, chunked vectors and queues): a
+//! publication shares them, and a write copies only the shard or chunk it lands in, so one costs
+//! what changed since the last. Transaction bodies are shared and use copy-on-write for fills.
 
 use std::sync::Arc;
 

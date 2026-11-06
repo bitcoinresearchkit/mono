@@ -768,6 +768,74 @@ fn late_replacers_relink_what_vanished_before_them() {
     assert!(matches!(removal(&graveyard, 4), TxRemoval::Vanished));
 }
 
+/// The copy-on-write containers against plain models, through random inserts, swap-removes,
+/// writes, pushes and pops: same contents and dense order, and a clone taken midway never sees a
+/// later write.
+#[test]
+fn copy_on_write_containers_match_their_models() {
+    use crate::stores::cow::{CowIndexMap, CowMap, CowQueue};
+    use rustc_hash::FxBuildHasher;
+    use std::collections::VecDeque;
+    let mut state = 0x6A09_E667_F3BC_C908u64;
+    let mut next = |bound: u64| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state % bound
+    };
+    let mut map: CowIndexMap<u64, u64, FxBuildHasher> = CowIndexMap::default();
+    let mut model: Vec<(u64, u64)> = Vec::new();
+    let mut queue: CowQueue<u64> = CowQueue::default();
+    let mut queue_model: VecDeque<u64> = VecDeque::new();
+    let mut plain: CowMap<u64, u64, FxBuildHasher> = CowMap::default();
+    let mut frozen = None;
+    for step in 0..60_000u64 {
+        let key = next(5_000);
+        match next(4) {
+            0 | 1 if !model.iter().any(|(k, _)| *k == key) => {
+                map.insert(key, step);
+                model.push((key, step));
+            }
+            2 => {
+                let position = model.iter().position(|(k, _)| *k == key);
+                let removed = map.swap_remove_full(&key);
+                assert_eq!(removed, position.map(|p| {
+                    let (k, v) = model.swap_remove(p);
+                    (p, k, v)
+                }));
+            }
+            _ => {
+                if let Some(value) = map.get_mut(&key) {
+                    *value = step;
+                    model.iter_mut().find(|(k, _)| *k == key).unwrap().1 = step;
+                }
+            }
+        }
+        if next(3) == 0 {
+            queue.push_back(step);
+            queue_model.push_back(step);
+        } else {
+            assert_eq!(queue.pop_front(), queue_model.pop_front());
+        }
+        plain.insert(key, step);
+        if step == 30_000 {
+            frozen = Some((map.clone(), model.clone(), queue.clone(), queue_model.clone()));
+        }
+    }
+    let pairs = |map: &CowIndexMap<u64, u64, FxBuildHasher>| -> Vec<(u64, u64)> {
+        map.iter().map(|(k, v)| (*k, *v)).collect()
+    };
+    assert_eq!(pairs(&map), model);
+    assert_eq!(map.len(), model.len());
+    assert!(model.iter().enumerate().all(|(i, (k, v))| map.get_index(i) == Some((k, v))));
+    assert!(queue.iter().copied().eq(queue_model.iter().copied()));
+    assert!(queue.iter().rev().copied().eq(queue_model.iter().rev().copied()));
+    assert_eq!(plain.len(), plain.iter().count());
+    let (map, model, queue, queue_model) = frozen.unwrap();
+    assert_eq!(pairs(&map), model, "a clone keeps what it saw");
+    assert!(queue.iter().copied().eq(queue_model.iter().copied()));
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }

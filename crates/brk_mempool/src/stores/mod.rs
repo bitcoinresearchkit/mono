@@ -1,6 +1,7 @@
 //! Working stores with frozen read data and shared immutable transaction bodies.
 
 pub mod addr_tracker;
+pub mod cow;
 pub mod live_payments;
 pub mod outpoint_spends;
 pub mod tx_graveyard;

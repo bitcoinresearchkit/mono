@@ -49,10 +49,6 @@ impl TxStore {
         self.read_only.clone()
     }
 
-    pub fn reserve(&mut self, additional: usize) {
-        self.read_only.records.reserve(additional);
-    }
-
     fn txid_position_hash(txid: &Txid, position: usize) -> u64 {
         let mut hasher = FxHasher::default();
         (position as u64).hash(&mut hasher);

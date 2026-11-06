@@ -1,11 +1,9 @@
-use std::collections::hash_map::Entry;
-
 use brk_types::{Transaction, Txid, Vin, Vout};
-use rustc_hash::FxHashMap;
+use rustc_hash::FxBuildHasher;
 
 use crate::{
     key::{OutpointKey, TxKey},
-    stores::{ReadOnlyTxStore, tx_store::TxRecord},
+    stores::{ReadOnlyTxStore, cow::CowMap, tx_store::TxRecord},
 };
 
 /// Mempool index from spent outpoint to spending mempool tx.
@@ -16,7 +14,7 @@ use crate::{
 /// looked up against `TxStore` to recover the full spender record.
 #[derive(Clone, Default)]
 pub struct OutpointSpends {
-    map: FxHashMap<OutpointKey, TxKey>,
+    map: CowMap<OutpointKey, TxKey, FxBuildHasher>,
     /// Bumped on every mapping change, so a change of owner alone (no
     /// membership change) still republishes.
     revision: u64,
@@ -29,14 +27,14 @@ impl OutpointSpends {
         let mut changed = false;
         for key in Self::spent_outpoints(tx) {
             changed |= if replace {
-                self.map.insert(key, spender) != Some(spender)
+                self.map.get(&key) != Some(&spender) && {
+                    self.map.insert(key, spender);
+                    true
+                }
             } else {
-                match self.map.entry(key) {
-                    Entry::Vacant(vacant) => {
-                        vacant.insert(spender);
-                        true
-                    }
-                    Entry::Occupied(_) => false,
+                !self.map.contains_key(&key) && {
+                    self.map.insert(key, spender);
+                    true
                 }
             };
         }

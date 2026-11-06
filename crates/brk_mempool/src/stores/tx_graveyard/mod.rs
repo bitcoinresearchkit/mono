@@ -1,18 +1,23 @@
 use std::{
-    collections::VecDeque,
     mem,
     time::{Duration, Instant},
 };
 
 use brk_types::{FeeRate, Transaction, Txid, Vout};
-use rapidhash::{RapidHashMap, RapidHashSet};
+use rapidhash::{RapidHashMap, RapidHashSet, fast::RandomState};
 use smallvec::SmallVec;
 
 pub mod tombstone;
 
 pub use tombstone::TxTombstone;
 
-use crate::{TxRemoval, stores::tx_store::TxRecord};
+use crate::{
+    TxRemoval,
+    stores::{
+        cow::{CowMap, CowQueue},
+        tx_store::TxRecord,
+    },
+};
 
 /// How long a tombstone outside any replacement tree stays.
 const RETENTION: Duration = Duration::from_hours(1);
@@ -48,16 +53,16 @@ struct Burial {
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
-    tombstones: RapidHashMap<Txid, TxTombstone>,
-    predecessors_by_replacer: RapidHashMap<Txid, SmallVec<[Txid; 1]>>,
+    tombstones: CowMap<Txid, TxTombstone, RandomState>,
+    predecessors_by_replacer: CowMap<Txid, SmallVec<[Txid; 1]>, RandomState>,
     /// Every burial in order: a lone tombstone leaves from here, a tree's newest version moves on
     /// to `trees`, a replaced version waits for its tree.
-    order: VecDeque<(Instant, Txid)>,
+    order: CowQueue<(Instant, Txid)>,
     /// The newest versions of trees no longer pending, in burial order: each takes its tree.
-    trees: VecDeque<(Instant, Txid)>,
+    trees: CowQueue<(Instant, Txid)>,
     /// The `Replaced` burials of `order`, so RBF listings never scan the far
     /// more numerous mined and dropped txs.
-    replacements: VecDeque<(Instant, Txid)>,
+    replacements: CowQueue<(Instant, Txid)>,
     /// The serialized size of every body held.
     bytes: u64,
     /// How many `Replaced` tombstones are held.
@@ -168,6 +173,7 @@ impl TxGraveyard {
         }
         if let Some(replacer) = replacer {
             self.predecessors_by_replacer
+                .shard_mut(&replacer)
                 .entry(replacer)
                 .or_default()
                 .push(txid);
@@ -295,6 +301,7 @@ impl TxGraveyard {
         match removal {
             TxRemoval::Replaced { by } => {
                 self.predecessors_by_replacer
+                    .shard_mut(&by)
                     .entry(by)
                     .or_default()
                     .push(txid);

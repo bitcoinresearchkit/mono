@@ -1,16 +1,19 @@
 use brk_oracle::{HistogramRaw, Tally};
 use brk_types::{MempoolRecentTx, Timestamp, Transaction, Txid};
-use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::{key::TxKey, state::TxEntry, stores::LivePayments};
+use crate::{
+    key::TxKey,
+    state::TxEntry,
+    stores::{LivePayments, cow::CowIndexMap},
+};
 
 use super::TxRecord;
 
 /// Query data shared by the working store and each completed publication.
 #[derive(Clone, Default)]
 pub struct ReadOnlyTxStore {
-    pub(super) records: IndexMap<TxKey, TxRecord, FxBuildHasher>,
+    pub(super) records: CowIndexMap<TxKey, TxRecord, FxBuildHasher>,
     pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
     /// The latest arrivals by Core's first-seen time, newest first.
@@ -48,7 +51,10 @@ impl ReadOnlyTxStore {
 
     /// The record at `index` in dense storage order, [`Self::records`]'s.
     pub fn record_at(&self, index: usize) -> &TxRecord {
-        &self.records[index]
+        self.records
+            .get_index(index)
+            .expect("an index within the store")
+            .1
     }
 
     /// `(key, record)` pairs in dense storage order.

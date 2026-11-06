@@ -1374,7 +1374,6 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
- "indexmap",
  "rapidhash",
  "rustc-hash",
  "serde",

@@ -1,21 +1,24 @@
 use std::{collections::hash_map::Entry as MapEntry, sync::Arc};
 
 use brk_types::{AddressBytes, AddressMempoolStats, Transaction, Txid};
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RandomState;
 use rustc_hash::FxHashSet;
+
+use crate::stores::cow::CowMap;
 
 pub mod addr_entry;
 
 pub use addr_entry::AddrEntry;
 
-/// Frozen maps share address records; only changed records copy their txid sets. A pooled
+/// Publications share the map's shards and its address records; a write copies only its shard
+/// and the record it changes (with its txid set). A pooled
 /// transaction folds in whole, once ready: every input resolved, and no pooled parent waiting
 /// (what it spends of one is folded too). An address never sees half of one, nor a spend without
 /// the pending output it spends, so any publication answers for every address; one still
 /// resolving (and what descends from it) shows up a cycle later.
 #[derive(Clone, Default)]
 pub struct AddrTracker {
-    addrs: RapidHashMap<AddressBytes, Arc<AddrEntry>>,
+    addrs: CowMap<AddressBytes, Arc<AddrEntry>, RandomState>,
     /// The pooled transactions not folded in yet.
     waiting: FxHashSet<Txid>,
 }
@@ -83,7 +86,7 @@ impl AddrTracker {
         txid: &Txid,
         update_stats: impl FnOnce(&mut AddressMempoolStats),
     ) {
-        let entry = Arc::make_mut(self.addrs.entry(bytes).or_default());
+        let entry = Arc::make_mut(self.addrs.shard_mut(&bytes).entry(bytes).or_default());
         entry.txids.insert(*txid);
         update_stats(&mut entry.stats);
         entry.stats.tx_count = entry.txids.len() as u32;
@@ -95,7 +98,10 @@ impl AddrTracker {
         txid: &Txid,
         update_stats: impl FnOnce(&mut AddressMempoolStats),
     ) {
-        let MapEntry::Occupied(mut occupied) = self.addrs.entry(bytes) else {
+        if !self.addrs.contains_key(&bytes) {
+            return;
+        }
+        let MapEntry::Occupied(mut occupied) = self.addrs.shard_mut(&bytes).entry(bytes) else {
             return;
         };
         let entry = Arc::make_mut(occupied.get_mut());

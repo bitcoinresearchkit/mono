@@ -18,13 +18,10 @@ use crate::{
 /// its own fee rate if that graph lacks it.
 pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confirmed: &Confirmed) {
     let PoolDiff {
-        live_len,
         added,
         promoted,
         removed,
     } = diff;
-    let additional = live_len.saturating_sub(state.txs.len());
-    state.txs.reserve(additional);
     // Before burials, so a leaving listed spender never drops their mapping.
     // `prepare` kept only pooled promoted keys and pooled removals, from this same state.
     let mut owners = Vec::with_capacity(promoted.len());
