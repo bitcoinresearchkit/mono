@@ -15,14 +15,14 @@ cargo install --locked --path crates/bitview_cli
 Or run it without installing:
 
 ```bash
-cargo run -p bitview_cli -- get-block-by-height 800000
+cargo run -p bitview_cli -- get-block-hash-by-height 800000
 ```
 
 The default server is `http://localhost:3110`. Point the CLI at the public
 instance with `--url` or `BITVIEW_URL`:
 
 ```bash
-bitview-cli --url https://bitview.space get-block-by-height 800000
+bitview-cli --url https://bitview.space get-block-hash-by-height 800000
 BITVIEW_URL=https://bitview.space bitview-cli get-health
 ```
 

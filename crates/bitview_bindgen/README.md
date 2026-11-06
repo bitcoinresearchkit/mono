@@ -40,8 +40,11 @@ leaf index sets and one naming rule per child. A rule derives the child's series
 name (a leaf) or base (a branch) from the parent's base, as a template such as
 `*_sum` or a literal name. Each shape is emitted once, as a generic type with
 one builder, and clients compose names when a child is first accessed. Child
-types come from anti-unification over all instances. Shapes are named after the
-PascalCase tail of their shallowest path. Debug builds of the generator (as
+types come from anti-unification over all instances. A section (a root child) is
+named after its key, any other shape after the type most of its instances define
+(`Pool`; `UtxoSetSeries` where the API already has `UtxoSet`; a section prefix
+for shapes sharing a name), and what no type names after the PascalCase tail of
+its shallowest path. Debug builds of the generator (as
 `cargo bindgen` runs it) assert that composing every name from the root, exactly
 as the clients do, reproduces the catalog.
 

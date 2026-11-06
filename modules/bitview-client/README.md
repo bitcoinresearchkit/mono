@@ -26,7 +26,7 @@ import { BitviewClient } from 'bitview-client';
 const client = new BitviewClient('https://bitview.space');
 
 // Mempool.space-compatible blockchain endpoints.
-const blockHash = await client.getBlockByHeight(800000);
+const blockHash = await client.getBlockHashByHeight(800000);
 const tx = await client.getTx(
   'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d',
 );

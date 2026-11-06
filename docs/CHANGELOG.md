@@ -35,6 +35,15 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   its stats still in `/api/v1/fees/mempool-blocks`
 - The npm client ships TypeScript declarations (`index.d.ts`, made from its JSDoc at publish, `types` in its
   exports): TypeScript users get the typed tree and the frozen answers' types
+- Every kind of transaction (each feature, script and signature type, SegWit, one input or output, each version,
+  the patterns, CPFP parents and children, nonstandard, inscriptions) has the value its transactions moved, beside its
+  count and share: bitcoin and dollars, per block, all time and over each window, stored as transfer volume is, and
+  its share of transfer volume
+- A build from the repository reports the commit it was built from (`/version`, `/health`, ETags; was the crate's
+  version), a crates.io release its version; the OpenAPI document keeps the release's version
+- The website answers a page's old address with a permanent redirect to its new one, the query kept
+  (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`)
+- MCP: the server's icon is Bitview's app icon, and a link to its pages previews them, each named and described
 
 ### Performance
 
@@ -52,6 +61,18 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - A single-block update reads only the new blocks' frames, not on into Core's preallocated zero tail (33 µs → 1.2 µs
   on the newest block file, and no 4 MB buffer)
 - A rawdb region next to a hole that ends the file grows into it in place (it moved, copying itself)
+- An idle server reads ahead what the next block will touch (every 30 s: the indexer's lookups for the mempool
+  template's inputs and outputs, and the addresses' data, reads only): a block after more than 10 idle minutes
+  publishes in 0.14-0.19 s (was 0.83-0.92 s, the reads gone cold on disk)
+- Indexing: freeing indexed blocks on a thread of their own (5-7% of the indexing thread), the transaction analysis
+  beside the block's finalization (~5%), txids hashed on the reader's parser threads (~4%), extra read workers only
+  for blocks past 10k records, and no compression for the point-read stores' data blocks (UTXOs, txids, address
+  hashes: decompressing them was about a fifth of the lookups' CPU; some disk space for it, older tables still read)
+- Addresses: a flush after the cache fills or `WRITE_INTERVAL` blocks since the last, not also at fixed boundaries
+  (those were 194 s of a 719 s recompute), cold addresses loaded on a pool three times the cores, sorted sidecar
+  deletes, and each batch's per-block apply beside the next batch's loading (49 s of a 603 s recompute)
+- The default vector cache is 1 GiB (was 2), leaving the rest to the page cache: a full sync on a 16 GB host 4,910 s
+  (was 4,995), peak memory 8.6 GB (was 9.7)
 
 ### Bug Fixes
 
@@ -146,6 +167,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   transaction, a child of an unloaded parent, and their descendants
 - JavaScript client: `getOpenapi()` and `getApi()` return the documents as sent (their keys and `{after_txid}`-style
   path templates were camelCased, breaking the spec); series values come as sent too, without a walk over every item
+- lsm-tree: an empty level counts as disjoint (a trivial move into one failed a debug assertion, ending dev builds'
+  compaction worker); a reopened tree pins its tables by their canonical level, as compaction does (after a restart
+  only L0 stayed pinned, so the hash-index stores' whole filters were read from disk)
+- bitviewd_bench files every run under its commit, from crates.io's `.cargo_vcs_info.json` or the checkout's HEAD
+  (copied trees filed theirs under `v0.13.0`)
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 
@@ -290,7 +316,7 @@ has to be deleted by hand.
   `addresses` `Address`es and `firstSeen` a `Timestamp`; inputs' `scriptsig` and `witness` and outputs' `scriptpubkey`
   are `Hex`; series search and `GET /api/series/list` return `SeriesName`s, `GET /api/v1/transaction-times`
   `Timestamp`s; a series' JSON `type` is `JsonType`, `/health`'s `status` `HealthStatus` (`healthy`) and its `version`,
-  as `GET /version`'s answer, `ServerVersion` (SemVer); a block's `orphans` are `BlockHash`es; ISO 8601 times are
+  as `GET /version`'s answer, `ServerVersion` (SemVer); a block's `orphans` are `BlockOrphan`s; ISO 8601 times are
   `date-time`s and `reward-stats` totals digit strings; a difficulty adjustment is the tuple `[Timestamp, Height,
   number, number]` (was `number[]`). The document's tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's
   `items` array)
