@@ -10,7 +10,7 @@ pub mod tx_index;
 
 use std::{
     hash::Hasher,
-    sync::Arc,
+    sync::{Arc, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -28,7 +28,7 @@ use serde_json::to_vec;
 pub use snap_tx::SnapTx;
 pub use tx_index::TxIndex;
 
-use crate::key::TxKey;
+use crate::{JsonBody, json, key::TxKey};
 
 /// How long an incomplete view holds a complete one's fee tiers over: about a block. Past it the
 /// fee endpoints answer `StateUpdating` until a complete view returns.
@@ -39,8 +39,10 @@ pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
     /// linearized chunk rate plus parent/child adjacency.
     txs: Vec<SnapTx>,
-    /// Projected block 0: Core's `getblocktemplate` (Bitcoin Core's actual selection).
+    /// Projected block 0: Core's `getblocktemplate` (Bitcoin Core's actual selection), or the
+    /// packer's first block when Core gives none (`block0_packed`).
     block0: Vec<TxIndex>,
+    pub(crate) block0_packed: bool,
     /// Every projected block's statistics: block 0's, then the package-aware projection's
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
@@ -69,6 +71,11 @@ pub struct Snapshot {
     pub(crate) unloaded: RapidHashSet<Txid>,
     /// The operator's fee deltas it ranked by: a rebuild under the same ones reuses it.
     pub(crate) fee_deltas: Box<[(Txid, i64)]>,
+    /// The served bodies of `fees`, `precise_fees` and every block's stats, serialized by the
+    /// first request after publication.
+    fees_json: OnceLock<JsonBody>,
+    precise_fees_json: OnceLock<JsonBody>,
+    blocks_json: OnceLock<JsonBody>,
 }
 
 /// A projected block's bodies in block order, frozen at publication, and its content identity.
@@ -81,9 +88,11 @@ pub(crate) struct ServedBlock {
 impl Snapshot {
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
+    /// `block0`: each member at its feerate there (its chunk's for the template's, the one it was
+    /// packed at for the packer's).
     pub(crate) fn build(
         txs: Vec<SnapTx>,
-        block0: Vec<TxIndex>,
+        block0: Vec<(TxIndex, FeeRate)>,
         rest: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
         chunks: partition::Chunks,
@@ -91,11 +100,13 @@ impl Snapshot {
     ) -> Self {
         let chunk_of = chunks.chunk_of(txs.len());
         let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
+        let block0 = block0.into_iter().map(|(index, _)| index).collect();
         let precise_fees = fees::precise(&block_stats, min_fee);
         let fees = fees::whole(&block_stats, min_fee);
         Self {
             txs,
             block0,
+            block0_packed: false,
             block_stats,
             precise_fees,
             fees,
@@ -111,7 +122,38 @@ impl Snapshot {
             template_only: RapidHashSet::default(),
             unloaded: RapidHashSet::default(),
             fee_deltas: Box::default(),
+            fees_json: OnceLock::new(),
+            precise_fees_json: OnceLock::new(),
+            blocks_json: OnceLock::new(),
         }
+    }
+
+    /// mempool.space's `/api/v1/fees/recommended` body.
+    pub(crate) fn fees_json(&self) -> Result<JsonBody> {
+        self.ensure_fees()?;
+        Ok(self.fees_json.get_or_init(|| json::body(&self.fees)).clone())
+    }
+
+    /// mempool.space's `/api/v1/fees/precise` body.
+    pub(crate) fn precise_fees_json(&self) -> Result<JsonBody> {
+        self.ensure_fees()?;
+        Ok(self
+            .precise_fees_json
+            .get_or_init(|| json::body(&self.precise_fees))
+            .clone())
+    }
+
+    /// mempool.space's `/api/v1/fees/mempool-blocks` body.
+    pub(crate) fn blocks_json(&self) -> Result<JsonBody> {
+        self.ensure_projection()?;
+        Ok(self
+            .blocks_json
+            .get_or_init(|| {
+                let blocks: Vec<MempoolBlock> =
+                    self.block_stats.iter().map(MempoolBlock::from).collect();
+                json::body(&blocks)
+            })
+            .clone())
     }
 
     /// Freeze the served blocks' bodies (block 0 first), each with its digests, before

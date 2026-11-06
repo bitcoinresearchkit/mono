@@ -4,7 +4,6 @@ use bitview_types::{AddressChainStats, AddressStats};
 use brk_types::{Address, Dollars, OutputType, Sats};
 
 use super::parse_addr;
-use crate::r#impl::mempool::anchored;
 use crate::{Error, Query, Result};
 
 impl Query {
@@ -12,7 +11,7 @@ impl Query {
         let bytes = parse_addr(&addr)?;
         // The mempool first (it never leads the chain), then the address state, published with the
         // lengths under this lock, then the pin: the state and the pin are of one publication, and
-        // a mempool at another tip adds nothing (`anchored`).
+        // a mempool behind it is read as the pin sees it (`with_pending`).
         let mempool = self.mempool();
         let state = self
             .plugins()
@@ -32,10 +31,9 @@ impl Query {
             })
             .transpose()?;
         drop(state);
-        let mempool_stats = mempool
-            .map(|m| anchored(m.addr_stats(&bytes, &pin.tip())))
-            .transpose()?
-            .unwrap_or_default();
+        let mempool_stats = self.with_pending(mempool.as_deref(), &pin, |mempool, view| {
+            mempool.addr_stats(&bytes, view)
+        })?;
         // Never confirmed: zeroed stats, as Esplora answers.
         let chain_stats = chain_stats.unwrap_or_default();
         let balance = pending_balance(
@@ -81,7 +79,7 @@ fn addr_chain_stats(
 }
 
 fn pending_balance(chain: Sats, pending_received: Sats, pending_sent: Sats) -> Result<Sats> {
-    // Mempool stats are anchored to the chain tip; reject inconsistent totals.
+    // Pending stats are read as the pin sees them; reject inconsistent totals.
     u64::from(chain)
         .checked_add(pending_received.into())
         .and_then(|value| value.checked_sub(pending_sent.into()))

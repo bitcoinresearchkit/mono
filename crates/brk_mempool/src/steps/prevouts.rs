@@ -27,13 +27,13 @@ where
 {
     let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
     let external = resolve_external(holes, resolver);
+    let mut resolved = Vec::new();
     for (txid, fills) in in_mempool.into_iter().chain(external) {
-        state
-            .txs
-            .apply_fills(&TxKey::from(&txid), fills, |prevout| {
-                state.addrs.add_input(&txid, prevout)
-            });
+        if state.txs.apply_fills(&TxKey::from(&txid), fills) {
+            resolved.push(txid);
+        }
     }
+    state.fold_ready(resolved);
 }
 
 /// Default resolver: the node's UTXO set (`gettxout` per hole, batched), where a pending
@@ -113,7 +113,7 @@ where
             flat.push((*prev_txid, *vout));
         }
     }
-    let mut resolved = resolver(&flat);
+    let resolved = resolver(&flat);
     if resolved.is_empty() {
         return Vec::new();
     }
@@ -123,9 +123,11 @@ where
             let fills: Vec<(Vin, TxOut)> = tx_holes
                 .into_iter()
                 .filter_map(|(vin, prev_txid, vout)| {
+                    // Looked up, not taken: a template-only transaction and its listed replacement
+                    // can both wait on one outpoint.
                     resolved
-                        .remove(&(prev_txid, vout))
-                        .map(|output| (vin, output))
+                        .get(&(prev_txid, vout))
+                        .map(|output| (vin, output.clone()))
                 })
                 .collect();
             (!fills.is_empty()).then_some((txid, fills))

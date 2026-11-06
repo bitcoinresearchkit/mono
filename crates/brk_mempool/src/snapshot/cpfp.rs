@@ -7,7 +7,7 @@
 //!   linearized for wire shape and the seed's chunk feerate (the snapshot's rates the same).
 
 use brk_cpfp::Cluster;
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{
     BlockHash, CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
 };
@@ -19,13 +19,18 @@ use crate::ReadOnlyState;
 impl ReadOnlyState {
     /// CPFP info for a live mempool tx. Returns `None` when the tx
     /// isn't in the completed live publication. Requires the graph and live
-    /// fields to share the same transaction revision and requested chain tip.
+    /// fields to share the same transaction revision and requested chain tip. A tx whose own
+    /// inputs aren't all resolved yet answers `StateUpdating`, alone (its sigops need them; its
+    /// cluster's rates already stand on Core's vsize for any member still resolving).
     pub fn cpfp_info(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<CpfpInfo>> {
-        let state = self.pool()?.resolved_at(tip)?;
+        let state = self.pool()?.at(tip)?;
         let snapshot = &state.graph;
         let Some(tx) = state.txs.get(txid) else {
             return Ok(None);
         };
+        if !tx.is_resolved() {
+            return Err(Error::StateUpdating);
+        }
         Ok(snapshot
             .idx_of_txid(txid)
             .map(|index| snapshot.cpfp_info_at(index, tx.total_sigop_cost)))

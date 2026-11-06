@@ -11,16 +11,12 @@ use crate::{
 };
 
 impl ReadOnlyState {
-    /// Why a transaction left the pool, while the graveyard remembers it (an hour): `None` for
-    /// one live or unknown.
+    /// Why a transaction left the pool, while the graveyard remembers it (an hour alone; a
+    /// replacement tree's while its newest version is pending, and a day after): `None` for one
+    /// live or unknown.
     pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
         let state = self.pool()?.at(tip)?;
         Ok(state.graveyard.get(txid).map(|tomb| tomb.removal))
-    }
-
-    pub fn contains_txid(&self, txid: &Txid, tip: &BlockHash) -> Result<bool> {
-        let state = self.pool()?.at(tip)?;
-        Ok(state.txs.contains(txid))
     }
 
     /// Capture an immutable live body or its recently vanished fallback from
@@ -37,7 +33,7 @@ impl ReadOnlyState {
         let Some(record) = record else {
             return Ok(None);
         };
-        if record.tx.input.iter().any(|input| input.prevout.is_none()) {
+        if !record.tx.is_resolved() {
             return Err(Error::StateUpdating);
         }
         Ok(Some(PublishedTx::from_record(record)))

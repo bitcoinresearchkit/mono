@@ -39,8 +39,8 @@ pub(crate) fn page_identity(anchor: Option<BlockHash>, txs: &[PublishedTx]) -> R
 }
 
 impl Query {
-    /// Capture shared transaction bodies only when mempool and indexed chain
-    /// refer to the same completed publication: no confirmed part answers meanwhile, so the
+    /// Capture shared transaction bodies from the pool as the indexed chain sees it
+    /// ([`Query::with_pending`]): with none to read, no confirmed part answers meanwhile, so the
     /// page is unavailable (`StateUpdating`), not empty.
     pub fn resolve_addr_mempool_txs(
         &self,
@@ -50,11 +50,11 @@ impl Query {
         let bytes = parse_addr(addr)?;
         let mempool = self.mempool().ok_or(Error::MempoolNotAvailable)?;
         let pin = self.pin_safe_lengths()?;
-        Ok(ResolvedAddrMempoolTxs(mempool.addr_txs(
-            &bytes,
-            None,
-            limit,
-            &pin.tip(),
-        )?))
+        let view = self
+            .pending_view(&mempool, &pin)?
+            .ok_or(Error::StateUpdating)?;
+        Ok(ResolvedAddrMempoolTxs(
+            mempool.addr_txs(&bytes, None, limit, &view)?,
+        ))
     }
 }

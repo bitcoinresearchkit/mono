@@ -6,7 +6,7 @@ use brk_types::{Address, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout}
 
 use crate::{
     Error, OptionData, Query, Result,
-    r#impl::{addr::parse_addr, mempool::anchored},
+    r#impl::addr::parse_addr,
 };
 
 /// An owned UTXO selection retaining only rollback protection until consumed.
@@ -35,10 +35,9 @@ impl Query {
         let lengths = pin.lengths();
         let found = self.find_addr_bytes(addr, &pin)?;
         let tip = pin.tip();
-        let pending = mempool
-            .map(|mempool| anchored(mempool.addr_pending_utxos(addr, &tip)))
-            .transpose()?
-            .unwrap_or_default();
+        let pending = self.with_pending(mempool.as_deref(), &pin, |mempool, view| {
+            mempool.addr_pending_utxos(addr, view)
+        })?;
         let (outpoints, anchor) = match found {
             Some((output_type, type_index)) => {
                 let last_tx = self

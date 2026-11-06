@@ -1,6 +1,6 @@
 use std::{
     env,
-    io::{self, BufWriter},
+    io::{self, BufWriter, Write},
     process::ExitCode,
     thread,
     time::{Duration, Instant},
@@ -9,6 +9,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_mempool::Mempool;
 use emitter::Emitter;
+use event::Event;
 
 mod args;
 mod emitter;
@@ -16,6 +17,8 @@ mod event;
 mod usage;
 
 const PERIOD: Duration = Duration::from_millis(500);
+/// The longest wait between cycles while they keep failing.
+const BACKOFF_MAX: Duration = Duration::from_secs(4);
 
 fn main() -> ExitCode {
     match run() {
@@ -41,21 +44,39 @@ fn run() -> Result<()> {
     let mut out = BufWriter::new(stdout.lock());
     let mut emitter = Emitter::default();
 
+    let mut wait = PERIOD;
     loop {
         let started = Instant::now();
-        match mempool.tick() {
+        let failed = match mempool.tick() {
+            // A failed RPC, a block mid-read, the node reloading its mempool.
+            Err(e) => Some(e),
             Ok(()) => match emitter.emit(&mut out, &client, &published.load(), started.elapsed()) {
-                Ok(()) => {}
+                Ok(()) => None,
                 // Broken pipe (e.g. `mmpl | head`) is a normal end-of-stream.
                 Err(Error::IO(e)) if e.kind() == io::ErrorKind::BrokenPipe => return Ok(()),
                 Err(Error::IO(e)) => return Err(e.into()),
-                // A publication moving on mid-read, or a failed RPC: retry the whole cycle.
-                Err(e) => eprintln!("mmpl: cycle skipped: {e}"),
+                // A publication moving on mid-read, or a failed RPC: the whole cycle again.
+                Err(e) => Some(e),
             },
-            // Transient RPC failure - log, then retry on the next tick.
-            Err(e) => eprintln!("mmpl: tick failed: {e}"),
-        }
-        if let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
+        };
+        wait = match failed {
+            None => PERIOD,
+            // On the stream, so a stall reads apart from an idle pool.
+            Some(e) => {
+                match emitter::write_line(&mut out, &Event::stall(e.to_string()))
+                    .and_then(|()| out.flush())
+                {
+                    Err(e) if e.kind() == io::ErrorKind::BrokenPipe => return Ok(()),
+                    written => written?,
+                }
+                // A tip moving mid-cycle is a race, not a failure: no backoff.
+                match e {
+                    Error::StateUpdating => PERIOD,
+                    _ => (wait * 2).min(BACKOFF_MAX),
+                }
+            }
+        };
+        if let Some(rest) = wait.checked_sub(started.elapsed()) {
             thread::sleep(rest);
         }
     }

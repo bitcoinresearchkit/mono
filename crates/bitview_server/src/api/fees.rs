@@ -1,22 +1,18 @@
 use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{http::HeaderMap, response::Response};
-use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees};
+use axum::http::HeaderMap;
+use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees, Version};
 
-use crate::{
-    AppState, api::tags, error::Result, extended::TransformResponseExtended, params::Empty,
-};
+use crate::{AppState, api::tags, extended::TransformResponseExtended, params::Empty};
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     router.api_route(
         "/api/v1/fees/mempool-blocks",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let blocks = state.query.read(|q| q.mempool_blocks()).await?;
-                Ok(state.respond_json_content_value(&headers, blocks))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.mempool_blocks_json())
+                    .await
             },
             |op| {
                 op.id("get_mempool_blocks")
@@ -31,12 +27,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/v1/fees/recommended",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let fees = state.query.read(|q| q.recommended_fees()).await?;
-                Ok(state.respond_json_content_value(&headers, fees))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.recommended_fees_json())
+                    .await
             },
             |op| {
                 op.id("get_recommended_fees")
@@ -52,12 +46,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/v1/fees/precise",
         get_with(
-            async |headers: HeaderMap,
-                   _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                let fees = state.query.read(|q| q.precise_fees()).await?;
-                Ok(state.respond_json_content_value(&headers, fees))
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.precise_fees_json())
+                    .await
             },
             |op| {
                 op.id("get_precise_fees")

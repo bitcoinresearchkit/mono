@@ -29,6 +29,8 @@ pub(crate) const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 /// `Mempool::tick_with`.
 pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
     let (mut state, block_template) = client.fetch_mempool_state()?;
+    let template = block_template.is_some();
+    let block_template = block_template.unwrap_or_default();
 
     // The same private pool decides the fetch list and template synthesis,
     // so they agree on what's already known. The template's txids, trimmed
@@ -136,7 +138,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         state,
         new_entries,
         new_txs,
-        block_template_txids,
+        block_template_txids: template.then_some(block_template_txids),
         template_only,
         capped,
     })

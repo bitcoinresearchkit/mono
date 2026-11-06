@@ -5,9 +5,9 @@ use bitcoin::{ScriptBuf, Witness};
 use brk_cpfp::Cluster;
 use brk_types::{
     BlockHash, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction,
-    TxIn, TxStatus, Txid, VSize, Vout, Weight,
+    TxIn, TxOut, TxStatus, Txid, VSize, Vout, Weight,
 };
-use rapidhash::RapidHashSet;
+use rapidhash::{RapidHashMap, RapidHashSet};
 use serde_json::{Value, to_value};
 use smallvec::SmallVec;
 
@@ -21,8 +21,10 @@ use crate::{
         partition::{Chunks, partition},
         rebuilder::withhold,
     },
-    steps::{Confirmed, applier, preparer},
-    stores::tx_store::TxRecord,
+    steps::{Confirmed, applier, preparer, prevouts},
+    state::TxEntry,
+    stores::{TxGraveyard, tx_store::TxRecord},
+    steps::TxRemoval,
 };
 
 /// Random pools (chains, fans, sigop-heavy transactions), the last transaction a chunk no block
@@ -509,7 +511,7 @@ fn rebuilds_follow_the_view_gaps() {
     let mut rebuilder = Rebuilder::default();
     let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
     let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
-        rebuilder.tick(state, &[id(&t)], FeeRate::default(), &[], unloaded);
+        rebuilder.tick(state, Some(&[id(&t)]), FeeRate::default(), &[], unloaded);
         let snapshot = rebuilder.snapshot().clone();
         let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
             .iter()
@@ -544,6 +546,165 @@ fn rebuilds_follow_the_view_gaps() {
     assert_eq!(later, set(&[id(&p), id(&r), id(&c)]));
 }
 
+/// An address's pending view, through ingestion, prevout fills and a publication: a transaction
+/// folds in once resolved, and a resolved child of an unresolved one (hc) only with it; behind the
+/// reader, the pool goes without what the newer blocks mined (m), conflicted (c) or what descends
+/// from a conflicted one (d), while a mined one's child (k) and the unrelated (u) stay pending.
+#[test]
+fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
+    let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([7; 20]));
+    let raw = |spends: bitcoin::OutPoint, sats: u64| bitcoin::Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![bitcoin::TxIn {
+            previous_output: spends,
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence::MAX,
+            witness: Witness::new(),
+        }],
+        output: vec![bitcoin::TxOut {
+            value: bitcoin::Amount::from_sat(sats),
+            script_pubkey: script.clone(),
+        }],
+    };
+    let confirmed = |seed: u8| bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([seed; 32]), 0);
+    let m = raw(confirmed(80), 1_000);
+    let k = raw(bitcoin::OutPoint::new(m.compute_txid(), 0), 600);
+    let c = raw(confirmed(81), 700);
+    let d = raw(bitcoin::OutPoint::new(c.compute_txid(), 0), 300);
+    let u = raw(confirmed(82), 200);
+    // Its prevout resolves late; its child's (h's output) at once.
+    let h = raw(confirmed(83), 50);
+    let hc = raw(bitcoin::OutPoint::new(h.compute_txid(), 0), 25);
+    let txs = [&m, &k, &c, &d, &u, &h, &hc];
+    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
+    let mut state = State::default();
+    let entries = txs
+        .iter()
+        .map(|tx| MempoolEntryInfo {
+            txid: id(tx),
+            wtxid: tx.compute_wtxid(),
+            vsize: VSize::from(Weight::from(tx.weight())),
+            weight: Weight::from(tx.weight()),
+            fee: Sats::from(1_000u64),
+            first_seen: Timestamp::now(),
+        })
+        .collect();
+    let bodies = txs.iter().map(|&tx| (id(tx), tx.clone())).collect();
+    let live: Vec<Txid> = txs.iter().map(|tx| id(tx)).collect();
+    let diff = preparer::prepare(
+        &live,
+        &RapidHashSet::default(),
+        entries,
+        bodies,
+        &Confirmed::default(),
+        &state,
+    );
+    applier::apply(&mut state, &Snapshot::default(), diff, &Confirmed::default());
+    let funding = TxOut::from((script.clone(), Sats::from(5_000u64)));
+    let addr = funding.addr_bytes().unwrap();
+    prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
+        holes
+            .iter()
+            .filter(|(txid, _)| *txid != Txid::from(confirmed(83).txid))
+            .map(|&hole| (hole, funding.clone()))
+            .collect::<RapidHashMap<_, _>>()
+    });
+    let mut rebuilder = Rebuilder::default();
+    let tip = BlockHash::default();
+    let mut publish = |state: &State, previous: &ReadOnlyState| {
+        rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default());
+        previous
+            .updated(state, tip, rebuilder.snapshot().clone(), true)
+            .expect("published")
+    };
+    let read = publish(&state, &ReadOnlyState::default());
+
+    let at = read.view_at(&tip).unwrap();
+    let stats = read.addr_stats(&addr, &at).unwrap();
+    // h and hc stay out until h resolves; each confirmed input spends one of the address's outputs.
+    assert_eq!(stats.tx_count, 5);
+    assert_eq!(u64::from(stats.funded_txo_sum), 2_800);
+    assert_eq!(u64::from(stats.spent_txo_sum), 3 * 5_000 + 1_000 + 700);
+    assert!(
+        read.addr_has_tx(&addr, &id(&hc), &at).is_err(),
+        "what it touches isn't known yet"
+    );
+
+    // Past the pool's tip: a block mined m and spent c's input in another transaction.
+    let other = id(&raw(confirmed(81), 1));
+    let to_spend = |outpoint: bitcoin::OutPoint| (Txid::from(outpoint.txid), Vout::from(0usize));
+    let behind = read
+        .view_behind([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), other)])
+        .unwrap();
+    let stats = read.addr_stats(&addr, &behind).unwrap();
+    assert_eq!(stats.tx_count, 2, "k and u");
+    assert_eq!(u64::from(stats.funded_txo_sum), 800);
+    assert_eq!(u64::from(stats.spent_txo_sum), 1_000 + 5_000, "m's output, u's input");
+    let page: RapidHashSet<Txid> = read
+        .addr_txs(&addr, None, 10, &behind)
+        .unwrap()
+        .iter()
+        .map(|published| published.tx.txid)
+        .collect();
+    assert_eq!(page, [id(&k), id(&u)].into_iter().collect());
+    for (tx, pending) in [(&m, false), (&k, true), (&c, false), (&d, false), (&u, true)] {
+        assert_eq!(read.is_pending(&id(tx), &behind).unwrap(), pending);
+    }
+    let utxos = read.addr_pending_utxos(&addr, &behind).unwrap();
+    assert_eq!(utxos.created.len(), 2, "k's and u's outputs");
+    assert!(utxos.spent.contains(&(id(&m), Vout::from(0usize))));
+    assert!(
+        read.view_at(&BlockHash::from(bitcoin::BlockHash::from_byte_array([1; 32])))
+            .is_err(),
+        "another tip"
+    );
+
+    prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
+        holes.iter().map(|&hole| (hole, funding.clone())).collect::<RapidHashMap<_, _>>()
+    });
+    let read = publish(&state, &read);
+    let stats = read.addr_stats(&addr, &read.view_at(&tip).unwrap()).unwrap();
+    assert_eq!(stats.tx_count, 7, "h, then hc behind it");
+    assert_eq!(u64::from(stats.funded_txo_sum), 2_800 + 50 + 25);
+    assert_eq!(u64::from(stats.spent_txo_sum), 4 * 5_000 + 1_000 + 700 + 50);
+}
+
+/// After a reorg: what a dropped block mined reads vanished, or replaced by a conflict the new
+/// blocks confirmed; what the new blocks mined again, or no dropped block held, stays mined.
+#[test]
+fn reorged_out_tombstones_read_vanished_or_replaced() {
+    let mut graveyard = TxGraveyard::default();
+    let bury = |graveyard: &mut TxGraveyard, seed: u8| {
+        let tx = body(seed);
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Mined);
+    };
+    // 1: dropped, nothing in its place; 2: dropped, a conflict confirmed; 3: dropped, mined again;
+    // 4: its block stayed.
+    for seed in 1..=4 {
+        bury(&mut graveyard, seed);
+    }
+    graveyard.confirm(
+        |id| *id == txid(3),
+        |id| [1, 2, 3].map(txid).contains(id),
+        |tombstone| (tombstone.record.entry.txid == txid(2)).then(|| txid(9)),
+    );
+    let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
+    assert!(matches!(removal(1), TxRemoval::Vanished));
+    assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
+    assert!(matches!(removal(3), TxRemoval::Mined));
+    assert!(matches!(removal(4), TxRemoval::Mined));
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }
@@ -575,10 +736,9 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
                 .collect()
         })
         .collect();
-    let block0 = indexed[0].iter().map(|&(index, _)| index).collect();
     let mut snapshot = Snapshot::build(
         txs,
-        block0,
+        indexed[0].clone(),
         &indexed[1..],
         KeyIndex::default(),
         Chunks::default(),

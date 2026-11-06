@@ -18,7 +18,7 @@ pub use range_v1::ResolvedBlocksV1;
 pub use timestamp::ResolvedBlockTimestamp;
 
 impl Query {
-    fn height_by_hash_at(&self, hash: &BlockHash, guard: &ReadPin) -> Result<Height> {
+    pub(crate) fn height_by_hash_at(&self, hash: &BlockHash, guard: &ReadPin) -> Result<Height> {
         let height = self
             .indexer()
             .stores()

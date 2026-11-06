@@ -401,9 +401,7 @@ impl Query {
 
     /// `mempool` at its own tip, for a lookup the chain answers first: whatever the chain holds
     /// answers before it, so the pool only adds what is still pending. Views adding the pool to
-    /// the chain's numbers need it at the pin's tip instead ([`anchored`] at `pin.tip()`).
-    ///
-    /// [`anchored`]: crate::r#impl::mempool::anchored
+    /// the chain's numbers need it as the pin sees it instead ([`Query::with_pending`]).
     #[cfg(any(feature = "chain", feature = "price"))]
     fn lookup_mempool(
         mempool: Option<Arc<ReadOnlyState>>,

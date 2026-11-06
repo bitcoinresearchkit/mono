@@ -29,7 +29,8 @@ impl Mempool {
     ///
     /// A pool is published only at the tip the chain has published (`published_tip`), so readers
     /// pair it with their chain view; when the chain publishes a tip and wakes the driver
-    /// ([`Self::chain_waker`]), a pool behind it follows at once.
+    /// ([`Self::chain_waker`]), the last cycle's observation at that tip goes out at once, or a
+    /// cycle starts at once for a pool behind it.
     pub fn start_with<F>(&mut self, resolver: F, published_tip: impl Fn() -> BlockHash)
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> + Send,
@@ -40,6 +41,12 @@ impl Mempool {
             let started = Instant::now();
             let loaded = self.read_only.load().tip().is_some();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
+                // The chain caught up with a withheld observation: out at once, no cycle needed.
+                if let Some((tip, membership_complete)) =
+                    self.withheld.take_if(|(tip, _)| gate() == Some(*tip))
+                {
+                    return self.publish_observation(tip, membership_complete);
+                }
                 match self.tick_with(&resolver, gate) {
                     // A block arrived mid-fetch: the next cycle observes the new tip.
                     Ok(()) | Err(Error::StateUpdating) => {}
@@ -68,6 +75,8 @@ impl Mempool {
     }
 
     /// One update published at the node's tip, for drivers without a chain to follow.
+    /// `StateUpdating` when it published nothing: the tip moved mid-cycle (a block arrived, or
+    /// couldn't be read back), or the node is reloading its mempool.
     pub fn tick(&mut self) -> Result<()> {
         self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None)
     }
@@ -81,12 +90,19 @@ impl Mempool {
         if self.needs_recovery {
             self.restore_published();
         }
-        self.tick_once(resolver, gate)?;
+        let coherent = self.tick_once(resolver, gate)?;
+        // Applied either way: a cycle whose tip moved at its end publishes nothing, the next one
+        // builds on it.
         self.needs_recovery = false;
-        Ok(())
+        if coherent {
+            Ok(())
+        } else {
+            Err(Error::StateUpdating)
+        }
     }
 
     fn restore_published(&mut self) {
+        self.withheld = None;
         let published = self.read_only.load();
         self.state = published
             .pool
@@ -103,7 +119,8 @@ impl Mempool {
         self.needs_recovery = false;
     }
 
-    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
+    /// Whether the cycle's tip held to its end (only then can it publish).
+    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<bool>
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
@@ -144,7 +161,9 @@ impl Mempool {
             &confirmed,
             &self.state,
         );
-        // A panic after this point requires restoring private indexes before reuse.
+        // A panic after this point requires restoring private indexes before reuse. The private
+        // state changes from here: what was withheld no longer is it.
+        self.withheld = None;
         self.needs_recovery = true;
         applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
         if !confirmed.incomplete {
@@ -167,7 +186,7 @@ impl Mempool {
         };
         self.rebuilder.tick(
             &self.state,
-            &block_template_txids,
+            block_template_txids.as_deref(),
             rpc.min_fee,
             &rpc.fee_deltas,
             &unloaded,
@@ -176,9 +195,11 @@ impl Mempool {
             // Never ahead of the chain readers pair the pool with.
             if gate().is_none_or(|published| published == rpc.tip_hash) {
                 self.publish_observation(rpc.tip_hash, membership_complete);
+            } else {
+                self.withheld = Some((rpc.tip_hash, membership_complete));
             }
         }
-        Ok(())
+        Ok(coherent_tip)
     }
 
     fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {

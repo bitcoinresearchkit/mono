@@ -3,7 +3,7 @@
 
 use std::{
     io::{self, Write},
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 
 use brk_error::Result;
@@ -14,7 +14,7 @@ use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use serde_json::{from_slice, to_writer};
 
-use crate::event::{Event, LeaveReason};
+use crate::event::{Event, LeaveReason, now_secs};
 
 /// The previous cycle's observations. Empty on the first cycle, so it emits every available
 /// state event (`Tip`, `Block`, `Fees`) and every live tx enters: consumers get a baseline
@@ -103,10 +103,13 @@ impl Emitter {
             }
         }
 
+        // The projection and the pool on one clock: one at another tip waits for the pool.
+        let current = state.projection_tip() == Some(tip);
         let mempool_block_hash = state
             .mempool_block_source(0)
             .ok()
             .flatten()
+            .filter(|_| current)
             .map(|block| block.hash());
         if let Some(hash) = mempool_block_hash
             && self.prev_mempool_block_hash != Some(hash)
@@ -120,7 +123,7 @@ impl Emitter {
                 fee: block.total_fee,
             });
         }
-        let fees = state.precise_fees().ok();
+        let fees = state.precise_fees().ok().filter(|_| current);
         if let Some(fees) = &fees
             && self.prev_fees.as_ref() != Some(fees)
         {
@@ -157,14 +160,7 @@ impl Emitter {
     }
 }
 
-fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {
+pub fn write_line<W: Write>(out: &mut W, ev: &Event) -> io::Result<()> {
     to_writer(&mut *out, ev).map_err(io::Error::from)?;
     out.write_all(b"\n")
-}
-
-fn now_secs() -> f64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64()
 }

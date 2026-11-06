@@ -1,13 +1,11 @@
-use std::{hash::Hasher, sync::Arc};
+use std::sync::Arc;
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
 use rapidhash::RapidHashSet;
-use rustc_hash::FxHasher;
-use serde_json::to_vec;
 
 use crate::{
-    Snapshot,
+    JsonBody, Snapshot, json,
     stores::{AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore},
 };
 
@@ -23,8 +21,7 @@ pub(crate) struct Pool {
     pub graveyard: Arc<TxGraveyard>,
     pub graph: Arc<Snapshot>,
     /// `info` as JSON and its hash, built by the writer: readers only clone the `Arc`.
-    pub info_json: (Arc<[u8]>, u64),
-    inputs_complete: bool,
+    pub info_json: JsonBody,
 }
 
 impl Pool {
@@ -43,7 +40,7 @@ impl Pool {
             None => (
                 Arc::new(state.txs.read_only_clone()),
                 Arc::new(state.addrs.clone()),
-                Self::info_json(&state.info),
+                json::body(&state.info),
             ),
         };
         // Spend ownership can change alone (a stale template tx turning listed).
@@ -68,15 +65,7 @@ impl Pool {
             graveyard,
             graph,
             info_json,
-            inputs_complete: state.txs.unresolved().is_empty(),
         }
-    }
-
-    fn info_json(info: &MempoolInfo) -> (Arc<[u8]>, u64) {
-        let bytes = to_vec(info).expect("mempool info serializes");
-        let mut hasher = FxHasher::default();
-        hasher.write(&bytes);
-        (bytes.into(), hasher.finish())
     }
 
     pub fn matches(&self, state: &State, tip: &BlockHash, graph: &Arc<Snapshot>) -> bool {
@@ -93,14 +82,6 @@ impl Pool {
             return Err(Error::StateUpdating);
         }
         Ok(self)
-    }
-
-    /// This publication, when it is anchored at `tip` with every input resolved.
-    pub fn resolved_at(&self, tip: &BlockHash) -> Result<&Self> {
-        if !self.inputs_complete {
-            return Err(Error::StateUpdating);
-        }
-        self.at(tip)
     }
 
     pub fn first_seen(&self, txid: &Txid) -> Option<Timestamp> {

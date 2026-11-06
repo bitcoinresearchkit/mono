@@ -1,28 +1,34 @@
 use std::sync::Arc;
 
-use brk_mempool::ReadOnlyState;
+use brk_mempool::{JsonBody, PendingView, ReadOnlyState};
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
-use brk_types::{
-    MempoolBlock, MempoolBlockHash, MempoolBlockIndex, PreciseRecommendedFees, RecommendedFees,
-    Txid,
-};
+use brk_types::{MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::{Serialize, Serializer};
 use serde_json::to_vec;
+use vecdb::ReadableVec;
 
-use crate::{Error, Query, RepresentationId, Result};
+use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result};
 
 pub mod rbf;
 
 pub use rbf::ResolvedRbf;
 
-/// A mempool view added to confirmed data, or none while no pool is at this publication (starting
-/// up, a rollback, or the moment a block publishes before the mempool follows): the confirmed
-/// data answers alone meanwhile.
+/// The most blocks a pending view corrects a pool behind the pin across: one further behind has
+/// stalled.
+const MAX_POOL_LAG: usize = 6;
+
+/// A lookup of the pool at its own tip, or none before its first publication: the confirmed data
+/// answers alone meanwhile.
 pub(crate) fn anchored<T: Default>(view: brk_error::Result<T>) -> Result<T> {
     match view {
         Err(brk_error::Error::StateUpdating) => Ok(T::default()),
         view => Ok(view?),
     }
+}
+
+/// A body the pool built once, and its content hash as its identity.
+fn published_json((bytes, hash): JsonBody) -> Result<(Vec<u8>, RepresentationId)> {
+    Ok((bytes.to_vec(), RepresentationId::Content(hash)))
 }
 
 fn serialize_json<T: Serialize>(value: &T) -> (Vec<u8>, RepresentationId) {
@@ -54,14 +60,77 @@ impl MempoolTxids {
 }
 
 impl Query {
+    /// `read` of the pool as `pin` sees it ([`PendingView`]): at the pin's tip, or a few blocks
+    /// behind it (the moment after blocks publish, before the pool follows) without what they
+    /// settled. Nothing pending (the confirmed data answers alone) with no mempool, before its
+    /// first publication, or with one stalled or on a branch the chain left.
+    pub(crate) fn with_pending<T: Default>(
+        &self,
+        mempool: Option<&ReadOnlyState>,
+        pin: &ReadPin,
+        read: impl FnOnce(&ReadOnlyState, &PendingView) -> brk_error::Result<T>,
+    ) -> Result<T> {
+        let Some(mempool) = mempool else {
+            return Ok(T::default());
+        };
+        Ok(match self.pending_view(mempool, pin)? {
+            Some(view) => read(mempool, &view)?,
+            None => T::default(),
+        })
+    }
+
+    /// The pool as `pin` sees it, if it can: see [`Self::with_pending`].
+    pub(crate) fn pending_view(
+        &self,
+        mempool: &ReadOnlyState,
+        pin: &ReadPin,
+    ) -> Result<Option<PendingView>> {
+        let Some(pool_tip) = mempool.tip() else {
+            return Ok(None);
+        };
+        let tip = pin.tip();
+        if pool_tip == tip {
+            return Ok(Some(mempool.view_at(&tip)?));
+        }
+        let height = match self.height_by_hash_at(&pool_tip, pin) {
+            Ok(height) => height,
+            Err(Error::NotFound(_)) => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        let lengths = pin.lengths();
+        if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
+            return Ok(None);
+        }
+        // Every input of the blocks past the pool's tip: the outpoint it spends, and its spender.
+        let vecs = self.indexer().vecs();
+        let first = vecs
+            .inputs
+            .first_txin_index
+            .collect_one(height.incremented())
+            .data()?;
+        let mut outpoint = vecs.inputs.outpoint.cursor();
+        let mut spender = vecs.inputs.tx_index.cursor();
+        let txid = vecs.transactions.txid.reader();
+        let inputs = usize::from(first)..usize::from(lengths.txin_index);
+        let mut spends = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let spent: OutPoint = outpoint.get(input).data()?;
+            if spent.is_coinbase() {
+                continue;
+            }
+            let tx: TxIndex = spender.get(input).data()?;
+            spends.push(((txid.get(spent.tx_index()), spent.vout()), txid.get(tx)));
+        }
+        Ok(Some(mempool.view_behind(spends)?))
+    }
+
     fn require_mempool(&self) -> Result<Arc<ReadOnlyState>> {
         self.mempool().ok_or(Error::MempoolNotAvailable)
     }
 
     /// Mempool statistics with their exact content identity, built once per publication.
     pub fn mempool_info_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
-        let (bytes, hash) = self.require_mempool()?.info_json()?;
-        Ok((bytes.to_vec(), RepresentationId::Content(hash)))
+        published_json(self.require_mempool()?.info_json()?)
     }
 
     /// The pool's txids from one publication: their validator now, the array on demand.
@@ -71,23 +140,20 @@ impl Query {
         Ok(MempoolTxids { mempool, hash })
     }
 
-    /// mempool.space's `/api/v1/fees/recommended`: whole sat/vB.
-    pub fn recommended_fees(&self) -> Result<RecommendedFees> {
-        Ok(self.require_mempool()?.fees()?)
+    /// mempool.space's `/api/v1/fees/recommended` (whole sat/vB) with its content identity, built
+    /// once per projection.
+    pub fn recommended_fees_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+        published_json(self.require_mempool()?.fees_json()?)
     }
 
-    /// mempool.space's `/api/v1/fees/precise`.
-    pub fn precise_fees(&self) -> Result<PreciseRecommendedFees> {
-        Ok(self.require_mempool()?.precise_fees()?)
+    /// mempool.space's `/api/v1/fees/precise`, as [`Self::recommended_fees_json`].
+    pub fn precise_fees_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+        published_json(self.require_mempool()?.precise_fees_json()?)
     }
 
-    pub fn mempool_blocks(&self) -> Result<Vec<MempoolBlock>> {
-        let mempool = self.require_mempool()?;
-        Ok(mempool
-            .block_stats()?
-            .iter()
-            .map(MempoolBlock::from)
-            .collect())
+    /// mempool.space's `/api/v1/fees/mempool-blocks`, as [`Self::recommended_fees_json`].
+    pub fn mempool_blocks_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+        published_json(self.require_mempool()?.mempool_blocks_json()?)
     }
 
     /// Serialize recent transactions with their exact content identity.

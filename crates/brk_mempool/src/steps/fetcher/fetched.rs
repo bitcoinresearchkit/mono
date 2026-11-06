@@ -16,8 +16,8 @@ pub struct Fetched {
     /// Block 0 ordering from `getblocktemplate`. Bodies and stats have
     /// already been folded into `new_entries`/`new_txs` (or were already
     /// in the pool). The Rebuilder only needs the txid sequence to
-    /// project Core's exact selection.
-    pub block_template_txids: Vec<Txid>,
+    /// project Core's exact selection; with none (Core refused one), it packs block 0 itself.
+    pub block_template_txids: Option<Vec<Txid>>,
     /// Template txids absent from the raw listing. Non-empty, the union is
     /// useful for projection, not for address balances/pages; such stale
     /// transactions never take an outpoint from a listed spender.

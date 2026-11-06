@@ -12,6 +12,7 @@ use brk_rpc::Client;
 mod api;
 mod chain_waker;
 mod driver;
+mod json;
 mod key;
 mod read_only;
 mod snapshot;
@@ -22,10 +23,11 @@ mod stores;
 mod tests;
 
 pub use api::{
-    MempoolBlockSource, PendingUtxos, PublishedEntry, PublishedTx, RbfForTx, RbfNode,
-    ResolvedMempoolBlockDiff,
+    MempoolBlockSource, PendingUtxos, PendingView, PublishedEntry, PublishedTx, RbfForTx,
+    RbfNode, ResolvedMempoolBlockDiff,
 };
 pub use chain_waker::ChainWaker;
+pub use json::JsonBody;
 pub use read_only::ReadOnlyMempool;
 use snapshot::Snapshot;
 pub use state::ReadOnlyState;
@@ -44,6 +46,9 @@ pub struct Mempool {
     chain: ChainWaker,
     /// The tip of the last completed cycle: the blocks after it tell what they confirmed.
     last_tip: Option<brk_types::BlockHash>,
+    /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
+    /// its membership was complete): it goes out the moment the chain publishes that tip.
+    withheld: Option<(brk_types::BlockHash, bool)>,
 }
 
 impl Mempool {
@@ -58,6 +63,7 @@ impl Mempool {
             needs_recovery: false,
             chain: ChainWaker::default(),
             last_tip: None,
+            withheld: None,
         }
     }
 

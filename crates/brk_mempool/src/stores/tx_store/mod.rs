@@ -37,14 +37,7 @@ impl TxStore {
     pub fn from_read_only(read_only: ReadOnlyTxStore) -> Self {
         let unresolved = read_only
             .records()
-            .filter_map(|(key, record)| {
-                record
-                    .tx
-                    .input
-                    .iter()
-                    .any(|input| input.prevout.is_none())
-                    .then_some(*key)
-            })
+            .filter_map(|(key, record)| (!record.tx.is_resolved()).then_some(*key))
             .collect();
         Self {
             read_only,
@@ -76,7 +69,7 @@ impl TxStore {
         let position = self.read_only.records.len();
         let txid = entry.txid;
         self.sample_recent(&entry, &tx);
-        if tx.input.iter().any(|i| i.prevout.is_none()) {
+        if !tx.is_resolved() {
             self.unresolved.insert(key);
         }
         let record = TxRecord::new(tx, entry);
@@ -125,8 +118,8 @@ impl TxStore {
     }
 
     /// Apply resolved prevouts to a tx in place. `fills` is `(vin, prevout)`, each for a
-    /// missing prevout; `on_applied` sees every written prevout (the caller folds them into
-    /// `AddrTracker`). Updates `unresolved` if fully resolved after the fill, and refreshes
+    /// missing prevout; returns whether they resolve its last (the caller folds it into
+    /// `AddrTracker` once ready). Updates `unresolved` if fully resolved after the fill, and refreshes
     /// `total_sigop_cost` (P2SH and witness components depend on prevouts). `entry.vsize` is
     /// Core's value from `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
@@ -134,8 +127,7 @@ impl TxStore {
         &mut self,
         key: &TxKey,
         fills: Vec<(Vin, TxOut)>,
-        mut on_applied: impl FnMut(&TxOut),
-    ) {
+    ) -> bool {
         let record = self
             .read_only
             .records
@@ -145,14 +137,16 @@ impl TxStore {
         for (vin, prevout) in fills {
             let txin = &mut tx.input[usize::from(vin)];
             debug_assert!(txin.prevout.is_none(), "fills only fill missing prevouts");
-            on_applied(txin.prevout.insert(prevout));
+            txin.prevout = Some(prevout);
         }
         tx.refresh_sigops();
         record.digest = TxRecord::digest_of(tx);
-        if record.tx.input.iter().all(|i| i.prevout.is_some()) {
+        self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
+        let resolved = record.tx.is_resolved();
+        if resolved {
             self.unresolved.remove(key);
         }
-        self.bump_content_revision();
+        resolved
     }
 
     fn bump_content_revision(&mut self) {

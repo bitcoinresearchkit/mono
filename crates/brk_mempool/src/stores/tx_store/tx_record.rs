@@ -32,7 +32,7 @@ impl TxRecord {
     /// allows stands in (a block's sigop budget never undercounts; the policy weight it gives is
     /// within 3 WU of the true one).
     pub fn policy_sigops(&self) -> SigOps {
-        if self.tx.input.iter().any(|input| input.prevout.is_none()) {
+        if !self.tx.is_resolved() {
             SigOps::bound(self.entry.vsize)
         } else {
             self.tx.total_sigop_cost

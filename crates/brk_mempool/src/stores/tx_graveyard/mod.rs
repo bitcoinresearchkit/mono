@@ -27,6 +27,15 @@ const MAX_WALK: usize = 4_096;
 
 /// Recently-dropped txs retained for reappearance (a returning tx keeps its
 /// first sighting) and post-mine analytics (RBF/replacement chains, etc.).
+///
+/// Invariants: each burial or reclassification appends `(removed_at, txid)` to `order` (and, a
+/// `Replaced` one, to `replacements`); an entry whose time isn't its tombstone's `removed_at` is
+/// stale (a later burial or reclassification, or an exhume) and skipped wherever read. Past
+/// retention, `order`'s front leaves: a version whose replacer is still known stays with that
+/// replacer's tree, a tree's newest version moves to `trees` (taking its tree when it goes), any
+/// other goes. `predecessors_by_replacer[by]` lists exactly the `Replaced { by }` tombstones,
+/// `replaced` counts them, `bytes` sums the held bodies. `replacements` drops stale entries at its
+/// front, and all of them once they outnumber the current ones (past `2 * replaced + 1,024`).
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
@@ -210,24 +219,32 @@ impl TxGraveyard {
     /// replaced version mined after all, which also ends a cycle its replacer's confirmed conflict
     /// closed, or one buried vanished), and a vanished one a confirmed conflict displaced reads
     /// replaced by it. A cycle that couldn't read its blocks buried them vanished; the next cycle's
-    /// read tells them here. O(tombstones and the vanished ones' inputs), on cycles with new blocks
+    /// read tells them here. One mined by a block a reorg took off the chain (`disconnected`) that
+    /// neither returned nor was mined again reads vanished, or replaced by a conflict the new
+    /// blocks confirmed. O(tombstones and the vanished ones' inputs), on cycles with new blocks
     /// only.
     pub fn confirm(
         &mut self,
         mined: impl Fn(&Txid) -> bool,
+        disconnected: impl Fn(&Txid) -> bool,
         conflict: impl Fn(&TxTombstone) -> Option<Txid>,
     ) {
         let now = Instant::now();
         let changes: Vec<(Txid, TxRemoval)> = self
             .tombstones
             .iter()
-            .filter_map(|(txid, tombstone)| match tombstone.removal {
-                TxRemoval::Mined => None,
-                _ if mined(txid) => Some((*txid, TxRemoval::Mined)),
-                TxRemoval::Vanished => {
-                    conflict(tombstone).map(|by| (*txid, TxRemoval::Replaced { by }))
-                }
-                TxRemoval::Replaced { .. } => None,
+            .filter_map(|(txid, tombstone)| {
+                let removal = match tombstone.removal {
+                    TxRemoval::Mined if mined(txid) || !disconnected(txid) => return None,
+                    _ if mined(txid) => TxRemoval::Mined,
+                    TxRemoval::Replaced { .. } => return None,
+                    removal => match conflict(tombstone) {
+                        Some(by) => TxRemoval::Replaced { by },
+                        None if matches!(removal, TxRemoval::Mined) => TxRemoval::Vanished,
+                        None => return None,
+                    },
+                };
+                Some((*txid, removal))
             })
             .collect();
         for (txid, removal) in changes {

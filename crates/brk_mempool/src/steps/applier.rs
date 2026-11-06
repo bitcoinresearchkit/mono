@@ -27,23 +27,43 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     state.txs.reserve(additional);
     // Before burials, so a leaving listed spender never drops their mapping.
     // `prepare` kept only pooled promoted keys and pooled removals, from this same state.
+    let mut owners = Vec::with_capacity(promoted.len());
     for key in promoted {
         let record = state
             .txs
             .record_by_key(&key)
             .expect("promoted tx is pooled");
+        owners.push(record.entry.txid);
         state.outpoint_spends.insert_spends(&record.tx, key, true);
     }
+    // A waiting one leaving lets go of what it held back.
+    let mut released = Vec::new();
     for (key, reason) in removed {
+        if let Some(record) = state.txs.record_by_key(&key)
+            && state.addrs.is_waiting(&record.entry.txid)
+        {
+            released.extend(state.pooled_children(&record.tx));
+        }
         bury_one(state, prev_snapshot, &key, reason);
     }
+    let mut entered = Vec::with_capacity(added.len());
     for TxAddition { tx, entry, listed } in added {
         state.graveyard.exhume(&entry.txid);
+        entered.push(entry.txid);
         insert_one(state, tx, entry, listed);
     }
+    // Every arrival waits until ready, and so does anything pooled it is a parent of (one coming
+    // back to a child that stayed).
+    for txid in &entered {
+        state.hold_descendants(txid);
+    }
+    // A promoted one owns its outpoints again: what the cascades, which follow owners, missed.
+    state.recheck(&owners);
+    state.fold_ready(entered.into_iter().chain(released).chain(owners));
     if !confirmed.is_empty() {
         state.graveyard.confirm(
             |txid| confirmed.mined(txid),
+            |txid| confirmed.disconnected(txid),
             |tombstone| {
                 let tx = &tombstone.record.tx;
                 confirmed.conflict(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
@@ -73,7 +93,7 @@ fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry, listed: bool) 
     let tx = Arc::new(tx);
     let key = entry.key();
     state.info.add(entry.vsize, entry.fee);
-    state.addrs.add_tx(&tx);
+    state.addrs.wait(tx.txid);
     state.outpoint_spends.insert_spends(&tx, key, listed);
     state.txs.insert(tx, entry);
 }

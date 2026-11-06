@@ -33,16 +33,15 @@ pub struct BlockStats {
 }
 
 impl BlockStats {
-    /// Stats for every projected block, in order: block 0 (Core's template, each member at its
-    /// chunk's feerate) over the exact 0..100 percentiles, the rest (each member at the feerate
+    /// Stats for every projected block, in order: block 0 (Core's template, or the packer's first
+    /// block without one, each member at its chunk's feerate) over the exact 0..100 percentiles, the rest (each member at the feerate
     /// it was packed at) over the clipped 5..95 range that hides CPFP / stale-GBT outliers.
     pub fn for_blocks(
-        block0: &[TxIndex],
+        block0: &[(TxIndex, FeeRate)],
         rest: &[Vec<(TxIndex, FeeRate)>],
         txs: &[SnapTx],
     ) -> Vec<Self> {
-        let block0 = block0.iter().map(|&i| (i, txs[i.as_usize()].chunk_rate));
-        let mut stats = vec![Self::compute(block0, txs, CORE_PERCENTILES)];
+        let mut stats = vec![Self::compute(block0.iter().copied(), txs, CORE_PERCENTILES)];
         // Projected blocks descend by rate. Read backwards so sort's ascending-run check
         // avoids sorting them again.
         stats.extend(
@@ -53,10 +52,9 @@ impl BlockStats {
         stats
     }
 
-    /// Vsize-weighted percentile distribution over the members' feerates -
-    /// matches mempool.space's `feeRange` semantics where each tx's
-    /// contribution scales with its vsize, so a tiny outlier rate
-    /// only counts for its own vsize fraction.
+    /// Vsize-weighted percentile distribution over the members' feerates, as Core's
+    /// `getblockstats` weighs them (mempool.space's `feeRange` counts transactions instead): a
+    /// tiny outlier rate only counts for its own vsize fraction.
     fn compute(
         block: impl ExactSizeIterator<Item = (TxIndex, FeeRate)>,
         txs: &[SnapTx],

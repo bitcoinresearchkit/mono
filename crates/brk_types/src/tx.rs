@@ -73,6 +73,12 @@ impl Transaction {
         Some(in_.checked_sub(out).unwrap())
     }
 
+    /// Whether every input's prevout is known (what its fee, sigops and spent addresses need).
+    #[inline]
+    pub fn is_resolved(&self) -> bool {
+        self.input.iter().all(|txin| txin.prevout.is_some())
+    }
+
     pub fn compute_fee(&mut self) {
         self.fee = Self::fee(self).unwrap_or_default();
     }

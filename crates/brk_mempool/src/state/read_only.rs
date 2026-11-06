@@ -92,6 +92,12 @@ impl ReadOnlyState {
         self.projection_tip = Some(tip);
     }
 
+    /// The chain tip the published projection was built at (the pool's, or a newer one while the
+    /// pool waits for a complete view).
+    pub fn projection_tip(&self) -> Option<BlockHash> {
+        self.projection_tip
+    }
+
     /// The chain tip the published pool is anchored to, once one is published.
     pub fn tip(&self) -> Option<BlockHash> {
         self.pool.as_ref().map(|pool| pool.tip)

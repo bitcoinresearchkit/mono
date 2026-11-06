@@ -23,7 +23,7 @@ Events (one JSON object per line), from each published pool against the previous
     {"kind":"leave","t":..,"txid":..,"reason":"replaced","by":..}
     {"kind":"leave","t":..,"txid":..,"reason":"vanished"}   (expired, evicted, or not told apart)
 
-  State (on the first cycle, then whenever the value changes):
+  State (on the first cycle, then whenever the value changes; block and fees at the tip's pool):
     {"kind":"tip","t":..,"hash":..,"height":..}        (chain tip)
     {"kind":"block","t":..,"hash":..,"count":..,"vsize":..,"fee":..}
                                                        (next-block template; vsize its weight / 4)
@@ -34,6 +34,9 @@ Events (one JSON object per line), from each published pool against the previous
 
   Per-cycle heartbeat (every successful cycle):
     {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"tick_ms":N}
+  A cycle that published nothing instead (the node unreachable, an RPC error, a block arriving
+  mid-cycle, the node reloading its mempool); failures retry with backoff up to 4 s:
+    {"kind":"stall","t":..,"reason":..}
 
 Examples:
   mmpl | jq -c 'select(.kind=="enter" and .rate>=50)'

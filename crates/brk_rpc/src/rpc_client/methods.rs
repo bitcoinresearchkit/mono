@@ -100,10 +100,12 @@ impl Client {
     /// (`getrawmempool false`), `mempoolminfee` (`getmempoolinfo`) and the operator's fee deltas
     /// (`getprioritisedtransactions`), in one batched round trip. GBT carries each tx's full body and stats, so block 0
     /// is exact even when a tx vanishes from the mempool listing between the GBT
-    /// and `getrawmempool` calls; no follow-up entry fetch can race it.
-    pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Vec<BlockTemplateTx>)> {
+    /// and `getrawmempool` calls; no follow-up entry fetch can race it. No template when Core
+    /// refuses one (in initial sync, or with no peers): the tip is then `getbestblockhash`'s.
+    pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Option<Vec<BlockTemplateTx>>)> {
         let template_args = (json!({ "rules": ["segwit"] }),);
         let calls = [
+            RpcCall::new("getbestblockhash", &NO_ARGS)?,
             RpcCall::new("getblocktemplate", &template_args)?,
             // Before the listing (Core runs a batch in order): a load reported finished was
             // finished when the listing was taken.
@@ -112,14 +114,25 @@ impl Client {
             RpcCall::new("getprioritisedtransactions", &NO_ARGS)?,
         ];
         // The batch answers every request, a missing response as an item error.
-        let [template_raw, info_raw, txids_raw, deltas_raw] =
-            <[_; 4]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
-        let (template_raw, txids_raw, info_raw) = (template_raw?, txids_raw?, info_raw?);
+        let [tip_raw, template_raw, info_raw, txids_raw, deltas_raw] =
+            <[_; 5]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
+        let (tip_raw, txids_raw, info_raw) = (tip_raw?, txids_raw?, info_raw?);
 
         let live_txids = TxidArrayParser::parse(txids_raw.get())?;
-        let template: GetBlockTemplate = from_str(template_raw.get())?;
-        let tip_hash = Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?;
-        let block_template = ClientInner::build_gbt(template.transactions)?;
+        let (tip_hash, block_template) = match template_raw {
+            Ok(raw) => {
+                let template: GetBlockTemplate = from_str(raw.get())?;
+                (
+                    Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?,
+                    Some(ClientInner::build_gbt(template.transactions)?),
+                )
+            }
+            Err(error) => {
+                debug!(%error, "getblocktemplate: none");
+                let tip: String = from_str(tip_raw.get())?;
+                (Self::parse_block_hash(&tip, "getbestblockhash")?, None)
+            }
+        };
         let info: GetMempoolInfo = from_str(info_raw.get())?;
         let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
         let fee_deltas = Self::build_fee_deltas(deltas_raw);

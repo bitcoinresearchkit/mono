@@ -18,18 +18,20 @@ std::thread::spawn(move || mempool.start_with(resolver, published_tip));
 
 // Per query: one publication, kept for the whole read.
 let state = reader.load();
-let fees = state.fees()?;
+let (fees_json, etag) = state.fees_json()?;
 let projected_blocks = state.block_stats()?;
 ```
 
 `start_with` runs one update cycle per second and does not return. `resolver` supplies
 confirmed prevouts (Bitview resolves them from its own indexer), and `published_tip` the chain
-tip readers pair the pool with: a pool is published only at that tip, as soon as the chain
-publishes it and calls `chain.published()`.
+tip readers pair the pool with: a pool is published only at that tip. A cycle at a tip the chain
+hasn't published yet is withheld, and goes out the moment the chain publishes it and calls
+`chain.published()` (a cycle starts at once if none was).
 
 `tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
 from the node's UTXO set (`gettxout`, the mempool's spends not counted), so no `txindex` is
-needed.
+needed. When Core refuses a block template (in initial sync, or with no peers), the tip is
+`getbestblockhash`'s and the packer's first block stands in for block 0.
 
 A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
 nothing: readers keep the last publication. Otherwise membership and projection advance
@@ -48,23 +50,30 @@ On a loaded `ReadOnlyState`:
 
 - `info_json`, `txids`/`txids_hash`, `recent_txs` and `transaction_times_with_hash` need a
   completed pool observation and return `StateUpdating` before the first one.
-- `fees`, `precise_fees` and `block_stats` expose recommendations and projected-block statistics.
+- `fees_json`, `precise_fees`/`precise_fees_json`, `block_stats` and `mempool_blocks_json` expose
+  recommendations and projected-block statistics; the JSON bodies are serialized once per
+  projection, with their hash.
 - `mempool_block_source` captures a projected block with its transactions in block order (block
   0's: Bitcoin Core's `getblocktemplate`'s); `resolve_mempool_block_diff` captures a block's
   changes since a recent hash of it. Both build serializable views over the shared bodies,
   without copying them. Every projected block is served but a last one holding more than a block
   (what's left of a busy mempool, mempool.space's catch-all): that one has only its statistics.
-- `contains_txid`, `transaction` and the outspend reads take the caller's full chain-tip hash
-  and require a publication at that tip. `transaction` shares an immutable live or recently
-  vanished body; replaced tombstones are excluded.
-- `cpfp_info` reads the publication's own graph, at the caller's tip.
-- `addr_stats`, `addr_pending_utxos` and `addr_txs` take the caller's chain-tip hash and answer
-  only from a publication at that tip.
+- `transaction`, `entry` and the outspend reads take the caller's full chain-tip hash and require
+  a publication at that tip. `transaction` shares an immutable live or recently vanished body;
+  replaced tombstones are excluded; one whose inputs aren't all resolved yet answers
+  `StateUpdating`, alone.
+- `cpfp_info` reads the publication's own graph, at the caller's tip (`StateUpdating` for a
+  transaction whose own inputs are still resolving).
+- `addr_stats`, `addr_pending_utxos`, `addr_txs`, `addr_has_tx` and `is_pending` read through a
+  `PendingView`: `view_at(tip)` for a reader at the pool's tip, or `view_behind(spends)` for one a
+  few blocks past it, the pool without what those blocks mined, conflicted, or descend from a
+  conflicted one. A transaction folds into the address view once it and every pooled parent
+  are resolved, so no address sees half of one.
 - `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at the caller's tip.
 
 ## Projection and fee tiers
 
-Block 0 is Core's `getblocktemplate` selection. Every dependency component (edges from each
+Block 0 is Core's `getblocktemplate` selection (the packer's first block when Core gives none). Every dependency component (edges from each
 body's inputs as the pool stands at each rebuild) is linearized once, whole, in one order
 whichever member a walk starts from (`brk_cpfp`: optimal up to 64 members); its chunk feerates
 are the members' CPFP rates. Later projected blocks are packed as Core's block assembler packs,

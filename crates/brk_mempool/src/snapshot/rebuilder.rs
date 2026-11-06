@@ -30,10 +30,11 @@ impl Rebuilder {
     /// Publication and template history are committed together by the writer.
     /// `unloaded`: listed transactions not loaded yet. With it and `state.template_only` empty
     /// the view is complete; otherwise blocks after block 0 withhold what can't follow it.
+    /// `gbt_txids`: Core's template, block 0; without one, the packer's first block is.
     pub fn tick(
         &mut self,
         state: &State,
-        gbt_txids: &[Txid],
+        gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
@@ -49,7 +50,12 @@ impl Rebuilder {
             && snapshot.template_only == state.template_only
             && snapshot.unloaded == *unloaded
             && snapshot.content_revision == state.txs.content_revision()
-            && snapshot.block0_txids().eq(gbt_txids.iter().copied())
+            && match gbt_txids {
+                Some(gbt_txids) => {
+                    !snapshot.block0_packed && snapshot.block0_txids().eq(gbt_txids.iter().copied())
+                }
+                None => snapshot.block0_packed,
+            }
         {
             return;
         }
@@ -77,7 +83,7 @@ impl Rebuilder {
 
     fn build_snapshot(
         state: &State,
-        gbt_txids: &[Txid],
+        gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
@@ -85,23 +91,20 @@ impl Rebuilder {
     ) -> Snapshot {
         let complete = state.template_only.is_empty() && unloaded.is_empty();
         let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, fee_deltas, cache);
-        let (bodies, digests): (Vec<_>, Vec<_>) = gbt_txids
-            .iter()
-            .filter_map(|txid| state.txs.record(txid))
-            .map(|record| (record.tx.clone(), record.digest))
-            .unzip();
-
-        let block0: Vec<TxIndex> = gbt_txids
-            .iter()
+        // Core's selection, each member at its chunk's feerate.
+        let template_block0: Vec<(TxIndex, FeeRate)> = gbt_txids
+            .into_iter()
+            .flatten()
             .filter_map(|txid| {
                 key_to_idx
                     .get(&TxKey::from(txid))
                     .copied()
                     .filter(|index| txs[index.as_usize()].txid == *txid)
             })
+            .map(|index| (index, txs[index.as_usize()].chunk_rate))
             .collect();
         let mut excluded = vec![false; txs.len()];
-        for index in &block0 {
+        for (index, _) in &template_block0 {
             excluded[index.as_usize()] = true;
         }
         if !complete {
@@ -110,28 +113,42 @@ impl Rebuilder {
                 .collect();
             withhold(&bodies, &txs, &state.template_only, unloaded, &mut excluded);
         }
-        let projection = partition::partition(&txs, &chunks, &excluded, NUM_BLOCKS - 1);
+        // Without a template, the packer's first block stands in for Core's.
+        let packed = gbt_txids.is_none();
+        let mut projection = partition::partition(
+            &txs,
+            &chunks,
+            &excluded,
+            NUM_BLOCKS - usize::from(!packed),
+        );
+        let block0 = if packed {
+            match projection.blocks.first() {
+                // A lone block holding more than a block stays the catch-all, after an empty one.
+                Some(_) if projection.blocks.len() > 1 || !projection.overflow => {
+                    projection.blocks.remove(0)
+                }
+                _ => Vec::new(),
+            }
+        } else {
+            template_block0
+        };
+        let record_of = |index: &TxIndex| {
+            let record = state.txs.record_at(index.as_usize());
+            debug_assert_eq!(record.entry.txid, txs[index.as_usize()].txid);
+            (record.tx.clone(), record.digest)
+        };
 
         // Each projected block's bodies, but a last one holding more than a block.
         let served = projection.blocks.len() - usize::from(projection.overflow);
         let mut blocks = Vec::with_capacity(1 + served);
-        blocks.push((bodies, digests));
-        for block in &projection.blocks[..served] {
-            blocks.push(
-                block
-                    .iter()
-                    .map(|&(m, _)| {
-                        let record = state.txs.record_at(m.as_usize());
-                        debug_assert_eq!(record.entry.txid, txs[m.as_usize()].txid);
-                        (record.tx.clone(), record.digest)
-                    })
-                    .unzip(),
-            );
+        for block in std::iter::once(&block0).chain(&projection.blocks[..served]) {
+            blocks.push(block.iter().map(|(index, _)| record_of(index)).unzip());
         }
 
-        let missing = blocks[0].0.len() != gbt_txids.len();
+        let missing = gbt_txids.is_some_and(|gbt_txids| block0.len() != gbt_txids.len());
         let mut snapshot =
             Snapshot::build(txs, block0, &projection.blocks, key_to_idx, chunks, min_fee);
+        snapshot.block0_packed = packed;
         snapshot.set_served(blocks, state.txs.content_revision(), missing);
         snapshot.template_only = state.template_only.clone();
         snapshot.unloaded = unloaded.clone();

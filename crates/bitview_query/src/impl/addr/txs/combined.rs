@@ -7,10 +7,7 @@ use brk_types::{Address, Transaction, Txid};
 use super::ResolvedAddrChainTxs;
 use crate::{
     Error, Query, RepresentationId, Result,
-    r#impl::{
-        addr::{mempool::page_identity, parse_addr},
-        mempool::anchored,
-    },
+    r#impl::addr::{mempool::page_identity, parse_addr},
 };
 
 /// One address page with frozen mempool bodies and a guarded confirmed selection.
@@ -48,7 +45,6 @@ impl Query {
         let addr = parse_addr(addr)?;
         let (mempool, guard) = self.mempool_then_pin()?;
         let chain_addr = self.find_addr_bytes(&addr, &guard)?;
-        let tip = guard.tip();
         let confirmed_cursor = match after_txid {
             None => false,
             Some(txid) => match self.resolve_tx_index_bounded(&txid, &guard) {
@@ -58,12 +54,12 @@ impl Query {
             },
         };
         let mempool = match (&mempool, confirmed_cursor) {
-            (Some(mempool), false) => {
-                // A pending cursor needs the pool's address view: one not ready answers 503 (the
-                // client retries), never a page cut short or an unknown cursor.
-                if let Some(txid) = &after_txid {
-                    if !mempool.addr_has_tx(&addr, txid, &tip)? {
-                        if !mempool.contains_txid(txid, &tip)? {
+            (Some(mempool), false) => match self.pending_view(mempool, &guard)? {
+                Some(view) => {
+                    if let Some(txid) = &after_txid
+                        && !mempool.addr_has_tx(&addr, txid, &view)?
+                    {
+                        if !mempool.is_pending(txid, &view)? {
                             return Err(Error::UnknownAfterTxid);
                         }
                         // Another address's pending transaction: nothing after it here, as a
@@ -74,11 +70,13 @@ impl Query {
                             chain: None,
                         });
                     }
-                    mempool.addr_txs(&addr, after_txid.as_ref(), limit, &tip)?
-                } else {
-                    anchored(mempool.addr_txs(&addr, None, limit, &tip))?
+                    mempool.addr_txs(&addr, after_txid.as_ref(), limit, &view)?
                 }
-            }
+                // A pending cursor needs the pool: none to read answers 503 (the client retries),
+                // never a page cut short or an unknown cursor. A first page is the chain's alone.
+                None if after_txid.is_some() => return Err(Error::StateUpdating),
+                None => Vec::new(),
+            },
             (None, false) if after_txid.is_some() => return Err(Error::UnknownAfterTxid),
             _ => Vec::new(),
         };

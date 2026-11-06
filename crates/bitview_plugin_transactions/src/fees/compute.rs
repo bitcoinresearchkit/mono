@@ -12,7 +12,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, VSize};
+use brk_types::{Height, Sats, SigOps, VSize};
 use rayon::prelude::*;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec, VecIndex, WritableVec};
@@ -123,6 +123,7 @@ impl Vecs {
             + txs.first_txin_index.version()
             + tx_counts.version()
             + txs.weight.version()
+            + txs.total_sigop_cost.version()
             + txs.total_size.version()
             + txs.tx_version.version()
             + columns.version()
@@ -167,6 +168,7 @@ impl Vecs {
         // Dependencies have written their vectors before this pass. Retain the
         // decoded pages across blocks instead of reopening each compressed range.
         let mut weights = txs.weight.range_cursor_at(start_tx, target);
+        let mut sigops = txs.total_sigop_cost.range_cursor_at(start_tx, target);
         let mut sizes = txs.total_size.range_cursor_at(start_tx, target);
         let mut tx_versions = txs.tx_version.range_cursor_at(start_tx, target);
         let mut txin_starts = txs.first_txin_index.range_cursor_at(start_tx, target);
@@ -175,6 +177,7 @@ impl Vecs {
         let mut input_value = input_values.range_cursor_at(start_input, input_values.len());
 
         let mut scratch_sizes = Vec::new();
+        let mut scratch_sigops = Vec::new();
         let mut first_tx = start_tx;
         let mut height = start_height;
         let mut last_progress = Instant::now();
@@ -248,10 +251,14 @@ impl Vecs {
                     block.weights.reserve(n);
                     block.masks.reserve(n);
                     sizes.collect_into(n, &mut scratch_sizes);
+                    sigops.collect_into(n, &mut scratch_sigops);
                     let mut size = scratch_sizes.iter();
+                    let mut sigop = scratch_sigops.iter();
                     weights.for_each(n, |weight| {
                         block.vsizes.push(weight.into());
-                        block.weights.push(weight.into());
+                        block
+                            .weights
+                            .push(SigOps::from(*sigop.next().unwrap()).adjust_weight(weight.into()));
                         let size = u64::from(u32::from(*size.next().unwrap()));
                         block
                             .masks

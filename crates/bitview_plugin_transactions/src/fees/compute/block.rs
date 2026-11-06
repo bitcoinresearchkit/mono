@@ -31,7 +31,8 @@ pub struct Block {
     pub fee_rates: Vec<FeeRate>,
     pub effective_fee_rates: Vec<FeeRate>,
     pub vsizes: Vec<VSize>,
-    /// What CPFP chunks are measured over: each transaction's weight.
+    /// What CPFP chunks are measured over: each transaction's policy-adjusted weight (Core's
+    /// sigop floor), as the mempool's and the confirmed CPFP answer's.
     pub weights: Vec<Weight>,
     pub txin_starts: Vec<TxInIndex>,
     pub outpoints: Vec<OutPoint>,
