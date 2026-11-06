@@ -13,6 +13,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
   to open, asking for a rebuild of the state
 
+### New Features
+
+- `GET /api/mempool-blocks/{index}` and its diffs serve every projected block with its transactions, not only
+  block 0: blocks 1+ are packed as Core's block assembler packs, from base fees within its default budgets. The
+  last one answers 404 while it holds more than a block (what's left of a busy mempool, mempool.space's catch-all),
+  its stats still in `/api/v1/fees/mempool-blocks`
+
 ### Performance
 
 - Chain reads (tip, blocks, transactions, addresses) run as many at once as there are cores (they ran one at a time):
@@ -101,6 +108,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   the checkout); `update.sh` runs from the repository whatever the caller's directory; the Python publish edits its
   version with `perl` (BSD `sed` failed on Linux)
 - The `profiling` build keeps its symbols
+- Mempool: a body pairs with its `getmempoolentry` only as the witness variant the entry describes (one swapped in
+  between the two calls kept the other's weight); from an incomplete view (Core's template seconds older than its
+  listing, or listed transactions not loaded yet) the blocks after block 0 leave out a replacement of a template
+  transaction, a child of an unloaded parent, and their descendants
+- JavaScript client: `getOpenapi()` and `getApi()` return the documents as sent (their keys and `{after_txid}`-style
+  path templates were camelCased, breaking the spec); series values come as sent too, without a walk over every item
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{MempoolBlock, MempoolBlockHash, Transaction};
 
-/// A projected mempool block with its transactions: block 0 is Bitcoin Core's
-/// `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
+/// A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
+/// `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
+/// from base fees within Core's default budgets. Returned by
+/// `GET /api/mempool-blocks/{index}`.
 // `Txs` holds the bodies: owned by default, a view of the published ones when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
@@ -17,6 +19,6 @@ pub struct MempoolBlockContent<Txs = Vec<Transaction>> {
 
     pub stats: MempoolBlock,
 
-    /// Full transaction bodies in `getblocktemplate` order.
+    /// Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
     pub transactions: Txs,
 }

@@ -1,31 +1,67 @@
+use std::sync::Arc;
+
 use bitcoin::hashes::Hash;
 use brk_cpfp::Cluster;
-use brk_types::{FeeRate, Sats, SigOps, Txid, VSize, Weight};
+use bitcoin::{ScriptBuf, Witness};
+use brk_types::{
+    BlockHash, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction, TxIn, TxStatus,
+    Txid, VSize, Vout, Weight,
+};
+use rapidhash::RapidHashSet;
+use serde_json::{Value, to_value};
 use smallvec::SmallVec;
 
-use crate::snapshot::{
-    SnapTx, TxIndex, cluster,
-    partition::{Chunks, partition},
+use crate::{
+    MempoolBlockSource, ReadOnlyState, State,
+    snapshot::Rebuilder,
+    snapshot::{
+        SnapTx, Snapshot, TxIndex,
+        builder::KeyIndex,
+        cluster,
+        partition::{Chunks, partition},
+        rebuilder::withhold,
+    },
+    steps::{applier, preparer},
+    stores::tx_store::TxRecord,
 };
 
 /// Random pools (chains, fans, sigop-heavy transactions), the last transaction a chunk no block
-/// can hold, packed after a block 0 that took an ancestor-closed prefix: each member once, after
-/// its parents, every block but the last within Core's budgets, the oversized chunk in the last,
-/// and packing ends whatever is left (a remainder of the oversized chunk alone included).
+/// can hold unless the pool fits, packed after a block 0 that took an ancestor-closed prefix: each
+/// member once, after its parents, every block but the last within Core's budgets, the oversized
+/// chunk in the last, which then holds more than a block, and packing ends whatever is left (a
+/// remainder of the oversized chunk alone included).
 #[test]
 fn projected_blocks_follow_dependencies_and_budgets() {
-    for (n, taken) in [(30_000, 2_000), (60, 10), (1, 0)] {
-        let txs = pool(n);
+    for (n, taken, fits) in [
+        (30_000, 2_000, false),
+        (60, 10, false),
+        (60, 10, true),
+        (1, 0, false),
+    ] {
+        let mut txs = pool(n);
+        if fits {
+            let last = &mut txs[n - 1];
+            last.weight = Weight::from(1_000u64);
+            last.vsize = VSize::from(last.weight);
+        }
         let excluded: Vec<bool> = (0..n).map(|i| i < taken).collect();
-        let blocks = partition(&txs, &chunks(&txs), &excluded, 7);
+        let projection = partition(&txs, &chunks(&txs), &excluded, 7);
+        let blocks = &projection.blocks;
         assert!(blocks.len() <= 7);
+        assert_eq!(
+            projection.overflow, !fits,
+            "the last block holds more than a block"
+        );
         let mut placed = excluded.clone();
         for (b, block) in blocks.iter().enumerate() {
             let (mut weight, mut sigops) = (Weight::default(), SigOps::ZERO);
             for &(m, _) in block {
                 let t = &txs[m.as_usize()];
                 assert!(!placed[m.as_usize()], "a transaction in two blocks");
-                assert!(t.parents.iter().all(|p| placed[p.as_usize()]), "before a parent");
+                assert!(
+                    t.parents.iter().all(|p| placed[p.as_usize()]),
+                    "before a parent"
+                );
                 placed[m.as_usize()] = true;
                 weight += t.weight;
                 sigops += t.sigops;
@@ -37,7 +73,7 @@ fn projected_blocks_follow_dependencies_and_budgets() {
         assert!(placed.iter().all(|&p| p), "a transaction left out");
         let last = blocks.last().expect("blocks");
         let oversized = last.iter().any(|&(m, _)| m.as_usize() == n - 1);
-        assert!(oversized, "the oversized chunk waits for the last");
+        assert!(fits || oversized, "the oversized chunk waits for the last");
     }
 }
 
@@ -105,4 +141,362 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
         chunks.end_component();
     }
     chunks
+}
+
+/// Core's budgets are strict: a block holds transactions up to 3,991,999 WU and 79,599 sigops; the
+/// chunk reaching either limit waits for the next block.
+#[test]
+fn projected_blocks_stop_short_of_each_budget() {
+    let tx = |seed: u8, fee: u64, weight: u64, sigops: u64| SnapTx {
+        txid: txid(seed),
+        fee: Sats::from(fee),
+        vsize: SigOps::new(sigops).adjust_vsize(VSize::from(Weight::from(weight))),
+        weight: Weight::from(weight),
+        size: 0,
+        sigops: SigOps::new(sigops),
+        chunk_rate: FeeRate::default(),
+        parents: SmallVec::new(),
+        children: SmallVec::new(),
+    };
+    let packed = |txs: &[SnapTx]| {
+        let excluded = vec![false; txs.len()];
+        partition(txs, &chunks(txs), &excluded, 7)
+            .blocks
+            .iter()
+            .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect::<Vec<_>>())
+            .collect::<Vec<_>>()
+    };
+    // Weight: 3,000,000 + 991,999 fill the block to one WU short; one more WU waits.
+    let by_weight = [tx(1, 3_000_000, 3_000_000, 0), tx(2, 900_000, 991_999, 0), tx(3, 0, 1, 0)];
+    assert_eq!(packed(&by_weight), [vec![0, 1], vec![2]]);
+    // Sigops: 79,599 fill the block to one short; one more waits.
+    let by_sigops = [tx(1, 10_000_000, 1_600_000, 79_599), tx(2, 1, 400, 1)];
+    assert_eq!(packed(&by_sigops), [vec![0], vec![1]]);
+}
+
+/// Served blocks through publication: block 0 and the projection's, but the dump, past the
+/// projection; an unchanged block keeps its hash; a diff
+/// against a block's past copy keeps runs, sends a body changed under its txid anew (not as
+/// removed), knows no other block's hash, and forgets copies history evicted.
+#[test]
+fn served_blocks_publish_and_diff() {
+    let tip = BlockHash::default();
+    let (a, b, c, d, e) = (body(1), body(2), body(3), body(4), body(5));
+    let mut state = ReadOnlyState::default();
+    state.publish_projection(snapshot(&[&[&a], &[&b, &c, &d], &[&e]], 1), tip);
+    let (block0, since) = (served(&state, 0).hash(), served(&state, 1).hash());
+    assert!(state.mempool_block_source(2).unwrap().is_none(), "the dump");
+    assert!(
+        state.mempool_block_source(3).unwrap().is_none(),
+        "past the projection"
+    );
+
+    let captured = served(&state, 1);
+    // c's body changes under its txid (a prevout filled), d leaves block 1, e joins it.
+    let c2 = Arc::new(Transaction {
+        total_sigop_cost: SigOps::new(1),
+        ..(*c).clone()
+    });
+    state.publish_projection(snapshot(&[&[&a], &[&b, &c2, &e]], 1), tip);
+    assert_eq!(
+        served(&state, 0).hash(),
+        block0,
+        "an unchanged block keeps its hash"
+    );
+    let built = to_value(captured.build()).unwrap();
+    assert_eq!(built["hash"], to_value(since).unwrap(), "a capture outlives newer publications");
+    let bodies: Vec<&Value> = built["transactions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tx| &tx["sigops"])
+        .collect();
+    let txids: Vec<&Value> = built["transactions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tx| &tx["txid"])
+        .collect();
+    let id = |tx: &Arc<Transaction>| to_value(tx.txid).unwrap();
+    assert_eq!(txids, [&id(&b), &id(&c), &id(&d)], "its own bodies, in its order");
+    assert_eq!(bodies[1], 0, "c's body as it was then");
+    assert_ne!(served(&state, 1).hash(), since);
+    let diff = state
+        .resolve_mempool_block_diff(served(&state, 1), since)
+        .expect("the past copy in history")
+        .build();
+    let diff = to_value(&diff).unwrap();
+    let order: Vec<Value> = diff["order"].as_array().unwrap().clone();
+    assert_eq!(order[0], serde_json::json!([0, 1]), "b kept");
+    let txid = |tx: &Arc<Transaction>| to_value(tx.txid).unwrap();
+    assert_eq!(
+        [&order[1]["txid"], &order[2]["txid"]],
+        [&txid(&c2), &txid(&e)]
+    );
+    assert_eq!(order[1]["sigops"], 1, "c's new body");
+    assert_eq!(
+        diff["removed"],
+        serde_json::json!([txid(&d)]),
+        "only d left"
+    );
+    assert!(
+        state
+            .resolve_mempool_block_diff(served(&state, 0), since)
+            .is_none(),
+        "block 1's hash is no copy of block 0"
+    );
+
+    for seed in 100..180 {
+        state.publish_projection(snapshot(&[&[&a], &[&body(seed)]], 1), tip);
+    }
+    assert!(
+        state
+            .resolve_mempool_block_diff(served(&state, 1), since)
+            .is_none(),
+        "evicted"
+    );
+}
+
+/// From an incomplete view, the blocks after block 0 withhold a replacement of a template-only
+/// transaction (a conflict), a child of a listed transaction not loaded yet, and their
+/// descendants; the rest stays.
+#[test]
+fn incomplete_views_withhold_what_cannot_follow_block_0() {
+    let outpoint = |seed: u8, vout: u32| (txid(seed), Vout::from(vout));
+    // 0: template-only, block 0, spends 90:0. 1: its replacement, spends 90:0 too. 2: 1's child.
+    // 3: spends 91:0, listed but not loaded. 4: spends 92:0, confirmed. 5: 4's child.
+    let bodies = [
+        spending(10, &[outpoint(90, 0)]),
+        spending(11, &[outpoint(90, 0)]),
+        spending(12, &[outpoint(11, 0)]),
+        spending(13, &[outpoint(91, 0)]),
+        spending(14, &[outpoint(92, 0)]),
+        spending(15, &[outpoint(14, 0)]),
+    ];
+    let mut txs: Vec<SnapTx> = bodies
+        .iter()
+        .map(|tx| SnapTx {
+            txid: tx.txid,
+            fee: tx.fee,
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            size: tx.total_size as u64,
+            sigops: SigOps::ZERO,
+            chunk_rate: FeeRate::from((tx.fee, tx.weight)),
+            parents: SmallVec::new(),
+            children: SmallVec::new(),
+        })
+        .collect();
+    for (parent, child) in [(1, 2), (4, 5)] {
+        txs[child].parents.push(TxIndex::from(parent));
+        txs[parent].children.push(TxIndex::from(child));
+    }
+    let template_only: RapidHashSet<Txid> = [txid(10)].into_iter().collect();
+    let unloaded: RapidHashSet<Txid> = [txid(91)].into_iter().collect();
+    let mut excluded = vec![true, false, false, false, false, false];
+    let bodies: Vec<&Transaction> = bodies.iter().collect();
+    withhold(&bodies, &txs, &template_only, &unloaded, &mut excluded);
+    assert_eq!(excluded, [true, true, true, true, false, false]);
+}
+
+/// A body pairs with its entry only as the variant the entry describes: another witness of the
+/// same txid (swapped in between the two calls, another weight) stays unloaded.
+#[test]
+fn entries_pair_only_with_their_own_witness_variant() {
+    let variant = |witness: &[u8]| bitcoin::Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![bitcoin::TxIn {
+            previous_output: bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([9; 32]), 0),
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence::MAX,
+            witness: Witness::from_slice(&[witness]),
+        }],
+        output: Vec::new(),
+    };
+    let (described, fetched) = (variant(&[1; 20]), variant(&[2; 99]));
+    let txid = Txid::from(fetched.compute_txid());
+    assert_eq!(txid, Txid::from(described.compute_txid()));
+    let entry = |of: &bitcoin::Transaction| MempoolEntryInfo {
+        txid,
+        wtxid: of.compute_wtxid(),
+        vsize: VSize::from(Weight::from(of.weight())),
+        weight: Weight::from(of.weight()),
+        fee: Sats::from(1_000u64),
+        first_seen: Timestamp::now(),
+    };
+    let state = State::default();
+    let added = |entry: MempoolEntryInfo| {
+        let bodies = [(txid, fetched.clone())].into_iter().collect();
+        preparer::prepare(&[txid], &RapidHashSet::default(), vec![entry], bodies, &state)
+            .added
+            .len()
+    };
+    assert_eq!(added(entry(&described)), 0, "another variant's entry");
+    assert_eq!(added(entry(&fetched)), 1, "its own entry");
+}
+
+/// Through ingestion and `Rebuilder::tick`: the blocks after block 0 withhold a template-only
+/// transaction's replacement and an unloaded parent's child; the same view, gaps included, reuses
+/// the snapshot; either gap changing alone rebuilds it, and what it withholds follows.
+#[test]
+fn rebuilds_follow_the_view_gaps() {
+    let raw = |spends: (bitcoin::Txid, u32), sequence: u32| bitcoin::Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![bitcoin::TxIn {
+            previous_output: bitcoin::OutPoint::new(spends.0, spends.1),
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence(sequence),
+            witness: Witness::new(),
+        }],
+        output: vec![bitcoin::TxOut {
+            value: bitcoin::Amount::from_sat(1_000),
+            script_pubkey: ScriptBuf::new(),
+        }],
+    };
+    let confirmed = |seed: u8| bitcoin::Txid::from_byte_array([seed; 32]);
+    let unloaded_parent = confirmed(95);
+    // p: unrelated; t: template-only; r: t's replacement (same outpoint); c: child of a listed
+    // transaction not loaded yet.
+    let p = raw((confirmed(90), 0), 0);
+    let t = raw((confirmed(91), 0), 1);
+    let r = raw((confirmed(91), 0), 2);
+    let c = raw((unloaded_parent, 0), 0);
+    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
+    let mut state = State::default();
+    let template_only: RapidHashSet<Txid> = [id(&t)].into_iter().collect();
+    let entries = [&p, &t, &r, &c]
+        .iter()
+        .map(|tx| MempoolEntryInfo {
+            txid: id(tx),
+            wtxid: tx.compute_wtxid(),
+            vsize: VSize::from(Weight::from(tx.weight())),
+            weight: Weight::from(tx.weight()),
+            fee: Sats::from(1_000u64),
+            first_seen: Timestamp::now(),
+        })
+        .collect();
+    let bodies = [&p, &t, &r, &c].iter().map(|&tx| (id(tx), tx.clone())).collect();
+    let live = [id(&p), id(&r), id(&c), Txid::from(unloaded_parent), id(&t)];
+    let diff = preparer::prepare(&live, &template_only, entries, bodies, &state);
+    applier::apply(&mut state, &Snapshot::default(), diff);
+    state.template_only = template_only;
+
+    let mut rebuilder = Rebuilder::default();
+    let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
+    let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
+        rebuilder.tick(state, &[id(&t)], FeeRate::default(), unloaded);
+        let snapshot = rebuilder.snapshot().clone();
+        let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
+            .iter()
+            .flat_map(|block| block.bodies.iter().map(|tx| tx.txid))
+            .collect();
+        (snapshot, later)
+    };
+    let set = |txids: &[Txid]| txids.iter().copied().collect::<RapidHashSet<Txid>>();
+    let (first, later) = tick(&state, &unloaded);
+    assert_eq!(later, set(&[id(&p)]), "r and c withheld");
+    let (again, _) = tick(&state, &unloaded);
+    assert!(Arc::ptr_eq(&first, &again), "the same view reuses its snapshot");
+
+    unloaded.clear();
+    let (loaded, later) = tick(&state, &unloaded);
+    assert!(!Arc::ptr_eq(&again, &loaded), "the unloaded gap changed");
+    assert_eq!(later, set(&[id(&p), id(&c)]), "c follows once its parent isn't missing");
+
+    state.template_only.clear();
+    let (listed, later) = tick(&state, &unloaded);
+    assert!(!Arc::ptr_eq(&loaded, &listed), "the template-only gap changed");
+    assert_eq!(later, set(&[id(&p), id(&r), id(&c)]));
+}
+
+fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
+    state.mempool_block_source(index).unwrap().expect("served")
+}
+
+/// A snapshot projecting `blocks` (block 0 first), block 0 and the `later` blocks after it served.
+fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
+    let mut txs: Vec<SnapTx> = Vec::new();
+    let indexed: Vec<Vec<(TxIndex, FeeRate)>> = blocks
+        .iter()
+        .map(|block| {
+            block
+                .iter()
+                .map(|tx| {
+                    let rate = FeeRate::from((tx.fee, tx.weight));
+                    txs.push(SnapTx {
+                        txid: tx.txid,
+                        fee: tx.fee,
+                        vsize: VSize::from(tx.weight),
+                        weight: tx.weight,
+                        size: tx.total_size as u64,
+                        sigops: tx.total_sigop_cost,
+                        chunk_rate: rate,
+                        parents: SmallVec::new(),
+                        children: SmallVec::new(),
+                    });
+                    (TxIndex::from(txs.len() - 1), rate)
+                })
+                .collect()
+        })
+        .collect();
+    let block0 = indexed[0].iter().map(|&(index, _)| index).collect();
+    let mut snapshot = Snapshot::build(
+        txs,
+        block0,
+        &indexed[1..],
+        KeyIndex::default(),
+        FeeRate::default(),
+    );
+    let bodies = blocks[..=later]
+        .iter()
+        .map(|block| {
+            block
+                .iter()
+                .map(|&tx| (tx.clone(), TxRecord::digest_of(tx)))
+                .unzip()
+        })
+        .collect();
+    snapshot.set_served(bodies, 0, false);
+    Arc::new(snapshot)
+}
+
+fn txid(seed: u8) -> Txid {
+    Txid::from(bitcoin::Txid::from_byte_array([seed; 32]))
+}
+
+/// [`body`] spending `outpoints`.
+fn spending(seed: u8, outpoints: &[(Txid, Vout)]) -> Transaction {
+    let mut tx = (*body(seed)).clone();
+    tx.input = outpoints
+        .iter()
+        .map(|&(txid, vout)| TxIn {
+            txid,
+            vout,
+            prevout: None,
+            script_sig: ScriptBuf::new(),
+            witness: Witness::new(),
+            is_coinbase: false,
+            sequence: u32::MAX,
+        })
+        .collect();
+    tx
+}
+
+/// A bare unconfirmed transaction, its txid and fee from `seed`.
+fn body(seed: u8) -> Arc<Transaction> {
+    Arc::new(Transaction {
+        index: None,
+        txid: txid(seed),
+        version: bitcoin::transaction::Version::TWO.into(),
+        lock_time: bitcoin::absolute::LockTime::ZERO.into(),
+        input: Vec::new(),
+        output: Vec::new(),
+        total_size: 100,
+        weight: Weight::from(400u64),
+        total_sigop_cost: SigOps::ZERO,
+        fee: Sats::from(1_000 * u64::from(seed)),
+        status: TxStatus::UNCONFIRMED,
+    })
 }

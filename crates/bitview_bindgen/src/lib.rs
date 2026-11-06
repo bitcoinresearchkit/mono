@@ -57,6 +57,8 @@ mod constants;
 mod generators;
 mod model;
 mod openapi;
+#[cfg(test)]
+mod tests;
 mod topological;
 mod types;
 

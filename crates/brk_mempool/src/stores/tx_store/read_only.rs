@@ -46,6 +46,11 @@ impl ReadOnlyTxStore {
         self.records.get(key)
     }
 
+    /// The record at `index` in dense storage order, [`Self::records`]'s.
+    pub fn record_at(&self, index: usize) -> &TxRecord {
+        &self.records[index]
+    }
+
     /// `(key, record)` pairs in dense storage order.
     pub fn records(&self) -> impl Iterator<Item = (&TxKey, &TxRecord)> {
         self.records.iter()

@@ -1,8 +1,8 @@
-//! A projected mempool block (block 0, Core's template): full content and incremental diff.
+//! A projected mempool block with its transactions: full content and incremental diff.
 
 use std::sync::Arc;
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 
 use brk_types::{
     MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, RetainedRun,
@@ -11,66 +11,88 @@ use brk_types::{
 use rapidhash::RapidHashMap;
 use serde::{Serialize, Serializer};
 
-use crate::{ReadOnlyState, ResolvedMempoolBlockDiff, Snapshot};
+use crate::{ReadOnlyState, ResolvedMempoolBlockDiff, Snapshot, snapshot::ServedBlock};
 
-/// One immutable published template, retained for validation and body construction.
+/// One block of an immutable publication, retained for validation and body construction.
 #[derive(Clone)]
 pub struct MempoolBlockSource {
     snapshot: Arc<Snapshot>,
+    index: usize,
 }
 
 impl PartialEq for MempoolBlockSource {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.snapshot, &other.snapshot)
+        Arc::ptr_eq(&self.snapshot, &other.snapshot) && self.index == other.index
     }
 }
 
 impl Eq for MempoolBlockSource {}
 
 impl MempoolBlockSource {
-    /// Identity of the captured body; unavailable selections must not revalidate.
-    pub fn hash(&self) -> Result<MempoolBlockHash> {
-        self.snapshot.ensure_projection()?;
-        Ok(self.snapshot.mempool_block_hash)
+    fn block(&self) -> &ServedBlock {
+        &self.snapshot.served_blocks()[self.index]
     }
 
-    /// Build only after validation, without observing a newer publication.
-    pub fn build(self) -> Result<MempoolBlockContent<TemplateTxs>> {
-        Ok(MempoolBlockContent {
-            hash: self.hash()?,
-            stats: self.snapshot.template_stats(),
-            transactions: TemplateTxs(self.snapshot.template_transactions().clone()),
-        })
+    /// Identity of the captured body.
+    #[must_use]
+    pub fn hash(&self) -> MempoolBlockHash {
+        self.block().hash
+    }
+
+    /// The captured block, never a newer publication's.
+    #[must_use]
+    pub fn build(self) -> MempoolBlockContent<BlockTxs> {
+        let block = self.block();
+        MempoolBlockContent {
+            hash: block.hash,
+            stats: self.snapshot.stats(self.index),
+            transactions: BlockTxs(block.bodies.clone()),
+        }
     }
 }
 
 impl ReadOnlyState {
+    /// Block 0's content identity.
     pub fn mempool_block_hash(&self) -> Result<MempoolBlockHash> {
-        self.mempool_block_source().hash()
+        let block = self.snapshot().served(0)?;
+        Ok(block.ok_or(Error::StateUpdating)?.hash)
     }
 
-    /// Capture the currently published template without cloning transaction bodies.
-    #[must_use]
-    pub fn mempool_block_source(&self) -> MempoolBlockSource {
-        MempoolBlockSource {
-            snapshot: self.snapshot().clone(),
-        }
+    /// Block `index` of the current publication, captured without cloning transaction bodies:
+    /// `None` when it isn't served, past the projection or a last block holding more than a block.
+    pub fn mempool_block_source(&self, index: usize) -> Result<Option<MempoolBlockSource>> {
+        let snapshot = self.snapshot();
+        Ok(snapshot.served(index)?.map(|_| MempoolBlockSource {
+            snapshot: snapshot.clone(),
+            index,
+        }))
+    }
+
+    /// How many blocks the current publication projects, served or not.
+    pub fn projected_blocks(&self) -> Result<usize> {
+        let snapshot = self.snapshot();
+        snapshot.ensure_projection()?;
+        Ok(snapshot.block_stats.len())
     }
 
     /// The currently published template's transactions, in template order.
     #[must_use]
     pub fn template_transactions(&self) -> Arc<[Arc<Transaction>]> {
-        self.snapshot().template_transactions().clone()
+        self.snapshot()
+            .served_blocks()
+            .first()
+            .map_or_else(|| Arc::from([]), |block| block.bodies.clone())
     }
 
-    /// Validate and capture the historical side of one diff request.
+    /// Capture the past side of one diff request against `source`, a block of this
+    /// publication: `None` once history no longer holds that block at `since`.
     #[must_use]
     pub fn resolve_mempool_block_diff(
         &self,
+        source: MempoolBlockSource,
         since: MempoolBlockHash,
     ) -> Option<ResolvedMempoolBlockDiff> {
-        let past = self.historical_block0(since)?;
-        let source = self.mempool_block_source();
+        let past = self.historical_block(source.index, since)?;
         Some(ResolvedMempoolBlockDiff {
             since,
             past,
@@ -81,14 +103,15 @@ impl ReadOnlyState {
 
 impl ResolvedMempoolBlockDiff {
     /// Build against the publication captured when history was resolved.
-    pub fn build(self) -> Result<MempoolBlockDiff<TemplateOrder>> {
+    #[must_use]
+    pub fn build(self) -> MempoolBlockDiff<BlockOrder> {
         let Self {
             since,
             past,
             source,
         } = self;
-        let hash = source.hash()?;
-        let bodies = source.snapshot.template_transactions().clone();
+        let block = source.block();
+        let (hash, bodies) = (block.hash, block.bodies.clone());
         let mut prior_index: RapidHashMap<Txid, u32> = past
             .iter()
             .enumerate()
@@ -115,32 +138,32 @@ impl ResolvedMempoolBlockDiff {
             .filter(|tx| prior_index.contains_key(&tx.txid))
             .map(|tx| tx.txid)
             .collect();
-        Ok(MempoolBlockDiff {
+        MempoolBlockDiff {
             hash,
             since,
-            stats: source.snapshot.template_stats(),
-            order: TemplateOrder { bodies, entries },
+            stats: source.snapshot.stats(source.index),
+            order: BlockOrder { bodies, entries },
             removed,
-        })
+        }
     }
 }
 
-/// The published template's bodies, serialized in place as a JSON array.
-pub struct TemplateTxs(Arc<[Arc<Transaction>]>);
+/// A published block's bodies, serialized in place as a JSON array.
+pub struct BlockTxs(Arc<[Arc<Transaction>]>);
 
-impl Serialize for TemplateTxs {
+impl Serialize for BlockTxs {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         serializer.collect_seq(self.0.iter().map(Arc::as_ref))
     }
 }
 
-/// The new template's entries, each new body a position in the published `bodies`.
-pub struct TemplateOrder {
+/// The new block's entries, each new body a position in the published `bodies`.
+pub struct BlockOrder {
     bodies: Arc<[Arc<Transaction>]>,
     entries: Vec<MempoolBlockDiffEntry<usize>>,
 }
 
-impl Serialize for TemplateOrder {
+impl Serialize for BlockOrder {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         serializer.collect_seq(self.entries.iter().map(|entry| match *entry {
             MempoolBlockDiffEntry::Retained(run) => MempoolBlockDiffEntry::Retained(run),

@@ -28,7 +28,7 @@ pub struct MempoolBlockDiff<Order = Vec<MempoolBlockDiffEntry>> {
     /// `[start, count]`, or a full transaction body.
     pub order: Order,
 
-    /// Txids that left the projected next block since `since`
-    /// (confirmed, evicted, replaced, or pushed past block 0).
+    /// Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved
+    /// to another block).
     pub removed: Vec<Txid>,
 }

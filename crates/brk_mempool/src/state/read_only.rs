@@ -3,11 +3,13 @@ use std::{collections::VecDeque, sync::Arc};
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::Snapshot;
+use crate::{Snapshot, snapshot::ServedBlock};
 
 use super::{Pool, State};
 
-const HISTORY: usize = 10;
+/// Past served blocks kept for diffs: the latest publications' (eight blocks each at most), a
+/// block unchanged across publications kept once.
+const HISTORY: usize = 80;
 
 /// All published mempool read data. Replaced through one ArcSwap.
 ///
@@ -18,7 +20,8 @@ pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
-    history: VecDeque<(MempoolBlockHash, Arc<[Arc<Transaction>]>)>,
+    /// Each past served block, by its index.
+    history: VecDeque<(usize, ServedBlock)>,
 }
 
 impl ReadOnlyState {
@@ -49,17 +52,23 @@ impl ReadOnlyState {
             )));
         }
         if projection_changed {
-            let hash = graph.mempool_block_hash;
-            next.history.retain(|(previous, _)| *previous != hash);
-            next.history
-                .push_back((hash, graph.template_transactions().clone()));
-            while next.history.len() > HISTORY {
-                next.history.pop_front();
-            }
-            next.projection = graph;
-            next.projection_tip = Some(tip);
+            next.publish_projection(graph, tip);
         }
         Some(next)
+    }
+
+    /// Publishes `graph`'s projection, its served blocks remembered for diffs.
+    pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>, tip: BlockHash) {
+        for (index, block) in graph.served_blocks().iter().enumerate() {
+            self.history
+                .retain(|(i, past)| (*i, past.hash) != (index, block.hash));
+            self.history.push_back((index, block.clone()));
+        }
+        while self.history.len() > HISTORY {
+            self.history.pop_front();
+        }
+        self.projection = graph;
+        self.projection_tip = Some(tip);
     }
 
     /// The chain tip the published pool is anchored to, once one is published.
@@ -76,10 +85,15 @@ impl ReadOnlyState {
         &self.projection
     }
 
-    pub(crate) fn historical_block0(&self, hash: MempoolBlockHash) -> Option<Arc<[Arc<Transaction>]>> {
+    /// Block `index`'s bodies as published under `hash`, while history keeps them.
+    pub(crate) fn historical_block(
+        &self,
+        index: usize,
+        hash: MempoolBlockHash,
+    ) -> Option<Arc<[Arc<Transaction>]>> {
         self.history
             .iter()
-            .find(|(candidate, _)| *candidate == hash)
-            .map(|(_, bodies)| bodies.clone())
+            .find(|(i, past)| (*i, past.hash) == (index, hash))
+            .map(|(_, past)| past.bodies.clone())
     }
 }

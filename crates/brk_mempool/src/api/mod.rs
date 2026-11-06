@@ -5,9 +5,9 @@ use std::sync::Arc;
 use brk_types::{MempoolBlockHash, Transaction};
 
 pub mod addr;
-pub mod mempool_block;
 pub mod fees;
 pub mod histogram;
+pub mod mempool_block;
 pub mod published_tx;
 pub mod rbf;
 pub mod tx;
@@ -17,7 +17,7 @@ pub use mempool_block::MempoolBlockSource;
 pub use published_tx::PublishedTx;
 pub use rbf::{RbfForTx, RbfNode};
 
-/// A validated historical template captured for one diff request.
+/// A validated past block captured for one diff request.
 pub struct ResolvedMempoolBlockDiff {
     since: MempoolBlockHash,
     past: Arc<[Arc<Transaction>]>,

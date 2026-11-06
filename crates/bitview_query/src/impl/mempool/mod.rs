@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use brk_mempool::ReadOnlyState;
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
-use brk_types::{MempoolBlock, MempoolBlockHash, PreciseRecommendedFees, RecommendedFees, Txid};
+use brk_types::{
+    MempoolBlock, MempoolBlockHash, MempoolBlockIndex, PreciseRecommendedFees, RecommendedFees,
+    Txid,
+};
 use serde::{Serialize, Serializer};
 use serde_json::to_vec;
 
@@ -99,23 +102,41 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// Capture a published template for cheap validation and deferred construction.
-    pub fn resolve_mempool_block(&self) -> Result<MempoolBlockSource> {
-        let source = self.require_mempool()?.mempool_block_source();
-        source.hash()?;
-        Ok(source)
+    /// Capture a published block for cheap validation and deferred construction.
+    pub fn resolve_mempool_block(&self, index: MempoolBlockIndex) -> Result<MempoolBlockSource> {
+        served_block(&*self.require_mempool()?, index)
     }
 
     /// Validate history before conditional handling and capture both diff inputs.
     pub fn resolve_mempool_block_diff(
         &self,
+        index: MempoolBlockIndex,
         since: MempoolBlockHash,
     ) -> Result<ResolvedMempoolBlockDiff> {
         let mempool = self.require_mempool()?;
-        let resolved = mempool
-            .resolve_mempool_block_diff(since)
-            .ok_or_else(|| Error::NotFound(format!("unknown since hash: {since}")))?;
-        resolved.source().hash()?;
-        Ok(resolved)
+        let source = served_block(&mempool, index)?;
+        mempool
+            .resolve_mempool_block_diff(source, since)
+            .ok_or_else(|| Error::NotFound(format!("unknown since hash: {since}")))
     }
+}
+
+/// Block `index` of the published projection, or why it isn't served.
+fn served_block(mempool: &ReadOnlyState, index: MempoolBlockIndex) -> Result<MempoolBlockSource> {
+    if let Some(source) = mempool.mempool_block_source(index.get() as usize)? {
+        return Ok(source);
+    }
+    let projected = mempool.projected_blocks()?;
+    Err(Error::NotFound(if (index.get() as usize) < projected {
+        format!(
+            "Mempool block {index} holds what's left past block {}, more than a block: only its \
+             stats are served, by GET /api/v1/fees/mempool-blocks",
+            index.get() - 1
+        )
+    } else {
+        format!(
+            "Mempool block {index} isn't projected: blocks 0 to {} are",
+            projected - 1
+        )
+    }))
 }

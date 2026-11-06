@@ -1,5 +1,6 @@
-//! Where a response's object keys are data, not field names: the schema's maps, whose keys the
-//! JavaScript runtime leaves as sent (`_camelKeys`'s `keep`) while it camelCases field names.
+//! Where a response's object keys are data, not field names: the schema's maps and untyped values,
+//! whose keys the JavaScript runtime leaves as sent (`_camelKeys`'s `keep`) while it camelCases
+//! field names.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -30,6 +31,8 @@ pub(crate) fn keep_expr(ty: &Ty, schemas: &TypeSchemas) -> Option<String> {
 
 fn keep(ty: &Ty, schemas: &TypeSchemas, visiting: &mut BTreeSet<String>) -> Keep {
     match ty {
+        // An untyped value (an OpenAPI document) promises no field names: kept as sent.
+        Ty::Any | Ty::Object => Keep::All,
         Ty::Map(_) => under_map(ty, schemas),
         Ty::Union(variants) if variants.iter().any(|variant| matches!(variant, Ty::Map(_))) => {
             under_map(ty, schemas)

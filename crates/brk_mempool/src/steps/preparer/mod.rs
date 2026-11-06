@@ -37,14 +37,13 @@ pub fn prepare(
         .iter()
         .filter_map(|info| {
             let tx = new_txs.remove(&info.txid)?;
-            let listed = !template_only.contains(&info.txid);
-            Some(TxAddition::new(
-                info,
-                tx,
-                listed,
-                &state.txs,
-                &state.graveyard,
-            ))
+            // The entry and the body are separate calls: a witness variant replacing the one
+            // the entry describes in between leaves them unpaired (another weight). It stays
+            // unloaded until a poll fetches both of one variant.
+            (tx.compute_wtxid() == info.wtxid).then(|| {
+                let listed = !template_only.contains(&info.txid);
+                TxAddition::new(info, tx, listed, &state.txs, &state.graveyard)
+            })
         })
         .collect();
     let promoted = promoted(&live, template_only, state);

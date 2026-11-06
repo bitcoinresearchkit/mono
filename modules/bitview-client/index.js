@@ -572,7 +572,7 @@
  * CPFP of a transaction without known relatives: `{"ancestors":[]}`.
  *
  * @typedef {Object} EmptyCpfp
- * @property {*[]} ancestors
+ * @property {CpfpEntry[]} ancestors - Always empty.
  */
 /**
  * Index of an output with an empty script.
@@ -775,13 +775,15 @@
  *   later projected ones
  */
 /**
- * A projected mempool block with its transactions: block 0 is Bitcoin Core's
- * `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
+ * A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
+ * `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
+ * from base fees within Core's default budgets. Returned by
+ * `GET /api/mempool-blocks/{index}`.
  *
  * @typedef {Object} MempoolBlockContent
  * @property {MempoolBlockHash} hash - Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
  * @property {MempoolBlock} stats
- * @property {Transaction[]} transactions - Full transaction bodies in `getblocktemplate` order.
+ * @property {Transaction[]} transactions - Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
  */
 /**
  * A projected mempool block's changes since a prior copy identified by `since`. Returned by
@@ -796,8 +798,8 @@
  * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
  * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
  *   `[start, count]`, or a full transaction body.
- * @property {Txid[]} removed - Txids that left the projected next block since `since`
- *   (confirmed, evicted, replaced, or pushed past block 0).
+ * @property {Txid[]} removed - Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved
+ *   to another block).
  */
 /**
  * One stretch of the new block in a `MempoolBlockDiff`.
@@ -1768,6 +1770,9 @@ const _ADDRESS_PAYLOAD_LENGTHS = new Map([
   ['p2a', 2],
 ]);
 
+/** Where a series response keeps its keys as sent (`_camelKeys`'s `keep`): its values. */
+const _SERIES_KEEP = { "data": true };
+
 /**
  * @typedef {Object} BitviewClientOptions
  * @property {string} baseUrl
@@ -2437,7 +2442,7 @@ class BitviewClientBase {
       : { ...(arg ?? {}), ...(options ?? {}) };
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue });
+    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
     return _wrapSeriesData(raw);
   }
 }
@@ -8238,7 +8243,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return _wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }));
+    return _wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }, _SERIES_KEEP));
   }
 
   /**
@@ -8266,7 +8271,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/data${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache }, true);
   }
 
   /**
@@ -8283,7 +8288,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getSeriesLatest(series, index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/latest`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache }, true);
   }
 
   /**
@@ -8345,7 +8350,7 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/series/bulk${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return (await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData);
+    return (await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) }, _SERIES_KEEP)).map(_wrapSeriesData);
   }
 
   /**
@@ -8459,7 +8464,7 @@ class BitviewClient extends BitviewClientBase {
     if (currency !== undefined) params.set('currency', String(currency));
     const query = params.toString();
     const path = `/api/v1/historical-price${query ? '?' + query : ''}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache }, { "exchangeRates": true });
   }
 
   /**
@@ -9237,7 +9242,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool blocks
    *
-   * Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.
+   * Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees: a node operator's `prioritisetransaction` deltas or mining options shape block 0 only, the last holding whatever is left, more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, but such a last one.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
@@ -9363,7 +9368,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block
    *
-   * A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+   * A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
@@ -9742,7 +9747,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getOpenapi({ signal, onValue, cache, memCache } = {}) {
     const path = `/openapi.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache }, true);
   }
 
   /**
@@ -9756,7 +9761,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async getApi({ signal, onValue, cache, memCache } = {}) {
     const path = `/api.json`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
+    return this.getJson(path, { signal, onValue, cache, memCache }, true);
   }
 
 }

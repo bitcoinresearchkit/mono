@@ -667,7 +667,7 @@ class BitviewClientBase {
       : { ...(arg ?? {}), ...(options ?? {}) };
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
-    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue });
+    const raw = await this.getJson(path, { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
     return _wrapSeriesData(raw);
   }
 }

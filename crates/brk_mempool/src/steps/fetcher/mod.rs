@@ -97,6 +97,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
             new_txs.insert(txid, g.decode()?);
             let entry = MempoolEntryInfo {
                 txid,
+                wtxid: g.wtxid,
                 vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
                 weight: g.weight,
                 fee: g.fee,

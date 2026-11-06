@@ -21,10 +21,10 @@ pub struct TxEntry {
 }
 
 impl TxEntry {
-    pub fn new(info: &MempoolEntryInfo, wtxid: Wtxid, size: u64, rbf: bool) -> Self {
+    pub fn new(info: &MempoolEntryInfo, size: u64, rbf: bool) -> Self {
         Self {
             txid: info.txid,
-            wtxid,
+            wtxid: info.wtxid,
             fee: info.fee,
             vsize: info.vsize,
             weight: info.weight,

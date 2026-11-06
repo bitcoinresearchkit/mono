@@ -35,9 +35,8 @@ impl TxAddition {
     ) -> Self {
         let total_size = tx.total_size();
         let rbf = tx.input.iter().any(|i| i.sequence.is_rbf());
-        let wtxid = tx.compute_wtxid();
         let built = Self::build_tx(info, tx, total_size, mempool_txs);
-        let mut entry = TxEntry::new(info, wtxid, total_size as u64, rbf);
+        let mut entry = TxEntry::new(info, total_size as u64, rbf);
         if let Some(record) = mempool_txs.record(&info.txid) {
             entry.first_seen = record.entry.first_seen;
         } else if let Some(tomb) = graveyard.get(&info.txid) {

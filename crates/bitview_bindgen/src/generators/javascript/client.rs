@@ -1,13 +1,15 @@
 use std::fmt::Write;
 
 use crate::{
-    ClientConstants, IndexSetPattern, address_payload_lengths, calendars, camel_case_keys,
-    format_json, name_constants,
+    ClientConstants, IndexSetPattern, Ty, TypeSchemas, address_payload_lengths, calendars,
+    camel_case_keys, format_json, generators::javascript::keep::keep_expr, name_constants,
 };
 
 /// The fixed runtime (`runtime.js`: base client, endpoints, caching and address hashing) after
 /// the server's tables it reads.
-pub(crate) fn generate_base_client(output: &mut String) {
+pub(crate) fn generate_base_client(output: &mut String, schemas: &TypeSchemas) {
+    let series_keep = keep_expr(&Ty::Ref("SeriesData".to_owned()), schemas)
+        .unwrap_or_else(|| "undefined".to_owned());
     let calendars = calendars();
     let date_indexes = calendars
         .iter()
@@ -41,6 +43,9 @@ const _CALENDARS = new Map([
  */
 const _ADDRESS_PAYLOAD_LENGTHS = new Map([
 {payload_lengths}]);
+
+/** Where a series response keeps its keys as sent (`_camelKeys`'s `keep`): its values. */
+const _SERIES_KEEP = {series_keep};
 
 "#
     )

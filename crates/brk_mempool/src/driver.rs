@@ -9,7 +9,7 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, TxOut, Txid, Vout};
-use rapidhash::RapidHashMap;
+use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::{error, info, warn};
 
 use crate::{
@@ -139,15 +139,24 @@ impl Mempool {
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
+        // The template and the listing agree, and every listed transaction is loaded.
+        let membership_complete =
+            self.state.template_only.is_empty() && self.state.contains_all(&rpc.live_txids);
+        let unloaded: RapidHashSet<Txid> = if membership_complete {
+            RapidHashSet::default()
+        } else {
+            rpc.live_txids
+                .iter()
+                .filter(|txid| !self.state.txs.contains(txid))
+                .copied()
+                .collect()
+        };
         self.rebuilder
-            .tick(&self.state, &block_template_txids, rpc.min_fee);
+            .tick(&self.state, &block_template_txids, rpc.min_fee, &unloaded);
         if coherent_tip {
             // Never ahead of the chain readers pair the pool with.
             if gate().is_none_or(|published| published == rpc.tip_hash) {
-                self.publish_observation(
-                    rpc.tip_hash,
-                    self.state.template_only.is_empty() && self.state.contains_all(&rpc.live_txids),
-                );
+                self.publish_observation(rpc.tip_hash, membership_complete);
             }
         }
         Ok(())

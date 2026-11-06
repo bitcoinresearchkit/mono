@@ -41,5 +41,11 @@ pub struct ConfirmedCpfp {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct EmptyCpfp {
+    /// Always empty.
+    // Typed as the entries it lacks: `[T; 0]` alone gives an array of anything.
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(with = "Vec<CpfpEntry>", length(max = 0))
+    )]
     pub ancestors: [CpfpEntry; 0],
 }

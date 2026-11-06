@@ -98,9 +98,9 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     let fetch_call = if endpoint.returns_binary() {
         format!("this.{verb}Bytes({args})")
     } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
-        "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
+        "_wrapSeriesData(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }, _SERIES_KEEP))".to_string()
     } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
-        "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
+        "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) }, _SERIES_KEEP)).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
         // Map keys are data: they stay as sent while field names are camelCased.
         match response.and_then(|ty| keep_expr(ty, schemas)) {

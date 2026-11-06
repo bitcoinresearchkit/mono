@@ -7,9 +7,9 @@ use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
-use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended, params::served};
+use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended};
 
-/// A projected mempool block with its transactions (block 0: about 12 MB).
+/// A projected mempool block with its transactions (about 10 MB each).
 pub async fn serve(
     state: AppState,
     headers: HeaderMap,
@@ -20,12 +20,11 @@ pub async fn serve(
         headers,
         &state.mempool_block_bodies,
         move |query| {
-            served(index)?;
-            let source = query.resolve_mempool_block()?;
-            let params = CacheParams::live(format!("mempool-block-0-{}", source.hash()?));
+            let source = query.resolve_mempool_block(index)?;
+            let params = CacheParams::live(format!("mempool-block-{index}-{}", source.hash()));
             Ok((source, params))
         },
-        |source| source.build(),
+        |source| Ok(source.build()),
     )
     .await
 }
@@ -42,16 +41,15 @@ pub async fn serve_diff(
         headers,
         &state.mempool_block_diff_bodies,
         move |query| {
-            served(index)?;
-            let resolved = query.resolve_mempool_block_diff(since)?;
+            let resolved = query.resolve_mempool_block_diff(index, since)?;
             let params = CacheParams::live(format!(
-                "mempool-block-0-diff-{}-{}",
+                "mempool-block-{index}-diff-{}-{}",
                 resolved.since(),
-                resolved.source().hash()?
+                resolved.source().hash()
             ));
             Ok((resolved, params))
         },
-        |resolved| resolved.build(),
+        |resolved| Ok(resolved.build()),
     )
     .await
 }

@@ -491,6 +491,15 @@ class CpfpEntry(TypedDict):
     weight: Weight
     fee: Sats
 
+class EmptyCpfp(TypedDict):
+    """
+    CPFP of a transaction without known relatives: `{"ancestors":[]}`.
+
+    Attributes:
+        ancestors: Always empty.
+    """
+    ancestors: List[CpfpEntry]
+
 class AddressMempoolStats(TypedDict):
     """
     Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
@@ -1091,12 +1100,6 @@ class ErrorBody(TypedDict):
     """
     error: ErrorDetail
 
-class EmptyCpfp(TypedDict):
-    """
-    CPFP of a transaction without known relatives: `{"ancestors":[]}`.
-    """
-    ancestors: List[Any]
-
 class PricePoint(TypedDict):
     """
     A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
@@ -1682,7 +1685,7 @@ class MempoolBlockDiff(TypedDict):
         since: Echoed prior hash the diff was computed against.
         stats: Stats of the new block; they can change while every transaction is retained.
         order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
-        removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
+        removed: Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
     """
     hash: MempoolBlockHash
     since: MempoolBlockHash
@@ -1692,12 +1695,14 @@ class MempoolBlockDiff(TypedDict):
 
 class MempoolBlockContent(TypedDict):
     """
-    A projected mempool block with its transactions: block 0 is Bitcoin Core's
-    `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
+    A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
+    `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
+    from base fees within Core's default budgets. Returned by
+    `GET /api/mempool-blocks/{index}`.
 
     Attributes:
         hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
-        transactions: Full transaction bodies in `getblocktemplate` order.
+        transactions: Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
     """
     hash: MempoolBlockHash
     stats: MempoolBlock
@@ -6595,7 +6600,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
 
-        Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.
+        Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees: a node operator's `prioritisetransaction` deltas or mining options shape block 0 only, the last holding whatever is left, more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, but such a last one.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
 
@@ -6673,7 +6678,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block(self, index: MempoolBlockIndex) -> MempoolBlockContent:
         """Projected mempool block.
 
-        A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+        A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
         Endpoint: `GET /api/mempool-blocks/{index}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}')

@@ -18,6 +18,7 @@ use brk_types::{
 };
 use builder::KeyIndex;
 pub use rebuilder::Rebuilder;
+use rapidhash::RapidHashSet;
 use rustc_hash::FxHasher;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
@@ -38,18 +39,29 @@ pub struct Snapshot {
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
     min_fee: FeeRate,
-    /// Content identity of the published template statistics and complete bodies.
-    pub mempool_block_hash: MempoolBlockHash,
     key_to_idx: KeyIndex,
-    template_transactions: Arc<[Arc<Transaction>]>,
+    /// The blocks served with their transactions: block 0 and the projection's, but a last one
+    /// holding more than a block (what's left, mempool.space's catch-all).
+    served: Vec<ServedBlock>,
     content_revision: u64,
     template_missing: bool,
+    /// The gaps of the view it was built from (template-only txids, listed txids not loaded):
+    /// a rebuild from the same view, gaps included, reuses it.
+    pub(crate) template_only: RapidHashSet<Txid>,
+    pub(crate) unloaded: RapidHashSet<Txid>,
+}
+
+/// A projected block's bodies in block order, frozen at publication, and its content identity.
+#[derive(Clone)]
+pub(crate) struct ServedBlock {
+    pub hash: MempoolBlockHash,
+    pub bodies: Arc<[Arc<Transaction>]>,
 }
 
 impl Snapshot {
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
-    fn build(
+    pub(crate) fn build(
         txs: Vec<SnapTx>,
         block0: Vec<TxIndex>,
         rest: &[Vec<(TxIndex, FeeRate)>],
@@ -66,33 +78,42 @@ impl Snapshot {
             precise_fees,
             fees,
             min_fee,
-            mempool_block_hash: MempoolBlockHash::ZERO,
             key_to_idx,
-            template_transactions: Arc::from([]),
+            served: Vec::new(),
             content_revision: 0,
             template_missing: false,
+            template_only: RapidHashSet::default(),
+            unloaded: RapidHashSet::default(),
         }
     }
 
-    /// Freeze selected bodies before publication. Hash the complete public
-    /// content, not only txids: prevout fills also change fee/sigop fields, which
-    /// each body's `digests` entry follows.
-    fn set_template(
+    /// Freeze the served blocks' bodies (block 0 first), each with its digests, before
+    /// publication. Each hash covers the complete public content, not only txids: prevout fills
+    /// also change fee/sigop fields, which each body's digest follows.
+    pub(crate) fn set_served(
         &mut self,
-        bodies: Vec<Arc<Transaction>>,
-        digests: &[u64],
+        blocks: Vec<(Vec<Arc<Transaction>>, Vec<u64>)>,
         revision: u64,
         missing: bool,
     ) {
-        let stats = self.template_stats();
-        let mut hasher = FxHasher::default();
-        hasher.write(b"template-v3");
-        hasher.write(&to_vec(&stats).expect("template stats serialize"));
-        for &digest in digests {
-            hasher.write_u64(digest);
-        }
-        self.mempool_block_hash = MempoolBlockHash::new(hasher.finish());
-        self.template_transactions = bodies.into();
+        debug_assert!(!blocks.is_empty() && blocks.len() <= self.block_stats.len());
+        self.served = blocks
+            .into_iter()
+            .enumerate()
+            .map(|(index, (bodies, digests))| {
+                let mut hasher = FxHasher::default();
+                hasher.write(b"mempool-block-v4");
+                hasher.write_usize(index);
+                hasher.write(&to_vec(&self.stats(index)).expect("block stats serialize"));
+                for digest in digests {
+                    hasher.write_u64(digest);
+                }
+                ServedBlock {
+                    hash: MempoolBlockHash::new(hasher.finish()),
+                    bodies: bodies.into(),
+                }
+            })
+            .collect();
         self.content_revision = revision;
         self.template_missing = missing;
     }
@@ -116,13 +137,21 @@ impl Snapshot {
         Some(self.txs[idx.as_usize()].chunk_rate)
     }
 
-    /// Block zero's statistics, as published with its template.
-    pub(crate) fn template_stats(&self) -> MempoolBlock {
-        MempoolBlock::from(&self.block_stats[0])
+    /// Block `index`'s statistics, as published with its bodies.
+    pub(crate) fn stats(&self, index: usize) -> MempoolBlock {
+        MempoolBlock::from(&self.block_stats[index])
     }
 
-    pub(crate) fn template_transactions(&self) -> &Arc<[Arc<Transaction>]> {
-        &self.template_transactions
+    /// Block `index` with its transactions, once a projection is published: `None` past the
+    /// projection, and for a last block holding more than a block.
+    pub(crate) fn served(&self, index: usize) -> Result<Option<&ServedBlock>> {
+        self.ensure_projection()?;
+        Ok(self.served.get(index))
+    }
+
+    /// Every served block, block 0 first.
+    pub(crate) fn served_blocks(&self) -> &[ServedBlock] {
+        &self.served
     }
 
     pub(crate) fn content_revision(&self) -> u64 {

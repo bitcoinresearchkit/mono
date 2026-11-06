@@ -11,8 +11,6 @@ use serde::{Deserialize, Serialize};
 pub struct MempoolBlockIndex(u32);
 
 impl MempoolBlockIndex {
-    pub const NEXT: Self = Self(0);
-
     pub const fn new(index: u32) -> Self {
         Self(index)
     }

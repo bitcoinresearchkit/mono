@@ -48,9 +48,11 @@ On a loaded `ReadOnlyState`:
 - `info_json`, `txids`/`txids_hash`, `recent_txs` and `transaction_times_with_hash` need a
   completed pool observation and return `StateUpdating` before the first one.
 - `fees`, `precise_fees` and `block_stats` expose recommendations and projected-block statistics.
-- `mempool_block_source` captures the projected next block in Bitcoin Core's
-  `getblocktemplate` order; `resolve_mempool_block_diff` captures the changes since a recent
-  template hash. Both build serializable views over the shared bodies, without copying them.
+- `mempool_block_source` captures a projected block with its transactions in block order (block
+  0's: Bitcoin Core's `getblocktemplate`'s); `resolve_mempool_block_diff` captures a block's
+  changes since a recent hash of it. Both build serializable views over the shared bodies,
+  without copying them. Every projected block is served but a last one holding more than a block
+  (what's left of a busy mempool, mempool.space's catch-all): that one has only its statistics.
 - `contains_txid`, `transaction` and the outspend reads take the caller's full chain-tip hash
   and require a publication at that tip. `transaction` shares an immutable live or recently
   vanished body; replaced tombstones are excluded.
@@ -64,14 +66,18 @@ On a loaded `ReadOnlyState`:
 Block 0 is Core's `getblocktemplate` selection. Every dependency component (edges from each
 body's inputs as the pool stands at each rebuild) is linearized once, whole, in one order
 whichever member a walk starts from (`brk_cpfp`: optimal up to 64 members); its chunk feerates
-are the members' CPFP rates. Later projected blocks are packed as a miner running Core packs:
+are the members' CPFP rates. Later projected blocks are packed as Core's block assembler packs,
+from base fees (an operator's `prioritisetransaction` deltas and mining options shape block 0 only):
 whole chunks by descending feerate, in dependency order, within Core's default weight and sigop
 budgets (3,992,000 WU and 79,600 sigops of transactions; a candidate tested at its policy size,
 the block counting actual weight); a component block 0 took part of is linearized again without
 those members; a chunk that doesn't fit waits for the next block with the rest of its component,
 one no block can hold for the last; a block closes after 1,000 misses in a row within 4,000 WU
-of full. Up to eight blocks in all, the last a catch-all; empty trailing blocks are not
-projected. Each projected member's fee statistics use the feerate it was packed at, and every
+of full. Up to eight blocks in all, mempool.space's count, the last a catch-all; empty trailing
+blocks are not projected. From an incomplete view (Core's template a few seconds older than its
+listing, or listed transactions not loaded yet) the blocks after block 0 leave out what couldn't
+follow it: a transaction spending an outpoint a template-only one spends (its replacement), one
+spending a listed transaction not loaded yet, and their descendants. Each projected member's fee statistics use the feerate it was packed at, and every
 effective feerate is fee over the sigop-adjusted weight's exact quarter (Core's chunk feerates,
 mempool.space's effective ones); a block's `blockVSize` is its weight over 4. Maps keyed by addresses,
 txids or outpoints are seeded per process (rapidhash), so crafted keys cannot collide them.

@@ -1,13 +1,15 @@
-//! Projected blocks 1..N, packed as a miner running Core packs: block 0 is Core's
-//! `getblocktemplate` (the caller's); the rest take whole chunks by descending feerate, in
-//! dependency order, each block within Core's weight and sigop budgets. Components that block 0
-//! took part of are linearized again without those members. A chunk that doesn't fit waits for
-//! the next block, and so does the rest of its component (Core's block builder skips the
-//! cluster); a block closes once 1,000 chunks in a row failed with it within 4,000 WU of full
-//! (Core's `BlockAssembler`). As Core's, a candidate is tested at its sigop-adjusted weight and
-//! the block counts its actual weight. A chunk no block could hold waits for the last, which takes
-//! whatever is left; trailing empty blocks are not made. The budgets are Core's defaults
-//! (`-blockreservedweight`, `-bytespersigop`).
+//! Projected blocks 1..N, packed as Core's block assembler packs, from base fees within Core's
+//! default budgets (an operator's `prioritisetransaction` deltas and mining options shape only
+//! block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
+//! descending feerate, in dependency order, each block within Core's weight and sigop budgets.
+//! Components that block 0 took part of are linearized again without those members. A chunk that
+//! doesn't fit waits for the next block, and so does the rest of its component (Core's block
+//! builder skips the cluster); a block closes once 1,000 chunks in a row failed with it within
+//! 4,000 WU of full (Core's `BlockAssembler`). As Core's, a candidate is tested at its
+//! sigop-adjusted weight and the block counts its actual weight. A chunk no block could hold waits
+//! for the last, which takes whatever is left (mempool.space's catch-all, then more than a block);
+//! trailing empty blocks are not made. The budgets are Core's defaults (`-blockreservedweight`,
+//! `-bytespersigop`).
 
 use std::mem;
 
@@ -70,12 +72,18 @@ impl Chunks {
 }
 
 /// Blocks after block 0 (the `excluded` members), each member with the feerate it was packed at.
+pub struct Projection {
+    pub blocks: Vec<Vec<(TxIndex, FeeRate)>>,
+    /// Whether the last block holds more than a block could: what was left past the others.
+    pub overflow: bool,
+}
+
 pub fn partition(
     txs: &[SnapTx],
     chunks: &Chunks,
     excluded: &[bool],
     num_blocks: usize,
-) -> Vec<Vec<(TxIndex, FeeRate)>> {
+) -> Projection {
     debug_assert!(num_blocks > 0);
     debug_assert_eq!(txs.len(), excluded.len());
     let mut left = Chunks::default();
@@ -102,10 +110,10 @@ pub fn partition(
         }
         left.end_component();
     }
-    let blocks = pack(txs, &left, num_blocks);
+    let projection = pack(txs, &left, num_blocks);
     #[cfg(debug_assertions)]
-    check_order(txs, excluded, &blocks);
-    blocks
+    check_order(txs, excluded, &projection.blocks);
+    projection
 }
 
 struct Candidate {
@@ -131,7 +139,7 @@ impl Candidate {
     }
 }
 
-fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Vec<Vec<(TxIndex, FeeRate)>> {
+fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
     let mut cands: Vec<Candidate> = Vec::with_capacity(chunks.chunks.len());
     for (component, range) in chunks.components().enumerate() {
         let key = txs[chunks.span(range)[0].as_usize()].txid;
@@ -150,8 +158,12 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Vec<Vec<(TxIndex,
         }
     }
     // A component's chunks keep their order: their feerates never increase, ties go by chunk.
-    let per_weight =
-        |c: &Candidate| (u128::from(u64::from(c.fee)), u128::from(u64::from(c.policy)));
+    let per_weight = |c: &Candidate| {
+        (
+            u128::from(u64::from(c.fee)),
+            u128::from(u64::from(c.policy)),
+        )
+    };
     cands.sort_unstable_by(|a, b| {
         let ((fee_a, weight_a), (fee_b, weight_b)) = (per_weight(a), per_weight(b));
         (fee_b * weight_a)
@@ -168,6 +180,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Vec<Vec<(TxIndex,
     let mut deferred: Vec<usize> = Vec::new();
     // Set once nothing left fits a block: what's left goes to the last.
     let mut stuck = false;
+    let mut overflow = false;
     while !pending.is_empty() {
         let last = stuck || blocks.len() + 1 == num_blocks;
         pass += 1;
@@ -182,7 +195,9 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Vec<Vec<(TxIndex,
                 deferred.push(c);
                 continue;
             }
-            if !(last || cand.fits(weight, sigops)) {
+            let fits = cand.fits(weight, sigops);
+            overflow |= last && !fits;
+            if !(last || fits) {
                 missed[cand.component as usize] = pass;
                 deferred.push(c);
                 failures += 1;
@@ -206,7 +221,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Vec<Vec<(TxIndex,
         pending.clear();
         mem::swap(&mut pending, &mut deferred);
     }
-    blocks
+    Projection { blocks, overflow }
 }
 
 /// Every member comes after its parents: block 0's, earlier blocks' or its own block's earlier.
@@ -215,8 +230,15 @@ fn check_order(txs: &[SnapTx], excluded: &[bool], blocks: &[Vec<(TxIndex, FeeRat
     let mut placed = excluded.to_vec();
     for &(m, _) in blocks.iter().flatten() {
         let t = &txs[m.as_usize()];
-        debug_assert!(t.parents.iter().all(|p| placed[p.as_usize()]), "{} before a parent", t.txid);
+        debug_assert!(
+            t.parents.iter().all(|p| placed[p.as_usize()]),
+            "{} before a parent",
+            t.txid
+        );
         placed[m.as_usize()] = true;
     }
-    debug_assert!(placed.iter().all(|&p| p), "a transaction left out of every block");
+    debug_assert!(
+        placed.iter().all(|&p| p),
+        "a transaction left out of every block"
+    );
 }
