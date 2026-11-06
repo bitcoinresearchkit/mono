@@ -217,8 +217,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/v1/mining/blocks/timestamp/0".into(),
         ),
         get("oracle price not computed", "/api/oracle/price".into()),
-        get("oracle block before its start", "/api/oracle/blocks/100".into()),
-        get("oracle payments off a day's start", "/api/oracle/payments/972721".into()),
+        get(
+            "oracle block before its start",
+            "/api/oracle/blocks/100".into(),
+        ),
+        get(
+            "oracle payments off a day's start",
+            "/api/oracle/payments/972721".into(),
+        ),
         get("urpd without history", "/api/urpd/all".into()),
         get("urpd of unknown cohort", "/api/urpd/nocohort/100".into()),
         get("urpd at a point", "/api/urpd/all/100".into()),
@@ -301,6 +307,10 @@ fn errors() -> Vec<(&'static str, ServerError)> {
             QueryError::TooManyUtxos {
                 max: DEFAULT_MAX_UTXOS,
             },
+        ),
+        query(
+            "limit exceeded",
+            QueryError::LimitExceeded("RBF history exceeds its depth limit"),
         ),
         query("query read timeout", QueryError::ReadTimeout),
         // Built by the server itself.

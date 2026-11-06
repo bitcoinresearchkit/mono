@@ -26,8 +26,11 @@ Events (one JSON object per line), from each published pool against the previous
   State (on the first cycle, then whenever the value changes):
     {"kind":"tip","t":..,"hash":..,"height":..}        (chain tip)
     {"kind":"block","t":..,"hash":..,"count":..,"vsize":..,"fee":..}
-                                                       (next-block template)
+                                                       (next-block template; vsize its weight / 4)
     {"kind":"fees","t":..,"fastest":..,"half_hour":..,"hour":..,"economy":..,"minimum":..}
+
+  A transaction's and the pool's vsize (enter, cycle) is Core's policy vsize, sigop-adjusted: what fee
+  rates divide by. A new tip comes before the leaves its block mined.
 
   Per-cycle heartbeat (every successful cycle):
     {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"tick_ms":N}

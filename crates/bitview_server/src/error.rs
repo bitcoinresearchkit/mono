@@ -40,6 +40,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
         }
         QueryError::WeightExceeded { .. } => (StatusCode::BAD_REQUEST, ErrorCode::WeightExceeded),
         QueryError::TooManyUtxos { .. } => (StatusCode::BAD_REQUEST, ErrorCode::TooManyUtxos),
+        QueryError::LimitExceeded(_) => (StatusCode::BAD_REQUEST, ErrorCode::LimitExceeded),
         QueryError::UnknownAfterTxid => (
             StatusCode::UNPROCESSABLE_ENTITY,
             ErrorCode::UnknownAfterTxid,

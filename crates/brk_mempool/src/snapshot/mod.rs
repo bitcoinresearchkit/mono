@@ -38,6 +38,9 @@ pub struct Snapshot {
     pub(crate) block_stats: Vec<BlockStats>,
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
+    /// Whether `fees` and `precise_fees` come from a complete view: blocks after block 0 built
+    /// from part of the pool (still loading, or a stale template) would quote too low.
+    pub(crate) fees_complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -85,6 +88,7 @@ impl Snapshot {
             block_stats,
             precise_fees,
             fees,
+            fees_complete: true,
             min_fee,
             key_to_idx,
             chunks,
@@ -167,6 +171,15 @@ impl Snapshot {
 
     pub(crate) fn content_revision(&self) -> u64 {
         self.content_revision
+    }
+
+    /// [`Self::ensure_projection`], with tiers from a complete view.
+    pub(crate) fn ensure_fees(&self) -> Result<()> {
+        self.ensure_projection()?;
+        if !self.fees_complete {
+            return Err(QueryError::StateUpdating);
+        }
+        Ok(())
     }
 
     /// A default snapshot is not an observed empty mempool. A real publication

@@ -15,6 +15,9 @@ pub struct Confirmed {
     txids: RapidHashSet<Txid>,
     /// Each confirmed spend's outpoint and its spender.
     spends: RapidHashMap<(Txid, Vout), Txid>,
+    /// The new tip's block couldn't be read: the next cycle reads the blocks again, from the same
+    /// last tip.
+    pub incomplete: bool,
 }
 
 impl Confirmed {
@@ -39,6 +42,9 @@ impl Confirmed {
                 }
                 Err(error) => {
                     debug!(%error, "mempool: reading a new block's transactions failed");
+                    // The newest block unread: the next cycle tries again from the same last tip.
+                    // An older one's loss stays (its confirmations read as vanished).
+                    confirmed.incomplete = hash == tip;
                     break;
                 }
             }
@@ -50,8 +56,8 @@ impl Confirmed {
         self.txids.contains(txid)
     }
 
-    pub fn txids(&self) -> impl Iterator<Item = &Txid> {
-        self.txids.iter()
+    pub fn is_empty(&self) -> bool {
+        self.txids.is_empty()
     }
 
     /// The confirmed transaction spending an outpoint `inputs` spend, other than the transaction

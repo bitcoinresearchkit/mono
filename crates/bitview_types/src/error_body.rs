@@ -57,6 +57,7 @@ pub enum ErrorCode {
     SeriesUnsupportedIndex,
     WeightExceeded,
     TooManyUtxos,
+    LimitExceeded,
     UnknownAfterTxid,
     UnknownAddress,
     UnknownTxid,

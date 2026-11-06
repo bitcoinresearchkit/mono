@@ -110,6 +110,16 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   mainnet before, where blocks 2-8 change every second)
 - `/api/v1/replacements` gives each tree its own work budget: one oversized tree no longer ends the listing early;
   a tree whose replacer a block confirmed unseen stays rooted at the last transaction the pool knows
+- `/api/v1/tx/{txid}/rbf` answers a history past its bounds (63 versions, 4,096 transactions) with 400
+  `limit_exceeded` instead of 500 (it was 32 versions); `/api/v1/replacements` no longer lists a lone transaction
+  as a tree when its replacer was confirmed unseen
+- Fee tiers come only from a complete view of the pool: while it loads, or while Core's template is stale, the
+  last complete view's tiers stand, raised to the current `mempoolminfee` floor (they sank toward the floor, built
+  from part of the pool), and the fee endpoints answer 503 before the first
+- A transaction a new block confirmed reads mined even when it was buried as vanished first (the block read failed
+  or lagged), and a vanished one a confirmed conflict displaced reads replaced by it; a failed read of the new tip's
+  block is retried the next cycle
+- mmpl writes a new tip before the leaves its block mined
 - RBF history stays as mempool.space's does: a replacement tree as long as its newest version is pending, and 24
   hours after it left (an hour after each burial before, even with the replacer pending); a replaced version a
   block confirmed after all reads mined. The graveyard holds 256 MiB of bodies at most: past it the oldest lone

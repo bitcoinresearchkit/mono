@@ -13,8 +13,8 @@ use crate::{
 };
 
 /// Applies a prepared diff to private working state: re-assert promoted
-/// spends, bury removals, insert additions, mark what the new blocks confirmed among the buried,
-/// then evict old tombstones. A burial keeps its chunk rate from the previous cycle's graph, or
+/// spends, bury removals, insert additions, tell the buried what the new blocks confirmed, then
+/// evict old tombstones. A burial keeps its chunk rate from the previous cycle's graph, or
 /// its own fee rate if that graph lacks it.
 pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confirmed: &Confirmed) {
     let PoolDiff {
@@ -41,7 +41,15 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
         state.graveyard.exhume(&entry.txid);
         insert_one(state, tx, entry, listed);
     }
-    state.graveyard.mark_mined(confirmed.txids());
+    if !confirmed.is_empty() {
+        state.graveyard.confirm(
+            |txid| confirmed.mined(txid),
+            |tombstone| {
+                let tx = &tombstone.record.tx;
+                confirmed.conflict(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
+            },
+        );
+    }
     let txs = &state.txs;
     state.graveyard.evict_old(|txid| txs.contains(txid));
 }

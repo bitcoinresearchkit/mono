@@ -7,7 +7,7 @@ use rapidhash::RapidHashSet;
 
 use crate::{State, key::TxKey};
 
-use super::{SnapTx, Snapshot, TxIndex, builder::ChunkCache, partition};
+use super::{SnapTx, Snapshot, TxIndex, builder::ChunkCache, fees, partition};
 
 /// Projected blocks, mempool.space's count: block 0 and seven packed after it, the last holding
 /// whatever is left.
@@ -55,6 +55,7 @@ impl Rebuilder {
             fee_deltas,
             unloaded,
             &mut self.chunks,
+            &self.snapshot,
         ));
     }
 
@@ -65,6 +66,7 @@ impl Rebuilder {
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         cache: &mut ChunkCache,
+        previous: &Snapshot,
     ) -> Snapshot {
         let complete = state.template_only.is_empty() && unloaded.is_empty();
         let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, fee_deltas, cache);
@@ -119,6 +121,13 @@ impl Rebuilder {
         snapshot.template_only = state.template_only.clone();
         snapshot.unloaded = unloaded.clone();
         snapshot.fee_deltas = fee_deltas.into();
+        // An incomplete view's blocks after block 0 hold part of the pool: the last complete
+        // view's tiers stand meanwhile (none before the first), raised to Core's current floor.
+        if !complete {
+            snapshot.fees_complete = previous.fees_complete;
+            snapshot.fees = fees::floored_whole(&previous.fees, min_fee);
+            snapshot.precise_fees = fees::floored_precise(&previous.precise_fees, min_fee);
+        }
         snapshot
     }
 

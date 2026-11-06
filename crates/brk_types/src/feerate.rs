@@ -60,6 +60,16 @@ impl FeeRate {
 
     /// Round up to the nearest multiple of `nearest`.
     #[inline]
+    /// A rate of whole sat/vB as that integer, exactly (no float on the way): one that isn't whole
+    /// is a bug (checked in dev builds), rounded down in release.
+    pub fn whole_sats(self) -> u64 {
+        debug_assert!(
+            !self.is_nan() && self.0.is_multiple_of(1_000),
+            "a whole sat/vB rate"
+        );
+        self.0 / 1_000
+    }
+
     pub fn ceil_to(self, nearest: Self) -> Self {
         if self.is_nan() || nearest.is_nan() || nearest.0 == 0 {
             return Self::NAN;

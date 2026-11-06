@@ -206,25 +206,46 @@ impl TxGraveyard {
             .is_some_and(|root| root != *txid)
     }
 
-    /// Transactions a block confirmed: a replaced version buried among them was mined after all.
-    /// Its tombstone says so from now on (a lone one, or its tree's newest), which also ends a
-    /// cycle its replacer's confirmed conflict closed.
-    pub fn mark_mined<'a>(&mut self, txids: impl IntoIterator<Item = &'a Txid>) {
+    /// What new blocks confirmed, told to the buried: one they confirmed reads mined from now on (a
+    /// replaced version mined after all, which also ends a cycle its replacer's confirmed conflict
+    /// closed, or one buried vanished), and a vanished one a confirmed conflict displaced reads
+    /// replaced by it. A cycle that couldn't read its blocks buried them vanished; the next cycle's
+    /// read tells them here. O(tombstones and the vanished ones' inputs), on cycles with new blocks
+    /// only.
+    pub fn confirm(
+        &mut self,
+        mined: impl Fn(&Txid) -> bool,
+        conflict: impl Fn(&TxTombstone) -> Option<Txid>,
+    ) {
         let now = Instant::now();
-        for txid in txids {
-            let Some(tombstone) = self.tombstones.get(txid) else {
-                continue;
-            };
-            if tombstone.replaced_by().is_none() {
-                continue;
-            }
-            let previous = tombstone.clone();
-            self.remove_predecessor(txid, &previous);
-            let tombstone = self.tombstones.get_mut(txid).unwrap();
-            tombstone.removal = TxRemoval::Mined;
+        let changes: Vec<(Txid, TxRemoval)> = self
+            .tombstones
+            .iter()
+            .filter_map(|(txid, tombstone)| match tombstone.removal {
+                TxRemoval::Mined => None,
+                _ if mined(txid) => Some((*txid, TxRemoval::Mined)),
+                TxRemoval::Vanished => {
+                    conflict(tombstone).map(|by| (*txid, TxRemoval::Replaced { by }))
+                }
+                TxRemoval::Replaced { .. } => None,
+            })
+            .collect();
+        for (txid, removal) in changes {
+            let previous = self.tombstones.get(&txid).unwrap().clone();
+            self.remove_predecessor(&txid, &previous);
+            self.replaced -= usize::from(previous.replaced_by().is_some());
+            let tombstone = self.tombstones.get_mut(&txid).unwrap();
+            tombstone.removal = removal;
             tombstone.removed_at = now;
-            self.replaced -= 1;
-            self.order.push_back((now, *txid));
+            if let TxRemoval::Replaced { by } = removal {
+                self.predecessors_by_replacer
+                    .entry(by)
+                    .or_default()
+                    .push(txid);
+                self.replacements.push_back((now, txid));
+                self.replaced += 1;
+            }
+            self.order.push_back((now, txid));
             self.revision = self.revision.wrapping_add(1);
         }
     }

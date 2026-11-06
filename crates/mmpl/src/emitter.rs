@@ -56,6 +56,15 @@ impl Emitter {
         };
         let t = now_secs();
         let mut events = Vec::new();
+        // A new tip first: the leaves it mined follow it.
+        if self.prev_tip != Some(tip) {
+            let height = client.get_block_header_info(&tip)?.height as u32;
+            events.push(Event::Tip {
+                t,
+                hash: tip,
+                height: height.into(),
+            });
+        }
         // An unchanged pool (its txids' hash) has no one entering or leaving: the set isn't rebuilt.
         let txids_hash = state.txids_hash()?;
         let txids: Option<FxHashSet<Txid>> = if self.prev_txids_hash == Some(txids_hash) {
@@ -94,14 +103,6 @@ impl Emitter {
             }
         }
 
-        if self.prev_tip != Some(tip) {
-            let height = client.get_block_header_info(&tip)?.height as u32;
-            events.push(Event::Tip {
-                t,
-                hash: tip,
-                height: height.into(),
-            });
-        }
         let mempool_block_hash = state
             .mempool_block_source(0)
             .ok()

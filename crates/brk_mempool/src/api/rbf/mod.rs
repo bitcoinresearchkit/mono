@@ -18,8 +18,10 @@ pub use for_tx::RbfForTx;
 pub use node::RbfNode;
 
 const MAX_RBF_WORK: usize = 4096;
-// Also bounds later enrichment, JSON nesting and recursive destruction.
-const MAX_RBF_DEPTH: usize = 32;
+// Also bounds later enrichment, JSON nesting and recursive destruction: two levels a version plus
+// the response's own, 127 at 63 versions, within serde_json's default limit (128) every Rust
+// client parses with.
+const MAX_RBF_DEPTH: usize = 63;
 
 /// A history walk that ran past one of its bounds.
 enum Exceeded {
@@ -27,11 +29,12 @@ enum Exceeded {
     Depth,
 }
 
+/// A history past the bounds is a request over a limit, not a failure: a 400 `limit_exceeded`.
 impl From<Exceeded> for Error {
     fn from(exceeded: Exceeded) -> Self {
-        Error::Internal(match exceeded {
-            Exceeded::Work => "RBF history exceeds traversal limit",
-            Exceeded::Depth => "RBF history exceeds depth limit",
+        Error::LimitExceeded(match exceeded {
+            Exceeded::Work => "RBF history exceeds its size limit (4,096 transactions)",
+            Exceeded::Depth => "RBF history exceeds its depth limit (63 versions)",
         })
     }
 }
@@ -40,7 +43,7 @@ impl ReadOnlyState {
     /// Walk forward through `Replaced { by }` to the terminal replacer
     /// and return its full predecessor tree (none without a replacement),
     /// plus the requested tx's direct predecessors from the acquired publication.
-    /// Rejects histories exceeding 4096 traversal steps or 32 nested nodes;
+    /// Rejects (400 `limit_exceeded`) histories exceeding 4096 traversal steps or 63 nested nodes;
     /// never returns a silently truncated tree.
     pub fn rbf_for_tx(&self, txid: &Txid, tip: &BlockHash) -> Result<RbfForTx> {
         // Trees read entries and outputs, never prevouts: no input needs resolving.
@@ -108,7 +111,10 @@ impl ReadOnlyState {
                     Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0)
                 });
             total -= MAX_RBF_WORK.min(total) - remaining;
+            // A root that replaced nothing it knows (its replacer confirmed unseen) is no tree, as in
+            // `rbf_for_tx`.
             if let Some(Ok(Some(node))) = built
+                && !node.replaces.is_empty()
                 && (!full_rbf_only || node.full_rbf)
             {
                 trees.push(node);

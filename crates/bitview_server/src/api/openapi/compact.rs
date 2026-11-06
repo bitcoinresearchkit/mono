@@ -69,7 +69,14 @@ fn compact_parameter(param: &mut Map<String, Value>) {
         return;
     };
     for key in [
-        "enum", "default", "minimum", "maximum", "minItems", "maxItems", "minLength", "maxLength",
+        "enum",
+        "default",
+        "minimum",
+        "maximum",
+        "minItems",
+        "maxItems",
+        "minLength",
+        "maxLength",
     ] {
         if let Some(value) = schema.shift_remove(key)
             && !value.is_null()

@@ -33,7 +33,11 @@ pub async fn get(
         .acquire_owned()
         .await
         .map_err(|_| Error::internal("disk query admission closed"))?;
-    let last = *state.disk_walk.0.lock().unwrap_or_else(PoisonError::into_inner);
+    let last = *state
+        .disk_walk
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     if let Some((finished, brk_bytes, bitcoin_bytes)) = last
         && finished > arrived
     {
@@ -59,7 +63,11 @@ pub async fn get(
                 || walk::dir_size(q.blocks_dir(), &signal),
             );
             let totals = (brk_bytes?, bitcoin_bytes?);
-            *shared.disk_walk.0.lock().unwrap_or_else(PoisonError::into_inner) =
+            *shared
+                .disk_walk
+                .0
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner) =
                 Some((Instant::now(), totals.0, totals.1));
             Ok(totals)
         })

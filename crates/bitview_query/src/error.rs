@@ -30,6 +30,8 @@ pub enum Error {
     WeightExceeded { requested: usize, max: usize },
     #[error("Too many unspent transaction outputs (more than {max})")]
     TooManyUtxos { max: usize },
+    #[error("{0}")]
+    LimitExceeded(&'static str),
     #[error("after_txid not found")]
     UnknownAfterTxid,
 
@@ -81,6 +83,7 @@ impl From<brk_error::Error> for Error {
             Lower::InvalidAddress => Self::InvalidAddress,
             Lower::InvalidNetwork => Self::InvalidNetwork,
             Lower::UnindexableDate => Self::UnindexableDate,
+            Lower::LimitExceeded(limit) => Self::LimitExceeded(limit),
             error => Self::Lower(error),
         }
     }

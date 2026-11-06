@@ -525,7 +525,7 @@
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
-/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"unknown_pool"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
+/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"limit_exceeded"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"unknown_pool"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
 /**
  * @typedef {Object} ErrorDetail
  * @property {ErrorType} type - Error category, following the HTTP status

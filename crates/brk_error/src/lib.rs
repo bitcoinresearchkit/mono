@@ -114,6 +114,10 @@ pub enum Error {
     #[error("Internal error: {0}")]
     Internal(&'static str),
 
+    /// A request asking for more than one of the server's bounds serves.
+    #[error("{0}")]
+    LimitExceeded(&'static str),
+
     #[error(
         "No RPC credentials: no rpcpassword is set and there's no cookie file at {cookie:?} (is bitcoind running?)"
     )]
