@@ -36,19 +36,17 @@ impl Tip {
         };
         let mut header = [0; HEADER];
         dir.read_exact_at(&mut header, 0)?;
-        // Tips of older formats are rebuilt: restores use retained snapshots meanwhile. A writer
-        // removes page files no tip refers to: a reader racing it reads without that tip.
-        let pages = if &header[..8] == PAGED {
-            let pages = OpenOptions::new()
-                .read(true)
-                .write(writable)
-                .open(pages_path(path, snapshot::generation(&header)));
-            match pages {
-                Err(error) if error.kind() == ErrorKind::NotFound => None,
-                pages => Some(pages?),
-            }
-        } else {
-            None
+        if &header[..8] != PAGED {
+            return Err(invalid("unsupported snapshot tip layout; rebuild the state"));
+        }
+        // A writer removes page files no tip refers to: a reader racing it reads without that tip.
+        let pages = OpenOptions::new()
+            .read(true)
+            .write(writable)
+            .open(pages_path(path, snapshot::generation(&header)));
+        let pages = match pages {
+            Err(error) if error.kind() == ErrorKind::NotFound => None,
+            pages => Some(pages?),
         };
         let Some(pages) = pages else {
             if writable {
@@ -133,9 +131,9 @@ impl Snapshots {
         if &bytes[..8] != MAGIC {
             return Err(invalid("unsupported snapshot page index"));
         }
-        let retained_last = bytes[8];
-        if retained_last > 1 || bytes.len() == INDEX_HEADER && retained_last != 0 {
-            return Err(invalid("invalid snapshot retention"));
+        // Whether any snapshot is retained; older layouts also kept the tip in `data`, so fail.
+        if bytes[8] != u8::from(bytes.len() > INDEX_HEADER) {
+            return Err(invalid("unsupported snapshot page index layout; rebuild the state"));
         }
         let mut entries: Vec<(usize, u64, u64)> =
             Vec::with_capacity((bytes.len() - INDEX_HEADER) / ROW);
@@ -152,12 +150,6 @@ impl Snapshots {
             }
             entries.push((h, end, next - end));
             end = next;
-        }
-        // Older layouts kept the replaceable tip as the last entry of `data`: drop it.
-        if retained_last == 0
-            && let Some((_, at, _)) = entries.pop()
-        {
-            end = at;
         }
         // A reader may see snapshots appended after its index, or a rewind's truncation of
         // entries its index still lists (rewinds shorten the index first); a writer drops both.

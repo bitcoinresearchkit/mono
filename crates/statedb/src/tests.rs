@@ -504,3 +504,29 @@ fn model() -> Result<()> {
     m.check(&Stores::open(root)?)?;
     Ok(())
 }
+
+/// Snapshot files of an older layout fail to open, asking for a rebuild.
+#[test]
+fn older_layouts_fail() -> Result<()> {
+    let dir = Dir(std::env::temp_dir().join(format!("statedb-layouts-{}", std::process::id())));
+    let path = dir.0.join("utxo_set");
+    let _ = fs::remove_dir_all(&dir.0);
+    drop(History::open(&path)?);
+    let snapshots = path.join("snapshots");
+    let fails = || {
+        History::open(&path).is_err_and(|e| e.to_string().contains("layout; rebuild the state"))
+    };
+    let index = fs::read(snapshots.join("pages"))?;
+    // The tip kept as the last retained entry.
+    let row = [1u32.to_le_bytes().as_slice(), &100u64.to_le_bytes()].concat();
+    fs::write(snapshots.join("pages"), [&index[..8], &[0], row.as_slice()].concat())?;
+    assert!(fails(), "an index without retention");
+    fs::write(snapshots.join("pages"), &index)?;
+    fs::write(snapshots.join("tip"), [b"STATEP04".as_slice(), &[0; 64]].concat())?;
+    assert!(fails(), "a packed tip");
+    // A current tip whose page file is gone (a reader racing the cleanup) is dropped, not refused.
+    fs::write(snapshots.join("tip"), [b"STATEV05".as_slice(), &[0; 64]].concat())?;
+    History::open(&path)?;
+    assert!(!snapshots.join("tip").exists(), "a tip without pages");
+    Ok(())
+}

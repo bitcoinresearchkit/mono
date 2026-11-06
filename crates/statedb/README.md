@@ -62,8 +62,7 @@ Periodic full states use `snapshots/data` plus `snapshots/pages`, like a paged
 vector with variable-size pages; the compact page index stores exclusive heights
 and offsets and is replaced by rename. Periodic snapshots are permanent (rewinds
 discard descendants) and compress dense sats and count columns separately with
-PCO. The default interval is 5,000 blocks. An older layout's latest page inside
-`data` is dropped on open.
+PCO. The default interval is 5,000 blocks.
 
 Every update publishes its final state as the tip, raw for fast reads and writes:
 `snapshots/tip` is a page directory, replaced by rename, into the page file
@@ -72,8 +71,8 @@ A tip appends only the pages its update changed and points the rest at the
 previous tip's slots; once the page file would exceed four times the live pages,
 the next tip starts a fresh generation. The tip it replaced stays as
 `snapshots/prev` for readers of the previous publication, and page files neither
-uses are removed. Tips of an older format are dropped on open and rebuilt by the
-next update; restores use the periodic snapshots meanwhile.
+uses are removed. Snapshot files of an older layout fail to open with an error
+asking for a rebuild.
 
 Periodic snapshots are published as they finish, followed by the tip.
 If a block or callback fails before another write, the last completed checkpoint

@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+### Breaking Changes
+
+- statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
+  to open, asking for a rebuild of the state
+
 ### Performance
 
 - Chain reads (tip, blocks, transactions, addresses) run as many at once as there are cores (they ran one at a time):
