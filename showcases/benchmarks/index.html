@@ -35,8 +35,8 @@
         --raised: light-dark(#efefec, #1b1c1f);
         --ink: light-dark(#141518, #eceef1);
         --text: light-dark(#3a3d44, #c4c8cf);
-        --soft: light-dark(#666a73, #8c919a);
-        --faint: light-dark(#686c75, #8a8f98);
+        --soft: light-dark(#666a73, #9a9fa8);
+        --faint: light-dark(#686c75, #93989f);
         --line: light-dark(rgb(20 21 24 / 0.09), rgb(236 238 241 / 0.08));
         --grid: light-dark(rgb(20 21 24 / 0.06), rgb(236 238 241 / 0.05));
         --accent: light-dark(#d95f12, #ff8a3d);
@@ -211,11 +211,16 @@
           border-radius: 999px;
           padding: 6px 14px;
           background: var(--raised);
-          color: var(--soft);
+          box-shadow: inset 0 0 0 1px var(--line);
+          color: var(--text);
           font: inherit;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
+
+          &:hover {
+            color: var(--ink);
+          }
 
           &[aria-pressed="true"] {
             color: var(--app);
@@ -339,8 +344,16 @@
         }
 
         text {
+          fill: var(--text);
+          fill-opacity: 0.8;
+          font: 12px var(--mono);
+        }
+
+        /* (A run's day, under its commit.) */
+        .when {
           fill: var(--faint);
-          font: 11px var(--mono);
+          fill-opacity: 1;
+          font-size: 11px;
         }
 
         .gridline {
@@ -1065,7 +1078,7 @@
       function runByRun() {
         const all = complete(), el = $("history");
         if (all.length < 1) return (el.innerHTML = "");
-        const w = el.clientWidth || 800, h = 200, pad = { l: 44, r: 52, t: 10, b: 24 };
+        const w = el.clientWidth || 800, h = 218, pad = { l: 44, r: 52, t: 10, b: 42 };
         const tmax = Math.max(...all.map((r) => r.duration_s)) * 1.1, mmax = Math.max(...all.map((r) => r.peak_memory?.bytes ?? 0)) * 1.15;
         const slot = (w - pad.l - pad.r) / all.length, bw = Math.min(40, slot * 0.6);
         const x = (k) => pad.l + slot * (k + 0.5), yT = (s) => h - pad.b - (s / tmax) * (h - pad.t - pad.b), yM = (b) => h - pad.b - (b / mmax) * (h - pad.t - pad.b);
@@ -1079,10 +1092,10 @@
           svg += `<rect data-label="${escape(r.label)}" x="${x(k) - bw / 2}" y="${y}" width="${bw}" height="${h - pad.b - y}" rx="3" fill="var(--accent)" opacity="${sel ? 1 : 0.55}" style="cursor:pointer"><title>${escape(rev(r))}, ${dated(r.started_at)}: ${duration(r.duration_s)}, peak ${bytes(r.peak_memory?.bytes)}</title></rect>`;
           // (A commit's name under its bar, where it has 56px of room; else every few, the newest kept.)
           const every = Math.ceil(56 / slot);
-          if ((all.length - 1 - k) % every === 0) svg += `<text x="${x(k)}" y="${h - 6}" text-anchor="middle">${escape(rev(r).slice(0, 7))}</text>`;
+          if ((all.length - 1 - k) % every === 0) svg += `<text x="${x(k)}" y="${h - 23}" text-anchor="middle">${escape(rev(r).slice(0, 7))}</text><text class="when" x="${x(k)}" y="${h - 6}" text-anchor="middle">${dated(r.started_at).replace(/ \d{4}$/, "")}</text>`;
         });
         const line = all.map((r, k) => `${k ? "L" : "M"}${x(k)},${yM(r.peak_memory?.bytes ?? 0)}`).join("");
-        svg += `<path d="${line}" fill="none" stroke="var(--compare)" stroke-width="1.5" stroke-dasharray="4 3"/>` + all.map((r, k) => `<circle cx="${x(k)}" cy="${yM(r.peak_memory?.bytes ?? 0)}" r="3" fill="var(--compare)"/>`).join("");
+        svg += `<path d="${line}" fill="none" stroke="var(--compare)" stroke-width="2" stroke-dasharray="4 3"/>` + all.map((r, k) => `<circle cx="${x(k)}" cy="${yM(r.peak_memory?.bytes ?? 0)}" r="3.5" fill="var(--compare)"/>`).join("");
         el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}">${svg}</svg>`;
       }
       $("history").addEventListener("click", (e) => {
