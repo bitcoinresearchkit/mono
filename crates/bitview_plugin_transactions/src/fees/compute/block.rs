@@ -1,7 +1,7 @@
 use bitview_plugin_indexer::FIRST_V29_POLICY_HEIGHT;
 use bitview_primitives::TxInIndex;
 use brk_cpfp::Cluster;
-use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize};
+use brk_types::{CpfpClusterTxIndex, FeeRate, OutPoint, Sats, VSize, Weight};
 use smallvec::SmallVec;
 use vecdb::VecIndex;
 
@@ -31,6 +31,8 @@ pub struct Block {
     pub fee_rates: Vec<FeeRate>,
     pub effective_fee_rates: Vec<FeeRate>,
     pub vsizes: Vec<VSize>,
+    /// What CPFP chunks are measured over: each transaction's weight.
+    pub weights: Vec<Weight>,
     pub txin_starts: Vec<TxInIndex>,
     pub outpoints: Vec<OutPoint>,
     /// Distribution statistics of the non-coinbase fees, the non-coinbase effective rates
@@ -52,6 +54,7 @@ impl Block {
         self.fees.clear();
         self.fee_rates.clear();
         self.vsizes.clear();
+        self.weights.clear();
         self.txin_starts.clear();
         self.outpoints.clear();
         self.masks.clear();
@@ -62,6 +65,7 @@ impl Block {
         let n = self.input_values.len();
         debug_assert_eq!(n, self.output_values.len());
         debug_assert_eq!(n, self.vsizes.len());
+        debug_assert_eq!(n, self.weights.len());
         debug_assert_eq!(n, self.txin_starts.len());
         debug_assert_eq!(n, self.masks.len());
         // The coinbase spends nothing: its single input carries the `Sats::MAX` sentinel.
@@ -89,8 +93,7 @@ impl Block {
             self.input_begin,
             self.first_tx,
             &self.fees,
-            &self.vsizes,
-            &self.fee_rates,
+            &self.weights,
             &mut self.effective_fee_rates,
         );
 
@@ -122,10 +125,12 @@ impl Block {
         Columns::or_into(bits, self.batch_offset, &mut self.masks);
         for tx in 0..self.masks.len() {
             let fee = self.fees[tx];
-            let (raw, effective) = (self.fee_rates[tx], self.effective_fee_rates[tx]);
+            // Against its own feerate in the effective one's measure (not `fee_rates`' vsize).
+            let own = FeeRate::from((fee, self.weights[tx]));
+            let effective = self.effective_fee_rates[tx];
             let mut mask = self.masks[tx];
-            mask |= (u64::from(effective > raw) << CPFP_PARENT)
-                | (u64::from(effective < raw) << CPFP_CHILD);
+            mask |= (u64::from(effective > own) << CPFP_PARENT)
+                | (u64::from(effective < own) << CPFP_CHILD);
             let nonstandard = is(mask, UNCONDITIONAL)
                 || (is(mask, DUST) && (!free_dust_relayed || fee != Sats::ZERO));
             mask |= u64::from(nonstandard) << NONSTANDARD;
@@ -172,17 +177,20 @@ impl Components {
         outpoint_base: usize,
         first_tx: usize,
         fees: &[Sats],
-        vsizes: &[VSize],
-        fee_rates: &[FeeRate],
+        weights: &[Weight],
         effective_fee_rates: &mut Vec<FeeRate>,
     ) {
         let n = fees.len();
-        debug_assert_eq!(vsizes.len(), n);
-        debug_assert_eq!(fee_rates.len(), n);
+        debug_assert_eq!(weights.len(), n);
         debug_assert_eq!(txin_starts.len(), n);
 
+        // Alone, a transaction's effective feerate is its own, over the same exact measure.
         effective_fee_rates.clear();
-        effective_fee_rates.extend_from_slice(fee_rates);
+        effective_fee_rates.extend(
+            fees.iter()
+                .zip(weights)
+                .map(|(&fee, &weight)| FeeRate::from((fee, weight))),
+        );
         self.parents.clear();
         self.parents.resize_with(n, SmallVec::new);
         self.roots.clear();
@@ -221,7 +229,7 @@ impl Components {
                 &self.members[start..end],
                 &self.parents,
                 fees,
-                vsizes,
+                weights,
                 effective_fee_rates,
                 &mut self.local_index,
                 &mut self.cluster,
@@ -235,7 +243,7 @@ impl Components {
         members: &[(usize, usize)],
         parents: &[SmallVec<[usize; 2]>],
         fees: &[Sats],
-        vsizes: &[VSize],
+        weights: &[Weight],
         rates: &mut [FeeRate],
         local_index: &mut [u32],
         cluster: &mut Cluster,
@@ -248,7 +256,7 @@ impl Components {
         for &(_, tx) in members {
             cluster.push(
                 fees[tx],
-                vsizes[tx],
+                weights[tx],
                 parents[tx]
                     .iter()
                     .map(|&parent| CpfpClusterTxIndex::from(local_index[parent])),

@@ -1,7 +1,7 @@
 use std::{collections::hash_map::Entry as MapEntry, sync::Arc};
 
 use brk_types::{AddressBytes, AddressMempoolStats, Transaction, TxOut, Txid};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 
 pub mod addr_entry;
 
@@ -9,7 +9,7 @@ pub use addr_entry::AddrEntry;
 
 /// Frozen maps share address records; only changed records copy their txid sets.
 #[derive(Clone, Default)]
-pub struct AddrTracker(FxHashMap<AddressBytes, Arc<AddrEntry>>);
+pub struct AddrTracker(RapidHashMap<AddressBytes, Arc<AddrEntry>>);
 
 impl AddrTracker {
     pub fn get(&self, addr: &AddressBytes) -> Option<&AddrEntry> {

@@ -78,6 +78,7 @@ itoa = { workspace = true, optional = true }
 jiff = { workspace = true }
 parking_lot = { workspace = true, optional = true }
 quickmatch = { workspace = true, optional = true }
+rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 smallvec = { workspace = true, optional = true }

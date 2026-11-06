@@ -96,7 +96,7 @@ fn optimize_median_fee(
 ) -> FeeRate {
     let median = block.fee_range[3];
     let use_fee = previous_fee.map_or(median, |prev| FeeRate::mean(median, prev));
-    let vsize = u64::from(block.total_vsize);
+    let vsize = u64::from(block.total_weight) / 4;
     if vsize <= EMPTY_BLOCK_VSIZE || median < min_fee {
         return min_fee;
     }

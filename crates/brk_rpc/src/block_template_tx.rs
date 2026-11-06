@@ -1,4 +1,4 @@
-use bitcoin::{Transaction, consensus::encode};
+use bitcoin::{Transaction, Wtxid, consensus::encode};
 use brk_error::Result;
 use brk_types::{Sats, SigOps, Txid, Weight};
 
@@ -9,6 +9,8 @@ use brk_types::{Sats, SigOps, Txid, Weight};
 #[derive(Debug, Clone)]
 pub struct BlockTemplateTx {
     pub txid: Txid,
+    /// Tells a same-txid witness variant from the body a pool already holds.
+    pub wtxid: Wtxid,
     pub fee: Sats,
     pub weight: Weight,
     /// Sigop cost: with the weight, the policy vsize Core ranks it by.

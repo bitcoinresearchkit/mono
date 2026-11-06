@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use brk_types::Transaction;
+use brk_types::{FeeRate, SigOps, Transaction, Weight};
 use rustc_hash::FxHasher;
 use serde_json::to_writer;
 
@@ -25,6 +25,29 @@ impl TxRecord {
     pub fn new(tx: Arc<Transaction>, entry: TxEntry) -> Self {
         let digest = Self::digest_of(&tx);
         Self { tx, entry, digest }
+    }
+
+    /// Its sigop cost as Core's policy sees it: counted from the body once every prevout is
+    /// resolved; before, the count misses their P2SH and witness parts, so the most Core's vsize
+    /// allows stands in (a block's sigop budget never undercounts; the policy weight it gives is
+    /// within 3 WU of the true one).
+    pub fn policy_sigops(&self) -> SigOps {
+        if self.tx.input.iter().any(|input| input.prevout.is_none()) {
+            SigOps::bound(self.entry.vsize)
+        } else {
+            self.tx.total_sigop_cost
+        }
+    }
+
+    /// What Core 31 measures feerates over: the weight, sigop-adjusted.
+    pub fn policy_weight(&self) -> Weight {
+        self.policy_sigops().adjust_weight(self.entry.weight)
+    }
+
+    /// Its feerate alone, over the policy weight's exact quarter: the chunk rate of a
+    /// transaction with no in-pool relatives.
+    pub fn own_rate(&self) -> FeeRate {
+        FeeRate::from((self.entry.fee, self.policy_weight()))
     }
 
     pub fn digest_of(tx: &Transaction) -> u64 {

@@ -9,7 +9,7 @@
 
 use brk_rpc::Client;
 use brk_types::{TxOut, Txid, Vin, Vout};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::warn;
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
 /// `resolver` in one batched call.
 pub fn fill<F>(state: &mut State, resolver: F)
 where
-    F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+    F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
     let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
     let external = resolve_external(holes, resolver);
@@ -38,12 +38,12 @@ where
 
 /// Default resolver: `getrawtransaction` once per parent txid, batched by the
 /// RPC client. Requires bitcoind with `txindex=1`.
-pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> {
+pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
     move |holes: &[(Txid, Vout)]| {
         if holes.is_empty() {
-            return FxHashMap::default();
+            return RapidHashMap::default();
         }
-        let mut seen: FxHashSet<Txid> = FxHashSet::default();
+        let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
         let unique: Vec<Txid> = holes
             .iter()
             .filter_map(|(txid, _)| seen.insert(*txid).then_some(*txid))
@@ -52,7 +52,7 @@ pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Tx
             Ok(map) => map,
             Err(error) => {
                 warn!("mempool prevout fetch failed: {error}");
-                return FxHashMap::default();
+                return RapidHashMap::default();
             }
         };
         holes
@@ -118,7 +118,7 @@ fn resolve_external<F>(
     resolver: F,
 ) -> Vec<(Txid, Vec<(Vin, TxOut)>)>
 where
-    F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+    F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
     let total: usize = holes.iter().map(|(_, tx_holes)| tx_holes.len()).sum();
     let mut flat: Vec<(Txid, Vout)> = Vec::with_capacity(total);

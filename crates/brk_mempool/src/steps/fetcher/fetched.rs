@@ -1,7 +1,7 @@
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_rpc::MempoolState;
 use brk_types::{MempoolEntryInfo, Txid};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rapidhash::{RapidHashMap, RapidHashSet};
 
 pub struct Fetched {
     /// Passthrough fields from the batched RPC fetch: live txid set,
@@ -12,7 +12,7 @@ pub struct Fetched {
     /// `MempoolEntryInfo` for newly-observed txids only (existing ones
     /// keep their first-sight entry on the live store).
     pub new_entries: Vec<MempoolEntryInfo>,
-    pub new_txs: FxHashMap<Txid, BitcoinTransaction>,
+    pub new_txs: RapidHashMap<Txid, BitcoinTransaction>,
     /// Block 0 ordering from `getblocktemplate`. Bodies and stats have
     /// already been folded into `new_entries`/`new_txs` (or were already
     /// in the pool). The Rebuilder only needs the txid sequence to
@@ -21,7 +21,7 @@ pub struct Fetched {
     /// Template txids absent from the raw listing. Non-empty, the union is
     /// useful for projection, not for address balances/pages; such stale
     /// transactions never take an outpoint from a listed spender.
-    pub template_only: FxHashSet<Txid>,
+    pub template_only: RapidHashSet<Txid>,
     /// The new txids filled the per-cycle cap: more are left for the next cycles.
     pub capped: bool,
 }

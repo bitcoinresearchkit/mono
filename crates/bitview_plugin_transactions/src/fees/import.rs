@@ -13,7 +13,7 @@ use crate::{
 /// Bump this when fee/feerate aggregation logic changes (e.g., skip coinbase, skip zero-fee).
 const VERSION: Version = Version::new(5);
 /// Bump this when chunking changes (`brk_cpfp::Cluster::linearize`): effective rates and CPFP roles.
-const CHUNK_VERSION: Version = Version::TWO;
+const CHUNK_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub(crate) fn import(

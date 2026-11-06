@@ -18,6 +18,8 @@ mod snapshot;
 mod state;
 mod steps;
 mod stores;
+#[cfg(test)]
+mod tests;
 
 pub use api::{
     MempoolBlockSource, PendingUtxos, PublishedTx, RbfForTx, RbfNode, ResolvedMempoolBlockDiff,

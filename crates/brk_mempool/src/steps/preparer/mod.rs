@@ -6,12 +6,14 @@
 //! tomb.
 //!
 //! Existing entries are not re-classified - they keep their first-sight
-//! state on the live store. Removals are inferred by cross-referencing
+//! state on the live store (a template's witness variant takes over a
+//! record, its sighting kept). Removals are inferred by cross-referencing
 //! inputs against the full `live_txids` set from the cycle's pull.
 
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_types::{MempoolEntryInfo, Transaction, Txid, Vout};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rapidhash::{RapidHashMap, RapidHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{State, key::TxKey};
 
@@ -25,15 +27,14 @@ pub use tx_removal::TxRemoval;
 
 pub fn prepare(
     live_txids: &[Txid],
-    template_only: &FxHashSet<Txid>,
+    template_only: &RapidHashSet<Txid>,
     new_entries: Vec<MempoolEntryInfo>,
-    mut new_txs: FxHashMap<Txid, BitcoinTransaction>,
+    mut new_txs: RapidHashMap<Txid, BitcoinTransaction>,
     state: &State,
 ) -> PoolDiff {
     let live: FxHashSet<TxKey> = live_txids.iter().map(TxKey::from).collect();
     let added: Vec<TxAddition> = new_entries
         .iter()
-        .filter(|info| !state.txs.contains(&info.txid))
         .filter_map(|info| {
             let tx = new_txs.remove(&info.txid)?;
             let listed = !template_only.contains(&info.txid);
@@ -47,7 +48,16 @@ pub fn prepare(
         })
         .collect();
     let promoted = promoted(&live, template_only, state);
-    let removed = classify_removals(&live, &added, &promoted, state);
+    let mut removed = classify_removals(&live, &added, &promoted, state);
+    // A pooled txid fetched again is a template's witness variant: its record leaves for the
+    // new body, which takes its place (and first sighting) in the same apply.
+    removed.extend(
+        added
+            .iter()
+            .map(|addition| addition.entry.key())
+            .filter(|key| live.contains(key) && state.txs.record_by_key(key).is_some())
+            .map(|key| (key, TxRemoval::Vanished)),
+    );
 
     PoolDiff {
         live_len: live.len(),
@@ -60,7 +70,11 @@ pub fn prepare(
 /// Pooled txs template-only last poll and listed now: they take over their
 /// outpoints like a listed arrival, so a listed spender leaving later never
 /// drops their mapping.
-fn promoted(live: &FxHashSet<TxKey>, template_only: &FxHashSet<Txid>, state: &State) -> Vec<TxKey> {
+fn promoted(
+    live: &FxHashSet<TxKey>,
+    template_only: &RapidHashSet<Txid>,
+    state: &State,
+) -> Vec<TxKey> {
     state
         .template_only
         .iter()
@@ -101,7 +115,7 @@ fn classify_removals(
 fn removal_reason(
     key: TxKey,
     tx: &Transaction,
-    spent_by: &FxHashMap<(Txid, Vout), Txid>,
+    spent_by: &RapidHashMap<(Txid, Vout), Txid>,
     live: &FxHashSet<TxKey>,
     state: &State,
 ) -> TxRemoval {
@@ -127,8 +141,8 @@ fn build_spent_by(
     added: &[TxAddition],
     promoted: &[TxKey],
     state: &State,
-) -> FxHashMap<(Txid, Vout), Txid> {
-    let mut spent_by: FxHashMap<(Txid, Vout), Txid> = FxHashMap::default();
+) -> RapidHashMap<(Txid, Vout), Txid> {
+    let mut spent_by: RapidHashMap<(Txid, Vout), Txid> = RapidHashMap::default();
     // `promoted` kept only pooled keys of this same state.
     let promoted = promoted.iter().map(|key| {
         state

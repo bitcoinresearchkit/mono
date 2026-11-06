@@ -30,10 +30,10 @@ pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
     /// linearized chunk rate plus parent/child adjacency.
     txs: Vec<SnapTx>,
-    /// Projected blocks. `blocks[0]` is Core's `getblocktemplate`
-    /// (Bitcoin Core's actual selection). The rest are greedy-packed
-    /// by descending chunk rate, with a final overflow block.
-    blocks: Vec<Vec<TxIndex>>,
+    /// Projected block 0: Core's `getblocktemplate` (Bitcoin Core's actual selection).
+    block0: Vec<TxIndex>,
+    /// Every projected block's statistics: block 0's, then the package-aware projection's
+    /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
@@ -51,16 +51,17 @@ impl Snapshot {
     /// every recommended-fee tier.
     fn build(
         txs: Vec<SnapTx>,
-        blocks: Vec<Vec<TxIndex>>,
+        block0: Vec<TxIndex>,
+        rest: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
         min_fee: FeeRate,
     ) -> Self {
-        let block_stats = BlockStats::for_blocks(&blocks, &txs);
+        let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
         let precise_fees = fees::precise(&block_stats, min_fee);
         let fees = fees::whole(&block_stats, min_fee);
         Self {
             txs,
-            blocks,
+            block0,
             block_stats,
             precise_fees,
             fees,
@@ -104,11 +105,7 @@ impl Snapshot {
     /// Txids of `blocks[0]` (Core's `getblocktemplate` selection),
     /// in template order. Empty for a default snapshot.
     pub fn block0_txids(&self) -> impl Iterator<Item = Txid> + '_ {
-        self.blocks
-            .first()
-            .into_iter()
-            .flatten()
-            .map(|idx| self.txs[idx.as_usize()].txid)
+        self.block0.iter().map(|idx| self.txs[idx.as_usize()].txid)
     }
 
     /// Linearized chunk rate for a live tx. Recomputed each
@@ -135,7 +132,7 @@ impl Snapshot {
     /// A default snapshot is not an observed empty mempool. A real publication
     /// always contains block zero, even when Core selected no transactions.
     pub(crate) fn ensure_projection(&self) -> Result<()> {
-        if self.blocks.is_empty() || self.template_missing {
+        if self.block_stats.is_empty() || self.template_missing {
             return Err(QueryError::StateUpdating);
         }
         Ok(())

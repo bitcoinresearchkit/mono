@@ -4,7 +4,7 @@ use super::RbfNode;
 
 #[derive(Debug, Clone, Default)]
 pub struct RbfForTx {
-    /// Tree rooted at the terminal replacer. `None` if `txid` is unknown.
+    /// Tree rooted at the terminal replacer. `None` if `txid` is unknown or has no replacement.
     pub root: Option<RbfNode>,
     /// Direct predecessors of the requested tx (txids only).
     pub replaces: Vec<Txid>,

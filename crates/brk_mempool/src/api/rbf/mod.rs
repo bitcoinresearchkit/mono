@@ -2,7 +2,7 @@
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Sats, Transaction, Txid};
-use rustc_hash::FxHashSet;
+use rapidhash::RapidHashSet;
 
 use crate::{
     ReadOnlyState,
@@ -38,8 +38,8 @@ impl From<Exceeded> for Error {
 
 impl ReadOnlyState {
     /// Walk forward through `Replaced { by }` to the terminal replacer
-    /// and return its full predecessor tree, plus the requested tx's
-    /// direct predecessors from the acquired publication.
+    /// and return its full predecessor tree (none without a replacement),
+    /// plus the requested tx's direct predecessors from the acquired publication.
     /// Rejects histories exceeding 4096 traversal steps or 32 nested nodes;
     /// never returns a silently truncated tree.
     pub fn rbf_for_tx(&self, txid: &Txid, tip: &BlockHash) -> Result<RbfForTx> {
@@ -58,8 +58,10 @@ impl ReadOnlyState {
         remaining = remaining
             .checked_sub(replaces.len())
             .ok_or(Exceeded::Work)?;
+        // A transaction that neither replaced nor was replaced has no tree (mempool.space: null).
         let mut root =
-            Self::build_rbf_node(&root_txid, &state.txs, &state.graveyard, &mut remaining, 0)?;
+            Self::build_rbf_node(&root_txid, &state.txs, &state.graveyard, &mut remaining, 0)?
+                .filter(|root| !root.replaces.is_empty());
         if let Some(root) = root.as_mut() {
             Self::apply_snapshot_rates(root, &state.graph);
         }
@@ -83,7 +85,7 @@ impl ReadOnlyState {
         if limit == 0 {
             return Ok(Vec::new());
         }
-        let mut seen: FxHashSet<Txid> = FxHashSet::default();
+        let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
         let mut remaining = MAX_RBF_WORK;
         let mut trees = Vec::new();
         for candidate in state.graveyard.replacements_recent_first() {
@@ -164,7 +166,7 @@ impl ReadOnlyState {
         graveyard: &'a TxGraveyard,
     ) -> Option<(&'a Transaction, &'a TxEntry, FeeRate, bool)> {
         if let Some(record) = txs.record(txid) {
-            return Some((&record.tx, &record.entry, record.entry.fee_rate(), true));
+            return Some((&record.tx, &record.entry, record.own_rate(), true));
         }
         graveyard.get(txid).map(|tombstone| {
             (

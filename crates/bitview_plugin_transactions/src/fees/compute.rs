@@ -245,11 +245,13 @@ impl Vecs {
 
                     // SegWit serialization weighs its witness bytes once, not four times.
                     block.vsizes.reserve(n);
+                    block.weights.reserve(n);
                     block.masks.reserve(n);
                     sizes.collect_into(n, &mut scratch_sizes);
                     let mut size = scratch_sizes.iter();
                     weights.for_each(n, |weight| {
                         block.vsizes.push(weight.into());
+                        block.weights.push(weight.into());
                         let size = u64::from(u32::from(*size.next().unwrap()));
                         block
                             .masks

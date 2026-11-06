@@ -4,7 +4,7 @@ use std::{
 };
 
 use brk_types::{FeeRate, Txid};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use smallvec::SmallVec;
 
 pub mod tombstone;
@@ -20,8 +20,8 @@ const RETENTION: Duration = Duration::from_hours(1);
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
-    tombstones: FxHashMap<Txid, TxTombstone>,
-    predecessors_by_replacer: FxHashMap<Txid, SmallVec<[Txid; 1]>>,
+    tombstones: RapidHashMap<Txid, TxTombstone>,
+    predecessors_by_replacer: RapidHashMap<Txid, SmallVec<[Txid; 1]>>,
     order: VecDeque<(Instant, Txid)>,
     /// The `Replaced` burials of `order`, so RBF listings never scan the far
     /// more numerous mined and dropped txs.

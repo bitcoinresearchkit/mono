@@ -1,20 +1,19 @@
 use std::ops::Range;
 
 use brk_types::{
-    CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, VSize,
-    Weight,
+    CpfpCluster, CpfpClusterChunk, CpfpClusterTx, CpfpClusterTxIndex, FeeRate, Sats, Txid, Weight,
 };
 
 use crate::linearize::{Scratch, linearize};
 
-/// One member: its fee, size and range in [`Cluster::parents`]' flat buffer.
+/// One member: its fee, weight and range in [`Cluster::parents`]' flat buffer.
 pub(crate) struct Node {
     pub fee: Sats,
-    pub vsize: VSize,
+    pub weight: Weight,
     pub parents: Range<usize>,
 }
 
-/// A dependency component in topological order: each member's `(fee, vsize)` and its
+/// A dependency component in topological order: each member's `(fee, weight)` and its
 /// in-cluster parents as local indices of earlier members. Reuse one across components:
 /// [`Cluster::clear`] keeps every buffer, the linearization scratch included.
 #[derive(Default)]
@@ -30,11 +29,12 @@ impl Cluster {
         self.parents.clear();
     }
 
+    /// `weight` is what feerates are measured over (the mempool's sigop-adjusted, as Core's);
     /// `parents` must be local indices of earlier members.
     pub fn push(
         &mut self,
         fee: Sats,
-        vsize: VSize,
+        weight: Weight,
         parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
     ) {
         let start = self.parents.len();
@@ -47,7 +47,7 @@ impl Cluster {
         );
         self.nodes.push(Node {
             fee,
-            vsize,
+            weight,
             parents: start..self.parents.len(),
         });
     }
@@ -56,10 +56,9 @@ impl Cluster {
         self.nodes[local].fee
     }
 
-    /// Linearize into descending-feerate chunks and pass each chunk's members (ascending
-    /// local indices) and feerate to `emit`, in chunk order. Order: the best remaining ancestor set
-    /// first (exact feerate, then more members, then earliest); a group paying more than the chunk
-    /// before it merges into it.
+    /// Linearize into chunks of non-increasing feerate and pass each chunk's members (ascending
+    /// local indices) and feerate to `emit`, in chunk order: optimal up to 64 members, the best
+    /// remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize.rs`).
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
     }
@@ -74,7 +73,7 @@ impl Cluster {
     ) -> (Option<CpfpCluster>, FeeRate) {
         if self.nodes.len() == 1 {
             let node = &self.nodes[u32::from(seed) as usize];
-            return (None, FeeRate::from((node.fee, node.vsize)));
+            return (None, FeeRate::from((node.fee, node.weight)));
         }
         let mut chunks = Vec::new();
         let mut seed_chunk = None;

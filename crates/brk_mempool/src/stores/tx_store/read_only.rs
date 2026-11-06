@@ -1,5 +1,5 @@
 use brk_oracle::{HistogramRaw, Tally};
-use brk_types::{MempoolRecentTx, Transaction, Txid};
+use brk_types::{MempoolRecentTx, Timestamp, Transaction, Txid};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
@@ -13,7 +13,8 @@ pub struct ReadOnlyTxStore {
     pub(super) records: IndexMap<TxKey, TxRecord, FxBuildHasher>,
     pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
-    pub(super) recent: Vec<MempoolRecentTx>,
+    /// The latest arrivals by Core's first-seen time, newest first.
+    pub(super) recent: Vec<(Timestamp, MempoolRecentTx)>,
     pub(super) payments: LivePayments,
 }
 
@@ -63,8 +64,8 @@ impl ReadOnlyTxStore {
         self.content_revision
     }
 
-    pub fn recent(&self) -> &[MempoolRecentTx] {
-        &self.recent
+    pub fn recent(&self) -> impl Iterator<Item = &MempoolRecentTx> {
+        self.recent.iter().map(|(_, tx)| tx)
     }
 
     /// Snapshot the round-dollar-eligible histogram that feeds the oracle

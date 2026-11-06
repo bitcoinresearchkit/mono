@@ -8,7 +8,7 @@ use brk_types::{
     MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, RetainedRun,
     Transaction, Txid,
 };
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use serde::{Serialize, Serializer};
 
 use crate::{ReadOnlyState, ResolvedMempoolBlockDiff, Snapshot};
@@ -89,7 +89,7 @@ impl ResolvedMempoolBlockDiff {
         } = self;
         let hash = source.hash()?;
         let bodies = source.snapshot.template_transactions().clone();
-        let mut prior_index: FxHashMap<Txid, u32> = past
+        let mut prior_index: RapidHashMap<Txid, u32> = past
             .iter()
             .enumerate()
             .map(|(idx, tx)| (tx.txid, idx as u32))

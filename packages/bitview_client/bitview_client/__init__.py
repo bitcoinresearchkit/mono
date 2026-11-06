@@ -1033,7 +1033,7 @@ class MempoolBlock(TypedDict):
 
     Attributes:
         blockSize: Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header or coinbase.
-        blockVSize: Sum of the transactions' virtual sizes in vbytes
+        blockVSize: The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
         nTx: Number of transactions in the projected block
         totalFees: Total fees in satoshis
         medianFee: Median fee rate in sat/vB

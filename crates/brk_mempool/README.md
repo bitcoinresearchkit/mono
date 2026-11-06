@@ -32,8 +32,8 @@ with `getrawtransaction`, so Bitcoin Core must have `txindex=1`.
 
 A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
 nothing: readers keep the last publication. Otherwise membership and projection advance
-independently. The projection (`fees`, `block_stats`, `block_template_source`,
-`resolve_block_template_diff`) advances with every poll whose whole template is loaded.
+independently. The projection (`fees`, `block_stats`, `mempool_block_source`,
+`resolve_mempool_block_diff`) advances with every poll whose whole template is loaded.
 Membership (every other read, CPFP and RBF included, and `tip()`) advances only when the poll's
 view is complete: the template holds no transactions absent from the raw listing and every
 listed transaction is loaded (the per-cycle fetch cap can defer some). One loaded publication
@@ -48,8 +48,8 @@ On a loaded `ReadOnlyState`:
 - `info_json`, `txids`/`txids_hash`, `recent_txs` and `transaction_times_with_hash` need a
   completed pool observation and return `StateUpdating` before the first one.
 - `fees`, `precise_fees` and `block_stats` expose recommendations and projected-block statistics.
-- `block_template_source` captures the projected next block in Bitcoin Core's
-  `getblocktemplate` order; `resolve_block_template_diff` captures the changes since a recent
+- `mempool_block_source` captures the projected next block in Bitcoin Core's
+  `getblocktemplate` order; `resolve_mempool_block_diff` captures the changes since a recent
   template hash. Both build serializable views over the shared bodies, without copying them.
 - `contains_txid`, `transaction` and the outspend reads take the caller's full chain-tip hash
   and require a publication at that tip. `transaction` shares an immutable live or recently
@@ -61,10 +61,20 @@ On a loaded `ReadOnlyState`:
 
 ## Projection and fee tiers
 
-Block 0 is Core's `getblocktemplate` selection. Later projected blocks pack the remaining
-transactions by descending linearized chunk rate (CPFP-aware), up to eight blocks in all, the
-last a catch-all; empty trailing blocks are not projected. Dependency edges come from each
-body's inputs as the pool stands at each rebuild.
+Block 0 is Core's `getblocktemplate` selection. Every dependency component (edges from each
+body's inputs as the pool stands at each rebuild) is linearized once, whole, in one order
+whichever member a walk starts from (`brk_cpfp`: optimal up to 64 members); its chunk feerates
+are the members' CPFP rates. Later projected blocks are packed as a miner running Core packs:
+whole chunks by descending feerate, in dependency order, within Core's default weight and sigop
+budgets (3,992,000 WU and 79,600 sigops of transactions; a candidate tested at its policy size,
+the block counting actual weight); a component block 0 took part of is linearized again without
+those members; a chunk that doesn't fit waits for the next block with the rest of its component,
+one no block can hold for the last; a block closes after 1,000 misses in a row within 4,000 WU
+of full. Up to eight blocks in all, the last a catch-all; empty trailing blocks are not
+projected. Each projected member's fee statistics use the feerate it was packed at, and every
+effective feerate is fee over the sigop-adjusted weight's exact quarter (Core's chunk feerates,
+mempool.space's effective ones); a block's `blockVSize` is its weight over 4. Maps keyed by addresses,
+txids or outpoints are seeded per process (rapidhash), so crafted keys cannot collide them.
 
 `PreciseRecommendedFees` ports mempool.space's `getPreciseRecommendedFee` over the first three
 projected blocks and Core's live `mempoolminfee`: a partially full final block tapers its tier

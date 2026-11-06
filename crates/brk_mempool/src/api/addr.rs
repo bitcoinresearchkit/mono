@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_types::{
     AddressBytes, AddressMempoolStats, BlockHash, Sats, TxOut, Txid, TxidPrefix, Vout,
 };
-use rustc_hash::FxHashSet;
+use rapidhash::RapidHashSet;
 
 use crate::{PublishedTx, ReadOnlyState, key::TxKey};
 
@@ -12,7 +12,7 @@ use crate::{PublishedTx, ReadOnlyState, key::TxKey};
 #[derive(Default)]
 pub struct PendingUtxos {
     /// Outpoints the address's mempool transactions spend.
-    pub spent: FxHashSet<(Txid, Vout)>,
+    pub spent: RapidHashSet<(Txid, Vout)>,
     /// Outputs mempool transactions pay the address that no mempool transaction spends, ordered
     /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,

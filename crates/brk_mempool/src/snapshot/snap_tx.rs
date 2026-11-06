@@ -1,4 +1,4 @@
-use brk_types::{CpfpEntry, FeeRate, Sats, Txid, VSize, Weight};
+use brk_types::{CpfpEntry, FeeRate, Sats, SigOps, Txid, VSize, Weight};
 use smallvec::SmallVec;
 
 use super::TxIndex;
@@ -16,6 +16,7 @@ pub struct SnapTx {
     pub weight: Weight,
     /// Serialized tx size in bytes (witness + non-witness).
     pub size: u64,
+    pub sigops: SigOps,
     pub chunk_rate: FeeRate,
     /// Direct parents in this snapshot; confirmed or absent parents are omitted.
     pub parents: SmallVec<[TxIndex; 2]>,

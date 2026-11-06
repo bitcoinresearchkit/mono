@@ -6,7 +6,7 @@ use bitcoin::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
 use corepc_jsonrpc::error::Error as JsonRpcError;
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use serde_json::{from_str, json, value::RawValue};
 use tracing::{debug, info};
 
@@ -98,9 +98,9 @@ impl Client {
     /// Batched `getrawtransaction`, chunked at `BATCH_CHUNK` requests, keyed by txid. A failed
     /// item is dropped so one bad entry doesn't kill the batch: NOT_FOUND (a tx evicted since the
     /// listing) silently, others with a debug log. Transport failures propagate.
-    pub fn get_raw_transactions(&self, txids: &[Txid]) -> Result<FxHashMap<Txid, Transaction>> {
-        let mut out: FxHashMap<Txid, Transaction> =
-            FxHashMap::with_capacity_and_hasher(txids.len(), Default::default());
+    pub fn get_raw_transactions(&self, txids: &[Txid]) -> Result<RapidHashMap<Txid, Transaction>> {
+        let mut out: RapidHashMap<Txid, Transaction> =
+            RapidHashMap::with_capacity_and_hasher(txids.len(), Default::default());
 
         for chunk in txids.chunks(BATCH_CHUNK) {
             let args = chunk.iter().map(|t| {
@@ -168,15 +168,15 @@ impl Client {
         &self,
         entries_only: &[Txid],
         full: &[Txid],
-    ) -> Result<(Vec<MempoolEntryInfo>, FxHashMap<Txid, Transaction>)> {
+    ) -> Result<(Vec<MempoolEntryInfo>, RapidHashMap<Txid, Transaction>)> {
         let requests: Vec<(Txid, bool)> = entries_only
             .iter()
             .map(|txid| (*txid, false))
             .chain(full.iter().map(|txid| (*txid, true)))
             .collect();
         let mut entries: Vec<MempoolEntryInfo> = Vec::with_capacity(requests.len());
-        let mut txs: FxHashMap<Txid, Transaction> =
-            FxHashMap::with_capacity_and_hasher(full.len(), Default::default());
+        let mut txs: RapidHashMap<Txid, Transaction> =
+            RapidHashMap::with_capacity_and_hasher(full.len(), Default::default());
 
         for chunk in requests.chunks(BATCH_CHUNK) {
             let mut calls = Vec::with_capacity(chunk.len() * 2);

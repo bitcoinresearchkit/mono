@@ -162,7 +162,7 @@ impl ReadOnlyState {
     /// Recently observed additions, including transactions that have since left.
     pub fn recent_txs(&self) -> Result<Vec<MempoolRecentTx>> {
         let state = self.pool()?;
-        Ok(state.txs.recent().to_vec())
+        Ok(state.txs.recent().cloned().collect())
     }
 
     /// Transaction times and an order-sensitive hash of that exact result,

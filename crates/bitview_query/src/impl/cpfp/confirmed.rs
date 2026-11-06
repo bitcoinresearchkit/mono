@@ -1,7 +1,6 @@
 use brk_cpfp::Cluster;
 use brk_types::{
-    CPFP_CHAIN_LIMIT, ConfirmedCpfp, Cpfp, CpfpClusterTxIndex, CpfpEntry, Height, SigOps, TxIndex,
-    Txid, VSize, Weight,
+    ConfirmedCpfp, Cpfp, CpfpClusterTxIndex, CpfpEntry, Height, SigOps, TxIndex, Txid, Weight,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
@@ -130,7 +129,7 @@ impl Query {
             // Rates over the policy-adjusted size, as the mempool's.
             graph.push(
                 fee.get(position).data()?,
-                tx_sigops.adjust_vsize(VSize::from(tx_weight)),
+                tx_sigops.adjust_weight(tx_weight),
                 component[&tx].parents.iter().map(|parent| {
                     let local = sorted
                         .binary_search(parent)
@@ -195,7 +194,7 @@ fn walk_component(
     Ok(component)
 }
 
-/// Up to [`CPFP_CHAIN_LIMIT`] transactions reachable from `seed` through `next`.
+/// Every transaction reachable from `seed` through `next` (its component bounds them).
 fn walk_direction<'a>(
     seed: TxIndex,
     next: impl Fn(TxIndex) -> &'a SmallVec<[TxIndex; 2]>,
@@ -210,9 +209,6 @@ fn walk_direction<'a>(
             continue;
         }
         members.push(tx);
-        if members.len() == CPFP_CHAIN_LIMIT {
-            break;
-        }
         stack.extend_from_slice(next(tx));
     }
     members

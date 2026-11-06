@@ -3,7 +3,7 @@ use derive_more::{Add, AddAssign, Deref, From, Into, Sub, SubAssign, Sum};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CheckedSub, SigOps32, VSize};
+use crate::{CheckedSub, SigOps32, VSize, Weight};
 
 #[cfg(feature = "storage")]
 use vecdb::Pco;
@@ -51,6 +51,20 @@ impl SigOps {
     #[inline]
     pub fn adjust_vsize(self, vsize: VSize) -> VSize {
         vsize.max(VSize::new(self.0 * Self::VBYTES_PER_SIGOP))
+    }
+
+    /// The most sigop cost a transaction of this policy vsize can have: Core's vsize is at least
+    /// `5 * sigops`, and exactly that when the sigops set it.
+    #[inline]
+    pub fn bound(vsize: VSize) -> Self {
+        Self(u64::from(vsize) / Self::VBYTES_PER_SIGOP)
+    }
+
+    /// Policy-adjusted weight: `max(weight, sigops * 20)`, what Core 31 linearizes clusters
+    /// over; its vsize (a quarter, rounded up) is [`Self::adjust_vsize`]'s.
+    #[inline]
+    pub fn adjust_weight(self, weight: Weight) -> Weight {
+        weight.max(Weight::from(self.0 * 4 * Self::VBYTES_PER_SIGOP))
     }
 }
 

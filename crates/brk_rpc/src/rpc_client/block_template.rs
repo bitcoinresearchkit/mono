@@ -3,7 +3,7 @@ use bitcoin::{
 };
 use brk_error::{Error, Result};
 use brk_types::{Sats, SigOps, Txid, Weight};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 
 use crate::BlockTemplateTx;
 
@@ -65,10 +65,15 @@ impl ClientInner {
                 .txid
                 .parse::<BitcoinTxid>()
                 .map_err(|e| Error::Parse(format!("gbt txid: {e}")))?;
+            let wtxid = raw
+                .hash
+                .parse::<Wtxid>()
+                .map_err(|e| Error::Parse(format!("gbt wtxid: {e}")))?;
             let fee = u64::try_from(raw.fee).map_err(|_| invalid("negative fee"))?;
             let sigops = u64::try_from(raw.sigops).map_err(|_| invalid("negative sigops"))?;
             result.push(BlockTemplateTx {
                 txid: Txid::from(txid),
+                wtxid,
                 fee: Sats::from(fee),
                 weight: Weight::from(raw.weight),
                 sigops: SigOps::new(sigops),
@@ -89,7 +94,7 @@ impl ClientInner {
             .map(AuditRow::decode)
             .collect::<Option<Vec<_>>>()
             .ok_or("undecodable transaction")?;
-        let mut positions = FxHashMap::default();
+        let mut positions = RapidHashMap::default();
         for (index, row) in rows.iter().enumerate() {
             if positions.insert(row.txid, index).is_some() {
                 return Err("duplicate transaction");

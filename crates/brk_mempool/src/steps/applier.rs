@@ -46,7 +46,7 @@ fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: Tx
     let txid = record.entry.txid;
     let chunk_rate = prev_snapshot
         .chunk_rate_for(&txid)
-        .unwrap_or_else(|| record.entry.fee_rate());
+        .unwrap_or_else(|| record.own_rate());
     state.info.remove(&record.tx, record.entry.fee);
     state.addrs.remove_tx(&record.tx);
     state.outpoint_spends.remove_spends(&record.tx, *key);

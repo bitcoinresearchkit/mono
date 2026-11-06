@@ -2,40 +2,35 @@
 //! discovery, topo-sort, and loading into a [`brk_cpfp::Cluster`] (shared
 //! with bitview_query's confirmed CPFP and the transactions plugin).
 
-use std::collections::VecDeque;
+use std::{cmp::Reverse, collections::BinaryHeap};
 
 use brk_cpfp::Cluster;
 use brk_types::CpfpClusterTxIndex;
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, TxIndex};
 
-/// Matches Bitcoin Core 31's `MAX_CLUSTER_COUNT_LIMIT`.
-const MAX_CLUSTER: usize = 64;
-
-/// Capped DFS over the undirected dependency graph (`parents ∪
-/// children`) starting from `seed`. Returns the connected component
-/// truncated to `MAX_CLUSTER`, with `seed` at index 0.
+/// The whole connected component holding `seed` over `parents ∪ children`, in txid order: one
+/// order whichever member a walk starts from and however the pool's slots fall, so every
+/// linearization of it (the snapshot's rates, each CPFP answer, a cached one) is the same. Never
+/// cut short: Core 31 keeps a cluster to 64 transactions; an older or other node's can be larger,
+/// linearized whole.
 pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
     debug_assert!(seed.as_usize() < txs.len());
-    let mut visited: FxHashSet<TxIndex> =
-        FxHashSet::with_capacity_and_hasher(MAX_CLUSTER, FxBuildHasher);
+    let mut visited: FxHashSet<TxIndex> = FxHashSet::default();
     visited.insert(seed);
-    let mut out: Vec<TxIndex> = Vec::with_capacity(MAX_CLUSTER);
-    out.push(seed);
-    let mut stack: Vec<TxIndex> = vec![seed];
+    let mut out = vec![seed];
+    let mut stack = vec![seed];
     while let Some(idx) = stack.pop() {
         let t = &txs[idx.as_usize()];
         for &n in t.parents.iter().chain(t.children.iter()) {
-            if out.len() >= MAX_CLUSTER {
-                return out;
-            }
             if visited.insert(n) {
                 out.push(n);
                 stack.push(n);
             }
         }
     }
+    out.sort_unstable_by(|&a, &b| txs[a.as_usize()].txid.cmp(&txs[b.as_usize()].txid));
     out
 }
 
@@ -58,7 +53,7 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
         let t = &txs[component[p].as_usize()];
         graph.push(
             t.fee,
-            t.vsize,
+            t.sigops.adjust_weight(t.weight),
             t.parents
                 .iter()
                 .filter_map(|parent| position.get(parent))
@@ -70,7 +65,8 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
 
 /// Kahn's topological sort over the connected component, restricted to
 /// in-cluster parent edges. Returns component positions in an order where
-/// every tx follows all its in-cluster parents.
+/// every tx follows all its in-cluster parents, the earliest ready position first: the order
+/// depends on the component's own order alone.
 fn topo_sort(
     txs: &[SnapTx],
     component: &[TxIndex],
@@ -92,14 +88,15 @@ fn topo_sort(
             }
         }
     }
-    let mut queue: VecDeque<usize> = (0..n).filter(|&i| indeg[i] == 0).collect();
+    let mut ready: BinaryHeap<Reverse<usize>> =
+        (0..n).filter(|&i| indeg[i] == 0).map(Reverse).collect();
     let mut out: Vec<usize> = Vec::with_capacity(n);
-    while let Some(i) = queue.pop_front() {
+    while let Some(Reverse(i)) = ready.pop() {
         out.push(i);
         for &c in &children[i] {
             indeg[c] -= 1;
             if indeg[c] == 0 {
-                queue.push_back(c);
+                ready.push(Reverse(c));
             }
         }
     }

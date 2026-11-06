@@ -19,6 +19,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
 - Static files (the showcases) go out in brotli at its best quality once a copy is made, in the background, for
   each file: Studio's page 903 KB → 562 KB (the response layer compresses at its fastest, right for the API)
+- A mempool rebuild linearizes only the components that changed since the last one: idle at 44.6k transactions, 4.5%
+  of a core (6.3% before, with the cheaper ancestor-set search for every component, every second)
 
 ### Bug Fixes
 
@@ -60,6 +62,30 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The JS client's JSDoc keeps multi-line descriptions inside their comments
 - The vintage and halving-epoch cohorts warn on every update once the chain is in their last listed period (they're
   kept one ahead: vintages to 2027, epochs to 5), and a block they miss logs an error instead of a debug build's panic
+- CPFP clusters of up to 64 transactions are linearized optimally, over sigop-adjusted weight as Bitcoin Core 31
+  does: effective feerates, `/api/v1/cpfp/{txid}`'s chunks, the projected blocks, and the transactions series'
+  effective feerates and CPFP roles (recomputed). The ancestor-set search missed packages: three transactions paying
+  7 sat/vB together were labeled 6.75 with a fourth. On crafted clusters (chains, fans, diamonds, ties, random) the
+  chunks are Core's own (`getmempoolcluster`); only equal-feerate chunks may come in another order. Larger clusters
+  keep the ancestor-set search up to 4,096 transactions, and beyond chunk their own order, in linear time
+- A cluster's members all report the same chunks (ties broke by the asked member's order: 6 against 6.4 sat/vB)
+- Effective feerates (CPFP, the projected blocks' fee ranges, the transactions series' effective feerates) are fee
+  over the sigop-adjusted weight's exact quarter, as Core's chunk feerates and mempool.space's effective feerates
+  (7.008 sat/vB where each size rounded up gave 7.0); each transaction's own `fee_rate` stays over its vsize
+- Projected blocks after the first are packed as Core packs: whole chunks in dependency order, within its weight and
+  sigop budgets (a candidate tested at its policy size, the block counting actual weight), a chunk that doesn't fit
+  waiting with the rest of its cluster (a child could land a block before its parent), one no block can hold left for
+  the last; a cluster block 0 took part of is linearized again without those transactions. `blockVSize` is the
+  transactions' weight over 4, unrounded, as mempool.space's
+- CPFP ancestors and descendants are listed in full, the cluster bounding them, in the mempool and confirmed alike
+  (they stopped at 25, the limit before Core 31's clusters)
+- `GET /api/v1/tx/{txid}/rbf` answers `{"replacements":null,"replaces":null}` for a transaction that neither replaced
+  nor was replaced, as mempool.space (it gave a one-node tree)
+- `GET /api/mempool/recent` lists the ten latest arrivals by first-seen time (a poll's fetch order before)
+- A block template's witness variant of a pooled transaction (same txid, another witness) replaces the stored body
+  and weight, keeping its first sighting
+- The mempool's maps keyed by addresses, txids and outpoints are seeded per process: output scripts crafted to
+  hash alike under the unkeyed hasher (20 chosen bytes each) made every rebuild quadratic
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

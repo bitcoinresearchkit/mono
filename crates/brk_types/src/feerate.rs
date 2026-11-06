@@ -137,10 +137,24 @@ impl From<(Sats, VSize)> for FeeRate {
     }
 }
 
+/// Over the weight's exact quarter (`4 * sats / weight`), as Core's chunk feerates and
+/// mempool.space's effective feerates are measured: [`From<(Sats, VSize)>`] rounds each size up.
 impl From<(Sats, Weight)> for FeeRate {
     #[inline]
     fn from((sats, weight): (Sats, Weight)) -> Self {
-        Self::from((sats, VSize::from(weight)))
+        if sats.is_zero() {
+            return Self::ZERO;
+        }
+        let weight = u128::from(u64::from(weight));
+        if weight == 0 {
+            return Self::NAN;
+        }
+        let milli = (sats.as_u128() * u128::from(4 * MILLIS_PER_SAT_VBYTE)).div_ceil(weight);
+        if milli >= u128::from(u64::MAX) {
+            Self::NAN
+        } else {
+            Self(milli as u64)
+        }
     }
 }
 

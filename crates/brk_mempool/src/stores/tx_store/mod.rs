@@ -75,7 +75,7 @@ impl TxStore {
         );
         let position = self.read_only.records.len();
         let txid = entry.txid;
-        self.sample_recent(&entry.txid, &tx);
+        self.sample_recent(&entry, &tx);
         if tx.input.iter().any(|i| i.prevout.is_none()) {
             self.unresolved.insert(key);
         }
@@ -86,11 +86,17 @@ impl TxStore {
         self.bump_content_revision();
     }
 
-    fn sample_recent(&mut self, txid: &Txid, tx: &Transaction) {
-        self.read_only
-            .recent
-            .insert(0, MempoolRecentTx::from((txid, tx)));
-        self.read_only.recent.truncate(RECENT_CAP);
+    /// Keeps the latest arrivals by first-seen time (a poll fetches in no particular order); among
+    /// equal times, the later fetched first. A witness variant taking a record's place replaces
+    /// its sample.
+    fn sample_recent(&mut self, entry: &TxEntry, tx: &Transaction) {
+        let recent = &mut self.read_only.recent;
+        recent.retain(|(_, sample)| sample.txid != entry.txid);
+        let at = recent.partition_point(|(seen, _)| *seen > entry.first_seen);
+        if at < RECENT_CAP {
+            recent.insert(at, (entry.first_seen, MempoolRecentTx::from((&entry.txid, tx))));
+            recent.truncate(RECENT_CAP);
+        }
     }
 
     /// Remove by key and return the full record if present. `recent`

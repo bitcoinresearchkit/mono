@@ -1,17 +1,17 @@
 //! CPFP (Child Pays For Parent) walk over a `Snapshot`'s adjacency.
 //!
-//! Three independent walks:
-//! - `ancestors`: capped DFS up `parents` only.
-//! - `descendants`: capped DFS down `children` only.
-//! - cluster: connected component over `parents ∪ children`,
-//!   linearized for wire shape and seed chunk feerate.
+//! Three walks over one component:
+//! - `ancestors`: DFS up `parents` only.
+//! - `descendants`: DFS down `children` only.
+//! - cluster: the connected component over `parents ∪ children`, in one order whatever the seed,
+//!   linearized for wire shape and the seed's chunk feerate (the snapshot's rates the same).
 
 use brk_cpfp::Cluster;
 use brk_error::Result;
 use brk_types::{
-    BlockHash, CPFP_CHAIN_LIMIT, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
+    BlockHash, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
 };
-use rustc_hash::{FxBuildHasher, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
 use crate::ReadOnlyState;
@@ -54,24 +54,18 @@ impl Snapshot {
         )
     }
 
-    /// Capped DFS from `seed` (exclusive) along `next`, lifted directly
-    /// to wire-shape `CpfpEntry`s. Used for both ancestor and descendant
-    /// walks.
+    /// DFS from `seed` (exclusive) along `next`, lifted directly to wire-shape `CpfpEntry`s:
+    /// the seed's ancestors or descendants, all of them (its component bounds them).
     fn collect_cpfp_entries(
         txs: &[SnapTx],
         seed: TxIndex,
         next: impl Fn(&SnapTx) -> &[TxIndex],
     ) -> Vec<CpfpEntry> {
-        let seed_node = &txs[seed.as_usize()];
-        let mut visited: FxHashSet<TxIndex> =
-            FxHashSet::with_capacity_and_hasher(CPFP_CHAIN_LIMIT + 1, FxBuildHasher);
+        let mut visited: FxHashSet<TxIndex> = FxHashSet::default();
         visited.insert(seed);
-        let mut out: Vec<CpfpEntry> = Vec::with_capacity(CPFP_CHAIN_LIMIT);
-        let mut stack: Vec<TxIndex> = next(seed_node).to_vec();
+        let mut out: Vec<CpfpEntry> = Vec::new();
+        let mut stack: Vec<TxIndex> = next(&txs[seed.as_usize()]).to_vec();
         while let Some(idx) = stack.pop() {
-            if out.len() >= CPFP_CHAIN_LIMIT {
-                break;
-            }
             if !visited.insert(idx) {
                 continue;
             }

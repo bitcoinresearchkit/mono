@@ -21,7 +21,7 @@ brk_error = { workspace = true, features = ["corepc", "serde_json"] }
 brk_types = { workspace = true }
 corepc-jsonrpc = { workspace = true }
 parking_lot = { workspace = true }
-rustc-hash = { workspace = true }
+rapidhash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }

@@ -109,7 +109,7 @@ impl Emitter {
                 t,
                 hash,
                 count: block.tx_count,
-                vsize: block.total_vsize,
+                vsize: VSize::from(block.total_weight),
                 fee: block.total_fee,
             });
         }

@@ -9,7 +9,7 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, TxOut, Txid, Vout};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use tracing::{error, info, warn};
 
 use crate::{
@@ -32,7 +32,7 @@ impl Mempool {
     /// ([`Self::chain_waker`]), a pool behind it follows at once.
     pub fn start_with<F>(&mut self, resolver: F, published_tip: impl Fn() -> BlockHash)
     where
-        F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send,
+        F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> + Send,
     {
         let gate = || Some(published_tip());
         let loading = Instant::now();
@@ -76,7 +76,7 @@ impl Mempool {
     /// internally. Failed observations leave the public state intact.
     fn tick_with<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
     where
-        F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+        F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
         if self.needs_recovery {
             self.restore_published();
@@ -103,7 +103,7 @@ impl Mempool {
 
     fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
     where
-        F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
+        F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
         // RPC batches are not atomic. Bracket fetch and resolution with full tips.
         let tip_before = self.client.get_best_block_hash()?;

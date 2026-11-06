@@ -766,7 +766,7 @@
  * @typedef {Object} MempoolBlock
  * @property {number} blockSize - Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
  *   or coinbase.
- * @property {number} blockVSize - Sum of the transactions' virtual sizes in vbytes
+ * @property {number} blockVSize - The transactions' weight over 4, unrounded (mempool.space's): the block's virtual size
  * @property {number} nTx - Number of transactions in the projected block
  * @property {Sats} totalFees - Total fees in satoshis
  * @property {FeeRate} medianFee - Median fee rate in sat/vB

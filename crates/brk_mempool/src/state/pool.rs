@@ -2,7 +2,8 @@ use std::{hash::Hasher, sync::Arc};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolInfo, Timestamp, Txid};
-use rustc_hash::{FxHashSet, FxHasher};
+use rapidhash::RapidHashSet;
+use rustc_hash::FxHasher;
 use serde_json::to_vec;
 
 use crate::{
@@ -121,7 +122,7 @@ impl Pool {
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
-            template_only: FxHashSet::default(),
+            template_only: RapidHashSet::default(),
         }
     }
 }

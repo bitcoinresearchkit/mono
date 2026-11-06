@@ -22,6 +22,7 @@ brk_types = { workspace = true, features = ["storage"] }
 crossbeam-channel = "0.5.17"
 fjall = { workspace = true }
 rayon = { workspace = true }
+rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }

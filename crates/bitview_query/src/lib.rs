@@ -23,7 +23,7 @@ use brk_mempool::ReadOnlyState;
 use brk_reader::Reader;
 use brk_rpc::Client;
 use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 #[cfg(any(feature = "series", feature = "price"))]
 use vecdb::{ReadBounds, ReadScope};
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
@@ -293,7 +293,7 @@ impl Query {
     /// Resolves the confirmed outputs mempool transactions spend, as published when called.
     pub fn indexer_prevout_resolver(
         &self,
-    ) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send + Sync + use<> {
+    ) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> + Send + Sync + use<> {
         let query = self.clone();
         // The reads check their own bounds: the pin alone, no calendar read bounds.
         move |holes| {

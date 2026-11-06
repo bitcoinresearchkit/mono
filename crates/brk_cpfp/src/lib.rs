@@ -2,5 +2,7 @@
 
 mod cluster;
 mod linearize;
+#[cfg(test)]
+mod tests;
 
 pub use cluster::Cluster;

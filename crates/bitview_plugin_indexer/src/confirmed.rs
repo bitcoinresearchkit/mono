@@ -2,7 +2,7 @@ use bitcoin::{ScriptBuf, Transaction, Weight as BitcoinWeight, consensus::deseri
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
-use rustc_hash::FxHashMap;
+use rapidhash::RapidHashMap;
 use vecdb::{BytesVecReader, ReadableVec, Ro};
 
 use crate::{Indexer, UtxoKey, readers::AddrReaders};
@@ -73,8 +73,8 @@ impl Indexer<Ro> {
         &self,
         holes: &[(Txid, Vout)],
         safe: Lengths,
-    ) -> FxHashMap<(Txid, Vout), TxOut> {
-        let mut resolved = FxHashMap::default();
+    ) -> RapidHashMap<(Txid, Vout), TxOut> {
+        let mut resolved = RapidHashMap::default();
         if holes.is_empty() {
             return resolved;
         }
@@ -114,7 +114,7 @@ impl Indexer<Ro> {
         // The rest (unknown, unsafe or spent-above-safe parents; scripts kept only in the parent)
         // go through the parent transaction's indexed outputs, grouped so each parent decodes
         // once.
-        let mut parents: FxHashMap<Txid, Vec<Vout>> = FxHashMap::default();
+        let mut parents: RapidHashMap<Txid, Vec<Vout>> = RapidHashMap::default();
         for &(txid, vout) in holes {
             match unspent(&mut scripts, txid, vout) {
                 Some(txout) => {
