@@ -27,8 +27,8 @@ impl Formatter {
     }
 
     fn bare(&self, ctx: &Ctx, pretty: bool, out: &mut impl Write) -> Result<()> {
+        // A line per block, an empty one included.
         match ctx.resolve(&self.fields[0])? {
-            Value::String(s) if s.is_empty() => Ok(()),
             Value::String(s) => Ok(writeln!(out, "{s}")?),
             other => json(out, &other, pretty),
         }

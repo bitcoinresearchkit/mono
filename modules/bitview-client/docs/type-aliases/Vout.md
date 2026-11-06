@@ -8,6 +8,6 @@
 
 > **Vout** = `number`
 
-Defined in: [modules/bitview-client/index.js:1706](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1706)
+Defined in: [modules/bitview-client/index.js:1525](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1525)
 
 ## Type Parameters

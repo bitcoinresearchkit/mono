@@ -6,7 +6,7 @@
 
 # Interface: HistoricalPrice
 
-Defined in: [modules/bitview-client/index.js:696](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L696)
+Defined in: [modules/bitview-client/index.js:628](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L628)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:696](https://github.com/bitcoinrese
 
 > **exchangeRates**: `Object`
 
-Defined in: [modules/bitview-client/index.js:698](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L698)
+Defined in: [modules/bitview-client/index.js:630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L630)
 
 Exchange rates (currently empty)
 
@@ -24,4 +24,4 @@ Exchange rates (currently empty)
 
 > **prices**: [`PricePoint`](PricePoint.md)[]
 
-Defined in: [modules/bitview-client/index.js:697](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L697)
+Defined in: [modules/bitview-client/index.js:629](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L629)

@@ -8,6 +8,6 @@
 
 > **Date** = `string`
 
-Defined in: [modules/bitview-client/index.js:479](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L479)
+Defined in: [modules/bitview-client/index.js:419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L419)
 
 ## Type Parameters

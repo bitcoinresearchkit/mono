@@ -10,7 +10,13 @@ readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
 [package.metadata.release]
+# The clients follow the release version in its own commit and tag: bindgen writes the JS and Python
+# clients' (and the JS package's), these the other packages' manifests.
 pre-release-hook = ["cargo", "run", "-p", "bitview_devtools", "--bin", "bitview-bindgen"]
+pre-release-replacements = [
+    { file = "../../modules/quickmatch-js/package.json", search = '"version": "[^"]+"', replace = '"version": "{{version}}"', exactly = 1, prerelease = true },
+    { file = "../../packages/bitview_client/pyproject.toml", search = '(?m)^version = "[^"]+"', replace = 'version = "{{version}}"', exactly = 1, prerelease = true },
+]
 
 [dependencies]
 bitview = { workspace = true, features = ["full-api"] }

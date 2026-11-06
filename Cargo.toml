@@ -124,12 +124,12 @@ smallvec = "1.16.3"
 statedb = { path = "crates/statedb", version = "0.13.0" }
 tempfile = "3.27.0"
 thiserror = "2.0.21"
-tokio = { version = "1.54.1", features = ["rt-multi-thread"] }
+tokio = "1.54.1"
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.7.1", features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "normalize-path", "timeout", "trace"] }
+tower-http = "0.7.1"
 tower-layer = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
-ureq = { version = "3.5.0", features = ["json"] }
+ureq = "3.5.0"
 vecdb = { path = "crates/vecdb", version = "0.13.0", features = ["derive", "serde", "pco"] }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.13.0" }
 

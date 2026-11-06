@@ -83,11 +83,13 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
         }
     };
 
+    // Layers see an event in this order: the hook and the tail read the clock before the
+    // console and the log file write it out.
     let registry = TracingSubscriberRegistry()
         .with(filter)
-        .with(fmt::layer().event_format(Formatter::<true>))
         .with(HookLayer)
-        .with(TailLayer);
+        .with(TailLayer)
+        .with(fmt::layer().event_format(Formatter::<true>));
 
     if let Some(dir) = dir {
         let writer = RateLimitedFile::new(dir)?;

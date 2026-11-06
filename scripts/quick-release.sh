@@ -21,19 +21,33 @@ RELEASE_ARG="$1"
 echo "Release argument: $RELEASE_ARG"
 echo ""
 
+# npm and PyPI drop build metadata, and cargo-release's `{{version}}` leaves it out: the packages
+# would disagree on their version.
+case "$RELEASE_ARG" in
+    *+*)
+        echo "Build metadata (+...) isn't supported: npm, PyPI and the manifests would disagree"
+        exit 1
+        ;;
+esac
+
 CURRENT_VERSION=$(sed -n 's/^package\.version = "\([^"]*\)"/\1/p' "$ROOT_DIR/Cargo.toml")
 RESUME_RELEASE=false
 
 if [ "$RELEASE_ARG" = "$CURRENT_VERSION" ] &&
     git -C "$ROOT_DIR" rev-parse --verify --quiet "refs/tags/v$CURRENT_VERSION" >/dev/null; then
     RESUME_RELEASE=true
+    # What's published is what's tagged: only from the tagged commit itself.
+    if [ "$(git -C "$ROOT_DIR" rev-parse HEAD)" != "$(git -C "$ROOT_DIR" rev-parse "v$CURRENT_VERSION^{commit}")" ]; then
+        echo "HEAD isn't v$CURRENT_VERSION's commit: check it out (git checkout v$CURRENT_VERSION) to resume"
+        exit 1
+    fi
     echo "Resuming v$CURRENT_VERSION"
     echo ""
 fi
 
-# A release commits and tags what's in the tree: only from a clean one (other work in this
-# checkout would ride along). A resumed one keeps what its own publish steps changed.
-if [ "$RESUME_RELEASE" = false ] && [ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]; then
+# A release commits and tags what's in the tree, and publishes what's tagged: only from a clean one
+# (other work in this checkout would ride along), resumed or not.
+if [ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]; then
     echo "The working tree has changes: commit or move them first"
     exit 1
 fi
@@ -68,8 +82,10 @@ if [ "$RESUME_RELEASE" = false ]; then
 
     echo "--- JavaScript ---"
     cd "$ROOT_DIR/modules/bitview-client"
-    # JavaScript needs no build step; importing checks the generated module.
+    # JavaScript needs no build step; importing checks the generated module, tsc its types (the
+    # declarations published from them).
     bun -e "await import('./index.js')"
+    bunx --bun -p typescript@5 tsc -p tsconfig.json --noEmit
     echo "OK"
     echo ""
 
@@ -110,8 +126,9 @@ else
     VERSION=$(grep '^package.version' "$ROOT_DIR/Cargo.toml" | sed 's/.*= *"//' | sed 's/".*//')
 fi
 
-# Publish crates, skipping versions already available in the registry
-"$SCRIPT_DIR/rust-publish.sh"
+# Publish crates, skipping versions already available in the registry. A resume runs from the tag's
+# own commit (checked above), detached HEAD included.
+RELEASE_RESUME="$RESUME_RELEASE" "$SCRIPT_DIR/rust-publish.sh"
 
 echo ""
 echo "Released Rust crates at version: $VERSION"

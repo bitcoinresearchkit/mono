@@ -24,7 +24,7 @@ brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 serde_json = { workspace = true }
 tempfile = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower = { workspace = true }
 vecdb = { workspace = true }
 

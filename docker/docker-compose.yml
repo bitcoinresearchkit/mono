@@ -13,9 +13,15 @@ services:
       - 127.0.0.1:7070:3110
     volumes:
       - ${BITCOIN_DATA_DIR:-/path/to/bitcoin}:/bitcoin:ro
-      - ${BITVIEW_DATA_VOLUME:-bitview-data}:/home/bitview/.bitview
-      # Bind mount alternative (uncomment and set BITVIEW_DATA_DIR in .env):
+      - bitview-data:/home/bitview/.bitview
+      # Bind mount alternative (uncomment, set BITVIEW_DATA_DIR in .env, comment the line above):
       # - ${BITVIEW_DATA_DIR:-./bitview-data}:/home/bitview/.bitview
+    # A user and password instead of Bitcoin Core's cookie: write `user:password` (a cookie's
+    # format) to docker/rpc-credentials, readable by UID 1000, then uncomment these two lines, the
+    # two `--rpccookiefile` lines below and the `secrets:` block at the end. (Never on the command
+    # line, where `ps` shows it.)
+    # secrets:
+    #   - bitcoin-rpc
     command:
       - --bitcoindir
       - /bitcoin
@@ -25,11 +31,9 @@ services:
       - /home/bitview/.bitview
       - --rpcconnect
       - "${BTC_RPC_HOST:-localhost}"
-      # Without BTC_RPC_PASSWORD, bitviewd uses the cookie at /bitcoin/.cookie.
-      - --rpcuser
-      - "${BTC_RPC_USER:-}"
-      - --rpcpassword
-      - "${BTC_RPC_PASSWORD:-}"
+      # Bitcoin Core's cookie at /bitcoin/.cookie, or the credentials (see `secrets:` above):
+      # - --rpccookiefile
+      # - /run/secrets/bitcoin-rpc
       # Shared vector cache size in bytes (default 1 GiB):
       # - --cachebudget
       # - "4294967296"
@@ -41,4 +45,9 @@ services:
 
 volumes:
   bitview-data:
-    driver: local
+    # The volume Compose has always made for this project, unless BITVIEW_DATA_VOLUME names another.
+    name: ${BITVIEW_DATA_VOLUME:-bitview_bitview-data}
+
+# secrets:
+#   bitcoin-rpc:
+#     file: ./rpc-credentials

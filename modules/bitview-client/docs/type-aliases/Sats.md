@@ -8,6 +8,6 @@
 
 > **Sats** = `number`
 
-Defined in: [modules/bitview-client/index.js:1315](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1315)
+Defined in: [modules/bitview-client/index.js:1209](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1209)
 
 ## Type Parameters

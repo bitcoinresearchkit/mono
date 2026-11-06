@@ -39,5 +39,5 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 tower = { workspace = true }
-tower-http = { workspace = true, features = ["limit"] }
+tower-http = { workspace = true, features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "limit", "normalize-path", "timeout"] }
 tower-layer = { workspace = true }

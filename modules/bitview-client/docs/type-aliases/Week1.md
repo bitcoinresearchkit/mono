@@ -8,6 +8,6 @@
 
 > **Week1** = `number`
 
-Defined in: [modules/bitview-client/index.js:1711](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1711)
+Defined in: [modules/bitview-client/index.js:1530](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1530)
 
 ## Type Parameters

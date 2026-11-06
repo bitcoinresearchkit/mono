@@ -41,9 +41,7 @@ These environment variables are interpolated when Compose starts:
 |---|---|---|
 | `BITCOIN_DATA_DIR` | Host path to the Bitcoin Core data directory | `/path/to/bitcoin` |
 | `BTC_RPC_HOST` | Bitcoin Core RPC host as reached from the container | `localhost` |
-| `BTC_RPC_USER` | RPC username | empty |
-| `BTC_RPC_PASSWORD` | RPC password; when empty, the cookie in `BITCOIN_DATA_DIR` is used | empty |
-| `BITVIEW_DATA_VOLUME` | Docker volume used for Bitview data | `bitview-data` |
+| `BITVIEW_DATA_VOLUME` | Docker volume used for Bitview data | `bitview_bitview-data` |
 
 Edit the `command:` section in [`docker-compose.yml`](./docker-compose.yml) for
 other `bitviewd` options.
@@ -56,18 +54,22 @@ other `bitviewd` options.
   network.
 - Remote Bitcoin Core: use its reachable hostname or IP address.
 
-For username/password authentication, set `BTC_RPC_USER` and
-`BTC_RPC_PASSWORD` in `docker/.env`. Leave `BTC_RPC_PASSWORD` unset to use
-cookie authentication: Bitcoin Core's `.cookie` in `BITCOIN_DATA_DIR` must be
-readable by the container user (UID 1000). bitcoind rewrites the cookie with
-owner-only permissions on every start, so either run bitcoind as UID 1000, or
-start it with `-rpccookieperms=group` (Bitcoin Core 28+) and add its group to
-the container with `group_add` in `docker-compose.yml`.
+Bitview authenticates with Bitcoin Core's cookie by default. For a username and
+password instead, write `user:password` to `docker/rpc-credentials` (the
+cookie's format, readable by UID 1000; git ignores it) and uncomment the
+`secrets` lines and the `--rpccookiefile` lines in `docker-compose.yml`: the
+credentials reach the container as a mounted secret, never on its command line,
+where `ps` would show them. For cookie authentication, Bitcoin Core's `.cookie`
+in `BITCOIN_DATA_DIR` must be readable by the container user (UID 1000).
+bitcoind rewrites the cookie with owner-only permissions on every start, so
+either run bitcoind as UID 1000, or start it with `-rpccookieperms=group`
+(Bitcoin Core 28+) and add its group to the container with `group_add` in
+`docker-compose.yml`.
 
 ## Data storage
 
-The default named volume is `bitview-data`. To select another named volume, set
-`BITVIEW_DATA_VOLUME`.
+The default named volume is `bitview_bitview-data`, the one Compose has always
+made for this project. To select another named volume, set `BITVIEW_DATA_VOLUME`.
 
 For a bind mount:
 

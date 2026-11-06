@@ -8,7 +8,7 @@
 
 > **TxValue** = `object`
 
-Defined in: [modules/bitview-client/index.js:4402](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4402)
+Defined in: [modules/bitview-client/index.js:4221](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4221)
 
 ## Type Parameters
 

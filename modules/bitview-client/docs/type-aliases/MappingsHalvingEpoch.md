@@ -8,7 +8,7 @@
 
 > **MappingsHalvingEpoch** = `object`
 
-Defined in: [modules/bitview-client/index.js:6550](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6550)
+Defined in: [modules/bitview-client/index.js:6369](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6369)
 
 ## Type Parameters
 

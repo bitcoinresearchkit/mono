@@ -59,7 +59,8 @@ pub enum Event {
         count: usize,
         vsize: VSize,
         fee: Sats,
-        took_ms: u64,
+        /// How long the cycle's mempool tick took (the emit after it not included).
+        tick_ms: u64,
     },
 }
 

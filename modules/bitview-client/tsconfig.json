@@ -6,8 +6,15 @@
     "target": "ESNext",
     "module": "ESNext",
     "outDir": "/tmp/brk",
-    "lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext",
+      "WebWorker"
+    ],
     "skipLibCheck": true
   },
-  "exclude": ["dist"]
+  "files": [
+    "index.js"
+  ]
 }

@@ -306,57 +306,6 @@ Address = str
 # - `New(tx)` serializes as a transaction object: a body that was new or changed since the
 #   prior block and takes this position.
 MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
-class ValidateAddressParam(TypedDict):
-    """
-    Attributes:
-        address: Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
-    """
-    address: str
-
-class UrpdCohortParam(TypedDict):
-    cohort: UrpdCohort
-
-class UrpdQuery(TypedDict, total=False):
-    """
-    Attributes:
-        agg: Aggregation strategy. Default: raw (no aggregation).
-        weight: Supply weighting. Default: none (unweighted).
-    """
-    agg: UrpdAggregation
-    weight: UrpdWeight
-
-# Transaction IDs as repeated `txId[]` query parameters.
-TxidsParam = TypedDict("TxidsParam", {"txId[]": List[Txid]})
-
-class TxidVout(TypedDict):
-    """
-    Attributes:
-        vout: Output index
-    """
-    txid: Txid
-    vout: Vout
-
-class TxidParam(TypedDict):
-    txid: Txid
-
-class AddressTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's transactions, mempool ones first.
-
-    Attributes:
-        after_txid: Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
-        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
-    """
-    after_txid: Union[Txid, None]
-    max_txs: Optional[int]
-
-class TxIndexParam(TypedDict):
-    """
-    Attributes:
-        index: Global transaction index across the chain
-    """
-    index: TxIndex
-
 class OutPoint(TypedDict):
     """
     The output a transaction input spends: its transaction index and output position, written as
@@ -364,9 +313,6 @@ class OutPoint(TypedDict):
     """
     tx_index: TxIndex
     vout: Vout
-
-class TimestampParam(TypedDict):
-    timestamp: Timestamp
 
 class PoolHashrateEntry(TypedDict):
     """
@@ -388,16 +334,6 @@ class HashrateEntry(TypedDict):
     """
     timestamp: Timestamp
     avgHashrate: int
-
-class TimePeriodParam(TypedDict):
-    """
-    Attributes:
-        time_period: Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-    """
-    time_period: TimePeriod
-
-class SeriesParam(TypedDict):
-    series: SeriesName
 
 class PaginatedSeries(TypedDict):
     """
@@ -442,17 +378,6 @@ class DetailedSeriesCount(TypedDict):
     lazy: int
     stored: int
     by_db: dict[str, SeriesCount]
-
-class _SearchQueryRequired(TypedDict):
-    q: str
-
-class SearchQuery(_SearchQueryRequired, total=False):
-    """
-    Attributes:
-        q: Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-        limit: Maximum number of results, 1 to 1,000 (default: 100)
-    """
-    limit: int
 
 class MempoolRecentTx(TypedDict):
     """
@@ -580,9 +505,6 @@ class PoolsSummary(TypedDict):
     lastEstimatedHashrate3d: int
     lastEstimatedHashrate1w: int
 
-class PoolSlugParam(TypedDict):
-    slug: PoolSlug
-
 class PoolInfo(TypedDict):
     """
     Attributes:
@@ -615,15 +537,6 @@ PoolBlockShares = TypedDict("PoolBlockShares", {"all": float, "24h": float, "1w"
 # Block counts for different time periods
 PoolBlockCounts = TypedDict("PoolBlockCounts", {"all": int, "24h": int, "1w": int})
 
-class Pagination(TypedDict, total=False):
-    """
-    Attributes:
-        page: Zero-based page number (default: 0)
-        per_page: Results per page, 1 to 1,000 (default: 1000)
-    """
-    page: int
-    per_page: int
-
 class OracleOutputs(TypedDict):
     """
     A block's outputs as the oracle's filter judged them: each skipped one under the first rule
@@ -646,28 +559,6 @@ class OracleOutputs(TypedDict):
     dust: int
     round_btc: int
     payments: int
-
-class MempoolBlockParam(TypedDict):
-    index: MempoolBlockIndex
-
-class MempoolBlockDiffParam(TypedDict):
-    """
-    The block and the content token a client holds for it.
-
-    Attributes:
-        since: The `hash` of the client's copy, from the block or a previous diff
-    """
-    index: MempoolBlockIndex
-    since: MempoolBlockHash
-
-class LogsQuery(TypedDict, total=False):
-    """
-    Where a reader of the log left off.
-
-    Attributes:
-        after: The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-    """
-    after: Optional[str]
 
 class LogLine(TypedDict):
     """
@@ -694,10 +585,6 @@ class Logs(TypedDict):
     started_unix_ms: int
     lines: List[LogLine]
     next: str
-
-class SeriesNameWithIndex(TypedDict):
-    series: SeriesName
-    index: Index
 
 class _SeriesLeafWithSchemaRequired(TypedDict):
     name: SeriesName
@@ -751,13 +638,6 @@ class SyncStatus(TypedDict):
     last_indexed_at: str
     last_indexed_at_unix: Timestamp
 
-class StartParam(TypedDict):
-    """
-    Attributes:
-        start: The first block's height.
-    """
-    start: Height
-
 class RewardStats(TypedDict):
     """
     Block reward statistics over a range of blocks
@@ -774,10 +654,6 @@ class RewardStats(TypedDict):
     totalReward: str
     totalFee: str
     totalTx: str
-
-class PoolSlugAndHeightParam(TypedDict):
-    slug: PoolSlug
-    height: Height
 
 class OracleBlockPayments(TypedDict):
     """
@@ -802,9 +678,6 @@ class MerkleProof(TypedDict):
     block_height: Height
     merkle: List[MerkleNode]
     pos: int
-
-class HeightParam(TypedDict):
-    height: Height
 
 class DifficultyEntry(TypedDict):
     """
@@ -939,34 +812,6 @@ class Health(TypedDict):
     blocks_behind: Height
     last_indexed_at: str
     last_indexed_at_unix: Timestamp
-
-class _SeriesSelectionRequired(TypedDict):
-    series: SeriesList
-    index: Index
-
-class SeriesSelection(_SeriesSelectionRequired, total=False):
-    """
-    Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-    """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
-
-class DataRangeFormat(TypedDict, total=False):
-    """
-    Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-    """
-    start: Union[RangeIndex, None]
-    end: Union[RangeIndex, None]
-    limit: Union[Limit, None]
-    format: Format
 
 class _RbfTxRequired(TypedDict):
     txid: Txid
@@ -1190,34 +1035,6 @@ class DiskUsage(TypedDict):
     bitcoin: str
     bitcoin_bytes: int
     ratio: float
-
-class UrpdParams(TypedDict):
-    """
-    A URPD cohort and the confirmed point to read it at.
-
-    Attributes:
-        point: Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-    """
-    cohort: UrpdCohort
-    point: HeightOrDate
-
-class HeightOrDateParam(TypedDict):
-    """
-    Attributes:
-        point: Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-    """
-    point: HeightOrDate
-
-class HistoricalPriceParam(TypedDict, total=False):
-    """
-    Historical price query parameters, as mempool.space's
-
-    Attributes:
-        timestamp: UNIX timestamp: the latest close at or before it
-        currency: Quote currency: USD, the only one served
-    """
-    timestamp: Union[Timestamp, None]
-    currency: Union[Currency, None]
 
 class CpfpClusterTx(TypedDict):
     """
@@ -1446,32 +1263,6 @@ class BlockInfo(_BlockInfoRequired, total=False):
     """
     previousblockhash: Union[BlockHash, None]
 
-class BlockHashTxIndex(TypedDict):
-    """
-    Attributes:
-        index: Transaction index within the block (0-based)
-    """
-    hash: BlockHash
-    index: BlockTxIndex
-
-class BlockHashStartIndex(TypedDict):
-    """
-    Attributes:
-        start_index: Starting transaction index within the block (0-based)
-    """
-    hash: BlockHash
-    start_index: BlockTxIndex
-
-class BlockHashParam(TypedDict):
-    hash: BlockHash
-
-class BlockCountParam(TypedDict):
-    """
-    Attributes:
-        block_count: Number of recent blocks to include
-    """
-    block_count: int
-
 class UtxoOrigins(TypedDict):
     """
     Columnar unspent amounts indexed by creation height.
@@ -1576,32 +1367,6 @@ class Urpd(TypedDict):
     close: Dollars
     supply: Bitcoin
     buckets: UrpdBuckets
-
-class AddressHashPrefixParam(TypedDict):
-    """
-    Attributes:
-        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
-    """
-    address_type: AddressOutputType
-    prefix: str
-
-class AddressMempoolTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's mempool transactions.
-
-    Attributes:
-        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
-    """
-    max_txs: Optional[int]
-
-class AddressChainTxsQuery(TypedDict, total=False):
-    """
-    A page of an address's confirmed transactions.
-
-    Attributes:
-        max_txs: Transactions to return, at most 25 (the default); larger values return 25.
-    """
-    max_txs: Optional[int]
 
 class _TxOutRequired(TypedDict):
     scriptpubkey: Hex
@@ -1887,9 +1652,6 @@ class AddressStats(TypedDict):
     mempool_stats: AddressMempoolStats
     balance: Sats
 
-class AddressParam(TypedDict):
-    address: Address
-
 class AddressHashPrefixMatches(TypedDict):
     """
     Attributes:
@@ -1899,14 +1661,6 @@ class AddressHashPrefixMatches(TypedDict):
     prefix: str
     truncated: bool
     addresses: List[Address]
-
-class AddressAfterTxidParam(TypedDict):
-    """
-    Attributes:
-        after_txid: Last txid from the previous page (return transactions strictly older than this)
-    """
-    address: Address
-    after_txid: Txid
 
 
 # Each date-based index's buckets as (unit, size, phase): bucket i starts i * size - phase units
@@ -6600,7 +6354,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
 
-        Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees: a node operator's `prioritisetransaction` deltas or mining options shape block 0 only, the last holding whatever is left, more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, but such a last one.
+        Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
 

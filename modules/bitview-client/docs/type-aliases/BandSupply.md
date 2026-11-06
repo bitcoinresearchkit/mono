@@ -8,7 +8,7 @@
 
 > **BandSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4160](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4160)
+Defined in: [modules/bitview-client/index.js:3979](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3979)
 
 ## Type Parameters
 

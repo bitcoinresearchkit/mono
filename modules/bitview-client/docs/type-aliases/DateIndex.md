@@ -8,6 +8,6 @@
 
 > **DateIndex** = `"minute10"` \| `"minute30"` \| `"hour1"` \| `"hour4"` \| `"hour12"` \| `"day1"` \| `"day3"` \| `"week1"` \| `"month1"` \| `"month3"` \| `"month6"` \| `"year1"` \| `"year10"`
 
-Defined in: [modules/bitview-client/index.js:1735](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1735)
+Defined in: [modules/bitview-client/index.js:1554](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1554)
 
 ## Type Parameters

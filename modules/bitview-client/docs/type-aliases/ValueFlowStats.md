@@ -8,7 +8,7 @@
 
 > **ValueFlowStats** = `object`
 
-Defined in: [modules/bitview-client/index.js:4364](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4364)
+Defined in: [modules/bitview-client/index.js:4183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4183)
 
 ## Type Parameters
 

@@ -25,6 +25,8 @@ pub struct Emitter {
     prev_mempool_block_hash: Option<MempoolBlockHash>,
     prev_fees: Option<PreciseRecommendedFees>,
     prev_txids: FxHashSet<Txid>,
+    /// `prev_txids`' hash: an unchanged pool skips rebuilding and diffing the set.
+    prev_txids_hash: Option<u64>,
 }
 
 /// The pool totals a heartbeat reports, read from the published statistics.
@@ -47,49 +49,55 @@ impl Emitter {
         out: &mut W,
         client: &Client,
         state: &ReadOnlyState,
-        took: Duration,
+        tick: Duration,
     ) -> Result<()> {
         let Some(tip) = state.tip() else {
             return Ok(());
         };
         let t = now_secs();
         let mut events = Vec::new();
-        let txids: FxHashSet<Txid> = state.txids()?.copied().collect();
-
-        let mut added = 0;
-        for txid in txids.difference(&self.prev_txids) {
-            let Some(published) = state.transaction(txid, &tip)? else {
-                continue;
-            };
-            added += 1;
-            events.push(Event::Enter {
-                t,
-                txid: *txid,
-                vsize: published.vsize,
-                fee: published.tx.fee,
-                rate: FeeRate::from((published.tx.fee, published.vsize)),
-                first_seen: published.first_seen,
-            });
-        }
-        let mut removed = 0;
-        for txid in self.prev_txids.difference(&txids) {
-            let replacer = match state.rbf_for_tx(txid, &tip) {
-                Ok(rbf) => rbf.root.as_ref().and_then(|root| replacer_of(root, txid)),
-                // A history past the RBF traversal bounds stays unclassified: retrying the
-                // cycle would hit it again until it ages out, stalling the stream.
-                Err(Error::Internal(_)) => None,
-                Err(e) => return Err(e),
-            };
-            let reason = match replacer {
-                Some(by) => LeaveReason::Replaced { by },
-                None => LeaveReason::Vanished,
-            };
-            removed += 1;
-            events.push(Event::Leave {
-                t,
-                txid: *txid,
-                reason,
-            });
+        // An unchanged pool (its txids' hash) has no one entering or leaving: the set isn't rebuilt.
+        let txids_hash = state.txids_hash()?;
+        let txids: Option<FxHashSet<Txid>> = if self.prev_txids_hash == Some(txids_hash) {
+            None
+        } else {
+            Some(state.txids()?.copied().collect())
+        };
+        let (mut added, mut removed) = (0, 0);
+        if let Some(now) = &txids {
+            for txid in now.difference(&self.prev_txids) {
+                let Some(published) = state.transaction(txid, &tip)? else {
+                    continue;
+                };
+                added += 1;
+                events.push(Event::Enter {
+                    t,
+                    txid: *txid,
+                    vsize: published.vsize,
+                    fee: published.tx.fee,
+                    rate: FeeRate::from((published.tx.fee, published.vsize)),
+                    first_seen: published.first_seen,
+                });
+            }
+            for txid in self.prev_txids.difference(now) {
+                let replacer = match state.rbf_for_tx(txid, &tip) {
+                    Ok(rbf) => rbf.root.as_ref().and_then(|root| replacer_of(root, txid)),
+                    // A history past the RBF traversal bounds stays unclassified: retrying the
+                    // cycle would hit it again until it ages out, stalling the stream.
+                    Err(Error::Internal(_)) => None,
+                    Err(e) => return Err(e),
+                };
+                let reason = match replacer {
+                    Some(by) => LeaveReason::Replaced { by },
+                    None => LeaveReason::Vanished,
+                };
+                removed += 1;
+                events.push(Event::Leave {
+                    t,
+                    txid: *txid,
+                    reason,
+                });
+            }
         }
 
         if self.prev_tip != Some(tip) {
@@ -100,7 +108,11 @@ impl Emitter {
                 height: height.into(),
             });
         }
-        let mempool_block_hash = state.mempool_block_hash().ok();
+        let mempool_block_hash = state
+            .mempool_block_source(0)
+            .ok()
+            .flatten()
+            .map(|block| block.hash());
         if let Some(hash) = mempool_block_hash
             && self.prev_mempool_block_hash != Some(hash)
             && let Some(block) = state.block_stats()?.first()
@@ -127,7 +139,7 @@ impl Emitter {
             count: totals.count,
             vsize: totals.vsize,
             fee: totals.total_fee,
-            took_ms: took.as_millis() as u64,
+            tick_ms: tick.as_millis() as u64,
         });
 
         for event in &events {
@@ -142,7 +154,10 @@ impl Emitter {
         if fees.is_some() {
             self.prev_fees = fees;
         }
-        self.prev_txids = txids;
+        if let Some(txids) = txids {
+            self.prev_txids = txids;
+            self.prev_txids_hash = Some(txids_hash);
+        }
         Ok(())
     }
 }

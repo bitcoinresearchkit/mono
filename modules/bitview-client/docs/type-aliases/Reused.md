@@ -8,7 +8,7 @@
 
 > **Reused** = `object`
 
-Defined in: [modules/bitview-client/index.js:5857](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5857)
+Defined in: [modules/bitview-client/index.js:5676](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5676)
 
 ## Type Parameters
 

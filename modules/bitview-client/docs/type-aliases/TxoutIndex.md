@@ -8,7 +8,7 @@
 
 > **TxoutIndex** = `object`
 
-Defined in: [modules/bitview-client/index.js:6386](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6386)
+Defined in: [modules/bitview-client/index.js:6205](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6205)
 
 ## Type Parameters
 

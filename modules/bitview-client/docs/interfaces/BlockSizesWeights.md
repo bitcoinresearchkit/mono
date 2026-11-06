@@ -6,7 +6,7 @@
 
 # Interface: BlockSizesWeights
 
-Defined in: [modules/bitview-client/index.js:303](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L303)
+Defined in: [modules/bitview-client/index.js:250](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L250)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:303](https://github.com/bitcoinrese
 
 > **sizes**: [`BlockSizeEntry`](BlockSizeEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L304)
+Defined in: [modules/bitview-client/index.js:251](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L251)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [modules/bitview-client/index.js:304](https://github.com/bitcoinrese
 
 > **weights**: [`BlockWeightEntry`](BlockWeightEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:305](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L305)
+Defined in: [modules/bitview-client/index.js:252](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L252)

@@ -7,10 +7,14 @@
     "node": ">=20.3"
   },
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
   },
   "files": [
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "homepage": "https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client",
   "keywords": [
@@ -34,5 +38,6 @@
     "url": "git+https://github.com/bitcoinresearchkit/mono.git"
   },
   "type": "module",
+  "types": "index.d.ts",
   "version": "0.13.0"
 }

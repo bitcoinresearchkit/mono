@@ -8,6 +8,6 @@
 
 > **Version** = `number`
 
-Defined in: [modules/bitview-client/index.js:1696](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1696)
+Defined in: [modules/bitview-client/index.js:1515](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1515)
 
 ## Type Parameters

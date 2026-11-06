@@ -29,7 +29,7 @@ Events (one JSON object per line), from each published pool against the previous
     {"kind":"fees","t":..,"fastest":..,"half_hour":..,"hour":..,"economy":..,"minimum":..}
 
   Per-cycle heartbeat (every successful cycle):
-    {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"took_ms":N}
+    {"kind":"cycle","t":..,"added":N,"removed":N,"count":N,"vsize":N,"fee":N,"tick_ms":N}
 
 Examples:
   mmpl | jq -c 'select(.kind=="enter" and .rate>=50)'

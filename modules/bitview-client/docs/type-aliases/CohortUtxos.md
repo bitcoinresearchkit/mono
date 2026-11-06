@@ -8,7 +8,7 @@
 
 > **CohortUtxos** = `object`
 
-Defined in: [modules/bitview-client/index.js:5168](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5168)
+Defined in: [modules/bitview-client/index.js:4987](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4987)
 
 ## Type Parameters
 

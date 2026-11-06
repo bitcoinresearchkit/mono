@@ -106,6 +106,9 @@ impl Benchmark {
             path = revision.join(format!("{run_id}-{suffix}"));
         }
 
+        // Resumed when plugin data was already there: its time isn't a full sync's.
+        let resumed = fs::read_dir(data_path.join("plugins"))
+            .is_ok_and(|mut entries| entries.next().is_some());
         metadata::write(
             &path,
             data_path,
@@ -113,6 +116,7 @@ impl Benchmark {
             *started_at,
             chain_height,
             cache_budget,
+            resumed,
         )?;
 
         let trace = Arc::new(TraceMonitor::new(&path)?);

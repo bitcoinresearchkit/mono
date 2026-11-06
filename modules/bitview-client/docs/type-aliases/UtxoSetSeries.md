@@ -8,7 +8,7 @@
 
 > **UtxoSetSeries** = `object`
 
-Defined in: [modules/bitview-client/index.js:3915](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3915)
+Defined in: [modules/bitview-client/index.js:3734](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3734)
 
 ## Type Parameters
 

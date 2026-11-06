@@ -51,6 +51,7 @@ pub fn write(
     started_at: u32,
     chain_height: Height,
     cache_budget: usize,
+    resumed: bool,
 ) -> io::Result<()> {
     let mut writer = BufWriter::new(File::create(run_path.join("metadata.txt"))?);
 
@@ -77,6 +78,8 @@ pub fn write(
     )?;
     writeln!(writer, "started_at_unix={started_at}")?;
     writeln!(writer, "chain_height={chain_height}")?;
+    // `resumed`: the data directory already held plugin data, so the run isn't a full sync.
+    writeln!(writer, "start={}", if resumed { "resumed" } else { "fresh" })?;
     writeln!(writer, "blocks_path={}", blocks_path.display())?;
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;

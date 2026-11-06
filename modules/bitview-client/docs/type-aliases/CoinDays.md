@@ -8,6 +8,6 @@
 
 > **CoinDays** = `number`
 
-Defined in: [modules/bitview-client/index.js:358](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L358)
+Defined in: [modules/bitview-client/index.js:305](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L305)
 
 ## Type Parameters

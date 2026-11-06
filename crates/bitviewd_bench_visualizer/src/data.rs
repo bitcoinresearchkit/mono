@@ -36,7 +36,10 @@ pub struct Timing {
 pub struct Cycle {
     pub start_s: f64,
     pub end_s: f64,
+    /// What most of it did, for its band on the charts.
     pub name: &'static str,
+    /// The indexer's own time in it; the rest computed.
+    pub indexing_s: f64,
 }
 
 /// A CSV read by header name; a malformed trailing row (a killed recorder) is dropped.
@@ -160,6 +163,11 @@ impl Run {
         self.status.as_deref() == Some("complete")
     }
 
+    /// Whether it started on data already there (`start=resumed`): its time isn't a full sync's.
+    pub fn resumed(&self) -> bool {
+        self.meta.get("start").is_some_and(|start| start == "resumed")
+    }
+
     pub fn end_s(&self) -> f64 {
         self.duration_s
             .unwrap_or_else(|| *self.memory.times.last().expect("a run has memory samples"))
@@ -215,16 +223,19 @@ impl Run {
                     start_s,
                     end_s,
                     name,
+                    indexing_s: indexing,
                 }
             })
             .collect()
     }
 
-    pub fn cycle_seconds(&self, name: &str) -> f64 {
-        self.cycles()
-            .iter()
-            .filter(|cycle| cycle.name == name)
-            .fold(0.0, |total, cycle| total + cycle.end_s - cycle.start_s)
+    /// Seconds indexing and computing, each cycle's split by the indexer's own time in it (a
+    /// cycle named after what most of it did still computed, or indexed, the rest).
+    pub fn indexing_and_compute_seconds(&self) -> (f64, f64) {
+        self.cycles().iter().fold((0.0, 0.0), |(indexing, compute), cycle| {
+            let indexed = cycle.indexing_s.min(cycle.end_s - cycle.start_s);
+            (indexing + indexed, compute + cycle.end_s - cycle.start_s - indexed)
+        })
     }
 
     /// Seconds per plugin and phase, summed over cycles, longest first.

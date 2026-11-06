@@ -6,7 +6,7 @@
 
 # Interface: Transaction
 
-Defined in: [modules/bitview-client/index.js:1445](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1445)
+Defined in: [modules/bitview-client/index.js:1304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1304)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1445](https://github.com/bitcoinres
 
 > **fee**: `number`
 
-Defined in: [modules/bitview-client/index.js:1455](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1455)
+Defined in: [modules/bitview-client/index.js:1314](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1314)
 
 Transaction fee in satoshis
 
@@ -24,7 +24,7 @@ Transaction fee in satoshis
 
 > `optional` **index?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1446](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1446)
+Defined in: [modules/bitview-client/index.js:1305](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1305)
 
 Internal transaction index (brk-specific, not in mempool.space)
 
@@ -34,7 +34,7 @@ Internal transaction index (brk-specific, not in mempool.space)
 
 > **locktime**: `number`
 
-Defined in: [modules/bitview-client/index.js:1449](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1449)
+Defined in: [modules/bitview-client/index.js:1308](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1308)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [modules/bitview-client/index.js:1449](https://github.com/bitcoinres
 
 > **sigops**: `number`
 
-Defined in: [modules/bitview-client/index.js:1454](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1454)
+Defined in: [modules/bitview-client/index.js:1313](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1313)
 
 BIP-141 signature-operation cost
 
@@ -52,7 +52,7 @@ BIP-141 signature-operation cost
 
 > **size**: `number`
 
-Defined in: [modules/bitview-client/index.js:1452](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1452)
+Defined in: [modules/bitview-client/index.js:1311](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1311)
 
 Transaction size in bytes
 
@@ -62,7 +62,7 @@ Transaction size in bytes
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [modules/bitview-client/index.js:1456](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1456)
+Defined in: [modules/bitview-client/index.js:1315](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1315)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [modules/bitview-client/index.js:1456](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1447](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1447)
+Defined in: [modules/bitview-client/index.js:1306](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1306)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [modules/bitview-client/index.js:1447](https://github.com/bitcoinres
 
 > **version**: `number`
 
-Defined in: [modules/bitview-client/index.js:1448](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1448)
+Defined in: [modules/bitview-client/index.js:1307](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1307)
 
 Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
 
@@ -88,7 +88,7 @@ Transaction version (the protocol's 32 bits read unsigned, as Esplora reports th
 
 > **vin**: [`TxIn`](TxIn.md)[]
 
-Defined in: [modules/bitview-client/index.js:1450](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1450)
+Defined in: [modules/bitview-client/index.js:1309](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1309)
 
 Transaction inputs
 
@@ -98,7 +98,7 @@ Transaction inputs
 
 > **vout**: [`TxOut`](TxOut.md)[]
 
-Defined in: [modules/bitview-client/index.js:1451](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1451)
+Defined in: [modules/bitview-client/index.js:1310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1310)
 
 Transaction outputs
 
@@ -108,4 +108,4 @@ Transaction outputs
 
 > **weight**: `number`
 
-Defined in: [modules/bitview-client/index.js:1453](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1453)
+Defined in: [modules/bitview-client/index.js:1312](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1312)

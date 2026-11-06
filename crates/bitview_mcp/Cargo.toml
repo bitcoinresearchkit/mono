@@ -22,7 +22,7 @@ brk_logger = { workspace = true }
 rmcp = { version = "3.7.0", default-features = false, features = ["server", "transport-streamable-http-server"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros", "net", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 tower-http = { workspace = true, features = ["timeout"] }
 tracing = { workspace = true }
 ureq = { workspace = true }

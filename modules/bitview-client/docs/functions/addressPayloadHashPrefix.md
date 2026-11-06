@@ -8,7 +8,7 @@
 
 > **addressPayloadHashPrefix**(`payload`, `nibbles`): `string`
 
-Defined in: [modules/bitview-client/index.js:2641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2641)
+Defined in: [modules/bitview-client/index.js:2460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2460)
 
 Compute the RapidHash v3 hash-prefix used by `/api/address/hash-prefix/{address_type}/{prefix}`.
 

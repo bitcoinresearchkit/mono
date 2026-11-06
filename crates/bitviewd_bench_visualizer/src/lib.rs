@@ -125,8 +125,9 @@ fn summary(run: &Run) -> Vec<String> {
     .flatten()
     .collect::<Vec<_>>();
     let mut totals = vec![format!(
-        "{} in {}",
+        "{}{} in {}",
         run.status.as_deref().unwrap_or("unknown status"),
+        if run.resumed() { ", resumed" } else { "" },
         format::duration(run.end_s())
     )];
     if let Some(height) = meta("chain_height") {
@@ -323,7 +324,11 @@ fn compare(machine: &str, runs: &[&Run], output: &Path) -> Result {
             .fold(0.0, f64::max),
     );
     let colors = (0..runs.len()).map(chart::color).collect::<Vec<_>>();
-    let name = |index: usize| format!("#{} {}", index + 1, runs[index].label);
+    let name = |index: usize| {
+        let run = &runs[index];
+        let resumed = if run.resumed() { " (resumed)" } else { "" };
+        format!("#{} {}{resumed}", index + 1, run.label)
+    };
     let series = |points: &dyn Fn(&Run) -> Vec<(f64, f64)>, value: &dyn Fn(&Run) -> String| {
         runs.iter()
             .enumerate()
@@ -366,11 +371,12 @@ fn compare(machine: &str, runs: &[&Run], output: &Path) -> Result {
         .enumerate()
         .map(|(index, run)| {
             let bytes = |value: Option<f64>| value.map_or("-".to_owned(), format::bytes);
+            let (indexing, compute) = run.indexing_and_compute_seconds();
             vec![
                 name(index),
                 format::duration(run.end_s()),
-                format::duration(run.cycle_seconds("indexing")),
-                format::duration(run.cycle_seconds("compute") + run.cycle_seconds("catch-up")),
+                format::duration(indexing),
+                format::duration(compute),
                 bytes(run.peak_memory().map(|(_, peak)| peak)),
                 bytes(run.io.growth("read_bytes")),
                 bytes(run.io.growth("written_bytes")),

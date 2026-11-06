@@ -875,7 +875,7 @@
           const until = Math.max(starts[k + 1] ?? end, start);
           const indexing = timed.filter((t) => t.phase === "compute" && t.plugin === "indexer" && t.start >= start && t.start < until).reduce((total, t) => total + t.duration, 0);
           const name = indexing * 2 >= until - start ? "indexing" : computed ? "catch-up" : ((computed = true), "compute");
-          return { name, start, end: until };
+          return { name, start, end: until, indexing };
         });
       }
       /** Seconds per plugin and phase, summed over cycles, longest first. */
@@ -923,7 +923,9 @@
           cpu_user_s: growth(cpu, "user_ms", 1000),
           cpu_system_s: growth(cpu, "system_ms", 1000),
           disk_bytes: disk.last("physical_bytes"),
-          cycles: cycles(timed, end).map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1) })),
+          // Resumed when the data directory already held plugin data: its time isn't a full sync's.
+          resumed: info.get("start") === "resumed",
+          cycles: cycles(timed, end).map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) })),
           curves: {
             height: thin(heights),
             memory: thin(memory.column("physical_bytes")),
@@ -994,6 +996,8 @@
       let selected = null, compared = null;
       const runs = () => machines[machine].runs;
       const complete = () => runs().filter((r) => r.status === "complete");
+      /** The complete runs from an empty data directory: full syncs. */
+      const fullSyncs = () => complete().filter((r) => !r.resumed);
 
       // ── Machines ──
       function tabs() {
@@ -1056,8 +1060,8 @@
 
       // ── The latest complete run ──
       function hero() {
-        const all = complete(), r = all.at(-1);
-        if (!r) return ($("hero").innerHTML = `<p>No complete run on this machine yet.</p>`);
+        const all = fullSyncs(), r = all.at(-1);
+        if (!r) return ($("hero").innerHTML = `<p>No full sync on this machine yet.</p>`);
         const h = r.host;
         $("hero").innerHTML = `
           <div><div class="kicker">Latest full sync, ${dated(r.started_at)}</div><div class="big">${duration(r.duration_s)}</div>
@@ -1067,16 +1071,22 @@
             <div><dt>Data directory</dt><dd>${bytes(r.disk_bytes)}<small>at the end</small></dd></div>
             <div><dt>Read, written</dt><dd>${bytes(r.read_bytes)}<small>${bytes(r.written_bytes)} written</small></dd></div>
             <div><dt>CPU time</dt><dd>${duration((r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0))}<small>${duration(r.cpu_user_s)} user, ${duration(r.cpu_system_s)} system</small></dd></div>
-            <div><dt>Indexing</dt><dd>${duration(phase(r, "indexing"))}<small>reading the blocks</small></dd></div>
-            <div><dt>Compute</dt><dd>${duration(phase(r, "compute") + phase(r, "catch-up"))}<small>every series</small></dd></div>
+            <div><dt>Indexing</dt><dd>${duration(split(r).indexing)}<small>reading the blocks</small></dd></div>
+            <div><dt>Compute</dt><dd>${duration(split(r).compute)}<small>every series</small></dd></div>
           </dl>
           <div class="host">${[h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape).join(" · ")} · commit ${r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r)}</div>`;
       }
+      /** The seconds under a band's name (a cycle is named after what most of it did). */
       const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);
+      /** Seconds indexing and computing, each cycle split by the indexer's own time in it. */
+      const split = (r) => r.cycles.reduce((s, c) => {
+        const indexed = Math.min(c.indexing, c.end - c.start);
+        return { indexing: s.indexing + indexed, compute: s.compute + c.end - c.start - indexed };
+      }, { indexing: 0, compute: 0 });
 
       // ── History: complete runs in time order, time to sync as bars, peak memory as a line ──
       function runByRun() {
-        const all = complete(), el = $("history");
+        const all = fullSyncs(), el = $("history");
         if (all.length < 1) return (el.innerHTML = "");
         const w = el.clientWidth || 800, h = 218, pad = { l: 44, r: 52, t: 10, b: 42 };
         const tmax = Math.max(...all.map((r) => r.duration_s)) * 1.1, mmax = Math.max(...all.map((r) => r.peak_memory?.bytes ?? 0)) * 1.15;
@@ -1106,7 +1116,7 @@
       // ── Every run ──
       function table() {
         const list = [...runs()].reverse();
-        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status</th><th>Time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}</td><td>${duration(r.duration_s)}</td><td>${duration(phase(r, "indexing"))}</td><td>${duration(phase(r, "compute") + phase(r, "catch-up"))}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
+        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status</th><th>Time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
       }
       $("runs").addEventListener("click", (e) => {
         const label = e.target.closest("tr[data-label]")?.dataset.label;

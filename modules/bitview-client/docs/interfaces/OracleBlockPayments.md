@@ -6,7 +6,7 @@
 
 # Interface: OracleBlockPayments
 
-Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L951)
+Defined in: [modules/bitview-client/index.js:859](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L859)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinrese
 
 > **counts**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:955](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L955)
+Defined in: [modules/bitview-client/index.js:863](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L863)
 
 The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
 
@@ -24,7 +24,7 @@ The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at
 
 > **firstBucket**: `number`
 
-Defined in: [modules/bitview-client/index.js:953](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L953)
+Defined in: [modules/bitview-client/index.js:861](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L861)
 
 The first bucket's index: the window's first bin's lower edge (half a bin under it) over
   `step`.
@@ -35,4 +35,4 @@ The first bucket's index: the window's first bin's lower edge (half a bin under 
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:952](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L952)
+Defined in: [modules/bitview-client/index.js:860](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L860)

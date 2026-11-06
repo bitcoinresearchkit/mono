@@ -8,7 +8,7 @@
 
 > **Flagged** = `object`
 
-Defined in: [modules/bitview-client/index.js:4822](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4822)
+Defined in: [modules/bitview-client/index.js:4641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4641)
 
 ## Type Parameters
 

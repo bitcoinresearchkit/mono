@@ -8,7 +8,7 @@
 
 > **AdjustedSopr** = `object`
 
-Defined in: [modules/bitview-client/index.js:5044](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5044)
+Defined in: [modules/bitview-client/index.js:4863](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4863)
 
 ## Type Parameters
 

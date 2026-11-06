@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use brk_error::{Error, Result};
+use brk_error::Result;
 
 use brk_types::{
     MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, RetainedRun,
@@ -52,12 +52,6 @@ impl MempoolBlockSource {
 }
 
 impl ReadOnlyState {
-    /// Block 0's content identity.
-    pub fn mempool_block_hash(&self) -> Result<MempoolBlockHash> {
-        let block = self.snapshot().served(0)?;
-        Ok(block.ok_or(Error::StateUpdating)?.hash)
-    }
-
     /// Block `index` of the current publication, captured without cloning transaction bodies:
     /// `None` when it isn't served, past the projection or a last block holding more than a block.
     pub fn mempool_block_source(&self, index: usize) -> Result<Option<MempoolBlockSource>> {

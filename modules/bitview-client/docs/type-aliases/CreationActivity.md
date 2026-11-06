@@ -8,7 +8,7 @@
 
 > **CreationActivity** = `object`
 
-Defined in: [modules/bitview-client/index.js:5129](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5129)
+Defined in: [modules/bitview-client/index.js:4948](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4948)
 
 ## Type Parameters
 

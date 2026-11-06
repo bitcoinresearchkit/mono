@@ -204,8 +204,8 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/v1/fees/recommended".into(),
         ),
         get(
-            "mempool unavailable (template diff)",
-            "/api/v1/mempool/block-template/diff/1".into(),
+            "mempool unavailable (block diff)",
+            "/api/mempool-blocks/0/diff/1".into(),
         ),
         get("cpfp of unknown txid", format!("/api/v1/cpfp/{HASH}")),
         get(

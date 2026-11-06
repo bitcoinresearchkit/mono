@@ -8,7 +8,7 @@
 
 > **MappingsHeight** = `object`
 
-Defined in: [modules/bitview-client/index.js:6582](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6582)
+Defined in: [modules/bitview-client/index.js:6401](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6401)
 
 ## Type Parameters
 

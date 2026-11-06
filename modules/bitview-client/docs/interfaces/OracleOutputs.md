@@ -6,7 +6,7 @@
 
 # Interface: OracleOutputs
 
-Defined in: [modules/bitview-client/index.js:962](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L962)
+Defined in: [modules/bitview-client/index.js:870](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L870)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:962](https://github.com/bitcoinrese
 
 > **coinbase**: `number`
 
-Defined in: [modules/bitview-client/index.js:963](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L963)
+Defined in: [modules/bitview-client/index.js:871](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L871)
 
 The coinbase's: new coins, not payments.
 
@@ -24,7 +24,7 @@ The coinbase's: new coins, not payments.
 
 > **dust**: `number`
 
-Defined in: [modules/bitview-client/index.js:968](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L968)
+Defined in: [modules/bitview-client/index.js:876](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L876)
 
 Under 1,000 sats.
 
@@ -34,7 +34,7 @@ Under 1,000 sats.
 
 > **fanOut**: `number`
 
-Defined in: [modules/bitview-client/index.js:964](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L964)
+Defined in: [modules/bitview-client/index.js:872](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L872)
 
 Those of transactions with more outputs than the fan-out cap (250; 100 before height
   630,000): batch payouts.
@@ -45,7 +45,7 @@ Those of transactions with more outputs than the fan-out cap (250; 100 before he
 
 > **opReturn**: `number`
 
-Defined in: [modules/bitview-client/index.js:966](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L966)
+Defined in: [modules/bitview-client/index.js:874](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L874)
 
 Those of transactions carrying an OP_RETURN output: data, not payments.
 
@@ -55,7 +55,7 @@ Those of transactions carrying an OP_RETURN output: data, not payments.
 
 > **payments**: `number`
 
-Defined in: [modules/bitview-client/index.js:970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L970)
+Defined in: [modules/bitview-client/index.js:878](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L878)
 
 The rest: the payments it counted.
 
@@ -65,7 +65,7 @@ The rest: the payments it counted.
 
 > **roundBtc**: `number`
 
-Defined in: [modules/bitview-client/index.js:969](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L969)
+Defined in: [modules/bitview-client/index.js:877](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L877)
 
 Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
 
@@ -75,6 +75,6 @@ Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sa
 
 > **taproot**: `number`
 
-Defined in: [modules/bitview-client/index.js:967](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L967)
+Defined in: [modules/bitview-client/index.js:875](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L875)
 
 Taproot outputs: mostly protocol traffic.

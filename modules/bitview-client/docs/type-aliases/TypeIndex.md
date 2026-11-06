@@ -8,6 +8,6 @@
 
 > **TypeIndex** = `number`
 
-Defined in: [modules/bitview-client/index.js:1551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1551)
+Defined in: [modules/bitview-client/index.js:1391](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1391)
 
 ## Type Parameters

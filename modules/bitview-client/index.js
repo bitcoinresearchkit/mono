@@ -7,11 +7,6 @@
  * @typedef {string} Address
  */
 /**
- * @typedef {Object} AddressAfterTxidParam
- * @property {Address} address
- * @property {Txid} afterTxid - Last txid from the previous page (return transactions strictly older than this)
- */
-/**
  * Address statistics on the blockchain (confirmed transactions only)
  *
  * Based on mempool.space's format with type_index extension.
@@ -28,23 +23,11 @@
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
- * A page of an address's confirmed transactions.
- *
- * @typedef {Object} AddressChainTxsQuery
- * @property {?number=} maxTxs - Transactions to return, at most 25 (the default); larger values return 25.
- */
-/**
  * @typedef {Object} AddressHashPrefixMatches
  * @property {AddressOutputType} addressType
  * @property {string} prefix - The requested prefix, lowercased.
  * @property {boolean} truncated
  * @property {Address[]} addresses
- */
-/**
- * @typedef {Object} AddressHashPrefixParam
- * @property {AddressOutputType} addressType
- * @property {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
- *   address payload bytes.
  */
 /**
  * Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
@@ -58,19 +41,9 @@
  * @property {number} txCount - Number of unconfirmed transactions involving this address
  */
 /**
- * A page of an address's mempool transactions.
- *
- * @typedef {Object} AddressMempoolTxsQuery
- * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
- */
-/**
  * The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
  *
  * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2sh"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a")} AddressOutputType
- */
-/**
- * @typedef {Object} AddressParam
- * @property {Address} address
  */
 /**
  * Address information compatible with mempool.space API format.
@@ -81,14 +54,6 @@
  * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
- */
-/**
- * A page of an address's transactions, mempool ones first.
- *
- * @typedef {Object} AddressTxsQuery
- * @property {(Txid|null)=} afterTxid - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
- *   cursor skips the mempool). One that is neither answers 422.
- * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
  */
 /**
  * @typedef {Object} AddressValidation
@@ -107,10 +72,6 @@
  * An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
  *
  * @typedef {number} Bitcoin
- */
-/**
- * @typedef {Object} BlockCountParam
- * @property {number} blockCount - Number of recent blocks to include
  */
 /**
  * Extended block data matching mempool.space /api/v1/blocks extras
@@ -204,20 +165,6 @@
  * hexadecimal byte order.
  *
  * @typedef {string} BlockHash
- */
-/**
- * @typedef {Object} BlockHashParam
- * @property {BlockHash} hash
- */
-/**
- * @typedef {Object} BlockHashStartIndex
- * @property {BlockHash} hash
- * @property {BlockTxIndex} startIndex - Starting transaction index within the block (0-based)
- */
-/**
- * @typedef {Object} BlockHashTxIndex
- * @property {BlockHash} hash
- * @property {BlockTxIndex} index - Transaction index within the block (0-based)
  */
 /**
  * Block information matching mempool.space /api/block/{hash}
@@ -467,13 +414,6 @@
  * @typedef {("USD")} Currency
  */
 /**
- * @typedef {Object} DataRangeFormat
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
- * @property {Format=} format
- */
-/**
  * Calendar date in YYYY-MM-DD format.
  *
  * @typedef {string} Date
@@ -680,14 +620,6 @@
  * @typedef {(Height|Date)} HeightOrDate
  */
 /**
- * @typedef {Object} HeightOrDateParam
- * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
- */
-/**
- * @typedef {Object} HeightParam
- * @property {Height} height
- */
-/**
  * Hex-encoded data as a JSON string.
  *
  * @typedef {string} Hex
@@ -696,13 +628,6 @@
  * @typedef {Object} HistoricalPrice
  * @property {PricePoint[]} prices
  * @property {ExchangeRates} exchangeRates - Exchange rates (currently empty)
- */
-/**
- * Historical price query parameters, as mempool.space's
- *
- * @typedef {Object} HistoricalPriceParam
- * @property {(Timestamp|null)=} timestamp - UNIX timestamp: the latest close at or before it
- * @property {(Currency|null)=} currency - Quote currency: USD, the only one served
  */
 /**
  * Index of an hour.
@@ -753,12 +678,6 @@
  * @property {LogLine[]} lines
  * @property {string} next - Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the
  *   `seq` of the next line it will log; to pass back as it is, not to read.
- */
-/**
- * Where a reader of the log left off.
- *
- * @typedef {Object} LogsQuery
- * @property {?string=} after - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
  */
 /**
  * Block info in a mempool.space like format for fee estimation.
@@ -813,13 +732,6 @@
  * @typedef {(RetainedRun|Transaction)} MempoolBlockDiffEntry
  */
 /**
- * The block and the content token a client holds for it.
- *
- * @typedef {Object} MempoolBlockDiffParam
- * @property {MempoolBlockIndex} index
- * @property {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
- */
-/**
  * Content hash of a projected mempool block, including its statistics and complete
  * transaction bodies. Opaque token, distinct from HTTP ETag formatting: pass back to
  * `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
@@ -832,10 +744,6 @@
  * next block, Bitcoin Core's `getblocktemplate` selection.
  *
  * @typedef {number} MempoolBlockIndex
- */
-/**
- * @typedef {Object} MempoolBlockParam
- * @property {MempoolBlockIndex} index
  */
 /**
  * Mempool statistics with incrementally maintained fee histogram.
@@ -1099,11 +1007,6 @@
  * @property {SeriesName[]} series
  */
 /**
- * @typedef {Object} Pagination
- * @property {number=} page - Zero-based page number (default: 0)
- * @property {number=} perPage - Results per page, 1 to 1,000 (default: 1000)
- */
-/**
  * A fraction per day.
  *
  * @typedef {number} PerDay
@@ -1173,15 +1076,6 @@
  * A mining pool's identifier, as written in URLs.
  *
  * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd")} PoolSlug
- */
-/**
- * @typedef {Object} PoolSlugAndHeightParam
- * @property {PoolSlug} slug
- * @property {Height} height
- */
-/**
- * @typedef {Object} PoolSlugParam
- * @property {PoolSlug} slug
  */
 /**
  * Mining pool with block statistics for a time period
@@ -1325,11 +1219,6 @@
  * @typedef {number} Score
  */
 /**
- * @typedef {Object} SearchQuery
- * @property {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
- * @property {number=} limit - Maximum number of results, 1 to 1,000 (default: 100)
- */
-/**
  * A duration in seconds (at most about 136 years).
  *
  * @typedef {number} Seconds
@@ -1377,24 +1266,6 @@
  */
 /** @typedef {string} SeriesName */
 /**
- * @typedef {Object} SeriesNameWithIndex
- * @property {SeriesName} series
- * @property {Index} index
- */
-/**
- * @typedef {Object} SeriesParam
- * @property {SeriesName} series
- */
-/**
- * @typedef {Object} SeriesSelection
- * @property {SeriesList} series
- * @property {Index} index
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
- * @property {Format=} format
- */
-/**
  * The server's version: a release's, `v` and its SemVer (`v0.12.2`; a pre-release,
  * `v0.13.0-beta.1`); built from a commit of the repository (`cargo install --git`, next's), that
  * commit, short (`a1b2c3d`).
@@ -1406,10 +1277,6 @@
  * one. Sums over many transactions or blocks use the full 64 bits.
  *
  * @typedef {number} SigOps
- */
-/**
- * @typedef {Object} StartParam
- * @property {Height} start - The first block's height.
  */
 /**
  * @typedef {Object} SyncStatus
@@ -1427,17 +1294,9 @@
  * @typedef {("24h"|"3d"|"1w"|"1m"|"3m"|"6m"|"1y"|"2y"|"3y"|"4y"|"all")} TimePeriod
  */
 /**
- * @typedef {Object} TimePeriodParam
- * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
- */
-/**
  * A Unix timestamp, in seconds.
  *
  * @typedef {number} Timestamp
- */
-/**
- * @typedef {Object} TimestampParam
- * @property {Timestamp} timestamp
  */
 /**
  * Transaction information compatible with mempool.space API format
@@ -1479,10 +1338,6 @@
  * in-block position, use `BlockTxIndex` instead.
  *
  * @typedef {number} TxIndex
- */
-/**
- * @typedef {Object} TxIndexParam
- * @property {TxIndex} index - Global transaction index across the chain
  */
 /**
  * @typedef {Object} TxOut
@@ -1529,21 +1384,6 @@
  * A transaction ID: its hash.
  *
  * @typedef {string} Txid
- */
-/**
- * @typedef {Object} TxidParam
- * @property {Txid} txid
- */
-/**
- * @typedef {Object} TxidVout
- * @property {Txid} txid
- * @property {Vout} vout - Output index
- */
-/**
- * Transaction IDs as repeated `txId[]` query parameters.
- *
- * @typedef {Object} TxidsParam
- * @property {Txid[]} txId - Transaction IDs to look up (max 100 per request).
  */
 /**
  * An index within its type (0 for the first P2WPKH address).
@@ -1599,22 +1439,6 @@
  * A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).
  *
  * @typedef {("all"|"sth"|"lth"|"age_under_4m"|"age_under_6m"|"age_over_4m"|"age_over_6m"|"age_under_1h"|"age_1h_to_1d"|"age_1d_to_1w"|"age_1w_to_1m"|"age_1m_to_2m"|"age_2m_to_3m"|"age_3m_to_4m"|"age_4m_to_5m"|"age_5m_to_6m"|"age_6m_to_9m"|"age_9m_to_1y"|"age_1y_to_18m"|"age_18m_to_2y"|"age_2y_to_3y"|"age_3y_to_4y"|"age_4y_to_5y"|"age_5y_to_6y"|"age_6y_to_7y"|"age_7y_to_8y"|"age_8y_to_10y"|"age_10y_to_12y"|"age_12y_to_15y"|"age_over_15y")} UrpdCohort
- */
-/**
- * @typedef {Object} UrpdCohortParam
- * @property {UrpdCohort} cohort
- */
-/**
- * A URPD cohort and the confirmed point to read it at.
- *
- * @typedef {Object} UrpdParams
- * @property {UrpdCohort} cohort
- * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
- */
-/**
- * @typedef {Object} UrpdQuery
- * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation).
- * @property {UrpdWeight=} weight - Supply weighting. Default: none (unweighted).
  */
 /**
  * The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
@@ -1683,11 +1507,6 @@
  * Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
  *
  * @typedef {number} VSize
- */
-/**
- * @typedef {Object} ValidateAddressParam
- * @property {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
- *   anything else answers 400, as mempool.space does
  */
 /**
  * Schema or computation version of a stored vector: when it changes, the data is reset and
@@ -9290,7 +9109,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool blocks
    *
-   * Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees: a node operator's `prioritisetransaction` deltas or mining options shape block 0 only, the last holding whatever is left, more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, but such a last one.
+   * Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *

@@ -12,11 +12,14 @@ fi
 
 cd "$ROOT_DIR/packages/bitview_client"
 
-perl -pi -e 's/^version = "[^"]*"/version = "'"$VERSION"'"/' pyproject.toml
-echo "Updated pyproject.toml to $VERSION"
-
-perl -pi -e 's/VERSION = "v[^"]*"/VERSION = "v'"$VERSION"'"/' bitview_client/__init__.py
-echo "Updated __init__.py VERSION to v$VERSION"
+# The release's own commit sets both (cargo-release: bitviewd's replacement, bindgen's hook): what's
+# published is what's tagged.
+PROJECT=$(sed -n 's/^version = "\([^"]*\)"/\1/p' pyproject.toml)
+CONSTANT=$(sed -n 's/.*VERSION = "v\([^"]*\)".*/\1/p' bitview_client/__init__.py | head -1)
+if [ "$PROJECT" != "$VERSION" ] || [ "$CONSTANT" != "$VERSION" ]; then
+    echo "pyproject.toml ($PROJECT) or __init__.py VERSION ($CONSTANT) isn't $VERSION: the release commit sets them (cargo release)"
+    exit 1
+fi
 
 rm -rf dist
 

@@ -10,21 +10,20 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-# Both packages follow the workspace release version.
+# Both packages follow the workspace release version, set in the release's own commit (cargo-release:
+# bindgen's hook and bitviewd's replacements): what's published is what's tagged.
 bun run - "$ROOT_DIR/modules" "$VERSION" <<'JS'
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 const [root, version] = process.argv.slice(2);
-if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)) {
-  throw new Error(`Invalid release version: ${version}`);
-}
+const stale = (what, found) => {
+  throw new Error(`${what} is at ${found}, not ${version}: the release commit sets it (cargo release)`);
+};
 for (const name of ['bitview-client', 'quickmatch-js']) {
-  const path = `${root}/${name}/package.json`;
-  const pkg = JSON.parse(readFileSync(path, 'utf8'));
-  pkg.version = version;
-  writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+  const found = JSON.parse(readFileSync(`${root}/${name}/package.json`, 'utf8')).version;
+  if (found !== version) stale(`${name}/package.json`, found);
 }
-const source = `${root}/bitview-client/index.js`;
-writeFileSync(source, readFileSync(source, 'utf8').replace(/VERSION = "v[^"]*"/, `VERSION = "v${version}"`));
+const constant = readFileSync(`${root}/bitview-client/index.js`, 'utf8').match(/VERSION = "v([^"]*)"/)?.[1];
+if (constant !== version) stale('bitview-client/index.js VERSION', constant);
 JS
 
 publish_if_missing() {
@@ -62,6 +61,9 @@ publish_if_missing() {
     (cd "$package_dir" && bun publish --access public --tag "$tag" ${NPM_OTP:+--otp "$NPM_OTP"})
     unset NPM_OTP
 }
+
+# The declarations TypeScript users read, from the client's JSDoc (a type error stops the publish).
+(cd "$ROOT_DIR/modules/bitview-client" && bunx --bun -p typescript@5 tsc index.js --allowJs --checkJs --declaration --emitDeclarationOnly --strict --target ESNext --module ESNext --skipLibCheck --outDir .)
 
 publish_if_missing "$ROOT_DIR/modules/bitview-client"
 publish_if_missing "$ROOT_DIR/modules/quickmatch-js"

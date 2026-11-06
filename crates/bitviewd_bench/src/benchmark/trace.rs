@@ -53,6 +53,8 @@ impl TraceMonitor {
     }
 
     pub fn record(&self, event: &Event<'_>) {
+        // The event's end, before waiting on the lock.
+        let now = Instant::now();
         let mut state = self.0.lock();
         let Some(started_at) = state.started_at else {
             return;
@@ -60,7 +62,7 @@ impl TraceMonitor {
 
         let mut fields = Fields::default();
         event.record(&mut fields);
-        let end_ms = started_at.elapsed().as_secs_f64() * 1_000.0;
+        let end_ms = now.saturating_duration_since(started_at).as_secs_f64() * 1_000.0;
 
         let result = if let (Some(phase), Some(plugin), Some(duration_ns)) =
             (fields.phase, fields.plugin, fields.duration_ns)

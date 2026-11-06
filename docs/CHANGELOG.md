@@ -17,6 +17,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   same: a copy you change takes its own type) (about 2 ms to freeze a ~10 MB projected block on desktop Chromium, once
   per fresh body). Byte bodies (`Uint8Array`) can't be frozen: don't change them. A `no-store` answer drops its URL's
   cached value rather than reusing it on a matching ETag
+- Docker: `BTC_RPC_USER`/`BTC_RPC_PASSWORD` are gone (they put the password on bitviewd's command line, where `ps`
+  shows it): a user and password go in `docker/rpc-credentials` as `user:password`, mounted as a Compose secret and
+  read as a cookie file (`--rpccookiefile`); the cookie stays the default
+- mmpl: the cycle event's `took_ms` is `tick_ms` (it times the mempool tick alone)
+- The JavaScript and Python clients no longer define the server's request-extractor types (`HeightParam`,
+  `TxidParam`, `SearchQuery` and 32 more), which no method takes or returns; `bitview_primitives` drops
+  `From<Dollars> for CentsCompact`, which nothing called (it saturated to the NaN sentinel)
 - statedb no longer reads snapshot layouts from before v0.13.0 (the tip kept inside `data`, packed tips): they fail
   to open, asking for a rebuild of the state
 
@@ -26,6 +33,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   block 0: blocks 1+ are packed as Core's block assembler packs, from base fees within its default budgets. The
   last one answers 404 while it holds more than a block (what's left of a busy mempool, mempool.space's catch-all),
   its stats still in `/api/v1/fees/mempool-blocks`
+- The npm client ships TypeScript declarations (`index.d.ts`, made from its JSDoc at publish, `types` in its
+  exports): TypeScript users get the typed tree and the frozen answers' types
 
 ### Performance
 
@@ -111,9 +120,25 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - Search: a repeated word no longer raises the typo match's length floor ("bitoin bitoin" finds what "bitoin" finds),
   in the Rust and the JavaScript quickmatch alike
 - `vecdb`'s derives name `Result::Ok` in full: a crate with its own `Ok` in scope can use them
+- Workspace dependencies carry no features of their own: each crate names what it uses (tokio's multi-thread
+  runtime only for bitview, devtools and mcp, tower-http's layers for the server, ureq's JSON for the Rust client;
+  tower-http's `trace` for the website example alone)
+- blk: a bare field prints a line for every block, an empty one included (an empty string skipped its line); blk
+  checks that its block files are the node's network, as bitviewd does
+- mmpl: an unchanged pool (its txids' hash) skips rebuilding and diffing the txid set every cycle
+- Benchmarks: indexing and compute totals split each cycle by the indexer's own time in it (a cycle counted whole
+  under what most of it did); a run records whether it started on existing data (`start=resumed`), and the
+  benchmarks page's latest full sync and history keep to full syncs, resumed runs marked; timeline events are timed
+  before the console writes them and before the recorder's lock (the logger's hook and tail now run first)
+- Docker: `BITVIEW_DATA_VOLUME` now selects the volume (it renamed the service's volume key, so Compose refused the
+  override); the default stays `bitview_bitview-data`, the volume existing installs have. The image no longer
+  installs `libssl-dev`, which nothing links
 - Release scripts: a release starts from a clean tree and commits only the generated docs (it staged everything in
-  the checkout); `update.sh` runs from the repository whatever the caller's directory; the Python publish edits its
-  version with `perl` (BSD `sed` failed on Linux)
+  the checkout); `update.sh` runs from the repository whatever the caller's directory. The JavaScript and Python
+  packages' versions are set in the release's own commit (cargo-release: bindgen's hook and `bitviewd`'s
+  replacements), so the tag holds them and the tree stays clean; publishing checks them instead of editing them
+  after the tag. A resumed release runs from the tagged commit only, and a version with build metadata is refused
+  (npm and PyPI drop it)
 - The `profiling` build keeps its symbols
 - Mempool: a body pairs with its `getmempoolentry` only as the witness variant the entry describes (one swapped in
   between the two calls kept the other's weight); from an incomplete view (Core's template seconds older than its

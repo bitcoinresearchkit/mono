@@ -6,7 +6,7 @@
 
 # Interface: BlockRewardsEntry
 
-Defined in: [modules/bitview-client/index.js:288](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L288)
+Defined in: [modules/bitview-client/index.js:235](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L235)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:288](https://github.com/bitcoinrese
 
 > **avgHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:289](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L289)
+Defined in: [modules/bitview-client/index.js:236](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L236)
 
 Average block height in this bucket
 
@@ -24,7 +24,7 @@ Average block height in this bucket
 
 > **avgRewards**: `number`
 
-Defined in: [modules/bitview-client/index.js:291](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L291)
+Defined in: [modules/bitview-client/index.js:238](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L238)
 
 Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
 
@@ -34,7 +34,7 @@ Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up 
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:290](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L290)
+Defined in: [modules/bitview-client/index.js:237](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L237)
 
 Average block timestamp in this bucket
 
@@ -44,6 +44,6 @@ Average block timestamp in this bucket
 
 > **USD**: `number`
 
-Defined in: [modules/bitview-client/index.js:292](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L292)
+Defined in: [modules/bitview-client/index.js:239](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L239)
 
 Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)

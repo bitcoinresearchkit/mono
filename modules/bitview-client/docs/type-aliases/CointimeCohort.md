@@ -8,7 +8,7 @@
 
 > **CointimeCohort** = `object`
 
-Defined in: [modules/bitview-client/index.js:4126](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4126)
+Defined in: [modules/bitview-client/index.js:3945](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3945)
 
 ## Type Parameters
 

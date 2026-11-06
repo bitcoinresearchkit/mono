@@ -8,7 +8,7 @@
 
 > **PoolBlockShares** = `object`
 
-Defined in: [modules/bitview-client/index.js:1135](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1135)
+Defined in: [modules/bitview-client/index.js:1038](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1038)
 
 ## Type Parameters
 

@@ -102,25 +102,6 @@ impl CentsCompact {
     }
 }
 
-impl From<Dollars> for CentsCompact {
-    #[inline]
-    fn from(value: Dollars) -> Self {
-        let f = f64::from(value);
-        if unlikely(!f.is_finite()) {
-            Self::NAN
-        } else if f < 0.0 {
-            Self::ZERO
-        } else {
-            let cents = (f * 100.0).round();
-            debug_assert!(
-                cents < u32::MAX as f64,
-                "price ${f} exceeds CentsCompact finite range"
-            );
-            Self(cents as u32)
-        }
-    }
-}
-
 impl From<CentsCompact> for Dollars {
     #[inline]
     fn from(value: CentsCompact) -> Self {
