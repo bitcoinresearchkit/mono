@@ -28,7 +28,8 @@ tip readers pair the pool with: a pool is published only at that tip, as soon as
 publishes it and calls `chain.published()`.
 
 `tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
-with `getrawtransaction`, so Bitcoin Core must have `txindex=1`.
+from the node's UTXO set (`gettxout`, the mempool's spends not counted), so no `txindex` is
+needed.
 
 A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
 nothing: readers keep the last publication. Otherwise membership and projection advance

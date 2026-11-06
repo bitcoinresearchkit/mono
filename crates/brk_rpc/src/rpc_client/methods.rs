@@ -1,10 +1,11 @@
 use std::{thread::sleep, time::Duration};
 
 use bitcoin::{
-    BlockHash as BitcoinBlockHash, Network, Transaction, Txid as BitcoinTxid, consensus::encode,
+    BlockHash as BitcoinBlockHash, Network, ScriptBuf, Transaction, Txid as BitcoinTxid,
+    consensus::encode,
 };
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid, Vout};
+use brk_types::{Bitcoin, BlockHash, FeeRate, Height, MempoolEntryInfo, Sats, TxOut, Txid, Vout};
 use corepc_jsonrpc::error::Error as JsonRpcError;
 use rapidhash::RapidHashMap;
 use serde_json::{from_str, json, value::RawValue};
@@ -29,7 +30,7 @@ const RPC_NOT_FOUND: i32 = -5;
 const NO_ARGS: [(); 0] = [];
 
 /// Per-batch request count for `get_block_hashes_range`,
-/// `fetch_new_pool_data`, and `get_raw_transactions`. Sized so the JSON
+/// `fetch_new_pool_data`, and `get_tx_outs`. Sized so the JSON
 /// request body stays well under a megabyte and bitcoind doesn't spend
 /// too long on a single batch before yielding results. For the mixed
 /// `getmempoolentry`+`getrawtransaction` batch this is the *txid* count:
@@ -95,36 +96,6 @@ impl Client {
         Ok(hashes)
     }
 
-    /// Batched `getrawtransaction`, chunked at `BATCH_CHUNK` requests, keyed by txid. A failed
-    /// item is dropped so one bad entry doesn't kill the batch: NOT_FOUND (a tx evicted since the
-    /// listing) silently, others with a debug log. Transport failures propagate.
-    pub fn get_raw_transactions(&self, txids: &[Txid]) -> Result<RapidHashMap<Txid, Transaction>> {
-        let mut out: RapidHashMap<Txid, Transaction> =
-            RapidHashMap::with_capacity_and_hasher(txids.len(), Default::default());
-
-        for chunk in txids.chunks(BATCH_CHUNK) {
-            let args = chunk.iter().map(|t| {
-                let txid: &BitcoinTxid = t.into();
-                (txid, false)
-            });
-            let results = self.0.call_batch_raw("getrawtransaction", args)?;
-
-            for (txid, res) in chunk.iter().zip(results) {
-                match res.and_then(|raw| Self::decode_raw_tx(&raw)) {
-                    Ok(tx) => {
-                        out.insert(*txid, tx);
-                    }
-                    Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => {}
-                    Err(e) => {
-                        debug!(txid = %txid, error = %e, "getrawtransaction batch: item failed")
-                    }
-                }
-            }
-        }
-
-        Ok(out)
-    }
-
     /// Core's projected next block (`getblocktemplate`), the live mempool txids
     /// (`getrawmempool false`), `mempoolminfee` (`getmempoolinfo`) and the operator's fee deltas
     /// (`getprioritisedtransactions`), in one batched round trip. GBT carries each tx's full body and stats, so block 0
@@ -185,6 +156,47 @@ impl Client {
         };
         deltas.sort_unstable_by_key(|(txid, _)| **txid);
         deltas.into()
+    }
+
+    /// The outputs at `outpoints` from the node's UTXO set (`gettxout`, the mempool's spends not
+    /// counted): what a pending transaction's confirmed parents left it, with no `-txindex`
+    /// needed. One the set doesn't hold (unknown, or spent in a block) is left out.
+    pub fn get_tx_outs(
+        &self,
+        outpoints: &[(Txid, Vout)],
+    ) -> Result<RapidHashMap<(Txid, Vout), TxOut>> {
+        #[derive(serde::Deserialize)]
+        struct Unspent {
+            value: Bitcoin,
+            #[serde(rename = "scriptPubKey")]
+            script: Script,
+        }
+        #[derive(serde::Deserialize)]
+        struct Script {
+            hex: String,
+        }
+        let mut out = RapidHashMap::with_capacity_and_hasher(outpoints.len(), Default::default());
+        for chunk in outpoints.chunks(BATCH_CHUNK) {
+            let args = chunk.iter().map(|(txid, vout)| {
+                let txid: &BitcoinTxid = txid.into();
+                (txid, u32::from(*vout), false)
+            });
+            let results = self.0.call_batch_raw("gettxout", args)?;
+            for (outpoint, result) in chunk.iter().zip(results) {
+                let unspent = result.and_then(|raw| Ok(from_str::<Option<Unspent>>(raw.get())?));
+                match unspent {
+                    Ok(Some(unspent)) => match ScriptBuf::from_hex(&unspent.script.hex) {
+                        Ok(script) => {
+                            out.insert(*outpoint, TxOut::from((script, Sats::from(unspent.value))));
+                        }
+                        Err(error) => debug!(%error, "gettxout: an unreadable script"),
+                    },
+                    Ok(None) => {}
+                    Err(error) => debug!(%error, "gettxout batch: item failed"),
+                }
+            }
+        }
+        Ok(out)
     }
 
     /// Block `hash`'s transactions and what their inputs spend (`getblock` raw, decoded once).

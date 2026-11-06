@@ -63,6 +63,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
+  (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
+  hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
 - `/api/v1/cpfp/{txid}` for a pending transaction reads its cluster's chunks from the snapshot instead of
   linearizing the cluster again on each request (up to ~3.6 ms of CPU for a crafted 64-transaction cluster)
 - Chain reads (tip, blocks, transactions, addresses) run as many at once as there are cores (they ran one at a time):

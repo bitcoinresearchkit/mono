@@ -9,7 +9,7 @@
 
 use brk_rpc::Client;
 use brk_types::{TxOut, Txid, Vin, Vout};
-use rapidhash::{RapidHashMap, RapidHashSet};
+use rapidhash::RapidHashMap;
 use tracing::warn;
 
 use crate::{
@@ -36,8 +36,8 @@ where
     }
 }
 
-/// Default resolver: `getrawtransaction` once per parent txid, batched by the
-/// RPC client. Requires bitcoind with `txindex=1`.
+/// Default resolver: the node's UTXO set (`gettxout` per hole, batched), where a pending
+/// transaction's confirmed parents' outputs still are: no `-txindex` needed.
 pub fn rpc_resolver(
     client: Client,
 ) -> impl Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
@@ -45,26 +45,10 @@ pub fn rpc_resolver(
         if holes.is_empty() {
             return RapidHashMap::default();
         }
-        let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
-        let unique: Vec<Txid> = holes
-            .iter()
-            .filter_map(|(txid, _)| seen.insert(*txid).then_some(*txid))
-            .collect();
-        let parents = match client.get_raw_transactions(&unique) {
-            Ok(map) => map,
-            Err(error) => {
-                warn!("mempool prevout fetch failed: {error}");
-                return RapidHashMap::default();
-            }
-        };
-        holes
-            .iter()
-            .filter_map(|(txid, vout)| {
-                let output = parents.get(txid)?.output.get(usize::from(*vout))?;
-                let txout = TxOut::from((output.script_pubkey.clone(), output.value.into()));
-                Some(((*txid, *vout), txout))
-            })
-            .collect()
+        client.get_tx_outs(holes).unwrap_or_else(|error| {
+            warn!("mempool prevout fetch failed: {error}");
+            RapidHashMap::default()
+        })
     }
 }
 

@@ -19,8 +19,9 @@ Options:
 Events (one JSON object per line), from each published pool against the previous one:
   Per-tx (one event per change):
     {"kind":"enter","t":..,"txid":..,"vsize":..,"fee":..,"rate":..,"first_seen":..}
-    {"kind":"leave","t":..,"txid":..,"reason":"vanished"}
+    {"kind":"leave","t":..,"txid":..,"reason":"mined"}
     {"kind":"leave","t":..,"txid":..,"reason":"replaced","by":..}
+    {"kind":"leave","t":..,"txid":..,"reason":"vanished"}   (expired, evicted, or not told apart)
 
   State (on the first cycle, then whenever the value changes):
     {"kind":"tip","t":..,"hash":..,"height":..}        (chain tip)
