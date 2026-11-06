@@ -238,7 +238,7 @@
         padding: 40px 24px 120px;
 
         @media (width < 640px) {
-          padding: 28px 16px 96px;
+          padding: 20px 16px 96px;
         }
       }
 
@@ -253,16 +253,24 @@
       .releases {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 12px 6px;
         margin: 14px 0 0;
 
         button {
+          position: relative;
           padding: 5px 12px;
           border: 1px solid var(--line-strong);
           border-radius: 999px;
           color: var(--soft);
           font-weight: 600;
           font-variant-numeric: tabular-nums;
+
+          /* (A finger's reach, its look as it is; the gap between pills left to neither.) */
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -6px -3px;
+          }
 
           &:hover {
             color: var(--ink);
@@ -289,6 +297,10 @@
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         margin: 28px 0 0;
         border-block: 1px solid var(--line);
+
+        &:empty {
+          display: none;
+        }
 
         div {
           padding: 14px 16px 14px 0;
@@ -358,6 +370,10 @@
         @media (width < 960px) {
           display: block;
         }
+
+        @media (width < 640px) {
+          margin-top: 28px;
+        }
       }
 
       /* (The sections, each with how many rows it has: where to go, as the page scrolls.) */
@@ -421,6 +437,10 @@
           font-weight: 600;
           letter-spacing: 0.04em;
           text-transform: uppercase;
+
+          @media (width < 640px) {
+            margin-top: 18px;
+          }
         }
 
         /* (A kind of note's topic, beneath its kind.) */
@@ -499,6 +519,21 @@
         /* (A row that's one thing: an id gone, an endpoint and what changed of it.) */
         > li.whole {
           display: block;
+        }
+
+        /* (A note in words: at the measure of the page's other prose, its rule still the column's width; its ids and
+           paths each on a well, as the members' are.) */
+        > li.prose {
+          padding-right: max(0px, calc(100% - 46em));
+          font-size: 15px;
+
+          code {
+            padding: 0 3px;
+            border-radius: 4px;
+            background: color-mix(in oklab, var(--well) 70%, transparent);
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+          }
         }
 
         /* (A row that's a thing and what's said of it, on one line: an endpoint gone and what it was, an index and
@@ -837,7 +872,7 @@
             group: group.kind,
             title: group.topic?.html,
             said: group.said.join(" "),
-            rows: group.notes.map((note) => ({ html: `<li class="whole">${note.html}</li>`, text: `${note.text} ${group.kind} ${group.topic?.text ?? ""}` })),
+            rows: group.notes.map((note) => ({ html: `<li class="whole prose">${note.html}</li>`, text: `${note.text} ${group.kind} ${group.topic?.text ?? ""}` })),
           }));
           addSection(release.version ?? "unreleased", title, release.said.join("</p><p>"), lists, release.version ? version(release) : "Unreleased");
         }
