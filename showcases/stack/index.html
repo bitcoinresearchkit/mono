@@ -484,7 +484,7 @@
         fill: var(--loss-fill);
       }
 
-      /* (Thin: the plan's own 2px, the rest 1.25px.) */
+      /* (Thin: the plan's own 2px, the rest 1.5px.) */
       .line {
         fill: none;
         stroke-width: 2px;
@@ -501,17 +501,17 @@
 
         &.price {
           stroke: var(--soft);
-          stroke-width: 1.25px;
+          stroke-width: 1.5px;
         }
 
         &.plain {
           stroke: var(--plain);
-          stroke-width: 1.25px;
+          stroke-width: 1.5px;
         }
 
         &.dashed {
           stroke: var(--soft);
-          stroke-width: 1.25px;
+          stroke-width: 1.5px;
           stroke-dasharray: 3 5;
         }
       }
@@ -682,14 +682,13 @@
           height: 56px;
           margin: 8px 0 4px;
           font-size: min(44px, 150cqi / var(--chars, 4));
+          font-weight: 650;
+          line-height: 1.1;
+          letter-spacing: -0.04em;
 
           @media (min-width: 720px) {
             font-size: min(48px, 150cqi / var(--chars, 4));
           }
-
-          font-weight: 650;
-          line-height: 1.1;
-          letter-spacing: -0.04em;
 
           input {
             min-width: 1.4ch;
@@ -1376,15 +1375,23 @@
 
       /* The plain plan's mark, under the value. */
       .badge {
-        display: inline-block;
-        border-radius: 999px;
-        padding: 1px 7px;
-        color: var(--app);
-        background: var(--plain);
-        font-size: 12px;
+        color: var(--soft);
         font-style: normal;
-        font-weight: 600;
-        letter-spacing: 0.01em;
+        font-weight: 500;
+
+        &::before {
+          content: "";
+          display: inline-block;
+          width: 12px;
+          margin-right: 6px;
+          vertical-align: 0.3em;
+          border-top: 2px solid var(--plain);
+          border-radius: 2px;
+        }
+
+        &.smart::before {
+          border-top-color: var(--line-up);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -2964,7 +2971,7 @@
           $("smart-fine").textContent = Smart.words.fine;
           if (!comparable) {
             $("verdict").textContent = `Unavailable: ${why}.`;
-            $("versus").innerHTML = `<em class="badge">Smart</em> unavailable: ${why}`;
+            $("versus").innerHTML = `<em class="badge smart">Smart</em> unavailable: ${why}`;
             /** @type {HTMLButtonElement} */ (document.querySelector('[data-atlas="edge"]')).disabled = true;
           }
           // (One date when both begin on the same day.)
