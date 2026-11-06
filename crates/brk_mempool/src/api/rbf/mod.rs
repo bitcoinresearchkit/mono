@@ -7,7 +7,7 @@ use rapidhash::RapidHashSet;
 use crate::{
     ReadOnlyState,
     snapshot::Snapshot,
-    state::TxEntry,
+    state::{Pool, TxEntry},
     stores::{ReadOnlyTxStore, TxGraveyard},
 };
 
@@ -18,6 +18,8 @@ pub use for_tx::RbfForTx;
 pub use node::RbfNode;
 
 const MAX_RBF_WORK: usize = 4096;
+/// The trees a recent replacements listing holds: mempool.space's count.
+const RECENT_TREES: usize = 25;
 // Also bounds later enrichment, JSON nesting and recursive destruction: two levels a version plus
 // the response's own, 127 at 63 versions, within serde_json's default limit (128) every Rust
 // client parses with.
@@ -72,25 +74,24 @@ impl ReadOnlyState {
         Ok(RbfForTx { root, replaces })
     }
 
-    /// Recent terminal-replacer trees, most-recent first, deduplicated
-    /// by root, capped at `limit`. `full_rbf_only` drops trees with no
-    /// non-signaling predecessor.
-    /// Each tree has `rbf_for_tx`'s budget: one larger or nested deeper is skipped, never
-    /// truncated, and the listing goes on. The whole request is bounded too (`limit + 1` trees'
-    /// budgets, charged for discarded candidates and stale graveyard entries): once that runs out
-    /// the listing ends with the complete trees found so far.
-    pub fn recent_rbf_trees(
-        &self,
-        full_rbf_only: bool,
-        limit: usize,
-        tip: &BlockHash,
-    ) -> Result<Vec<RbfNode>> {
+    /// Recent terminal-replacer trees, most-recent first, deduplicated by root, 25 at most
+    /// (mempool.space's `/replacements`). `full_rbf_only` drops trees with no non-signaling
+    /// predecessor. Walked once per publication, by the first request.
+    pub fn recent_rbf_trees(&self, full_rbf_only: bool, tip: &BlockHash) -> Result<Vec<RbfNode>> {
         let state = self.pool()?.at(tip)?;
-        if limit == 0 {
-            return Ok(Vec::new());
-        }
+        Ok(state.recent_trees[usize::from(full_rbf_only)]
+            .get_or_init(|| Self::walk_recent_trees(state, full_rbf_only))
+            .clone())
+    }
+
+    /// Each tree has `rbf_for_tx`'s budget: one larger or nested deeper is skipped, never
+    /// truncated, and the listing goes on. The whole walk is bounded too (`RECENT_TREES + 1`
+    /// trees' budgets, charged for discarded candidates and stale graveyard entries): once that
+    /// runs out the listing ends with the complete trees found so far.
+    fn walk_recent_trees(state: &Pool, full_rbf_only: bool) -> Vec<RbfNode> {
+        let limit = RECENT_TREES;
         let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
-        let mut total = MAX_RBF_WORK.saturating_mul(limit.saturating_add(1));
+        let mut total = MAX_RBF_WORK.saturating_mul(limit + 1);
         let mut trees = Vec::new();
         for candidate in state.graveyard.replacements_recent_first() {
             let Some(left) = total.checked_sub(1) else {
@@ -127,7 +128,7 @@ impl ReadOnlyState {
         for root in &mut trees {
             Self::apply_snapshot_rates(root, &state.graph);
         }
-        Ok(trees)
+        trees
     }
 
     fn build_rbf_node(

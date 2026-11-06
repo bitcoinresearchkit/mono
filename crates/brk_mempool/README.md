@@ -69,7 +69,8 @@ On a loaded `ReadOnlyState`:
   few blocks past it, the pool without what those blocks mined, conflicted, or descend from a
   conflicted one. A transaction folds into the address view once it and every pooled parent
   are resolved, so no address sees half of one.
-- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at the caller's tip.
+- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at the caller's tip; the
+  recent trees (mempool.space's 25) are walked once per publication.
 
 ## Projection and fee tiers
 

@@ -59,7 +59,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     }
     // A promoted one owns its outpoints again: what the cascades, which follow owners, missed.
     state.recheck(&owners);
-    state.fold_ready(entered.into_iter().chain(released).chain(owners));
+    state.fold_ready(entered.iter().copied().chain(released).chain(owners));
     if !confirmed.is_empty() {
         state.graveyard.confirm(
             |txid| confirmed.mined(txid),
@@ -69,6 +69,16 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
                 confirmed.conflict(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
             },
         );
+    }
+    // After the blocks, and only when every new one was read: a confirmed conflict outranks a
+    // late arrival (with one unread, what vanished stays so).
+    state.graveyard.index_vanished();
+    if !confirmed.incomplete {
+        for txid in &entered {
+            if let Some(record) = state.txs.record(txid) {
+                state.graveyard.relink(&record.tx);
+            }
+        }
     }
     let txs = &state.txs;
     state.graveyard.evict_old(|txid| txs.contains(txid));

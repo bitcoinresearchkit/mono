@@ -184,6 +184,7 @@ impl Mempool {
                 .copied()
                 .collect()
         };
+        self.state.graveyard.end_cycle(&unloaded);
         self.rebuilder.tick(
             &self.state,
             block_template_txids.as_deref(),

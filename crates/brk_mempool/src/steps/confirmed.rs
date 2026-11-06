@@ -17,15 +17,15 @@ pub struct Confirmed {
     spends: RapidHashMap<(Txid, Vout), Txid>,
     /// What the blocks a reorg took off the chain mined: the last tip's branch, back to the fork.
     disconnected: RapidHashSet<Txid>,
-    /// The new tip's block, or one a reorg took off the chain, couldn't be read: the next cycle
-    /// reads the blocks again, from the same last tip.
+    /// A new block, or one a reorg took off the chain, couldn't be read: the next cycle reads the
+    /// blocks again, from the same last tip.
     pub incomplete: bool,
 }
 
 impl Confirmed {
     /// The blocks from `tip` back to `since` (not included), `MAX_BLOCKS` at most: those the last
     /// cycle didn't see. None on the first cycle (`since` unknown) or when `tip` is `since`; a
-    /// failed read leaves out the blocks from it back. Short of `since`, a reorg took it off the
+    /// failed read leaves out the blocks from it back, `incomplete`. Short of `since`, a reorg took it off the
     /// chain when it reads so: its branch back to the fork (`MAX_BLOCKS` at most) is read too.
     pub fn since(client: &Client, tip: BlockHash, since: Option<BlockHash>) -> Self {
         let mut confirmed = Self::default();
@@ -45,14 +45,10 @@ impl Confirmed {
                 }
                 Err(error) => {
                     debug!(%error, "mempool: reading a new block's transactions failed");
-                    // The newest block unread: the next cycle tries again from the same last tip.
-                    if hash == tip {
-                        confirmed.incomplete = true;
-                        return confirmed;
-                    }
-                    // An older one's loss stays (its confirmations read as vanished); whether a
-                    // reorg took the last tip off the chain is still read.
-                    break;
+                    // The next cycle reads them all again, from the same last tip (once that's more
+                    // than `MAX_BLOCKS` back, what those blocks confirmed reads as vanished).
+                    confirmed.incomplete = true;
+                    return confirmed;
                 }
             }
         }

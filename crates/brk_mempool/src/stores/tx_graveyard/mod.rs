@@ -1,10 +1,11 @@
 use std::{
     collections::VecDeque,
+    mem,
     time::{Duration, Instant},
 };
 
-use brk_types::{FeeRate, Txid};
-use rapidhash::RapidHashMap;
+use brk_types::{FeeRate, Transaction, Txid, Vout};
+use rapidhash::{RapidHashMap, RapidHashSet};
 use smallvec::SmallVec;
 
 pub mod tombstone;
@@ -24,6 +25,14 @@ const TREE_RETENTION: Duration = Duration::from_hours(24);
 const MAX_BYTES: u64 = 256 << 20;
 /// The longest replacement chain an eviction check follows (the RBF listings' work bound).
 const MAX_WALK: usize = 4_096;
+
+/// A vanished burial waiting for a late replacer: its tombstone's time, and its cycle.
+#[derive(Clone, Copy)]
+struct Burial {
+    txid: Txid,
+    at: Instant,
+    cycle: u64,
+}
 
 /// Recently-dropped txs retained for reappearance (a returning tx keeps its
 /// first sighting) and post-mine analytics (RBF/replacement chains, etc.).
@@ -53,6 +62,18 @@ pub struct TxGraveyard {
     bytes: u64,
     /// How many `Replaced` tombstones are held.
     replaced: usize,
+    /// What vanished in cycles whose view wasn't complete, by the outpoints each spent (each with
+    /// its burial's time and cycle): a replacer the per-cycle fetch cap held back still links it
+    /// when it arrives. Cleared by the first complete cycle.
+    unlinked: RapidHashMap<(Txid, Vout), SmallVec<[Burial; 1]>>,
+    /// This cycle's vanished burials (and reclassifications), for `unlinked` unless the cycle's
+    /// view is complete.
+    vanished: Vec<(Txid, Instant)>,
+    /// Listed transactions not loaded yet, by the cycle each was first listed in: only one listed
+    /// by the cycle something vanished in can be what replaced it.
+    unloaded_since: RapidHashMap<Txid, u64>,
+    /// The current cycle's number.
+    cycle: u64,
 }
 
 impl TxGraveyard {
@@ -152,14 +173,21 @@ impl TxGraveyard {
                 .push(txid);
             self.replacements.push_back((removed_at, txid));
         }
+        if matches!(removal, TxRemoval::Vanished) {
+            self.vanished.push((txid, removed_at));
+        }
         self.order.push_back((removed_at, txid));
         self.revision = self.revision.wrapping_add(1);
     }
 
     fn remove_predecessor(&mut self, txid: &Txid, tombstone: &TxTombstone) {
-        let Some(replacer) = tombstone.replaced_by() else {
-            return;
-        };
+        if let Some(replacer) = tombstone.replaced_by() {
+            self.unlist(txid, replacer);
+        }
+    }
+
+    /// Takes `txid` off `replacer`'s predecessors.
+    fn unlist(&mut self, txid: &Txid, replacer: &Txid) {
         let remove_entry =
             self.predecessors_by_replacer
                 .get_mut(replacer)
@@ -248,13 +276,24 @@ impl TxGraveyard {
             })
             .collect();
         for (txid, removal) in changes {
-            let previous = self.tombstones.get(&txid).unwrap().clone();
-            self.remove_predecessor(&txid, &previous);
-            self.replaced -= usize::from(previous.replaced_by().is_some());
-            let tombstone = self.tombstones.get_mut(&txid).unwrap();
-            tombstone.removal = removal;
-            tombstone.removed_at = now;
-            if let TxRemoval::Replaced { by } = removal {
+            self.reclassify(txid, removal, now);
+        }
+    }
+
+    /// A tombstone told another reason, as of `now`: its retention starts again.
+    fn reclassify(&mut self, txid: Txid, removal: TxRemoval, now: Instant) {
+        let Some(tombstone) = self.tombstones.get_mut(&txid) else {
+            return;
+        };
+        let previous = tombstone.replaced_by().copied();
+        tombstone.removal = removal;
+        tombstone.removed_at = now;
+        if let Some(replacer) = previous {
+            self.unlist(&txid, &replacer);
+            self.replaced -= 1;
+        }
+        match removal {
+            TxRemoval::Replaced { by } => {
                 self.predecessors_by_replacer
                     .entry(by)
                     .or_default()
@@ -262,9 +301,102 @@ impl TxGraveyard {
                 self.replacements.push_back((now, txid));
                 self.replaced += 1;
             }
-            self.order.push_back((now, txid));
-            self.revision = self.revision.wrapping_add(1);
+            TxRemoval::Vanished => self.vanished.push((txid, now)),
+            TxRemoval::Mined => {}
         }
+        self.order.push_back((now, txid));
+        self.revision = self.revision.wrapping_add(1);
+    }
+
+    /// Whether `txid`'s tombstone is the vanished one buried at `at`.
+    fn vanished_at(&self, txid: &Txid, at: Instant) -> bool {
+        self.current(txid, at)
+            .is_some_and(|tombstone| matches!(tombstone.removal, TxRemoval::Vanished))
+    }
+
+    /// An arrival the fetch cap held back, replacing what vanished meanwhile: what it conflicts
+    /// with that vanished no earlier than it was first listed reads replaced by it (one listed
+    /// only later, spending an outpoint the vanished one freed, replaced nothing). Called after
+    /// the cycle's blocks are told (`confirm`), and only when they all could be: a confirmed
+    /// conflict comes first.
+    pub fn relink(&mut self, arrival: &Transaction) {
+        if self.unlinked.is_empty() {
+            return;
+        }
+        // One never left unloaded was first listed this cycle.
+        let listed = self
+            .unloaded_since
+            .get(&arrival.txid)
+            .copied()
+            .unwrap_or(self.cycle);
+        let now = Instant::now();
+        let mut relinked: SmallVec<[Txid; 1]> = SmallVec::new();
+        for txin in &arrival.input {
+            let Some(losers) = self.unlinked.get(&(txin.txid, txin.vout)) else {
+                continue;
+            };
+            for burial in losers {
+                // Several of its inputs can lead to one loser: told once.
+                if listed <= burial.cycle
+                    && burial.txid != arrival.txid
+                    && !relinked.contains(&burial.txid)
+                    && self.vanished_at(&burial.txid, burial.at)
+                {
+                    relinked.push(burial.txid);
+                }
+            }
+        }
+        for loser in relinked {
+            self.reclassify(loser, TxRemoval::Replaced { by: arrival.txid }, now);
+        }
+    }
+
+    /// This cycle's vanished (buried, or told so), indexed by the outpoints they spent: before
+    /// [`Self::relink`], so a same-cycle arrival finds them too.
+    pub fn index_vanished(&mut self) {
+        for (txid, at) in mem::take(&mut self.vanished) {
+            let Some(tombstone) = self
+                .tombstones
+                .get(&txid)
+                .filter(|tombstone| tombstone.removed_at == at)
+            else {
+                continue;
+            };
+            for txin in &tombstone.record.tx.input {
+                self.unlinked
+                    .entry((txin.txid, txin.vout))
+                    .or_default()
+                    .push(Burial {
+                        txid,
+                        at,
+                        cycle: self.cycle,
+                    });
+            }
+        }
+    }
+
+    /// The cycle's end, with the listed transactions it couldn't load. None: no replacer of what
+    /// vanished is still to arrive, all is let go. Otherwise what's no longer vanished lets go,
+    /// and the unloaded keep when they were first listed.
+    pub fn end_cycle(&mut self, unloaded: &RapidHashSet<Txid>) {
+        if unloaded.is_empty() {
+            self.unlinked.clear();
+            self.vanished.clear();
+            self.unloaded_since.clear();
+        } else {
+            let mut unlinked = mem::take(&mut self.unlinked);
+            unlinked.retain(|_, losers| {
+                losers.retain(|burial| self.vanished_at(&burial.txid, burial.at));
+                !losers.is_empty()
+            });
+            self.unlinked = unlinked;
+            let previous = mem::take(&mut self.unloaded_since);
+            self.unloaded_since = unloaded
+                .iter()
+                .map(|txid| (*txid, previous.get(txid).copied().unwrap_or(self.cycle)))
+                .collect();
+        }
+        self.cycle += 1;
     }
 
     /// Lets go of what's past its retention, and of the oldest past [`MAX_BYTES`]: a lone

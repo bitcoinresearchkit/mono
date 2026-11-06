@@ -8,11 +8,12 @@ use brk_types::Txid;
 /// mempool.space's mined replacement). `by` is the immediate successor. The chain extends if
 /// `by` is itself later replaced. Walk it forward via `TxGraveyard::replacement_root_of`.
 ///
-/// `Mined` = a block since the last cycle confirmed it.
+/// `Mined` = a block since the last cycle confirmed it (until a reorg takes that block off the
+/// chain: then `Vanished`, or `Replaced` by a conflict the new blocks confirmed).
 ///
 /// `Vanished` = any other reason we can't distinguish from the data at hand (expired, evicted,
-/// confirmed more than a few blocks back, or replaced by a tx we didn't fetch due to the per-cycle
-/// fetch cap).
+/// confirmed more than a few blocks back). One replaced by a tx the per-cycle fetch cap held back
+/// reads `Replaced` once that tx arrives (`TxGraveyard::relink`).
 #[derive(Debug, Clone, Copy)]
 pub enum TxRemoval {
     Replaced { by: Txid },

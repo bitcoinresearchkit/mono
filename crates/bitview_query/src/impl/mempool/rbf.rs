@@ -9,8 +9,6 @@ use crate::{
     Error, OptionData, Query, RepresentationId, Result, r#impl::tx::confirmed::IndexerRead,
 };
 
-const RECENT_REPLACEMENTS_LIMIT: usize = 25;
-
 /// An exact owned RBF tree resolved before an async response handoff.
 pub struct ResolvedRbf {
     source: RbfForTx,
@@ -58,7 +56,7 @@ impl Query {
         let (mempool, pin) = self.mempool_then_pin()?;
         let read = self.read_indexer_at(pin);
         let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::MempoolNotAvailable)?;
-        let trees = mempool.recent_rbf_trees(full_rbf_only, RECENT_REPLACEMENTS_LIMIT, &tip)?;
+        let trees = mempool.recent_rbf_trees(full_rbf_only, &tip)?;
         trees
             .into_iter()
             .map(|node| read.enrich_rbf_tree(node))

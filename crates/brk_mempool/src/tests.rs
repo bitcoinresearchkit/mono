@@ -705,6 +705,49 @@ fn reorged_out_tombstones_read_vanished_or_replaced() {
     assert!(matches!(removal(4), TxRemoval::Mined));
 }
 
+/// A replacer the fetch cap held back links what vanished before it arrived, if it was listed by
+/// then; one first listed later (spending an outpoint the vanished one freed) replaced nothing;
+/// after a complete cycle, nothing is left waiting for one.
+#[test]
+fn late_replacers_relink_what_vanished_before_them() {
+    let mut graveyard = TxGraveyard::default();
+    let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
+    let bury = |graveyard: &mut TxGraveyard, seed: u8, spends: &[u8]| {
+        let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
+        let tx = Arc::new(spending(seed, &outpoints));
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished);
+    };
+    let unloaded = |seeds: &[u8]| seeds.iter().map(|&s| txid(s)).collect::<RapidHashSet<Txid>>();
+    let removal = |graveyard: &TxGraveyard, seed| graveyard.get(&txid(seed)).unwrap().removal;
+
+    // 1 spent 90 and 91 and vanished while 2, its replacer (spending 91), was listed unloaded.
+    bury(&mut graveyard, 1, &[90, 91]);
+    graveyard.index_vanished();
+    graveyard.end_cycle(&unloaded(&[2]));
+    // 3 is first listed after: it spends 90, which 1's leaving freed.
+    graveyard.end_cycle(&unloaded(&[2, 3]));
+    graveyard.relink(&spending(3, &[outpoint(90)]));
+    assert!(matches!(removal(&graveyard, 1), TxRemoval::Vanished));
+    graveyard.relink(&spending(2, &[outpoint(91)]));
+    assert!(matches!(removal(&graveyard, 1), TxRemoval::Replaced { by } if by == txid(2)));
+    assert_eq!(graveyard.predecessors_of(&txid(2)).count(), 1);
+
+    bury(&mut graveyard, 4, &[92]);
+    graveyard.index_vanished();
+    graveyard.end_cycle(&unloaded(&[]));
+    graveyard.relink(&spending(5, &[outpoint(92)]));
+    assert!(matches!(removal(&graveyard, 4), TxRemoval::Vanished));
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }
