@@ -36,10 +36,10 @@ pub struct Realized<M: StorageMode = Rw> {
     /// Creation-time value of the outputs spent.
     #[traversable(lead = "Value destroyed: what the coins spent had cost their holders.")]
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
-    /// Peak regret: the value sellers forgo relative to each spent output's
-    /// highest spot price from its creation block through its spending block.
+    /// Peak regret: how much more each spent output was worth at its highest spot price from
+    /// its creation block through its spending block than when it was spent.
     #[traversable(
-        lead = "Peak regret: what sellers gave up against the highest price their coins saw while they held them."
+        lead = "Peak regret: how much more spent coins were worth at the highest price they saw since they last moved."
     )]
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Spent output profit ratio (SOPR): spend-time value in US dollars of the outputs spent
@@ -53,7 +53,7 @@ pub struct Realized<M: StorageMode = Rw> {
     /// (null) when the realized cap is zero or the window reaches before the first exchange price
     /// (block 74,641).
     #[traversable(
-        lead = "Sell-side risk: realized profit and loss together, against the realized cap: how much value sellers move."
+        lead = "Sell-side risk: realized profit and loss together, against the realized cap."
     )]
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
 }

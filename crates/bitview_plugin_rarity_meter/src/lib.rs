@@ -50,12 +50,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Local Rarity Meter, young-coin positioning: the short-term holders' and
     /// under-six-month cohorts' realized and capitalized prices and the short-term
     /// holders' BTC- and USD-weighted median creation prices.
-    #[traversable(lead = "Local Rarity Meter: how rare the price is against what recent buyers paid.")]
+    #[traversable(lead = "Local Rarity Meter: how rare the price is against what young coins cost.")]
     local: RarityMeterInner<M>,
     /// Cycle Rarity Meter, long-cycle valuation: the all-chain realized and
     /// capitalized prices, the all-chain and mobile supply's BTC- and USD-weighted median
     /// creation prices, the vaulted price, True Market Mean, and the awake and mobile
     /// realized prices.
-    #[traversable(lead = "Cycle Rarity Meter: how rare the price is against what holders paid over the cycle.")]
+    #[traversable(lead = "Cycle Rarity Meter: how rare the price is against what the whole supply cost, over the cycle.")]
     cycle: RarityMeterInner<M>,
 }

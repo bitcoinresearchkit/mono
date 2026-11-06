@@ -27,13 +27,14 @@ pub struct Extremes<M: StorageMode = Rw> {
     #[traversable(lead = "A day's realized loss, against its history: how rare it is.")]
     pub realized_loss_sum_24h: Extreme<Dollars, M>,
     /// Trailing-24-hour all-chain realized peak regret, in USD, against all its prior finite
-    /// observations, from 210,000 of them. Peak regret is the value sellers forgo relative to
-    /// each spent output's highest spot price from its creation block through its spending block.
+    /// observations, from 210,000 of them. Peak regret is how much more each spent output was
+    /// worth at its highest spot price from its creation block through its spending block than
+    /// when it was spent.
     #[traversable(lead = "A day's peak regret, against its history: how rare it is.")]
     pub realized_peak_regret_sum_24h: Extreme<Dollars, M>,
     /// The trailing-24-hour all-chain sell-side risk ratio (gross realized profit and loss
     /// divided by realized capitalization), against its most recent 210,000 positive
-    /// observations. Low values mean little realized profit or loss relative to invested value.
+    /// observations. Low values mean little realized profit or loss relative to the realized cap.
     #[traversable(lead = "A day's sell-side risk, against its history: how rare it is.")]
     pub sell_side_risk_ratio_24h: Extreme<Ratio, M>,
 }

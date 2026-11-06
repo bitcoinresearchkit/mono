@@ -23,12 +23,12 @@ pub struct MobileVecs<M: StorageMode = Rw> {
     /// supply. Creation-date value is each unspent output's BTC value
     /// multiplied by Bitcoin's spot price when it was created.
     #[traversable(wrap = "capital", rename = "total")]
-    #[traversable(lead = "Mobile capital: what holders paid for the mobile supply.")]
+    #[traversable(lead = "Mobile capital: what the mobile supply cost.")]
     pub capital: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created, weighted by its age range's mobility.
     #[traversable(wrap = "capital", rename = "realized_cap")]
-    #[traversable(lead = "Mobile realized cap: what holders paid for the mobile supply, each coin at the price it last moved at.")]
+    #[traversable(lead = "Mobile realized cap: what the mobile supply cost, each coin at the price it last moved at.")]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Creation-price statistics of the mobile supply: each unspent output weighted by its
     /// age range's mobility.

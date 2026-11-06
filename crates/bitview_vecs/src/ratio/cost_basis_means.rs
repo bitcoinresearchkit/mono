@@ -19,11 +19,11 @@ pub struct CostBasisMeans<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct CostBasisByCoin<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort holds no supply.
-    #[traversable(lead = "Realized price: what holders paid for their bitcoin, on average, each coin at the price it last moved at.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average, each coin at the price it last moved at.")]
     pub avg: PriceWithMvrv<M>,
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
     /// the cohort holds no supply.
-    #[traversable(lead = "Realized price: what holders paid for their bitcoin, on average, each coin at the price it last moved at.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average, each coin at the price it last moved at.")]
     realized_price: Price<LazyPerBlock<Cents>>,
     /// On the price grid: creation prices rounded to four significant digits of the price in cents
     /// (exact cents under $100, then steps of at most 0.1% up to $42,949,672.94, where higher
@@ -41,23 +41,23 @@ pub struct CostBasisByCoin<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct CostBasisByDollar<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort's USD value at creation is zero.
-    #[traversable(lead = "Capitalized price: what holders paid on average, each coin weighted by the dollars it cost.")]
+    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
     pub avg: PriceWithRatio<M>,
     /// Capitalized price: the weighted mean; undefined (null) while the cohort's USD value at
     /// creation is zero.
-    #[traversable(lead = "Capitalized price: what holders paid on average, each coin weighted by the dollars it cost.")]
+    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
     capitalized_price: Price<LazyPerBlock<Cents>>,
     /// On the price grid: creation prices rounded to four significant digits of the price in cents
     /// (exact cents under $100, then steps of at most 0.1% up to $42,949,672.94, where higher
     /// prices cap). Undefined (null) while the cohort's capital is zero.
     #[traversable(flatten)]
-    #[traversable(lead = "Cost basis percentile, by dollars: the price that about a share of the dollars paid was paid below, as its name says (for p25, a quarter of them).")]
+    #[traversable(lead = "Cost basis percentile, by dollars: the price that about a share of the coins, by the dollars they cost, last moved below, as its name says (for p25, a quarter of them).")]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
     /// Median capitalized price: the weighted median, on the price grid: creation prices rounded to
     /// four significant digits of the price in cents (exact cents under $100, then steps of at most
     /// 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) while the cohort's
     /// capital is zero.
-    #[traversable(lead = "Median capitalized price: about half the dollars holders paid were paid below it.")]
+    #[traversable(lead = "Median capitalized price: about half the coins, by the dollars they cost, last moved below it.")]
     median_capitalized_price: Price<LazyPerBlock<Cents>>,
 }
 

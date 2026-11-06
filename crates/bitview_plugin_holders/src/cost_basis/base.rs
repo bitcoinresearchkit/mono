@@ -39,10 +39,10 @@ pub struct CostBasis<M: StorageMode = Rw> {
         lead = "Supply near the price: the share of coins that last moved within 5% of the price of the day."
     )]
     pub supply_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
-    /// Share of the cohort's invested capital (satoshis times creation price) with a creation
+    /// Share of the cohort's capital (satoshis times creation price) with a creation
     /// price near spot; undefined (null) without capital or a positive spot price.
     #[traversable(
-        lead = "Capital near the price: the share of what holders paid that was paid within 5% of the price of the day."
+        lead = "Capital near the price: the share of the capital whose coins last moved within 5% of the price of the day."
     )]
     pub capital_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
 }

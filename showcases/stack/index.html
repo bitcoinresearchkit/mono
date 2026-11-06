@@ -1777,7 +1777,7 @@
         function today(d, plan) {
           const p = price[d], line = Math.max(level(FLOORS.length, d), level(FLOORS.length + 1, d)), saved = usd(plan.cash);
           const allTime = /** @type {[string, string, number]} */ (["Back to waiting", "if a day closes above the all-time high", high[d]]);
-          const allIn = /** @type {[string, string, number]} */ (["All in", "if a day closes above what young coins paid", line]);
+          const allIn = /** @type {[string, string, number]} */ (["All in", "if a day closes above what young coins cost", line]);
           if (phase[d] === WAIT) {
             return {
               step: 0,
@@ -1795,11 +1795,11 @@
               : { step: 1, act: `Buy ${usd(plan.spend)}`, why: `${FLOORS[k][1] * 100}% of the ${saved} saved: the price closed at ${usd(p)}, at or under Bedrock's ${ORDINALS[k]} floor (${usd(level(k, d))}).`, levels: [...deeper, allIn] };
           }
           if (phase[d] === RETAKE) {
-            if (plan.spend < 0.005) return { step: 2, act: "Nothing today", why: `The price closed at ${usd(p)}, back above what coins younger than six months paid, but nothing is saved yet to put in.`, levels: [allTime] };
+            if (plan.spend < 0.005) return { step: 2, act: "Nothing today", why: `The price closed at ${usd(p)}, back above what coins younger than six months cost, but nothing is saved yet to put in.`, levels: [allTime] };
             return {
               step: 2,
               act: `Put in all ${usd(plan.spend)}`,
-              why: `The price closed at ${usd(p)}, back above what coins younger than six months paid: ${usd(level(FLOORS.length, d))} on average, ${usd(level(FLOORS.length + 1, d))} at the median.`,
+              why: `The price closed at ${usd(p)}, back above what coins younger than six months cost: ${usd(level(FLOORS.length, d))} on average, ${usd(level(FLOORS.length + 1, d))} at the median.`,
               levels: [allTime],
             };
           }
@@ -1807,7 +1807,7 @@
             step: 3,
             act: plan.next === plan.now ? `Buy ${usd(plan.amount)} today` : `Buy ${usd(plan.amount)} on ${dated(plan.next)}`,
             // (The climb back: the day before this step began.)
-            why: `The price climbed back above what young coins paid on ${dated(began[d] - 1)}; since then, each saving is bought as it comes.`,
+            why: `The price climbed back above what young coins cost on ${dated(began[d] - 1)}; since then, each saving is bought as it comes.`,
             levels: [allTime],
           };
         }
@@ -1819,11 +1819,11 @@
           steps: [
             ["Wait", "From each all-time high, save every dollar and buy nothing."],
             ["Buy the floors", "Each day the price closes at or under one of Bedrock's floors, buy 10% of the savings: twice as much at each deeper floor, all of it at the fifth."],
-            ["All in", "The first day it closes back above what coins younger than six months paid, on average and at the median, put in all that's left."],
+            ["All in", "The first day it closes back above what coins younger than six months cost, on average and at the median, put in all that's left."],
             ["Keep buying", "Then buy each saving as it comes, until the next all-time high."],
           ],
           plan: "on the smart plan",
-          fine: "Bedrock weighs each age of coins by how likely its coins are ever to move. Its floors are the prices at which as many coins would sit at a loss as at the 95th, 98th, 99th, 99.5th and 99.9th percentile of their history; what young coins paid is their capitalized price, average and median. Every four-year smart plan from 2017 on, and every one running to today, ended ahead of the plain plan; a shorter one ending in a bull run, its savings still waiting for the next floor, can end far behind. That's three cycles, and any look back is hindsight.",
+          fine: "Bedrock weighs each age of coins by how likely its coins are ever to move. Its floors are the prices at which as many coins would sit at a loss as at the 95th, 98th, 99th, 99.5th and 99.9th percentile of their history; what young coins cost is their capitalized price, average and median. Every four-year smart plan from 2017 on, and every one running to today, ended ahead of the plain plan; a shorter one ending in a bull run, its savings still waiting for the next floor, can end far behind. That's three cycles, and any look back is hindsight.",
         };
         return { prepare, start, today, words, since: () => since };
       })();

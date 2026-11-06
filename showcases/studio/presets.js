@@ -464,7 +464,7 @@ export function studioPresets(client, facts) {
         urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, ...weighed }]),
         // (By coin, a holder group with the oldest coins (see OLDEST and percentiles): its 25th out of the axis' fit.)
         // (The heatmap with what's read off it: its realized price, and where a quarter, half and three quarters of its
-        // coins were bought (by coin), dashed over the cells (the price alone solid white).)
+        // coins last moved (by coin), dashed over the cells (the price alone solid white).)
         urpd && cost.byCoin.median && chart("Heatmap and percentiles", titled("Supply by cost basis, with its percentiles"), [
           price(), { heatmap: urpd, ...weighed },
           ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6, ...(key === "p25" && oldest ? { fit: false } : {}) })),
@@ -473,7 +473,7 @@ export function studioPresets(client, facts) {
         urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd], ...weighed }]),
         // (Its history and today's at once: the heatmap, the profile at its edge.)
         urpd && chart("Heatmap and profile", titled("Supply by cost basis, history and today"), [price(), { heatmap: urpd, ...weighed }, { profile: [urpd], ...weighed }]),
-        // (Summed from the price outward: how much was bought between it and any price above or below.)
+        // (Summed from the price outward: how much last moved between it and any price above or below.)
         urpd && chart("Cumulative profile", titled("Supply profile, cumulative from the price"), [price(), { profile: [urpd], cumulative: true, ...weighed }]),
         chart("Realized price", titled("Realized price"), [
           price(), series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? "orange" }),
@@ -500,7 +500,7 @@ export function studioPresets(client, facts) {
   /**
    * Percentiles of a price (`p5`… keys) over the price, as a fan (as every spread: see fan): the median a line in
    * `color` (its average's: by coin the realized price's, by dollar the capitalized's), the 25th to the 75th a band
-   * (where half were bought), the 5th to the 95th a fainter one, their edges thin faint lines; the others a click away.
+   * (where half last moved), the 5th to the 95th a fainter one, their edges thin faint lines; the others a click away.
    * `outer` false (by coin, a holder group with the oldest coins (see OLDEST): its low tail coins mined for next to
    * nothing, its 5th $0, its 10th cents, stretching the scale down to them), the inner band alone; the percentiles under
    * the 25th hidden in its detail too, and its tail reaching the median (its 45th up to 4× under the price's lows, its
@@ -676,7 +676,7 @@ export function studioPresets(client, facts) {
         ...(whole ? [chart("Profile on the heatmap", `Supply profile by ${options.by}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, { profile: groups, ...weighed }])] : []),
         chart("Cumulative profile", `Supply profile by ${options.by}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }]),
       ] : []),
-      // (Each member's realized price over all coins' supply by cost basis: where each sits in what was bought where.)
+      // (Each member's realized price over all coins' supply by cost basis: where each sits in what last moved where.)
       ...(whole && members.length > 1 && members.some(([key]) => key === "all") && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${options.by}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []),
       ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       ...compare("Share in profit", (c) => c.supply?.inProfit?.share),
@@ -1180,7 +1180,7 @@ export function studioPresets(client, facts) {
   }
   /** Compass's charts (showcases/compass), one for each of its clouds' bases: the price against two clouds, the
    * short-term holders' and the long-term holders' (each three age groups, coins likely to move, by dollar), and the
-   * short-term groups' trends between the lowest and highest price their coins were bought at. Every group's lines
+   * short-term groups' trends between the lowest and highest price their coins last moved at. Every group's lines
    * shown (one, two or three a group), each cloud over its own, coloured by which is over. */
   function compassCharts() {
     const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", HOLDER_COLORS.under4m], ["sth", "Short-term holders", HOLDER_COLORS.sth], ["under6m", "Under 6 months", HOLDER_COLORS.under6m]]);

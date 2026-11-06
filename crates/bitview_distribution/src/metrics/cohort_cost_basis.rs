@@ -23,7 +23,7 @@ struct ByCoin {
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
     /// the cohort holds no supply.
     #[traversable(
-        lead = "Realized price: what holders paid for their bitcoin, on average, each coin at the price it last moved at."
+        lead = "Realized price: what the bitcoin held cost, on average, each coin at the price it last moved at."
     )]
     realized_price: Price<LazyPerBlock<Cents>>,
 }

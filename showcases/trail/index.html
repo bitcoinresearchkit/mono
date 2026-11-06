@@ -608,7 +608,7 @@
               <span>Data</span>
               <select id="metric" aria-label="Terrain data">
                 <option value="supply">SUPPLY</option>
-                <option value="realized_cap">INVESTED CAPITAL</option>
+                <option value="realized_cap">CAPITAL</option>
                 <option value="unrealized_pnl">UNREALIZED P&amp;L</option>
               </select>
             </label>
@@ -1073,8 +1073,8 @@
 
           if (metric === "realized_cap") {
             return {
-              ariaLabel: `${cohortLabel} ${weightLabel} invested capital summary`,
-              labels: ["Invested capital", "In profit", "In loss"],
+              ariaLabel: `${cohortLabel} ${weightLabel} capital summary`,
+              labels: ["Capital", "In profit", "In loss"],
             };
           }
 

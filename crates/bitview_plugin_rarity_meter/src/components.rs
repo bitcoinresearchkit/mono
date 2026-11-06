@@ -42,12 +42,12 @@ pub struct AllComponents<M: StorageMode = Rw> {
     /// Cointime vaulted price: realized price divided by one minus liveliness,
     /// where liveliness is cumulative coinblocks destroyed divided by
     /// cumulative coinblocks created.
-    #[traversable(lead = "Vaulted price: what holders paid on average, scaled up by how much of the supply sits unmoved.")]
+    #[traversable(lead = "Vaulted price: the realized price, scaled up by how much of the supply sits unmoved.")]
     pub vaulted_price: Component<M>,
     /// Cointime True Market Mean: realized capitalization minus cumulative
     /// issuance-date subsidy value, divided by active supply; active supply is
     /// circulating supply multiplied by liveliness.
-    #[traversable(lead = "True market mean: what active investors paid on average, leaving out what miners received.")]
+    #[traversable(lead = "True market mean: the realized cap without what miners received, per coin of the supply in use.")]
     pub true_market_mean: Component<M>,
 }
 
@@ -55,16 +55,16 @@ pub struct AllComponents<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct CohortComponents<M: StorageMode = Rw> {
     /// Realized price: the satoshi-weighted mean creation price.
-    #[traversable(lead = "Realized price: what holders paid on average.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average.")]
     pub realized_price: Component<M>,
-    /// Capitalized price: the mean creation price weighted by value invested at creation.
-    #[traversable(lead = "Capitalized price: what holders paid on average, each coin weighted by the dollars it cost.")]
+    /// Capitalized price: the mean creation price weighted by value at creation.
+    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
     pub capitalized_price: Component<M>,
     /// The median creation price, weighted by BTC supply.
     #[traversable(lead = "Median realized price: about half the coins last moved below it, half above.")]
     pub median_realized_price: MedianComponent<M>,
     /// The median creation price, weighted by creation-date USD value.
-    #[traversable(lead = "Median capitalized price: about half the dollars holders paid were paid below it.")]
+    #[traversable(lead = "Median capitalized price: about half the coins, by the dollars they cost, last moved below it.")]
     pub median_capitalized_price: MedianComponent<M>,
 }
 
@@ -72,17 +72,17 @@ pub struct CohortComponents<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct MeanComponents<M: StorageMode = Rw> {
     /// Realized price: the satoshi-weighted mean creation price.
-    #[traversable(lead = "Realized price: what holders paid on average.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average.")]
     pub realized_price: Component<M>,
-    /// Capitalized price: the mean creation price weighted by value invested at creation.
-    #[traversable(lead = "Capitalized price: what holders paid on average, each coin weighted by the dollars it cost.")]
+    /// Capitalized price: the mean creation price weighted by value at creation.
+    #[traversable(lead = "Capitalized price: what the bitcoin held cost, on average, each coin weighted by the dollars it cost.")]
     pub capitalized_price: Component<M>,
 }
 
 #[derive(Traversable)]
 pub struct AwakeComponents<M: StorageMode = Rw> {
     /// Realized price: its wakefulness-weighted mean creation price.
-    #[traversable(lead = "Realized price: what holders paid on average.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average.")]
     pub realized_price: Component<M>,
 }
 
@@ -90,14 +90,14 @@ pub struct AwakeComponents<M: StorageMode = Rw> {
 pub struct MobileComponents<M: StorageMode = Rw> {
     /// Realized price: realized capitalization weighted by each UTXO age range's estimated
     /// eventual spending probability, divided by supply weighted by the same probability.
-    #[traversable(lead = "Realized price: what holders paid on average.")]
+    #[traversable(lead = "Realized price: what the bitcoin held cost, on average.")]
     pub realized_price: Component<M>,
     /// The median creation price, weighted by BTC supply and each age range's mobility.
     #[traversable(lead = "Median realized price: about half the coins, weighted by how likely each is to be spent, last moved below it.")]
     pub median_realized_price: MedianComponent<M>,
     /// The median creation price, weighted by creation-date USD value and each age range's
     /// mobility.
-    #[traversable(lead = "Median capitalized price: about half the dollars paid, weighted by how likely each coin is to be spent, were paid below it.")]
+    #[traversable(lead = "Median capitalized price: about half the coins, by the dollars they cost and how likely each is to be spent, last moved below it.")]
     pub median_capitalized_price: MedianComponent<M>,
 }
 

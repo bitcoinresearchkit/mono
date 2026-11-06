@@ -21,27 +21,25 @@ pub struct Capital<M: StorageMode = Rw> {
     /// Total capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
     #[traversable(
-        lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
+        lead = "Capital: what these coins cost, in all, each at the price it last moved at."
     )]
     pub total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created.
     #[traversable(
-        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+        lead = "Realized cap: what the bitcoin held cost, in all, each coin at the price it last moved at."
     )]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Capital in profit: creation-date USD value of the outputs whose creation price is at or
     /// below the current spot price.
-    #[traversable(
-        lead = "Capital in profit: what holders paid for the coins now at or above their cost."
-    )]
+    #[traversable(lead = "Capital in profit: what the coins now in profit cost, in all.")]
     pub in_profit: Part<LazyFiatPerBlock<Cents>, M>,
     /// Capital in loss: creation-date USD value of the outputs whose creation price is above the
     /// current spot price.
-    #[traversable(lead = "Capital in loss: what holders paid for the coins now below their cost.")]
+    #[traversable(lead = "Capital in loss: what the coins now at a loss cost, in all.")]
     pub in_loss: Part<LazyFiatPerBlock<Cents>, M>,
     /// Change in the cohort's capital over a trailing window.
-    #[traversable(lead = "Capital change: the change in what holders paid, in all.")]
+    #[traversable(lead = "Capital change: the change in what the bitcoin held cost, in all.")]
     pub delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
 }
 

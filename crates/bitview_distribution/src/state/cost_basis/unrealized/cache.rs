@@ -6,8 +6,8 @@ use brk_types::{Cents, CentsSats, Sats};
 use super::UnrealizedState;
 
 /// The supply on each side of a price, with its exact cap (creation price times sats): coins
-/// bought at or under the price are in profit, the rest in loss. A price change moves only the
-/// coins it crosses; unrealized profit and loss derive from the caps, each rounded once.
+/// that last moved at or under the price are in profit, the rest in loss. A price change moves
+/// only the coins it crosses; unrealized profit and loss derive from the caps, each rounded once.
 #[derive(Debug, Clone)]
 pub struct CachedUnrealizedState {
     profit: Side,

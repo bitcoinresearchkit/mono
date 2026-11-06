@@ -13,14 +13,14 @@ pub struct Unrealized {
     /// represented block minus creation-date value, summed where spot is above
     /// creation price.
     #[traversable(
-        lead = "Unrealized profit: holders' paper gains, on coins worth more than they paid."
+        lead = "Unrealized profit: holders' paper gains, on coins worth more than they cost."
     )]
     pub profit: LazyFiatPerBlock<Cents>,
     /// Unrealized loss of the cohort's unspent outputs: creation-date value
     /// minus market value at the represented block, summed where spot is below
     /// creation price.
     #[traversable(
-        lead = "Unrealized loss: holders' paper losses, on coins worth less than they paid."
+        lead = "Unrealized loss: holders' paper losses, on coins worth less than they cost."
     )]
     pub loss: LazyFiatPerBlock<Cents>,
     /// Net unrealized profit and loss of the cohort: unrealized profit minus

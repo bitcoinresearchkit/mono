@@ -23,12 +23,12 @@ pub struct AwakeVecs<M: StorageMode = Rw> {
     /// supply. Creation-date value is each unspent output's BTC value
     /// multiplied by Bitcoin's spot price when it was created.
     #[traversable(wrap = "capital", rename = "total")]
-    #[traversable(lead = "Awake capital: what holders paid for the awake supply.")]
+    #[traversable(lead = "Awake capital: what the awake supply cost.")]
     pub capital: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created, weighted by its age range's wakefulness.
     #[traversable(wrap = "capital", rename = "realized_cap")]
-    #[traversable(lead = "Awake realized cap: what holders paid for the awake supply, each coin at the price it last moved at.")]
+    #[traversable(lead = "Awake realized cap: what the awake supply cost, each coin at the price it last moved at.")]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Creation-price statistics of the awake supply: each unspent output weighted by its
     /// age range's wakefulness.

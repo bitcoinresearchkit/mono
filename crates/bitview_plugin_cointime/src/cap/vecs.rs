@@ -13,11 +13,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(lead = "Thermo cap: what miners were paid in new coins, each at the price of its day.")]
     pub thermo: LazyFiatPerBlock<Cents>,
     /// Investor capitalization: realized capitalization minus thermo
-    /// capitalization. It estimates the creation-date capital attributed to
-    /// market investors after removing the issuance-date value assigned to
-    /// miners, and turns negative when coins were re-acquired for less than
-    /// the value issued.
-    #[traversable(lead = "Investor cap: the realized cap without what miners received: what investors paid.")]
+    /// capitalization. It estimates the creation-date capital left after
+    /// removing the issuance-date value assigned to miners, and turns negative
+    /// when coins moved again for less than the value issued.
+    #[traversable(lead = "Investor cap: the realized cap without what miners received.")]
     pub investor: FiatPerBlock<CentsSigned, M>,
     /// Active capitalization: market capitalization multiplied by liveliness,
     /// the value of the active supply. Reported in US dollars.
@@ -35,7 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub cointime: FiatPerBlock<Cents, M>,
     /// Investor capitalization's share of realized capitalization, negative while investor
     /// capitalization is. Undefined (null) while realized capitalization is zero.
-    #[traversable(lead = "Investors' share of the realized cap.")]
+    #[traversable(lead = "The investor cap's share of the realized cap.")]
     pub investorness: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Thermo capitalization's share of realized capitalization, above 100% while investor
     /// capitalization is negative. Undefined (null) while realized capitalization is zero.

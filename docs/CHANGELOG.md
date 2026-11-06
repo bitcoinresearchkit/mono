@@ -189,6 +189,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   only L0 stayed pinned, so the hash-index stores' whole filters were read from disk)
 - bitviewd_bench files every run under its commit, from crates.io's `.cargo_vcs_info.json` or the checkout's HEAD
   (copied trees filed theirs under `v0.13.0`)
+- Series descriptions speak of spent coins and of what coins cost, not of sales and purchases: a spend books its
+  profit or loss whether or not it's a sale (a self-transfer, a consolidation), and a coin's cost is the price it last
+  moved at, whether or not anyone paid it. Realized profit and loss, SOPR, peak regret, sell-side risk and the HODL
+  bank said sellers, coins sold or not selling; realized cap and price, capital, capitalized prices and their
+  percentiles, unrealized profit and loss, the entry bands, the discount and premium cohorts, the Rarity Meters and
+  Cointime's prices and investor cap said what holders, buyers or investors paid, or bought. Ids and values are
+  unchanged
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

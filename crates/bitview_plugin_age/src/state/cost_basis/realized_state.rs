@@ -10,7 +10,7 @@ pub struct RealizedState {
     core: CoreRealizedState,
     /// Raw capitalized cap: sum(price squared times sats).
     capitalized_cap_raw: CentsSquaredSats,
-    /// Raw realized peak regret: sum((peak minus sell price) times sats).
+    /// Raw realized peak regret: sum((peak minus spend price) times sats).
     peak_regret_raw: u128,
     /// Sats spent at or above their creation price in the block.
     sent_in_profit: Sats,

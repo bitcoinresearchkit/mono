@@ -22083,10 +22083,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer)} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => inSentence(cohortName(cohort))).join(" and ")}`}${weightSaid(layer)}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
-      const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
+      const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it last moved at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
       /** What a heatmap is, said where one's added. */
-      const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it was bought at, day by day, behind the price (the URPD).";
+      const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it last moved at, day by day, behind the price (the URPD).";
       /** The same, in a row's few words. */
       const HEAT_SHORT = "Holder groups' cost basis, day by day";
       /** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
@@ -22094,7 +22094,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
-      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)", bars: "Each price's amount", cumulative: "Summed from the close outward: at each price, all bought between it and the close" });
+      const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)", bars: "Each price's amount", cumulative: "Summed from the close outward: at each price, all that last moved between it and the close" });
       /**
        * A profile's holder group in or out (in, after the others: further from the edge; out, its last too, none drawn till
        * one's picked). Its chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
@@ -22586,7 +22586,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
       const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
       /**
-       * The share of the days shown's coins in profit, bought under the close (a row by its middle), a percent, rounded;
+       * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent, rounded;
        * none, no coins. @param {ReturnType<typeof profileDays>} shown @param {NonNullable<HeatLook["grid"]>} grid @param {number} close
        */
       function profileShare(shown, grid, close) {
