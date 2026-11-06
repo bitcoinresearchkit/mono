@@ -54,6 +54,8 @@
         --gain: #2a6a43;
         --loss: #a5302b;
         --note: #a5302b;
+        /* (The ribbon that marks the place on the history: the margin's red, brighter on a dark desk.) */
+        --ribbon: var(--note);
         --mono: Lilex, ui-monospace, monospace;
         --serif: Instrument, Georgia, serif;
         color-scheme: light;
@@ -62,7 +64,8 @@
         :root {
           --desk: #12110f;
           --desk-ink: #e6dcc6;
-          --desk-soft: #8f8676;
+          --desk-soft: #a39a89;
+          --ribbon: #d0574e;
           --paper: #e9dfc9;
           --paper-edge: #c9bda4;
           color-scheme: dark;
@@ -500,10 +503,10 @@
         appearance: none;
         cursor: pointer;
       }
+      /* (The track's faintness in its own color: an opacity here would fade the ribbon on it too.) */
       input[type="range"]::-webkit-slider-runnable-track {
         height: 2px;
-        background: var(--desk-soft);
-        opacity: 0.6;
+        background: color-mix(in srgb, var(--desk-soft) 60%, transparent);
       }
       input[type="range"]::-moz-range-track {
         height: 2px;
@@ -515,7 +518,7 @@
         margin-top: -8px;
         border: 0;
         border-radius: 1px 1px 5px 5px;
-        background: var(--note);
+        background: var(--ribbon);
         appearance: none;
       }
       input[type="range"]::-moz-range-thumb {
@@ -523,7 +526,7 @@
         height: 18px;
         border: 0;
         border-radius: 1px 1px 5px 5px;
-        background: var(--note);
+        background: var(--ribbon);
       }
       .hint {
         color: var(--desk-soft);
