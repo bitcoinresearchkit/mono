@@ -44,7 +44,7 @@
         --well: light-dark(#f3f1ec, #1b1d22);
         --ink: light-dark(#17181b, #eceae5);
         --soft: light-dark(#53565e, #a9acb4);
-        --faint: light-dark(#6c6f77, #8c9099);
+        --faint: light-dark(#6a6d75, #8c9099);
         --line: light-dark(#e7e4dd, #24262c);
         --line-strong: light-dark(#d6d2c9, #33363e);
         --accent: light-dark(#d4570a, #f2873a);
@@ -141,6 +141,7 @@
       }
 
       .brand {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 9px;
@@ -152,6 +153,12 @@
         img {
           width: 20px;
           height: 20px;
+        }
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -11px 0;
         }
       }
 
@@ -207,6 +214,21 @@
           translate: 0 -50%;
           color: var(--faint);
           pointer-events: none;
+        }
+
+        /* (A thumb's reach on a phone: a label behind the field, unseen, so a tap on the bar around it lands in the field.) */
+        .reach {
+          display: none;
+
+          @media (width < 640px) {
+            display: block;
+            position: absolute;
+            z-index: -1;
+            inset-inline: 0;
+            top: 50%;
+            height: 44px;
+            translate: 0 -50%;
+          }
         }
 
         input {
@@ -359,6 +381,17 @@
           margin-top: 4px;
           color: var(--soft);
         }
+
+        /* (The one result's link only: the closest ids below it wrap, close under each other, with no room for a reach.) */
+        .now a {
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            inset: -12px 0;
+          }
+        }
       }
 
       .body {
@@ -500,7 +533,7 @@
         }
 
         .to {
-          color: var(--accent);
+          color: light-dark(#c05008, var(--accent));
           text-align: center;
         }
 
@@ -644,6 +677,7 @@
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="search" role="search" id="search-form">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <label class="reach" for="q"></label>
         <input type="search" id="q" placeholder="An id, an endpoint, a word" aria-label="Find what changed" autocomplete="off" spellcheck="false" />
       </form>
       <nav class="ends" aria-label="Elsewhere"><a href="/api">API reference</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>

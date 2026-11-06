@@ -655,6 +655,7 @@
 
         .c {
           color: var(--faint);
+          white-space: pre-wrap;
         }
 
         .k {
@@ -721,7 +722,7 @@
       }
       /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
          around them, never over a neighbour.) */
-      :is(.bar a, button[data-copy], footer a) {
+      :is(.bar a, button[data-copy], footer a, .button) {
         position: relative;
 
         /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
@@ -731,6 +732,18 @@
             position: absolute;
             inset: min(0px, calc((100% - 44px) / 2)) 0;
           }
+        }
+      }
+      /* (The bar's short links, too, a finger's width: into the gap between them.) */
+      .bar a:not(.brand)::before {
+        @media (pointer: coarse) {
+          inset-inline: min(0px, calc((100% - 44px) / 2));
+        }
+      }
+      /* (The copy button's, further up than down: the terminal below it is drawn over what's under the button.) */
+      button[data-copy]::before {
+        @media (pointer: coarse) {
+          inset-block: -16px -7px;
         }
       }
       /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,

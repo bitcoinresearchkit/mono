@@ -154,6 +154,16 @@
         color: var(--ok);
       }
 
+      /* (A status on a raised row: the green, a shade deeper for the light ground, 4.5:1 on it too.) */
+      :root {
+        --ok-row: light-dark(#117b46, #4ade80);
+      }
+
+      .line:hover .s2,
+      .line[aria-current="true"] .s2 {
+        color: var(--ok-row);
+      }
+
       .s3 {
         color: var(--soft);
       }
@@ -474,6 +484,10 @@
         flex: none;
         gap: 8px;
         padding: 10px 16px 8px;
+
+        .reach {
+          display: none;
+        }
 
         input {
           flex: 1;
@@ -969,7 +983,15 @@
           }
 
           .close {
+            position: relative;
             margin-top: -2px;
+
+            /* (A finger's reach, unseen: 44px square around the 32px circle, into the gap beside the title.) */
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -6px;
+            }
           }
         }
       }
@@ -993,6 +1015,19 @@
         .line.block,
         .facet {
           min-height: 44px;
+        }
+      }
+
+      /* (The search a finger tall without growing: a label behind the field, unseen, so a tap on the bar around it lands in it.) */
+      @media (pointer: coarse) and (max-width: 760px) {
+        .search .reach {
+          display: block;
+          position: absolute;
+          z-index: -1;
+          inset-inline: 0;
+          top: 50%;
+          height: 44px;
+          translate: 0 -50%;
         }
       }
 
@@ -1027,7 +1062,7 @@
       </details>
 
       <section class="lines" aria-label="Log lines, newest first">
-        <div class="search"><input id="search" type="search" placeholder="Search lines" aria-label="Search lines" autocomplete="off" spellcheck="false" /></div>
+        <div class="search"><label class="reach" for="search"></label><input id="search" type="search" placeholder="Search lines" aria-label="Search lines" autocomplete="off" spellcheck="false" /></div>
         <div class="head" aria-hidden="true"><span>Time</span><span>Status</span><span>Path or message</span><span>Duration</span></div>
         <ol class="feed" id="feed"></ol>
         <p class="empty" id="empty">Waiting for the first line…</p>

@@ -254,6 +254,8 @@
       .periods {
         display: flex;
         margin: 12px 0 6px;
+        /* (A button's height and the border, kept before the buttons are made, so nothing under moves when they are.) */
+        min-height: 34px;
         border: 1px solid var(--line);
 
         button {
@@ -595,6 +597,11 @@
         touch-action: pan-y;
         cursor: crosshair;
 
+        /* (Not there until the rows are: else its empty box stands under the message, and the page moves when they load.) */
+        &[hidden] {
+          display: none;
+        }
+
         .row {
           display: grid;
           grid-template-columns: var(--name) minmax(0, 1fr) var(--value);
@@ -710,6 +717,19 @@
             content: "";
             position: absolute;
             inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+
+      .play {
+        position: relative;
+
+        /* (For fingers: a pointer needs none; grown upward only, into the section's top room: the chart is just under it.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -17px 0 0;
           }
         }
       }

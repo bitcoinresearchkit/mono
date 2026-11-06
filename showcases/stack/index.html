@@ -907,6 +907,15 @@
           min-width: 0;
           font-weight: 500;
 
+          /* (For fingers: a row's label reaches 44px, the row staying as it is.) */
+          @media (pointer: coarse) {
+            label {
+              display: inline-block;
+              margin: -12px -8px;
+              padding: 12px 8px;
+            }
+          }
+
           /* (One line, so a row never grows as plans change.) */
           small {
             display: block;
@@ -1280,6 +1289,18 @@
           color: var(--soft);
           font-size: 13px;
           font-weight: 400;
+
+          /* (For fingers: the link's reach grows to 44px, the lines staying where they are.) */
+          @media (pointer: coarse) {
+            margin: -15px 0;
+            padding: 15px 0;
+
+            a {
+              display: inline-block;
+              margin: -15px -8px;
+              padding: 15px 8px;
+            }
+          }
         }
 
         > span:nth-child(2) {

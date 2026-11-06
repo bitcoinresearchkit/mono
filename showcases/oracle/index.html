@@ -41,7 +41,7 @@
         --ink: light-dark(#151916, #e3e8e4);
         --text: light-dark(#2f3631, #b9c2bc);
         --soft: light-dark(#454d47, #a3ada6);
-        --faint: light-dark(#5f6862, #7b8580);
+        --faint: light-dark(#5f6862, #7f8984);
         --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
         --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
         --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
@@ -49,7 +49,7 @@
         /* (Deep enough on the paper to be read as small text, 4.5:1 and more: the chapters' numbers, a pressed button.) */
         --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
         --gain: light-dark(#0a7d3e, #6ef096);
-        --loss: light-dark(#c4302b, #ff6a5c);
+        --loss: light-dark(#c02c27, #ff6a5c);
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
@@ -502,6 +502,17 @@
           &:disabled {
             opacity: 0.35;
           }
+
+          /* (For fingers, unseen: 44px each way; the steps' 6px gap lets neighbours' reaches meet, not overlap.) */
+          @media (pointer: coarse) {
+            position: relative;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: min(0px, calc((100% - 44px) / 2));
+            }
+          }
         }
       }
 
@@ -547,6 +558,13 @@
 
           button {
             padding: 0 10px;
+          }
+
+          /* (The 6px between the steps is the next one's reach; this one's makes up the rest to its left.) */
+          @media (pointer: coarse) {
+            #earlier::before {
+              inset: -7px 0 -7px -13px;
+            }
           }
         }
 
@@ -1177,11 +1195,15 @@
       :is(a.brand, a.more) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        /* (Rows that wrap stay apart: 24px for a pointer, 44px for fingers.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc((100% - 24px) / 2)) 0;
+        }
+
         @media (pointer: coarse) {
           &::before {
-            content: "";
-            position: absolute;
             inset: min(0px, calc((100% - 44px) / 2)) 0;
           }
         }

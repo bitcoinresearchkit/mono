@@ -23,6 +23,8 @@
     <meta property="og:image:alt" content="Explorer: the block forming now, each of its transactions a square, beside what it takes to get in, under the chain's latest blocks" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/fonts/Lilex.woff2" as="font" type="font/woff2" crossorigin />
     <style>
       @font-face {
         font-family: Inter;
@@ -40,15 +42,16 @@
       :root {
         --bg: #fbfbfa;
         --ink: #0e0e10;
-        --soft: #6d6d77;
+        --soft: #666670;
         --faint: #b3b3bb;
         --line: rgb(14 14 16 / 0.08);
         --hair: rgb(14 14 16 / 0.05);
         --tank: #f0f0f1;
         --well: #ffffff;
         --now: #f7931a;
-        --now-text: #b25a00;
+        --now-text: #a95600;
         --profit: #13874a;
+        --profit-text: #10773f;
         --loss: #d23a30;
         --miner: #f7931a;
         --mono: Lilex, ui-monospace, monospace;
@@ -68,6 +71,7 @@
           --now: #f7931a;
           --now-text: #f7931a;
           --profit: #3ccf7f;
+          --profit-text: #3ccf7f;
           --loss: #ff6d60;
           color-scheme: dark;
         }
@@ -177,6 +181,9 @@
           color: var(--faint);
           pointer-events: none;
         }
+        .reach {
+          display: none;
+        }
         input {
           width: 100%;
           height: 36px;
@@ -235,6 +242,11 @@
         justify-self: end;
         font-size: 14px;
         font-weight: 550;
+        b {
+          display: inline-block;
+          min-width: 4.15em;
+          text-align: right;
+        }
         span {
           margin-right: 8px;
           color: var(--soft);
@@ -249,10 +261,21 @@
         .find input {
           font-size: 16px;
         }
+        /* A finger's reach around the field, unseen: a label behind it, so a tap on the bar there lands in it. */
+        .find .reach {
+          display: block;
+          position: absolute;
+          z-index: -1;
+          inset-inline: 0;
+          top: 50%;
+          height: 44px;
+          translate: 0 -50%;
+        }
       }
 
       /* The page: one view at a time, on one grid. */
       .page {
+        display: flow-root;
         max-width: 1440px;
         margin: 0 auto;
         padding: 0 var(--gutter) 96px;
@@ -500,14 +523,23 @@
         color: var(--soft);
         font: 12px var(--mono);
         cursor: copy;
-        overflow: hidden;
+        position: relative;
         white-space: nowrap;
+        span {
+          min-width: 0;
+          overflow: hidden;
+        }
         svg {
           flex: none;
           width: 12px;
           height: 12px;
           opacity: 0.7;
         }
+      }
+      .pill::before {
+        content: "";
+        position: absolute;
+        inset: -8px 0;
       }
       .pill:hover {
         color: var(--ink);
@@ -518,6 +550,7 @@
         border-radius: 9px;
         background: var(--tank);
         button {
+          position: relative;
           height: 26px;
           padding: 0 12px;
           border: 0;
@@ -527,6 +560,11 @@
           font-size: 12.5px;
           font-weight: 550;
           cursor: pointer;
+        }
+        button::before {
+          content: "";
+          position: absolute;
+          inset: -9px 0;
         }
         button[aria-pressed="true"] {
           background: var(--well);
@@ -863,6 +901,7 @@
       .focus.confirmed,
       .focus.settled {
         --sig: var(--profit);
+        --sig-text: var(--profit-text);
       }
       .focus.replaced {
         --sig: var(--loss);
@@ -1046,6 +1085,25 @@
           height: 100%;
         }
       }
+      /* Linked squares: a larger hit area than they show (the canvas takes the corners the clip would have). */
+      a.tsq,
+      a.ssq {
+        position: relative;
+        overflow: visible;
+        canvas {
+          border-radius: inherit;
+        }
+      }
+      a.tsq::before {
+        content: "";
+        position: absolute;
+        inset: -6px;
+      }
+      a.ssq::before {
+        content: "";
+        position: absolute;
+        inset: -3px;
+      }
       .tsq {
         width: 32px;
         height: 32px;
@@ -1089,6 +1147,15 @@
           color: var(--soft);
           font-size: 13px;
         }
+        /* (The moment's own link, only: the replacement rows below it are closer together than this reach.) */
+        > b > a {
+          position: relative;
+        }
+        > b > a::before {
+          content: "";
+          position: absolute;
+          inset: -13px 0;
+        }
         a:hover {
           text-decoration: underline;
         }
@@ -1113,7 +1180,7 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 4px;
+        gap: 4px 6px;
         small {
           flex-basis: 100%;
           margin-top: 6px;
@@ -1178,9 +1245,14 @@
         .brand {
           font-size: 0;
           gap: 0;
+          padding: 14px;
+          margin: -14px;
         }
         .price span {
           display: none;
+        }
+        .answer {
+          row-gap: 11px;
         }
         .answer b {
           font-size: 88px;
@@ -1244,7 +1316,9 @@
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="find" id="find" role="search" autocomplete="off">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5" /><path d="m14 14-3.4-3.4" /></svg>
+        <label class="reach" for="find-q"></label>
         <input
+          id="find-q"
           name="q"
           type="search"
           placeholder="Search a block, transaction or address"
@@ -2752,7 +2826,7 @@
         }
         const label = (x, yy, anchor, first, second, href) => {
           const text = `<text x="${x}" y="${yy - 2}" text-anchor="${anchor}">${first}</text><text class="sub-text" x="${x}" y="${yy + 13}" text-anchor="${anchor}">${second}</text>`;
-          return href ? `<a href="${href}">${text}</a>` : text;
+          return href ? `<a href="${href}" aria-label="${first} ${second.replace(/<[^>]*>/g, "")}">${text}</a>` : text;
         };
         // As many labels as fit a side, a label apart: its first coins and its last (the folded rest, the fee).
         const room = Math.max(2, Math.floor((H - 18 - (top + 10)) / LABEL) + 1);

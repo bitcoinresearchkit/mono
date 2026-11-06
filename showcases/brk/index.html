@@ -487,7 +487,6 @@
 
       /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       .code {
-        overflow: hidden;
         border-radius: 10px;
         color: #e7e9ef;
         background: #12151c;
@@ -587,7 +586,7 @@
       }
       /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
          around them, never over a neighbour.) */
-      :is(.bar a, button[data-copy], footer a) {
+      :is(.bar a, .button, button[data-copy], footer a) {
         position: relative;
 
         /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
@@ -597,6 +596,12 @@
             position: absolute;
             inset: min(0px, calc((100% - 44px) / 2)) 0;
           }
+        }
+      }
+      /* (The way home, drawn as its mark alone on a narrow bar: 44px wide too, into the bar's room at its side.) */
+      @media (pointer: coarse) {
+        .bar .brand::before {
+          inset: min(0px, calc((100% - 44px) / 2)) min(0px, calc((100% - 44px) / 2));
         }
       }
       /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,

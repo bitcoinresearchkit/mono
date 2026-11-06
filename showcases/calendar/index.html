@@ -23,6 +23,8 @@
     <meta property="og:image:alt" content="Calendar's year: each day its leading mining pool's logo, the year's leading pools and its notes beside it" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <!-- (The serif the year's caption is set in, asked for at once, so the caption doesn't re-wrap when it arrives.) -->
+    <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
     <style>
       @font-face {
         font-family: Inter;
@@ -223,7 +225,7 @@
         &::before {
           content: "";
           position: absolute;
-          inset: -8px -4px;
+          inset: -13px -3px;
         }
 
         + .stepper {
@@ -335,7 +337,8 @@
 
         /* (A year on a desk: as wide as a whole year in a screen allows, its label over it.) */
         @media (min-width: 1024px) {
-          > .year:has(> #view > .months) {
+          /* (Held while it's still empty, before its months are drawn, so they come without moving it.) */
+          > .year:is(:has(> #view > .months), :has(> #view:empty)) {
             width: 100%;
             max-width: calc((100svh - 150px) * 1.15);
             margin-inline: auto;
@@ -459,6 +462,12 @@
         /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
            the corner. Smaller, as at 320px or two months a row, the logo alone.) */
         @media (max-width: 639px), (pointer: coarse) {
+          /* (A finger's reach, unseen: a clear 1px border grown into the gap round it, 44px whatever the tile is drawn at.) */
+          border: 1px solid transparent;
+          margin: -1px;
+          background-clip: padding-box;
+          outline-offset: 1px;
+
           /* (A phone's logo in proportion with its type, whatever its tile's size.) */
           .logo {
             width: 40%;
@@ -841,6 +850,19 @@
             position: absolute;
             inset: min(0px, calc((100% - 44px) / 2)) 0;
           }
+        }
+      }
+
+      /* (The steps' reach sideways too, only into the year or day between them, never out over a neighbour.) */
+      @media (pointer: coarse) {
+        .stepper #back::before {
+          right: min(0px, calc(100% - 44px));
+          left: 0;
+        }
+
+        .stepper #forward::before {
+          left: min(0px, calc(100% - 44px));
+          right: 0;
         }
       }
     </style>

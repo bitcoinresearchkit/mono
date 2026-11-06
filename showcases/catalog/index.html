@@ -181,6 +181,10 @@
           pointer-events: none;
         }
 
+        .reach {
+          display: none;
+        }
+
         input {
           width: 100%;
           height: 36px;
@@ -214,7 +218,7 @@
           padding: 1px 6px;
           border: 1px solid var(--line-strong);
           border-radius: 5px;
-          color: var(--faint);
+          color: light-dark(#696c74, var(--faint));
           font: 11px var(--mono);
           text-align: center;
           pointer-events: none;
@@ -439,6 +443,24 @@
 
         .search input {
           font-size: 16px;
+        }
+
+        /* (The field's bar around it a finger's, unseen: a label behind the field, so a tap there lands in it.) */
+        .search .reach {
+          display: block;
+          position: absolute;
+          z-index: -1;
+          inset-inline: 0;
+          top: 50%;
+          height: 44px;
+          translate: 0 -50%;
+        }
+
+        /* (Its reach a finger's, unseen, over the field beneath.) */
+        .search .clear::before {
+          content: "";
+          position: absolute;
+          inset: -8px;
         }
       }
 
@@ -1045,6 +1067,10 @@
       /* (The result Enter opens, marked while typing: the field left, Enter there no longer.) */
       body:has(#q:focus) .results .row[aria-selected="true"] {
         background: var(--pick-strong);
+
+        :is(.side, .where) {
+          color: var(--soft);
+        }
       }
 
       /* A phone: the page scrolls under the bar, one column at a time, a way back to the one before. */
@@ -1123,6 +1149,14 @@
               font-size: 13px;
               font-weight: 400;
               letter-spacing: 0;
+            }
+
+            /* (Its reach a finger's, into the room under the title: padding and margin that cancel.) */
+            button {
+              position: relative;
+              z-index: 1;
+              padding: 0 0 13px;
+              margin: 0 0 -13px;
             }
           }
 
@@ -1226,6 +1260,7 @@
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="search" role="search" id="search-form">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <label class="reach" for="q"></label>
         <input type="search" id="q" placeholder="Search every series" aria-label="Search every series" aria-controls="found-list" autocomplete="off" spellcheck="false" />
         <kbd>/</kbd>
         <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>

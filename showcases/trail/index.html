@@ -184,6 +184,11 @@
         letter-spacing: 0.07em;
       }
 
+      /* (On the terrain, in 3D: 4.5:1 over the greens too.) */
+      .axis-ui .axis-hint {
+        color: rgb(var(--foreground-rgb) / 0.67);
+      }
+
       .key-hint.is-active {
         color: var(--interaction-orange);
       }
@@ -268,6 +273,19 @@
         white-space: nowrap;
       }
 
+      /* (Unseen until its first figures are in, so their arrival moves nothing in view; after that the dashes between
+         dates stay as they were.) */
+      #summary:not(.is-loaded) {
+        visibility: hidden;
+      }
+
+      /* (The box is the rail's width and its figures sit in the middle of it, so a metric's wider or narrower figures
+         change what is inside the box, never where the box is.) */
+      #summary {
+        align-self: stretch;
+        justify-content: center;
+      }
+
       .profitability-item {
         display: flex;
         align-items: baseline;
@@ -284,9 +302,14 @@
         letter-spacing: 0.01em;
       }
 
+      /* (A decoration, drawn rather than set as text.) */
       .profitability-separator {
         margin-inline: -3px;
         opacity: 0.34;
+
+        &::before {
+          content: "·";
+        }
       }
 
       .profitability-item .profitability-amount {
@@ -360,7 +383,7 @@
       }
 
       .selector > span {
-        color: rgb(var(--muted-rgb) / 0.72);
+        color: rgb(var(--muted-rgb) / 0.75);
         line-height: 1;
         letter-spacing: 0;
         pointer-events: none;
@@ -395,6 +418,31 @@
         border-color: rgb(var(--warm-accent-rgb) / 0.58);
       }
 
+      /* (For fingers: a reach of 44 screen px, unseen, around each, as the scene is scaled down; up and down into the room
+         beside it, a little sideways, never over a neighbour.) */
+      @media (pointer: coarse) {
+        .selector {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px / var(--stage-scale)) / 2))
+              calc(-1px / var(--stage-scale));
+          }
+
+          /* (The select itself above that reach, so a press on it is the select's own; the reach around it stays the label's.) */
+          select {
+            position: relative;
+          }
+        }
+      }
+
+      .selector:has(select:focus-visible) {
+        outline: 2px solid var(--interaction-orange);
+        outline-offset: 2px;
+      }
+
       /* The scene's 2D or 3D: in the screen's corner, as the brand is, not turned or scaled with the scene. */
       .dimension-toggle {
         position: fixed;
@@ -422,7 +470,7 @@
         &::before {
           content: "";
           position: absolute;
-          inset: -13px 0;
+          inset: -13px -2px;
         }
       }
 
@@ -430,7 +478,7 @@
         position: absolute;
         width: 1px;
         height: 1px;
-        opacity: 0;
+        clip-path: inset(50%);
       }
 
       .dimension-option-content {
@@ -466,6 +514,10 @@
 
       .dimension-separator {
         opacity: 0.3;
+
+        &::before {
+          content: "|";
+        }
       }
 
       /* (A finger's reach, unseen: the brand, 44px tall whatever they're drawn at; up and down only, into the room
@@ -509,7 +561,7 @@
           <span>2D</span>
         </span>
       </label>
-      <span class="dimension-separator" aria-hidden="true">|</span>
+      <span class="dimension-separator" aria-hidden="true"></span>
       <label class="dimension-option">
         <input
           id="dimension-3d"
@@ -577,8 +629,7 @@
                   id="summary-positive-separator"
                   class="profitability-separator"
                   aria-hidden="true"
-                  >·</span
-                >
+                ></span>
                 <output
                   id="summary-positive-secondary"
                   class="profitability-amount"
@@ -592,8 +643,7 @@
                   id="summary-negative-separator"
                   class="profitability-separator"
                   aria-hidden="true"
-                  >·</span
-                >
+                ></span>
                 <output
                   id="summary-negative-secondary"
                   class="profitability-amount"
@@ -2769,6 +2819,10 @@
         }
 
         function syncProjectedUi(layout, start, end) {
+          // (Its first figures shown with its place: the one frame.)
+          if (state.summaryData || state.summaryStatus === "error") {
+            summaryElement.classList.add("is-loaded");
+          }
           const key = [
             state.dimension,
             state.dates[start],

@@ -40,6 +40,7 @@
         --line: light-dark(rgb(20 21 24 / 0.09), rgb(236 238 241 / 0.08));
         --grid: light-dark(rgb(20 21 24 / 0.06), rgb(236 238 241 / 0.05));
         --accent: light-dark(#d95f12, #ff8a3d);
+        --accent-text: light-dark(#c2530e, #ff8a3d);
         --cycle-indexing: light-dark(rgb(217 95 18 / 0.06), rgb(255 138 61 / 0.07));
         --cycle-compute: light-dark(rgb(43 108 230 / 0.06), rgb(110 160 255 / 0.07));
         --cycle-catch-up: light-dark(rgb(20 21 24 / 0.04), rgb(236 238 241 / 0.04));
@@ -166,7 +167,8 @@
          pointer sees none.) */
       @media (pointer: coarse) {
         .bar a,
-        .tabs button {
+        .tabs button,
+        .detail-head label {
           position: relative;
 
           &::before {
@@ -176,8 +178,9 @@
           }
         }
 
-        .tabs {
-          row-gap: 12px;
+        /* (The comparison's select above its label's reach, so a press on it is the select's own.) */
+        .detail-head select {
+          position: relative;
         }
       }
 
@@ -205,6 +208,10 @@
         flex-wrap: wrap;
         gap: 6px;
         margin-top: 20px;
+
+        @media (pointer: coarse) {
+          row-gap: 12px;
+        }
 
         button {
           border: 0;
@@ -322,7 +329,7 @@
         font-size: 13px;
 
         a {
-          color: var(--accent);
+          color: var(--accent-text);
           text-decoration: none;
 
           &:hover {
@@ -621,6 +628,15 @@
       }
 
       /* ── While the runs are read from GitHub, or when they can't be ── */
+
+      /* (While they are read, the room they will fill is held, so the footer waits below the fold and doesn't jump down when they appear;
+         once they are in, or can't be, or there are none, it is not.) */
+      main:has(.status.loading) #more[hidden] {
+        display: block;
+        height: 100vh;
+        overflow: hidden;
+        visibility: hidden;
+      }
 
       .status {
         grid-column: 1 / -1;
@@ -1020,15 +1036,15 @@
 
       // ── While the runs are read, or when they can't be ──
       /** Words in the hero's place, the rest held back; a share read so far, or a way to try again. */
-      function notice(words, { share = null, again = null } = {}) {
+      function notice(words, { share = null, again = null, loading = false } = {}) {
         $("more").hidden = true;
-        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}"><p>${escape(words)}</p>${share == null ? "" : `<div class="meter" role="progressbar" aria-label="Read so far" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`}${again ? `<button type="button">Try again</button>` : ""}</div>`;
+        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}${loading ? " loading" : ""}"><p>${escape(words)}</p>${share == null ? "" : `<div class="meter" role="progressbar" aria-label="Read so far" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`}${again ? `<button type="button">Try again</button>` : ""}</div>`;
         if (again) $("hero").querySelector("button").addEventListener("click", again);
       }
       const failed = (error, again) => notice(error instanceof Failure ? error.message : `The runs couldn't be read: ${error.message}`, { again });
 
       async function start() {
-        notice("Listing the runs on GitHub…");
+        notice("Listing the runs on GitHub…", { loading: true });
         try {
           machines = await list();
           await Promise.all(machines.flatMap((m) => m.folders.map(head)));
@@ -1045,9 +1061,9 @@
         tabs();
         if (!m.runs) {
           const said = `Reading ${m.folders.length} runs from GitHub`;
-          notice(`${said}…`, { share: 0 });
+          notice(`${said}…`, { share: 0, loading: true });
           try {
-            await (m.loading ??= load(m, (got, total) => m === machines[machine] && notice(`${said}: ${bytes(got)} of ${bytes(total)}`, { share: got / total })));
+            await (m.loading ??= load(m, (got, total) => m === machines[machine] && notice(`${said}: ${bytes(got)} of ${bytes(total)}`, { share: got / total, loading: true })));
           } catch (error) {
             m.loading = null;
             if (m === machines[machine]) failed(error, show);
