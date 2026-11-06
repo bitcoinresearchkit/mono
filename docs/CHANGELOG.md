@@ -21,6 +21,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   each file: Studio's page 903 KB → 562 KB (the response layer compresses at its fastest, right for the API)
 - A mempool rebuild linearizes only the components that changed since the last one: idle at 44.6k transactions, 4.5%
   of a core (6.3% before, with the cheaper ancestor-set search for every component, every second)
+- A single-block update reads only the new blocks' frames, not on into Core's preallocated zero tail (33 µs → 1.2 µs
+  on the newest block file, and no 4 MB buffer)
+- A rawdb region next to a hole that ends the file grows into it in place (it moved, copying itself)
 
 ### Bug Fixes
 
@@ -86,6 +89,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   and weight, keeping its first sighting
 - The mempool's maps keyed by addresses, txids and outpoints are seeded per process: output scripts crafted to
   hash alike under the unkeyed hasher (20 chosen bytes each) made every rebuild quadratic
+- Search: a repeated word no longer raises the typo match's length floor ("bitoin bitoin" finds what "bitoin" finds),
+  in the Rust and the JavaScript quickmatch alike
+- `vecdb`'s derives name `Result::Ok` in full: a crate with its own `Ok` in scope can use them
+- Release scripts: a release starts from a clean tree and commits only the generated docs (it staged everything in
+  the checkout); `update.sh` runs from the repository whatever the caller's directory; the Python publish edits its
+  version with `perl` (BSD `sed` failed on Linux)
+- The `profiling` build keeps its symbols
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

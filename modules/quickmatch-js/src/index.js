@@ -469,7 +469,9 @@ export class QuickMatch {
         unknown,
         trigramBudget,
         pool !== null,
-        Math.max(0, q.length - 3),
+        // From the distinct words, one separator apart: a repeated or spaced-out word
+        // doesn't raise the floor ("bitoin bitoin" finds what "bitoin" finds).
+        Math.max(0, qwords.reduce((len, w) => len + w.length, qwords.length - 1) - 3),
       );
       const minScore = Math.max(config.minScore, Math.ceil(hitCount / 2));
       // Shared trigrams only nominate: each unknown word must be a typo of one

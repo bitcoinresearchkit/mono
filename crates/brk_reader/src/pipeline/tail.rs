@@ -1,4 +1,4 @@
-use std::{fs::File, os::unix::fs::FileExt, sync::Arc};
+use std::{fs::File, io, os::unix::fs::FileExt, sync::Arc};
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
@@ -112,7 +112,7 @@ pub fn find_appended(
     }
     let mut slots = Slots::new(canonical);
     for frame in frames(&file, reader.xor_bytes, position.end)? {
-        if slots.offer(reader, &file, position.blk_index, frame)? {
+        if slots.offer(reader, &file, position.blk_index, frame?)? {
             break;
         }
     }
@@ -152,7 +152,8 @@ pub fn pipeline_tail(
 
         let file = reader.open_blk(blk_index)?;
         // Newest blocks first.
-        for frame in frames(&file, reader.xor_bytes, 0)?.into_iter().rev() {
+        let all = frames(&file, reader.xor_bytes, 0)?.collect::<io::Result<Vec<_>>>()?;
+        for frame in all.into_iter().rev() {
             if slots.offer(reader, &file, blk_index, frame)? {
                 break 'files;
             }

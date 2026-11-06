@@ -148,9 +148,12 @@ impl Region {
         let mut layout = db.layout_mut();
         let added = capacity - reserved;
         let next = start + reserved;
-        let adjacent = layout.hole_size(next).is_some_and(|hole| hole >= added);
         let layout_end = layout.end();
-        let in_place = next == layout_end || adjacent;
+        let following = layout.hole_size(next);
+        let adjacent = following.is_some_and(|hole| hole >= added);
+        // A smaller hole that ends the layout grows as the end does: taken whole, then past it.
+        let end_hole = following.filter(|&hole| hole < added && next + hole == layout_end);
+        let in_place = next == layout_end || adjacent || end_hole.is_some();
         let hole = if in_place {
             None
         } else {
@@ -170,6 +173,8 @@ impl Region {
         db.inner.data.ensure_len(end)?;
         if adjacent {
             layout.consume_hole(next, added);
+        } else if let Some(hole) = end_hole {
+            layout.consume_hole(next, hole);
         } else if !in_place {
             if hole.is_some() {
                 layout.consume_hole(new_start, capacity);

@@ -389,7 +389,10 @@ impl<'a> QuickMatch<'a> {
         }
 
         if !disjoint && !unknown_words.is_empty() {
-            let min_len = query.len() - 3;
+            // From the distinct words, one separator apart: a repeated or spaced-out word
+            // doesn't raise the floor ("bitoin bitoin" finds what "bitoin" finds).
+            let words_len = query_words.iter().map(|w| w.len()).sum::<usize>();
+            let min_len = (words_len + query_words.len() - 1).saturating_sub(3);
             let (scores, hit_count) = self.score_trigrams(&unknown_words, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(MIN_SCORE);
             // Shared trigrams only nominate: each unknown word must be a typo of

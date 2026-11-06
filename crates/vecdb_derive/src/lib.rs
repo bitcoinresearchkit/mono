@@ -63,7 +63,8 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
 
                 #[inline(always)]
                 fn from_number(value: Self::NumberType) -> ::vecdb::Result<Self> {
-                    Ok(Self(<#inner_type as ::vecdb::Pco>::from_number(value)?))
+                    let inner = <#inner_type as ::vecdb::Pco>::from_number(value)?;
+                    ::core::result::Result::Ok(Self(inner))
                 }
             }
         }
@@ -91,7 +92,8 @@ fn derive_wrapper(input: TokenStream, pco: bool) -> TokenStream {
             }
 
             fn from_bytes(bytes: &[u8]) -> ::vecdb::Result<Self> {
-                Ok(Self(<#inner_type as ::vecdb::Bytes>::from_bytes(bytes)?))
+                let inner = <#inner_type as ::vecdb::Bytes>::from_bytes(bytes)?;
+                ::core::result::Result::Ok(Self(inner))
             }
         }
 

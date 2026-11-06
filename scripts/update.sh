@@ -3,6 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TOOLCHAIN_FILE="$SCRIPT_DIR/../rust-toolchain.toml"
+cd "$SCRIPT_DIR/.."
 
 rustup update
 

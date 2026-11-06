@@ -12,10 +12,10 @@ fi
 
 cd "$ROOT_DIR/packages/bitview_client"
 
-sed -i '' 's/^version = "[^"]*"/version = "'"$VERSION"'"/' pyproject.toml
+perl -pi -e 's/^version = "[^"]*"/version = "'"$VERSION"'"/' pyproject.toml
 echo "Updated pyproject.toml to $VERSION"
 
-sed -i '' 's/VERSION = "v[^"]*"/VERSION = "v'"$VERSION"'"/' bitview_client/__init__.py
+perl -pi -e 's/VERSION = "v[^"]*"/VERSION = "v'"$VERSION"'"/' bitview_client/__init__.py
 echo "Updated __init__.py VERSION to v$VERSION"
 
 rm -rf dist

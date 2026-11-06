@@ -31,6 +31,13 @@ if [ "$RELEASE_ARG" = "$CURRENT_VERSION" ] &&
     echo ""
 fi
 
+# A release commits and tags what's in the tree: only from a clean one (other work in this
+# checkout would ride along). A resumed one keeps what its own publish steps changed.
+if [ "$RESUME_RELEASE" = false ] && [ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]; then
+    echo "The working tree has changes: commit or move them first"
+    exit 1
+fi
+
 if [ -f "$SCRIPT_DIR/.tokens" ]; then
     source "$SCRIPT_DIR/.tokens"
 fi
@@ -83,8 +90,9 @@ if [ "$RESUME_RELEASE" = false ]; then
     echo ""
 
     cd "$ROOT_DIR"
-    git add -A
-    git commit -m "docs: update generated docs" || echo "No doc changes to commit"
+    DOCS=(modules/bitview-client/docs packages/bitview_client/DOCS.md)
+    git add -- "${DOCS[@]}"
+    git commit -m "docs: update generated docs" -- "${DOCS[@]}" || echo "No doc changes to commit"
     echo ""
 fi
 

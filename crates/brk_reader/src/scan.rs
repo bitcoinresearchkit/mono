@@ -85,22 +85,60 @@ pub(crate) const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
 /// offset could take magic bytes inside a transaction for a frame. A hole of unwritten bytes,
 /// where Core reserved a block's frame and failed to write it (its disk gone, say), is stepped
 /// over to the frames Core wrote after it. Stops at the first other gap: the preallocated zero
-/// tail, or the file's end once Core trims that tail on rollover.
-pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Vec<(usize, usize)>> {
-    let file_len = file.metadata()?.len() as usize;
-    let mut frames = Vec::new();
-    let mut offset = start;
-    loop {
-        if let Some(len) = frame_at(file, xor_bytes, offset, file_len)? {
-            frames.push((offset + HEAD_LEN, len));
-            offset += HEAD_LEN + len;
-        } else if let Some(next) = after_hole(file, xor_bytes, offset, file_len)? {
-            offset = next;
-        } else {
-            break;
+/// tail, or the file's end once Core trims that tail on rollover. Lazy: a caller that stops at the
+/// blocks it wants reads no further (the tail's check reads up to a frame's worth of zeros).
+pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Frames<'_>> {
+    Ok(Frames {
+        file,
+        xor_bytes,
+        offset: start,
+        file_len: file.metadata()?.len() as usize,
+        done: false,
+    })
+}
+
+/// See [`frames`]. Ends after the first error.
+pub struct Frames<'a> {
+    file: &'a File,
+    xor_bytes: XORBytes,
+    offset: usize,
+    file_len: usize,
+    done: bool,
+}
+
+impl Frames<'_> {
+    /// One hop: the frame at the offset, or over a hole (`None`, the offset moved), or the end
+    /// (`None`, done).
+    fn hop(&mut self) -> io::Result<Option<(usize, usize)>> {
+        if let Some(len) = frame_at(self.file, self.xor_bytes, self.offset, self.file_len)? {
+            let frame = (self.offset + HEAD_LEN, len);
+            self.offset += HEAD_LEN + len;
+            return Ok(Some(frame));
         }
+        match after_hole(self.file, self.xor_bytes, self.offset, self.file_len)? {
+            Some(next) => self.offset = next,
+            None => self.done = true,
+        }
+        Ok(None)
     }
-    Ok(frames)
+}
+
+impl Iterator for Frames<'_> {
+    type Item = io::Result<(usize, usize)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.done {
+            match self.hop() {
+                Ok(Some(frame)) => return Some(Ok(frame)),
+                Ok(None) => {}
+                Err(e) => {
+                    self.done = true;
+                    return Some(Err(e));
+                }
+            }
+        }
+        None
+    }
 }
 
 /// The payload length of the frame whose header is at `offset`, if one is, whole in the file.

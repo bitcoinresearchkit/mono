@@ -9,6 +9,11 @@ use crate::{
     scan::{HEAD_LEN, MAGIC_BYTES, MAX_HOLE, frames},
 };
 
+/// Every frame, eagerly.
+fn all_frames(file: &File, xor_bytes: XORBytes) -> Vec<(usize, usize)> {
+    frames(file, xor_bytes, 0).unwrap().collect::<std::io::Result<_>>().unwrap()
+}
+
 /// A blk file's parts, in order: a frame with this long a payload, or this many unwritten bytes.
 enum Part {
     Frame(usize),
@@ -58,7 +63,7 @@ fn steps_over_a_hole_to_the_frames_after_it() {
             Zeros(4096),
         ],
     );
-    assert_eq!(frames(&file, XORBytes::from(KEY), 0).unwrap(), expected);
+    assert_eq!(all_frames(&file, XORBytes::from(KEY)), expected);
 }
 
 #[test]
@@ -69,14 +74,14 @@ fn finds_a_header_its_key_made_start_with_zeros() {
     let mut key = KEY;
     key[1108 % 8] = MAGIC_BYTES[0];
     let (file, expected) = blk("zeroed-head", key, &[Frame(100), Zeros(1000), Frame(50)]);
-    assert_eq!(frames(&file, XORBytes::from(key), 0).unwrap(), expected);
+    assert_eq!(all_frames(&file, XORBytes::from(key)), expected);
 }
 
 #[test]
 fn stops_at_the_preallocated_tail() {
     use Part::*;
     let (file, expected) = blk("tail", KEY, &[Frame(100), Frame(30), Zeros(1 << 20)]);
-    assert_eq!(frames(&file, XORBytes::from(KEY), 0).unwrap(), expected);
+    assert_eq!(all_frames(&file, XORBytes::from(KEY)), expected);
     // Zeros longer than any frame aren't a hole, whatever follows them.
     let (file, expected) = blk(
         "long-zeros",
@@ -84,7 +89,7 @@ fn stops_at_the_preallocated_tail() {
         &[Frame(100), Zeros(MAX_HOLE + 16), Frame(50)],
     );
     assert_eq!(
-        frames(&file, XORBytes::from(KEY), 0).unwrap(),
+        all_frames(&file, XORBytes::from(KEY)),
         expected[..1]
     );
 }
@@ -93,5 +98,5 @@ fn stops_at_the_preallocated_tail() {
 fn steps_over_a_hole_in_an_unobfuscated_file() {
     use Part::*;
     let (file, expected) = blk("plain", [0; 8], &[Frame(100), Zeros(500), Frame(50)]);
-    assert_eq!(frames(&file, XORBytes::default(), 0).unwrap(), expected);
+    assert_eq!(all_frames(&file, XORBytes::default()), expected);
 }
