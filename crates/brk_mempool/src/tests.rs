@@ -936,6 +936,44 @@ fn graveyard_outlives_a_restart() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// A replacement won by a conflict the pool never saw (one a block confirmed): its tree roots at
+/// that conflict, unseen (its facts the chain's), whichever of the two is asked about, and the
+/// listing shows it though only one version was pending.
+#[test]
+fn unseen_confirmed_replacers_root_their_trees() {
+    let mut state = State::default();
+    let replaced = body(1);
+    let conflict = txid(9);
+    let info = MempoolEntryInfo {
+        txid: replaced.txid,
+        wtxid: bitcoin::Wtxid::from_byte_array([1; 32]),
+        vsize: VSize::from(replaced.weight),
+        weight: replaced.weight,
+        fee: replaced.fee,
+        first_seen: Timestamp::now(),
+    };
+    let record = TxRecord::new(replaced.clone(), TxEntry::new(&info, 100, true));
+    state
+        .graveyard
+        .bury(record, FeeRate::default(), TxRemoval::Replaced { by: conflict });
+    let mut rebuilder = Rebuilder::default();
+    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default());
+    let tip = BlockHash::default();
+    let read = ReadOnlyState::default()
+        .updated(&state, tip, rebuilder.snapshot().clone(), true)
+        .expect("published");
+    for asked in [replaced.txid, conflict] {
+        let root = read.rbf_for_tx(&asked, &tip).unwrap().root.expect("a tree");
+        assert_eq!(root.txid, conflict);
+        assert!(root.unseen);
+        assert_eq!(root.replaces.len(), 1);
+        assert_eq!(root.replaces[0].txid, replaced.txid);
+    }
+    let trees = read.recent_rbf_trees(false, &tip).unwrap();
+    assert_eq!(trees.len(), 1, "one tree, rooted at the conflict");
+    assert_eq!(trees[0].txid, conflict);
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }

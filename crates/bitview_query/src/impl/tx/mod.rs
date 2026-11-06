@@ -71,7 +71,11 @@ impl Query {
             ))
     }
 
-    fn transaction_by_index(&self, tx_index: TxIndex, guard: &ReadPin) -> Result<Transaction> {
+    pub(crate) fn transaction_by_index(
+        &self,
+        tx_index: TxIndex,
+        guard: &ReadPin,
+    ) -> Result<Transaction> {
         Ok(self
             .transactions_at_indices(&[tx_index], guard)?
             .into_iter()

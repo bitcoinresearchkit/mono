@@ -1,7 +1,9 @@
 //! RBF trees captured from one publication for later confirmed-chain enrichment.
 
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
+
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, FeeRate, Sats, Transaction, Txid};
+use brk_types::{BlockHash, FeeRate, Sats, Timestamp, Transaction, Txid, VSize};
 use rapidhash::RapidHashSet;
 
 use crate::{
@@ -51,10 +53,7 @@ impl ReadOnlyState {
         // Trees read entries and outputs, never prevouts: no input needs resolving.
         let state = self.pool()?.at(tip)?;
         let mut remaining = MAX_RBF_WORK;
-        let root_txid = state
-            .graveyard
-            .replacement_root_of(*txid, &mut remaining, |txid| state.txs.contains(txid))
-            .ok_or(Exceeded::Work)?;
+        let root_txid = Self::tree_root(state, txid, &mut remaining).ok_or(Exceeded::Work)?;
         let replaces: Vec<_> = state
             .graveyard
             .predecessors_of(txid)
@@ -98,22 +97,18 @@ impl ReadOnlyState {
                 break;
             };
             total = left;
-            // From the replaced transaction: a replacer the pool never saw (a confirmed conflict)
-            // leaves the walk rooted at the last member it knows.
+            // From the replaced transaction to its tree's root: a replacer the pool never saw (a
+            // confirmed conflict) roots the tree of everything it replaced.
             let Some((replaced, _)) = candidate else {
                 continue;
             };
             let mut remaining = MAX_RBF_WORK.min(total);
-            let built = state
-                .graveyard
-                .replacement_root_of(*replaced, &mut remaining, |txid| state.txs.contains(txid))
+            let built = Self::tree_root(state, replaced, &mut remaining)
                 .filter(|root| seen.insert(*root))
                 .map(|root| {
                     Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0)
                 });
             total -= MAX_RBF_WORK.min(total) - remaining;
-            // A root that replaced nothing it knows (its replacer confirmed unseen) is no tree, as in
-            // `rbf_for_tx`.
             if let Some(Ok(Some(node))) = built
                 && !node.replaces.is_empty()
                 && (!full_rbf_only || node.full_rbf)
@@ -144,7 +139,12 @@ impl ReadOnlyState {
         *remaining = remaining.checked_sub(1).ok_or(Exceeded::Work)?;
         let Some((tx, entry, rate, in_mempool)) = Self::resolve_rbf_node(txid, txs, graveyard)
         else {
-            return Ok(None);
+            // A root neither pending nor buried replaced what lists it (a confirmed conflict).
+            return if depth == 0 {
+                Self::unseen_root(txid, txs, graveyard, remaining)
+            } else {
+                Ok(None)
+            };
         };
 
         let mut replaces = Vec::new();
@@ -173,9 +173,67 @@ impl ReadOnlyState {
             first_seen: entry.first_seen,
             rate,
             in_mempool,
+            unseen: false,
             rbf: entry.rbf,
             replaced_non_signaling,
             full_rbf,
+            replaces,
+        }))
+    }
+
+    /// The root of `txid`'s tree: the terminal replacer, or, when the last version the pool
+    /// knows was replaced by a transaction neither pending nor buried (a conflict a block
+    /// confirmed unseen), that transaction (mempool.space's mined replacement).
+    fn tree_root(state: &Pool, txid: &Txid, remaining: &mut usize) -> Option<Txid> {
+        let live = |txid: &Txid| state.txs.contains(txid);
+        let root = state.graveyard.replacement_root_of(*txid, remaining, live)?;
+        Some(
+            match state.graveyard.get(&root).and_then(|tomb| tomb.replaced_by()) {
+                Some(by) if !live(by) && state.graveyard.get(by).is_none() => *by,
+                _ => root,
+            },
+        )
+    }
+
+    /// An unseen confirmed replacer: what it replaced, its own facts left for the chain.
+    fn unseen_root(
+        txid: &Txid,
+        txs: &ReadOnlyTxStore,
+        graveyard: &TxGraveyard,
+        remaining: &mut usize,
+    ) -> std::result::Result<Option<RbfNode>, Exceeded> {
+        let mut replaces = Vec::new();
+        // When the replacement was seen (mempool.space's tree time): the latest of what it
+        // replaced, told it by its block.
+        let mut seen: Option<Instant> = None;
+        for (predecessor, tomb) in graveyard.predecessors_of(txid) {
+            seen = seen.max(Some(tomb.removed_at));
+            if let Some(node) = Self::build_rbf_node(predecessor, txs, graveyard, remaining, 1)? {
+                replaces.push(node);
+            }
+        }
+        let Some(seen) = seen.filter(|_| !replaces.is_empty()) else {
+            return Ok(None);
+        };
+        let seen = SystemTime::now()
+            .checked_sub(seen.elapsed())
+            .and_then(|at| at.duration_since(UNIX_EPOCH).ok())
+            .map_or_else(Timestamp::now, |since| {
+                Timestamp::from(since.as_secs() as usize)
+            });
+        let replaced_non_signaling = replaces.iter().any(|c| !c.rbf);
+        Ok(Some(RbfNode {
+            txid: *txid,
+            fee: Sats::ZERO,
+            vsize: VSize::default(),
+            value: Sats::ZERO,
+            first_seen: seen,
+            rate: FeeRate::default(),
+            in_mempool: false,
+            unseen: true,
+            rbf: false,
+            replaced_non_signaling,
+            full_rbf: replaced_non_signaling || replaces.iter().any(|c| c.full_rbf),
             replaces,
         }))
     }

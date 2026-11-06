@@ -512,7 +512,13 @@ impl TxGraveyard {
             if !current || self.replacer_known(&txid, live) {
                 continue;
             }
-            if self.predecessors_by_replacer.contains_key(&txid) {
+            // A tree's head, or a version replaced by one the pool never saw (a conflict a block
+            // confirmed: the tree is rooted there), stays a tree's time.
+            let replaced = self
+                .tombstones
+                .get(&txid)
+                .is_some_and(|tomb| tomb.replaced_by().is_some());
+            if replaced || self.predecessors_by_replacer.contains_key(&txid) {
                 self.trees.push_back((t, txid));
             } else {
                 self.remove(&txid);

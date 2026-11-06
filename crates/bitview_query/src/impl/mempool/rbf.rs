@@ -1,7 +1,7 @@
 use bitview_plugin_indexer::SafeLengths;
 use bitview_types::{RbfResponse, RbfTx, ReplacementNode};
 use brk_mempool::{RbfForTx, RbfNode};
-use brk_types::{CheckedSub, FeeRate, Timestamp, Txid};
+use brk_types::{CheckedSub, FeeRate, Timestamp, Txid, VSize};
 use vecdb::ReadableVec;
 
 use super::serialize_json;
@@ -34,7 +34,10 @@ impl Query {
         // Enrich at the publication the tree was resolved against.
         let read = self.read_indexer_at(self.read_pin(rbf.pin));
         let RbfForTx { root, replaces } = rbf.source;
-        let replacements = root.map(|node| read.enrich_rbf_tree(node)).transpose()?;
+        let replacements = root
+            .map(|node| read.enrich_rbf_tree(node, false))
+            .transpose()?
+            .flatten();
         let replaces = (!replaces.is_empty()).then_some(replaces);
         Ok(RbfResponse {
             replacements,
@@ -57,10 +60,13 @@ impl Query {
         let read = self.read_indexer_at(pin);
         let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::MempoolNotAvailable)?;
         let trees = mempool.recent_rbf_trees(full_rbf_only, &tip)?;
-        trees
+        Ok(trees
             .into_iter()
-            .map(|node| read.enrich_rbf_tree(node))
-            .collect()
+            .map(|node| read.enrich_rbf_tree(node, full_rbf_only))
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect())
     }
 
     /// Serialize recent replacements with their exact content identity.
@@ -75,14 +81,47 @@ impl Query {
 
 impl IndexerRead<'_> {
     /// A tree from its root: each node enriched, and the root marked `mined` when any of its
-    /// transactions is.
-    fn enrich_rbf_tree(&self, root: RbfNode) -> Result<ReplacementNode> {
+    /// transactions is. None when an unseen root resolves to no tree (`with_chain_facts`), or to
+    /// one `full_rbf_only` excludes.
+    fn enrich_rbf_tree(&self, root: RbfNode, full_rbf_only: bool) -> Result<Option<ReplacementNode>> {
         fn any_mined(node: &ReplacementNode) -> bool {
             node.tx.mined.is_some() || node.replaces.iter().any(any_mined)
         }
+        let Some(root) = self
+            .with_chain_facts(root)?
+            .filter(|root| !full_rbf_only || root.full_rbf)
+        else {
+            return Ok(None);
+        };
         let mut root = self.enrich_rbf_node(root, None)?;
         root.mined = any_mined(&root).then_some(true);
-        Ok(root)
+        Ok(Some(root))
+    }
+
+    /// An unseen root (a conflict confirmed without the pool seeing it) with its facts from the
+    /// chain (its time stays when the replacement was seen, as mempool.space's). One the chain
+    /// doesn't hold either (a reorg took it) is never served bare: the one version it replaced
+    /// roots the tree when that one has a replacement history of its own, else there's none.
+    fn with_chain_facts(&self, mut root: RbfNode) -> Result<Option<RbfNode>> {
+        if !root.unseen {
+            return Ok(Some(root));
+        }
+        let index = match self.resolve_confirmed_position(&root.txid) {
+            Ok((index, _)) => index,
+            Err(Error::UnknownTxid) => {
+                return Ok(match root.replaces.len() {
+                    1 => root.replaces.pop().filter(|only| !only.replaces.is_empty()),
+                    _ => None,
+                });
+            }
+            Err(error) => return Err(error),
+        };
+        let tx = self.query().transaction_by_index(index, self.pin())?;
+        root.fee = tx.fee;
+        root.vsize = tx.total_sigop_cost.adjust_vsize(VSize::from(tx.weight));
+        root.value = tx.output.iter().map(|output| output.value).sum();
+        root.rbf = tx.input.iter().any(|input| input.sequence < 0xffff_fffe);
+        Ok(Some(root))
     }
 
     /// Layer `mined` and effective fee rate onto an owned RBF tree.
