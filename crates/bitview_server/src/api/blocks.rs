@@ -158,7 +158,7 @@ impl AppState {
         let budget = self.raw_block_bodies.clone();
         Ok(self
             .read_body(
-                &self.sync_query,
+                &self.chain_query,
                 &self.raw_block_bodies,
                 move |q, permit| {
                     let snapshot = q.resolve_block_snapshot(&hash)?;
@@ -303,7 +303,7 @@ impl AppState {
 
         let bodies = self.chain_bodies.clone();
         Ok(self
-            .read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
+            .read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
                 let snapshot = q.resolve_block_snapshot(&hash)?;
                 if let Some(index) = tx_index {
                     snapshot.validate_tx_index(q, index)?;

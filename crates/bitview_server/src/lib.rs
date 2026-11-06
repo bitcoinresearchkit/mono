@@ -4,8 +4,10 @@ use std::{
     any::Any,
     fs,
     net::SocketAddr,
+    num::NonZero,
     path::Path,
     sync::{Arc, LazyLock},
+    thread,
     time::{Duration, Instant},
 };
 
@@ -33,6 +35,7 @@ use tower_http::{
     },
     cors::CorsLayer,
     normalize_path::{NormalizePath, NormalizePathLayer},
+    timeout::RequestBodyTimeoutLayer,
 };
 use tower_layer::Layer;
 use tracing::info;
@@ -165,6 +168,10 @@ fn commit_installed(record: &[u8], name: &str) -> Option<String> {
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// The longest a request body may go without sending more (a transaction broadcast): a client
+/// stalling one would hold its admission permit.
+const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// How long browsers may reuse a CORS preflight.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
@@ -237,8 +244,13 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     ));
 
     let shared = SharedState {
-        sync_query: Arc::new(Semaphore::new(1)),
+        chain_query: Arc::new(Semaphore::new(
+            thread::available_parallelism().map_or(4, NonZero::get),
+        )),
+        #[cfg(feature = "chain")]
+        history_query: Arc::new(Semaphore::new(2)),
         disk_query: Arc::new(Semaphore::new(1)),
+        disk_walk: Default::default(),
         #[cfg(feature = "price")]
         oracle_replays: Arc::new(Semaphore::new(1)),
         #[cfg(feature = "chain")]
@@ -291,6 +303,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         .with_state(state)
         .merge(website_router)
         .layer(from_fn(request_deadline::apply))
+        .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
         .layer(compression_layer())
         .layer(from_fn(unacceptable_encoding::reject))

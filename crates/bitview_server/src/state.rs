@@ -27,6 +27,14 @@ use crate::{CacheParams, CdnCacheMode, Error, Website, extended::ResponseExtende
 #[cfg(feature = "chain")]
 use crate::{prepared_json::PreparedJson, raw_body::RawBodyPermit};
 
+/// What a JSON builder gives [`AppState::respond_json_built`]: the request's copy is current
+/// (decided before building), or a body and its validator.
+#[cfg(feature = "chain")]
+enum Built {
+    Unchanged(CacheParams),
+    Body(Bytes, CacheParams),
+}
+
 /// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
 pub struct AppState {
@@ -37,8 +45,14 @@ pub struct AppState {
 
 /// Immutable for the server's lifetime: cloned per request as one `Arc`.
 pub struct SharedState {
-    pub sync_query: Arc<Semaphore>,
+    /// Chain reads (tip, blocks, transactions, addresses): as many at once as there are cores.
+    pub chain_query: Arc<Semaphore>,
+    /// Whole-history aggregates (the mining statistics): a few at once, apart from chain reads,
+    /// so a client looping on them waits behind itself, not ahead of every point read.
+    #[cfg(feature = "chain")]
+    pub history_query: Arc<Semaphore>,
     pub disk_query: Arc<Semaphore>,
+    pub disk_walk: crate::api::server::LastWalk,
     /// Oracle replays (searches, histograms at a height or a day), which read every output of their
     /// blocks: one at a time, waiting apart from other reads.
     #[cfg(feature = "price")]
@@ -112,7 +126,7 @@ impl AppState {
         build: impl FnOnce(&Query, S) -> Result<Bytes> + Clone + Send + 'static,
     ) -> Response<Body> {
         self.respond_admitted(
-            &self.sync_query,
+            &self.chain_query,
             &self.chain_bodies,
             headers,
             content_type,
@@ -128,7 +142,7 @@ impl AppState {
         f: impl FnOnce(&Query) -> Result<T> + Send + 'static,
     ) -> Result<T> {
         self.query
-            .read_with_admission(Some(&self.sync_query), f)
+            .read_with_admission(Some(&self.chain_query), f)
             .await
     }
 
@@ -207,9 +221,9 @@ impl AppState {
         version: Version,
         f: impl FnOnce(&Query) -> Result<(Vec<u8>, RepresentationId)> + Clone + Send + 'static,
     ) -> Response<Body> {
-        self.respond_json_built(headers, move |q| {
+        self.respond_json_built(&self.chain_query, headers, move |q, _| {
             let (bytes, identity) = f(q)?;
-            Ok((
+            Ok(Built::Body(
                 Bytes::from(bytes),
                 CacheParams::representation(version, identity),
             ))
@@ -217,29 +231,16 @@ impl AppState {
         .await
     }
 
-    /// [`Self::respond_json_content`] for values that can reach megabytes.
-    #[cfg(feature = "chain")]
-    pub async fn respond_json_content_admitted<T: Serialize>(
-        &self,
-        headers: HeaderMap,
-        f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
-    ) -> Response<Body> {
-        self.respond_json_built(headers, move |q| {
-            let bytes = Bytes::from(to_vec(&f(q)?)?);
-            let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes));
-            Ok((bytes, params))
-        })
-        .await
-    }
-
-    /// JSON whose validator comes with its bytes. Building is bounded by query admission; a
-    /// large body then takes a `chain_bodies` permit that it keeps until sent, building again
-    /// once one is free.
+    /// JSON whose validator comes with its bytes, or comes first: `f` answers [`Built::Unchanged`]
+    /// when the request's validator already matches, before building. Building is bounded by
+    /// `admission`; a large body then takes a `chain_bodies` permit that it keeps until sent,
+    /// building again once one is free.
     #[cfg(feature = "chain")]
     async fn respond_json_built(
         &self,
+        admission: &Arc<Semaphore>,
         headers: HeaderMap,
-        f: impl FnOnce(&Query) -> Result<(Bytes, CacheParams)> + Clone + Send + 'static,
+        f: impl FnOnce(&Query, &HeaderMap) -> Result<Built> + Clone + Send + 'static,
     ) -> Response<Body> {
         fn json(headers: &mut HeaderMap) {
             headers.insert(
@@ -248,8 +249,13 @@ impl AppState {
             );
         }
         let budget = self.chain_bodies.clone();
-        self.read_body(&self.sync_query, &self.chain_bodies, move |q, permit| {
-            let (bytes, params) = f(q)?;
+        self.read_body(admission, &self.chain_bodies, move |q, permit| {
+            let (bytes, params) = match f(q, &headers)? {
+                Built::Unchanged(params) => {
+                    return Ok(Some(ResponseExtended::new_not_modified(&params)));
+                }
+                Built::Body(bytes, params) => (bytes, params),
+            };
             if params.etag.matches(&headers) {
                 return Ok(Some(ResponseExtended::new_not_modified(&params)));
             }
@@ -263,6 +269,35 @@ impl AppState {
         })
         .await
         .unwrap_or_else(|error| Error::from(error).into_response())
+    }
+
+    /// A whole-history aggregate (the mining statistics), under its own admission. Each is a
+    /// function of the published chain and the release (which every tag names), so it's tagged
+    /// by the tip: a revalidation is answered before building (they take tens of milliseconds).
+    /// Anything published while one builds may be in it (a block, a rollback): then its content
+    /// tags it. Inputs `f` would reject are checked by the caller first: a matching tag would
+    /// answer before `f` runs.
+    #[cfg(feature = "chain")]
+    pub async fn respond_json_history<T: Serialize>(
+        &self,
+        headers: HeaderMap,
+        f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
+    ) -> Response<Body> {
+        self.respond_json_built(&self.history_query, headers, move |q, headers| {
+            let (tip, revision) = q.tip_publication();
+            let params = CacheParams::live(format!("h{tip}"));
+            if params.etag.matches(headers) {
+                return Ok(Built::Unchanged(params));
+            }
+            let bytes = Bytes::from(to_vec(&f(q)?)?);
+            let params = if q.tip_publication().1 == revision {
+                params
+            } else {
+                CacheParams::live_hash(RepresentationId::content_hash(&bytes))
+            };
+            Ok(Built::Body(bytes, params))
+        })
+        .await
     }
 
     /// JSON response whose validator is derived from the exact serialized value.
@@ -284,7 +319,7 @@ impl AppState {
         T: Serialize + Send + 'static,
         F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
     {
-        self.respond_json_settled_on(&self.sync_query, headers, f)
+        self.respond_json_settled_on(&self.chain_query, headers, f)
             .await
     }
 

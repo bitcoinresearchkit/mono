@@ -11,7 +11,7 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
     }
     Ok(state
         .respond_admitted(
-            &state.sync_query,
+            &state.chain_query,
             &state.mempool_txid_bodies,
             headers,
             "application/json",

@@ -74,7 +74,7 @@ async fn serve_json<S: 'static, T: Serialize>(
     // Resolved again after admission: the template may have moved on.
     Ok(state
         .respond_admitted(
-            &state.sync_query,
+            &state.chain_query,
             bodies,
             headers,
             "application/json",

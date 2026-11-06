@@ -9,6 +9,9 @@ use crate::format::text;
 
 /// Lines kept in memory.
 const KEPT: usize = 1_000;
+/// A kept line's longest text, in bytes: a request's URI is whatever its client sent (up to
+/// Cloudflare's 16 KB), and every read of the tail copies all of them.
+const MAX_TEXT: usize = 1_024;
 
 /// One logged line.
 #[derive(Clone)]
@@ -69,7 +72,11 @@ pub struct TailLayer;
 
 impl<S: Subscriber> Layer<S> for TailLayer {
     fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
-        let text = text(event);
+        let mut text = text(event);
+        if text.len() > MAX_TEXT {
+            text.truncate(text.floor_char_boundary(MAX_TEXT - '…'.len_utf8()));
+            text.push('…');
+        }
         let time = Timestamp::now();
         let level = *event.metadata().level();
         let mut tail = TAIL.lock();

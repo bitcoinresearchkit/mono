@@ -36,7 +36,7 @@ mod openapi;
 mod oracle;
 #[cfg(feature = "series")]
 mod series;
-mod server;
+pub(crate) mod server;
 #[cfg(feature = "chain")]
 mod transactions;
 #[cfg(feature = "urpd")]

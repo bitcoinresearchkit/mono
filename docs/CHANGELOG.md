@@ -8,6 +8,16 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+### Performance
+
+- Chain reads (tip, blocks, transactions, addresses) run as many at once as there are cores (they ran one at a time):
+  `/api/tx/{txid}` from 10k to 39k requests a second at 12 clients and 5.2k to 37k at 48 (p99 46 → 3 ms), on a dev
+  build. The mining statistics, which read the whole history, wait apart under their own admission: a client looping
+  on them held the tip, transactions and addresses behind it (the tip took 1.2-1.75 s under such a flood; now ~1 ms)
+- The mining statistics are tagged by the chain's tip: a revalidation answers 304 before building (`/blocks/*/all`'s
+  304s took 31-46 ms; now under 1 ms)
+- `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
+
 ### Bug Fixes
 
 - A reserved pool slug (`dummy146` and the 89 others no pool has) in `GET /api/v1/mining/pool/{slug}`,
@@ -28,6 +38,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - No home directory needed with `--bitviewdir` and `--bitcoindir` (it panicked without `HOME`); without one, the
   missing default is an error naming the flag
 - The RPC password no longer shows when the connection settings or a client are printed for debugging
+- A request body (a transaction broadcast, an MCP call) that sends nothing for 10 seconds fails: a stalled one held
+  its admission permit
+- The server's log tail (`/api/server/logs`) keeps at most 1,024 bytes of a line: a request's URI is whatever its
+  client sent, and every read of the tail copies all of them
+- `GET /api/v1/mining/reward-stats/0` answers 400 from the path itself ("expected a nonzero usize")
 - The vintage and halving-epoch cohorts warn on every update once the chain is in their last listed period (they're
   kept one ahead: vintages to 2027, epochs to 5), and a block they miss logs an error instead of a debug build's panic
 

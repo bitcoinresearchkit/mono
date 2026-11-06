@@ -28,6 +28,7 @@ use rmcp::{
     },
 };
 use serde_json::{Number, Value, from_slice, from_str, json};
+use tower_http::timeout::RequestBodyTimeoutLayer;
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
@@ -103,7 +104,12 @@ pub fn router(
         .route("/terms", page::route(pages.terms))
         .route("/support", page::route(pages.support))
         .layer(middleware::from_fn(gateway_guard))
+        // A POST's body may not stall: it would hold its admission permit.
+        .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
 }
+
+/// The longest a request body may go without sending more.
+const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
 
 impl BitviewMcp {
     fn server_info(&self) -> ServerConfig {

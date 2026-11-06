@@ -308,6 +308,13 @@ impl Query {
         self.indexer().tip_blockhash()
     }
 
+    /// The published tip's hash and its publication's revision, from one pin: a revision unchanged
+    /// later means nothing published in between.
+    pub fn tip_publication(&self) -> (BlockHash, u64) {
+        let pin = self.indexer().pin();
+        (pin.tip(), pin.revision())
+    }
+
     /// The published tip's height and hash, from one pin; `None` before genesis.
     pub fn tip_block(&self) -> Option<(Height, BlockHash)> {
         let pin = self.indexer().pin();

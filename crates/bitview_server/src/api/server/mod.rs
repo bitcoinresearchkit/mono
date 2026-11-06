@@ -21,6 +21,8 @@ use crate::{
 };
 
 mod disk;
+
+pub(crate) use disk::LastWalk;
 mod logs;
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {

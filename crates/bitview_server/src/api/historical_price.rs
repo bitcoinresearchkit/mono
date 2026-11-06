@@ -14,7 +14,7 @@ pub async fn serve(
     let cdn_cache_mode = state.cdn_cache_mode;
     Ok(state
         .respond_admitted(
-            &state.sync_query,
+            &state.chain_query,
             &state.historical_price_bodies,
             headers,
             "application/json",
