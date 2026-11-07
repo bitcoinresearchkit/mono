@@ -50,13 +50,16 @@ pub use r#impl::ResolvedUrpd;
 pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
-    MempoolBlockSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
+    BlindbitBlock, MempoolBlockSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
     ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
     ResolvedConfirmedTx, ResolvedCpfp, ResolvedMempoolBlockDiff, ResolvedPoolBlocks, ResolvedRbf,
     ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
+/// The dust floor the silent payments routes apply whatever a request asks.
+#[cfg(feature = "chain")]
+pub use bitview_plugin_silent_payments::DUST_FLOOR;
 pub use output::*;
 #[cfg(feature = "price")]
 pub use publication_cache::PublicationCache;

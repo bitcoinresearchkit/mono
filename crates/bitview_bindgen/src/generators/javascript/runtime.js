@@ -656,12 +656,13 @@ class BitviewClientBase {
    *
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Response>}
    */
-  async post(path, body, { signal } = {}) {
+  async post(path, body, { signal, contentType } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
+    const headers = contentType ? { 'Content-Type': contentType } : undefined;
+    const res = await fetch(url, { method: 'POST', body, headers, signal: this._signal(signal) });
     if (!res.ok) throw await _responseError(res);
     return res;
   }
@@ -670,7 +671,7 @@ class BitviewClientBase {
    * @template T
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
    * @returns {Promise<T>}
    */
@@ -682,7 +683,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<string>}
    */
   async postText(path, body, options) {
@@ -693,7 +694,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Uint8Array>}
    */
   async postBytes(path, body, options) {

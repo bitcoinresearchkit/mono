@@ -7,3 +7,10 @@ pub struct RequestBody {
     pub(crate) content_type: String,
     pub(crate) required: bool,
 }
+
+impl RequestBody {
+    /// Whether the body is JSON, which clients serialize before sending.
+    pub(crate) fn is_json(&self) -> bool {
+        self.content_type == "application/json"
+    }
+}

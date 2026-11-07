@@ -3724,7 +3724,7 @@ impl BitviewClient {
     /// Endpoint: `POST /api/tx`
     pub fn post_tx(&self, body: &str) -> Result<Txid> {
         self.base
-            .post_text(&format!("/api/tx"), body)
+            .post_text(&format!("/api/tx"), body, "text/plain; charset=utf-8")
             .and_then(parse_text)
     }
 
@@ -3755,6 +3755,143 @@ impl BitviewClient {
     pub fn get_utxo_set_diff(&self, point: HeightOrDate) -> Result<UtxoSetDiff> {
         self.base
             .get_json(&format!("/api/utxo-set/{}/diff", path_segment(point)))
+    }
+
+    /// Server info
+    ///
+    /// The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/info`
+    pub fn get_blindbit_info(&self) -> Result<BlindbitInfo> {
+        self.base.get_json(&format!("/blindbit/mainnet/info"))
+    }
+
+    /// Last indexed block
+    ///
+    /// The height of the last indexed block.
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/block-height`
+    pub fn get_blindbit_block_height(&self) -> Result<BlindbitBlockHeight> {
+        self.base
+            .get_json(&format!("/blindbit/mainnet/block-height"))
+    }
+
+    /// Block hash
+    ///
+    /// The hash of the block at a height.
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/block-hash/{height}`
+    pub fn get_blindbit_block_hash(&self, height: Height) -> Result<BlindbitBlockHash> {
+        self.base.get_json(&format!(
+            "/blindbit/mainnet/block-hash/{}",
+            path_segment(height)
+        ))
+    }
+
+    /// Tweak index
+    ///
+    /// The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
+    pub fn get_blindbit_tweak_index(
+        &self,
+        height: Height,
+        dustLimit: Option<u64>,
+    ) -> Result<Vec<Tweak>> {
+        let mut query = Vec::new();
+        if let Some(v) = dustLimit {
+            query.push(query_pair("dustLimit", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/blindbit/mainnet/tweak-index/{}{}",
+            path_segment(height),
+            query_str
+        );
+        self.base.get_json(&path)
+    }
+
+    /// Cut-through tweaks
+    ///
+    /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
+    pub fn get_blindbit_tweaks(
+        &self,
+        height: Height,
+        dustLimit: Option<u64>,
+    ) -> Result<Vec<Tweak>> {
+        let mut query = Vec::new();
+        if let Some(v) = dustLimit {
+            query.push(query_pair("dustLimit", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/blindbit/mainnet/tweaks/{}{}",
+            path_segment(height),
+            query_str
+        );
+        self.base.get_json(&path)
+    }
+
+    /// Block filter
+    ///
+    /// A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/filter/{kind}/{height}`
+    pub fn get_blindbit_filter(
+        &self,
+        kind: BlindbitFilterKind,
+        height: Height,
+    ) -> Result<BlindbitFilter> {
+        self.base.get_json(&format!(
+            "/blindbit/mainnet/filter/{}/{}",
+            path_segment(kind),
+            path_segment(height)
+        ))
+    }
+
+    /// Spent index
+    ///
+    /// The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/spent-index/{height}`
+    pub fn get_blindbit_spent_index(&self, height: Height) -> Result<BlindbitSpentIndex> {
+        self.base.get_json(&format!(
+            "/blindbit/mainnet/spent-index/{}",
+            path_segment(height)
+        ))
+    }
+
+    /// Taproot outputs
+    ///
+    /// Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+    ///
+    /// Endpoint: `GET /blindbit/mainnet/utxos/{height}`
+    pub fn get_blindbit_utxos(&self, height: Height) -> Result<Vec<BlindbitUtxo>> {
+        self.base
+            .get_json(&format!("/blindbit/mainnet/utxos/{}", path_segment(height)))
+    }
+
+    /// Broadcast transaction
+    ///
+    /// Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+    ///
+    /// Endpoint: `POST /blindbit/mainnet/forward-tx`
+    pub fn post_blindbit_forward_tx(&self, body: &str) -> Result<Txid> {
+        self.base.post_json(
+            &format!("/blindbit/mainnet/forward-tx"),
+            body,
+            "application/json",
+        )
     }
 
     /// Live BTC/USD price

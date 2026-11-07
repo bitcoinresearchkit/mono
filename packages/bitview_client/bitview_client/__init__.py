@@ -91,10 +91,17 @@ TxOutIndex = int
 TxIndex = int
 # Index of a transaction input.
 TxInIndex = int
+# A BIP352 silent payments tweak, `input_hash·A`: the compressed point a wallet multiplies by
+# its scan key for the secret it shares with the transaction.
+Tweak = str
 # A Unix timestamp, in seconds.
 Timestamp = int
 # Lookback window for mining statistics.
 TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "4y", "all"]
+# A spend of a Taproot output as BlindBit's light clients test for it: the first 8 bytes of
+# `sha256(txid ‖ vout ‖ block hash)`, the txid and the spending block's hash in internal
+# byte order, the vout little-endian.
+SpentOutputHash = str
 # BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
 # one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
@@ -292,6 +299,8 @@ BlockOrphanStatus = Union[Literal["invalid"], Literal["headers-only"], Literal["
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
+# Which of a block's two filters.
+BlindbitFilterKind = Union[Literal["new-utxos"], Literal["spent"]]
 # An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
 Bitcoin = float
 # The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
@@ -787,6 +796,31 @@ class BlockFeeRatesEntry(TypedDict):
     avgFee_90: int
     avgFee_100: int
 
+class BlindbitInfo(TypedDict):
+    """
+    What the server serves.
+
+    Attributes:
+        network: Bitcoin Core's chain name: `main`.
+        height: The last indexed block.
+        tweaks_only: Whether only tweaks are served: `false`, filters and UTXOs are too.
+        tweaks_full_basic: Whether the full tweak index is served without dust limits: `false`, it takes them.
+        tweaks_full_with_dust_filter: Whether the full tweak index takes a dust limit: `true`.
+        tweaks_cut_through_with_dust_filter: Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust limit: `true`.
+    """
+    network: str
+    height: Height
+    tweaks_only: bool
+    tweaks_full_basic: bool
+    tweaks_full_with_dust_filter: bool
+    tweaks_cut_through_with_dust_filter: bool
+
+class BlindbitBlockHeight(TypedDict):
+    """
+    The last indexed block's height.
+    """
+    block_height: Height
+
 class Health(TypedDict):
     """
     Attributes:
@@ -812,6 +846,15 @@ class Health(TypedDict):
     blocks_behind: Height
     last_indexed_at: str
     last_indexed_at_unix: Timestamp
+
+class ForwardTx(TypedDict):
+    """
+    BlindBit's transaction submission body.
+
+    Attributes:
+        data: The raw transaction, hexadecimal.
+    """
+    data: str
 
 class _RbfTxRequired(TypedDict):
     txid: Txid
@@ -1266,6 +1309,50 @@ class BlockInfo(_BlockInfoRequired, total=False):
         mediantime: Median time of the last 11 blocks
     """
     previousblockhash: Union[BlockHash, None]
+
+class BlindbitUtxo(TypedDict):
+    """
+    A Taproot output of an eligible transaction.
+
+    Attributes:
+        scriptpubkey: Its script, `OP_1` and a 32-byte push of the output key.
+        timestamp: The block's header time.
+        spent: Whether a published block spends it.
+    """
+    txid: Txid
+    vout: Vout
+    value: Sats
+    scriptpubkey: Hex
+    block_height: Height
+    block_hash: BlockHash
+    timestamp: Timestamp
+    spent: bool
+
+class BlindbitSpentIndex(TypedDict):
+    """
+    A block's spends of Taproot outputs.
+    """
+    block_hash: BlockHash
+    data: List[SpentOutputHash]
+
+class BlindbitFilter(TypedDict):
+    """
+    A BIP158 Golomb-coded set (the basic filters' parameters, keyed by the block hash).
+
+    Attributes:
+        data: The filter: the element count, then the coded deltas.
+        filter_type: Always 4, BlindBit's Taproot-only filters.
+    """
+    block_hash: BlockHash
+    block_height: Height
+    data: Hex
+    filter_type: int
+
+class BlindbitBlockHash(TypedDict):
+    """
+    A block's hash.
+    """
+    block_hash: BlockHash
 
 class UtxoOrigins(TypedDict):
     """
@@ -1747,12 +1834,19 @@ class BitviewClientBase:
                 self._conn = HTTPConnection(self._host, timeout=self._timeout)
         return self._conn
 
-    def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[str] = None,
+        content_type: Optional[str] = None,
+    ) -> bytes:
         """A failed exchange closes the connection, which `http.client` would otherwise leave
         mid-request for every later call."""
         try:
             conn = self._connect()
-            conn.request(method, self._prefix + path, body=body)
+            headers = {"Content-Type": content_type} if content_type else {}
+            conn.request(method, self._prefix + path, body=body, headers=headers)
             res = conn.getresponse()
             data = res.read()
         except (HTTPException, OSError) as e:
@@ -1771,14 +1865,14 @@ class BitviewClientBase:
     def get_text(self, path: str) -> str:
         return self.get(path).decode()
 
-    def post(self, path: str, body: str) -> bytes:
-        return self._request("POST", path, body)
+    def post(self, path: str, body: str = "", content_type: Optional[str] = None) -> bytes:
+        return self._request("POST", path, body, content_type)
 
-    def post_json(self, path: str, body: str) -> Any:
-        return json.loads(self.post(path, body))
+    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None) -> Any:
+        return json.loads(self.post(path, body, content_type))
 
-    def post_text(self, path: str, body: str) -> str:
-        return self.post(path, body).decode()
+    def post_text(self, path: str, body: str = "", content_type: Optional[str] = None) -> str:
+        return self.post(path, body, content_type).decode()
 
     def close(self) -> None:
         if self._conn:
@@ -6603,7 +6697,7 @@ class BitviewClient(BitviewClientBase):
         *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 
         Endpoint: `POST /api/tx`"""
-        return self.post_text('/api/tx', body)
+        return self.post_text('/api/tx', body, 'text/plain; charset=utf-8')
 
     def get_utxo_set_latest(self) -> UtxoSet:
         """Latest UTXO set.
@@ -6628,6 +6722,86 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/utxo-set/{point}/diff`"""
         return self.get_json(f'/api/utxo-set/{_segment(point)}/diff')
+
+    def get_blindbit_info(self) -> BlindbitInfo:
+        """Server info.
+
+        The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+
+        Endpoint: `GET /blindbit/mainnet/info`"""
+        return self.get_json('/blindbit/mainnet/info')
+
+    def get_blindbit_block_height(self) -> BlindbitBlockHeight:
+        """Last indexed block.
+
+        The height of the last indexed block.
+
+        Endpoint: `GET /blindbit/mainnet/block-height`"""
+        return self.get_json('/blindbit/mainnet/block-height')
+
+    def get_blindbit_block_hash(self, height: Height) -> BlindbitBlockHash:
+        """Block hash.
+
+        The hash of the block at a height.
+
+        Endpoint: `GET /blindbit/mainnet/block-hash/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/block-hash/{_segment(height)}')
+
+    def get_blindbit_tweak_index(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+        """Tweak index.
+
+        The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+
+        Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`"""
+        params: List[Tuple[str, Any]] = []
+        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        query = urlencode(params)
+        path = f'/blindbit/mainnet/tweak-index/{_segment(height)}{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_blindbit_tweaks(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+        """Cut-through tweaks.
+
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+
+        Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
+        params: List[Tuple[str, Any]] = []
+        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        query = urlencode(params)
+        path = f'/blindbit/mainnet/tweaks/{_segment(height)}{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_blindbit_filter(self, kind: BlindbitFilterKind, height: Height) -> BlindbitFilter:
+        """Block filter.
+
+        A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+
+        Endpoint: `GET /blindbit/mainnet/filter/{kind}/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/filter/{_segment(kind)}/{_segment(height)}')
+
+    def get_blindbit_spent_index(self, height: Height) -> BlindbitSpentIndex:
+        """Spent index.
+
+        The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+
+        Endpoint: `GET /blindbit/mainnet/spent-index/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/spent-index/{_segment(height)}')
+
+    def get_blindbit_utxos(self, height: Height) -> List[BlindbitUtxo]:
+        """Taproot outputs.
+
+        Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+
+        Endpoint: `GET /blindbit/mainnet/utxos/{height}`"""
+        return self.get_json(f'/blindbit/mainnet/utxos/{_segment(height)}')
+
+    def post_blindbit_forward_tx(self, body: ForwardTx) -> Txid:
+        """Broadcast transaction.
+
+        Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+
+        Endpoint: `POST /blindbit/mainnet/forward-tx`"""
+        return self.post_json('/blindbit/mainnet/forward-tx', json.dumps(body), 'application/json')
 
     def get_live_price(self) -> Dollars:
         """Live BTC/USD price.

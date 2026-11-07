@@ -4,18 +4,24 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
-/// A row index of the plugin's own: `u32`, named for the API.
+/// A row index of the plugin's own, stored as `$repr`, named for the API.
 macro_rules! row_index {
-    ($(#[$meta:meta])* $name:ident, $index_name:literal) => {
+    ($(#[$meta:meta])* $name:ident($repr:ty), $index_name:literal) => {
         $(#[$meta])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Pco, Serialize, JsonSchema)]
-        pub struct $name(u32);
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Pco, Serialize, JsonSchema,
+        )]
+        pub struct $name($repr);
 
         impl From<usize> for $name {
             #[inline]
             fn from(value: usize) -> Self {
-                debug_assert!(u32::try_from(value).is_ok(), "{value} doesn't fit {}", stringify!($name));
-                Self(value as u32)
+                debug_assert!(
+                    <$repr>::try_from(value).is_ok(),
+                    "{value} doesn't fit {}",
+                    stringify!($name)
+                );
+                Self(value as $repr)
             }
         }
 
@@ -52,10 +58,12 @@ macro_rules! row_index {
 }
 
 row_index!(
-    /// Index of an eligible transaction among all of them, in chain order.
-    TweakIndex, "tweak_index"
+    /// Index of an eligible transaction among all of them, in chain order: about 30 million a
+    /// year, so 32 bits last.
+    TweakIndex(u32), "tweak_index"
 );
 row_index!(
-    /// Index of a Taproot output of an eligible transaction among all of them, in chain order.
-    TaprootPrefixIndex, "taproot_prefix_index"
+    /// Index of a byte of a block filter among all of its kind's, in chain order: hundreds of
+    /// megabytes a year, past 32 bits within a decade.
+    FilterByteIndex(u64), "filter_byte_index"
 );

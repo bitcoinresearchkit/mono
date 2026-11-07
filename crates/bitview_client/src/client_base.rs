@@ -100,22 +100,38 @@ impl BitviewClientBase {
         })
     }
 
-    pub fn post_json<T: DeserializeOwned>(&self, path: &str, body: &str) -> Result<T> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
-            body.read_json()
-        })
+    /// POSTs `body` as `content_type`, reading the JSON answer.
+    pub fn post_json<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &str,
+        content_type: &str,
+    ) -> Result<T> {
+        Self::read(self.post(path, body, content_type), |body| body.read_json())
     }
 
-    pub fn post_text(&self, path: &str, body: &str) -> Result<String> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
+    /// POSTs `body` as `content_type`, reading the text answer.
+    pub fn post_text(&self, path: &str, body: &str, content_type: &str) -> Result<String> {
+        Self::read(self.post(path, body, content_type), |body| {
             body.read_to_string()
         })
     }
 
-    pub fn post_bytes(&self, path: &str, body: &str) -> Result<Vec<u8>> {
-        Self::read(self.agent.post(&self.url(path)).send(body), |body| {
-            body.read_to_vec()
-        })
+    /// POSTs `body` as `content_type`, reading the binary answer.
+    pub fn post_bytes(&self, path: &str, body: &str, content_type: &str) -> Result<Vec<u8>> {
+        Self::read(self.post(path, body, content_type), |body| body.read_to_vec())
+    }
+
+    fn post(
+        &self,
+        path: &str,
+        body: &str,
+        content_type: &str,
+    ) -> std::result::Result<Response<Body>, ureq::Error> {
+        self.agent
+            .post(&self.url(path))
+            .header("Content-Type", content_type)
+            .send(body)
     }
 
     /// Reads a successful response's whole body: the server bounds its responses, so the

@@ -74,6 +74,64 @@
  * @typedef {number} Bitcoin
  */
 /**
+ * A block's hash.
+ *
+ * @typedef {Object} BlindbitBlockHash
+ * @property {BlockHash} blockHash
+ */
+/**
+ * The last indexed block's height.
+ *
+ * @typedef {Object} BlindbitBlockHeight
+ * @property {Height} blockHeight
+ */
+/**
+ * A BIP158 Golomb-coded set (the basic filters' parameters, keyed by the block hash).
+ *
+ * @typedef {Object} BlindbitFilter
+ * @property {BlockHash} blockHash
+ * @property {Height} blockHeight
+ * @property {Hex} data - The filter: the element count, then the coded deltas.
+ * @property {number} filterType - Always 4, BlindBit's Taproot-only filters.
+ */
+/**
+ * Which of a block's two filters.
+ *
+ * @typedef {(("new-utxos")|("spent"))} BlindbitFilterKind
+ */
+/**
+ * What the server serves.
+ *
+ * @typedef {Object} BlindbitInfo
+ * @property {string} network - Bitcoin Core's chain name: `main`.
+ * @property {Height} height - The last indexed block.
+ * @property {boolean} tweaksOnly - Whether only tweaks are served: `false`, filters and UTXOs are too.
+ * @property {boolean} tweaksFullBasic - Whether the full tweak index is served without dust limits: `false`, it takes them.
+ * @property {boolean} tweaksFullWithDustFilter - Whether the full tweak index takes a dust limit: `true`.
+ * @property {boolean} tweaksCutThroughWithDustFilter - Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust
+ *   limit: `true`.
+ */
+/**
+ * A block's spends of Taproot outputs.
+ *
+ * @typedef {Object} BlindbitSpentIndex
+ * @property {BlockHash} blockHash
+ * @property {SpentOutputHash[]} data
+ */
+/**
+ * A Taproot output of an eligible transaction.
+ *
+ * @typedef {Object} BlindbitUtxo
+ * @property {Txid} txid
+ * @property {Vout} vout
+ * @property {Sats} value
+ * @property {Hex} scriptpubkey - Its script, `OP_1` and a 32-byte push of the output key.
+ * @property {Height} blockHeight
+ * @property {BlockHash} blockHash
+ * @property {Timestamp} timestamp - The block's header time.
+ * @property {boolean} spent - Whether a published block spends it.
+ */
+/**
  * Extended block data matching mempool.space /api/v1/blocks extras
  *
  * @typedef {Object} BlockExtras
@@ -556,6 +614,12 @@
  * @typedef {number} Float
  */
 /** @typedef {("json"|"csv")} Format */
+/**
+ * BlindBit's transaction submission body.
+ *
+ * @typedef {Object} ForwardTx
+ * @property {string} data - The raw transaction, hexadecimal.
+ */
 /**
  * Index of a halving epoch (210,000 blocks).
  *
@@ -1285,6 +1349,13 @@
  * @typedef {number} SigOps
  */
 /**
+ * A spend of a Taproot output as BlindBit's light clients test for it: the first 8 bytes of
+ * `sha256(txid ‖ vout ‖ block hash)`, the txid and the spending block's hash in internal
+ * byte order, the vout little-endian.
+ *
+ * @typedef {string} SpentOutputHash
+ */
+/**
  * @typedef {Object} SyncStatus
  * @property {Height} indexedHeight - Height of the last indexed block
  * @property {Height} computedHeight - Height of the last computed block (series)
@@ -1321,6 +1392,12 @@
  * @property {TxStatus} status
  */
 /** @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode */
+/**
+ * A BIP352 silent payments tweak, `input_hash·A`: the compressed point a wallet multiplies by
+ * its scan key for the secret it shares with the transaction.
+ *
+ * @typedef {string} Tweak
+ */
 /**
  * @typedef {Object} TxIn
  * @property {Txid} txid - Transaction ID of the output being spent
@@ -2256,12 +2333,13 @@ class BitviewClientBase {
    *
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Response>}
    */
-  async post(path, body, { signal } = {}) {
+  async post(path, body, { signal, contentType } = {}) {
     const url = `${this.baseUrl}${path}`;
-    const res = await fetch(url, { method: 'POST', body, signal: this._signal(signal) });
+    const headers = contentType ? { 'Content-Type': contentType } : undefined;
+    const res = await fetch(url, { method: 'POST', body, headers, signal: this._signal(signal) });
     if (!res.ok) throw await _responseError(res);
     return res;
   }
@@ -2270,7 +2348,7 @@ class BitviewClientBase {
    * @template T
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
    * @returns {Promise<T>}
    */
@@ -2282,7 +2360,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<string>}
    */
   async postText(path, body, options) {
@@ -2293,7 +2371,7 @@ class BitviewClientBase {
   /**
    * @param {string} path
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @returns {Promise<Uint8Array>}
    */
   async postBytes(path, body, options) {
@@ -9502,7 +9580,7 @@ class BitviewClient extends BitviewClientBase {
    */
   async postTx(body, { signal } = {}) {
     const path = `/api/tx`;
-    return this.postText(path, body, { signal });
+    return this.postText(path, body, { signal, contentType: 'text/plain; charset=utf-8' });
   }
 
   /**
@@ -9549,6 +9627,157 @@ class BitviewClient extends BitviewClientBase {
   async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/utxo-set/${encodeURIComponent(point)}/diff`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Server info
+   *
+   * The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+   *
+   * Endpoint: `GET /blindbit/mainnet/info`
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitInfo>>}
+   */
+  async getBlindbitInfo({ signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/info`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Last indexed block
+   *
+   * The height of the last indexed block.
+   *
+   * Endpoint: `GET /blindbit/mainnet/block-height`
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitBlockHeight>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitBlockHeight>>}
+   */
+  async getBlindbitBlockHeight({ signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/block-height`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Block hash
+   *
+   * The hash of the block at a height.
+   *
+   * Endpoint: `GET /blindbit/mainnet/block-hash/{height}`
+   *
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitBlockHash>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitBlockHash>>}
+   */
+  async getBlindbitBlockHash(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/block-hash/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Tweak index
+   *
+   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+   *
+   * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
+   *
+   * @param {Height} height
+   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No
+   *   transaction is kept below 1,000 sats, Bitview's dust floor.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Tweak[]>>}
+   */
+  async getBlindbitTweakIndex(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    const query = params.toString();
+    const path = `/blindbit/mainnet/tweak-index/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Cut-through tweaks
+   *
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+   *
+   * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
+   *
+   * @param {Height} height
+   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No
+   *   transaction is kept below 1,000 sats, Bitview's dust floor.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Tweak[]>>}
+   */
+  async getBlindbitTweaks(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    const query = params.toString();
+    const path = `/blindbit/mainnet/tweaks/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Block filter
+   *
+   * A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+   *
+   * Endpoint: `GET /blindbit/mainnet/filter/{kind}/{height}`
+   *
+   * @param {BlindbitFilterKind} kind
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitFilter>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitFilter>>}
+   */
+  async getBlindbitFilter(kind, height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/filter/${encodeURIComponent(kind)}/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Spent index
+   *
+   * The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+   *
+   * Endpoint: `GET /blindbit/mainnet/spent-index/{height}`
+   *
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitSpentIndex>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitSpentIndex>>}
+   */
+  async getBlindbitSpentIndex(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/spent-index/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Taproot outputs
+   *
+   * Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+   *
+   * Endpoint: `GET /blindbit/mainnet/utxos/{height}`
+   *
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitUtxo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlindbitUtxo[]>>}
+   */
+  async getBlindbitUtxos(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/blindbit/mainnet/utxos/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Broadcast transaction
+   *
+   * Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+   *
+   * Endpoint: `POST /blindbit/mainnet/forward-tx`
+   *
+   * @param {ForwardTx} body
+   * @param {{ signal?: AbortSignal }} [options]
+   * @returns {Promise<Txid>}
+   */
+  async postBlindbitForwardTx(body, { signal } = {}) {
+    const path = `/blindbit/mainnet/forward-tx`;
+    return this.postJson(path, JSON.stringify(body), { signal, contentType: 'application/json' });
   }
 
   /**

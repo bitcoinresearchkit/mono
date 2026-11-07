@@ -17,6 +17,8 @@ pub mod price;
 #[cfg(feature = "series")]
 pub mod series;
 #[cfg(feature = "chain")]
+pub mod silent_payments;
+#[cfg(feature = "chain")]
 pub mod tx;
 #[cfg(feature = "urpd")]
 pub mod urpd;
@@ -38,6 +40,8 @@ pub use mempool::{MempoolBlockSource, MempoolTxids, ResolvedMempoolBlockDiff, Re
 pub use mining::ResolvedPoolBlocks;
 #[cfg(feature = "series")]
 pub use series::{ResolvedQuery, SeriesAnchor, SeriesRead};
+#[cfg(feature = "chain")]
+pub use silent_payments::BlindbitBlock;
 #[cfg(feature = "chain")]
 pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 #[cfg(feature = "chain")]

@@ -53,6 +53,7 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     mining: Box<Mining<M>>,
     op_return: Box<OpReturn<M>>,
     // Scanning data for wallets, not series: off the tree.
+    #[plugin_set(has = bitview_plugin_silent_payments::HasSilentPayments<M>)]
     #[traversable(hidden)]
     silent_payments: Box<SilentPayments<M>>,
     #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]

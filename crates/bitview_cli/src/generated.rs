@@ -115,6 +115,111 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-blindbit-block-hash",
+        method: "GET",
+        path: "/blindbit/mainnet/block-hash/{height}",
+        summary: "Block hash",
+        description: "The hash of the block at a height.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-block-height",
+        method: "GET",
+        path: "/blindbit/mainnet/block-height",
+        summary: "Last indexed block",
+        description: "The height of the last indexed block.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-filter",
+        method: "GET",
+        path: "/blindbit/mainnet/filter/{kind}/{height}",
+        summary: "Block filter",
+        description: "A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.",
+        path_parameters: &[
+            Parameter { api_name: "kind", name: "kind", required: true, value_name: "BlindbitFilterKind", repeatable: false, description: None },
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-info",
+        method: "GET",
+        path: "/blindbit/mainnet/info",
+        summary: "Server info",
+        description: "The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-spent-index",
+        method: "GET",
+        path: "/blindbit/mainnet/spent-index/{height}",
+        summary: "Spent index",
+        description: "The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-tweak-index",
+        method: "GET",
+        path: "/blindbit/mainnet/tweak-index/{height}",
+        summary: "Tweak index",
+        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No\ntransaction is kept below 1,000 sats, Bitview's dust floor.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-tweaks",
+        method: "GET",
+        path: "/blindbit/mainnet/tweaks/{height}",
+        summary: "Cut-through tweaks",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No\ntransaction is kept below 1,000 sats, Bitview's dust floor.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blindbit-utxos",
+        method: "GET",
+        path: "/blindbit/mainnet/utxos/{height}",
+        summary: "Taproot outputs",
+        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block",
         method: "GET",
         path: "/api/block/{hash}",
@@ -1244,6 +1349,18 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
         ],
         request_body: None,
+    },
+    Command {
+        name: "post-blindbit-forward-tx",
+        method: "POST",
+        path: "/blindbit/mainnet/forward-tx",
+        summary: "Broadcast transaction",
+        description: "Submits a raw transaction, `{\"data\": \"<hex>\"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: Some(RequestBody { value_name: "ForwardTx", required: true, content_type: "application/json" }),
     },
     Command {
         name: "post-tx",

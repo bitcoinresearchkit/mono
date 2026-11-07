@@ -168,10 +168,11 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             (true, _) => "post_text",
         };
 
-        let body_arg = if is_post && endpoint.request_body.is_some() {
-            ", body"
-        } else {
-            ""
+        // A body goes as its declared media type, a JSON one serialized.
+        let body_arg = match endpoint.request_body.as_ref().filter(|_| is_post) {
+            Some(body) if body.is_json() => format!(", json.dumps(body), '{}'", body.content_type),
+            Some(body) => format!(", body, '{}'", body.content_type),
+            None => String::new(),
         };
 
         // Series data gets the same helpers however it is fetched.

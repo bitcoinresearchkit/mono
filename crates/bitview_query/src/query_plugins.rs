@@ -22,6 +22,8 @@ use bitview_plugin_pools::{HasPools, Vecs as Pools};
 #[cfg(feature = "price")]
 use bitview_plugin_price::{HasPrice, Vecs as Price};
 #[cfg(feature = "chain")]
+use bitview_plugin_silent_payments::{HasSilentPayments, Vecs as SilentPayments};
+#[cfg(feature = "chain")]
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
 #[cfg(any(feature = "chain", feature = "urpd"))]
 use bitview_plugin_utxo_set::{HasUtxoSet, Vecs as UtxoSet};
@@ -51,6 +53,8 @@ pub struct QueryPlugins<'a> {
     pub(crate) pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
     pub(crate) price: &'a Price<Ro>,
+    #[cfg(feature = "chain")]
+    pub(crate) silent_payments: &'a SilentPayments<Ro>,
     #[cfg(feature = "chain")]
     pub(crate) transactions: &'a Transactions<Ro>,
     #[cfg(feature = "urpd")]
@@ -88,6 +92,8 @@ impl<'a> QueryPlugins<'a> {
             pools: plugins.pools(),
             #[cfg(feature = "price")]
             price: plugins.price(),
+            #[cfg(feature = "chain")]
+            silent_payments: plugins.silent_payments(),
             #[cfg(feature = "chain")]
             transactions: plugins.transactions(),
             #[cfg(feature = "urpd")]

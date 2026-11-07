@@ -5,7 +5,8 @@ crate::bytes::hex_bytes! {
     /// A tweak's x coordinate, kept apart from its parity byte (a [`Tweak`]'s first), which then
     /// compresses to a bit.
     TweakX(32),
-    /// The first 4 bytes of a Taproot output key: a silent payments wallet matches the key it
-    /// computes against them, a false match about once in 4 billion outputs.
-    TaprootPrefix(4),
+    /// A spend of a Taproot output as BlindBit's light clients test for it: the first 8 bytes of
+    /// `sha256(txid ‖ vout ‖ block hash)`, the txid and the spending block's hash in internal
+    /// byte order, the vout little-endian.
+    SpentOutputHash(8),
 }

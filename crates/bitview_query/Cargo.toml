@@ -20,6 +20,7 @@ chain = [
     "dep:bitview_plugin_mining",
     "dep:bitview_plugin_outputs",
     "dep:bitview_plugin_pools",
+    "dep:bitview_plugin_silent_payments",
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_set",
 ]
@@ -57,6 +58,7 @@ bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }
 bitview_plugin_outputs = { workspace = true, optional = true }
 bitview_plugin_pools = { workspace = true, optional = true }
+bitview_plugin_silent_payments = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_plugin_utxo_set = { workspace = true, optional = true }

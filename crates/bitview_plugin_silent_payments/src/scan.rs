@@ -1,34 +1,54 @@
 use std::{iter, ops::Range};
 
-use bitcoin::{Transaction, consensus::deserialize, secp256k1::PublicKey};
+use bitcoin::{Block, Transaction, consensus::deserialize, hashes::Hash, secp256k1::PublicKey};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Sats, TaprootPrefix, Tweak, TxIndex};
+use brk_types::{BlkPosition, OutputType, Sats, Tweak, TxIndex};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::tweak::{Prevout, Tweaker, input_key, smallest_outpoint};
+use crate::{
+    filters::{filter, new_outputs, spent_outputs},
+    tweak::{Prevout, Tweaker, input_key, smallest_outpoint},
+};
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
 pub const TAPROOT_ACTIVATION: usize = 709_632;
 
 /// The least a Taproot output holds for its transaction to be kept: one whose Taproot outputs all
 /// hold less (mostly inscription and rune postage, 330 to 999 sats) is left out everywhere. A kept
-/// transaction keeps all its Taproot outputs' prefixes, whatever they hold: a wallet matches its
-/// outputs in order.
+/// transaction keeps all its Taproot outputs, whatever they hold: a wallet matches its outputs in
+/// order.
 pub const DUST_FLOOR: Sats = Sats::_1K;
 
 /// An eligible transaction.
 pub struct Eligible {
     pub tx_index: TxIndex,
     pub tweak: Tweak,
-    /// Its Taproot outputs' key prefixes, in output order.
-    pub prefixes: Vec<TaprootPrefix>,
 }
 
-/// A block's eligible transactions, in block order.
-pub type BlockTweaks = Vec<Eligible>;
+/// A block's scanning data.
+pub struct BlockScan {
+    /// Its eligible transactions, in block order.
+    pub eligible: Vec<Eligible>,
+    /// Its new Taproot output keys' filter.
+    pub new_outputs_filter: Vec<u8>,
+    /// Its spends of Taproot outputs' filter.
+    pub spent_outputs_filter: Vec<u8>,
+}
+
+impl BlockScan {
+    /// A block before Taproot's activation: nothing to scan, and empty filters (an empty set's
+    /// filter is its count alone, whatever the key).
+    fn before_activation() -> Self {
+        Self {
+            eligible: Vec::new(),
+            new_outputs_filter: filter::<&[u8]>(&[0; 32], []),
+            spent_outputs_filter: filter::<&[u8]>(&[0; 32], []),
+        }
+    }
+}
 
 /// Whether BIP352 may count a key for an input spending this output type.
 fn may_have_key(output_type: OutputType) -> bool {
@@ -38,11 +58,26 @@ fn may_have_key(output_type: OutputType) -> bool {
     )
 }
 
-/// Each block's tweaks over `heights`, in block order: the blocks' indexer columns read in large
-/// range reads, then the blocks and their transactions scanned in parallel.
-pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Result<Vec<BlockTweaks>> {
+/// Whether a transaction may be eligible and is kept, from its outputs' types and values and the
+/// types its inputs spend: a Taproot output holding at least the [`DUST_FLOOR`], and an input
+/// BIP352 may count a key for.
+pub(crate) fn is_candidate(
+    output_types: &[OutputType],
+    output_values: &[Sats],
+    input_types: &[OutputType],
+) -> bool {
+    output_types
+        .iter()
+        .zip(output_values)
+        .any(|(&output_type, &value)| output_type == OutputType::P2TR && value >= DUST_FLOOR)
+        && input_types.iter().any(|&output_type| may_have_key(output_type))
+}
+
+/// Each block's scanning data over `heights`, in block order: the blocks' indexer columns read in
+/// large range reads, then the blocks and their transactions scanned in parallel.
+pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Result<Vec<BlockScan>> {
     let scanned = heights.start.max(TAPROOT_ACTIVATION)..heights.end;
-    let mut blocks = iter::repeat_with(Vec::new)
+    let mut blocks = iter::repeat_with(BlockScan::before_activation)
         .take(heights.len() - scanned.len())
         .collect::<Vec<_>>();
     if scanned.is_empty() {
@@ -75,8 +110,6 @@ struct Columns {
     /// Each transaction's first output, then the range's end.
     txout_bounds: Vec<usize>,
     txout_base: usize,
-    tx_positions: Vec<BlkPosition>,
-    tx_sizes: Vec<Bytes32>,
     output_types: Vec<OutputType>,
     output_values: Vec<Sats>,
     /// The output type each input spends.
@@ -133,8 +166,6 @@ impl Columns {
             txin_base,
             txout_bounds,
             txout_base,
-            tx_positions: txs.position.collect_range_at(tx_base, tx_end),
-            tx_sizes: txs.total_size.collect_range_at(tx_base, tx_end),
             output_types: vecs.outputs.output_type.collect_range_at(txout_base, txout_end),
             output_values: vecs.outputs.value.collect_range_at(txout_base, txout_end),
             input_types: vecs.inputs.output_type.collect_range_at(txin_base, txin_end),
@@ -154,17 +185,34 @@ impl Columns {
         self.txout_bounds[tx] - self.txout_base..self.txout_bounds[tx + 1] - self.txout_base
     }
 
-    /// Whether the transaction may be eligible and is kept: a Taproot output holding at least the
-    /// [`DUST_FLOOR`], and an input BIP352 may count a key for.
+    /// The block's transactions.
+    fn txs(&self, block: usize) -> Range<usize> {
+        self.tx_bounds[block]..self.tx_bounds[block + 1]
+    }
+
+    /// The block's inputs, from the range's first input.
+    fn block_inputs(&self, block: usize) -> Range<usize> {
+        let txs = self.txs(block);
+        let [start, end] =
+            [txs.start, txs.end].map(|tx| self.txin_bounds[tx - self.tx_base] - self.txin_base);
+        start..end
+    }
+
+    /// The block's outputs, from the range's first output.
+    fn block_outputs(&self, block: usize) -> Range<usize> {
+        let txs = self.txs(block);
+        let [start, end] =
+            [txs.start, txs.end].map(|tx| self.txout_bounds[tx - self.tx_base] - self.txout_base);
+        start..end
+    }
+
     fn is_candidate(&self, tx: usize) -> bool {
         let outputs = self.outputs(tx);
-        self.output_types[outputs.clone()]
-            .iter()
-            .zip(&self.output_values[outputs])
-            .any(|(&output_type, &value)| output_type == OutputType::P2TR && value >= DUST_FLOOR)
-            && self.input_types[self.inputs(tx)]
-                .iter()
-                .any(|&output_type| may_have_key(output_type))
+        is_candidate(
+            &self.output_types[outputs.clone()],
+            &self.output_values[outputs],
+            &self.input_types[self.inputs(tx)],
+        )
     }
 }
 
@@ -185,37 +233,43 @@ struct Scanner<'a> {
 }
 
 impl Scanner<'_> {
-    /// The block's eligible transactions, its coinbase left out: it spends nothing.
-    fn block(&self, block: usize) -> Result<BlockTweaks> {
+    /// The block's eligible transactions (its coinbase left out: it spends nothing) and filters,
+    /// from its bytes in Core's block files, parsed once.
+    fn block(&self, block: usize) -> Result<BlockScan> {
         let columns = self.columns;
-        let txs = columns.tx_bounds[block] + 1..columns.tx_bounds[block + 1];
-        let candidates = txs.filter(|&tx| columns.is_candidate(tx)).collect::<Vec<_>>();
-        if candidates.is_empty() {
-            return Ok(Vec::new());
-        }
         let (position, size) = columns.blocks[block];
         let bytes = self
             .indexer
             .reader()
             .read_raw_bytes(position, u32::from(size) as usize)?;
-        let tweaks = candidates
+        let parsed = deserialize::<Block>(&bytes)?;
+        let txs = columns.txs(block);
+        debug_assert_eq!(parsed.txdata.len(), txs.len(), "transactions of block {block}");
+        let candidates = (txs.start + 1..txs.end)
+            .filter(|&tx| columns.is_candidate(tx))
+            .collect::<Vec<_>>();
+        let eligible = candidates
             .into_par_iter()
             .map(|tx| {
-                let offset = columns.tx_positions[tx - columns.tx_base].offset() - position.offset();
-                let start = offset as usize;
-                let end = start + u32::from(columns.tx_sizes[tx - columns.tx_base]) as usize;
-                let transaction = bytes
-                    .get(start..end)
-                    .ok_or(Error::Internal("Transaction past its block's bytes"))?;
-                let transaction = deserialize::<Transaction>(transaction)?;
-                Ok(self.tweak(tx, &transaction)?.map(|tweak| Eligible {
-                    tx_index: TxIndex::from(tx),
-                    tweak,
-                    prefixes: self.prefixes(tx, &transaction),
-                }))
+                Ok(self
+                    .tweak(tx, &parsed.txdata[tx - txs.start])?
+                    .map(|tweak| Eligible {
+                        tx_index: TxIndex::from(tx),
+                        tweak,
+                    }))
             })
             .collect::<Result<Vec<_>>>()?;
-        Ok(tweaks.into_iter().flatten().collect())
+        let block_hash = parsed.block_hash().to_byte_array();
+        let output_types = &columns.output_types[columns.block_outputs(block)];
+        let input_types = &columns.input_types[columns.block_inputs(block)];
+        Ok(BlockScan {
+            eligible: eligible.into_iter().flatten().collect(),
+            new_outputs_filter: filter(&block_hash, new_outputs(&parsed.txdata, output_types)),
+            spent_outputs_filter: filter(
+                &block_hash,
+                spent_outputs(&block_hash, &parsed.txdata, input_types),
+            ),
+        })
     }
 
     /// The transaction's tweak, or `None` when it isn't eligible: it spends a segwit output above
@@ -253,28 +307,18 @@ impl Scanner<'_> {
             .tweak(&smallest_outpoint, &keys.iter().collect::<Vec<_>>()))
     }
 
-    /// The key prefixes of the transaction's Taproot outputs, as the indexer classifies them.
-    fn prefixes(&self, tx: usize, transaction: &Transaction) -> Vec<TaprootPrefix> {
-        let types = &self.columns.output_types[self.columns.outputs(tx)];
-        debug_assert_eq!(types.len(), transaction.output.len(), "outputs of transaction {tx}");
-        transaction
-            .output
-            .iter()
-            .zip(types)
-            .filter(|(_, output_type)| **output_type == OutputType::P2TR)
-            // `OP_1`, a 32-byte push, then the key.
-            .map(|(output, _)| TaprootPrefix::from(&output.script_pubkey.as_bytes()[2..6]))
-            .collect()
-    }
-
     fn prevout(&self, output_type: OutputType, type_index: TypeIndex) -> Option<Prevout> {
         let addrs = &self.indexer.vecs().addrs;
         let index = usize::from(type_index);
         match output_type {
-            OutputType::P2PKH => addrs.p2pkh.bytes.collect_one_at(index).map(|hash| Prevout::P2PKH(*hash)),
+            OutputType::P2PKH => {
+                addrs.p2pkh.bytes.collect_one_at(index).map(|hash| Prevout::P2PKH(*hash))
+            }
             OutputType::P2SH => Some(Prevout::P2SH),
             OutputType::P2WPKH => Some(Prevout::P2WPKH),
-            OutputType::P2TR => addrs.p2tr.bytes.collect_one_at(index).map(|key| Prevout::P2TR(*key)),
+            OutputType::P2TR => {
+                addrs.p2tr.bytes.collect_one_at(index).map(|key| Prevout::P2TR(*key))
+            }
             _ => None,
         }
     }

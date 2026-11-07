@@ -88,8 +88,18 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     }
 
     let (verb, args) = if post {
-        let body_arg = if body.is_some() { "body" } else { "''" };
-        ("post", format!("path, {body_arg}, {options}"))
+        // A body goes as its declared media type, a JSON one serialized.
+        let args = match body {
+            Some(body) => {
+                let value = if body.is_json() { "JSON.stringify(body)" } else { "body" };
+                format!(
+                    "path, {value}, {{ signal, contentType: '{}' }}",
+                    body.content_type
+                )
+            }
+            None => format!("path, '', {options}"),
+        };
+        ("post", args)
     } else {
         ("get", format!("path, {options}"))
     };

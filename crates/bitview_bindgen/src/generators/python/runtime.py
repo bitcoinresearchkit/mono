@@ -47,12 +47,19 @@ class BitviewClientBase:
                 self._conn = HTTPConnection(self._host, timeout=self._timeout)
         return self._conn
 
-    def _request(self, method: str, path: str, body: Optional[str] = None) -> bytes:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        body: Optional[str] = None,
+        content_type: Optional[str] = None,
+    ) -> bytes:
         """A failed exchange closes the connection, which `http.client` would otherwise leave
         mid-request for every later call."""
         try:
             conn = self._connect()
-            conn.request(method, self._prefix + path, body=body)
+            headers = {"Content-Type": content_type} if content_type else {}
+            conn.request(method, self._prefix + path, body=body, headers=headers)
             res = conn.getresponse()
             data = res.read()
         except (HTTPException, OSError) as e:
@@ -71,14 +78,14 @@ class BitviewClientBase:
     def get_text(self, path: str) -> str:
         return self.get(path).decode()
 
-    def post(self, path: str, body: str) -> bytes:
-        return self._request("POST", path, body)
+    def post(self, path: str, body: str = "", content_type: Optional[str] = None) -> bytes:
+        return self._request("POST", path, body, content_type)
 
-    def post_json(self, path: str, body: str) -> Any:
-        return json.loads(self.post(path, body))
+    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None) -> Any:
+        return json.loads(self.post(path, body, content_type))
 
-    def post_text(self, path: str, body: str) -> str:
-        return self.post(path, body).decode()
+    def post_text(self, path: str, body: str = "", content_type: Optional[str] = None) -> str:
+        return self.post(path, body, content_type).decode()
 
     def close(self) -> None:
         if self._conn:

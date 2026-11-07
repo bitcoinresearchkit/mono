@@ -23,6 +23,8 @@ use bitview_plugin_pools::HasPools;
 #[cfg(feature = "price")]
 use bitview_plugin_price::HasPrice;
 #[cfg(feature = "chain")]
+use bitview_plugin_silent_payments::HasSilentPayments;
+#[cfg(feature = "chain")]
 use bitview_plugin_transactions::HasTransactions;
 #[cfg(any(feature = "chain", feature = "urpd"))]
 use bitview_plugin_utxo_set::HasUtxoSet;
@@ -103,6 +105,11 @@ plugin_capability!(
 );
 plugin_capability!(
     #[cfg(feature = "chain")]
+    SupportsSilentPayments,
+    HasSilentPayments
+);
+plugin_capability!(
+    #[cfg(feature = "chain")]
     SupportsTransactions,
     HasTransactions
 );
@@ -129,6 +136,7 @@ pub trait QueryPluginSet: PluginSet + Traversable {
         + SupportsOutputs
         + SupportsPools
         + SupportsPrice
+        + SupportsSilentPayments
         + SupportsTransactions
         + SupportsUtxoSet
         + ?Sized;
@@ -152,6 +160,7 @@ where
         + SupportsOutputs
         + SupportsPools
         + SupportsPrice
+        + SupportsSilentPayments
         + SupportsTransactions
         + SupportsUtxoSet,
 {

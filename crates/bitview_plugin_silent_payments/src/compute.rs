@@ -2,13 +2,13 @@ use std::ops::Range;
 
 use bitview_compute::write_locked;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_types::{TweakX, Version};
-use vecdb::{AnyVec, ReadableVec, VecIndex, WritableVec};
+use brk_types::{Height, TweakX, Version};
+use vecdb::{AnyVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, WritableVec};
 
 use crate::{
-    Dependencies, TaprootPrefixIndex, TweakIndex, Vecs,
+    Dependencies, FilterByteIndex, TweakIndex, Vecs,
     scan::{TAPROOT_ACTIVATION, scan},
     tweak::Tweaker,
 };
@@ -52,19 +52,24 @@ impl ComputePlugin for Vecs {
         let tweaker = Tweaker::default();
         for heights in batches(start..txs.first_tx_index.len()) {
             for block in scan(indexer, &tweaker, heights)? {
-                self.first_tweak_index
-                    .push(TweakIndex::from(self.tx_index.len()));
-                for eligible in block {
+                for eligible in block.eligible {
                     let [parity, x @ ..] = *eligible.tweak;
                     self.tx_index.push(eligible.tx_index);
                     self.tweak_parity.push(parity);
                     self.tweak_x.push(TweakX::from(x));
-                    self.first_taproot_prefix_index
-                        .push(TaprootPrefixIndex::from(self.taproot_prefix.len()));
-                    for prefix in eligible.prefixes {
-                        self.taproot_prefix.push(prefix);
-                    }
                 }
+                for byte in block.new_outputs_filter {
+                    self.new_outputs_filter.push(byte);
+                }
+                for byte in block.spent_outputs_filter {
+                    self.spent_outputs_filter.push(byte);
+                }
+                self.end_tweak_index
+                    .push(TweakIndex::from(self.tx_index.len()));
+                self.end_new_outputs_filter_index
+                    .push(FilterByteIndex::from(self.new_outputs_filter.len()));
+                self.end_spent_outputs_filter_index
+                    .push(FilterByteIndex::from(self.spent_outputs_filter.len()));
             }
             write_locked(self.stored_mut(), exit)?;
         }
@@ -74,32 +79,26 @@ impl ComputePlugin for Vecs {
 
 impl Vecs {
     /// Validates every column against `version`, then keeps the blocks below `max_from` (or all
-    /// stored), their rows and their rows' prefixes. Returns the first block to scan.
+    /// stored), their rows and their filters' bytes. Returns the first block to scan.
     fn prepare(&mut self, version: Version, max_from: usize, exit: &Exit) -> Result<usize> {
         let _lock = exit.lock();
         for vec in self.stored_mut() {
             vec.any_validate_computed_version_or_reset(version)?;
         }
-        let height = max_from.min(self.first_tweak_index.len());
-        let rows = self
-            .first_tweak_index
-            .collect_one_at(height)
-            .map_or(self.tx_index.len(), usize::from);
-        let prefixes = self
-            .first_taproot_prefix_index
-            .collect_one_at(rows)
-            .map_or(self.taproot_prefix.len(), usize::from);
-        debug_assert!(
-            [self.tweak_parity.len(), self.tweak_x.len(), self.first_taproot_prefix_index.len()]
-                .iter()
-                .all(|&len| len == self.tx_index.len())
-        );
-        self.first_tweak_index.truncate_if_needed_at(height)?;
+        let height = max_from.min(self.end_tweak_index.len());
+        let rows = end_before(&self.end_tweak_index, height)?;
+        let new_outputs = end_before(&self.end_new_outputs_filter_index, height)?;
+        let spent_outputs = end_before(&self.end_spent_outputs_filter_index, height)?;
+        self.end_tweak_index.truncate_if_needed_at(height)?;
+        self.end_new_outputs_filter_index
+            .truncate_if_needed_at(height)?;
+        self.end_spent_outputs_filter_index
+            .truncate_if_needed_at(height)?;
         self.tx_index.truncate_if_needed_at(rows)?;
         self.tweak_parity.truncate_if_needed_at(rows)?;
         self.tweak_x.truncate_if_needed_at(rows)?;
-        self.first_taproot_prefix_index.truncate_if_needed_at(rows)?;
-        self.taproot_prefix.truncate_if_needed_at(prefixes)?;
+        self.new_outputs_filter.truncate_if_needed_at(new_outputs)?;
+        self.spent_outputs_filter.truncate_if_needed_at(spent_outputs)?;
         for vec in self.stored_mut() {
             vec.write()?;
         }
@@ -107,9 +106,23 @@ impl Vecs {
     }
 }
 
+/// How much of a data column the blocks below `height` hold: the end of the block before it.
+fn end_before<I: PcoVecValue>(ends: &PcoVec<Height, I>, height: usize) -> Result<usize>
+where
+    usize: From<I>,
+{
+    Ok(match height.checked_sub(1) {
+        Some(last) => usize::from(
+            ends.collect_one_at(last)
+                .ok_or(Error::Internal("Silent payments block end missing"))?,
+        ),
+        None => 0,
+    })
+}
+
 /// `range` in batches ending on multiples of [`BATCH_HEIGHTS`], the blocks before Taproot's
 /// activation (which hold no rows) in one.
-fn batches(range: Range<usize>) -> impl Iterator<Item = Range<usize>> {
+pub(crate) fn batches(range: Range<usize>) -> impl Iterator<Item = Range<usize>> {
     let mut at = range.start;
     std::iter::from_fn(move || {
         (at < range.end).then(|| {

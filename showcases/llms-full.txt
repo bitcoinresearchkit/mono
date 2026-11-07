@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21749
-- Operations: 98
+- Operations: 107
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -107,6 +107,103 @@ Compact API summary
 Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
 Returns: JSON `value`
+
+### Blindbit
+
+#### GET `/blindbit/mainnet/block-hash/{height}`
+
+Block hash
+
+The hash of the block at a height.
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitBlockHash`
+
+#### GET `/blindbit/mainnet/block-height`
+
+Last indexed block
+
+The height of the last indexed block.
+
+Returns: JSON `BlindbitBlockHeight`
+
+#### GET `/blindbit/mainnet/filter/{kind}/{height}`
+
+Block filter
+
+A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+
+Parameters:
+- `kind` (path, BlindbitFilterKind, required)
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitFilter`
+
+#### POST `/blindbit/mainnet/forward-tx`
+
+Broadcast transaction
+
+Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+
+Request body: `ForwardTx` (required)
+
+Returns: JSON `Txid`
+
+#### GET `/blindbit/mainnet/info`
+
+Server info
+
+The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+
+Returns: JSON `BlindbitInfo`
+
+#### GET `/blindbit/mainnet/spent-index/{height}`
+
+Spent index
+
+The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitSpentIndex`
+
+#### GET `/blindbit/mainnet/tweak-index/{height}`
+
+Tweak index
+
+The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+
+Parameters:
+- `height` (path, Height, required)
+- `dustLimit` (query, integer, optional): Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No transaction is kept below 1,000 sats, Bitview's dust floor.
+
+Returns: JSON `Tweak[]`
+
+#### GET `/blindbit/mainnet/tweaks/{height}`
+
+Cut-through tweaks
+
+`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+
+Parameters:
+- `height` (path, Height, required)
+- `dustLimit` (query, integer, optional): Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No transaction is kept below 1,000 sats, Bitview's dust floor.
+
+Returns: JSON `Tweak[]`
+
+#### GET `/blindbit/mainnet/utxos/{height}`
+
+Taproot outputs
+
+Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitUtxo[]`
 
 ### Block
 
@@ -1145,6 +1242,50 @@ Returns: JSON `ServerVersion`
 
 `number`
 
+### `BlindbitBlockHash`
+
+- `block_hash`: `BlockHash` (required)
+
+### `BlindbitBlockHeight`
+
+- `block_height`: `Height` (required)
+
+### `BlindbitFilter`
+
+- `block_hash`: `BlockHash` (required)
+- `block_height`: `Height` (required)
+- `data`: `Hex` (required) — The filter: the element count, then the coded deltas.
+- `filter_type`: `integer` (required) — Always 4, BlindBit's Taproot-only filters.
+
+### `BlindbitFilterKind`
+
+`new-utxos | spent`
+
+### `BlindbitInfo`
+
+- `network`: `string` (required) — Bitcoin Core's chain name: `main`.
+- `height`: `Height` (required) — The last indexed block.
+- `tweaks_only`: `boolean` (required) — Whether only tweaks are served: `false`, filters and UTXOs are too.
+- `tweaks_full_basic`: `boolean` (required) — Whether the full tweak index is served without dust limits: `false`, it takes them.
+- `tweaks_full_with_dust_filter`: `boolean` (required) — Whether the full tweak index takes a dust limit: `true`.
+- `tweaks_cut_through_with_dust_filter`: `boolean` (required) — Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust limit: `true`.
+
+### `BlindbitSpentIndex`
+
+- `block_hash`: `BlockHash` (required)
+- `data`: `SpentOutputHash[]` (required)
+
+### `BlindbitUtxo`
+
+- `txid`: `Txid` (required)
+- `vout`: `Vout` (required)
+- `value`: `Sats` (required)
+- `scriptpubkey`: `Hex` (required) — Its script, `OP_1` and a 32-byte push of the output key.
+- `block_height`: `Height` (required)
+- `block_hash`: `BlockHash` (required)
+- `timestamp`: `Timestamp` (required) — The block's header time.
+- `spent`: `boolean` (required) — Whether a published block spends it.
+
 ### `BlockExtras`
 
 - `totalFees`: `Sats` (required) — Total fees in satoshis
@@ -1430,6 +1571,10 @@ Returns: JSON `ServerVersion`
 ### `Format`
 
 `json | csv`
+
+### `ForwardTx`
+
+- `data`: `string` (required) — The raw transaction, hexadecimal.
 
 ### `HashrateEntry`
 
@@ -1814,6 +1959,10 @@ Returns: JSON `ServerVersion`
 
 `integer`
 
+### `SpentOutputHash`
+
+`string`
+
 ### `SyncStatus`
 
 - `indexed_height`: `Height` (required) — Height of the last indexed block
@@ -1848,6 +1997,10 @@ Returns: JSON `ServerVersion`
 ### `TreeNode`
 
 `object | SeriesLeafWithSchema`
+
+### `Tweak`
+
+`string`
 
 ### `TxIn`
 

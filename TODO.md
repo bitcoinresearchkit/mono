@@ -209,18 +209,14 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
-- Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-07): every eligible
-  transaction since Taproot's activation with its 33-byte tweak, per-block boundaries, off the series tree; matches
-  BIP352's vectors and BlindBit's oracle (44 heights, 47,628 tweaks); first run 783 s (dev), 191M rows, 5.9 GiB, a
-  block ~18 ms. Decided: serve every block back to activation and snapshots of the unspent ones plus diffs, disk
-  kept low. Measured (1/100 blocks): 352M P2TR outputs in eligible txs, 69% to reused addresses; at the tip 38.5M
-  txs hold an unspent P2TR output, 28.3M at 546+ sats, 4.6M at 1,000+. Stored now (2026-11-07): each Taproot
-  output's 4-byte key prefix (365M) and the tweak as x plus a parity column: 7.1 GiB, 795 s (dev); spent state
-  stays the Outputs plugin's. Decided (2026-11-07): a 1,000-sat dust floor everywhere (`DUST_FLOOR`): stored
-  rows need a Taproot output of 1,000+ sats (131.8M rows, 290.4M prefixes, 5.1 GiB, 589 s; matches BlindBit's
-  `dustLimit=1000` on 44 heights); snapshots keep a tx while one such output is unspent; the mempool's tweaks use
-  it too. Then, one by one: the wire format and routes (cacheable, no curve math per request), the mempool's
-  tweaks.
+- Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-08): BlindBit oracle v1's
+  HTTP API under `/blindbit/mainnet/` (the public oracle's paths; spdk/Dana, Bull Bitcoin, blindbitd), a
+  1,000-sat dust floor everywhere (`DUST_FLOOR`), off the series tree. Stored: each kept tx's tweak (x + parity
+  column), each block's two BIP158 filters, per-height ends. Checked on 44 heights against silentpayments.dev,
+  Core's BIP158 vectors and BIP352's. Council: 3 rounds, 8.0/8.1 last (`_notes/council-blindbit/log.md`; integration
+  tests and dustLimit URL canonicalization declined). Waiting on you: cache `/tweaks` (cut-through) and `/utxos`
+  of settled heights longer (they say what's spent as of the tip, so each block changes every height's tag; an
+  older answer is a safe superset). Left: the draft index-server spec's `compute-index` once it settles.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
   always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of

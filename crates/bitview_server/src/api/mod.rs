@@ -14,6 +14,8 @@ use crate::{Error, extended::TransformResponseExtended, params::Empty};
 #[cfg(feature = "chain")]
 mod addrs;
 #[cfg(feature = "chain")]
+mod blindbit;
+#[cfg(feature = "chain")]
 mod blocks;
 #[cfg(feature = "chain")]
 pub mod broadcast;
@@ -78,6 +80,7 @@ impl ApiRoutes for ApiRouter<AppState> {
             mempool::add_routes,
             transactions::add_routes,
             utxo_set::add_routes,
+            blindbit::add_routes,
         ]
         .into_iter()
         .fold(router, |router, add| add(router));
