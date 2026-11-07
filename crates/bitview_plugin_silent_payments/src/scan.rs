@@ -1,10 +1,10 @@
-use std::ops::Range;
+use std::{iter, ops::Range};
 
 use bitcoin::{Transaction, consensus::deserialize, secp256k1::PublicKey};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Tweak, TxIndex};
+use brk_types::{BlkPosition, OutputType, TaprootPrefix, Tweak, TxIndex};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -13,8 +13,16 @@ use crate::tweak::{Prevout, Tweaker, input_key, smallest_outpoint};
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
 pub const TAPROOT_ACTIVATION: usize = 709_632;
 
-/// A block's eligible transactions with their tweaks, in block order.
-pub type BlockTweaks = Vec<(TxIndex, Tweak)>;
+/// An eligible transaction.
+pub struct Eligible {
+    pub tx_index: TxIndex,
+    pub tweak: Tweak,
+    /// Its Taproot outputs' key prefixes, in output order.
+    pub prefixes: Vec<TaprootPrefix>,
+}
+
+/// A block's eligible transactions, in block order.
+pub type BlockTweaks = Vec<Eligible>;
 
 /// Whether BIP352 may count a key for an input spending this output type.
 fn may_have_key(output_type: OutputType) -> bool {
@@ -28,7 +36,9 @@ fn may_have_key(output_type: OutputType) -> bool {
 /// range reads, then the blocks and their transactions scanned in parallel.
 pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Result<Vec<BlockTweaks>> {
     let scanned = heights.start.max(TAPROOT_ACTIVATION)..heights.end;
-    let mut blocks = vec![Vec::new(); heights.len() - scanned.len()];
+    let mut blocks = iter::repeat_with(Vec::new)
+        .take(heights.len() - scanned.len())
+        .collect::<Vec<_>>();
     if scanned.is_empty() {
         return Ok(blocks);
     }
@@ -185,8 +195,12 @@ impl Scanner<'_> {
                 let transaction = bytes
                     .get(start..end)
                     .ok_or(Error::Internal("Transaction past its block's bytes"))?;
-                self.tweak(tx, &deserialize(transaction)?)
-                    .map(|tweak| tweak.map(|tweak| (TxIndex::from(tx), tweak)))
+                let transaction = deserialize::<Transaction>(transaction)?;
+                Ok(self.tweak(tx, &transaction)?.map(|tweak| Eligible {
+                    tx_index: TxIndex::from(tx),
+                    tweak,
+                    prefixes: self.prefixes(tx, &transaction),
+                }))
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(tweaks.into_iter().flatten().collect())
@@ -225,6 +239,20 @@ impl Scanner<'_> {
         Ok(self
             .tweaker
             .tweak(&smallest_outpoint, &keys.iter().collect::<Vec<_>>()))
+    }
+
+    /// The key prefixes of the transaction's Taproot outputs, as the indexer classifies them.
+    fn prefixes(&self, tx: usize, transaction: &Transaction) -> Vec<TaprootPrefix> {
+        let types = &self.columns.output_types[self.columns.outputs(tx)];
+        debug_assert_eq!(types.len(), transaction.output.len(), "outputs of transaction {tx}");
+        transaction
+            .output
+            .iter()
+            .zip(types)
+            .filter(|(_, output_type)| **output_type == OutputType::P2TR)
+            // `OP_1`, a 32-byte push, then the key.
+            .map(|(output, _)| TaprootPrefix::from(&output.script_pubkey.as_bytes()[2..6]))
+            .collect()
     }
 
     fn prevout(&self, output_type: OutputType, type_index: TypeIndex) -> Option<Prevout> {

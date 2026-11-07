@@ -4,16 +4,16 @@ use bitview_compute::write_locked;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Version;
+use brk_types::{TweakX, Version};
 use vecdb::{AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use crate::{
-    Dependencies, TweakIndex, Vecs,
+    Dependencies, TaprootPrefixIndex, TweakIndex, Vecs,
     scan::{TAPROOT_ACTIVATION, scan},
     tweak::Tweaker,
 };
 
-/// Blocks scanned between writes: about a hundred megabytes of rows at most.
+/// Blocks scanned between writes: a few hundred megabytes of rows at most.
 const BATCH_HEIGHTS: usize = 1_000;
 
 impl ComputePlugin for Vecs {
@@ -53,9 +53,16 @@ impl ComputePlugin for Vecs {
             for block in scan(indexer, &tweaker, heights)? {
                 self.first_tweak_index
                     .push(TweakIndex::from(self.tx_index.len()));
-                for (tx_index, tweak) in block {
-                    self.tx_index.push(tx_index);
-                    self.tweak.push(tweak);
+                for eligible in block {
+                    let [parity, x @ ..] = *eligible.tweak;
+                    self.tx_index.push(eligible.tx_index);
+                    self.tweak_parity.push(parity);
+                    self.tweak_x.push(TweakX::from(x));
+                    self.first_taproot_prefix_index
+                        .push(TaprootPrefixIndex::from(self.taproot_prefix.len()));
+                    for prefix in eligible.prefixes {
+                        self.taproot_prefix.push(prefix);
+                    }
                 }
             }
             write_locked(self.stored_mut(), exit)?;
@@ -66,7 +73,7 @@ impl ComputePlugin for Vecs {
 
 impl Vecs {
     /// Validates every column against `version`, then keeps the blocks below `max_from` (or all
-    /// stored) and their rows. Returns the first block to scan.
+    /// stored), their rows and their rows' prefixes. Returns the first block to scan.
     fn prepare(&mut self, version: Version, max_from: usize, exit: &Exit) -> Result<usize> {
         let _lock = exit.lock();
         for vec in self.stored_mut() {
@@ -77,10 +84,21 @@ impl Vecs {
             .first_tweak_index
             .collect_one_at(height)
             .map_or(self.tx_index.len(), usize::from);
-        debug_assert_eq!(self.tx_index.len(), self.tweak.len());
+        let prefixes = self
+            .first_taproot_prefix_index
+            .collect_one_at(rows)
+            .map_or(self.taproot_prefix.len(), usize::from);
+        debug_assert!(
+            [self.tweak_parity.len(), self.tweak_x.len(), self.first_taproot_prefix_index.len()]
+                .iter()
+                .all(|&len| len == self.tx_index.len())
+        );
         self.first_tweak_index.truncate_if_needed_at(height)?;
         self.tx_index.truncate_if_needed_at(rows)?;
-        self.tweak.truncate_if_needed_at(rows)?;
+        self.tweak_parity.truncate_if_needed_at(rows)?;
+        self.tweak_x.truncate_if_needed_at(rows)?;
+        self.first_taproot_prefix_index.truncate_if_needed_at(rows)?;
+        self.taproot_prefix.truncate_if_needed_at(prefixes)?;
         for vec in self.stored_mut() {
             vec.write()?;
         }
