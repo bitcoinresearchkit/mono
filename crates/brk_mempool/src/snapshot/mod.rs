@@ -11,7 +11,6 @@ pub mod tx_index;
 use std::{
     hash::Hasher,
     sync::{Arc, OnceLock},
-    time::{Duration, Instant},
 };
 
 pub use block_stats::BlockStats;
@@ -30,11 +29,6 @@ pub use tx_index::TxIndex;
 
 use crate::{JsonBody, json, key::TxKey};
 
-/// How long an incomplete view holds a complete one's fee tiers over, and how long tiers stand
-/// with Core unread: about a block. Past it the fee endpoints answer `StateUpdating` until a
-/// complete view returns.
-const HELD_FEES_MAX: Duration = Duration::from_secs(600);
-
 #[derive(Default)]
 pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
@@ -51,12 +45,10 @@ pub struct Snapshot {
     pub(crate) fee_stats: Arc<[BlockStats]>,
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
-    /// When a complete view last stood behind `fees` and `precise_fees` (this one's build, or for
-    /// tiers held over, the last tick that saw a complete view), and whether this snapshot holds
-    /// them over (built itself from part of the pool, still loading or under a stale template, its
-    /// own blocks after block 0 would quote too low). None before the first complete view.
-    pub(crate) fees_from: Option<Instant>,
-    pub(crate) fees_held: bool,
+    /// Whether a complete view stands behind `fees` and `precise_fees`: this one, or one an
+    /// incomplete view (still loading, or under a stale template: its own blocks after block 0
+    /// would quote too low) holds them over from. None before the first complete view.
+    pub(crate) fees_complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -117,8 +109,7 @@ impl Snapshot {
             block_stats,
             precise_fees,
             fees,
-            fees_from: Some(Instant::now()),
-            fees_held: false,
+            fees_complete: true,
             min_fee,
             key_to_idx,
             chunks,
@@ -136,14 +127,14 @@ impl Snapshot {
     }
 
     /// mempool.space's `/api/v1/fees/recommended` body.
-    pub(crate) fn fees_json(&self, unobserved: Duration) -> Result<JsonBody> {
-        self.ensure_fees(unobserved)?;
+    pub(crate) fn fees_json(&self) -> Result<JsonBody> {
+        self.ensure_fees()?;
         Ok(self.fees_json.get_or_init(|| json::body(&self.fees)).clone())
     }
 
     /// mempool.space's `/api/v1/fees/precise` body.
-    pub(crate) fn precise_fees_json(&self, unobserved: Duration) -> Result<JsonBody> {
-        self.ensure_fees(unobserved)?;
+    pub(crate) fn precise_fees_json(&self) -> Result<JsonBody> {
+        self.ensure_fees()?;
         Ok(self
             .precise_fees_json
             .get_or_init(|| json::body(&self.precise_fees))
@@ -236,17 +227,14 @@ impl Snapshot {
     }
 
     /// [`Self::ensure_projection`], with tiers from a complete view: its own, or one held over
-    /// for at most [`HELD_FEES_MAX`], and Core observed within that long (`unobserved` since: a
-    /// node that can't be read leaves no fresher view than one only partly loaded).
-    pub(crate) fn ensure_fees(&self, unobserved: Duration) -> Result<()> {
+    /// (as long as views stay incomplete, the last one standing; Core unread, the last
+    /// publication's): only before the first complete view are there none.
+    pub(crate) fn ensure_fees(&self) -> Result<()> {
         self.ensure_projection()?;
-        if unobserved > HELD_FEES_MAX {
+        if !self.fees_complete {
             return Err(QueryError::StateUpdating);
         }
-        match self.fees_from {
-            Some(from) if !self.fees_held || from.elapsed() <= HELD_FEES_MAX => Ok(()),
-            _ => Err(QueryError::StateUpdating),
-        }
+        Ok(())
     }
 
     /// A default snapshot is not an observed empty mempool. A real publication

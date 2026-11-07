@@ -28,8 +28,10 @@ use updates::{AddrUpdates, SidecarPushes};
 
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
-/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds.
-const STABLE_READ_WAIT: Duration = Duration::from_millis(10);
+/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds, so a
+/// reader arriving as a block publishes always gets in (with room for a loaded machine); a
+/// catch-up's or a rollback's write holds it longer.
+const STABLE_READ_WAIT: Duration = Duration::from_millis(1_000);
 
 macro_rules! addr_state_vecs {
     ($(($variant:ident, $field:ident, $length:ident, $index:path, $bytes:path)),+ $(,)?) => {

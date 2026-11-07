@@ -1,9 +1,6 @@
 use std::{
     collections::VecDeque,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -21,36 +18,6 @@ const HISTORY_AGE: Duration = Duration::from_secs(120);
 /// A bound on past blocks however fast publications come: eight blocks a second for two minutes.
 const HISTORY_MAX: usize = 8 * 120;
 
-/// When the writer last read Core (a cycle applied), shared by every publication: what it serves
-/// ages from it while Core can't be read.
-pub(crate) struct Observed {
-    epoch: Instant,
-    /// Since `epoch`.
-    at_millis: AtomicU64,
-}
-
-impl Default for Observed {
-    fn default() -> Self {
-        Self {
-            epoch: Instant::now(),
-            at_millis: AtomicU64::new(0),
-        }
-    }
-}
-
-impl Observed {
-    pub(crate) fn now(&self) {
-        let millis = u64::try_from(self.epoch.elapsed().as_millis()).unwrap_or(u64::MAX);
-        self.at_millis.store(millis, Ordering::Relaxed);
-    }
-
-    pub(crate) fn age(&self) -> Duration {
-        self.epoch
-            .elapsed()
-            .saturating_sub(Duration::from_millis(self.at_millis.load(Ordering::Relaxed)))
-    }
-}
-
 /// All published mempool read data. Replaced through one ArcSwap.
 ///
 /// Membership carries its own matching graph. A complete Core template may
@@ -58,7 +25,6 @@ impl Observed {
 #[derive(Clone, Default)]
 pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
-    pub(crate) observed: Arc<Observed>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
     /// Each past served block, by its index, with when it was last served: the current ones

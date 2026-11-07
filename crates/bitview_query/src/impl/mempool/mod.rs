@@ -13,9 +13,9 @@ pub mod rbf;
 
 pub use rbf::ResolvedRbf;
 
-/// The most blocks a pending view corrects a pool behind the pin across: one further behind has
-/// stalled.
-const MAX_POOL_LAG: usize = 6;
+/// The most blocks a pending view corrects a pool behind the pin across, a day's (read once per
+/// publication and pin tip): one further behind tells nothing of what's pending now.
+const MAX_POOL_LAG: usize = 144;
 
 /// A body the pool built once, shared, and its content hash as its identity.
 fn published_json((bytes, hash): JsonBody) -> Result<(Arc<[u8]>, RepresentationId)> {
@@ -49,9 +49,10 @@ impl MempoolTxids {
 impl Query {
     /// `read` of the pool as `pin` sees it ([`PendingView`]): at the pin's tip, or a few blocks
     /// behind it (the moment after blocks publish, before the pool follows) without what they
-    /// settled. Nothing pending (the confirmed data answers alone) with no mempool or before its
-    /// first publication; `StateUpdating` while it can't be seen from the pin (see
-    /// [`Self::pending_view`]), never a confident answer without it.
+    /// settled. Nothing pending (the confirmed data answers alone) with no mempool, before its
+    /// first publication, or with one more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating`
+    /// only for the moment a reorg leaves the pool on a branch the chain left (see
+    /// [`Self::pending_view`]).
     pub(crate) fn with_pending<T: Default>(
         &self,
         mempool: Option<&ReadOnlyState>,
@@ -79,11 +80,12 @@ impl Query {
         Ok(self.pending_view(&mempool, pin)?.map(|view| (mempool, view)))
     }
 
-    /// The pool as `pin` sees it: see [`Self::with_pending`]. None before its first publication.
-    /// `StateUpdating` with a pool the pin can't see: on a branch the chain left (a reorg, until
-    /// the pool follows), ahead of an older pin, or stalled more than [`MAX_POOL_LAG`] blocks
-    /// behind. Behind the pin, made once per publication and pin tip, every read of that moment
-    /// sharing it.
+    /// The pool as `pin` sees it: see [`Self::with_pending`]. None before its first publication,
+    /// or more than [`MAX_POOL_LAG`] blocks behind. `StateUpdating` with a pool the pin can't see:
+    /// on a branch the chain left (a reorg, until the pool follows: a cycle, about a second), or
+    /// ahead of the pin (the pool is read before the pin, so only a reorg between the two).
+    /// Behind the pin, made once per publication and pin tip, every read of that moment sharing
+    /// it.
     pub(crate) fn pending_view(
         &self,
         mempool: &ReadOnlyState,
@@ -103,7 +105,7 @@ impl Query {
         };
         let lengths = pin.lengths();
         if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
-            return Err(Error::StateUpdating);
+            return Ok(None);
         }
         // Every input of the blocks past the pool's tip: the outpoint it spends, and its spender
         // (read once for the moment, by the first read of it).

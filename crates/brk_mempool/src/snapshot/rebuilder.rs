@@ -1,6 +1,6 @@
 //! Builds the writer's graph; only completed candidates become public.
 
-use std::{mem, sync::Arc, time::Instant};
+use std::{mem, sync::Arc};
 
 use brk_types::{FeeRate, Transaction, Txid, Vout};
 use rapidhash::RapidHashSet;
@@ -17,8 +17,6 @@ const NUM_BLOCKS: usize = 8;
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
     chunks: ChunkCache,
-    /// The last tick that saw a complete view, rebuilt or not: held fee tiers expire from it.
-    last_complete: Option<Instant>,
 }
 
 impl Rebuilder {
@@ -41,9 +39,6 @@ impl Rebuilder {
         unloaded: &RapidHashSet<Txid>,
     ) {
         let complete = state.template_only.is_empty() && unloaded.is_empty();
-        if complete {
-            self.last_complete = Some(Instant::now());
-        }
         let snapshot = &self.snapshot;
         if snapshot.ensure_projection().is_ok()
             && snapshot.min_fee == min_fee
@@ -76,11 +71,10 @@ impl Rebuilder {
         // An incomplete view's blocks after block 0 hold part of the pool: the last complete
         // view's blocks stand meanwhile (none before the first), but for this view's own block 0
         // when it is Core's template (exact either way), their tiers worked out again at Core's
-        // current floor, expiring from the last tick that saw a complete view.
+        // current floor.
         if !complete {
             let previous = &self.snapshot;
-            snapshot.fees_from = previous.fees_from.and(self.last_complete);
-            snapshot.fees_held = true;
+            snapshot.fees_complete = previous.fees_complete;
             let fresh = usize::from(!snapshot.block0_packed);
             snapshot.fee_stats = snapshot.block_stats[..fresh.min(snapshot.block_stats.len())]
                 .iter()

@@ -16,6 +16,12 @@ use super::{SnapTx, TxIndex};
 /// cut short: Core 31 keeps a cluster to 64 transactions; an older or other node's can be larger,
 /// linearized whole.
 pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
+    walk_within(txs, seed, |_| true)
+}
+
+/// [`walk`] over the members `keep` accepts alone (`seed` among them): the piece of the
+/// component that stays connected without the rest.
+pub fn walk_within(txs: &[SnapTx], seed: TxIndex, keep: impl Fn(TxIndex) -> bool) -> Vec<TxIndex> {
     debug_assert!(seed.as_usize() < txs.len());
     let mut visited: FxHashSet<TxIndex> = FxHashSet::default();
     visited.insert(seed);
@@ -24,7 +30,7 @@ pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
     while let Some(idx) = stack.pop() {
         let t = &txs[idx.as_usize()];
         for &n in t.parents.iter().chain(t.children.iter()) {
-            if visited.insert(n) {
+            if keep(n) && visited.insert(n) {
                 out.push(n);
                 stack.push(n);
             }

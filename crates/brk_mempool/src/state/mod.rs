@@ -24,6 +24,29 @@ pub struct State {
 }
 
 impl State {
+    /// The pool a clean shutdown saved, back in place behind `graveyard`: each record as an
+    /// arrival (owning its outpoints, then folded in once ready), its tombstone (a tree's pending
+    /// head, saved vanished) exhumed. The first cycle sets it against Core's listing.
+    pub fn restored(graveyard: TxGraveyard, pool: Vec<TxRecord>) -> Self {
+        let mut state = Self {
+            graveyard,
+            ..Self::default()
+        };
+        let mut txids = Vec::with_capacity(pool.len());
+        for TxRecord { tx, entry, .. } in pool {
+            let key = entry.key();
+            state.graveyard.exhume(&entry.txid);
+            state.info.add(entry.vsize, entry.fee);
+            state.outpoint_spends.insert_spends(&tx, key);
+            txids.push(entry.txid);
+            state.txs.insert(tx, entry);
+            let record = state.txs.record_by_key(&key).expect("just inserted");
+            state.addrs.wait(record);
+        }
+        state.fold_ready(txids);
+        state
+    }
+
     pub fn contains_all(&self, live_txids: &[Txid]) -> bool {
         self.txs.len() == live_txids.len() && live_txids.iter().all(|txid| self.txs.contains(txid))
     }

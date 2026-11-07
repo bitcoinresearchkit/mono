@@ -23,7 +23,7 @@ use crate::{
     },
     steps::{Confirmed, applier, preparer::{self, TxAddition}, prevouts},
     state::TxEntry,
-    stores::{TxGraveyard, tx_store::TxRecord},
+    stores::{TxGraveyard, TxStore, tx_store::TxRecord},
     steps::TxRemoval,
 };
 
@@ -906,13 +906,11 @@ fn graveyard_outlives_a_restart() {
         TxEntry::new(&head_info, head_raw.total_size() as u64, true),
     );
     let head_rate = FeeRate::from_milli(7_777);
-    file.save(
-        &graveyard,
-        |txid| (*txid == head.entry.txid).then_some((&head, head_rate)),
-        std::time::Instant::now(),
-    )
-    .unwrap();
-    let loaded = file.load();
+    let pending = |txid: &Txid| (*txid == head.entry.txid).then_some((&head, head_rate));
+    let taken = std::time::Instant::now();
+    file.save(&graveyard, pending, None, taken).unwrap();
+    let (loaded, pool) = file.load();
+    assert!(pool.is_empty(), "a periodic save carries no pool");
     for txid in &buried {
         let (original, back) = (graveyard.get(txid).unwrap(), loaded.get(txid).unwrap());
         assert_eq!(format!("{:?}", back.removal), format!("{:?}", original.removal));
@@ -938,9 +936,22 @@ fn graveyard_outlives_a_restart() {
         [buried[3]]
     );
     assert_eq!(file.saved_revision(), Some(graveyard.revision()));
+    // A clean shutdown's save of the same publication carries the pool, the head pending in it:
+    // a restore puts it back, its tombstone exhumed.
+    let mut txs = TxStore::default();
+    txs.insert(head.tx.clone(), head.entry.clone());
+    file.save(&graveyard, pending, Some(&txs.read_only_clone()), taken)
+        .unwrap();
+    let (loaded, pool) = file.load();
+    assert_eq!(pool.len(), 1);
+    assert_eq!(pool[0].digest, head.digest, "the same body, prevouts too");
+    let state = State::restored(loaded, pool);
+    assert!(state.txs.contains(&head.entry.txid));
+    assert!(state.graveyard.get(&head.entry.txid).is_none(), "exhumed");
+    assert_eq!(state.info.count, 1);
     // Corrupt: set aside, an empty graveyard instead.
     std::fs::write(file.path(), b"not a graveyard").unwrap();
-    assert_eq!(file.load().replacements_recent_first().count(), 0);
+    assert_eq!(file.load().0.replacements_recent_first().count(), 0);
     assert!(file.path().with_extension("unread").exists());
     let _ = std::fs::remove_dir_all(&dir);
 }

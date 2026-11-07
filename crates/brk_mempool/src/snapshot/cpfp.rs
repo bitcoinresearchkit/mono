@@ -19,8 +19,9 @@ impl ReadOnlyState {
     /// isn't pending there. Requires the graph and live
     /// fields to share the same transaction revision and the view's chain tip. A tx whose own
     /// inputs aren't all resolved yet answers `StateUpdating`, alone (its sigops need them; its
-    /// cluster's rates already stand on Core's vsize for any member still resolving), and so does
-    /// one whose cluster a newer block settled part of (until the pool follows it).
+    /// cluster's rates already stand on Core's vsize for any member still resolving). One whose
+    /// cluster a newer block settled part of (the moment before the pool follows it) answers
+    /// without what was settled, linearized again.
     pub fn cpfp_info(&self, txid: &Txid, view: &PendingView) -> Result<Option<CpfpInfo>> {
         let state = self.pool()?.at(view.tip())?;
         let snapshot = &state.graph;
@@ -33,12 +34,11 @@ impl ReadOnlyState {
         let Some(index) = snapshot.idx_of_txid(txid) else {
             return Ok(None);
         };
-        if !view.settles_nothing()
-            && cluster::walk(&snapshot.txs, index)
-                .iter()
-                .any(|member| !view.pending(&snapshot.txs[member.as_usize()].txid))
-        {
-            return Err(Error::StateUpdating);
+        if !view.settles_nothing() {
+            let pending = |member: TxIndex| view.pending(&snapshot.txs[member.as_usize()].txid);
+            if !cluster::walk(&snapshot.txs, index).into_iter().all(pending) {
+                return Ok(Some(snapshot.cpfp_info_within(index, tx.total_sigop_cost, pending)));
+            }
         }
         Ok(Some(snapshot.cpfp_info_at(index, tx.total_sigop_cost)))
     }
@@ -75,8 +75,8 @@ impl Snapshot {
             })
             .collect();
         CpfpInfo::new(
-            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents),
-            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children),
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents, |_| true),
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children, |_| true),
             seed.fee,
             seed.weight,
             sigops,
@@ -91,19 +91,66 @@ impl Snapshot {
         )
     }
 
-    /// DFS from `seed` (exclusive) along `next`, lifted directly to wire-shape `CpfpEntry`s:
-    /// the seed's ancestors or descendants, all of them (its component bounds them).
+    /// [`Self::cpfp_info_at`] over the members `keep` accepts alone (what a newer block didn't
+    /// settle): the piece of the seed's component left, linearized afresh.
+    pub(crate) fn cpfp_info_within(
+        &self,
+        seed_idx: TxIndex,
+        sigops: SigOps,
+        keep: impl Fn(TxIndex) -> bool,
+    ) -> CpfpInfo {
+        let seed = &self.txs[seed_idx.as_usize()];
+        let mut graph = Cluster::default();
+        let members = cluster::load(
+            &self.txs,
+            &cluster::walk_within(&self.txs, seed_idx, &keep),
+            &mut graph,
+        );
+        let seed_local = members
+            .iter()
+            .position(|&member| member == seed_idx)
+            .expect("the seed is a member");
+        // Ordered by modified fees, shown by what each chunk pays, as the snapshot's.
+        let mut chunks = Vec::new();
+        graph.linearize(|txs, _| {
+            let paid = txs.iter().map(|&local| members[u32::from(local) as usize]);
+            chunks.push(CpfpClusterChunk {
+                txs: txs.to_vec(),
+                feerate: cluster::paid_rate(&self.txs, paid),
+            });
+        });
+        CpfpInfo::new(
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.parents, &keep),
+            Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children, &keep),
+            seed.fee,
+            seed.weight,
+            sigops,
+            graph.project_from(
+                CpfpClusterTxIndex::from(seed_local as u32),
+                |local| {
+                    let t = &self.txs[members[local].as_usize()];
+                    (t.txid, t.weight)
+                },
+                chunks,
+            ),
+        )
+    }
+
+    /// DFS from `seed` (exclusive) along `next` through the members `keep` accepts, lifted
+    /// directly to wire-shape `CpfpEntry`s: the seed's ancestors or descendants, all of them (its
+    /// component bounds them).
     fn collect_cpfp_entries(
         txs: &[SnapTx],
         seed: TxIndex,
         next: impl Fn(&SnapTx) -> &[TxIndex],
+        keep: impl Fn(TxIndex) -> bool,
     ) -> Vec<CpfpEntry> {
         let mut visited: FxHashSet<TxIndex> = FxHashSet::default();
         visited.insert(seed);
         let mut out: Vec<CpfpEntry> = Vec::new();
         let mut stack: Vec<TxIndex> = next(&txs[seed.as_usize()]).to_vec();
         while let Some(idx) = stack.pop() {
-            if !visited.insert(idx) {
+            if !keep(idx) || !visited.insert(idx) {
                 continue;
             }
             let t = &txs[idx.as_usize()];

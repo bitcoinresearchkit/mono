@@ -76,6 +76,8 @@ impl Mempool {
                     pool.info.count,
                     loading.elapsed()
                 );
+                // A recovery restores the publication from now on.
+                self.loaded_pool = Vec::new();
             }
             while let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
                 if self.chain.wait(rest) && self.read_only.load().tip() != Some(published_tip()) {
@@ -115,12 +117,9 @@ impl Mempool {
     fn restore_published(&mut self) {
         self.withheld = None;
         let published = self.read_only.load();
-        // Before the first publication, what started it: the graveyard read back, if any.
+        // Before the first publication, what started it: the graveyard and pool read back, if any.
         self.state = published.pool.as_ref().map_or_else(
-            || State {
-                graveyard: self.loaded_graveyard.clone(),
-                ..State::default()
-            },
+            || State::restored(self.loaded_graveyard.clone(), self.loaded_pool.clone()),
             |pool| pool.restore(),
         );
         self.rebuilder.restore(
@@ -224,7 +223,6 @@ impl Mempool {
                 .iter()
                 .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
         self.state.graveyard.end_cycle(&unloaded);
-        self.read_only.load().observed.now();
         self.rebuilder.tick(
             &self.state,
             block_template_txids.as_deref(),
@@ -262,7 +260,12 @@ impl Mempool {
         let file = file.clone();
         thread::spawn(move || {
             if let Err(error) =
-                file.save(&pool.graveyard, |txid| pool.pending_head(txid), pool.published_at)
+                file.save(
+                    &pool.graveyard,
+                    |txid| pool.pending_head(txid),
+                    None,
+                    pool.published_at,
+                )
             {
                 warn!(%error, "mempool graveyard: save failed");
             }
