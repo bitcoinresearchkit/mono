@@ -76,9 +76,8 @@ impl SpendFilter {
 }
 
 impl ReadOnlyState {
-    /// The address's pending statistics, as far as they are known ([`AddrTracker`]).
-    ///
-    /// [`AddrTracker`]: crate::stores::AddrTracker
+    /// The address's pending statistics, as far as they are known: each transaction's outputs
+    /// from its arrival, each input once its prevout resolves.
     pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
         let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {

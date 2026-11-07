@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use brk_types::Transaction;
 
@@ -40,16 +40,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     state.inherit_signaling(&entered);
     state.recheck_signaling(orphaned);
     if !confirmed.is_empty() {
-        state.graveyard.confirm(
-            |txid| confirmed.mined(txid),
-            |txid| confirmed.disconnected(txid),
-            |tombstone| {
-                let tx = &tombstone.record.tx;
-                confirmed
-                    .conflicts(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
-                    .collect()
-            },
-        );
+        state.graveyard.confirm(confirmed);
     }
     // After the blocks, and only when every new one was read: a confirmed conflict outranks a
     // late arrival (with one unread, what vanished stays so).
@@ -65,7 +56,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
     state
         .graveyard
-        .evict_old(|txid| listed.contains(&TxKey::from(txid)));
+        .evict_old(Instant::now(), |txid| listed.contains(&TxKey::from(txid)));
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {

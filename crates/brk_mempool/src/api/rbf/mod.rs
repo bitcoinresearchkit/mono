@@ -208,8 +208,8 @@ impl ReadOnlyState {
         })
     }
 
-    /// `txid`'s tree's root: the newest version the pool knows (the graveyard's
-    /// `newest_known_version` walk), or the replacer that version names when the pool never saw
+    /// `txid`'s tree's root: the newest version the pool knows (following the graveyard's
+    /// `next_version`), or the replacer that version names when the pool never saw
     /// it (a conflict a block confirmed: mempool.space's mined replacement). Past `remaining`,
     /// the newest version the walk reached (`Err`). `roots` remembers every version walked, with
     /// the root it reached: a walk meeting one stops there.

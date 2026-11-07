@@ -93,9 +93,35 @@ impl Confirmed {
         confirmed
     }
 
-    /// Whether a block a reorg took off the chain mined `txid`.
-    pub fn disconnected(&self, txid: &Txid) -> bool {
-        self.disconnected.contains(txid)
+    /// What the new blocks mined.
+    pub fn mined_txids(&self) -> impl Iterator<Item = &Txid> {
+        self.txids.iter()
+    }
+
+    /// What the blocks a reorg took off the chain mined.
+    pub fn disconnected_txids(&self) -> impl Iterator<Item = &Txid> {
+        self.disconnected.iter()
+    }
+
+    /// The confirmed transaction spending `outpoint`.
+    pub fn spender(&self, outpoint: &(Txid, Vout)) -> Option<Txid> {
+        self.spends.get(outpoint).copied()
+    }
+
+    /// Blocks that mined `txids`, spent `spends` (each outpoint with its spender) and took
+    /// `disconnected` off the chain.
+    #[cfg(test)]
+    pub fn of(
+        txids: impl IntoIterator<Item = Txid>,
+        spends: impl IntoIterator<Item = ((Txid, Vout), Txid)>,
+        disconnected: impl IntoIterator<Item = Txid>,
+    ) -> Self {
+        Self {
+            txids: txids.into_iter().collect(),
+            spends: spends.into_iter().collect(),
+            disconnected: disconnected.into_iter().collect(),
+            incomplete: false,
+        }
     }
 
     pub fn mined(&self, txid: &Txid) -> bool {

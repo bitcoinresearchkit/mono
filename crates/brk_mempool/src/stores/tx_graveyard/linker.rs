@@ -99,24 +99,32 @@ impl Linker {
         losers
     }
 
-    /// Whether a listed transaction hasn't loaded yet: one that could have replaced something
-    /// that vanished.
-    pub fn awaits_late_replacer(&self) -> bool {
-        !self.unloaded_since.is_empty()
-    }
-
-    /// Whether `by`, listed and not loaded yet, was listed by the cycle `loser` vanished in (its
-    /// burial at `at`, spending `inputs`): what [`Self::losers`] would tell it, were it to arrive
-    /// instead of confirming.
-    pub fn displaced(&self, loser: &Txid, at: Instant, inputs: &[TxIn], by: &Txid) -> bool {
-        let Some(&listed) = self.unloaded_since.get(by) else {
-            return false;
-        };
-        inputs
-            .iter()
-            .filter_map(|txin| self.unlinked.get(&(txin.txid, txin.vout)))
-            .flatten()
-            .any(|burial| burial.txid == *loser && burial.at == at && listed <= burial.cycle)
+    /// What a confirmed spend displaced among the vanished waiting here: each burial a spender
+    /// (`spender` of an outpoint it spent) listed, and not loaded, by the cycle it vanished in
+    /// would have been told replaced by, had it arrived instead of confirming ([`Self::losers`]'s
+    /// rule). Each as `(loser, its burial, spender)`, still to check against its tombstone.
+    pub fn displaced(
+        &self,
+        spender: impl Fn(&(Txid, Vout)) -> Option<Txid>,
+    ) -> Vec<(Txid, Instant, Txid)> {
+        if self.unloaded_since.is_empty() {
+            return Vec::new();
+        }
+        let mut displaced = Vec::new();
+        for (outpoint, burials) in &self.unlinked {
+            let Some(by) = spender(outpoint) else {
+                continue;
+            };
+            let Some(&listed) = self.unloaded_since.get(&by) else {
+                continue;
+            };
+            for burial in burials {
+                if burial.txid != by && listed <= burial.cycle {
+                    displaced.push((burial.txid, burial.at, by));
+                }
+            }
+        }
+        displaced
     }
 
     /// The cycle's end, with the listed transactions it couldn't load. None: no replacer of what

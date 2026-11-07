@@ -1,18 +1,17 @@
 //! Letting go of tombstones: past their retention, then past the memory cap.
 
-use std::{
-    mem,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use brk_types::Txid;
+use rapidhash::RapidHashSet;
 
 use super::{TxGraveyard, TxTombstone};
+use crate::stores::cow::CowQueue;
 
-/// How long a tombstone outside any replacement tree stays.
+/// How long a lone tombstone stays.
 const RETENTION: Duration = Duration::from_hours(1);
-/// How long a replacement tree stays once its newest version left the pool (mempool.space's):
-/// while that one is pending, the whole tree does.
+/// How long a replacement tree stays once its root left the pool (mempool.space's): while that
+/// one is pending, the whole tree does.
 const TREE_RETENTION: Duration = Duration::from_hours(24);
 /// The memory the graveyard's bodies take at most ([`TxRecord::memory`]). Past it, the oldest lone
 /// tombstones go first: they cost nothing to make (an eviction burst, or a node restarting with an
@@ -20,24 +19,44 @@ const TREE_RETENTION: Duration = Duration::from_hours(24);
 /// replaced versions, each with what it replaced, then the oldest trees. Only a flood of
 /// replacements pushes out older trees' histories, at a price: every replacement pays Core's
 /// incremental relay fee over its size, about 0.2 BTC to fill it.
+///
+/// [`TxRecord::memory`]: crate::stores::tx_store::TxRecord::memory
 const MAX_MEMORY: u64 = 256 << 20;
-/// The longest replacement chain an eviction check follows (the RBF listings' work bound).
-const MAX_WALK: usize = 4_096;
+/// Stale entries a queue may hold past twice the current ones before it drops them all.
+const STALE_SLACK: usize = 1_024;
 
 impl TxGraveyard {
-    /// Whether `tombstone`'s replacer is still known (pending, `live`, or buried): it then stays
-    /// with that replacer's tree.
-    fn replacer_known(&self, txid: &Txid, live: &impl Fn(&Txid) -> bool) -> bool {
-        // A chain that loops (or runs past the walk's bound) ends nowhere pending: none known.
-        let mut remaining = MAX_WALK;
-        self.newest_known_version(*txid, &mut remaining, live)
-            .is_some_and(|root| root != *txid)
+    /// Whether `(at, txid)` is a lone tombstone's current entry: one filed then, replacing none
+    /// and replaced by none.
+    fn lone_at(&self, txid: &Txid, at: Instant) -> bool {
+        self.filed.get(txid) == Some(&at)
+            && !self.predecessors_by_replacer.contains_key(txid)
+            && self
+                .tombstones
+                .get(txid)
+                .is_some_and(|tombstone| tombstone.replaced_by().is_none())
     }
 
-    /// The invariants the type states that its counts and indexes keep: `bytes` sums the bodies,
-    /// `replaced` counts the `Replaced` tombstones, and `predecessors_by_replacer[by]` lists
-    /// exactly those replaced by `by`. O(tombstones), for debug builds.
-    pub(super) fn consistent(&self) -> bool {
+    /// Whether `(at, txid)` is a root's current entry: one filed then, replacing others and
+    /// replaced by none.
+    fn root_at(&self, txid: &Txid, at: Instant) -> bool {
+        self.filed.get(txid) == Some(&at)
+            && self.predecessors_by_replacer.contains_key(txid)
+            && self
+                .tombstones
+                .get(txid)
+                .is_none_or(|tombstone| tombstone.replaced_by().is_none())
+    }
+
+    fn over_cap(&self) -> bool {
+        self.bytes > MAX_MEMORY
+    }
+
+    /// The invariants the type states: `bytes` sums the bodies, `replaced` counts the `Replaced`
+    /// tombstones, `predecessors_by_replacer[by]` lists exactly those replaced by `by`, the links
+    /// close no cycle, and `filed` holds exactly the lone tombstones and the roots, each with its
+    /// queue's entry. O(tombstones), for debug builds and tests.
+    pub(crate) fn consistent(&self) -> bool {
         let (mut bytes, mut replaced) = (0, 0);
         for (txid, tombstone) in self.tombstones.iter() {
             bytes += tombstone.record.memory();
@@ -63,111 +82,142 @@ impl TxGraveyard {
                     })
                     .then_some(listed + predecessors.len())
             });
-        bytes == self.bytes && replaced == self.replaced && listed == Some(replaced)
+        let lone = filed(&self.lone, |txid, at| self.lone_at(txid, at));
+        let roots = filed(&self.trees, |txid, at| self.root_at(txid, at));
+        let every_lone_filed = self.tombstones.iter().all(|(txid, tombstone)| {
+            tombstone.replaced_by().is_some()
+                || self.predecessors_by_replacer.contains_key(txid)
+                || lone.contains(txid)
+        });
+        let every_root_filed = self.predecessors_by_replacer.iter().all(|(by, _)| {
+            self.tombstones
+                .get(by)
+                .is_some_and(|tombstone| tombstone.replaced_by().is_some())
+                || roots.contains(by)
+        });
+        bytes == self.bytes
+            && replaced == self.replaced
+            && listed == Some(replaced)
+            && every_lone_filed
+            && every_root_filed
+            && self.filed.len() == lone.len() + roots.len()
+            && self.acyclic()
     }
 
-    /// Lets go of what's past its retention, then of the oldest past [`MAX_MEMORY`]. Retention: a
-    /// lone tombstone after [`RETENTION`]; a replaced version with its tree; a tree's newest
-    /// version, once it isn't `live`, [`TREE_RETENTION`] after it left, taking the tree. Past the
-    /// cap: the oldest lone tombstones first, then the oldest replaced versions, each with what it
-    /// replaced, then the oldest trees. O(k) in what leaves the queues; stale entries
-    /// (re-burials, exhumes) are skipped.
-    pub fn evict_old(&mut self, live: impl Fn(&Txid) -> bool) {
-        self.evict_order(&live, false);
-        self.evict_trees(&live, false);
-        self.evict_order(&live, true);
-        // A replaced version stays listed as long as its tombstone: its entry leaves when stale,
-        // or with it past the cap. The listing reads this queue: a change to it is a change
-        // readers see.
+    /// Lets go of what's past its retention as of `now`, then of the oldest past [`MAX_MEMORY`].
+    /// Retention: a lone tombstone [`RETENTION`] after it became lone; a tree, once its root
+    /// isn't `live` (Core lists it, loaded or not), [`TREE_RETENTION`] after it left (a root seen
+    /// pending is looked at again a retention later). Past the cap: the oldest lone tombstones,
+    /// then the oldest replaced versions, each with what it replaced, then the oldest trees no
+    /// longer pending. O(what leaves the queues).
+    pub fn evict_old(&mut self, now: Instant, live: impl Fn(&Txid) -> bool) {
         let listed = self.replacements.len();
-        while let Some(&(t, txid)) = self.replacements.front() {
-            let stale = self.current(&txid, t).is_none();
-            if !stale && self.bytes <= MAX_MEMORY {
+        self.evict_lone(now, false);
+        self.evict_trees(now, &live, false);
+        self.evict_replaced(now, false);
+        // Pruning a tree's versions can leave its root lone: the passes go again until under
+        // the cap, or until one frees nothing (what's left is pending).
+        while self.over_cap() {
+            let bytes = self.bytes;
+            self.evict_lone(now, true);
+            self.evict_replaced(now, true);
+            self.evict_trees(now, &live, true);
+            if self.bytes == bytes {
                 break;
             }
-            self.replacements.pop_front();
-            if !stale {
-                self.remove_tree(txid);
-            }
         }
-        self.evict_trees(&live, true);
-        // Stale entries behind a current head (a long-pending tree's, an hour's burials): dropped
-        // once they outnumber the current.
-        let tombstones = &self.tombstones;
-        let current = |(t, txid): &(Instant, Txid)| {
-            tombstones
-                .get(txid)
-                .is_some_and(|tombstone| tombstone.removed_at == *t)
-        };
-        if self.replacements.len() > 2 * self.replaced + 1_024 {
-            self.replacements.retain(current);
-        }
-        if self.order.len() > 2 * self.tombstones.len() + 1_024 {
-            self.order.retain(current);
-        }
+        self.drop_stale();
+        // The listing reads `replacements`: a change to it is a change readers see.
         if self.replacements.len() != listed {
             self.revision = self.revision.wrapping_add(1);
         }
     }
 
-    /// `order`'s front past [`RETENTION`] (`over_cap`: or while past [`MAX_MEMORY`]): a version
-    /// whose replacer is still known stays with its tree, a tree's newest version moves to
-    /// `trees`, any other leaves.
-    fn evict_order(&mut self, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
-        while let Some(&(t, txid)) = self.order.front() {
-            // A stale head leaves whatever its age.
-            let current = self.current(&txid, t).is_some();
-            if current && t.elapsed() < RETENTION && !(over_cap && self.bytes > MAX_MEMORY) {
+    /// `replacements`' stale front (a replaced version stays listed as long as its tombstone;
+    /// `over_cap`: and the oldest versions while past [`MAX_MEMORY`], each with what it replaced).
+    fn evict_replaced(&mut self, now: Instant, over_cap: bool) {
+        while let Some(&(at, txid)) = self.replacements.front() {
+            let stale = self.current(&txid, at).is_none();
+            if !stale && !(over_cap && self.over_cap()) {
                 break;
             }
-            self.order.pop_front();
-            if !current || self.replacer_known(&txid, live) {
-                continue;
+            self.replacements.pop_front();
+            if !stale {
+                self.remove_tree(txid, now);
             }
-            // A tree's head, or a version replaced by one the pool never saw (a conflict a block
-            // confirmed: the tree is rooted there), stays a tree's time.
-            let replaced = self
-                .tombstones
-                .get(&txid)
-                .is_some_and(|tomb| tomb.replaced_by().is_some());
-            if replaced || self.predecessors_by_replacer.contains_key(&txid) {
-                self.trees.push_back((t, txid));
-            } else {
-                self.remove(&txid);
+        }
+    }
+
+    /// `lone`'s front past [`RETENTION`] (`over_cap`: or while past [`MAX_MEMORY`]), and every
+    /// stale entry before the first that stays.
+    fn evict_lone(&mut self, now: Instant, over_cap: bool) {
+        while let Some(&(at, txid)) = self.lone.front() {
+            let lone = self.lone_at(&txid, at);
+            let due = now.saturating_duration_since(at) >= RETENTION || over_cap && self.over_cap();
+            if lone && !due {
+                break;
+            }
+            self.lone.pop_front();
+            if lone {
+                self.remove(&txid, now);
             }
         }
     }
 
     /// `trees`' front past [`TREE_RETENTION`] (`over_cap`: or while past [`MAX_MEMORY`]): each
-    /// takes its tree, unless pending again. A head Core lists again but the pool hasn't loaded
-    /// yet (after a restart, or past the fetch cap) keeps it, `held`: its arrival exhumes it,
-    /// its predecessors staying with it.
-    fn evict_trees(&mut self, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
-        let mut held = mem::take(&mut self.held);
-        held.retain(|&(t, txid)| {
-            if self.current(&txid, t).is_none() || self.replacer_known(&txid, live) {
-                return false;
-            }
-            if live(&txid) {
-                return true;
-            }
-            self.remove_tree(txid);
-            false
-        });
-        self.held = held;
-        while let Some(&(t, txid)) = self.trees.front() {
-            if t.elapsed() < TREE_RETENTION && !(over_cap && self.bytes > MAX_MEMORY) {
+    /// goes whole, unless its root is pending again (`live`), when it's looked at again a
+    /// retention later. Every stale entry before the first that stays goes.
+    fn evict_trees(&mut self, now: Instant, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
+        // A pass over the cap looks at each entry once: the pending ones it puts back.
+        let mut looked = self.trees.len();
+        while let Some(&(at, root)) = self.trees.front() {
+            let current = self.root_at(&root, at);
+            let due = now.saturating_duration_since(at) >= TREE_RETENTION
+                || over_cap && self.over_cap() && looked > 0;
+            if current && !due {
                 break;
             }
             self.trees.pop_front();
-            if self.current(&txid, t).is_none() || self.replacer_known(&txid, live) {
+            looked = looked.saturating_sub(1);
+            if !current {
                 continue;
             }
-            if live(&txid) {
-                self.held.push((t, txid));
+            if live(&root) {
+                self.file_root(root, now);
             } else {
-                self.remove_tree(txid);
+                self.remove_tree(root, now);
             }
         }
     }
+
+    /// Drops every queue's stale entries once they outnumber the current ones.
+    fn drop_stale(&mut self) {
+        if self.lone.len() > 2 * self.tombstones.len() + STALE_SLACK {
+            let mut lone = std::mem::take(&mut self.lone);
+            lone.retain(|(at, txid)| self.lone_at(txid, *at));
+            self.lone = lone;
+        }
+        if self.trees.len() > 2 * self.predecessors_by_replacer.len() + STALE_SLACK {
+            let mut trees = std::mem::take(&mut self.trees);
+            trees.retain(|(at, txid)| self.root_at(txid, *at));
+            self.trees = trees;
+        }
+        if self.replacements.len() > 2 * self.replaced + STALE_SLACK {
+            let mut replacements = std::mem::take(&mut self.replacements);
+            replacements.retain(|(at, txid)| self.current(txid, *at).is_some());
+            self.replacements = replacements;
+        }
+    }
+}
+
+/// The txids of `queue`'s entries `valid` holds current.
+fn filed(
+    queue: &CowQueue<(Instant, Txid)>,
+    valid: impl Fn(&Txid, Instant) -> bool,
+) -> RapidHashSet<Txid> {
+    queue
+        .iter()
+        .filter(|(at, txid)| valid(txid, *at))
+        .map(|(_, txid)| *txid)
+        .collect()
 }

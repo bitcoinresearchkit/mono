@@ -399,6 +399,9 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if !input.0.is_empty() {
         return Err(Error::Parse("trailing bytes".into()));
     }
+    if !graveyard.acyclic() {
+        return Err(Error::Parse("a replacement cycle".into()));
+    }
     if let Some((tip, at)) = told {
         graveyard.restore_told(tip, at);
     }

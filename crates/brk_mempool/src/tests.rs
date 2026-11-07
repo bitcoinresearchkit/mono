@@ -712,8 +712,9 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
 #[test]
 fn reorged_out_tombstones_read_vanished_or_replaced() {
     let mut graveyard = TxGraveyard::default();
+    let outpoint = |seed: u8| (txid(80 + seed), Vout::from(0usize));
     let bury = |graveyard: &mut TxGraveyard, seed: u8| {
-        let tx = body(seed);
+        let tx = Arc::new(spending(seed, &[outpoint(seed)]));
         let info = MempoolEntryInfo {
             txid: tx.txid,
             wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
@@ -730,11 +731,11 @@ fn reorged_out_tombstones_read_vanished_or_replaced() {
     for seed in 1..=4 {
         bury(&mut graveyard, seed);
     }
-    graveyard.confirm(
-        |id| *id == txid(3),
-        |id| [1, 2, 3].map(txid).contains(id),
-        |tombstone| (tombstone.record.entry.txid == txid(2)).then(|| txid(9)).into_iter().collect(),
-    );
+    graveyard.confirm(&Confirmed::of(
+        [txid(3), txid(9)],
+        [(outpoint(2), txid(9)), (outpoint(3), txid(3))],
+        [1, 2, 3].map(txid),
+    ));
     let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
     assert!(matches!(removal(1), TxRemoval::Vanished));
     assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
@@ -792,8 +793,9 @@ fn late_replacers_relink_what_vanished_before_them() {
 fn confirmed_conflicts_replace_only_what_they_displaced() {
     let mut graveyard = TxGraveyard::default();
     let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, seed: u8, spends: u8| {
-        let tx = Arc::new(spending(seed, &[outpoint(spends)]));
+    let bury = |graveyard: &mut TxGraveyard, seed: u8, spends: &[u8]| {
+        let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
+        let tx = Arc::new(spending(seed, &outpoints));
         let info = MempoolEntryInfo {
             txid: tx.txid,
             wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
@@ -805,31 +807,169 @@ fn confirmed_conflicts_replace_only_what_they_displaced() {
         let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
         graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished);
     };
-    // 1 left (evicted, say) and 3 left while 8, spending 92, was listed unloaded; the cycle's
-    // blocks were all told.
-    bury(&mut graveyard, 1, 90);
-    bury(&mut graveyard, 3, 92);
+    // 1 left (evicted, say), and 3 (spending 92 and 93) while 8, spending 93, was listed
+    // unloaded; the cycle's blocks were all told.
+    bury(&mut graveyard, 1, &[90]);
+    bury(&mut graveyard, 3, &[92, 93]);
     graveyard.index_vanished();
     graveyard.end_cycle(&[txid(8)].into_iter().collect());
     graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])));
-    // 2 leaves as a block confirms 9 (spending 90 and 91), and 7 then 8 (both spending 92: 7,
-    // listed later, comes first).
-    bury(&mut graveyard, 2, 91);
-    graveyard.confirm(
-        |_| false,
-        |_| false,
-        |tombstone| {
-            if tombstone.record.tx.input[0].txid == txid(92) {
-                [txid(7), txid(8)].into_iter().collect()
-            } else {
-                [txid(9)].into_iter().collect()
-            }
-        },
-    );
+    // 2 leaves as a block confirms 9 (spending 90 and 91), 7 (spending 92, which 3's leaving
+    // freed) and 8.
+    bury(&mut graveyard, 2, &[91]);
+    let spend = |seed: u8, by: u8| (outpoint(seed), txid(by));
+    graveyard.confirm(&Confirmed::of(
+        [7, 8, 9].map(txid),
+        [spend(90, 9), spend(91, 9), spend(92, 7), spend(93, 8)],
+        [],
+    ));
     let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
     assert!(matches!(removal(1), TxRemoval::Vanished));
     assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
     assert!(matches!(removal(3), TxRemoval::Replaced { by } if by == txid(8)));
+}
+
+/// Retention: a lone tombstone goes an hour after its burial; a tree stays while its root is
+/// pending (Core listing it is enough), and goes whole a day after the root left, or was last
+/// seen listed; a tree a confirmed replacer the pool never saw roots goes a day after.
+#[test]
+fn tombstones_and_trees_leave_after_their_retention() {
+    use std::time::{Duration, Instant};
+    let mut graveyard = TxGraveyard::default();
+    let bury = |graveyard: &mut TxGraveyard, seed: u8, removal: TxRemoval| {
+        let tx = Arc::new(spending(seed, &[(txid(100 + seed), Vout::from(0usize))]));
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
+        graveyard.bury(record, FeeRate::default(), removal);
+    };
+    let replaced = |by: u8| TxRemoval::Replaced { by: txid(by) };
+    // 1 lone; 2, replaced by 3, replaced by 4, pending; 5 replaced by 6, which a block confirmed
+    // unseen; 7 replaced by 8, mined; 9 replaced by 10, vanished but listed again.
+    bury(&mut graveyard, 1, TxRemoval::Vanished);
+    bury(&mut graveyard, 2, replaced(3));
+    bury(&mut graveyard, 3, replaced(4));
+    bury(&mut graveyard, 5, replaced(6));
+    bury(&mut graveyard, 7, replaced(8));
+    bury(&mut graveyard, 8, TxRemoval::Mined);
+    bury(&mut graveyard, 9, replaced(10));
+    bury(&mut graveyard, 10, TxRemoval::Vanished);
+    let start = Instant::now();
+    let at = |hours: u64| start + Duration::from_secs(hours * 3_600 + 60);
+    let holds = |graveyard: &TxGraveyard, seeds: &[u8]| -> Vec<bool> {
+        seeds.iter().map(|&seed| graveyard.get(&txid(seed)).is_some()).collect()
+    };
+    let pending = |id: &Txid| *id == txid(4) || *id == txid(10);
+
+    graveyard.evict_old(at(0), pending);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[1, 2, 3, 5, 7, 8, 9, 10]), [true; 8]);
+    graveyard.evict_old(at(1), pending);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[1]), [false], "a lone one goes after an hour");
+    graveyard.evict_old(at(23), pending);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[2, 3, 5, 7, 8, 9, 10]), [true; 7], "trees stay a day");
+    graveyard.evict_old(at(24), pending);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[5, 7, 8]), [false; 3], "a day after their root left");
+    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "while their root is pending");
+    // Neither root is listed any more.
+    graveyard.evict_old(at(47), |_| false);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "a day after last seen pending");
+    graveyard.evict_old(at(48), |_| false);
+    assert!(graveyard.consistent());
+    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [false; 4], "whole trees go");
+    assert_eq!(graveyard.predecessors_of(&txid(4)).count(), 0);
+}
+
+/// The graveyard through random burials (re-burials, chains, replacers buried and back), exhumes,
+/// blocks, late replacers, cycle ends and evictions at random later moments: its invariants hold
+/// after each. As in a cycle, a replacer with a tombstone arrives (exhumed) or is mined, and a
+/// block mines what it spends with.
+#[test]
+fn graveyard_invariants_hold_through_random_histories() {
+    use std::time::{Duration, Instant};
+    let outpoint = |seed: u64| (txid(200 + (seed % 40) as u8), Vout::from(0usize));
+    let body = |seed: u8, spends: u64| {
+        let tx = Arc::new(spending(seed, &[outpoint(spends), outpoint(spends + 1)]));
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        TxRecord::new(tx, TxEntry::new(&info, 100, false))
+    };
+    for history in 0..16u64 {
+        let mut state = 0xBB67_AE85_84CA_A73Bu64 ^ (history << 32 | history);
+        let mut next = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        let start = Instant::now();
+        let mut graveyard = TxGraveyard::default();
+        let mut hours = 0u64;
+        for _ in 0..4_000 {
+            let seed = next(48) as u8;
+            match next(12) {
+                0..=4 => {
+                    let removal = match next(3) {
+                        0 => TxRemoval::Mined,
+                        1 => TxRemoval::Vanished,
+                        _ => TxRemoval::Replaced { by: txid(next(48) as u8) },
+                    };
+                    graveyard.bury(body(seed, next(40)), FeeRate::default(), removal);
+                    if let TxRemoval::Replaced { by } = removal {
+                        graveyard.exhume(&by);
+                    }
+                }
+                5 => graveyard.exhume(&txid(seed)),
+                6 => {
+                    let spends = (0..next(6))
+                        .map(|_| (outpoint(next(40)), txid(next(48) as u8)))
+                        .collect::<Vec<_>>();
+                    let mined = (0..next(4))
+                        .map(|_| txid(next(48) as u8))
+                        .chain(spends.iter().map(|(_, by)| *by))
+                        .collect::<Vec<_>>();
+                    let disconnected = (0..next(3)).map(|_| txid(next(48) as u8)).collect::<Vec<_>>();
+                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected));
+                }
+                7 => graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array(
+                    [next(4) as u8; 32],
+                ))),
+                8 => {
+                    graveyard.index_vanished();
+                    let unloaded = (0..next(3)).map(|_| txid(next(48) as u8)).collect();
+                    graveyard.end_cycle(&unloaded);
+                }
+                9 => {
+                    graveyard.exhume(&txid(seed));
+                    graveyard.relink(&spending(seed, &[outpoint(next(40))]));
+                }
+                _ => {
+                    hours += next(30);
+                    let listed = next(48) as u8;
+                    graveyard.evict_old(start + Duration::from_secs(hours * 3_600), |id| {
+                        *id == txid(listed)
+                    });
+                }
+            }
+            assert!(graveyard.consistent(), "graveyard invariants, history {history}");
+        }
+    }
 }
 
 /// The copy-on-write containers against plain models, through random inserts, swap-removes,
