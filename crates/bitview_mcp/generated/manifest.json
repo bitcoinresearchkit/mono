@@ -6727,6 +6727,12 @@
                     "null"
                   ]
                 },
+                "truncated": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "replaces": {
                   "type": "array",
                   "items": {
@@ -10865,6 +10871,12 @@
                     "null"
                   ]
                 },
+                "truncated": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "replaces": {
                   "type": "array",
                   "items": {
@@ -13113,7 +13125,7 @@
       "tool": {
         "name": "get_tx_rbf",
         "title": "RBF replacement history",
-        "description": "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*\n\nREST operation: `GET /api/v1/tx/{txid}/rbf`.",
+        "description": "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `\"truncated\": true`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*\n\nREST operation: `GET /api/v1/tx/{txid}/rbf`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13251,6 +13263,12 @@
                   ]
                 },
                 "mined": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "truncated": {
                   "type": [
                     "boolean",
                     "null"

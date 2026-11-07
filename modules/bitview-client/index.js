@@ -1188,6 +1188,9 @@
  *   replaced it. Omitted on the root of an RBF response.
  * @property {?boolean=} mined - On a tree's root: `true` when a transaction anywhere in the tree is confirmed
  *   (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
+ * @property {?boolean=} truncated - On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at
+ *   most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent
+ *   otherwise. mempool.space serves trees whole.
  * @property {ReplacementNode[]} replaces
  */
 /**
@@ -9307,7 +9310,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * RBF replacement history
    *
-   * Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.
+   * Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*
    *

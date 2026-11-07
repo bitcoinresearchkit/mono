@@ -21,5 +21,8 @@ pub struct RbfNode {
     /// mempool.space's tree `fullRbf`: on a replacer, whether any predecessor in its subtree was
     /// non-signaling; on a replaced leaf, whether it didn't signal itself.
     pub full_rbf: bool,
+    /// On a tree's root: the tree was cut to its bounds (the newest 63 versions, 4,096
+    /// transactions), what it holds the newest part.
+    pub truncated: bool,
     pub replaces: Vec<RbfNode>,
 }

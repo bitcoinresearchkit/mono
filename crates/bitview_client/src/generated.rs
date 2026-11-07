@@ -3587,7 +3587,7 @@ impl BitviewClient {
 
     /// RBF replacement history
     ///
-    /// Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.
+    /// Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*
     ///

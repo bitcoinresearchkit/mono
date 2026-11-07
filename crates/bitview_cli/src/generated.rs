@@ -1092,7 +1092,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/tx/{txid}/rbf",
         summary: "RBF replacement history",
-        description: "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*",
+        description: "Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `\"truncated\": true`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-rbf-history)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],

@@ -93,8 +93,10 @@ impl IndexerRead<'_> {
         else {
             return Ok(None);
         };
+        let truncated = root.truncated;
         let mut root = self.enrich_rbf_node(root, None)?;
         root.mined = any_mined(&root).then_some(true);
+        root.truncated = truncated.then_some(true);
         Ok(Some(root))
     }
 
@@ -109,8 +111,14 @@ impl IndexerRead<'_> {
         let index = match self.resolve_confirmed_position(&root.txid) {
             Ok((index, _)) => index,
             Err(Error::UnknownTxid) => {
+                let truncated = root.truncated;
                 return Ok(match root.replaces.len() {
-                    1 => root.replaces.pop().filter(|only| !only.replaces.is_empty()),
+                    1 => root.replaces.pop().filter(|only| !only.replaces.is_empty()).map(
+                        |mut only| {
+                            only.truncated = truncated;
+                            only
+                        },
+                    ),
                     _ => None,
                 });
             }
@@ -156,6 +164,7 @@ impl IndexerRead<'_> {
             full_rbf: node.full_rbf,
             interval,
             mined: None,
+            truncated: None,
             replaces,
         })
     }

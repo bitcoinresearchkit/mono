@@ -44,6 +44,11 @@ pub struct ReplacementNode {
     /// (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub mined: Option<bool>,
+    /// On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at
+    /// most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent
+    /// otherwise. mempool.space serves trees whole.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub truncated: Option<bool>,
     pub replaces: Vec<ReplacementNode>,
 }
 

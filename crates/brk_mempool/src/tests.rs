@@ -12,7 +12,7 @@ use serde_json::{Value, to_value};
 use smallvec::SmallVec;
 
 use crate::{
-    MempoolBlockSource, ReadOnlyState, State,
+    MempoolBlockSource, RbfNode, ReadOnlyState, State,
     snapshot::Rebuilder,
     snapshot::{
         SnapTx, Snapshot, TxIndex,
@@ -975,6 +975,7 @@ fn unseen_confirmed_replacers_root_their_trees() {
         let root = read.rbf_for_tx(&asked, &tip).unwrap().root.expect("a tree");
         assert_eq!(root.txid, conflict);
         assert!(root.unseen);
+        assert!(!root.truncated, "whole");
         assert_eq!(root.replaces.len(), 1);
         assert_eq!(root.replaces[0].txid, replaced.txid);
     }
@@ -1167,4 +1168,53 @@ fn signaling_passes_to_pooled_descendants() {
     // The parent leaves (mined, say): its descendants signal no more, as Core reads them.
     enter(&mut state, &[], &[id(&child), id(&grandchild), id(&lone)]);
     assert!(!rbf(&state, &child) && !rbf(&state, &grandchild));
+}
+
+/// A history past 63 versions comes cut to its newest ones, its root marked `truncated`, in a
+/// transaction's own tree and in the recent listing.
+#[test]
+fn long_histories_come_truncated() {
+    let mut state = State::default();
+    let conflict = txid(200);
+    let versions: Vec<_> = (1..=70u8).map(body).collect();
+    for (i, version) in versions.iter().enumerate() {
+        let info = MempoolEntryInfo {
+            txid: version.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([i as u8; 32]),
+            vsize: VSize::from(version.weight),
+            weight: version.weight,
+            fee: version.fee,
+            first_seen: Timestamp::now(),
+        };
+        let by = versions.get(i + 1).map_or(conflict, |next| next.txid);
+        let record = TxRecord::new(version.clone(), TxEntry::new(&info, 100, true));
+        state
+            .graveyard
+            .bury(record, FeeRate::default(), TxRemoval::Replaced { by });
+    }
+    let mut rebuilder = Rebuilder::default();
+    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default());
+    let tip = BlockHash::default();
+    let read = ReadOnlyState::default()
+        .updated(&state, tip, rebuilder.snapshot().clone(), true)
+        .expect("published");
+    let depth = |root: &RbfNode| {
+        let (mut depth, mut node) = (1, root);
+        while let Some(next) = node.replaces.first() {
+            depth += 1;
+            node = next;
+        }
+        depth
+    };
+    let root = read
+        .rbf_for_tx(&versions[69].txid, &tip)
+        .unwrap()
+        .root
+        .expect("a tree");
+    assert!(root.truncated);
+    assert_eq!(depth(&root), 63, "the root and the newest 62 versions");
+    assert_eq!(root.replaces[0].txid, versions[69].txid, "newest first");
+    let trees = read.recent_rbf_trees(false, &tip).unwrap();
+    assert_eq!(trees.len(), 1);
+    assert!(trees[0].truncated, "listed, cut");
 }
