@@ -41,6 +41,7 @@ impl ComputePlugin for Vecs {
             + vecs.blocks.position.version()
             + vecs.blocks.size.version()
             + outputs.output_type.version()
+            + outputs.value.version()
             + inputs.output_type.version()
             + inputs.type_index.version()
             + inputs.outpoint.version()

@@ -216,8 +216,11 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   kept low. Measured (1/100 blocks): 352M P2TR outputs in eligible txs, 69% to reused addresses; at the tip 38.5M
   txs hold an unspent P2TR output, 28.3M at 546+ sats, 4.6M at 1,000+. Stored now (2026-11-07): each Taproot
   output's 4-byte key prefix (365M) and the tweak as x plus a parity column: 7.1 GiB, 795 s (dev); spent state
-  stays the Outputs plugin's. Then, one by one: the snapshots' dust floor, the wire format and routes (cacheable,
-  no curve math per request), the mempool's tweaks.
+  stays the Outputs plugin's. Decided (2026-11-07): a 1,000-sat dust floor everywhere (`DUST_FLOOR`): stored
+  rows need a Taproot output of 1,000+ sats (131.8M rows, 290.4M prefixes, 5.1 GiB, 589 s; matches BlindBit's
+  `dustLimit=1000` on 44 heights); snapshots keep a tx while one such output is unspent; the mempool's tweaks use
+  it too. Then, one by one: the wire format and routes (cacheable, no curve math per request), the mempool's
+  tweaks.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
   always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of

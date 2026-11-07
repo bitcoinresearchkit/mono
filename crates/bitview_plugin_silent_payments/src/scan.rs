@@ -4,7 +4,7 @@ use bitcoin::{Transaction, consensus::deserialize, secp256k1::PublicKey};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, TaprootPrefix, Tweak, TxIndex};
+use brk_types::{BlkPosition, OutputType, Sats, TaprootPrefix, Tweak, TxIndex};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -12,6 +12,12 @@ use crate::tweak::{Prevout, Tweaker, input_key, smallest_outpoint};
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
 pub const TAPROOT_ACTIVATION: usize = 709_632;
+
+/// The least a Taproot output holds for its transaction to be kept: one whose Taproot outputs all
+/// hold less (mostly inscription and rune postage, 330 to 999 sats) is left out everywhere. A kept
+/// transaction keeps all its Taproot outputs' prefixes, whatever they hold: a wallet matches its
+/// outputs in order.
+pub const DUST_FLOOR: Sats = Sats::_1K;
 
 /// An eligible transaction.
 pub struct Eligible {
@@ -72,6 +78,7 @@ struct Columns {
     tx_positions: Vec<BlkPosition>,
     tx_sizes: Vec<Bytes32>,
     output_types: Vec<OutputType>,
+    output_values: Vec<Sats>,
     /// The output type each input spends.
     input_types: Vec<OutputType>,
     input_type_indexes: Vec<TypeIndex>,
@@ -129,6 +136,7 @@ impl Columns {
             tx_positions: txs.position.collect_range_at(tx_base, tx_end),
             tx_sizes: txs.total_size.collect_range_at(tx_base, tx_end),
             output_types: vecs.outputs.output_type.collect_range_at(txout_base, txout_end),
+            output_values: vecs.outputs.value.collect_range_at(txout_base, txout_end),
             input_types: vecs.inputs.output_type.collect_range_at(txin_base, txin_end),
             input_type_indexes: vecs.inputs.type_index.collect_range_at(txin_base, txin_end),
         }
@@ -146,10 +154,14 @@ impl Columns {
         self.txout_bounds[tx] - self.txout_base..self.txout_bounds[tx + 1] - self.txout_base
     }
 
-    /// Whether the transaction may be eligible: a taproot output, and an input BIP352 may count a
-    /// key for.
+    /// Whether the transaction may be eligible and is kept: a Taproot output holding at least the
+    /// [`DUST_FLOOR`], and an input BIP352 may count a key for.
     fn is_candidate(&self, tx: usize) -> bool {
-        self.output_types[self.outputs(tx)].contains(&OutputType::P2TR)
+        let outputs = self.outputs(tx);
+        self.output_types[outputs.clone()]
+            .iter()
+            .zip(&self.output_values[outputs])
+            .any(|(&output_type, &value)| output_type == OutputType::P2TR && value >= DUST_FLOOR)
             && self.input_types[self.inputs(tx)]
                 .iter()
                 .any(|&output_type| may_have_key(output_type))

@@ -1,6 +1,7 @@
-//! BIP352 silent payments for Bitview: every eligible transaction since Taproot's activation,
-//! with its tweak and its Taproot outputs' key prefixes, the data a wallet scans with. Computed from the indexer's columns and Core's
-//! block files; no curve math is left for a request to do.
+//! BIP352 silent payments for Bitview: every eligible transaction since Taproot's activation
+//! (above a dust floor), with its tweak and its Taproot outputs' key prefixes, the data a wallet
+//! scans with. Computed from the indexer's columns and Core's block files; no curve math is left
+//! for a request to do.
 
 mod compute;
 mod dependencies;
@@ -13,17 +14,19 @@ mod tweak;
 
 pub use dependencies::Dependencies;
 pub use indexes::{TaprootPrefixIndex, TweakIndex};
+pub use scan::DUST_FLOOR;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{Height, TaprootPrefix, TweakX, TxIndex, Version};
 use vecdb::{AnyStoredVec, BytesVec, Database, PcoVec, Rw, StorageMode};
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("silent_payments"), Version::TWO);
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("silent_payments"), Version::new(3));
 pub const ID: PluginId = STORAGE.id();
 
-/// BIP352 silent payments: every eligible transaction since Taproot's activation, with its tweak
-/// and its Taproot outputs' key prefixes. Whether an output is spent is the Outputs plugin's.
+/// BIP352 silent payments: every eligible transaction since Taproot's activation with a Taproot
+/// output of at least the dust floor, with its tweak and its Taproot outputs' key prefixes. Whether
+/// an output is spent is the Outputs plugin's.
 /// Hidden from the series tree: tweaks are scanning data, not series to chart.
 #[derive(Traversable, Plugin)]
 #[plugin(storage = STORAGE)]
