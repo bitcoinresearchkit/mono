@@ -19,8 +19,7 @@ impl Query {
             .read_state()
             .ok_or(Error::StateUpdating)?;
         let pin = self.pin_safe_lengths()?;
-        // Only a rebuild, a catch-up too long to hold the publication or a failed write leaves
-        // it at another length.
+        // Only a rollback, a failed write or a long catch-up leaves it at another length.
         if state.written() != Some(pin.lengths().height) {
             return Err(Error::StateUpdating);
         }

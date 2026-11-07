@@ -23,15 +23,14 @@ use super::SourcedAddrData;
 mod stable;
 mod updates;
 
-pub use stable::{Changed, MAX_HELD, Stable};
+pub use stable::{Changed, Stable};
 use updates::{AddrUpdates, SidecarPushes};
 
 use crate::SAVED_CHECKPOINTS;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
-/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds, a
-/// rollback for its lowering's drain, the rollback and its write, so a reader arriving meanwhile
-/// gets in (with room for a loaded machine); only a catch-up too long to hold
-/// ([`MAX_HELD`]) holds it longer.
+/// Longest a reader waits for the state's lock: a publication holds it a few milliseconds, so a
+/// reader arriving as a block publishes always gets in (with room for a loaded machine); a
+/// catch-up's or a rollback's write holds it longer.
 const STABLE_READ_WAIT: Duration = Duration::from_millis(1_000);
 
 macro_rules! addr_state_vecs {
@@ -49,13 +48,12 @@ macro_rules! addr_state_vecs {
             pub(crate) funded: M::Stored<OverflowVec<FundedAddressIndex, FundedAddressData>>,
             pub(crate) extended_empty:
                 M::Stored<OverflowVec<ExtendedEmptyAddressIndex, EmptyAddressData>>,
-            /// The length these vectors read through and the addresses read before them, locked
-            /// while they change (publication, rollback, reset) so a reader's state and sidecar
-            /// record come from one save. They change in place, unlike the append-only rest; an
-            /// update publishes its changed addresses with its lengths and writes them after, and
-            /// a catch-up holds the addresses it rewrites at their published data first, so a
-            /// reader taking this lock before its pin reads that publication's state whenever
-            /// the length is the pin's.
+            /// The length these vectors read through and the addresses the publication changed,
+            /// locked while they change (publication, rollback, reset) so a reader's state and
+            /// sidecar record come from one save. They change in place, unlike the append-only
+            /// rest; an update publishes its changed addresses with its lengths and writes them
+            /// after, so a reader taking this lock before its pin reads that publication's state
+            /// whenever the length is the pin's.
             stable: Arc<RwLock<Stable>>,
         }
 
@@ -79,9 +77,8 @@ macro_rules! addr_state_vecs {
                         .with_saved_stamped_changes(SAVED_CHECKPOINTS);
                     // SAFETY: readers outside the crate (`AddrStateRead`) hold `stable` and read
                     // one value at a time. Every write excludes them through `stable` but the one
-                    // after an update's publication and a catch-up's held one, which rewrite only
-                    // the values of addresses served from `stable` instead (new addresses aside,
-                    // past what the publication reaches). Compute-side readers end before any
+                    // after an update's publication, which rewrites only changed addresses'
+                    // values, served from `stable` instead. Compute-side readers end before any
                     // write.
                     unsafe { options.with_unread_updates() }
                 };
@@ -311,8 +308,8 @@ impl<M: StorageMode> Traversable for AddrStateVecs<M> {
 
 impl<M: StorageMode> AddrStateVecs<M> {
     /// Keeps the state and its sidecars from changing while a reader pairs them; holds the
-    /// length they read through. Waits out a publication or a rollback ([`STABLE_READ_WAIT`]),
-    /// not a catch-up too long to hold: `None` then.
+    /// length they read through. Waits out a publication (a few milliseconds), not a write
+    /// under the lock (a catch-up's or a rollback's): `None` then.
     pub fn read(&self) -> Option<AddrStateRead<'_, M>> {
         Some(AddrStateRead {
             vecs: self,

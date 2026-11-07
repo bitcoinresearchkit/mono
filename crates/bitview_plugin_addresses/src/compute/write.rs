@@ -17,8 +17,7 @@ use crate::{
 ///
 /// Set `with_changes=true` near chain tip to enable rollback support. With `publish_state`, the
 /// address state (rewritten in place, its changes marked by the caller) stays staged for
-/// [`Vecs::publish_state_with`] to publish with the update's lengths; without, it is written now,
-/// beside the publication readers hold to when the caller held it.
+/// [`Vecs::publish_state_with`] to publish with the update's lengths; without, it is written now.
 pub fn write(
     vecs: &mut Vecs,
     addr_states: &mut AddrStates,
@@ -33,7 +32,9 @@ pub fn write(
     vecs.loop_vecs_mut()
         .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
     if !publish_state {
-        vecs.write_unpublished_state()?;
+        let stable = vecs.state.stable();
+        let mut stable = stable.write();
+        vecs.publish_state(&mut stable)?;
     }
 
     vecs.save_caps(addr_states, stamp, with_changes)?;
@@ -50,10 +51,6 @@ pub(crate) struct UnpublishedState {
     pub with_changes: bool,
     /// The changed addresses an update publishes from memory, until it does.
     pub changed: Option<Changed>,
-    /// For a write outside the update's publication: the overlay that keeps readers on the
-    /// current one while it writes ([`AddrCache::held`](crate::block::AddrCache::held)), until
-    /// it is in place.
-    pub held: Option<Changed>,
     /// Its changed addresses are published: only the vectors' write remains.
     pub published: bool,
 }
@@ -88,31 +85,6 @@ impl Vecs {
             return Ok(());
         }
         self.write_state(stamp, with_changes, stable)?;
-        self.unpublished_state = None;
-        Ok(())
-    }
-
-    /// Writes the address state staged outside the update's publication. With its overlay held,
-    /// readers move onto it under a brief write lock and stay on the publication while the
-    /// vectors are written without the lock: they read none of the rows the write rewrites,
-    /// before or after a failure. Without (too large to hold, or nothing published to hold),
-    /// the write excludes them.
-    fn write_unpublished_state(&mut self) -> Result<()> {
-        let Some(unpublished) = self.unpublished_state.as_mut() else {
-            return Ok(());
-        };
-        let stable = self.state.stable();
-        let Some(held) = unpublished.held.take() else {
-            return self.publish_state(&mut stable.write());
-        };
-        debug_assert!(unpublished.changed.is_none(), "a held write publishes nothing");
-        let (stamp, with_changes) = (unpublished.stamp, unpublished.with_changes);
-        // The overlay it replaces is freed after the lock.
-        let released = stable.write().changed.replace(held);
-        drop(released);
-        // As for a published state: a header write waiting on compaction would hold readers.
-        self.db.sync_bg_tasks()?;
-        self.write_state_vecs(stamp, with_changes)?;
         self.unpublished_state = None;
         Ok(())
     }

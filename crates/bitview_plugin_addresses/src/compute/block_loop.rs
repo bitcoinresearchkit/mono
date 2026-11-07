@@ -348,23 +348,15 @@ pub fn process_chunk(
             prices,
         );
     }
-    let finished = tail && next == end_usize;
-    // A write outside the update's publication holds readers to the current one, rather than
-    // excluding them for its duration.
-    let held = if finished {
-        None
-    } else {
-        cache.held(indexer.pin().lengths().height, &state_readers, &vecs.state)
-    };
     drop(state_readers);
     let last_height = Height::from(next - 1);
     let _lock = exit.lock();
+    let finished = tail && next == end_usize;
     // A failure before the state is written leaves its changed buffers for the next update to discard.
     let unpublished = vecs.unpublished_state.insert(UnpublishedState {
         stamp: Stamp::from(last_height),
         with_changes: tail,
         changed: finished.then(Changed::new),
-        held,
         published: false,
     });
     cache.flush_into(&mut vecs.state, unpublished.changed.as_mut())?;
