@@ -3,14 +3,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-use brk_types::{BlockHash, FeeRate, Transaction, Txid, Vout};
-use rapidhash::{RapidHashMap, RapidHashSet, fast::RandomState};
+use brk_types::{BlockHash, FeeRate, Transaction, Txid};
+use rapidhash::{RapidHashSet, fast::RandomState};
 use smallvec::SmallVec;
 
 pub mod file;
+mod linker;
 pub mod tombstone;
 
 pub use file::GraveyardFile;
+use linker::Linker;
 pub use tombstone::TxTombstone;
 
 use crate::{
@@ -35,14 +37,6 @@ const MAX_BYTES: u64 = 256 << 20;
 /// The longest replacement chain an eviction check follows (the RBF listings' work bound).
 const MAX_WALK: usize = 4_096;
 
-/// A vanished burial waiting for a late replacer: its tombstone's time, and its cycle.
-#[derive(Clone, Copy)]
-struct Burial {
-    txid: Txid,
-    at: Instant,
-    cycle: u64,
-}
-
 /// Recently-dropped txs retained for reappearance (a returning tx keeps its
 /// first sighting) and post-mine analytics (RBF/replacement chains, etc.).
 ///
@@ -53,7 +47,9 @@ struct Burial {
 /// replacer's tree, a tree's newest version moves to `trees` (taking its tree when it goes), any
 /// other goes. `predecessors_by_replacer[by]` lists exactly the `Replaced { by }` tombstones,
 /// `replaced` counts them, `bytes` sums the held bodies. `order` and `replacements` drop stale
-/// entries at their fronts, and all of them once they outnumber the current ones.
+/// entries at their fronts, and all of them once they outnumber the current ones. What vanished
+/// while the view wasn't complete waits for a late replacer in the [`Linker`], which holds no
+/// tombstone of its own.
 #[derive(Clone, Default)]
 pub struct TxGraveyard {
     revision: u64,
@@ -71,18 +67,8 @@ pub struct TxGraveyard {
     bytes: u64,
     /// How many `Replaced` tombstones are held.
     replaced: usize,
-    /// What vanished in cycles whose view wasn't complete, by the outpoints each spent (each with
-    /// its burial's time and cycle): a replacer the per-cycle fetch cap held back still links it
-    /// when it arrives. Cleared by the first complete cycle.
-    unlinked: RapidHashMap<(Txid, Vout), SmallVec<[Burial; 1]>>,
-    /// This cycle's vanished burials (and reclassifications), for `unlinked` unless the cycle's
-    /// view is complete.
-    vanished: Vec<(Txid, Instant)>,
-    /// Listed transactions not loaded yet, by the cycle each was first listed in: only one listed
-    /// by the cycle something vanished in can be what replaced it.
-    unloaded_since: RapidHashMap<Txid, u64>,
-    /// The current cycle's number.
-    cycle: u64,
+    /// What vanished while the view wasn't complete, for a late replacer to link.
+    linker: Linker,
     /// The tip whose blocks it was last told (`confirm`): the next cycle reads the blocks since,
     /// and so does one after a restart (it is saved with it).
     told: Option<BlockHash>,
@@ -187,7 +173,7 @@ impl TxGraveyard {
         let removed_at = Instant::now();
         self.insert(record, chunk_rate, removal, removed_at);
         if matches!(removal, TxRemoval::Vanished) {
-            self.vanished.push((txid, removed_at));
+            self.linker.vanished(txid, removed_at);
         }
     }
 
@@ -363,103 +349,55 @@ impl TxGraveyard {
                 self.replacements.push_back((now, txid));
                 self.replaced += 1;
             }
-            TxRemoval::Vanished => self.vanished.push((txid, now)),
+            TxRemoval::Vanished => self.linker.vanished(txid, now),
             TxRemoval::Mined => {}
         }
         self.order.push_back((now, txid));
         self.revision = self.revision.wrapping_add(1);
     }
 
-    /// Whether `txid`'s tombstone is the vanished one buried at `at`.
-    fn vanished_at(&self, txid: &Txid, at: Instant) -> bool {
-        self.current(txid, at)
-            .is_some_and(|tombstone| matches!(tombstone.removal, TxRemoval::Vanished))
-    }
-
     /// An arrival the fetch cap held back, replacing what vanished meanwhile: what it conflicts
-    /// with that vanished no earlier than it was first listed reads replaced by it (one listed
-    /// only later, spending an outpoint the vanished one freed, replaced nothing). Called after
-    /// the cycle's blocks are told (`confirm`), and only when they all could be: a confirmed
-    /// conflict comes first.
+    /// with that vanished no earlier than it was first listed reads replaced by it ([`Linker`]).
+    /// Called after the cycle's blocks are told (`confirm`), and only when they all could be: a
+    /// confirmed conflict comes first.
     pub fn relink(&mut self, arrival: &Transaction) {
-        if self.unlinked.is_empty() {
-            return;
-        }
-        // One never left unloaded was first listed this cycle.
-        let listed = self
-            .unloaded_since
-            .get(&arrival.txid)
-            .copied()
-            .unwrap_or(self.cycle);
         let now = Instant::now();
-        let mut relinked: SmallVec<[Txid; 1]> = SmallVec::new();
-        for txin in &arrival.input {
-            let Some(losers) = self.unlinked.get(&(txin.txid, txin.vout)) else {
-                continue;
-            };
-            for burial in losers {
-                // Several of its inputs can lead to one loser: told once.
-                if listed <= burial.cycle
-                    && burial.txid != arrival.txid
-                    && !relinked.contains(&burial.txid)
-                    && self.vanished_at(&burial.txid, burial.at)
-                {
-                    relinked.push(burial.txid);
-                }
-            }
-        }
-        for loser in relinked {
+        let tombstones = &self.tombstones;
+        let losers = self.linker.losers(arrival, |txid, at| Self::is_vanished(tombstones, txid, at));
+        for loser in losers {
             self.reclassify(loser, TxRemoval::Replaced { by: arrival.txid }, now);
         }
     }
 
-    /// This cycle's vanished (buried, or told so), indexed by the outpoints they spent: before
-    /// [`Self::relink`], so a same-cycle arrival finds them too.
+    /// This cycle's vanished, indexed for [`Self::relink`]: before it, so a same-cycle arrival
+    /// finds them too.
     pub fn index_vanished(&mut self) {
-        for (txid, at) in mem::take(&mut self.vanished) {
-            let Some(tombstone) = self
-                .tombstones
-                .get(&txid)
+        let tombstones = &self.tombstones;
+        self.linker.index(|txid, at| {
+            tombstones
+                .get(txid)
                 .filter(|tombstone| tombstone.removed_at == at)
-            else {
-                continue;
-            };
-            for txin in &tombstone.record.tx.input {
-                self.unlinked
-                    .entry((txin.txid, txin.vout))
-                    .or_default()
-                    .push(Burial {
-                        txid,
-                        at,
-                        cycle: self.cycle,
-                    });
-            }
-        }
+                .map(|tombstone| tombstone.record.tx.input.as_slice())
+        });
     }
 
-    /// The cycle's end, with the listed transactions it couldn't load. None: no replacer of what
-    /// vanished is still to arrive, all is let go. Otherwise what's no longer vanished lets go,
-    /// and the unloaded keep when they were first listed.
+    /// The cycle's end, with the listed transactions it couldn't load ([`Linker::end_cycle`]).
     pub fn end_cycle(&mut self, unloaded: &RapidHashSet<Txid>) {
-        if unloaded.is_empty() {
-            self.unlinked.clear();
-            self.vanished.clear();
-            self.unloaded_since.clear();
-        } else {
-            let mut unlinked = mem::take(&mut self.unlinked);
-            unlinked.retain(|_, losers| {
-                losers.retain(|burial| self.vanished_at(&burial.txid, burial.at));
-                !losers.is_empty()
-            });
-            self.unlinked = unlinked;
-            let previous = mem::take(&mut self.unloaded_since);
-            self.unloaded_since = unloaded
-                .iter()
-                .map(|txid| (*txid, previous.get(txid).copied().unwrap_or(self.cycle)))
-                .collect();
-        }
-        self.cycle += 1;
+        let tombstones = &self.tombstones;
+        self.linker
+            .end_cycle(unloaded, |txid, at| Self::is_vanished(tombstones, txid, at));
         debug_assert!(self.consistent(), "graveyard invariants");
+    }
+
+    /// Whether `txid`'s tombstone is the vanished one buried at `at`.
+    fn is_vanished(
+        tombstones: &CowMap<Txid, TxTombstone, RandomState>,
+        txid: &Txid,
+        at: Instant,
+    ) -> bool {
+        tombstones.get(txid).is_some_and(|tombstone| {
+            tombstone.removed_at == at && matches!(tombstone.removal, TxRemoval::Vanished)
+        })
     }
 
     /// The invariants the type states that its counts and indexes keep: `bytes` sums the bodies,
