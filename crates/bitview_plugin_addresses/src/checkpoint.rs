@@ -109,10 +109,11 @@ impl Vecs {
     }
 
     /// Rolls the address state (rewritten in place) and the caps back below `start`, to the
-    /// newest saved change under it, and writes the state. The publication is lowered to the
-    /// landing first; the state's lock (`stable`, which readers take before they pin) is held
-    /// only for the rollback and the write, never while earlier pins drain: meanwhile readers
-    /// find the state at another length than their pin and answer at once that it is updating.
+    /// newest saved change under it, and writes the state. The state's lock (`stable`, which
+    /// readers take before they pin) is held from before the publication is lowered to the
+    /// landing until the state is written there: readers wait the lowering's drain, the rollback
+    /// and the write out, then pin the landing with the state at it. None holding a pin waits for
+    /// the lock, so the drain finishes.
     /// Returns where it lands: `start` when nothing lies past it, or 0 when the saved changes do
     /// not reach below it (a reorg deeper than the protected tail): nothing is rolled back, and
     /// the caller's reset rebuilds the plugin.
@@ -130,9 +131,11 @@ impl Vecs {
             (Some(state), Some(caps)) if usize::from(state) == caps && caps <= start => state,
             _ => return Ok(0),
         };
+        // A header write waiting on compaction would hold readers longer.
+        self.db.sync_bg_tasks()?;
+        let stable = self.state.stable();
+        let mut stable = stable.write();
         indexer.rewrite_from(landing, || {
-            let stable = self.state.stable();
-            let mut stable = stable.write();
             // The restored values sit in the write buffers until written.
             stable.written = None;
             stable.changed = None;

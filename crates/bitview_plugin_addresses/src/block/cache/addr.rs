@@ -3,12 +3,12 @@ use std::sync::LazyLock;
 use bitview_primitives::{ByAddrType, TypeIndex};
 use crate::addr::DecodedAddrState;
 use brk_error::Result;
-use brk_types::OutputType;
+use brk_types::{Height, OutputType};
 use rayon::{ThreadPool, ThreadPoolBuilder, current_num_threads, prelude::*};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrOrigin, AddrStateVecs, Changed, SHARDS, SourcedAddrData, shard_of},
+    addr::{AddrOrigin, AddrStateVecs, Changed, MAX_HELD, SHARDS, SourcedAddrData, shard_of},
     compute::AddrReaders,
 };
 
@@ -139,6 +139,57 @@ impl AddrCache {
                     .insert(address.type_index(), source);
             }
         }
+    }
+
+    /// The overlay readers hold to through a write of this cache outside a publication: the
+    /// state's held addresses, and every cached one the write rewrites (all but new ones) at its
+    /// stored data, which is still the publication's. `None` when there is no publication to
+    /// hold (the state is not at `published`) or it would exceed [`MAX_HELD`].
+    pub fn held(
+        &mut self,
+        published: Height,
+        state_readers: &AddrReaders,
+        state: &AddrStateVecs,
+    ) -> Option<Changed> {
+        let mut held = {
+            let stable = state.stable();
+            let stable = stable.read();
+            if stable.written != Some(published) {
+                return None;
+            }
+            stable.changed.clone().unwrap_or_else(Changed::new)
+        };
+        self.addresses.clear();
+        for (addr_type, addrs) in self.shards.iter().flat_map(|shard| shard.iter()) {
+            self.addresses.extend(
+                addrs
+                    .iter()
+                    .filter(|(type_index, data)| {
+                        !matches!(data.origin, AddrOrigin::New)
+                            && held.get(addr_type, **type_index).is_none()
+                    })
+                    .map(|(type_index, _)| AddressKey::new(addr_type, *type_index)),
+            );
+        }
+        if held.len() + self.addresses.len() > MAX_HELD {
+            return None;
+        }
+        let addresses = &self.addresses;
+        let load = || {
+            addresses
+                .par_iter()
+                .with_min_len(32)
+                .map(|address| address.load(state_readers, state))
+                .collect::<Vec<_>>()
+        };
+        let stored = match LOAD_POOL.as_ref() {
+            Some(pool) => pool.install(load),
+            None => load(),
+        };
+        for (address, stored) in addresses.iter().zip(stored) {
+            held.hold(address.addr_type(), address.type_index(), stored);
+        }
+        Some(held)
     }
 
     /// Cached addresses, across types.

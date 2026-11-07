@@ -62,7 +62,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 impl<M: StorageMode> Vecs<M> {
     /// The address state of the latest publication, under its lock: take it before pinning the
     /// lengths, and compare [`AddrStateRead::written`] with the pin's height. `None` while a
-    /// catch-up's or a rollback's write holds the lock.
+    /// catch-up too long to hold its publication writes.
     pub fn read_state(&self) -> Option<AddrStateRead<'_, M>> {
         self.state.read()
     }
@@ -70,7 +70,7 @@ impl<M: StorageMode> Vecs<M> {
 
 impl Vecs {
     /// Reads `addresses`' stored data, as the next update's loads will, keeping nothing. Skipped
-    /// while a catch-up's or a rollback's write holds the state.
+    /// while a write holds the state's lock past a reader's wait.
     pub fn warm(&self, addresses: &[(OutputType, TypeIndex)]) {
         let Some(state) = self.state.read() else {
             return;
