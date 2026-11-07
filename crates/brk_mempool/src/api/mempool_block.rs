@@ -39,15 +39,23 @@ impl MempoolBlockSource {
         self.block().hash
     }
 
-    /// The captured block, never a newer publication's.
+    /// The captured block as JSON, never a newer publication's: encoded once per publication.
     #[must_use]
-    pub fn build(self) -> MempoolBlockContent<BlockTxs> {
+    pub fn json(&self) -> Arc<[u8]> {
         let block = self.block();
-        MempoolBlockContent {
-            hash: block.hash,
-            stats: self.snapshot.stats(self.index),
-            transactions: BlockTxs(block.bodies.clone()),
-        }
+        block
+            .json
+            .get_or_init(|| {
+                let content = MempoolBlockContent {
+                    hash: block.hash,
+                    stats: self.snapshot.stats(self.index),
+                    transactions: BlockTxs(block.bodies.clone()),
+                };
+                serde_json::to_vec(&content)
+                    .expect("mempool blocks serialize")
+                    .into()
+            })
+            .clone()
     }
 }
 

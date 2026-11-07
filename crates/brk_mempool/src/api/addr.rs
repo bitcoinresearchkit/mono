@@ -1,11 +1,12 @@
+use std::sync::Arc;
+
 use brk_error::{Error, Result};
-use brk_types::{
-    AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout,
-};
-use rapidhash::RapidHashSet;
+use brk_types::{AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
     PendingView, PublishedTx, ReadOnlyState,
+    key::{OutpointKey, TxKey},
     state::Pool,
     stores::addr_tracker::{AddrEntry, AddrTx},
 };
@@ -13,13 +14,65 @@ use crate::{
 /// An address's pending UTXO changes in one completed publication.
 #[derive(Default)]
 pub struct PendingUtxos {
-    /// Outpoints the address's mempool transactions spend.
-    pub spent: RapidHashSet<(Txid, Vout)>,
-    /// Outputs mempool transactions pay the address that no mempool transaction spends, ordered
+    /// Outputs mempool transactions pay the address that no pending transaction spends, ordered
     /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,
-    /// Identifies the address's mempool transactions: zero without any.
+    /// The most of the address's confirmed outputs pending transactions can spend: its own
+    /// pending spends, and every input of a transaction still resolving.
+    pub spends_at_most: usize,
+    /// Identifies the address's mempool transactions, those still resolving (which can spend its
+    /// outputs) and the reader's view of them: zero without any.
     pub token: u64,
+    /// The publication read, as the reader sees it: what spends an outpoint.
+    pool: Option<(Arc<Pool>, Arc<PendingView>)>,
+}
+
+impl PendingUtxos {
+    /// Whether a pending transaction spends an outpoint, one still resolving included (the
+    /// outpoint is known before what it pays). Each spender's inputs are read once, however many
+    /// of the outpoints asked about it spends.
+    pub fn spent_filter(&self) -> impl FnMut(&Txid, Vout) -> bool + '_ {
+        let mut spends = SpendFilter::default();
+        move |txid, vout| {
+            self.pool
+                .as_ref()
+                .is_some_and(|(pool, view)| spends.spent(pool, view, txid, vout))
+        }
+    }
+}
+
+/// The pending spenders met so far, each with the outpoints its inputs spend (none for one the
+/// reader's view settled).
+#[derive(Default)]
+struct SpendFilter(FxHashMap<TxKey, Option<FxHashSet<(Txid, Vout)>>>);
+
+impl SpendFilter {
+    fn spent(&mut self, pool: &Pool, view: &PendingView, txid: &Txid, vout: Vout) -> bool {
+        let Some(key) = pool
+            .outpoint_spends
+            .get(&OutpointKey::new(TxKey::from(txid), vout))
+        else {
+            return false;
+        };
+        // The stored key can collide: the spender's own inputs decide.
+        self.0
+            .entry(key)
+            .or_insert_with(|| {
+                pool.txs
+                    .record_by_key(&key)
+                    .filter(|spender| view.pending(&spender.entry.txid))
+                    .map(|spender| {
+                        spender
+                            .tx
+                            .input
+                            .iter()
+                            .map(|input| (input.txid, input.vout))
+                            .collect()
+                    })
+            })
+            .as_ref()
+            .is_some_and(|inputs| inputs.contains(&(*txid, vout)))
+    }
 }
 
 impl ReadOnlyState {
@@ -65,10 +118,20 @@ impl ReadOnlyState {
         Ok(stats)
     }
 
-    /// The address's pending spends and unspent pending outputs.
-    pub fn addr_pending_utxos(&self, addr: &AddressBytes, view: &PendingView) -> Result<PendingUtxos> {
-        let state = self.pool()?.at(view.tip())?;
-        let mut pending = PendingUtxos::default();
+    /// The address's unspent pending outputs, and what spends its outputs.
+    pub fn addr_pending_utxos(
+        &self,
+        addr: &AddressBytes,
+        view: &Arc<PendingView>,
+    ) -> Result<PendingUtxos> {
+        let pool = self.pool_arc()?;
+        let state = pool.at(view.tip())?;
+        let mut pending = PendingUtxos {
+            spends_at_most: state.addrs.waiting_inputs(),
+            token: state.addrs.waiting_token() ^ view.identity(),
+            pool: Some((pool.clone(), view.clone())),
+            ..PendingUtxos::default()
+        };
         let Some(entry) = Self::addr_entry(state, addr, view)? else {
             return Ok(pending);
         };
@@ -79,11 +142,11 @@ impl ReadOnlyState {
             };
             pending.token ^= *at.key;
             let tx = &record.tx;
-            for txin in &tx.input {
-                if txin.prevout.as_ref().is_some_and(pays) {
-                    pending.spent.insert((txin.txid, txin.vout));
-                }
-            }
+            pending.spends_at_most += tx
+                .input
+                .iter()
+                .filter(|txin| txin.prevout.as_ref().is_some_and(pays))
+                .count();
             for (vout, txout) in tx.output.iter().enumerate() {
                 if pays(txout) {
                     pending
@@ -92,9 +155,10 @@ impl ReadOnlyState {
                 }
             }
         }
+        let mut spends = SpendFilter::default();
         pending
             .created
-            .retain(|(txid, vout, _)| !pending.spent.contains(&(*txid, *vout)));
+            .retain(|(txid, vout, _)| !spends.spent(state, view, txid, *vout));
         pending
             .created
             .sort_unstable_by_key(|(txid, vout, _)| (TxidPrefix::from(txid), *vout));

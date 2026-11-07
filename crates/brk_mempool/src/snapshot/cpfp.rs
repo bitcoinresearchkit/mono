@@ -8,32 +8,39 @@
 
 use brk_cpfp::Cluster;
 use brk_error::{Error, Result};
-use brk_types::{
-    BlockHash, CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid,
-};
+use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
-use crate::ReadOnlyState;
+use crate::{PendingView, ReadOnlyState};
 
 impl ReadOnlyState {
-    /// CPFP info for a live mempool tx. Returns `None` when the tx
-    /// isn't in the completed live publication. Requires the graph and live
-    /// fields to share the same transaction revision and requested chain tip. A tx whose own
+    /// CPFP info for a tx pending in `view`. Returns `None` when the tx
+    /// isn't pending there. Requires the graph and live
+    /// fields to share the same transaction revision and the view's chain tip. A tx whose own
     /// inputs aren't all resolved yet answers `StateUpdating`, alone (its sigops need them; its
-    /// cluster's rates already stand on Core's vsize for any member still resolving).
-    pub fn cpfp_info(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<CpfpInfo>> {
-        let state = self.pool()?.at(tip)?;
+    /// cluster's rates already stand on Core's vsize for any member still resolving), and so does
+    /// one whose cluster a newer block settled part of (until the pool follows it).
+    pub fn cpfp_info(&self, txid: &Txid, view: &PendingView) -> Result<Option<CpfpInfo>> {
+        let state = self.pool()?.at(view.tip())?;
         let snapshot = &state.graph;
-        let Some(tx) = state.txs.get(txid) else {
+        let Some(tx) = state.txs.get(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         if !tx.is_resolved() {
             return Err(Error::StateUpdating);
         }
-        Ok(snapshot
-            .idx_of_txid(txid)
-            .map(|index| snapshot.cpfp_info_at(index, tx.total_sigop_cost)))
+        let Some(index) = snapshot.idx_of_txid(txid) else {
+            return Ok(None);
+        };
+        if !view.settles_nothing()
+            && cluster::walk(&snapshot.txs, index)
+                .iter()
+                .any(|member| !view.pending(&snapshot.txs[member.as_usize()].txid))
+        {
+            return Err(Error::StateUpdating);
+        }
+        Ok(Some(snapshot.cpfp_info_at(index, tx.total_sigop_cost)))
     }
 }
 

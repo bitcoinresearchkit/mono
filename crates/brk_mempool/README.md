@@ -112,7 +112,8 @@ offsets.
 
 Each publication pairs one membership observation with the graph built from it. Each poll
 brackets its fetch and prevout resolution with best-block hashes; an observation whose tip moved
-is not published. A template containing transactions absent from the raw mempool listing is
-still used for the projection, but that union is not published as membership (address balances
-and pages). These are consistency checks on sampled observations, not a claim that a JSON-RPC
+is not published. Core's template, built at most every few seconds while its pool changes, can
+hold transactions that left the pool since: their bodies serve block 0 alone, and the pool buries
+them as it would any leaver, so membership (address balances and pages, lookups) follows the
+listing alone and publishes every cycle. These are consistency checks on sampled observations, not a claim that a JSON-RPC
 batch is atomic.

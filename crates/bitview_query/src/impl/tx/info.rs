@@ -26,9 +26,9 @@ impl ResolvedTransaction {
 impl Query {
     /// Resolve a transaction once before an async response handoff.
     pub fn resolve_transaction(&self, txid: &Txid) -> Result<ResolvedTransaction> {
-        let source = self.resolve_tx_body(txid, |mempool, tip| {
+        let source = self.resolve_tx_body(txid, |mempool, view| {
             Ok(mempool
-                .transaction(txid, tip)?
+                .transaction(txid, view)?
                 .map(|transaction| (transaction.tx, transaction.digest)))
         })?;
         Ok(ResolvedTransaction { source })

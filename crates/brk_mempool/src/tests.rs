@@ -21,7 +21,7 @@ use crate::{
         partition::{Chunks, partition},
         rebuilder::withhold,
     },
-    steps::{Confirmed, applier, preparer, prevouts},
+    steps::{Confirmed, applier, preparer::{self, TxAddition}, prevouts},
     state::TxEntry,
     stores::{TxGraveyard, tx_store::TxRecord},
     steps::TxRemoval,
@@ -305,7 +305,7 @@ fn served_blocks_publish_and_diff() {
         block0,
         "an unchanged block keeps its hash"
     );
-    let built = to_value(captured.build()).unwrap();
+    let built: Value = serde_json::from_slice(&captured.json()).unwrap();
     assert_eq!(
         built["hash"],
         to_value(since).unwrap(),
@@ -377,15 +377,16 @@ fn served_blocks_publish_and_diff() {
 #[test]
 fn incomplete_views_withhold_what_cannot_follow_block_0() {
     let outpoint = |seed: u8, vout: u32| (txid(seed), Vout::from(vout));
-    // 0: template-only, block 0, spends 90:0. 1: its replacement, spends 90:0 too. 2: 1's child.
-    // 3: spends 91:0, listed but not loaded. 4: spends 92:0, confirmed. 5: 4's child.
+    // 0: a replacement of 5, spends 90:0. 1: 0's child. 2: spends 91:0, listed but not loaded.
+    // 3: spends 92:0, confirmed. 4: 3's child. 5: template-only (after the pool's), block 0,
+    // spends 90:0 too.
     let bodies = [
-        spending(10, &[outpoint(90, 0)]),
         spending(11, &[outpoint(90, 0)]),
         spending(12, &[outpoint(11, 0)]),
         spending(13, &[outpoint(91, 0)]),
         spending(14, &[outpoint(92, 0)]),
         spending(15, &[outpoint(14, 0)]),
+        spending(10, &[outpoint(90, 0)]),
     ];
     let mut txs: Vec<SnapTx> = bodies
         .iter()
@@ -402,16 +403,15 @@ fn incomplete_views_withhold_what_cannot_follow_block_0() {
             children: SmallVec::new(),
         })
         .collect();
-    for (parent, child) in [(1, 2), (4, 5)] {
+    for (parent, child) in [(0, 1), (3, 4)] {
         txs[child].parents.push(TxIndex::from(parent));
         txs[parent].children.push(TxIndex::from(child));
     }
-    let template_only: RapidHashSet<Txid> = [txid(10)].into_iter().collect();
     let unloaded: RapidHashSet<Txid> = [txid(91)].into_iter().collect();
-    let mut excluded = vec![true, false, false, false, false, false];
+    let mut excluded = vec![false, false, false, false, false, true];
     let bodies: Vec<&Transaction> = bodies.iter().collect();
-    withhold(&bodies, &txs, &template_only, &unloaded, &mut excluded);
-    assert_eq!(excluded, [true, true, true, true, false, false]);
+    withhold(&bodies, &txs, 5, &unloaded, &mut excluded);
+    assert_eq!(excluded, [true, true, true, false, false, true]);
 }
 
 /// A body pairs with its entry only as the variant the entry describes: another witness of the
@@ -445,7 +445,6 @@ fn entries_pair_only_with_their_own_witness_variant() {
         let bodies = [(txid, fetched.clone())].into_iter().collect();
         preparer::prepare(
             &[txid],
-            &RapidHashSet::default(),
             vec![entry],
             bodies,
             &Confirmed::default(),
@@ -487,38 +486,29 @@ fn rebuilds_follow_the_view_gaps() {
     let c = raw((unloaded_parent, 0), 0);
     let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
     let mut state = State::default();
-    let template_only: RapidHashSet<Txid> = [id(&t)].into_iter().collect();
-    let entries = [&p, &t, &r, &c]
-        .iter()
-        .map(|tx| MempoolEntryInfo {
-            txid: id(tx),
-            wtxid: tx.compute_wtxid(),
-            vsize: VSize::from(Weight::from(tx.weight())),
-            weight: Weight::from(tx.weight()),
-            fee: Sats::from(1_000u64),
-            first_seen: Timestamp::now(),
-        })
-        .collect();
-    let bodies = [&p, &t, &r, &c]
+    let info = |tx: &bitcoin::Transaction| MempoolEntryInfo {
+        txid: id(tx),
+        wtxid: tx.compute_wtxid(),
+        vsize: VSize::from(Weight::from(tx.weight())),
+        weight: Weight::from(tx.weight()),
+        fee: Sats::from(1_000u64),
+        first_seen: Timestamp::now(),
+    };
+    let entries = [&p, &r, &c].iter().map(|tx| info(tx)).collect();
+    let bodies = [&p, &r, &c]
         .iter()
         .map(|&tx| (id(tx), tx.clone()))
         .collect();
-    let live = [id(&p), id(&r), id(&c), Txid::from(unloaded_parent), id(&t)];
-    let diff = preparer::prepare(
-        &live,
-        &template_only,
-        entries,
-        bodies,
-        &Confirmed::default(),
-        &state,
-    );
+    let live = [id(&p), id(&r), id(&c), Txid::from(unloaded_parent)];
+    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
     applier::apply(
         &mut state,
         &Snapshot::default(),
         diff,
         &Confirmed::default(),
     );
-    state.template_only = template_only;
+    let TxAddition { tx, entry } = TxAddition::new(&info(&t), t.clone(), &state.txs, &state.graveyard);
+    state.template_only = vec![TxRecord::new(Arc::new(tx), entry)];
 
     let mut rebuilder = Rebuilder::default();
     let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
@@ -607,14 +597,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
         .collect();
     let bodies = txs.iter().map(|&tx| (id(tx), tx.clone())).collect();
     let live: Vec<Txid> = txs.iter().map(|tx| id(tx)).collect();
-    let diff = preparer::prepare(
-        &live,
-        &RapidHashSet::default(),
-        entries,
-        bodies,
-        &Confirmed::default(),
-        &state,
-    );
+    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
     applier::apply(&mut state, &Snapshot::default(), diff, &Confirmed::default());
     let funding = TxOut::from((script.clone(), Sats::from(5_000u64)));
     let addr = funding.addr_bytes().unwrap();
@@ -681,7 +664,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     }
     let utxos = read.addr_pending_utxos(&addr, &behind).unwrap();
     assert_eq!(utxos.created.len(), 2, "k's and u's outputs");
-    assert!(utxos.spent.contains(&(id(&m), Vout::from(0usize))));
+    assert!(utxos.spent_filter()(&id(&m), Vout::from(0usize)));
     assert!(
         read.view_at(&BlockHash::from(bitcoin::BlockHash::from_byte_array([1; 32])))
             .is_err(),

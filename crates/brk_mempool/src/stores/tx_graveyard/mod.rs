@@ -451,6 +451,39 @@ impl TxGraveyard {
                 .collect();
         }
         self.cycle += 1;
+        debug_assert!(self.consistent(), "graveyard invariants");
+    }
+
+    /// The invariants the type states that its counts and indexes keep: `bytes` sums the bodies,
+    /// `replaced` counts the `Replaced` tombstones, and `predecessors_by_replacer[by]` lists
+    /// exactly those replaced by `by`. O(tombstones), for debug builds.
+    fn consistent(&self) -> bool {
+        let (mut bytes, mut replaced) = (0, 0);
+        for (txid, tombstone) in self.tombstones.iter() {
+            bytes += tombstone.record.entry.size;
+            if let Some(by) = tombstone.replaced_by() {
+                replaced += 1;
+                if !self
+                    .predecessors_by_replacer
+                    .get(by)
+                    .is_some_and(|predecessors| predecessors.contains(txid))
+                {
+                    return false;
+                }
+            }
+        }
+        let listed = self
+            .predecessors_by_replacer
+            .iter()
+            .try_fold(0, |listed, (by, predecessors)| {
+                predecessors
+                    .iter()
+                    .all(|txid| {
+                        self.tombstones.get(txid).and_then(TxTombstone::replaced_by) == Some(by)
+                    })
+                    .then_some(listed + predecessors.len())
+            });
+        bytes == self.bytes && replaced == self.replaced && listed == Some(replaced)
     }
 
     /// Lets go of what's past its retention, then of the oldest past [`MAX_BYTES`]. Retention: a

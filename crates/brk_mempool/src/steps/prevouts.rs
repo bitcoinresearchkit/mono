@@ -8,29 +8,74 @@
 #![allow(clippy::type_complexity)]
 
 use brk_rpc::Client;
-use brk_types::{TxOut, Txid, Vin, Vout};
+use brk_types::{Transaction, TxOut, Txid, Vin, Vout};
 use rapidhash::RapidHashMap;
-use tracing::warn;
 
 use crate::{
     key::TxKey,
     state::State,
-    stores::{TxGraveyard, TxStore},
+    stores::tx_store::TxRecord,
 };
 
-/// Fill every unfilled prevout the cycle can resolve. Same-cycle
-/// in-mempool parents are filled directly. The remainder go through
-/// `resolver` in one batched call.
+/// Where a fill goes: a pooled record, or block 0's template-only one at its index.
+#[derive(Clone, Copy)]
+enum FillTo {
+    Pool(TxKey),
+    TemplateOnly(usize),
+}
+
+/// Fill every unfilled prevout the cycle can resolve, the pool's and block 0's template-only
+/// bodies' (served, and counted by their sigops). Same-cycle parents (pooled, template-only or
+/// retained) are filled directly. The remainder go through `resolver` in one batched call.
 pub fn fill<F>(state: &mut State, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
-    let (in_mempool, holes) = gather(&state.txs, &state.graveyard);
+    let template_only: RapidHashMap<Txid, usize> = state
+        .template_only
+        .iter()
+        .enumerate()
+        .map(|(i, record)| (record.entry.txid, i))
+        .collect();
+    let unresolved = state
+        .txs
+        .unresolved()
+        .iter()
+        .map(|key| {
+            let record = state.txs.record_by_key(key).expect("unresolved tx is pooled");
+            (FillTo::Pool(*key), record)
+        })
+        .chain(
+            state
+                .template_only
+                .iter()
+                .enumerate()
+                .filter(|(_, record)| !record.tx.is_resolved())
+                .map(|(i, record)| (FillTo::TemplateOnly(i), record)),
+        );
+    let parent = |txid: &Txid| {
+        state
+            .txs
+            .get(txid)
+            .or_else(|| template_only.get(txid).map(|&i| state.template_only[i].tx.as_ref()))
+            .or_else(|| {
+                state
+                    .graveyard
+                    .get_unreplaced(txid)
+                    .map(|tomb| tomb.record.tx.as_ref())
+            })
+    };
+    let (in_mempool, holes) = gather(unresolved, parent);
     let external = resolve_external(holes, resolver);
     let mut resolved = Vec::new();
-    for (txid, fills) in in_mempool.into_iter().chain(external) {
-        if state.txs.apply_fills(&TxKey::from(&txid), fills) {
-            resolved.push(txid);
+    for (into, fills) in in_mempool.into_iter().chain(external) {
+        match into {
+            FillTo::Pool(key) => {
+                if state.txs.apply_fills(&key, fills) {
+                    resolved.push(state.txs.record_by_key(&key).expect("filled").entry.txid);
+                }
+            }
+            FillTo::TemplateOnly(i) => state.template_only[i].fill(fills),
         }
     }
     state.fold_ready(resolved);
@@ -45,28 +90,24 @@ pub fn rpc_resolver(
         if holes.is_empty() {
             return RapidHashMap::default();
         }
-        client.get_tx_outs(holes).unwrap_or_else(|error| {
-            warn!("mempool prevout fetch failed: {error}");
-            RapidHashMap::default()
-        })
+        client.get_tx_outs(holes)
     }
 }
 
-/// Single pass over `txs.unresolved()`: bucket each hole into a
-/// same-cycle fill (the parent is live, or a retained vanished one) or an
-/// external hole (parent is confirmed or unknown). Retained parents let the
-/// children of a just-mined parent resolve before the chain publishes its block.
-fn gather(
-    txs: &TxStore,
-    graveyard: &TxGraveyard,
+/// Single pass over the `unresolved` records: bucket each hole into a same-cycle fill (`parent`
+/// holds it: pooled, template-only, or a retained vanished one) or an external hole (parent is
+/// confirmed or unknown). Retained parents let the children of a just-mined parent resolve
+/// before the chain publishes its block.
+fn gather<'a, 'p>(
+    unresolved: impl Iterator<Item = (FillTo, &'a TxRecord)>,
+    parent: impl Fn(&Txid) -> Option<&'p Transaction>,
 ) -> (
-    Vec<(Txid, Vec<(Vin, TxOut)>)>,
-    Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+    Vec<(FillTo, Vec<(Vin, TxOut)>)>,
+    Vec<(FillTo, Vec<(Vin, Txid, Vout)>)>,
 ) {
-    let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
-    let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
-    for key in txs.unresolved() {
-        let record = txs.record_by_key(key).expect("unresolved tx is pooled");
+    let mut filled: Vec<(FillTo, Vec<(Vin, TxOut)>)> = Vec::new();
+    let mut holes: Vec<(FillTo, Vec<(Vin, Txid, Vout)>)> = Vec::new();
+    for (into, record) in unresolved {
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
         let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
         for (i, txin) in record.tx.input.iter().enumerate() {
@@ -74,23 +115,19 @@ fn gather(
                 continue;
             }
             let vin = Vin::from(i);
-            if let Some(parent) = txs.get(&txin.txid).or_else(|| {
-                graveyard
-                    .get_unreplaced(&txin.txid)
-                    .map(|tomb| tomb.record.tx.as_ref())
-            }) && let Some(out) = parent.output.get(usize::from(txin.vout))
+            if let Some(out) =
+                parent(&txin.txid).and_then(|parent| parent.output.get(usize::from(txin.vout)))
             {
                 tx_fills.push((vin, out.clone()));
             } else {
                 tx_holes.push((vin, txin.txid, txin.vout));
             }
         }
-        let txid = record.entry.txid;
         if !tx_fills.is_empty() {
-            filled.push((txid, tx_fills));
+            filled.push((into, tx_fills));
         }
         if !tx_holes.is_empty() {
-            holes.push((txid, tx_holes));
+            holes.push((into, tx_holes));
         }
     }
     (filled, holes)
@@ -100,9 +137,9 @@ fn gather(
 /// resolver once, then re-attribute resolved entries to their
 /// consumer txs.
 fn resolve_external<F>(
-    holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+    holes: Vec<(FillTo, Vec<(Vin, Txid, Vout)>)>,
     resolver: F,
-) -> Vec<(Txid, Vec<(Vin, TxOut)>)>
+) -> Vec<(FillTo, Vec<(Vin, TxOut)>)>
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
@@ -119,18 +156,16 @@ where
     }
     holes
         .into_iter()
-        .filter_map(|(txid, tx_holes)| {
+        .filter_map(|(into, tx_holes)| {
             let fills: Vec<(Vin, TxOut)> = tx_holes
                 .into_iter()
                 .filter_map(|(vin, prev_txid, vout)| {
-                    // Looked up, not taken: a template-only transaction and its listed replacement
-                    // can both wait on one outpoint.
                     resolved
                         .get(&(prev_txid, vout))
                         .map(|output| (vin, output.clone()))
                 })
                 .collect();
-            (!fills.is_empty()).then_some((txid, fills))
+            (!fills.is_empty()).then_some((into, fills))
         })
         .collect()
 }

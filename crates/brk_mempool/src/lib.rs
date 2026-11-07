@@ -25,7 +25,7 @@ mod stores;
 mod tests;
 
 pub use api::{
-    MempoolBlockSource, PendingUtxos, PendingView, PublishedEntry, PublishedTx, RbfForTx,
+    MempoolBlockSource, PendingUtxos, PendingView, PublishedTx, RbfForTx,
     RbfNode, ResolvedMempoolBlockDiff,
 };
 pub use chain_waker::ChainWaker;

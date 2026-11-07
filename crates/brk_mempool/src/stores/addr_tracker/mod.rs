@@ -2,7 +2,7 @@ use std::{collections::hash_map::Entry as MapEntry, sync::Arc};
 
 use brk_types::{AddressBytes, AddressMempoolStats, Txid};
 use rapidhash::fast::RandomState;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
 use crate::{
     key::TxKey,
@@ -23,11 +23,15 @@ pub use addr_entry::{AddrEntry, AddrTx};
 #[derive(Clone, Default)]
 pub struct AddrTracker {
     addrs: CowMap<AddressBytes, Arc<AddrEntry>, RandomState>,
-    /// The pooled transactions not folded in yet.
-    waiting: FxHashSet<Txid>,
+    /// The pooled transactions not folded in yet, each with its inputs' count.
+    waiting: CowMap<Txid, u32, RandomState>,
+    /// The waiting transactions' keys folded together: it changes with the set.
+    waiting_token: u64,
+    /// The waiting transactions' inputs, all told: the most outpoints they can spend.
+    waiting_inputs: usize,
     /// The waiting transactions paying each address, with how many of their outputs do: what it
     /// answers isn't complete yet, unless a newer block settled them all.
-    awaited: FxHashMap<AddressBytes, FxHashMap<TxKey, u32>>,
+    awaited: CowMap<AddressBytes, FxHashMap<TxKey, u32>, RandomState>,
 }
 
 impl AddrTracker {
@@ -37,7 +41,18 @@ impl AddrTracker {
 
     /// Whether the pooled `txid` waits to fold in (unresolved, or behind a parent that is).
     pub fn is_waiting(&self, txid: &Txid) -> bool {
-        self.waiting.contains(txid)
+        self.waiting.contains_key(txid)
+    }
+
+    /// Identifies the waiting transactions: what they spend isn't any address's yet (their
+    /// prevouts aren't all known), only the outpoints'.
+    pub fn waiting_token(&self) -> u64 {
+        self.waiting_token
+    }
+
+    /// How many outpoints the waiting transactions spend, at most.
+    pub fn waiting_inputs(&self) -> usize {
+        self.waiting_inputs
     }
 
     /// The waiting transactions paying `addr`.
@@ -47,33 +62,46 @@ impl AddrTracker {
 
     /// A transaction entering the pool (or held back again): it waits until ready.
     pub fn wait(&mut self, record: &TxRecord) {
-        if !self.waiting.insert(record.entry.txid) {
+        if self.waiting.contains_key(&record.entry.txid) {
             return;
         }
+        let inputs = record.tx.input.len();
+        self.waiting
+            .insert(record.entry.txid, u32::try_from(inputs).expect("inputs fit 32 bits"));
         let key = record.entry.key();
+        self.waiting_token ^= *key;
+        self.waiting_inputs += inputs;
         for bytes in record.tx.output.iter().filter_map(|txout| txout.addr_bytes()) {
-            *self.awaited.entry(bytes).or_default().entry(key).or_default() += 1;
+            *self
+                .awaited
+                .shard_mut(&bytes)
+                .entry(bytes)
+                .or_default()
+                .entry(key)
+                .or_default() += 1;
         }
     }
 
     /// No longer waiting: what it pays is complete again (as far as it goes).
     fn unwait(&mut self, record: &TxRecord) -> bool {
-        if !self.waiting.remove(&record.entry.txid) {
+        let Some(inputs) = self.waiting.remove(&record.entry.txid) else {
             return false;
-        }
+        };
         let key = record.entry.key();
+        self.waiting_token ^= *key;
+        self.waiting_inputs -= inputs as usize;
         for bytes in record.tx.output.iter().filter_map(|txout| txout.addr_bytes()) {
-            let MapEntry::Occupied(mut keys) = self.awaited.entry(bytes) else {
+            let Some(keys) = self.awaited.get_mut(&bytes) else {
                 continue;
             };
-            if let MapEntry::Occupied(mut outputs) = keys.get_mut().entry(key) {
+            if let MapEntry::Occupied(mut outputs) = keys.entry(key) {
                 *outputs.get_mut() -= 1;
                 if *outputs.get() == 0 {
                     outputs.remove();
                 }
             }
-            if keys.get().is_empty() {
-                keys.remove();
+            if keys.is_empty() {
+                self.awaited.remove(&bytes);
             }
         }
         true

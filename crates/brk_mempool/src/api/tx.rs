@@ -1,53 +1,32 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::{FxHashSet, FxHasher};
+use serde::Serializer;
 
 use crate::{
-    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
+    PendingView, PublishedTx, ReadOnlyState,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
 
 impl ReadOnlyState {
-    /// Why a transaction left the pool, while the graveyard remembers it (an hour alone; a
-    /// replacement tree's while its newest version is pending, and a day after): `None` for one
-    /// live or unknown.
-    pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
-        let state = self.pool()?.at(tip)?;
-        Ok(state.graveyard.get(txid).map(|tomb| tomb.removal))
-    }
-
-    /// Capture an immutable live body or its recently vanished fallback from
-    /// one completed publication. Replaced tombstones are excluded. A body whose own inputs
-    /// aren't all resolved yet answers `StateUpdating`, alone: others read meanwhile.
-    pub fn transaction(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedTx>> {
-        let state = self.pool()?.at(tip)?;
-        let record = state.txs.record(txid).or_else(|| {
-            state
-                .graveyard
-                .get_unreplaced(txid)
-                .map(|tomb| &tomb.record)
-        });
-        let Some(record) = record else {
+    /// A transaction pending in `view`, from one completed publication: none for one that left
+    /// (mined ones the chain answers; evicted, expired or replaced ones are gone). A body whose
+    /// own inputs aren't all resolved yet answers `StateUpdating`, alone: others read meanwhile.
+    pub fn transaction(&self, txid: &Txid, view: &PendingView) -> Result<Option<PublishedTx>> {
+        let state = self.pool()?.at(view.tip())?;
+        let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
             return Ok(None);
         };
         if !record.tx.is_resolved() {
             return Err(Error::StateUpdating);
         }
         Ok(Some(PublishedTx::from_record(record)))
-    }
-
-    /// A live transaction's entry facts (Core's fee, vsize and first sighting): what needs no
-    /// input resolved.
-    pub fn entry(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedEntry>> {
-        let state = self.pool()?.at(tip)?;
-        Ok(state.txs.entry(txid).map(|entry| PublishedEntry {
-            fee: entry.fee,
-            vsize: entry.vsize,
-            first_seen: entry.first_seen,
-        }))
     }
 
     /// Spend status for a pending transaction's output, or `None` when the parent isn't pending
@@ -185,9 +164,19 @@ impl ReadOnlyState {
         Ok(state.txs.txids_hash())
     }
 
-    /// The txid array [`Self::txids_hash`] validates.
-    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
-        Ok(self.pool()?.txs.txids())
+    /// The txid array [`Self::txids_hash`] validates, as JSON: encoded once per publication.
+    pub fn txids_json(&self) -> Result<Arc<[u8]>> {
+        let state = self.pool()?;
+        Ok(state
+            .txids_json
+            .get_or_init(|| {
+                let mut bytes = Vec::new();
+                serde_json::Serializer::new(&mut bytes)
+                    .collect_seq(state.txs.txids())
+                    .expect("txids serialize");
+                bytes.into()
+            })
+            .clone())
     }
 
     /// Recently observed additions, including transactions that have since left.

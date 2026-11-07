@@ -50,31 +50,6 @@ pub fn whole(stats: &[BlockStats], min_fee: FeeRate) -> RecommendedFees {
     }
 }
 
-/// Whole tiers from an earlier view, none below `min_fee`'s floor (mempool.space floors every tier
-/// by the live `mempoolminfee`).
-pub fn floored_whole(fees: &RecommendedFees, min_fee: FeeRate) -> RecommendedFees {
-    let floor = min_fee.ceil_to(WHOLE).max(WHOLE).whole_sats();
-    RecommendedFees {
-        fastest_fee: fees.fastest_fee.max(floor),
-        half_hour_fee: fees.half_hour_fee.max(floor),
-        hour_fee: fees.hour_fee.max(floor),
-        economy_fee: fees.economy_fee.max(floor),
-        minimum_fee: floor,
-    }
-}
-
-/// [`floored_whole`] for the precise tiers.
-pub fn floored_precise(fees: &PreciseRecommendedFees, min_fee: FeeRate) -> PreciseRecommendedFees {
-    let floor = min_fee.ceil_to(PRECISE).max(PRECISE);
-    PreciseRecommendedFees {
-        fastest_fee: fees.fastest_fee.max(floor),
-        half_hour_fee: fees.half_hour_fee.max(floor),
-        hour_fee: fees.hour_fee.max(floor),
-        economy_fee: fees.economy_fee.max(floor),
-        minimum_fee: floor,
-    }
-}
-
 /// mempool.space's `calculateRecommendedFee`: every tier a multiple of `increment`.
 fn recommend(stats: &[BlockStats], min_fee: FeeRate, increment: FeeRate) -> PreciseRecommendedFees {
     let minimum_fee = min_fee.ceil_to(increment).max(increment);

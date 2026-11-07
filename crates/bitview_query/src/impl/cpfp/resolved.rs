@@ -27,9 +27,9 @@ impl Query {
             let hash = RepresentationId::content_hash(&value);
             (value, hash)
         };
-        let source = match self.resolve_tx_body(txid, |mempool, tip| {
+        let source = match self.resolve_tx_body(txid, |mempool, view| {
             Ok(mempool
-                .cpfp_info(txid, tip)?
+                .cpfp_info(txid, view)?
                 .map(|info| live(&Cpfp::Mempool(info))))
         }) {
             Err(Error::UnknownTxid) => {

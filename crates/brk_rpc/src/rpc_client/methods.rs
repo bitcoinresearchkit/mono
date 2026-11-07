@@ -9,7 +9,7 @@ use brk_types::{Bitcoin, BlockHash, FeeRate, Height, MempoolEntryInfo, Sats, TxO
 use corepc_jsonrpc::error::Error as JsonRpcError;
 use rapidhash::RapidHashMap;
 use serde_json::{from_str, json, value::RawValue};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use super::{
     BlockSpends, Client, ClientInner,
@@ -176,11 +176,9 @@ impl Client {
 
     /// The outputs at `outpoints` from the node's UTXO set (`gettxout`, the mempool's spends not
     /// counted): what a pending transaction's confirmed parents left it, with no `-txindex`
-    /// needed. One the set doesn't hold (unknown, or spent in a block) is left out.
-    pub fn get_tx_outs(
-        &self,
-        outpoints: &[(Txid, Vout)],
-    ) -> Result<RapidHashMap<(Txid, Vout), TxOut>> {
+    /// needed. One the set doesn't hold (unknown, or spent in a block) is left out, and so is a
+    /// batch that fails: the others' answers stand.
+    pub fn get_tx_outs(&self, outpoints: &[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> {
         #[derive(serde::Deserialize)]
         struct Unspent {
             value: Bitcoin,
@@ -197,7 +195,13 @@ impl Client {
                 let txid: &BitcoinTxid = txid.into();
                 (txid, u32::from(*vout), false)
             });
-            let results = self.0.call_batch_raw("gettxout", args)?;
+            let results = match self.0.call_batch_raw("gettxout", args) {
+                Ok(results) => results,
+                Err(error) => {
+                    warn!(%error, outpoints = chunk.len(), "gettxout batch failed");
+                    continue;
+                }
+            };
             for (outpoint, result) in chunk.iter().zip(results) {
                 let unspent = result.and_then(|raw| Ok(from_str::<Option<Unspent>>(raw.get())?));
                 match unspent {
@@ -212,7 +216,7 @@ impl Client {
                 }
             }
         }
-        Ok(out)
+        out
     }
 
     /// Block `hash`'s transactions and what their inputs spend (`getblock` raw, decoded once).

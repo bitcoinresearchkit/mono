@@ -17,9 +17,6 @@ use crate::{
 pub struct TxAddition {
     pub tx: Transaction,
     pub entry: TxEntry,
-    /// In the raw listing, not only in a (possibly stale) template: only a
-    /// listed tx takes over an outpoint another pooled tx already spends.
-    pub listed: bool,
 }
 
 impl TxAddition {
@@ -29,7 +26,6 @@ impl TxAddition {
     pub fn new(
         info: &MempoolEntryInfo,
         tx: BitcoinTransaction,
-        listed: bool,
         mempool_txs: &TxStore,
         graveyard: &TxGraveyard,
     ) -> Self {
@@ -42,11 +38,7 @@ impl TxAddition {
         } else if let Some(tomb) = graveyard.get(&info.txid) {
             entry.first_seen = tomb.record.entry.first_seen;
         }
-        Self {
-            tx: built,
-            entry,
-            listed,
-        }
+        Self { tx: built, entry }
     }
 
     fn build_tx(

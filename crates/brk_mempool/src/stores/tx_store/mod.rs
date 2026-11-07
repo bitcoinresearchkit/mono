@@ -129,14 +129,7 @@ impl TxStore {
             .records
             .get_mut(key)
             .expect("filled tx is pooled");
-        let tx = Arc::make_mut(&mut record.tx);
-        for (vin, prevout) in fills {
-            let txin = &mut tx.input[usize::from(vin)];
-            debug_assert!(txin.prevout.is_none(), "fills only fill missing prevouts");
-            txin.prevout = Some(prevout);
-        }
-        tx.refresh_sigops();
-        record.digest = TxRecord::digest_of(tx);
+        record.fill(fills);
         self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
         let resolved = record.tx.is_resolved();
         if resolved {

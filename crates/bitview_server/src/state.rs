@@ -215,16 +215,17 @@ impl AppState {
 
     /// JSON response whose representation identity is produced with its bytes.
     #[cfg(feature = "chain")]
-    pub async fn respond_json_bound(
+    pub async fn respond_json_bound<B: AsRef<[u8]> + Send + 'static>(
         &self,
         headers: HeaderMap,
         version: Version,
-        f: impl FnOnce(&Query) -> Result<(Vec<u8>, RepresentationId)> + Clone + Send + 'static,
+        f: impl FnOnce(&Query) -> Result<(B, RepresentationId)> + Clone + Send + 'static,
     ) -> Response<Body> {
         self.respond_json_built(&self.chain_query, headers, move |q, _| {
             let (bytes, identity) = f(q)?;
             Ok(Built::Body(
-                Bytes::from(bytes),
+                // A body shared with the pool (built once per publication) isn't copied.
+                Bytes::from_owner(bytes),
                 CacheParams::representation(version, identity),
             ))
         })

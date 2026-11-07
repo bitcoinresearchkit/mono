@@ -166,7 +166,6 @@ impl Mempool {
         let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.state.graveyard.told());
         let diff = preparer::prepare(
             &rpc.live_txids,
-            &template_only,
             new_entries,
             new_txs,
             &confirmed,
@@ -194,9 +193,8 @@ impl Mempool {
         self.state.template_only = template_only;
         prevouts::fill(&mut self.state, resolver);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
-        // The template and the listing agree, and every listed transaction is loaded.
-        let membership_complete =
-            self.state.template_only.is_empty() && self.state.contains_all(&rpc.live_txids);
+        // Every listed transaction is loaded (block 0's template-only bodies aren't the pool's).
+        let membership_complete = self.state.contains_all(&rpc.live_txids);
         let unloaded: RapidHashSet<Txid> = if membership_complete {
             RapidHashSet::default()
         } else {
@@ -207,6 +205,7 @@ impl Mempool {
                 .collect()
         };
         self.state.graveyard.end_cycle(&unloaded);
+        self.read_only.load().observed.now();
         self.rebuilder.tick(
             &self.state,
             block_template_txids.as_deref(),

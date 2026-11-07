@@ -30,8 +30,9 @@ pub use tx_index::TxIndex;
 
 use crate::{JsonBody, json, key::TxKey};
 
-/// How long an incomplete view holds a complete one's fee tiers over: about a block. Past it the
-/// fee endpoints answer `StateUpdating` until a complete view returns.
+/// How long an incomplete view holds a complete one's fee tiers over, and how long tiers stand
+/// with Core unread: about a block. Past it the fee endpoints answer `StateUpdating` until a
+/// complete view returns.
 const HELD_FEES_MAX: Duration = Duration::from_secs(600);
 
 #[derive(Default)]
@@ -46,6 +47,8 @@ pub struct Snapshot {
     /// Every projected block's statistics: block 0's, then the package-aware projection's
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
+    /// The blocks `fees` and `precise_fees` stand on: these, or a complete view's held over.
+    pub(crate) fee_stats: Arc<[BlockStats]>,
     pub precise_fees: PreciseRecommendedFees,
     pub fees: RecommendedFees,
     /// When a complete view last stood behind `fees` and `precise_fees` (this one's build, or for
@@ -65,9 +68,10 @@ pub struct Snapshot {
     served: Vec<ServedBlock>,
     content_revision: u64,
     template_missing: bool,
-    /// The gaps of the view it was built from (template-only txids, listed txids not loaded):
-    /// a rebuild from the same view, gaps included, reuses it.
-    pub(crate) template_only: RapidHashSet<Txid>,
+    /// The gaps of the view it was built from (template-only bodies by their digests, in the
+    /// template's order; listed txids not loaded): a rebuild from the same view, gaps included,
+    /// reuses it.
+    pub(crate) template_only: Box<[u64]>,
     pub(crate) unloaded: RapidHashSet<Txid>,
     /// The operator's fee deltas it ranked by: a rebuild under the same ones reuses it.
     pub(crate) fee_deltas: Box<[(Txid, i64)]>,
@@ -83,6 +87,8 @@ pub struct Snapshot {
 pub(crate) struct ServedBlock {
     pub hash: MempoolBlockHash,
     pub bodies: Arc<[Arc<Transaction>]>,
+    /// The block served whole as JSON, built by the first request.
+    pub json: OnceLock<Arc<[u8]>>,
 }
 
 impl Snapshot {
@@ -107,6 +113,7 @@ impl Snapshot {
             txs,
             block0,
             block0_packed: false,
+            fee_stats: block_stats.as_slice().into(),
             block_stats,
             precise_fees,
             fees,
@@ -119,7 +126,7 @@ impl Snapshot {
             served: Vec::new(),
             content_revision: 0,
             template_missing: false,
-            template_only: RapidHashSet::default(),
+            template_only: Box::default(),
             unloaded: RapidHashSet::default(),
             fee_deltas: Box::default(),
             fees_json: OnceLock::new(),
@@ -129,14 +136,14 @@ impl Snapshot {
     }
 
     /// mempool.space's `/api/v1/fees/recommended` body.
-    pub(crate) fn fees_json(&self) -> Result<JsonBody> {
-        self.ensure_fees()?;
+    pub(crate) fn fees_json(&self, unobserved: Duration) -> Result<JsonBody> {
+        self.ensure_fees(unobserved)?;
         Ok(self.fees_json.get_or_init(|| json::body(&self.fees)).clone())
     }
 
     /// mempool.space's `/api/v1/fees/precise` body.
-    pub(crate) fn precise_fees_json(&self) -> Result<JsonBody> {
-        self.ensure_fees()?;
+    pub(crate) fn precise_fees_json(&self, unobserved: Duration) -> Result<JsonBody> {
+        self.ensure_fees(unobserved)?;
         Ok(self
             .precise_fees_json
             .get_or_init(|| json::body(&self.precise_fees))
@@ -180,6 +187,7 @@ impl Snapshot {
                 ServedBlock {
                     hash: MempoolBlockHash::new(hasher.finish()),
                     bodies: bodies.into(),
+                    json: OnceLock::new(),
                 }
             })
             .collect();
@@ -228,9 +236,13 @@ impl Snapshot {
     }
 
     /// [`Self::ensure_projection`], with tiers from a complete view: its own, or one held over
-    /// for at most [`HELD_FEES_MAX`].
-    pub(crate) fn ensure_fees(&self) -> Result<()> {
+    /// for at most [`HELD_FEES_MAX`], and Core observed within that long (`unobserved` since: a
+    /// node that can't be read leaves no fresher view than one only partly loaded).
+    pub(crate) fn ensure_fees(&self, unobserved: Duration) -> Result<()> {
         self.ensure_projection()?;
+        if unobserved > HELD_FEES_MAX {
+            return Err(QueryError::StateUpdating);
+        }
         match self.fees_from {
             Some(from) if !self.fees_held || from.elapsed() <= HELD_FEES_MAX => Ok(()),
             _ => Err(QueryError::StateUpdating),

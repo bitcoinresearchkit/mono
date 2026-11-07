@@ -6,11 +6,10 @@ pub mod tx_entry;
 
 use brk_types::{MempoolInfo, Transaction, Txid};
 pub(crate) use pool::Pool;
-use rapidhash::RapidHashSet;
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
 
-use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore};
+use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore, tx_store::TxRecord};
 
 #[derive(Default)]
 pub struct State {
@@ -19,10 +18,9 @@ pub struct State {
     pub addrs: AddrTracker,
     pub outpoint_spends: OutpointSpends,
     pub graveyard: TxGraveyard,
-    /// The last applied poll's template txids absent from the raw listing.
-    /// One still pooled and listed now reclaims its outpoints. Empty at every
-    /// pool publication, so a restored state starts it empty.
-    pub template_only: RapidHashSet<Txid>,
+    /// The last applied poll's template transactions the listing lacks (left Core's pool since
+    /// it built the template), in its order: block 0's bodies alone, never pooled.
+    pub template_only: Vec<TxRecord>,
 }
 
 impl State {
@@ -70,25 +68,7 @@ impl State {
         }
     }
 
-    /// Folds back out each folded one of `txids` a pooled parent of which waits, with its
-    /// descendants (`fold_ready` folds each in again once ready).
-    pub fn recheck(&mut self, txids: &[Txid]) {
-        for txid in txids {
-            let Some(record) = self.txs.record(txid) else {
-                continue;
-            };
-            if self.addrs.is_waiting(txid)
-                || !record.tx.input.iter().any(|i| self.addrs.is_waiting(&i.txid))
-            {
-                continue;
-            }
-            self.addrs.unfold(record);
-            self.hold_descendants(txid);
-        }
-    }
-
-    /// The pooled transactions owning outpoints of `tx`'s outputs, each once (a template-only
-    /// one conflicting with a listed spender is caught up with at its promotion).
+    /// The pooled transactions spending `tx`'s outputs, each once.
     pub fn pooled_children(&self, tx: &Transaction) -> Vec<Txid> {
         self.outpoint_spends
             .children(&self.txs, tx)

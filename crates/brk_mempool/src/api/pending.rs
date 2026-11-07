@@ -1,9 +1,12 @@
-use std::sync::Arc;
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, Txid, Vout};
 use rapidhash::RapidHashMap;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashSet, FxHasher};
 
 use crate::{
     ReadOnlyState,
@@ -28,6 +31,17 @@ impl PendingView {
 
     pub(crate) fn settles_nothing(&self) -> bool {
         self.settled.is_empty()
+    }
+
+    /// Tells views apart where what they settle differs: zero at the pool's tip (nothing
+    /// settled), the reader's tip hashed otherwise (one view per publication and reader tip).
+    pub(crate) fn identity(&self) -> u64 {
+        if self.settles_nothing() {
+            return 0;
+        }
+        let mut hasher = FxHasher::default();
+        self.reader.hash(&mut hasher);
+        hasher.finish()
     }
 
     /// Whether `txid`, pooled, is still pending as the reader sees it.

@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use axum::{http::HeaderMap, response::Response};
+use axum::{body::Bytes, http::HeaderMap, response::Response};
 use bitview_query::{Query, Result as QueryResult};
 use brk_types::{MempoolBlockHash, MempoolBlockIndex};
-use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
@@ -24,7 +23,7 @@ pub async fn serve(
             let params = CacheParams::live(format!("mempool-block-{index}-{}", source.hash()));
             Ok((source, params))
         },
-        |source| Ok(source.build()),
+        |source| Ok(Bytes::from_owner(source.json())),
     )
     .await
 }
@@ -49,7 +48,7 @@ pub async fn serve_diff(
             ));
             Ok((resolved, params))
         },
-        |resolved| Ok(resolved.build()),
+        |resolved| Ok(to_vec(&resolved.build())?.into()),
     )
     .await
 }
@@ -57,12 +56,12 @@ pub async fn serve_diff(
 /// Encodes what `select` resolves under the `bodies` budget, retained until the body is sent: slow
 /// readers would otherwise each hold one while new requests build more. A matching conditional
 /// request answers 304 before waiting for admission.
-async fn serve_json<S: 'static, T: Serialize>(
+async fn serve_json<S: 'static>(
     state: &AppState,
     headers: HeaderMap,
     bodies: &Arc<Semaphore>,
     select: impl Fn(&Query) -> QueryResult<(S, CacheParams)> + Clone + Send + 'static,
-    build: impl Fn(S) -> brk_error::Result<T> + Clone + Send + 'static,
+    build: impl Fn(S) -> brk_error::Result<Bytes> + Clone + Send + 'static,
 ) -> Result<Response> {
     let check = select.clone();
     let params = state.query.read(move |query| Ok(check(query)?.1)).await?;
@@ -77,7 +76,7 @@ async fn serve_json<S: 'static, T: Serialize>(
             headers,
             "application/json",
             select,
-            move |_, selected| Ok(to_vec(&build(selected)?)?.into()),
+            move |_, selected| Ok(build(selected)?),
         )
         .await?)
 }

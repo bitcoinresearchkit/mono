@@ -5,7 +5,6 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
-use rapidhash::RapidHashSet;
 
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
@@ -27,6 +26,9 @@ pub(crate) struct Pool {
     pub graph: Arc<Snapshot>,
     /// `info` as JSON and its hash, built by the writer: readers only clone the `Arc`.
     pub info_json: JsonBody,
+    /// The txid array as JSON, built by the first request (a publication sharing `txs` shares
+    /// it too).
+    pub txids_json: OnceLock<Arc<[u8]>>,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
     /// When it was published: of two saves of the graveyard, the later publication's wins.
@@ -44,17 +46,23 @@ impl Pool {
     ) -> Self {
         debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, info_json) = match previous
+        let (txs, addrs, info_json, txids_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
-            Some(pool) => (pool.txs.clone(), pool.addrs.clone(), pool.info_json.clone()),
+            Some(pool) => (
+                pool.txs.clone(),
+                pool.addrs.clone(),
+                pool.info_json.clone(),
+                pool.txids_json.clone(),
+            ),
             None => (
                 Arc::new(state.txs.read_only_clone()),
                 Arc::new(state.addrs.clone()),
                 json::body(&state.info),
+                OnceLock::new(),
             ),
         };
-        // Spend ownership can change alone (a stale template tx turning listed).
+        // Shared while its mapping is unchanged.
         let outpoint_spends = previous
             .filter(|pool| pool.outpoint_spends.revision() == state.outpoint_spends.revision())
             .map_or_else(
@@ -76,6 +84,7 @@ impl Pool {
             graveyard,
             graph,
             info_json,
+            txids_json,
             recent_trees: Default::default(),
             published_at: Instant::now(),
             behind: Mutex::default(),
@@ -127,7 +136,7 @@ impl Pool {
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
-            template_only: RapidHashSet::default(),
+            template_only: Vec::new(),
         }
     }
 }

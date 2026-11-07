@@ -21,21 +21,13 @@ pub struct OutpointSpends {
 }
 
 impl OutpointSpends {
-    /// `replace` takes over outpoints already spent by another tx; otherwise
-    /// only free ones are claimed.
-    pub fn insert_spends(&mut self, tx: &Transaction, spender: TxKey, replace: bool) {
+    /// `spender` owns the outpoints `tx` spends.
+    pub fn insert_spends(&mut self, tx: &Transaction, spender: TxKey) {
         let mut changed = false;
         for key in Self::spent_outpoints(tx) {
-            changed |= if replace {
-                self.map.get(&key) != Some(&spender) && {
-                    self.map.insert(key, spender);
-                    true
-                }
-            } else {
-                !self.map.contains_key(&key) && {
-                    self.map.insert(key, spender);
-                    true
-                }
+            changed |= self.map.get(&key) != Some(&spender) && {
+                self.map.insert(key, spender);
+                true
             };
         }
         self.bump_if(changed);
@@ -77,7 +69,14 @@ impl OutpointSpends {
         txid: &Txid,
         vout: Vout,
     ) -> Option<(&'a TxRecord, Vin)> {
-        self.spender_if(txs, txid, vout, |_| true)
+        let key = self.get(&OutpointKey::new(TxKey::from(txid), vout))?;
+        let spender = txs.record_by_key(&key)?;
+        let vin = spender
+            .tx
+            .input
+            .iter()
+            .position(|input| input.txid == *txid && input.vout == vout)?;
+        Some((spender, Vin::from(vin)))
     }
 
     /// The live spenders of `tx`'s outputs, each once, verified once against its inputs:
@@ -93,27 +92,6 @@ impl OutpointSpends {
             .filter_map(|key| txs.record_by_key(key))
             .filter(|child| child.tx.input.iter().any(|input| input.txid == tx.txid))
             .collect()
-    }
-
-    /// [`Self::spender`] when the stored key passes `accept`, checked before
-    /// the input scan.
-    pub fn spender_if<'a>(
-        &self,
-        txs: &'a ReadOnlyTxStore,
-        txid: &Txid,
-        vout: Vout,
-        accept: impl FnOnce(TxKey) -> bool,
-    ) -> Option<(&'a TxRecord, Vin)> {
-        let key = self
-            .get(&OutpointKey::new(TxKey::from(txid), vout))
-            .filter(|key| accept(*key))?;
-        let spender = txs.record_by_key(&key)?;
-        let vin = spender
-            .tx
-            .input
-            .iter()
-            .position(|input| input.txid == *txid && input.vout == vout)?;
-        Some((spender, Vin::from(vin)))
     }
 
     /// Mempool txs are never coinbase: every input spends an outpoint.

@@ -54,7 +54,7 @@ impl Query {
                     // Pending spends may remove some: the cap applies after them.
                     .take(
                         max_utxos
-                            .saturating_add(pending.spent.len())
+                            .saturating_add(pending.spends_at_most)
                             .saturating_add(1),
                     )
                     .collect::<brk_error::Result<_>>()?;
@@ -63,7 +63,7 @@ impl Query {
             // Never confirmed: its pending outputs only, as Esplora answers.
             None => (Vec::new(), tip),
         };
-        if outpoints.len() + pending.created.len() > max_utxos + pending.spent.len() {
+        if outpoints.len() + pending.created.len() > max_utxos + pending.spends_at_most {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
         Ok(ResolvedAddrUtxos {
@@ -136,9 +136,10 @@ impl Query {
         let ranges = self.indexer().output_ranges(lengths);
         let value_reader = vecs.outputs.value.reader();
         let mut outputs = Vec::with_capacity(outpoints.len());
+        let mut spent = pending.spent_filter();
         for &(tx_index, vout) in outpoints {
             let txid = txid_reader.try_get(tx_index).data()?;
-            if pending.spent.contains(&(txid, vout)) {
+            if spent(&txid, vout) {
                 continue;
             }
             let output = ranges

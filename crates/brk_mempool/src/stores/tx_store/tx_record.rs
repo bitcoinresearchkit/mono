@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use brk_types::{FeeRate, SigOps, Transaction, Weight};
+use brk_types::{FeeRate, SigOps, Transaction, TxOut, Vin, Weight};
 use rustc_hash::FxHasher;
 use serde_json::to_writer;
 
@@ -48,6 +48,19 @@ impl TxRecord {
     /// transaction with no in-pool relatives.
     pub fn own_rate(&self) -> FeeRate {
         FeeRate::from((self.entry.fee, self.policy_weight()))
+    }
+
+    /// Fills missing prevouts (its body copied first if a publication shares it), its sigops and
+    /// digest following.
+    pub fn fill(&mut self, fills: Vec<(Vin, TxOut)>) {
+        let tx = Arc::make_mut(&mut self.tx);
+        for (vin, prevout) in fills {
+            let txin = &mut tx.input[usize::from(vin)];
+            debug_assert!(txin.prevout.is_none(), "fills only fill missing prevouts");
+            txin.prevout = Some(prevout);
+        }
+        tx.refresh_sigops();
+        self.digest = Self::digest_of(tx);
     }
 
     pub fn digest_of(tx: &Transaction) -> u64 {
