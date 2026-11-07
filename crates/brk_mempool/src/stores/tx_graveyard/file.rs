@@ -49,10 +49,11 @@ pub struct GraveyardFile {
 
 #[derive(Default)]
 struct Saved {
-    /// When the graveyard last written was taken: an older one is never written over it.
+    /// When the graveyard last written was taken: an older one without the pool is never
+    /// written over it.
     taken: Option<Instant>,
     revision: Option<u64>,
-    /// Whether the last save carried the pool.
+    /// Whether the last save carried the pool: the shutdown's, the last one.
     pool: bool,
 }
 
@@ -103,13 +104,13 @@ impl GraveyardFile {
         }
     }
 
-    /// Writes `graveyard`, taken at `taken`, whole, flushed, then renamed over the last save;
-    /// nothing when a graveyard taken later is already written (or the same one, unless this
-    /// save carries the pool and that one didn't). `pending` gives the pool's record of a pending
-    /// replacer, and its chunk rate: one is saved as a tombstone taken now (its tree's head), so
-    /// a restart finds its tree whether it's still pending (it comes back, exhumed), confirmed
-    /// meanwhile (the blocks since tell it mined) or gone. `pool`: the same publication's
-    /// records, on a clean shutdown.
+    /// Writes `graveyard`, taken at `taken`, whole, flushed, then renamed over the last save.
+    /// `pending` gives the pool's record of a pending replacer, and its chunk rate: one is saved
+    /// as a tombstone taken now (its tree's head), so a restart finds its tree whether it's still
+    /// pending (it comes back, exhumed), confirmed meanwhile (the blocks since tell it mined) or
+    /// gone. `pool`: the same publication's records, on a clean shutdown: that save always
+    /// writes, and none without the pool writes after it. Any other writes nothing when a
+    /// graveyard taken as late is already written.
     pub fn save<'a>(
         &self,
         graveyard: &TxGraveyard,
@@ -118,12 +119,7 @@ impl GraveyardFile {
         taken: Instant,
     ) -> Result<()> {
         let mut saved = self.saved.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        // A save carrying the pool is the shutdown's: none without it goes over it.
-        if (saved.pool && pool.is_none())
-            || saved.taken.is_some_and(|last| {
-                last > taken || (last == taken && (saved.pool || pool.is_none()))
-            })
-        {
+        if pool.is_none() && (saved.pool || saved.taken.is_some_and(|last| last >= taken)) {
             return Ok(());
         }
         let bytes = encode(graveyard, pending, pool);

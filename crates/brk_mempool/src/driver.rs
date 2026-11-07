@@ -76,8 +76,6 @@ impl Mempool {
                     pool.info.count,
                     loading.elapsed()
                 );
-                // A recovery restores the publication from now on.
-                self.loaded_pool = Vec::new();
             }
             while let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
                 if self.chain.wait(rest) && self.read_only.load().tip() != Some(published_tip()) {
@@ -117,9 +115,10 @@ impl Mempool {
     fn restore_published(&mut self) {
         self.withheld = None;
         let published = self.read_only.load();
-        // Before the first publication, what started it: the graveyard and pool read back, if any.
+        // Before the first publication, the graveyard read back, if any: the pool reloads from
+        // Core, as after a crash.
         self.state = published.pool.as_ref().map_or_else(
-            || State::restored(self.loaded_graveyard.clone(), self.loaded_pool.clone()),
+            || State::restored(self.loaded_graveyard.clone(), Vec::new()),
             |pool| pool.restore(),
         );
         self.rebuilder.restore(

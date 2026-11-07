@@ -38,7 +38,7 @@ pub use steps::{TxRemoval, prevouts::rpc_resolver};
 
 use snapshot::Rebuilder;
 use state::State;
-use stores::{TxGraveyard, tx_graveyard::GraveyardFile, tx_store::TxRecord};
+use stores::{TxGraveyard, tx_graveyard::GraveyardFile};
 
 /// Saves the graveyard of the last publication, from any thread (a shutdown's).
 #[derive(Clone)]
@@ -86,10 +86,9 @@ pub struct Mempool {
     failing: RapidHashMap<brk_types::Txid, u32>,
     /// Where the graveyard is kept, and when a save was last tried.
     graveyard_file: Option<(Arc<GraveyardFile>, Instant)>,
-    /// The graveyard and pool read back at start: what a recovery before the first publication
-    /// restores (the pool's let go once one is out).
+    /// The graveyard read back at start: what a recovery before the first publication restores
+    /// (the pool reloading from Core).
     loaded_graveyard: TxGraveyard,
-    loaded_pool: Vec<TxRecord>,
 }
 
 impl Mempool {
@@ -108,7 +107,6 @@ impl Mempool {
             failing: RapidHashMap::default(),
             graveyard_file: None,
             loaded_graveyard: TxGraveyard::default(),
-            loaded_pool: Vec::new(),
         }
     }
 
@@ -118,8 +116,9 @@ impl Mempool {
     /// restart then starts from that pool, publishing after one cycle.
     pub fn keep_graveyard(&mut self, path: PathBuf) -> GraveyardSaver {
         let file = GraveyardFile::new(path);
-        (self.loaded_graveyard, self.loaded_pool) = file.load();
-        self.state = State::restored(self.loaded_graveyard.clone(), self.loaded_pool.clone());
+        let (graveyard, pool) = file.load();
+        self.state = State::restored(graveyard.clone(), pool);
+        self.loaded_graveyard = graveyard;
         self.graveyard_file = Some((file.clone(), Instant::now()));
         GraveyardSaver {
             file,

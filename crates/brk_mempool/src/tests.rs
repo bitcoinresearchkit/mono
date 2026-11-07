@@ -949,6 +949,10 @@ fn graveyard_outlives_a_restart() {
     assert!(state.txs.contains(&head.entry.txid));
     assert!(state.graveyard.get(&head.entry.txid).is_none(), "exhumed");
     assert_eq!(state.info.count, 1);
+    // No periodic save goes over the shutdown's, even of a later publication.
+    file.save(&graveyard, pending, None, taken + std::time::Duration::from_secs(1))
+        .unwrap();
+    assert_eq!(file.load().1.len(), 1, "the shutdown's pool kept");
     // Corrupt: set aside, an empty graveyard instead.
     std::fs::write(file.path(), b"not a graveyard").unwrap();
     assert_eq!(file.load().0.replacements_recent_first().count(), 0);
