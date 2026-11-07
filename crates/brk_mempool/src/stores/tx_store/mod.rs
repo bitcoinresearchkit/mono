@@ -138,6 +138,25 @@ impl TxStore {
         resolved
     }
 
+    /// Whether `txid` signals replaceability (BIP125: itself, or through a pooled ancestor):
+    /// whether that changed it.
+    pub fn set_rbf(&mut self, txid: &Txid, rbf: bool) -> bool {
+        let key = TxKey::from(txid);
+        // Read first: a write copies the record's chunk while a publication shares it.
+        if !self
+            .read_only
+            .records
+            .get(&key)
+            .is_some_and(|record| record.entry.txid == *txid && record.entry.rbf != rbf)
+        {
+            return false;
+        }
+        let record = self.read_only.records.get_mut(&key).expect("just read");
+        record.entry.rbf = rbf;
+        self.bump_content_revision();
+        true
+    }
+
     fn bump_content_revision(&mut self) {
         self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
     }

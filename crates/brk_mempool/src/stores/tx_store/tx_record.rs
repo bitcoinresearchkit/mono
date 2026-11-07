@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use brk_types::{FeeRate, SigOps, Transaction, TxOut, Vin, Weight};
+use brk_types::{FeeRate, SigOps, Transaction, TxIn, TxOut, Vin, Weight};
 use rustc_hash::FxHasher;
 use serde_json::to_writer;
 
@@ -61,6 +61,32 @@ impl TxRecord {
         }
         tx.refresh_sigops();
         self.digest = Self::digest_of(tx);
+    }
+
+    /// The memory it takes, about: the record, the transaction, its inputs and outputs, their
+    /// scripts, witnesses and filled prevouts (what a serialized size undercounts two to four
+    /// times).
+    pub fn memory(&self) -> u64 {
+        let tx = &self.tx;
+        let inputs: usize = tx
+            .input
+            .iter()
+            .map(|txin| {
+                size_of::<TxIn>()
+                    + txin.script_sig.len()
+                    + txin.witness.size()
+                    + txin
+                        .prevout
+                        .as_ref()
+                        .map_or(0, |prevout| prevout.script_pubkey.len())
+            })
+            .sum();
+        let outputs: usize = tx
+            .output
+            .iter()
+            .map(|txout| size_of::<TxOut>() + txout.script_pubkey.len())
+            .sum();
+        (size_of::<Self>() + size_of::<Transaction>() + inputs + outputs) as u64
     }
 
     pub fn digest_of(tx: &Transaction) -> u64 {

@@ -61,13 +61,13 @@ impl Snapshot {
             .chunks
             .component_chunks(self.chunk_of[seed_idx.as_usize()] as usize)
             .map(|c| {
-                let mut txs: Vec<CpfpClusterTxIndex> = self
+                // In the linearization's order, as Core lists a chunk.
+                let txs: Vec<CpfpClusterTxIndex> = self
                     .chunks
                     .members(c)
                     .iter()
                     .map(|m| CpfpClusterTxIndex::from(local[m]))
                     .collect();
-                txs.sort_unstable_by_key(|tx| u32::from(*tx));
                 CpfpClusterChunk {
                     txs,
                     feerate: self.chunks.rate(c),

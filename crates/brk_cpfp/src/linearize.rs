@@ -7,8 +7,10 @@
 //! never paying more than the one before. A closure's best feerate is found exactly: from the best
 //! ancestor set's, Dinkelbach steps, each a maximum-weight closure (`fee * q - weight * p` at
 //! feerate `p / q`) by a minimum cut, the cut's smallest source side. Among closures paying as
-//! much, the smallest found inside that one is taken (equally good closures elsewhere can come
-//! first: the diagram is the same). All of it in integers.
+//! much, the smallest found inside that one is taken: the chunks come out minimal, as Core's.
+//! They are then ordered as Core 31's `GetLinearization` orders them (equal feerates by weight,
+//! then by the fallback order, Core's txid order; members inside a chunk by their own feerate,
+//! weight and fallback place, parents first). All of it in integers.
 //!
 //! Larger components (a block's, or a mempool's under an older node's or a raised limit) take the
 //! best remaining ancestor set instead (ties: the larger set, then the earlier transaction), then
@@ -435,7 +437,7 @@ fn exact(
     nodes: &[Node],
     parents: &[CpfpClusterTxIndex],
     scratch: &mut Scratch,
-    mut emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
+    emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
 ) {
     let n = nodes.len();
     let mut direct = [0 as Set; EXACT_MAX];
@@ -449,7 +451,7 @@ fn exact(
         }
     }
     let mut remaining: Set = if n == EXACT_MAX { Set::MAX } else { bit(n) - 1 };
-    let mut txs = Vec::with_capacity(n);
+    let mut groups: Vec<Set> = Vec::with_capacity(n);
     while remaining != 0 {
         // From the best remaining ancestor set (more members, then the earliest, on ties).
         let mut best = set_members(remaining)
@@ -485,11 +487,60 @@ fn exact(
             }
             break;
         }
-        txs.clear();
-        txs.extend(set_members(best).map(|index| CpfpClusterTxIndex::from(index as u32)));
-        let (fee, weight) = totals(nodes, best);
-        emit(&txs, published_rate(fee, weight));
+        groups.push(best);
         remaining &= !best;
+    }
+    emit_in_core_order(nodes, &direct, &ancestors, groups, emit);
+}
+
+/// The optimal chunks in Core 31's order (`GetLinearization`): of the chunks whose ancestors are
+/// out, the highest feerate, then the smallest weight, then the lowest greatest fallback place;
+/// inside a chunk, of the members whose parents are out, the highest own feerate, then the
+/// smallest weight, then the lowest fallback place. Only equal feerates move: the chunks come
+/// found by non-increasing feerate, each after its ancestors.
+fn emit_in_core_order(
+    nodes: &[Node],
+    direct: &[Set],
+    ancestors: &[Set],
+    mut groups: Vec<Set>,
+    mut emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
+) {
+    let weight = |set: Set| totals(nodes, set).1;
+    let last = |set: Set| set_members(set).map(|index| nodes[index].fallback).max();
+    let mut out: Set = 0;
+    let mut txs = Vec::with_capacity(nodes.len());
+    while !groups.is_empty() {
+        let ready = |group: &Set| {
+            set_members(*group).all(|member| ancestors[member] & !group & !out == 0)
+        };
+        let next = (0..groups.len())
+            .filter(|&i| ready(&groups[i]))
+            .max_by(|&a, &b| {
+                let (a, b) = (groups[a], groups[b]);
+                compare_rates(totals(nodes, a), totals(nodes, b))
+                    .then(weight(b).cmp(&weight(a)))
+                    .then(last(b).cmp(&last(a)))
+            })
+            .expect("a chunk whose ancestors are out");
+        let group = groups.remove(next);
+        txs.clear();
+        let mut left = group;
+        while left != 0 {
+            let member = set_members(left)
+                .filter(|&member| direct[member] & left == 0)
+                .max_by(|&a, &b| {
+                    let (a, b) = (&nodes[a], &nodes[b]);
+                    compare_rates((a.modified, a.weight), (b.modified, b.weight))
+                        .then(b.weight.cmp(&a.weight))
+                        .then(b.fallback.cmp(&a.fallback))
+                })
+                .expect("a member whose parents are out");
+            txs.push(CpfpClusterTxIndex::from(member as u32));
+            left &= !bit(member);
+        }
+        out |= group;
+        let (fee, weight) = totals(nodes, group);
+        emit(&txs, published_rate(fee, weight));
     }
 }
 

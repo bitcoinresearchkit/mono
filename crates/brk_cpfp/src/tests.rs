@@ -210,7 +210,7 @@ fn chunk_sums_stay_exact_past_64_bits() {
             _ => max as i64,
         };
         let parents = (i > 0).then(|| CpfpClusterTxIndex::from((i - 1) as u32));
-        cluster.push_ranked(Sats::ZERO, modified, Weight::from(400u64), parents);
+        cluster.push_ranked(Sats::ZERO, modified, Weight::from(400u64), i as u32, parents);
     }
     let mut chunks = Vec::new();
     cluster.linearize(|txs, _| chunks.push(txs.len()));
@@ -249,11 +249,12 @@ fn every_tier_linearizes() {
 #[test]
 fn negative_modified_fees_rank_signed() {
     let mut cluster = Cluster::default();
-    cluster.push_ranked(Sats::from(1_000u64), -1_000, Weight::from(400u64), []);
+    cluster.push_ranked(Sats::from(1_000u64), -1_000, Weight::from(400u64), 0, []);
     cluster.push_ranked(
         Sats::from(3_000u64),
         3_000,
         Weight::from(400u64),
+        1,
         [CpfpClusterTxIndex::from(0)],
     );
     let mut chunks = Vec::new();
@@ -267,4 +268,31 @@ fn negative_modified_fees_rank_signed() {
     );
     assert!(chunks[0].1 < FeeRate::from((Sats::from(1_200u64), Weight::from(400u64))));
     assert_eq!(cluster.fee(0), Sats::from(1_000u64));
+}
+
+/// Core 31's order over equal feerates: of two independent 10 sat/vB chunks the lighter first,
+/// then by the fallback order; inside a chunk the higher own feerate first, parents first always.
+#[test]
+fn equal_feerates_go_in_core_order() {
+    let order = |fallbacks: [u32; 4]| {
+        let mut cluster = Cluster::default();
+        // 0, 1: lone, 10 sat/vB, 800 and 400 WU. 2: parent at 5 sat/vB; 3: its child at 15, the
+        // pair at 10 sat/vB over 800 WU.
+        cluster.push_ranked(Sats::from(2_000u64), 2_000, Weight::from(800u64), fallbacks[0], []);
+        cluster.push_ranked(Sats::from(1_000u64), 1_000, Weight::from(400u64), fallbacks[1], []);
+        cluster.push_ranked(Sats::from(500u64), 500, Weight::from(400u64), fallbacks[2], []);
+        cluster.push_ranked(
+            Sats::from(1_500u64),
+            1_500,
+            Weight::from(400u64),
+            fallbacks[3],
+            [CpfpClusterTxIndex::from(2)],
+        );
+        let mut order: Vec<Vec<u32>> = Vec::new();
+        cluster.linearize(|txs, _| order.push(txs.iter().map(|&tx| u32::from(tx)).collect()));
+        order
+    };
+    // The lighter chunk first; of the two 800 WU ones, the lower greatest fallback place.
+    assert_eq!(order([0, 1, 2, 3]), [vec![1], vec![0], vec![2, 3]]);
+    assert_eq!(order([3, 1, 0, 2]), [vec![1], vec![2, 3], vec![0]]);
 }

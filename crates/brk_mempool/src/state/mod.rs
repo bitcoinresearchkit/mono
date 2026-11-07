@@ -68,6 +68,66 @@ impl State {
         }
     }
 
+    /// BIP125: a transaction signals replaceability through an unconfirmed ancestor that does
+    /// (Core's `IsRBFOptIn`). Each arrival that signals (itself, or through a pooled parent)
+    /// passes it down to its pooled descendants, those that came first included. O(the arrivals'
+    /// inputs, and the outputs of what signals).
+    pub fn inherit_signaling(&mut self, entered: &[Txid]) {
+        let mut next: Vec<Txid> = Vec::new();
+        let mut inheriting: Vec<Txid> = Vec::new();
+        for txid in entered {
+            let Some(record) = self.txs.record(txid) else {
+                continue;
+            };
+            if record.entry.rbf {
+                next.push(*txid);
+            } else if record
+                .tx
+                .input
+                .iter()
+                .any(|input| self.txs.entry(&input.txid).is_some_and(|parent| parent.rbf))
+            {
+                inheriting.push(*txid);
+            }
+        }
+        for txid in inheriting {
+            self.txs.set_rbf(&txid, true);
+            next.push(txid);
+        }
+        while let Some(txid) = next.pop() {
+            let Some(record) = self.txs.record(&txid) else {
+                continue;
+            };
+            for child in self.pooled_children(&record.tx) {
+                if self.txs.set_rbf(&child, true) {
+                    next.push(child);
+                }
+            }
+        }
+    }
+
+    /// The pooled children of signaling transactions that left (`orphaned`) signal on only by
+    /// themselves or through a parent still pooled that does; one that no longer does lets go of
+    /// its own descendants' in turn. O(what loses it, and their outputs).
+    pub fn recheck_signaling(&mut self, orphaned: Vec<Txid>) {
+        let mut next = orphaned;
+        while let Some(txid) = next.pop() {
+            let Some(record) = self.txs.record(&txid).filter(|record| record.entry.rbf) else {
+                continue;
+            };
+            let tx = &record.tx;
+            if tx.input.iter().any(|input| {
+                input.sequence < 0xffff_fffe
+                    || self.txs.entry(&input.txid).is_some_and(|parent| parent.rbf)
+            }) {
+                continue;
+            }
+            let children = self.pooled_children(tx);
+            self.txs.set_rbf(&txid, false);
+            next.extend(children);
+        }
+    }
+
     /// The pooled transactions spending `tx`'s outputs, each once.
     pub fn pooled_children(&self, tx: &Transaction) -> Vec<Txid> {
         self.outpoint_spends

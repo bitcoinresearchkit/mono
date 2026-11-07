@@ -9,12 +9,14 @@ use crate::linearize::{Scratch, linearize};
 use crate::linearize::ancestor_sets;
 
 /// One member: the fee it pays (served), the fee it ranks by (Core's modified fee: what it pays
-/// plus an operator's delta, which can be negative), its weight and its range in
-/// [`Cluster::parents`]' flat buffer.
+/// plus an operator's delta, which can be negative), its weight, its place in the fallback order
+/// that settles equal feerates (Core's: by txid) and its range in [`Cluster::parents`]' flat
+/// buffer.
 pub(crate) struct Node {
     pub fee: Sats,
     pub modified: i64,
     pub weight: Weight,
+    pub fallback: u32,
     pub parents: Range<usize>,
 }
 
@@ -42,17 +44,27 @@ impl Cluster {
         weight: Weight,
         parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
     ) {
-        self.push_ranked(fee, i64::try_from(u64::from(fee)).unwrap(), weight, parents);
+        let fallback = self.nodes.len() as u32;
+        self.push_ranked(
+            fee,
+            i64::try_from(u64::from(fee)).unwrap(),
+            weight,
+            fallback,
+            parents,
+        );
     }
 
     /// [`Self::push`], ranked by `modified` instead (Core's modified fee), `fee` still served.
     /// `modified` is within [`Sats::MAX_MONEY`] either way (the caller clamps an operator's
-    /// delta): a tier's sums then fit, 4,096 members at 21 million bitcoin each.
+    /// delta): a tier's sums then fit, 4,096 members at 21 million bitcoin each. `fallback`: its
+    /// place among the members in the order settling equal feerates, distinct (Core's: by txid;
+    /// [`Self::push`] takes the push order).
     pub fn push_ranked(
         &mut self,
         fee: Sats,
         modified: i64,
         weight: Weight,
+        fallback: u32,
         parents: impl IntoIterator<Item = CpfpClusterTxIndex>,
     ) {
         let start = self.parents.len();
@@ -71,6 +83,7 @@ impl Cluster {
             fee,
             modified,
             weight,
+            fallback,
             parents: start..self.parents.len(),
         });
     }
@@ -79,9 +92,9 @@ impl Cluster {
         self.nodes[local].fee
     }
 
-    /// Linearize into chunks of non-increasing feerate and pass each chunk's members (ascending
-    /// local indices) and feerate to `emit`, in chunk order: optimal up to 64 members, the best
-    /// remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize.rs`).
+    /// Linearize into chunks of non-increasing feerate and pass each chunk's members (in order)
+    /// and feerate to `emit`, in chunk order: optimal up to 64 members, in Core 31's order, the
+    /// best remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize.rs`).
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
     }

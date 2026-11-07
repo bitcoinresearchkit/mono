@@ -16,7 +16,8 @@ pub struct TxEntry {
     /// Serialized tx size in bytes (witness + non-witness).
     pub size: u64,
     pub first_seen: Timestamp,
-    /// BIP-125 explicit signaling: any input has sequence < 0xfffffffe.
+    /// BIP125 signaling: an input with sequence < 0xfffffffe, its own or an unconfirmed
+    /// ancestor's (what Core's `bip125-replaceable` reports).
     pub rbf: bool,
 }
 

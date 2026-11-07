@@ -29,7 +29,7 @@ use super::{TxGraveyard, TxTombstone};
 use crate::{TxRemoval, state::TxEntry, stores::tx_store::TxRecord};
 
 /// Bumped when the layout changes: a file of another version is set aside, not read.
-const MAGIC: &[u8; 8] = b"BVGRAVE1";
+const MAGIC: &[u8; 8] = b"BVGRAVE2";
 /// The most a file may hold, and say it decompresses to (its bodies are capped at 256 MiB): a
 /// corrupt one allocates nothing past it.
 const MAX_BYTES: usize = 1 << 30;
@@ -193,6 +193,8 @@ fn encode<'a>(
         let entry = &tomb.record.entry;
         out.u64(u64::from(entry.fee));
         out.u64(u64::from(entry.first_seen));
+        // Signaling inherited from an ancestor isn't in the body.
+        out.u8(u8::from(entry.rbf));
         let tx = &tomb.record.tx;
         out.blob(&serialize(&BitcoinTransaction::from(tx.as_ref())));
         for txin in &tx.input {
@@ -255,6 +257,11 @@ fn decode(compressed: &[u8]) -> Result<TxGraveyard> {
             return Err(Error::Parse(format!("fee {fee}")));
         }
         let first_seen = Timestamp::from(input.u64()? as usize);
+        let inherited = match input.u8()? {
+            0 => false,
+            1 => true,
+            flag => return Err(Error::Parse(format!("signaling {flag}"))),
+        };
         let raw: BitcoinTransaction = deserialize(input.blob()?)
             .map_err(|error| Error::Parse(format!("transaction: {error}")))?;
         let mut prevouts = Vec::with_capacity(raw.input.len());
@@ -278,7 +285,7 @@ fn decode(compressed: &[u8]) -> Result<TxGraveyard> {
         let wtxid = raw.compute_wtxid();
         let size = raw.total_size();
         let weight = Weight::from(raw.weight());
-        let rbf = raw.input.iter().any(|txin| txin.sequence.is_rbf());
+        let rbf = inherited || raw.input.iter().any(|txin| txin.sequence.is_rbf());
         let mut tx = Transaction {
             index: None,
             txid,

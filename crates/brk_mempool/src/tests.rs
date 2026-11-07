@@ -1115,3 +1115,56 @@ fn body(seed: u8) -> Arc<Transaction> {
         status: TxStatus::UNCONFIRMED,
     })
 }
+
+/// BIP125's signaling passes down to unconfirmed descendants, a child that arrived before its
+/// signaling parent included, and goes once that parent leaves; one with no signaling ancestor
+/// stays final.
+#[test]
+fn signaling_passes_to_pooled_descendants() {
+    let raw = |spends: (bitcoin::Txid, u32), sequence: u32| bitcoin::Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![bitcoin::TxIn {
+            previous_output: bitcoin::OutPoint::new(spends.0, spends.1),
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence(sequence),
+            witness: Witness::new(),
+        }],
+        output: vec![bitcoin::TxOut {
+            value: bitcoin::Amount::from_sat(1_000),
+            script_pubkey: ScriptBuf::new(),
+        }],
+    };
+    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
+    let info = |tx: &bitcoin::Transaction| MempoolEntryInfo {
+        txid: id(tx),
+        wtxid: tx.compute_wtxid(),
+        vsize: VSize::from(Weight::from(tx.weight())),
+        weight: Weight::from(tx.weight()),
+        fee: Sats::from(1_000u64),
+        first_seen: Timestamp::now(),
+    };
+    let final_seq = 0xffff_fffe;
+    let parent = raw((bitcoin::Txid::from_byte_array([7; 32]), 0), 0);
+    let child = raw((parent.compute_txid(), 0), final_seq);
+    let grandchild = raw((child.compute_txid(), 0), final_seq);
+    let lone = raw((bitcoin::Txid::from_byte_array([8; 32]), 0), final_seq);
+    let mut state = State::default();
+    let enter = |state: &mut State, txs: &[&bitcoin::Transaction], live: &[Txid]| {
+        let entries = txs.iter().map(|tx| info(tx)).collect();
+        let bodies = txs.iter().map(|&tx| (id(tx), tx.clone())).collect();
+        let diff = preparer::prepare(live, entries, bodies, &Confirmed::default(), state);
+        applier::apply(state, &Snapshot::default(), diff, &Confirmed::default());
+    };
+    // The descendants first (their parent not loaded yet), then the parent.
+    enter(&mut state, &[&child, &grandchild, &lone], &[id(&child), id(&grandchild), id(&lone)]);
+    let rbf = |state: &State, tx: &bitcoin::Transaction| state.txs.entry(&id(tx)).unwrap().rbf;
+    assert!(!rbf(&state, &child) && !rbf(&state, &grandchild));
+    let all = [id(&child), id(&grandchild), id(&lone), id(&parent)];
+    enter(&mut state, &[&parent], &all);
+    assert!(rbf(&state, &parent) && rbf(&state, &child) && rbf(&state, &grandchild));
+    assert!(!rbf(&state, &lone), "no signaling ancestor");
+    // The parent leaves (mined, say): its descendants signal no more, as Core reads them.
+    enter(&mut state, &[], &[id(&child), id(&grandchild), id(&lone)]);
+    assert!(!rbf(&state, &child) && !rbf(&state, &grandchild));
+}

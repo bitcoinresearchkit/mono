@@ -26,9 +26,11 @@ const RETENTION: Duration = Duration::from_hours(1);
 /// How long a replacement tree stays once its newest version left the pool (mempool.space's):
 /// while that one is pending, the whole tree does.
 const TREE_RETENTION: Duration = Duration::from_hours(24);
-/// The bodies the graveyard holds at most (serialized bytes): past it, the oldest replaced
-/// versions go first, each with what it replaced (a flood of cheap replacements can't grow it
-/// further, nor push out the rest), then the oldest trees, then the oldest lone tombstones.
+/// The memory the graveyard's bodies take at most ([`TxRecord::memory`]): past it, the oldest
+/// replaced versions go first, each with what it replaced, then the oldest trees, then the oldest
+/// lone tombstones. A flood of replacements filling it pushes out older trees' histories, at a
+/// price: every replacement pays Core's incremental relay fee over its size, about 0.2 BTC to fill
+/// it.
 const MAX_BYTES: u64 = 256 << 20;
 /// The longest replacement chain an eviction check follows (the RBF listings' work bound).
 const MAX_WALK: usize = 4_096;
@@ -65,7 +67,7 @@ pub struct TxGraveyard {
     /// The `Replaced` burials of `order`, so RBF listings never scan the far
     /// more numerous mined and dropped txs.
     replacements: CowQueue<(Instant, Txid)>,
-    /// The serialized size of every body held.
+    /// The memory every body held takes ([`TxRecord::memory`]).
     bytes: u64,
     /// How many `Replaced` tombstones are held.
     replaced: usize,
@@ -207,7 +209,7 @@ impl TxGraveyard {
         removed_at: Instant,
     ) {
         let txid = record.entry.txid;
-        self.bytes += record.entry.size;
+        self.bytes += record.memory();
         let tombstone = TxTombstone {
             record,
             chunk_rate,
@@ -217,7 +219,7 @@ impl TxGraveyard {
         let replacer = tombstone.replaced_by().copied();
         self.replaced += usize::from(replacer.is_some());
         if let Some(previous) = self.tombstones.insert(txid, tombstone) {
-            self.bytes -= previous.record.entry.size;
+            self.bytes -= previous.record.memory();
             self.replaced -= usize::from(previous.replaced_by().is_some());
             self.remove_predecessor(&txid, &previous);
         }
@@ -263,7 +265,7 @@ impl TxGraveyard {
     fn remove(&mut self, txid: &Txid) -> Option<TxTombstone> {
         let tombstone = self.tombstones.remove(txid)?;
         self.revision = self.revision.wrapping_add(1);
-        self.bytes -= tombstone.record.entry.size;
+        self.bytes -= tombstone.record.memory();
         self.replaced -= usize::from(tombstone.replaced_by().is_some());
         self.remove_predecessor(txid, &tombstone);
         Some(tombstone)
@@ -460,7 +462,7 @@ impl TxGraveyard {
     fn consistent(&self) -> bool {
         let (mut bytes, mut replaced) = (0, 0);
         for (txid, tombstone) in self.tombstones.iter() {
-            bytes += tombstone.record.entry.size;
+            bytes += tombstone.record.memory();
             if let Some(by) = tombstone.replaced_by() {
                 replaced += 1;
                 if !self
@@ -489,9 +491,8 @@ impl TxGraveyard {
     /// Lets go of what's past its retention, then of the oldest past [`MAX_BYTES`]. Retention: a
     /// lone tombstone after [`RETENTION`]; a replaced version with its tree; a tree's newest
     /// version, once it isn't `live`, [`TREE_RETENTION`] after it left, taking the tree. Past the
-    /// cap: the oldest replaced versions first, each with what it replaced (a flood of cheap
-    /// replacements pays for itself before anything else), then the oldest trees, then the oldest
-    /// lone tombstones. O(k) in what leaves the queues; stale entries (re-burials, exhumes) are
+    /// cap: the oldest replaced versions first, each with what it replaced, then the oldest trees,
+    /// then the oldest lone tombstones. O(k) in what leaves the queues; stale entries (re-burials, exhumes) are
     /// skipped.
     pub fn evict_old(&mut self, live: impl Fn(&Txid) -> bool) {
         self.evict_order(&live, false);

@@ -48,6 +48,17 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
     for (i, &p) in order.iter().enumerate() {
         local[p] = i as u32;
     }
+    // Core's fallback order settles equal feerates: by txid.
+    let mut by_txid: Vec<usize> = (0..component.len()).collect();
+    by_txid.sort_unstable_by(|&a, &b| {
+        txs[component[a].as_usize()]
+            .txid
+            .cmp(&txs[component[b].as_usize()].txid)
+    });
+    let mut fallback = vec![0u32; component.len()];
+    for (place, &p) in by_txid.iter().enumerate() {
+        fallback[p] = place as u32;
+    }
     graph.clear();
     for &p in &order {
         let t = &txs[component[p].as_usize()];
@@ -55,6 +66,7 @@ pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<T
             t.fee,
             t.modified,
             t.sigops.adjust_weight(t.weight),
+            fallback[p],
             t.parents
                 .iter()
                 .filter_map(|parent| position.get(parent))
