@@ -74,13 +74,19 @@ impl Rebuilder {
             &mut self.chunks,
         );
         // An incomplete view's blocks after block 0 hold part of the pool: the last complete
-        // view's blocks stand meanwhile (none before the first), their tiers worked out again at
-        // Core's current floor, expiring from the last tick that saw a complete view.
+        // view's blocks stand meanwhile (none before the first), but for this view's own block 0
+        // when it is Core's template (exact either way), their tiers worked out again at Core's
+        // current floor, expiring from the last tick that saw a complete view.
         if !complete {
             let previous = &self.snapshot;
             snapshot.fees_from = previous.fees_from.and(self.last_complete);
             snapshot.fees_held = true;
-            snapshot.fee_stats = previous.fee_stats.clone();
+            let fresh = usize::from(!snapshot.block0_packed);
+            snapshot.fee_stats = snapshot.block_stats[..fresh.min(snapshot.block_stats.len())]
+                .iter()
+                .chain(previous.fee_stats.iter().skip(fresh))
+                .cloned()
+                .collect();
             snapshot.fees = fees::whole(&snapshot.fee_stats, min_fee);
             snapshot.precise_fees = fees::precise(&snapshot.fee_stats, min_fee);
         }

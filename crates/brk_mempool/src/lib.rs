@@ -10,6 +10,7 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use arc_swap::ArcSwap;
 use brk_rpc::Client;
+use rapidhash::RapidHashMap;
 
 mod api;
 mod chain_waker;
@@ -72,10 +73,12 @@ pub struct Mempool {
     needs_recovery: bool,
     chain: ChainWaker,
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
-    /// its membership was complete): it goes out the moment the chain publishes that tip.
+    /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
     /// Cycles in a row whose new blocks couldn't all be read.
     unread_cycles: u32,
+    /// Listed transactions asked for that didn't load, with how many cycles in a row.
+    failing: RapidHashMap<brk_types::Txid, u32>,
     /// Where the graveyard is kept, and when a save was last tried.
     graveyard_file: Option<(Arc<GraveyardFile>, Instant)>,
     /// The graveyard read back at start: what a recovery before the first publication restores.
@@ -95,6 +98,7 @@ impl Mempool {
             chain: ChainWaker::default(),
             withheld: None,
             unread_cycles: 0,
+            failing: RapidHashMap::default(),
             graveyard_file: None,
             loaded_graveyard: TxGraveyard::default(),
         }

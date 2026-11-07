@@ -35,7 +35,14 @@ pub(crate) const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 ///
 /// Confirmed prevouts are resolved after apply, by the resolver passed to
 /// `Mempool::tick_with`.
-pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
+/// `failing`: listed txids that failed to load before, with how often; the untried go first,
+/// then the retries fewest failures first, so the cap is never filled by the same stuck ones
+/// every cycle and every retry comes round.
+pub fn fetch(
+    client: &Client,
+    mempool: &State,
+    failing: &RapidHashMap<Txid, u32>,
+) -> Result<Fetched> {
     let (state, block_template) = client.fetch_mempool_state()?;
     let template = block_template.is_some();
     let block_template = block_template.unwrap_or_default();
@@ -67,16 +74,29 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         .map(|g| g.txid)
         .filter(|txid| template_new.contains(txid))
         .collect();
-    let new_txids: Vec<Txid> = state
-        .live_txids
-        .iter()
-        .filter(|t| !mempool.txs.contains(t) && !template_new.contains(t))
+    let unknown = || {
+        state
+            .live_txids
+            .iter()
+            .filter(|t| !mempool.txs.contains(t) && !template_new.contains(t))
+    };
+    let mut new_txids: Vec<Txid> = unknown()
+        .filter(|t| !failing.contains_key(t))
         .take(MAX_TX_FETCHES_PER_CYCLE)
         .copied()
         .collect();
+    if !failing.is_empty() {
+        let room = MAX_TX_FETCHES_PER_CYCLE - new_txids.len();
+        let mut retries: Vec<(u32, Txid)> = unknown()
+            .filter_map(|t| failing.get(t).map(|&failures| (failures, *t)))
+            .collect();
+        retries.sort_unstable_by_key(|&(failures, _)| failures);
+        new_txids.extend(retries.into_iter().take(room).map(|(_, txid)| txid));
+    }
     let capped = new_txids.len() == MAX_TX_FETCHES_PER_CYCLE;
 
     let (mut new_entries, mut new_txs) = client.fetch_new_pool_data(&template_txids, &new_txids)?;
+    let requested = new_txids;
     let fetched: RapidHashSet<Txid> = new_entries
         .iter()
         .map(|entry| entry.txid)
@@ -147,6 +167,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         block_template_txids: template.then_some(block_template_txids),
         template_only: unlisted,
         capped,
+        requested,
     })
 }
 

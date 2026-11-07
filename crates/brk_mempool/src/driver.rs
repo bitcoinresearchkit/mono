@@ -25,6 +25,10 @@ use crate::{
 const PERIOD: Duration = Duration::from_millis(1000);
 /// Cycles in a row a block that won't read is tried again before it's let go.
 const MAX_UNREAD_CYCLES: u32 = 10;
+/// Cycles in a row a listed transaction asked for may fail to load before the pool publishes
+/// without it (an item error past "not found", a body never pairing with its entry): one stuck
+/// transaction never holds every publication back.
+const STUCK_AFTER: u32 = 3;
 /// How often a changed graveyard is saved (`Mempool::keep_graveyard`): a crash loses at most this
 /// much of it.
 const SAVE_EVERY: Duration = Duration::from_secs(300);
@@ -48,10 +52,10 @@ impl Mempool {
             let loaded = self.read_only.load().tip().is_some();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
                 // The chain caught up with a withheld observation: out at once, no cycle needed.
-                if let Some((tip, membership_complete)) =
+                if let Some((tip, membership_ready)) =
                     self.withheld.take_if(|(tip, _)| gate() == Some(*tip))
                 {
-                    return self.publish_observation(tip, membership_complete);
+                    return self.publish_observation(tip, membership_ready);
                 }
                 match self.tick_with(&resolver, gate) {
                     // A block arrived mid-fetch: the next cycle observes the new tip.
@@ -144,7 +148,8 @@ impl Mempool {
             block_template_txids,
             template_only,
             capped,
-        } = fetcher::fetch(&self.client, &self.state)?;
+            requested,
+        } = fetcher::fetch(&self.client, &self.state, &self.failing)?;
         // The first load fills the cap every cycle until the pool publishes; after it, a full
         // cycle means a flood of new transactions.
         if capped && self.read_only.load().tip().is_some() {
@@ -204,6 +209,20 @@ impl Mempool {
                 .copied()
                 .collect()
         };
+        // What was asked for and didn't load counts a failure; once every unloaded one is stuck,
+        // the pool publishes without them.
+        for txid in requested.iter().filter(|txid| unloaded.contains(*txid)) {
+            let failures = self.failing.entry(*txid).or_default();
+            *failures = failures.saturating_add(1);
+            if *failures == STUCK_AFTER {
+                warn!(%txid, "mempool: a listed transaction won't load, published without it");
+            }
+        }
+        self.failing.retain(|txid, _| unloaded.contains(txid));
+        let publishable = membership_complete
+            || unloaded
+                .iter()
+                .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
         self.state.graveyard.end_cycle(&unloaded);
         self.read_only.load().observed.now();
         self.rebuilder.tick(
@@ -216,9 +235,9 @@ impl Mempool {
         if coherent_tip {
             // Never ahead of the chain readers pair the pool with.
             if gate().is_none_or(|published| published == rpc.tip_hash) {
-                self.publish_observation(rpc.tip_hash, membership_complete);
+                self.publish_observation(rpc.tip_hash, publishable);
             } else {
-                self.withheld = Some((rpc.tip_hash, membership_complete));
+                self.withheld = Some((rpc.tip_hash, publishable));
             }
         }
         Ok(coherent_tip)
@@ -250,13 +269,14 @@ impl Mempool {
         });
     }
 
-    fn publish_observation(&mut self, tip: BlockHash, membership_complete: bool) {
+    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck.
+    fn publish_observation(&mut self, tip: BlockHash, membership_ready: bool) {
         let previous = self.read_only.load();
         if let Some(next) = previous.updated(
             &self.state,
             tip,
             self.rebuilder.snapshot().clone(),
-            membership_complete,
+            membership_ready,
         ) {
             self.read_only.current.store(Arc::new(next));
         }

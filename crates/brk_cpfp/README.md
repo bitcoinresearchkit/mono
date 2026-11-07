@@ -12,7 +12,8 @@ Linearization and chunking of child-pays-for-parent transaction clusters.
   - up to 64 members (Bitcoin Core 31's cluster limit), optimally: the best feerate diagram, as Core 31's cluster
     mempool targets, found exactly (maximum-weight closures by minimum cuts, all in integers), in minimal chunks
     ordered as Core's `GetLinearization` orders them (equal feerates by weight, then fallback place; inside a chunk
-    by own feerate, weight, fallback place, parents first), the same way for one component every time;
+    by own feerate, weight, fallback place, parents first), then Core's PostLinearize, as Core runs it after every
+    linearization; the same way for one component every time (0.1-0.8 ms for a dense 64-member one);
   - up to 4,096, by best remaining ancestor set, then Core's PostLinearize over that order (never worse; connected
     chunks; optimal for trees either way up), for a block's large components or an older node's mempool;
   - beyond, the push order itself, chunked: linear time for a block-filling chain or a crafted mempool cluster.

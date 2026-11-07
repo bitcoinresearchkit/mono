@@ -296,3 +296,27 @@ fn equal_feerates_go_in_core_order() {
     assert_eq!(order([0, 1, 2, 3]), [vec![1], vec![0], vec![2, 3]]);
     assert_eq!(order([3, 1, 0, 2]), [vec![1], vec![2, 3], vec![0]]);
 }
+
+/// Core runs PostLinearize after its optimal linearization too, which orders inside a chunk: roots
+/// X (4) and Y (1), Z (8) Y's child, V (30) a child of X and Z, all one weight, are one chunk,
+/// in Core's order Y, Z, X, V.
+#[test]
+fn optimal_chunks_take_core_s_post_linearized_order() {
+    let mut cluster = Cluster::default();
+    let push = |cluster: &mut Cluster, fee: u64, place: u32, parents: &[u32]| {
+        cluster.push_ranked(
+            Sats::from(fee),
+            fee as i64,
+            Weight::from(400u64),
+            place,
+            parents.iter().map(|&p| CpfpClusterTxIndex::from(p)),
+        );
+    };
+    push(&mut cluster, 4, 0, &[]);
+    push(&mut cluster, 1, 1, &[]);
+    push(&mut cluster, 8, 2, &[1]);
+    push(&mut cluster, 30, 3, &[0, 2]);
+    let mut order: Vec<Vec<u32>> = Vec::new();
+    cluster.linearize(|txs, _| order.push(txs.iter().map(|&tx| u32::from(tx)).collect()));
+    assert_eq!(order, [vec![1, 2, 0, 3]]);
+}

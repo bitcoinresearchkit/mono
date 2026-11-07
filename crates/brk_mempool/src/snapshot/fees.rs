@@ -103,15 +103,21 @@ fn optimize_median_fee(
     increment: FeeRate,
 ) -> FeeRate {
     let median = block.fee_range[3];
-    let use_fee = previous_fee.map_or(median, |prev| FeeRate::mean(median, prev));
     // mempool.space's `blockVSize` is the weight's exact quarter: the thresholds compare weight.
     let weight = u64::from(block.total_weight);
     if weight <= 4 * EMPTY_BLOCK_VSIZE || median < floor {
         return floor;
     }
     if weight <= 4 * FULL_BLOCK_VSIZE && next_block.is_none() {
-        let multiplier = (weight - 4 * EMPTY_BLOCK_VSIZE) as f64 / (4 * EMPTY_BLOCK_VSIZE) as f64;
-        return (use_fee * multiplier).round_to(increment).max(floor);
+        // `use_fee * (weight - empty) / empty`, rounded once to the increment (half up, as
+        // `Math.round`): exactly, in milli-sats, from twice the mean so it never rounds before.
+        let twice = u128::from(median.milli()) + u128::from(previous_fee.unwrap_or(median).milli());
+        let empty = u128::from(4 * EMPTY_BLOCK_VSIZE);
+        let step = 2 * empty * u128::from(increment.milli());
+        let units = (2 * twice * u128::from(weight - 4 * EMPTY_BLOCK_VSIZE) + step) / (2 * step);
+        let milli = units * u128::from(increment.milli());
+        return FeeRate::from_milli(u64::try_from(milli).expect("below the median")).max(floor);
     }
+    let use_fee = previous_fee.map_or(median, |prev| FeeRate::mean(median, prev));
     use_fee.ceil_to(increment).max(floor)
 }

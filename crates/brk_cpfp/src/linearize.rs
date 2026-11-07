@@ -7,10 +7,12 @@
 //! never paying more than the one before. A closure's best feerate is found exactly: from the best
 //! ancestor set's, Dinkelbach steps, each a maximum-weight closure (`fee * q - weight * p` at
 //! feerate `p / q`) by a minimum cut, the cut's smallest source side. Among closures paying as
-//! much, the smallest found inside that one is taken: the chunks come out minimal, as Core's.
+//! much, the smallest found inside that one is taken, read off the last cut's residual graph (one
+//! breadth-first search a member): the chunks come out minimal, as Core's.
 //! They are then ordered as Core 31's `GetLinearization` orders them (equal feerates by weight,
 //! then by the fallback order, Core's txid order; members inside a chunk by their own feerate,
-//! weight and fallback place, parents first). All of it in integers.
+//! weight and fallback place, parents first), and Core's PostLinearize runs over that order, as
+//! Core runs it after every linearization. All of it in integers.
 //!
 //! Larger components (a block's, or a mempool's under an older node's or a raised limit) take the
 //! best remaining ancestor set instead (ties: the larger set, then the earlier transaction), then
@@ -379,17 +381,15 @@ fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: i64, weight: Weight) {
     chunks.push(chunk);
 }
 
-/// Each chunk's members (ascending) and feerate, in chunk order.
+/// Each chunk's members (in the linearization's order) and feerate, in chunk order.
 fn emit_chunks(
-    order: &mut [CpfpClusterTxIndex],
+    order: &[CpfpClusterTxIndex],
     chunks: &[Chunk],
     mut emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
 ) {
     let mut start = 0;
     for chunk in chunks {
-        let txs = &mut order[start..chunk.end];
-        txs.sort_unstable_by_key(|index| u32::from(*index));
-        emit(txs, published_rate(chunk.fee, chunk.weight));
+        emit(&order[start..chunk.end], published_rate(chunk.fee, chunk.weight));
         start = chunk.end;
     }
 }
@@ -477,38 +477,61 @@ fn exact(
                 continue;
             }
             // At the best feerate every best closure weighs zero: the smallest nonempty one (a
-            // lone member is one).
-            if best.count_ones() > 1
-                && let Some(smaller) = scratch
-                    .flow
-                    .smallest_tight_closure(remaining, &direct, &ancestors, best, weight)
-            {
-                best = smaller;
+            // lone member is one), read off this last cut.
+            if best.count_ones() > 1 {
+                best = scratch.flow.smallest_tight_closure(remaining, &ancestors, best);
             }
             break;
         }
         groups.push(best);
         remaining &= !best;
     }
-    emit_in_core_order(nodes, &direct, &ancestors, groups, emit);
+    core_order(nodes, &direct, &ancestors, groups, &mut scratch.order);
+    // Then Core's PostLinearize, as Core runs it after every linearization (on an optimal one it
+    // moves only the order inside chunks), and the result chunked.
+    let Scratch {
+        ancestors: rows,
+        descendants,
+        post,
+        order,
+        chunks,
+        ..
+    } = scratch;
+    rows.clear();
+    rows.extend_from_slice(&ancestors[..n]);
+    descendants.clear();
+    descendants.resize(n, 0);
+    for (index, &set) in ancestors[..n].iter().enumerate() {
+        for ancestor in set_members(set) {
+            descendants[ancestor] |= bit(index);
+        }
+    }
+    post.pass(nodes, descendants, 1, order, true);
+    post.pass(nodes, rows, 1, order, false);
+    chunks.clear();
+    for (end, &index) in order.iter().enumerate() {
+        let node = &nodes[u32::from(index) as usize];
+        push_group(chunks, end + 1, node.modified, node.weight);
+    }
+    emit_chunks(order, chunks, emit);
 }
 
-/// The optimal chunks in Core 31's order (`GetLinearization`): of the chunks whose ancestors are
-/// out, the highest feerate, then the smallest weight, then the lowest greatest fallback place;
-/// inside a chunk, of the members whose parents are out, the highest own feerate, then the
-/// smallest weight, then the lowest fallback place. Only equal feerates move: the chunks come
-/// found by non-increasing feerate, each after its ancestors.
-fn emit_in_core_order(
+/// The optimal chunks in Core 31's order (`GetLinearization`), into `order`: of the chunks whose
+/// ancestors are out, the highest feerate, then the smallest weight, then the lowest greatest
+/// fallback place; inside a chunk, of the members whose parents are out, the highest own feerate,
+/// then the smallest weight, then the lowest fallback place. Only equal feerates move: the chunks
+/// come found by non-increasing feerate, each after its ancestors.
+fn core_order(
     nodes: &[Node],
     direct: &[Set],
     ancestors: &[Set],
     mut groups: Vec<Set>,
-    mut emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate),
+    order: &mut Vec<CpfpClusterTxIndex>,
 ) {
     let weight = |set: Set| totals(nodes, set).1;
     let last = |set: Set| set_members(set).map(|index| nodes[index].fallback).max();
     let mut out: Set = 0;
-    let mut txs = Vec::with_capacity(nodes.len());
+    order.clear();
     while !groups.is_empty() {
         let ready = |group: &Set| {
             set_members(*group).all(|member| ancestors[member] & !group & !out == 0)
@@ -523,7 +546,6 @@ fn emit_in_core_order(
             })
             .expect("a chunk whose ancestors are out");
         let group = groups.remove(next);
-        txs.clear();
         let mut left = group;
         while left != 0 {
             let member = set_members(left)
@@ -535,12 +557,10 @@ fn emit_in_core_order(
                         .then(b.fallback.cmp(&a.fallback))
                 })
                 .expect("a member whose parents are out");
-            txs.push(CpfpClusterTxIndex::from(member as u32));
+            order.push(CpfpClusterTxIndex::from(member as u32));
             left &= !bit(member);
         }
         out |= group;
-        let (fee, weight) = totals(nodes, group);
-        emit(&txs, published_rate(fee, weight));
     }
 }
 
@@ -571,55 +591,65 @@ impl Flow {
         direct: &[Set],
         weight: impl Fn(usize) -> i128,
     ) -> (Set, i128) {
-        self.build(remaining, direct, &weight, None);
+        self.build(remaining, direct, &weight);
         let positive: i128 = set_members(remaining).map(&weight).filter(|&w| w > 0).sum();
         let cut = self.max_flow();
         (self.source_side(), positive - cut)
     }
 
-    /// The smallest nonempty closure of `remaining` weighing zero (the best feerate's), if one is
-    /// smaller than `best` (each member's smallest closure holding it, the smallest of them).
-    fn smallest_tight_closure(
-        &mut self,
-        remaining: Set,
-        direct: &[Set],
-        ancestors: &[Set],
-        best: Set,
-        weight: impl Fn(usize) -> i128,
-    ) -> Option<Set> {
+    /// The smallest nonempty closure of `remaining` weighing zero (the best feerate's), from the
+    /// residual graph of the last maximum flow, taken at that feerate (`best`, a closure weighing
+    /// zero there, is a minimum cut's source side). Every minimum cut's source side is a set the
+    /// residual graph never leaves (Picard and Queyranne): the smallest holding a member is what
+    /// the source and that member reach. Each member's, the smallest of them (ties: the lowest
+    /// member), one breadth-first search each instead of a flow.
+    fn smallest_tight_closure(&mut self, remaining: Set, ancestors: &[Set], best: Set) -> Set {
         let mut smallest = best;
         for member in set_members(best) {
             // A closure holding `member` holds its remaining ancestors: none smaller than those.
             if (ancestors[member] & remaining).count_ones() >= smallest.count_ones() {
                 continue;
             }
-            self.build(remaining, direct, &weight, Some(member));
-            let positive: i128 = set_members(remaining)
-                .filter(|&index| index != member)
-                .map(&weight)
-                .filter(|&w| w > 0)
-                .sum();
-            let cut = self.max_flow();
-            let closure = self.source_side();
-            // The forced member's own weight is outside the cut: add it back.
-            if positive - cut + weight(member) == 0
-                && (closure.count_ones(), closure.trailing_zeros())
-                    < (smallest.count_ones(), smallest.trailing_zeros())
+            let closure = self.reach(self.node_of[member]);
+            if (closure.count_ones(), closure.trailing_zeros())
+                < (smallest.count_ones(), smallest.trailing_zeros())
             {
                 smallest = closure;
             }
         }
-        (smallest != best).then_some(smallest)
+        smallest
     }
 
-    /// The cut graph of `remaining` under `weight`, `forced` tied to the source.
-    fn build(
-        &mut self,
-        remaining: Set,
-        direct: &[Set],
-        weight: &impl Fn(usize) -> i128,
-        forced: Option<usize>,
-    ) {
+    /// The members the source and `start` reach over edges with capacity left.
+    fn reach(&mut self, start: usize) -> Set {
+        let nodes = self.edges.len();
+        let (source, sink) = (nodes - 2, nodes - 1);
+        self.level.clear();
+        self.level.resize(nodes, u32::MAX);
+        self.queue.clear();
+        for node in [source, start] {
+            self.level[node] = 0;
+            self.queue.push(node);
+        }
+        let mut head = 0;
+        while let Some(&node) = self.queue.get(head) {
+            head += 1;
+            for &edge in &self.edges[node] {
+                let to = self.to[edge];
+                if self.cap[edge] > 0 && self.level[to] == u32::MAX {
+                    self.level[to] = 0;
+                    self.queue.push(to);
+                }
+            }
+        }
+        debug_assert_eq!(self.level[sink], u32::MAX, "a member of a minimum cut's source side");
+        (0..nodes - 2)
+            .filter(|&node| self.level[node] != u32::MAX)
+            .fold(0, |set, node| set | bit(self.member_of[node]))
+    }
+
+    /// The cut graph of `remaining` under `weight`.
+    fn build(&mut self, remaining: Set, direct: &[Set], weight: &impl Fn(usize) -> i128) {
         self.member_of.clear();
         self.member_of.extend(set_members(remaining));
         let members = self.member_of.len();
@@ -637,14 +667,10 @@ impl Flow {
         self.cap.clear();
         for node in 0..members {
             let member = self.member_of[node];
-            if forced == Some(member) {
-                self.add(source, node, INFINITE);
-            } else {
-                match weight(member) {
-                    w if w > 0 => self.add(source, node, w),
-                    w if w < 0 => self.add(node, sink, -w),
-                    _ => {}
-                }
+            match weight(member) {
+                w if w > 0 => self.add(source, node, w),
+                w if w < 0 => self.add(node, sink, -w),
+                _ => {}
             }
             // Taking a member takes its parents.
             for parent in set_members(direct[member] & remaining) {

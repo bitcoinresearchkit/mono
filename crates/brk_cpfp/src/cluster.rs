@@ -132,7 +132,7 @@ impl Cluster {
     }
 
     /// [`Self::project`] from this cluster's linearization made already: its chunks in order,
-    /// each its members' local indices ascending.
+    /// each its members' local indices in the linearization's order.
     pub fn project_from(
         &self,
         seed: CpfpClusterTxIndex,

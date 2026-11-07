@@ -4,7 +4,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Sats, Timestamp, Transaction, Txid, VSize};
-use rapidhash::RapidHashSet;
+use rapidhash::{RapidHashMap, RapidHashSet};
 
 use crate::{
     ReadOnlyState,
@@ -53,7 +53,8 @@ impl ReadOnlyState {
         // Trees read entries and outputs, never prevouts: no input needs resolving.
         let state = self.pool()?.at(tip)?;
         let mut remaining = MAX_RBF_WORK;
-        let root_txid = Self::tree_root(state, txid, &mut remaining).ok_or(Exceeded::Work)?;
+        let root_txid = Self::tree_root(state, txid, &mut remaining, &mut RapidHashMap::default())
+            .ok_or(Exceeded::Work)?;
         let replaces: Vec<_> = state
             .graveyard
             .predecessors_of(txid)
@@ -90,6 +91,9 @@ impl ReadOnlyState {
     fn walk_recent_trees(state: &Pool, full_rbf_only: bool) -> Vec<RbfNode> {
         let limit = RECENT_TREES;
         let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
+        // Every version a walk passed, with its tree's root: each chain is walked once, however
+        // many of its versions the listing meets.
+        let mut roots: RapidHashMap<Txid, Txid> = RapidHashMap::default();
         let mut total = MAX_RBF_WORK.saturating_mul(limit + 1);
         let mut trees = Vec::new();
         for candidate in state.graveyard.replacements_recent_first() {
@@ -103,7 +107,7 @@ impl ReadOnlyState {
                 continue;
             };
             let mut remaining = MAX_RBF_WORK.min(total);
-            let built = Self::tree_root(state, replaced, &mut remaining)
+            let built = Self::tree_root(state, replaced, &mut remaining, &mut roots)
                 .filter(|root| seen.insert(*root))
                 .map(|root| {
                     Self::build_rbf_node(&root, &state.txs, &state.graveyard, &mut remaining, 0)
@@ -184,15 +188,36 @@ impl ReadOnlyState {
     /// The root of `txid`'s tree: the terminal replacer, or, when the last version the pool
     /// knows was replaced by a transaction neither pending nor buried (a conflict a block
     /// confirmed unseen), that transaction (mempool.space's mined replacement).
-    fn tree_root(state: &Pool, txid: &Txid, remaining: &mut usize) -> Option<Txid> {
+    /// `txid`'s tree's root: its terminal replacer, or the replacer the pool never saw (a
+    /// confirmed conflict) that the last buried version names. `roots` remembers every version
+    /// walked, with the root it reached: a walk meeting one stops there.
+    fn tree_root(
+        state: &Pool,
+        txid: &Txid,
+        remaining: &mut usize,
+        roots: &mut RapidHashMap<Txid, Txid>,
+    ) -> Option<Txid> {
         let live = |txid: &Txid| state.txs.contains(txid);
-        let root = state.graveyard.replacement_root_of(*txid, remaining, live)?;
-        Some(
-            match state.graveyard.get(&root).and_then(|tomb| tomb.replaced_by()) {
-                Some(by) if !live(by) && state.graveyard.get(by).is_none() => *by,
-                _ => root,
-            },
-        )
+        let mut path = Vec::new();
+        let mut at = *txid;
+        let root = loop {
+            if let Some(&root) = roots.get(&at) {
+                break root;
+            }
+            *remaining = remaining.checked_sub(1)?;
+            path.push(at);
+            match state.graveyard.next_version(&at, live) {
+                Some(by) => at = by,
+                None => {
+                    break match state.graveyard.get(&at).and_then(|tomb| tomb.replaced_by()) {
+                        Some(by) if !live(by) && state.graveyard.get(by).is_none() => *by,
+                        _ => at,
+                    };
+                }
+            }
+        };
+        roots.extend(path.into_iter().map(|version| (version, root)));
+        Some(root)
     }
 
     /// An unseen confirmed replacer: what it replaced, its own facts left for the chain.

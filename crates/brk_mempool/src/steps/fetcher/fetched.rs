@@ -24,4 +24,7 @@ pub struct Fetched {
     pub template_only: Vec<TxRecord>,
     /// The new txids filled the per-cycle cap: more are left for the next cycles.
     pub capped: bool,
+    /// The listed txids asked for this cycle (the template's aside): one still not loaded after
+    /// failed this time.
+    pub requested: Vec<Txid>,
 }

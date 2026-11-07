@@ -5,7 +5,7 @@ use brk_error::Error;
 use brk_rpc::Client;
 use brk_types::{BlockHash, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// The most blocks read back from a new tip, and along a branch a reorg took off the chain: more
 /// arrive between two cycles only after a stall of hours (or a reorg that deep), and what they
@@ -43,10 +43,16 @@ impl Confirmed {
             confirmed.incomplete = true;
             confirmed
         };
+        // Each walk stops at what it looks for, or past `MAX_BLOCKS` (a deeper reorg, a longer
+        // stall): what the blocks beyond mined or conflicted then reads vanished, said once here.
         let mut fork = since;
+        let mut on_chain = false;
         for _ in 0..MAX_BLOCKS {
             match client.get_block_header_info(&fork) {
-                Ok(header) if header.confirmations > 0 => break,
+                Ok(header) if header.confirmations > 0 => {
+                    on_chain = true;
+                    break;
+                }
                 Ok(_) => match client.get_block_spends(&fork) {
                     Ok(block) => {
                         confirmed.disconnected.extend(block.txids);
@@ -54,6 +60,13 @@ impl Confirmed {
                     }
                     Err(error) => return failed(confirmed, error),
                 },
+                Err(error) => return failed(confirmed, error),
+            }
+        }
+        // The last block read's parent may be the fork itself: its header alone tells.
+        if !on_chain {
+            match client.get_block_header_info(&fork) {
+                Ok(header) => on_chain = header.confirmations > 0,
                 Err(error) => return failed(confirmed, error),
             }
         }
@@ -70,6 +83,12 @@ impl Confirmed {
                 }
                 Err(error) => return failed(confirmed, error),
             }
+        }
+        if !on_chain || hash != fork {
+            warn!(
+                max = MAX_BLOCKS,
+                "mempool: more blocks since the last cycle than read; what the rest mined reads vanished"
+            );
         }
         confirmed
     }

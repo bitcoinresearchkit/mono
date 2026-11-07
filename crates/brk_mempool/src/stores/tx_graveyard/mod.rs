@@ -133,15 +133,21 @@ impl TxGraveyard {
     ) -> Option<Txid> {
         loop {
             *remaining = remaining.checked_sub(1)?;
-            match self.tombstones.get(&txid).map(|t| &t.removal) {
-                Some(TxRemoval::Replaced { by })
-                    if live(by) || self.tombstones.contains_key(by) =>
-                {
-                    txid = *by
-                }
-                _ => return Some(txid),
+            match self.next_version(&txid, &live) {
+                Some(by) => txid = by,
+                None => return Some(txid),
             }
         }
+    }
+
+    /// `txid`'s replacer, when it is still known (`live`, or buried): one step of a walk to the
+    /// root.
+    pub fn next_version(&self, txid: &Txid, live: impl Fn(&Txid) -> bool) -> Option<Txid> {
+        self.tombstones
+            .get(txid)
+            .and_then(TxTombstone::replaced_by)
+            .filter(|by| live(by) || self.tombstones.contains_key(by))
+            .copied()
     }
 
     /// Tombstones marked as `Replaced { by: replacer }`. Used to walk
