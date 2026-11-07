@@ -401,6 +401,7 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_plugin_profitability",
  "bitview_plugin_rarity_meter",
+ "bitview_plugin_silent_payments",
  "bitview_plugin_supply",
  "bitview_plugin_transactions",
  "bitview_plugin_utxo_set",
@@ -932,6 +933,26 @@ dependencies = [
  "brk_types",
  "rayon",
  "schemars",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_silent_payments"
+version = "0.13.0"
+dependencies = [
+ "bitcoin",
+ "bitview_compute",
+ "bitview_plugin",
+ "bitview_plugin_indexer",
+ "bitview_primitives",
+ "bitview_traversable",
+ "brk_error",
+ "brk_exit",
+ "brk_types",
+ "rayon",
+ "schemars",
+ "serde",
+ "sha2",
  "vecdb",
 ]
 

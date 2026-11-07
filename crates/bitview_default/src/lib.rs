@@ -20,6 +20,7 @@ use bitview_plugin_pools::Vecs as Pools;
 use bitview_plugin_price::Vecs as Price;
 use bitview_plugin_profitability::Vecs as Profitability;
 use bitview_plugin_rarity_meter::Vecs as RarityMeter;
+use bitview_plugin_silent_payments::Vecs as SilentPayments;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
 use bitview_plugin_utxo_set::Vecs as UtxoSet;
@@ -51,6 +52,9 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     #[plugin_set(has = bitview_plugin_mining::HasMining<M>)]
     mining: Box<Mining<M>>,
     op_return: Box<OpReturn<M>>,
+    // Scanning data for wallets, not series: off the tree.
+    #[traversable(hidden)]
+    silent_payments: Box<SilentPayments<M>>,
     #[plugin_set(has = bitview_plugin_pools::HasPools<M>)]
     pools: Box<Pools<M>>,
     #[plugin_set(has = bitview_plugin_utxo_set::HasUtxoSet<M>)]

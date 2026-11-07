@@ -19,6 +19,7 @@ use bitview_plugin_pools::Dependencies as PoolsDependencies;
 use bitview_plugin_price::Dependencies as PriceDependencies;
 use bitview_plugin_profitability::Dependencies as ProfitabilityDependencies;
 use bitview_plugin_rarity_meter::Dependencies as RarityMeterDependencies;
+use bitview_plugin_silent_payments::Dependencies as SilentPaymentsDependencies;
 use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
@@ -122,6 +123,14 @@ impl DefaultPlugins {
                         mappings,
                         price,
                     },
+                    context,
+                )
+            });
+            // Silent payments read only the indexer and Core's block files.
+            let silent_payments = scope.spawn(|| {
+                timed_compute(
+                    &mut *self.silent_payments,
+                    SilentPaymentsDependencies { indexer },
                     context,
                 )
             });
@@ -363,7 +372,7 @@ impl DefaultPlugins {
                 }
                 Ok(())
             })?;
-            for branch in [market, utxos, addresses] {
+            for branch in [market, utxos, addresses, silent_payments] {
                 branch.join().unwrap()?;
             }
             Ok(())

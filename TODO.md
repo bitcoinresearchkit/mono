@@ -209,6 +209,12 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
+- Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-07): every eligible
+  transaction since Taproot's activation with its 33-byte tweak, per-block boundaries, off the series tree; matches
+  BIP352's vectors and BlindBit's oracle (44 heights, 47,628 tweaks); first run 783 s (dev), 191M rows, 5.9 GiB, a
+  block ~18 ms. Waiting on you: serve every block back to activation and snapshots of the unspent ones plus diffs
+  (my recommendation). Then, one by one: the wire format and routes (cacheable, no curve math per request), the
+  mempool's tweaks.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
   always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of

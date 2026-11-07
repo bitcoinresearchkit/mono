@@ -52,6 +52,7 @@ mod store_value;
 #[cfg(test)]
 mod tests;
 mod timestamp;
+mod tweak;
 mod tx;
 mod tx_index;
 mod tx_status;
@@ -110,6 +111,7 @@ pub use sigops::*;
 pub use sigops32::*;
 pub use store_value::*;
 pub use timestamp::*;
+pub use tweak::*;
 pub use tx::*;
 pub use tx_index::*;
 pub use tx_status::*;

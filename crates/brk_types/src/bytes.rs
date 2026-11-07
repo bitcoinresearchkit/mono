@@ -177,3 +177,75 @@ macro_rules! impl_hash32 {
 }
 
 pub(crate) use impl_hash32;
+
+/// Fixed-size byte types, each lowercase hex in text and JSON.
+macro_rules! hex_bytes {
+    ($($(#[$meta:meta])* $name:ident($len:literal),)+) => {
+        $(
+            $(#[$meta])*
+            #[derive(Debug, Clone, ::derive_more::Deref, PartialEq, Eq, PartialOrd, Ord, Hash)]
+            #[cfg_attr(feature = "schemars", derive(::schemars::JsonSchema))]
+            #[cfg_attr(feature = "storage", derive(::vecdb::Bytes))]
+            pub struct $name(#[cfg_attr(feature = "schemars", schemars(with = "String"))] [u8; $len]);
+
+            impl From<[u8; $len]> for $name {
+                #[inline]
+                fn from(value: [u8; $len]) -> Self {
+                    Self(value)
+                }
+            }
+
+            /// Panics unless `value` holds exactly the type's length.
+            impl From<&[u8]> for $name {
+                #[inline]
+                fn from(value: &[u8]) -> Self {
+                    Self(value.try_into().expect(concat!(stringify!($name), " takes ", stringify!($len), " bytes")))
+                }
+            }
+
+            /// Lowercase hex.
+            impl ::std::fmt::Display for $name {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                    crate::bytes::fmt_hex(&self.0[..], f)
+                }
+            }
+
+            impl ::serde::Serialize for $name {
+                fn serialize<S: ::serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                    serializer.collect_str(self)
+                }
+            }
+
+            impl<'de> ::serde::Deserialize<'de> for $name {
+                fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                    let hex = <::std::borrow::Cow<'de, str>>::deserialize(deserializer)?;
+                    crate::bytes::parse_hex::<$len>(&hex)
+                        .map(Self)
+                        .ok_or_else(|| {
+                            <D::Error as ::serde::de::Error>::custom(concat!(
+                                "expected ",
+                                stringify!($len),
+                                " bytes of hex"
+                            ))
+                        })
+                }
+            }
+
+            #[cfg(feature = "storage")]
+            impl ::vecdb::Formattable for $name {
+                #[inline]
+                fn write_to(&self, buf: &mut Vec<u8>) {
+                    crate::bytes::push_hex(&self.0[..], buf);
+                }
+
+                fn fmt_json(&self, buf: &mut Vec<u8>) {
+                    buf.push(b'"');
+                    self.write_to(buf);
+                    buf.push(b'"');
+                }
+            }
+        )+
+    };
+}
+
+pub(crate) use hex_bytes;
