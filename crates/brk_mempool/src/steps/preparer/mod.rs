@@ -90,7 +90,10 @@ fn removal_reason(
     if confirmed.mined(&tx.txid) {
         return TxRemoval::Mined;
     }
-    if let Some(by) = confirmed.conflict(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout))) {
+    if let Some(by) = confirmed
+        .conflicts(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
+        .next()
+    {
         return TxRemoval::Replaced { by };
     }
     tx.input

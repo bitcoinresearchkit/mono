@@ -44,7 +44,7 @@ impl Query {
                 let mempool = mempool.ok_or(Error::UnknownTxid)?;
                 let view = self
                     .pending_view(&mempool, read.pin())?
-                    .ok_or(Error::StateUpdating)?;
+                    .ok_or(Error::UnknownTxid)?;
                 let (value, hash) = live(&mempool, &view)?.ok_or(Error::UnknownTxid)?;
                 Ok(ResolvedTxBody::Memory { value, hash })
             }

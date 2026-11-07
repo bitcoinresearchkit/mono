@@ -15,6 +15,7 @@ use super::TxRecord;
 pub struct ReadOnlyTxStore {
     pub(super) records: CowIndexMap<TxKey, TxRecord, FxBuildHasher>,
     pub(super) content_revision: u64,
+    pub(super) membership_revision: u64,
     /// The latest arrivals by Core's first-seen time, newest first.
     pub(super) recent: Vec<(Timestamp, MempoolRecentTx)>,
     pub(super) payments: LivePayments,
@@ -69,6 +70,12 @@ impl ReadOnlyTxStore {
     /// unique in the process.
     pub fn content_revision(&self) -> u64 {
         self.content_revision
+    }
+
+    /// The revision of every insert and removal: of the txid array, order included (a removal
+    /// moves the last record into its place).
+    pub fn membership_revision(&self) -> u64 {
+        self.membership_revision
     }
 
     pub fn recent(&self) -> impl Iterator<Item = &MempoolRecentTx> {

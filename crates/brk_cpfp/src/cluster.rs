@@ -69,7 +69,9 @@ impl Cluster {
     ) {
         let start = self.parents.len();
         self.parents.extend(parents);
-        debug_assert!(
+        // Every tier relies on it (the ancestor rows index by parent): checked in release too,
+        // so a caller's mistake fails here and every tier alike, never as a wrong linearization.
+        assert!(
             self.parents[start..]
                 .iter()
                 .all(|&parent| (u32::from(parent) as usize) < self.nodes.len()),

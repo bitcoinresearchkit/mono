@@ -9,13 +9,12 @@ impl Query {
     fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let pending = self.pending(mempool, &pin)?;
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             // An output no known transaction holds is unspent, as Esplora answers.
             Err(Error::UnknownTxid) => {
-                return Ok(match &pending {
-                    Some((mempool, view)) => mempool.outspend_if_present(txid, vout, view)?,
+                return Ok(match self.pending(mempool, &pin)? {
+                    Some((mempool, view)) => mempool.outspend_if_present(txid, vout, &view)?,
                     None => None,
                 }
                 .unwrap_or(TxOutspend::UNSPENT));
@@ -31,8 +30,8 @@ impl Query {
         }
         // Confirmed spends answer first; the pool, as the pin sees it, adds a pending spend of the
         // rest.
-        Ok(match &pending {
-            Some((mempool, view)) => mempool.outspend(txid, vout, view)?,
+        Ok(match self.pending(mempool, &pin)? {
+            Some((mempool, view)) => mempool.outspend(txid, vout, &view)?,
             None => TxOutspend::UNSPENT,
         })
     }
@@ -49,11 +48,10 @@ impl Query {
     fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let safe = pin.lengths();
-        let pending = self.pending(mempool, &pin)?;
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(Error::UnknownTxid) => {
-                let (mempool, view) = pending.ok_or(Error::UnknownTxid)?;
+                let (mempool, view) = self.pending(mempool, &pin)?.ok_or(Error::UnknownTxid)?;
                 return mempool
                     .outspends_if_present(txid, &view)?
                     .ok_or(Error::UnknownTxid);
@@ -61,7 +59,10 @@ impl Query {
             Err(error) => return Err(error),
         };
         let mut outspends = self.resolve_outspends(outputs.first, outputs.len, safe)?;
-        if let Some((mempool, view)) = pending {
+        // Only what the chain leaves unspent asks the pool.
+        if outspends.iter().any(|outspend| !outspend.spent)
+            && let Some((mempool, view)) = self.pending(mempool, &pin)?
+        {
             mempool.merge_outspends(txid, &mut outspends, &view)?;
         }
         Ok(outspends)

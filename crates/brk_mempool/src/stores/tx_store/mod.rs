@@ -64,7 +64,7 @@ impl TxStore {
         let record = TxRecord::new(tx, entry);
         self.read_only.payments.add(&record);
         self.read_only.records.insert(key, record);
-        self.bump_content_revision();
+        self.bump_revisions(true);
     }
 
     /// Keeps the latest arrivals by first-seen time (a poll fetches in no particular order); among
@@ -89,7 +89,7 @@ impl TxStore {
         let (_, _, record) = self.read_only.records.swap_remove_full(key)?;
         self.unresolved.remove(key);
         self.read_only.payments.remove(&record);
-        self.bump_content_revision();
+        self.bump_revisions(true);
         Some(record)
     }
 
@@ -99,8 +99,7 @@ impl TxStore {
     }
 
     /// Apply resolved prevouts to a tx in place. `fills` is `(vin, prevout)`, each for a
-    /// missing prevout; returns whether they resolve its last (the caller folds it into
-    /// `AddrTracker` once ready). Updates `unresolved` if fully resolved after the fill, and refreshes
+    /// missing prevout. Updates `unresolved` if fully resolved after the fill, and refreshes
     /// `total_sigop_cost` (P2SH and witness components depend on prevouts). `entry.vsize` is
     /// Core's value from `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
@@ -108,7 +107,7 @@ impl TxStore {
         &mut self,
         key: &TxKey,
         fills: Vec<(Vin, TxOut)>,
-    ) -> bool {
+    ) {
         let record = self
             .read_only
             .records
@@ -116,11 +115,10 @@ impl TxStore {
             .expect("filled tx is pooled");
         record.fill(fills);
         let resolved = record.tx.is_resolved();
-        self.bump_content_revision();
+        self.bump_revisions(false);
         if resolved {
             self.unresolved.remove(key);
         }
-        resolved
     }
 
     /// Whether `txid` signals replaceability (BIP125: itself, or through a pooled ancestor):
@@ -138,13 +136,18 @@ impl TxStore {
         }
         let record = self.read_only.records.get_mut(&key).expect("just read");
         record.entry.rbf = rbf;
-        self.bump_content_revision();
+        self.bump_revisions(false);
         true
     }
 
-    /// The next of one count across the process: no two stores' contents share a revision.
-    fn bump_content_revision(&mut self) {
+    /// The next of one count across the process: no two stores' contents share a revision. An
+    /// insert or removal (`membership`) moves the txid array's too.
+    fn bump_revisions(&mut self, membership: bool) {
         static NEXT: AtomicU64 = AtomicU64::new(1);
-        self.read_only.content_revision = NEXT.fetch_add(1, Ordering::Relaxed);
+        let next = NEXT.fetch_add(1, Ordering::Relaxed);
+        self.read_only.content_revision = next;
+        if membership {
+            self.read_only.membership_revision = next;
+        }
     }
 }

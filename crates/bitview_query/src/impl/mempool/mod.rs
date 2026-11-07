@@ -49,10 +49,10 @@ impl MempoolTxids {
 impl Query {
     /// `read` of the pool as `pin` sees it ([`PendingView`]): at the pin's tip, or a few blocks
     /// behind it (the moment after blocks publish, before the pool follows) without what they
-    /// settled. Nothing pending (the confirmed data answers alone) with no mempool, before its
-    /// first publication, or with one more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating`
-    /// only for the moment a reorg leaves the pool on a branch the chain left (see
-    /// [`Self::pending_view`]).
+    /// settled. Nothing pending (the confirmed data answers alone) with no mempool, or with one
+    /// more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating` before its first publication
+    /// and for the moment a reorg leaves the pool on a branch the chain left (see
+    /// [`Self::pending_view`]). Every read asks for it only once the chain hasn't answered alone.
     pub(crate) fn with_pending<T: Default>(
         &self,
         mempool: Option<&ReadOnlyState>,
@@ -80,8 +80,9 @@ impl Query {
         Ok(self.pending_view(&mempool, pin)?.map(|view| (mempool, view)))
     }
 
-    /// The pool as `pin` sees it: see [`Self::with_pending`]. None before its first publication,
-    /// or more than [`MAX_POOL_LAG`] blocks behind. `StateUpdating` with a pool the pin can't see:
+    /// The pool as `pin` sees it: see [`Self::with_pending`]. None more than [`MAX_POOL_LAG`]
+    /// blocks behind: nothing pending. `StateUpdating` before its first publication (what's
+    /// pending isn't known yet), and with a pool the pin can't see:
     /// on a branch the chain left (a reorg, until the pool follows: a cycle, about a second), or
     /// ahead of the pin (the pool is read before the pin, so only a reorg between the two).
     /// Behind the pin, made once per publication and pin tip, every read of that moment sharing
@@ -92,7 +93,7 @@ impl Query {
         pin: &ReadPin,
     ) -> Result<Option<Arc<PendingView>>> {
         let Some(pool_tip) = mempool.tip() else {
-            return Ok(None);
+            return Err(Error::StateUpdating);
         };
         let tip = pin.tip();
         if pool_tip == tip {

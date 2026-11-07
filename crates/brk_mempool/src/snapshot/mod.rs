@@ -22,7 +22,6 @@ use brk_types::{
 use builder::KeyIndex;
 use rapidhash::RapidHashSet;
 pub use rebuilder::Rebuilder;
-use rustc_hash::FxHasher;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
 pub use tx_index::TxIndex;
@@ -169,8 +168,7 @@ impl Snapshot {
             .into_iter()
             .enumerate()
             .map(|(index, (bodies, digests))| {
-                let mut hasher = FxHasher::default();
-                hasher.write(b"mempool-block-v4");
+                let mut hasher = json::keyed_hasher();
                 hasher.write_usize(index);
                 hasher.write(&to_vec(&self.stats(index)).expect("block stats serialize"));
                 for digest in digests {

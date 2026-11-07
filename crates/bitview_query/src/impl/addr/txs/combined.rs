@@ -72,9 +72,8 @@ impl Query {
                     }
                     mempool.addr_txs(&addr, after_txid.as_ref(), limit, &view)?
                 }
-                // A pending cursor needs the pool: none to read answers 503 (the client retries),
-                // never a page cut short or an unknown cursor. A first page is the chain's alone.
-                None if after_txid.is_some() => return Err(Error::StateUpdating),
+                // Nothing pending: as without a mempool.
+                None if after_txid.is_some() => return Err(Error::UnknownAfterTxid),
                 None => Vec::new(),
             },
             (None, false) if after_txid.is_some() => return Err(Error::UnknownAfterTxid),

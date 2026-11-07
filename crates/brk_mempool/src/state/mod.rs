@@ -25,70 +25,27 @@ pub struct State {
 
 impl State {
     /// The pool a clean shutdown saved, back in place behind `graveyard`: each record as an
-    /// arrival (owning its outpoints, then folded in once ready), its tombstone (a tree's pending
-    /// head, saved vanished) exhumed. The first cycle sets it against Core's listing.
+    /// arrival (owning its outpoints, folded in), its tombstone (a tree's pending head, saved
+    /// vanished) exhumed. The first cycle sets it against Core's listing.
     pub fn restored(graveyard: TxGraveyard, pool: Vec<TxRecord>) -> Self {
         let mut state = Self {
             graveyard,
             ..Self::default()
         };
-        let mut txids = Vec::with_capacity(pool.len());
         for TxRecord { tx, entry, .. } in pool {
             let key = entry.key();
             state.graveyard.exhume(&entry.txid);
             state.info.add(entry.vsize, entry.fee);
             state.outpoint_spends.insert_spends(&tx, key);
-            txids.push(entry.txid);
             state.txs.insert(tx, entry);
             let record = state.txs.record_by_key(&key).expect("just inserted");
-            state.addrs.wait(record);
+            state.addrs.add(record);
         }
-        state.fold_ready(txids);
         state
     }
 
     pub fn contains_all(&self, live_txids: &[Txid]) -> bool {
         self.txs.len() == live_txids.len() && live_txids.iter().all(|txid| self.txs.contains(txid))
-    }
-
-    /// Folds into the address view each waiting one of `txids` that's ready (resolved, no pooled
-    /// parent waiting), then what of its pooled descendants it held back.
-    pub fn fold_ready(&mut self, txids: impl IntoIterator<Item = Txid>) {
-        let mut next: Vec<Txid> = txids.into_iter().collect();
-        while let Some(txid) = next.pop() {
-            if !self.addrs.is_waiting(&txid) {
-                continue;
-            }
-            let Some(record) = self.txs.record(&txid) else {
-                continue;
-            };
-            let tx = &record.tx;
-            if !tx.is_resolved() || tx.input.iter().any(|i| self.addrs.is_waiting(&i.txid)) {
-                continue;
-            }
-            self.addrs.fold(record);
-            next.extend(self.pooled_children(tx));
-        }
-    }
-
-    /// Folds back out what descends from `txid`, pooled and waiting now: none folds in ahead of
-    /// a parent.
-    pub fn hold_descendants(&mut self, txid: &Txid) {
-        let Some(record) = self.txs.record(txid) else {
-            return;
-        };
-        let mut next = self.pooled_children(&record.tx);
-        while let Some(child) = next.pop() {
-            // A waiting one's descendants wait too.
-            if self.addrs.is_waiting(&child) {
-                continue;
-            }
-            let Some(record) = self.txs.record(&child) else {
-                continue;
-            };
-            self.addrs.unfold(record);
-            next.extend(self.pooled_children(&record.tx));
-        }
     }
 
     /// BIP125: a transaction signals replaceability through an unconfirmed ancestor that does

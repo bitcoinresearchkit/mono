@@ -69,18 +69,16 @@ where
     };
     let (in_mempool, holes) = gather(unresolved, parent, unloaded);
     let external = resolve_external(holes, resolver);
-    let mut resolved = Vec::new();
     for (into, fills) in in_mempool.into_iter().chain(external) {
         match into {
             FillTo::Pool(key) => {
-                if state.txs.apply_fills(&key, fills) {
-                    resolved.push(state.txs.record_by_key(&key).expect("filled").entry.txid);
-                }
+                let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
+                state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
+                state.txs.apply_fills(&key, fills);
             }
             FillTo::TemplateOnly(i) => state.template_only[i].fill(fills),
         }
     }
-    state.fold_ready(resolved);
 }
 
 /// Default resolver: the node's UTXO set (`gettxout` per hole, batched), where a pending

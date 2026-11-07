@@ -1,14 +1,13 @@
 use std::{
-    hash::Hasher,
+    hash::{DefaultHasher, Hasher},
     io::{self, Write},
     sync::Arc,
 };
 
 use brk_types::{FeeRate, SigOps, Transaction, TxIn, TxOut, Vin, Weight};
-use rustc_hash::FxHasher;
 use serde_json::to_writer;
 
-use crate::state::TxEntry;
+use crate::{json, state::TxEntry};
 
 /// Live transaction body and its mempool entry, kept together so one
 /// key lookup returns everything readers need.
@@ -16,8 +15,8 @@ use crate::state::TxEntry;
 pub struct TxRecord {
     pub tx: Arc<Transaction>,
     pub entry: TxEntry,
-    /// Hash of the body's public JSON, refreshed whenever the body changes: templates hash
-    /// these instead of reformatting every body.
+    /// The keyed hash of the body's public JSON ([`json::keyed_hasher`]), refreshed whenever the
+    /// body changes: templates hash these instead of reformatting every body.
     pub digest: u64,
 }
 
@@ -90,14 +89,14 @@ impl TxRecord {
     }
 
     pub fn digest_of(tx: &Transaction) -> u64 {
-        let mut hasher = HashWriter(FxHasher::default());
+        let mut hasher = HashWriter(json::keyed_hasher());
         to_writer(&mut hasher, tx).expect("transaction fields serialize");
         hasher.0.finish()
     }
 }
 
 /// Hashes written bytes without buffering them.
-struct HashWriter(FxHasher);
+struct HashWriter(DefaultHasher);
 
 impl Write for HashWriter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {

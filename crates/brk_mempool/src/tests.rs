@@ -560,7 +560,8 @@ fn rebuilds_follow_the_view_gaps() {
 }
 
 /// An address's pending view, through ingestion, prevout fills and a publication: a transaction
-/// folds in once resolved, and a resolved child of an unresolved one (hc) only with it; behind the
+/// folds in as far as it is known (h's output at once, its input once resolved, and its child hc
+/// whole, h's output being pooled); behind the
 /// reader, the pool goes without what the newer blocks mined (m), conflicted (c) or what descends
 /// from a conflicted one (d), while a mined one's child (k) and the unrelated (u) stay pending.
 #[test]
@@ -631,19 +632,18 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
 
     let at = read.view_at(&tip).unwrap();
     let stats = read.addr_stats(&addr, &at).unwrap();
-    // h and hc stay out until h resolves; each confirmed input spends one of the address's outputs.
+    // h's input isn't known yet; each confirmed input spends one of the address's outputs.
     assert_eq!(stats.tx_count, 5);
     assert_eq!(u64::from(stats.funded_txo_sum), 2_800);
     assert_eq!(u64::from(stats.spent_txo_sum), 3 * 5_000 + 1_000 + 700);
-    assert!(
-        read.addr_has_tx(&addr, &id(&hc), &at).is_err(),
-        "what it touches isn't known yet"
-    );
+    assert!(!read.addr_has_tx(&addr, &id(&h), &at).unwrap(), "what it spends isn't known yet");
     let other = TxOut::from((other_script.clone(), Sats::ZERO)).addr_bytes().unwrap();
-    assert!(
-        read.addr_stats(&other, &at).is_err(),
-        "an address a resolving transaction pays isn't complete yet"
-    );
+    let stats = read.addr_stats(&other, &at).unwrap();
+    assert_eq!(stats.tx_count, 2, "h's output, and hc spending it");
+    assert_eq!(u64::from(stats.funded_txo_sum), 50 + 25);
+    assert_eq!(u64::from(stats.spent_txo_sum), 50);
+    let utxos = read.addr_pending_utxos(&addr, &at).unwrap();
+    assert_eq!(utxos.spends_at_most, 1 + 5, "h's unresolved input, and the address's own spends");
 
     // Past the pool's tip: a block mined m and spent c's input in another transaction.
     let conflict = id(&raw(confirmed(81), 1));
@@ -690,10 +690,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let stats = read.addr_stats(&addr, &at).unwrap();
     assert_eq!(stats.tx_count, 6, "h spends one of its outputs");
     assert_eq!(u64::from(stats.spent_txo_sum), 4 * 5_000 + 1_000 + 700);
-    let stats = read.addr_stats(&other, &at).unwrap();
-    assert_eq!(stats.tx_count, 2, "h, then hc behind it");
-    assert_eq!(u64::from(stats.funded_txo_sum), 50 + 25);
-    assert_eq!(u64::from(stats.spent_txo_sum), 50);
+    assert!(read.addr_has_tx(&addr, &id(&h), &at).unwrap());
     // Pages: newest first, a cursor continuing after itself, ending past the oldest.
     let page = |after: Option<&Txid>, limit| -> Vec<Txid> {
         read.addr_txs(&addr, after, limit, &at)
@@ -736,7 +733,7 @@ fn reorged_out_tombstones_read_vanished_or_replaced() {
     graveyard.confirm(
         |id| *id == txid(3),
         |id| [1, 2, 3].map(txid).contains(id),
-        |tombstone| (tombstone.record.entry.txid == txid(2)).then(|| txid(9)),
+        |tombstone| (tombstone.record.entry.txid == txid(2)).then(|| txid(9)).into_iter().collect(),
     );
     let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
     assert!(matches!(removal(1), TxRemoval::Vanished));
@@ -786,6 +783,53 @@ fn late_replacers_relink_what_vanished_before_them() {
     graveyard.end_cycle(&unloaded(&[]));
     graveyard.relink(&spending(5, &[outpoint(92)]));
     assert!(matches!(removal(&graveyard, 4), TxRemoval::Vanished));
+}
+
+/// A confirmed conflict replaced what vanished since the blocks were last all told, or what a late
+/// replacer listed by then displaced; an outpoint respent after its transaction left replaced
+/// nothing.
+#[test]
+fn confirmed_conflicts_replace_only_what_they_displaced() {
+    let mut graveyard = TxGraveyard::default();
+    let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
+    let bury = |graveyard: &mut TxGraveyard, seed: u8, spends: u8| {
+        let tx = Arc::new(spending(seed, &[outpoint(spends)]));
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished);
+    };
+    // 1 left (evicted, say) and 3 left while 8, spending 92, was listed unloaded; the cycle's
+    // blocks were all told.
+    bury(&mut graveyard, 1, 90);
+    bury(&mut graveyard, 3, 92);
+    graveyard.index_vanished();
+    graveyard.end_cycle(&[txid(8)].into_iter().collect());
+    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])));
+    // 2 leaves as a block confirms 9 (spending 90 and 91), and 7 then 8 (both spending 92: 7,
+    // listed later, comes first).
+    bury(&mut graveyard, 2, 91);
+    graveyard.confirm(
+        |_| false,
+        |_| false,
+        |tombstone| {
+            if tombstone.record.tx.input[0].txid == txid(92) {
+                [txid(7), txid(8)].into_iter().collect()
+            } else {
+                [txid(9)].into_iter().collect()
+            }
+        },
+    );
+    let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
+    assert!(matches!(removal(1), TxRemoval::Vanished));
+    assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
+    assert!(matches!(removal(3), TxRemoval::Replaced { by } if by == txid(8)));
 }
 
 /// The copy-on-write containers against plain models, through random inserts, swap-removes,
@@ -931,6 +975,7 @@ fn graveyard_outlives_a_restart() {
         assert!(back.record.entry.rbf);
         assert_eq!(back.record.digest, original.record.digest, "the same body, prevouts too");
         assert!(back.removed_at <= std::time::Instant::now());
+        assert!(back.removed_at <= loaded.told_at().unwrap(), "buried before it was told");
     }
     assert_eq!(
         loaded.predecessors_of(&replacer).map(|(txid, _)| *txid).collect::<Vec<_>>(),

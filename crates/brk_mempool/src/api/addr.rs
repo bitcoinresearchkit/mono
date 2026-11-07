@@ -1,14 +1,14 @@
-use std::sync::Arc;
+use std::{hash::Hasher, sync::Arc};
 
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::{AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    PendingView, PublishedTx, ReadOnlyState,
+    PendingView, PublishedTx, ReadOnlyState, json,
     key::{OutpointKey, TxKey},
     state::Pool,
-    stores::addr_tracker::{AddrEntry, AddrTx},
+    stores::addr_tracker::AddrTx,
 };
 
 /// An address's pending UTXO changes in one completed publication.
@@ -18,10 +18,10 @@ pub struct PendingUtxos {
     /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,
     /// The most of the address's confirmed outputs pending transactions can spend: its own
-    /// pending spends, and every input of a transaction still resolving.
+    /// pending spends, and every input still unresolved.
     pub spends_at_most: usize,
-    /// Identifies the address's mempool transactions, those still resolving (which can spend its
-    /// outputs) and the reader's view of them: zero without any.
+    /// Identifies the address's mempool transactions, those with inputs still unresolved (which
+    /// can spend its outputs) and the reader's view of them: zero without any.
     pub token: u64,
     /// The publication read, as the reader sees it: what spends an outpoint.
     pool: Option<(Arc<Pool>, Arc<PendingView>)>,
@@ -76,23 +76,12 @@ impl SpendFilter {
 }
 
 impl ReadOnlyState {
-    /// `addr`'s entry, none without pending transactions: `StateUpdating` while one paying it is
-    /// still resolving (its view isn't complete yet), unless a newer block settled it.
-    fn addr_entry<'a>(
-        state: &'a Pool,
-        addr: &AddressBytes,
-        view: &PendingView,
-    ) -> Result<Option<&'a AddrEntry>> {
-        if state.addrs.awaited(addr).any(|key| view.pending_key(key)) {
-            return Err(Error::StateUpdating);
-        }
-        Ok(state.addrs.get(addr))
-    }
-
-    /// The address's pending statistics.
+    /// The address's pending statistics, as far as they are known ([`AddrTracker`]).
+    ///
+    /// [`AddrTracker`]: crate::stores::AddrTracker
     pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
         let state = self.pool()?.at(view.tip())?;
-        let Some(entry) = Self::addr_entry(state, addr, view)? else {
+        let Some(entry) = state.addrs.get(addr) else {
             return Ok(AddressMempoolStats::default());
         };
         if view.settles_nothing() || entry.txs.iter().all(|tx| view.pending_key(&tx.key)) {
@@ -127,12 +116,12 @@ impl ReadOnlyState {
         let pool = self.pool_arc()?;
         let state = pool.at(view.tip())?;
         let mut pending = PendingUtxos {
-            spends_at_most: state.addrs.waiting_inputs(),
-            token: state.addrs.waiting_token() ^ view.identity(),
+            spends_at_most: state.addrs.resolving_inputs(),
+            token: state.addrs.resolving_token() ^ view.identity(),
             pool: Some((pool.clone(), view.clone())),
             ..PendingUtxos::default()
         };
-        let Some(entry) = Self::addr_entry(state, addr, view)? else {
+        let Some(entry) = state.addrs.get(addr) else {
             return Ok(pending);
         };
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
@@ -140,7 +129,10 @@ impl ReadOnlyState {
             let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };
-            pending.token ^= *at.key;
+            // Hashed apart from the resolving ones' keys: one in both sets doesn't cancel out.
+            let mut hasher = json::keyed_hasher();
+            hasher.write_u64(*at.key);
+            pending.token ^= hasher.finish();
             let tx = &record.tx;
             pending.spends_at_most += tx
                 .input
@@ -171,17 +163,16 @@ impl ReadOnlyState {
         Ok(view.pending(txid) && state.txs.contains(txid))
     }
 
-    /// Whether the pending tx `txid` touches `addr`: `StateUpdating` while it waits to fold in
-    /// (what it touches isn't known yet).
+    /// Whether the pending tx `txid` touches `addr`, as far as that is known (an input still
+    /// unresolved touches none yet).
     pub fn addr_has_tx(&self, addr: &AddressBytes, txid: &Txid, view: &PendingView) -> Result<bool> {
         let state = self.pool()?.at(view.tip())?;
-        if view.pending(txid) && state.addrs.is_waiting(txid) {
-            return Err(Error::StateUpdating);
-        }
         let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
             return Ok(false);
         };
-        Ok(Self::addr_entry(state, addr, view)?
+        Ok(state
+            .addrs
+            .get(addr)
             .is_some_and(|entry| entry.txs.contains(&AddrTx::from(record))))
     }
 
@@ -199,7 +190,7 @@ impl ReadOnlyState {
         view: &PendingView,
     ) -> Result<Vec<PublishedTx>> {
         let state = self.pool()?.at(view.tip())?;
-        let Some(entry) = Self::addr_entry(state, addr, view)? else {
+        let Some(entry) = state.addrs.get(addr) else {
             return Ok(Vec::new());
         };
         let cursor = match after {

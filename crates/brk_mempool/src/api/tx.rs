@@ -5,11 +5,11 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
-use rustc_hash::{FxHashSet, FxHasher};
+use rustc_hash::FxHashSet;
 use serde::Serializer;
 
 use crate::{
-    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
+    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval, json,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
@@ -181,11 +181,11 @@ impl ReadOnlyState {
         }
     }
 
-    /// The current txid array's validator: the pool's content revision, which every insert and
-    /// removal moves (so every change of the array, order included), made unique across restarts.
+    /// The current txid array's validator: the pool's membership revision, which every change of
+    /// the array moves and nothing else does, made unique across restarts.
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
-        Ok(state.txs.content_revision() ^ crate::json::process_nonce())
+        Ok(state.txs.membership_revision() ^ json::process_nonce())
     }
 
     /// The txid array [`Self::txids_hash`] validates, as JSON: encoded once per publication.
@@ -217,7 +217,7 @@ impl ReadOnlyState {
             .iter()
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
             .collect();
-        let mut hasher = FxHasher::default();
+        let mut hasher = json::keyed_hasher();
         times.as_slice().hash(&mut hasher);
         Ok((times, hasher.finish()))
     }

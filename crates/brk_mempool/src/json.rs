@@ -1,5 +1,5 @@
 use std::{
-    hash::{BuildHasher, RandomState},
+    hash::{BuildHasher, DefaultHasher, RandomState},
     sync::{Arc, LazyLock},
 };
 
@@ -16,17 +16,27 @@ pub fn body(value: &impl Serialize) -> JsonBody {
     (bytes.into(), hash)
 }
 
-/// The validator of a body by its bytes: the first 8 bytes of their SHA-256d, as every content
-/// identity the server gives (`bitview_query`'s `RepresentationId::content`), so no chosen
-/// content can make two bodies share one.
+/// The validator of a body by its bytes: the first 8 bytes of their SHA-256d, as the server's
+/// other bodies' (`bitview_query`'s `RepresentationId::content`), so no chosen content can make
+/// two bodies share one.
 fn content_hash(bytes: &[u8]) -> u64 {
     let digest = sha256d::Hash::hash(bytes).to_byte_array();
     u64::from_le_bytes(digest[..8].try_into().unwrap())
 }
 
-/// Random per process: validators made from a revision counted since start never repeat one
-/// given before a restart.
+/// Random per process: the key of every identity only this process gives (projected blocks'
+/// tokens and the digests under them, revision validators), so none repeats one given before a
+/// restart, and without the key no chosen content makes two share one.
+static KEY: LazyLock<RandomState> = LazyLock::new(RandomState::new);
+
+/// A hasher under [`KEY`]: SipHash, a keyed function several times faster than SHA-256 in
+/// software (the ARM build has no SHA-256 instructions), for the identities hashed per
+/// transaction.
+pub fn keyed_hasher() -> DefaultHasher {
+    KEY.build_hasher()
+}
+
+/// Mixed into a validator made from a revision counted since start.
 pub fn process_nonce() -> u64 {
-    static NONCE: LazyLock<u64> = LazyLock::new(|| RandomState::new().hash_one(0u8));
-    *NONCE
+    KEY.hash_one(0u8)
 }

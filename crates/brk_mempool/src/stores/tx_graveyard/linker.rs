@@ -99,6 +99,26 @@ impl Linker {
         losers
     }
 
+    /// Whether a listed transaction hasn't loaded yet: one that could have replaced something
+    /// that vanished.
+    pub fn awaits_late_replacer(&self) -> bool {
+        !self.unloaded_since.is_empty()
+    }
+
+    /// Whether `by`, listed and not loaded yet, was listed by the cycle `loser` vanished in (its
+    /// burial at `at`, spending `inputs`): what [`Self::losers`] would tell it, were it to arrive
+    /// instead of confirming.
+    pub fn displaced(&self, loser: &Txid, at: Instant, inputs: &[TxIn], by: &Txid) -> bool {
+        let Some(&listed) = self.unloaded_since.get(by) else {
+            return false;
+        };
+        inputs
+            .iter()
+            .filter_map(|txin| self.unlinked.get(&(txin.txid, txin.vout)))
+            .flatten()
+            .any(|burial| burial.txid == *loser && burial.at == at && listed <= burial.cycle)
+    }
+
     /// The cycle's end, with the listed transactions it couldn't load. None: no replacer of what
     /// vanished is still to arrive, all is let go. Otherwise what's no longer vanished
     /// (`vanished_at`) lets go, and the unloaded keep when they were first listed.

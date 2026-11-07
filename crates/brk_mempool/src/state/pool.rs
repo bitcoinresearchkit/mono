@@ -26,8 +26,8 @@ pub(crate) struct Pool {
     pub graph: Arc<Snapshot>,
     /// `info` as JSON and its hash, built by the writer: readers only clone the `Arc`.
     pub info_json: JsonBody,
-    /// The txid array as JSON, built by the first request (a publication sharing `txs` shares
-    /// it too).
+    /// The txid array as JSON, built by the first request (a publication with the same members
+    /// shares it too).
     pub txids_json: OnceLock<Arc<[u8]>>,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
@@ -46,22 +46,19 @@ impl Pool {
     ) -> Self {
         debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, info_json, txids_json) = match previous
+        let (txs, addrs, info_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
-            Some(pool) => (
-                pool.txs.clone(),
-                pool.addrs.clone(),
-                pool.info_json.clone(),
-                pool.txids_json.clone(),
-            ),
+            Some(pool) => (pool.txs.clone(), pool.addrs.clone(), pool.info_json.clone()),
             None => (
                 Arc::new(state.txs.read_only_clone()),
                 Arc::new(state.addrs.clone()),
                 json::body(&state.info),
-                OnceLock::new(),
             ),
         };
+        let txids_json = previous
+            .filter(|pool| pool.txs.membership_revision() == state.txs.membership_revision())
+            .map_or_else(OnceLock::new, |pool| pool.txids_json.clone());
         // Shared while its mapping is unchanged.
         let outpoint_spends = previous
             .filter(|pool| pool.outpoint_spends.revision() == state.outpoint_spends.revision())

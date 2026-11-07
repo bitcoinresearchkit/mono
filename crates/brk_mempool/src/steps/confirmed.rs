@@ -106,14 +106,14 @@ impl Confirmed {
         self.txids.is_empty() && self.disconnected.is_empty()
     }
 
-    /// The confirmed transaction spending an outpoint `inputs` spend, other than the transaction
-    /// itself: a conflict that took its place.
-    pub fn conflict<'a>(
+    /// The confirmed transactions spending an outpoint `inputs` spend, other than the transaction
+    /// itself, in input order: conflicts, one of which may have taken its place.
+    pub fn conflicts<'a>(
         &self,
-        txid: &Txid,
+        txid: &'a Txid,
         inputs: impl IntoIterator<Item = (&'a Txid, Vout)>,
-    ) -> Option<Txid> {
-        inputs.into_iter().find_map(|(prev, vout)| {
+    ) -> impl Iterator<Item = Txid> {
+        inputs.into_iter().filter_map(move |(prev, vout)| {
             self.spends
                 .get(&(*prev, vout))
                 .filter(|spender| *spender != txid)

@@ -1,5 +1,6 @@
 //! The graveyard on disk: every tombstone (its body with resolved prevouts, fee, first sighting,
-//! chunk rate, removal and age) and the tip whose blocks it was told, so the RBF trees, removal
+//! chunk rate, removal and age, in microseconds: burials keep their order against the moment it
+//! was last told) and the tip whose blocks it was told, with that moment, so the RBF trees, removal
 //! reasons and first sightings outlive a restart; on a clean shutdown, the pool's records with it,
 //! so a restart publishes after one cycle (what changed meanwhile) instead of reloading the pool
 //! from Core. One lz4-compressed file, written whole to a temporary one, flushed, and renamed over
@@ -36,7 +37,7 @@ use crate::{
 };
 
 /// Bumped when the layout changes: a file of another version is set aside, not read.
-const MAGIC: &[u8; 8] = b"BVGRAVE3";
+const MAGIC: &[u8; 8] = b"BVGRAVE4";
 /// The most a file may hold, and say it decompresses to (its bodies are capped at 256 MiB): a
 /// corrupt one allocates nothing past it.
 const MAX_FILE_BYTES: usize = 1 << 30;
@@ -191,13 +192,16 @@ fn encode<'a>(
         Some(tip) => {
             out.u8(1);
             out.bytes(&bitcoin::BlockHash::from(tip).to_byte_array());
+            // Its age: what was buried before, the blocks since didn't displace.
+            let at = graveyard.told_at().unwrap_or(now);
+            out.u64(now.saturating_duration_since(at).as_micros() as u64);
         }
         None => out.u8(0),
     }
     out.u64(tombstones.len() as u64);
     for tomb in &tombstones {
         let age = now.saturating_duration_since(tomb.removed_at);
-        out.u64(age.as_millis() as u64);
+        out.u64(age.as_micros() as u64);
         match tomb.removal {
             TxRemoval::Mined => out.u8(0),
             TxRemoval::Vanished => out.u8(1),
@@ -340,18 +344,21 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     }
     // Ages grew by the downtime (none if the clock went back).
     let down = Duration::from_millis(unix_millis().saturating_sub(input.u64()?));
+    let now = Instant::now();
     let told = match input.u8()? {
         0 => None,
-        _ => Some(BlockHash::from(bitcoin::BlockHash::from_byte_array(
-            input.array()?,
-        ))),
+        _ => {
+            let tip = BlockHash::from(bitcoin::BlockHash::from_byte_array(input.array()?));
+            // Older than the clock can say: before every tombstone kept.
+            let age = Duration::from_micros(input.u64()?);
+            Some((tip, now.checked_sub(age + down)))
+        }
     };
     let count = input.u64()?;
-    let now = Instant::now();
     let mut graveyard = TxGraveyard::default();
     let mut previous_age = Duration::MAX;
     for _ in 0..count {
-        let age = Duration::from_millis(input.u64()?);
+        let age = Duration::from_micros(input.u64()?);
         if age > previous_age {
             return Err(Error::Parse("not in burial order".into()));
         }
@@ -392,8 +399,8 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if !input.0.is_empty() {
         return Err(Error::Parse("trailing bytes".into()));
     }
-    if let Some(tip) = told {
-        graveyard.set_told(tip);
+    if let Some((tip, at)) = told {
+        graveyard.restore_told(tip, at);
     }
     Ok((graveyard, pool))
 }

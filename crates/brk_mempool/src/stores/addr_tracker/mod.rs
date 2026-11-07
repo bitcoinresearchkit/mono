@@ -1,37 +1,29 @@
 use std::{collections::hash_map::Entry as MapEntry, sync::Arc};
 
-use brk_types::{AddressBytes, AddressMempoolStats, Txid};
+use brk_types::{AddressBytes, AddressMempoolStats, TxOut, Txid};
 use rapidhash::fast::RandomState;
-use rustc_hash::FxHashMap;
 
-use crate::{
-    key::TxKey,
-    stores::{cow::CowMap, tx_store::TxRecord},
-};
+use crate::stores::{cow::CowMap, tx_store::TxRecord};
 
 pub mod addr_entry;
 
 pub use addr_entry::{AddrEntry, AddrTx};
 
 /// Publications share the map's shards and its address records; a write copies only its shard
-/// and the record it changes (with its txid set). A pooled
-/// transaction folds in whole, once ready: every input resolved, and no pooled parent waiting
-/// (what it spends of one is folded too). An address never sees half of one, nor a spend without
-/// the pending output it spends. One still resolving (and what descends from it) shows up a cycle
-/// later; meanwhile the addresses it pays (known from its outputs alone) answer `StateUpdating`
-/// rather than leave it out.
+/// and the record it changes (with its txid set). A pooled transaction folds in as far as it is
+/// known: its outputs on arrival, each input once its prevout is (what it spends of a pooled
+/// parent only once that parent is pooled, so never a spend without the pending output it
+/// spends). An address answers from what is known: what a still unresolved input spends shows up
+/// once it resolves, the unspent outputs it could be bounded meanwhile ([`Self::resolving_inputs`]).
 #[derive(Clone, Default)]
 pub struct AddrTracker {
     addrs: CowMap<AddressBytes, Arc<AddrEntry>, RandomState>,
-    /// The pooled transactions not folded in yet, each with its inputs' count.
-    waiting: CowMap<Txid, u32, RandomState>,
-    /// The waiting transactions' keys folded together: it changes with the set.
-    waiting_token: u64,
-    /// The waiting transactions' inputs, all told: the most outpoints they can spend.
-    waiting_inputs: usize,
-    /// The waiting transactions paying each address, with how many of their outputs do: what it
-    /// answers isn't complete yet, unless a newer block settled them all.
-    awaited: CowMap<AddressBytes, FxHashMap<TxKey, u32>, RandomState>,
+    /// The pooled transactions with inputs still unresolved, each with how many.
+    resolving: CowMap<Txid, u32, RandomState>,
+    /// Their keys folded together: it changes with the set.
+    resolving_token: u64,
+    /// Their unresolved inputs, all told.
+    resolving_inputs: usize,
 }
 
 impl AddrTracker {
@@ -39,86 +31,29 @@ impl AddrTracker {
         self.addrs.get(addr).map(Arc::as_ref)
     }
 
-    /// Whether the pooled `txid` waits to fold in (unresolved, or behind a parent that is).
-    pub fn is_waiting(&self, txid: &Txid) -> bool {
-        self.waiting.contains_key(txid)
+    /// Identifies the transactions with inputs still unresolved: what those spend isn't any
+    /// address's yet, only the outpoints'.
+    pub fn resolving_token(&self) -> u64 {
+        self.resolving_token
     }
 
-    /// Identifies the waiting transactions: what they spend isn't any address's yet (their
-    /// prevouts aren't all known), only the outpoints'.
-    pub fn waiting_token(&self) -> u64 {
-        self.waiting_token
+    /// How many outpoints the unresolved inputs spend, at most.
+    pub fn resolving_inputs(&self) -> usize {
+        self.resolving_inputs
     }
 
-    /// How many outpoints the waiting transactions spend, at most.
-    pub fn waiting_inputs(&self) -> usize {
-        self.waiting_inputs
-    }
-
-    /// The waiting transactions paying `addr`.
-    pub fn awaited(&self, addr: &AddressBytes) -> impl Iterator<Item = &TxKey> {
-        self.awaited.get(addr).into_iter().flat_map(|keys| keys.keys())
-    }
-
-    /// A transaction entering the pool (or held back again): it waits until ready.
-    pub fn wait(&mut self, record: &TxRecord) {
-        if self.waiting.contains_key(&record.entry.txid) {
-            return;
-        }
-        let inputs = record.tx.input.len();
-        self.waiting
-            .insert(record.entry.txid, u32::try_from(inputs).expect("inputs fit 32 bits"));
-        let key = record.entry.key();
-        self.waiting_token ^= *key;
-        self.waiting_inputs += inputs;
-        for bytes in record.tx.output.iter().filter_map(|txout| txout.addr_bytes()) {
-            *self
-                .awaited
-                .shard_mut(&bytes)
-                .entry(bytes)
-                .or_default()
-                .entry(key)
-                .or_default() += 1;
-        }
-    }
-
-    /// No longer waiting: what it pays is complete again (as far as it goes).
-    fn unwait(&mut self, record: &TxRecord) -> bool {
-        let Some(inputs) = self.waiting.remove(&record.entry.txid) else {
-            return false;
-        };
-        let key = record.entry.key();
-        self.waiting_token ^= *key;
-        self.waiting_inputs -= inputs as usize;
-        for bytes in record.tx.output.iter().filter_map(|txout| txout.addr_bytes()) {
-            let Some(keys) = self.awaited.get_mut(&bytes) else {
-                continue;
-            };
-            if let MapEntry::Occupied(mut outputs) = keys.entry(key) {
-                *outputs.get_mut() -= 1;
-                if *outputs.get() == 0 {
-                    outputs.remove();
-                }
-            }
-            if keys.is_empty() {
-                self.awaited.remove(&bytes);
-            }
-        }
-        true
-    }
-
-    /// Folds a waiting transaction in, ready.
-    pub fn fold(&mut self, record: &TxRecord) {
+    /// A transaction entering the pool: its outputs fold in, and its inputs already resolved.
+    pub fn add(&mut self, record: &TxRecord) {
         let tx = &record.tx;
-        debug_assert!(tx.is_resolved(), "only a resolved transaction folds in");
-        let unwaited = self.unwait(record);
-        debug_assert!(unwaited, "only a waiting transaction folds in");
-        let at = AddrTx::from(record);
-        for prevout in tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
-            if let Some(bytes) = prevout.addr_bytes() {
-                self.apply_add(bytes, at, |stats| stats.add_spend(prevout));
-            }
+        let unresolved = tx.input.iter().filter(|txin| txin.prevout.is_none()).count();
+        if unresolved > 0 {
+            let unresolved = u32::try_from(unresolved).expect("inputs fit 32 bits");
+            self.resolving.insert(record.entry.txid, unresolved);
+            self.resolving_token ^= *record.entry.key();
+            self.resolving_inputs += unresolved as usize;
         }
+        self.fold_spends(record, tx.input.iter().filter_map(|txin| txin.prevout.as_ref()));
+        let at = AddrTx::from(record);
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {
                 self.apply_add(bytes, at, |stats| stats.add_funding(txout));
@@ -126,16 +61,34 @@ impl AddrTracker {
         }
     }
 
-    /// Folds a folded transaction back out: it waits again (a pooled parent of its does).
-    pub fn unfold(&mut self, record: &TxRecord) {
-        self.remove(record);
-        self.wait(record);
+    /// Prevouts of `record`'s unresolved inputs, resolved: what they spend folds in.
+    pub fn resolve<'a>(&mut self, record: &TxRecord, prevouts: impl ExactSizeIterator<Item = &'a TxOut>) {
+        let resolved = prevouts.len();
+        let txid = record.entry.txid;
+        let left = self.resolving.get_mut(&txid).expect("a resolving transaction resolves");
+        *left -= u32::try_from(resolved).expect("inputs fit 32 bits");
+        if *left == 0 {
+            self.resolving.remove(&txid);
+            self.resolving_token ^= *record.entry.key();
+        }
+        self.resolving_inputs -= resolved;
+        self.fold_spends(record, prevouts);
     }
 
-    /// A transaction leaving the pool, folded or waiting.
+    fn fold_spends<'a>(&mut self, record: &TxRecord, prevouts: impl Iterator<Item = &'a TxOut>) {
+        let at = AddrTx::from(record);
+        for prevout in prevouts {
+            if let Some(bytes) = prevout.addr_bytes() {
+                self.apply_add(bytes, at, |stats| stats.add_spend(prevout));
+            }
+        }
+    }
+
+    /// A transaction leaving the pool: all of it that folded in folds back out.
     pub fn remove(&mut self, record: &TxRecord) {
-        if self.unwait(record) {
-            return;
+        if let Some(unresolved) = self.resolving.remove(&record.entry.txid) {
+            self.resolving_token ^= *record.entry.key();
+            self.resolving_inputs -= unresolved as usize;
         }
         let tx = &record.tx;
         let at = AddrTx::from(record);

@@ -56,6 +56,9 @@ pub struct TxGraveyard {
     /// The tip whose blocks it was last told (`confirm`): the next cycle reads the blocks since,
     /// and so does one after a restart (it is saved with it).
     told: Option<BlockHash>,
+    /// When every block up to `told` was last told: what was buried before, the blocks since
+    /// didn't displace.
+    told_at: Option<Instant>,
     /// Tree heads past retention that Core lists again but the pool hasn't loaded: checked every
     /// pass (`trees` stays in time order), each tree going once its head is neither.
     held: Vec<(Instant, Txid)>,
@@ -70,8 +73,21 @@ impl TxGraveyard {
         self.told
     }
 
+    /// When every block up to [`Self::told`] was last told.
+    pub fn told_at(&self) -> Option<Instant> {
+        self.told_at
+    }
+
+    /// `told` and `told_at` read back from disk.
+    fn restore_told(&mut self, tip: BlockHash, at: Option<Instant>) {
+        self.told = Some(tip);
+        self.told_at = at;
+        self.revision = self.revision.wrapping_add(1);
+    }
+
     /// Every block up to `tip` told: a change publications and saves carry.
     pub fn set_told(&mut self, tip: BlockHash) {
+        self.told_at = Some(Instant::now());
         if self.told != Some(tip) {
             self.told = Some(tip);
             self.revision = self.revision.wrapping_add(1);
@@ -268,16 +284,20 @@ impl TxGraveyard {
     /// What new blocks confirmed, told to the buried: one they confirmed reads mined from now on (a
     /// replaced version mined after all, which also ends a cycle its replacer's confirmed conflict
     /// closed, or one buried vanished), and a vanished one a confirmed conflict displaced reads
-    /// replaced by it. A cycle that couldn't read its blocks buried them vanished; the next cycle's
-    /// read tells them here. One mined by a block a reorg took off the chain (`disconnected`) that
-    /// neither returned nor was mined again reads vanished, or replaced by a conflict the new
-    /// blocks confirmed. O(tombstones and the vanished ones' inputs), on cycles with new blocks
-    /// only.
+    /// replaced by it. Displaced: buried since the blocks were last all told (`told_at`; a cycle
+    /// that couldn't read its blocks buried them vanished, the next cycle's read tells them
+    /// here), or by a late replacer the pool listed by then and never loaded ([`Linker`], in
+    /// memory until the next complete view: a restart or an unread block in between leaves such
+    /// a one vanished, as a replacer never seen does). An outpoint respent after its transaction
+    /// left (evicted, expired) replaced nothing. One mined
+    /// by a block a reorg took off the chain (`disconnected`) that neither returned nor was mined
+    /// again reads vanished, or replaced by a conflict the new blocks confirmed. O(tombstones and
+    /// the displaceable ones' inputs), on cycles with new blocks only.
     pub fn confirm(
         &mut self,
         mined: impl Fn(&Txid) -> bool,
         disconnected: impl Fn(&Txid) -> bool,
-        conflict: impl Fn(&TxTombstone) -> Option<Txid>,
+        conflicts: impl Fn(&TxTombstone) -> SmallVec<[Txid; 1]>,
     ) {
         let now = Instant::now();
         let changes: Vec<(Txid, TxRemoval)> = self
@@ -288,11 +308,20 @@ impl TxGraveyard {
                     TxRemoval::Mined if mined(txid) || !disconnected(txid) => return None,
                     _ if mined(txid) => TxRemoval::Mined,
                     TxRemoval::Replaced { .. } => return None,
-                    removal => match conflict(tombstone) {
-                        Some(by) => TxRemoval::Replaced { by },
-                        None if matches!(removal, TxRemoval::Mined) => TxRemoval::Vanished,
-                        None => return None,
-                    },
+                    TxRemoval::Mined => conflicts(tombstone)
+                        .first()
+                        .map_or(TxRemoval::Vanished, |&by| TxRemoval::Replaced { by }),
+                    TxRemoval::Vanished => {
+                        let recent = self.told_at.is_none_or(|at| tombstone.removed_at > at);
+                        if !recent && !self.linker.awaits_late_replacer() {
+                            return None;
+                        }
+                        let inputs = &tombstone.record.tx.input;
+                        let by = conflicts(tombstone).into_iter().find(|by| {
+                            recent || self.linker.displaced(txid, tombstone.removed_at, inputs, by)
+                        })?;
+                        TxRemoval::Replaced { by }
+                    }
                 };
                 Some((*txid, removal))
             })
