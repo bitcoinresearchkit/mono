@@ -1,9 +1,7 @@
 //! RBF trees captured from one publication for later confirmed-chain enrichment.
 
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
-
 use brk_error::Result;
-use brk_types::{BlockHash, FeeRate, Sats, Timestamp, Transaction, Txid, VSize};
+use brk_types::{BlockHash, FeeRate, Sats, Transaction, Txid, VSize};
 use rapidhash::{RapidHashMap, RapidHashSet};
 
 use crate::{
@@ -35,17 +33,40 @@ impl ReadOnlyState {
     /// plus the requested tx's direct predecessors from the acquired publication.
     /// A history past 4,096 transactions or 63 versions comes cut, its root marked `truncated`:
     /// the newest versions, as many as fit (one past the walk's reach roots it where the walk
-    /// stopped). The walk to the root, the direct predecessors and the tree each have 4,096
-    /// steps.
+    /// stopped), and always the one asked for (one more than 62 versions below its root roots the
+    /// tree 62 above it instead). The walk to the root, the direct predecessors and the tree each
+    /// have 4,096 steps.
     pub fn rbf_for_tx(&self, txid: &Txid, tip: &BlockHash) -> Result<RbfForTx> {
         // Trees read entries and outputs, never prevouts: no input needs resolving.
         let state = self.pool()?.at(tip)?;
         let mut walk = MAX_RBF_WORK;
-        let (root_txid, mut truncated) =
+        let (mut root_txid, mut truncated) =
             match Self::tree_root(state, txid, &mut walk, &mut RapidHashMap::default()) {
                 Ok(root) => (root, false),
                 Err(reached) => (reached, true),
             };
+        // The version as many levels above it as a tree goes deep: past it, the root is further
+        // (or an unseen replacer above the last known version, one level more).
+        let live = |txid: &Txid| state.txs.contains(txid);
+        let mut above = vec![*txid];
+        while let Some(&window) = above.last()
+            && window != root_txid
+            && above.len() < MAX_RBF_DEPTH
+            && let Some(by) = state.graveyard.next_version(&window, live)
+        {
+            above.push(by);
+        }
+        let window = *above.last().expect("it");
+        if window != root_txid && above.len() == MAX_RBF_DEPTH {
+            (root_txid, truncated) = (window, true);
+        }
+        // The versions from the root down to it, built first: the budget always reaches it. An
+        // unseen replacer roots the tree one level above the last known version.
+        let mut path = Vec::with_capacity(above.len() + 1);
+        if window != root_txid {
+            path.push(root_txid);
+        }
+        path.extend(above.into_iter().rev());
         let mut replaces = Vec::new();
         for (predecessor, _) in state.graveyard.predecessors_of(txid) {
             if replaces.len() == MAX_RBF_WORK {
@@ -63,6 +84,7 @@ impl ReadOnlyState {
             &mut remaining,
             &mut truncated,
             0,
+            &path,
         )
         .filter(|root| !root.replaces.is_empty());
         if let Some(root) = root.as_mut() {
@@ -122,6 +144,7 @@ impl ReadOnlyState {
                 &mut remaining,
                 &mut truncated,
                 0,
+                &[],
             );
             total -= budget - remaining;
             if let Some(mut node) = built
@@ -143,8 +166,9 @@ impl ReadOnlyState {
     }
 
     /// `txid`'s node and what it replaced, depth first, while `remaining` and [`MAX_RBF_DEPTH`]
-    /// allow: what doesn't fit is left out, `truncated` told so. The flags (`full_rbf`) then
-    /// describe what the tree holds.
+    /// allow: what doesn't fit is left out, `truncated` told so, but never a version of `path`
+    /// (from the root, at its depth: built first). The flags (`full_rbf`) then describe what the
+    /// tree holds.
     fn build_rbf_node(
         txid: &Txid,
         txs: &ReadOnlyTxStore,
@@ -152,6 +176,7 @@ impl ReadOnlyState {
         remaining: &mut usize,
         truncated: &mut bool,
         depth: usize,
+        path: &[Txid],
     ) -> Option<RbfNode> {
         if depth >= MAX_RBF_DEPTH || *remaining == 0 {
             *truncated = true;
@@ -162,25 +187,14 @@ impl ReadOnlyState {
         else {
             // A root neither pending nor buried replaced what lists it (a confirmed conflict).
             return if depth == 0 {
-                Self::unseen_root(txid, txs, graveyard, remaining, truncated)
+                Self::unseen_root(txid, txs, graveyard, remaining, truncated, path)
             } else {
                 None
             };
         };
 
-        let mut replaces = Vec::new();
-        for (predecessor, _) in graveyard.predecessors_of(txid) {
-            // Past the bounds the rest is left out, not visited.
-            if depth + 1 >= MAX_RBF_DEPTH || *remaining == 0 {
-                *truncated = true;
-                break;
-            }
-            if let Some(node) =
-                Self::build_rbf_node(predecessor, txs, graveyard, remaining, truncated, depth + 1)
-            {
-                replaces.push(node);
-            }
-        }
+        let replaces =
+            Self::predecessor_nodes(txid, txs, graveyard, remaining, truncated, depth + 1, path);
 
         let replaced_non_signaling = replaces.iter().any(|c| !c.rbf);
         // mempool.space's tree flag: a replaced leaf's own non-signaling, a replacer's subtree's.
@@ -245,6 +259,44 @@ impl ReadOnlyState {
         Ok(root)
     }
 
+    /// What `txid` replaced, as nodes at `depth`, in the graveyard's order while the bounds allow
+    /// (past them the rest is left out, not visited): the one on `path` built first, in its place
+    /// if the others reach it, last if not.
+    fn predecessor_nodes(
+        txid: &Txid,
+        txs: &ReadOnlyTxStore,
+        graveyard: &TxGraveyard,
+        remaining: &mut usize,
+        truncated: &mut bool,
+        depth: usize,
+        path: &[Txid],
+    ) -> Vec<RbfNode> {
+        let next = path.get(depth).filter(|_| path.get(depth - 1) == Some(txid));
+        let mut first = next
+            .filter(|_| depth < MAX_RBF_DEPTH && *remaining > 0)
+            .and_then(|next| {
+                Self::build_rbf_node(next, txs, graveyard, remaining, truncated, depth, path)
+            });
+        let mut replaces = Vec::new();
+        for (predecessor, _) in graveyard.predecessors_of(txid) {
+            if Some(predecessor) == next {
+                replaces.extend(first.take());
+                continue;
+            }
+            if depth >= MAX_RBF_DEPTH || *remaining == 0 {
+                *truncated = true;
+                break;
+            }
+            if let Some(node) =
+                Self::build_rbf_node(predecessor, txs, graveyard, remaining, truncated, depth, path)
+            {
+                replaces.push(node);
+            }
+        }
+        replaces.extend(first);
+        replaces
+    }
+
     /// An unseen confirmed replacer: what it replaced, its own facts left for the chain.
     fn unseen_root(
         txid: &Txid,
@@ -252,30 +304,20 @@ impl ReadOnlyState {
         graveyard: &TxGraveyard,
         remaining: &mut usize,
         truncated: &mut bool,
+        path: &[Txid],
     ) -> Option<RbfNode> {
-        let mut replaces = Vec::new();
         // When the replacement was seen (mempool.space's tree time): the latest of what it
-        // replaced, told it by its block.
-        let mut seen: Option<Instant> = None;
-        for (predecessor, tomb) in graveyard.predecessors_of(txid) {
-            if *remaining == 0 {
-                *truncated = true;
-                break;
-            }
-            seen = seen.max(Some(tomb.removed_at));
-            if let Some(node) =
-                Self::build_rbf_node(predecessor, txs, graveyard, remaining, truncated, 1)
-            {
-                replaces.push(node);
-            }
+        // replaced, told it by its block (of as many as a tree holds).
+        let seen = graveyard
+            .predecessors_of(txid)
+            .take(MAX_RBF_WORK)
+            .map(|(_, tomb)| tomb.removed_at)
+            .max()?
+            .timestamp();
+        let replaces = Self::predecessor_nodes(txid, txs, graveyard, remaining, truncated, 1, path);
+        if replaces.is_empty() {
+            return None;
         }
-        let seen = seen.filter(|_| !replaces.is_empty())?;
-        let seen = SystemTime::now()
-            .checked_sub(seen.elapsed())
-            .and_then(|at| at.duration_since(UNIX_EPOCH).ok())
-            .map_or_else(Timestamp::now, |since| {
-                Timestamp::from(since.as_secs() as usize)
-            });
         let replaced_non_signaling = replaces.iter().any(|c| !c.rbf);
         Some(RbfNode {
             txid: *txid,

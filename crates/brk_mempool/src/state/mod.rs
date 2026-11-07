@@ -9,7 +9,7 @@ pub(crate) use pool::Pool;
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
 
-use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore, tx_store::TxRecord};
+use crate::stores::{AddrTracker, Linker, OutpointSpends, TxGraveyard, TxStore, tx_store::TxRecord};
 
 #[derive(Default)]
 pub struct State {
@@ -18,6 +18,9 @@ pub struct State {
     pub addrs: AddrTracker,
     pub outpoint_spends: OutpointSpends,
     pub graveyard: TxGraveyard,
+    /// What vanished while something can still have displaced it: the writer's, beside the
+    /// graveyard publications share.
+    pub linker: Linker,
     /// The last applied poll's template transactions the listing lacks (left Core's pool since
     /// it built the template), in its order: block 0's bodies alone, never pooled.
     pub template_only: Vec<TxRecord>,
@@ -29,6 +32,7 @@ impl State {
     /// vanished) exhumed. The first cycle sets it against Core's listing.
     pub fn restored(graveyard: TxGraveyard, pool: Vec<TxRecord>) -> Self {
         let mut state = Self {
+            linker: Linker::after_restore(graveyard.vanished_since_told()),
             graveyard,
             ..Self::default()
         };

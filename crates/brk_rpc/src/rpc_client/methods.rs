@@ -119,16 +119,29 @@ impl Client {
         let (tip_raw, txids_raw, info_raw) = (tip_raw?, txids_raw?, info_raw?);
 
         let live_txids = TxidArrayParser::parse(txids_raw.get())?;
-        let (tip_hash, block_template) = match template_raw {
+        // A template that doesn't read, or breaks a block's limits, is none: block 0 packs from
+        // the pool, and the cycle goes on.
+        let template = match template_raw {
             Ok(raw) => {
-                let template: GetBlockTemplate = from_str(raw.get())?;
-                (
-                    Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?,
-                    Some(ClientInner::build_gbt(template.transactions)?),
-                )
+                let read = || -> Result<_> {
+                    let template: GetBlockTemplate = from_str(raw.get())?;
+                    Ok((
+                        Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?,
+                        ClientInner::build_gbt(template.transactions)?,
+                    ))
+                };
+                read()
+                    .inspect_err(|error| warn!(%error, "getblocktemplate: unreadable, set aside"))
+                    .ok()
             }
             Err(error) => {
                 debug!(%error, "getblocktemplate: none");
+                None
+            }
+        };
+        let (tip_hash, block_template) = match template {
+            Some((tip, template)) => (tip, Some(template)),
+            None => {
                 let tip: String = from_str(tip_raw.get())?;
                 (Self::parse_block_hash(&tip, "getbestblockhash")?, None)
             }

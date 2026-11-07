@@ -1,35 +1,42 @@
-//! Late replacers: what vanished while the view wasn't complete (the per-cycle fetch cap held
-//! listed transactions back), indexed by the outpoints it spent, so a replacer arriving cycles
-//! later still links it.
+//! What vanished, while something can still have displaced it: the blocks the next read tells
+//! (what vanished since the blocks were last all told), and late replacers (what vanished while
+//! the view wasn't complete, the per-cycle fetch cap holding listed transactions back, indexed by
+//! the outpoints it spent, so a replacer arriving cycles later still links it). The writer's
+//! alone: publications never copy it.
 
-use std::{mem, time::Instant};
+use std::mem;
 
 use brk_types::{Transaction, TxIn, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
 use smallvec::SmallVec;
 
+use super::Moment;
+
 /// A vanished burial waiting for a late replacer: its tombstone's time, and its cycle.
 #[derive(Clone, Copy)]
 struct Burial {
     txid: Txid,
-    at: Instant,
+    at: Moment,
     cycle: u64,
 }
 
 /// Holds no tombstone: every question about one (still the vanished burial it indexed?) goes to
 /// the graveyard, through `vanished_at`.
 ///
-/// Invariants: `unlinked` holds the burials of cycles whose view wasn't complete, and this
-/// cycle's once indexed; `pending` the burials not indexed yet (indexing drains it, an incomplete
-/// cycle's end keeps it); `unloaded_since` the listed transactions not loaded yet. A complete
-/// cycle's end clears all three.
+/// Invariants: `since_told` holds the burials since the blocks were last all told; `unlinked`
+/// the burials of cycles whose view wasn't complete, and this cycle's once indexed; `pending` the
+/// burials not indexed yet (indexing drains it, an incomplete cycle's end keeps it);
+/// `unloaded_since` the listed transactions not loaded yet. A complete cycle's end clears the
+/// last three.
 #[derive(Clone, Default)]
-pub(super) struct Linker {
+pub struct Linker {
+    /// What vanished since the blocks were last all told, each with its burial.
+    since_told: Vec<(Txid, Moment)>,
     /// What vanished in cycles whose view wasn't complete, by the outpoints each spent.
     unlinked: RapidHashMap<(Txid, Vout), SmallVec<[Burial; 1]>>,
     /// This cycle's vanished burials (and reclassifications), for `unlinked` unless the cycle's
     /// view is complete.
-    pending: Vec<(Txid, Instant)>,
+    pending: Vec<(Txid, Moment)>,
     /// Listed transactions not loaded yet, by the cycle each was first listed in: only one listed
     /// by the cycle something vanished in can be what replaced it.
     unloaded_since: RapidHashMap<Txid, u64>,
@@ -38,14 +45,34 @@ pub(super) struct Linker {
 }
 
 impl Linker {
+    /// One after a restart: what vanished since the blocks were last all told
+    /// (`TxGraveyard::vanished_since_told`), no late replacer awaited.
+    pub fn after_restore(since_told: Vec<(Txid, Moment)>) -> Self {
+        Self {
+            since_told,
+            ..Self::default()
+        }
+    }
+
     /// `txid` vanished at `at` (buried so, or told so).
-    pub fn vanished(&mut self, txid: Txid, at: Instant) {
+    pub fn vanished(&mut self, txid: Txid, at: Moment) {
+        self.since_told.push((txid, at));
         self.pending.push((txid, at));
+    }
+
+    /// What vanished since the blocks were last all told.
+    pub fn since_told(&self) -> &[(Txid, Moment)] {
+        &self.since_told
+    }
+
+    /// Every block told: what vanished before, the blocks to come can't have displaced.
+    pub fn told(&mut self) {
+        self.since_told.clear();
     }
 
     /// This cycle's vanished, indexed by the outpoints they spent (`inputs`: a burial's, while it
     /// is still that one): before [`Self::losers`], so a same-cycle arrival finds them too.
-    pub fn index<'a>(&mut self, inputs: impl Fn(&Txid, Instant) -> Option<&'a [TxIn]>) {
+    pub fn index<'a>(&mut self, inputs: impl Fn(&Txid, Moment) -> Option<&'a [TxIn]>) {
         for (txid, at) in mem::take(&mut self.pending) {
             let Some(inputs) = inputs(&txid, at) else {
                 continue;
@@ -69,7 +96,7 @@ impl Linker {
     pub fn losers(
         &self,
         arrival: &Transaction,
-        vanished_at: impl Fn(&Txid, Instant) -> bool,
+        vanished_at: impl Fn(&Txid, Moment) -> bool,
     ) -> SmallVec<[Txid; 1]> {
         let mut losers: SmallVec<[Txid; 1]> = SmallVec::new();
         if self.unlinked.is_empty() {
@@ -106,7 +133,7 @@ impl Linker {
     pub fn displaced(
         &self,
         spender: impl Fn(&(Txid, Vout)) -> Option<Txid>,
-    ) -> Vec<(Txid, Instant, Txid)> {
+    ) -> Vec<(Txid, Moment, Txid)> {
         if self.unloaded_since.is_empty() {
             return Vec::new();
         }
@@ -133,7 +160,7 @@ impl Linker {
     pub fn end_cycle(
         &mut self,
         unloaded: &RapidHashSet<Txid>,
-        vanished_at: impl Fn(&Txid, Instant) -> bool,
+        vanished_at: impl Fn(&Txid, Moment) -> bool,
     ) {
         if unloaded.is_empty() {
             self.unlinked.clear();

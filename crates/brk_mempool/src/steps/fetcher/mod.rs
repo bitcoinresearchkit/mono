@@ -7,6 +7,7 @@ use brk_rpc::{BlockTemplateTx, Client};
 use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
 pub use fetched::Fetched;
 use rapidhash::{RapidHashMap, RapidHashSet};
+use tracing::warn;
 
 use crate::{State, steps::preparer::TxAddition, stores::tx_store::TxRecord};
 
@@ -44,8 +45,8 @@ pub fn fetch(
     failing: &RapidHashMap<Txid, u32>,
 ) -> Result<Fetched> {
     let (state, block_template) = client.fetch_mempool_state()?;
-    let template = block_template.is_some();
-    let block_template = block_template.unwrap_or_default();
+    let mut template = block_template.is_some();
+    let mut block_template = block_template.unwrap_or_default();
 
     // The same private pool decides the fetch list and template synthesis,
     // so they agree on what's already known. The template's txids the listing lacks: the
@@ -58,7 +59,7 @@ pub fn fetch(
     // Listed and new to the pool, or a witness variant of a body it holds (Core keeps one per
     // txid, so a variant follows only the original's leaving, which a poll can miss): fetched
     // afresh.
-    let template_new: RapidHashSet<Txid> = block_template
+    let mut template_new: RapidHashSet<Txid> = block_template
         .iter()
         .filter(|g| {
             !template_only.contains(&g.txid)
@@ -69,6 +70,35 @@ pub fn fetch(
         })
         .map(|g| g.txid)
         .collect();
+    // What block 0 takes from the template alone (the unlisted held nowhere, new bodies), read
+    // before anything is fetched: a body that doesn't decode sets the template aside for the
+    // cycle (block 0 packs from the pool, the listing fetches what it held), not the cycle.
+    let now = Timestamp::now();
+    let previous: RapidHashMap<Txid, &TxRecord> = mempool
+        .template_only
+        .iter()
+        .map(|record| (record.entry.txid, record))
+        .collect();
+    let read = || -> Result<_> {
+        let mut unlisted = Vec::with_capacity(template_only.len());
+        let mut bodies = RapidHashMap::default();
+        for g in &block_template {
+            if template_only.contains(&g.txid) {
+                unlisted.push(template_record(g, mempool, &previous, now)?);
+            } else if template_new.contains(&g.txid) {
+                bodies.insert(g.txid, g.decode()?);
+            }
+        }
+        Ok((unlisted, bodies))
+    };
+    let (unlisted, mut bodies) = read().unwrap_or_else(|error| {
+        warn!(%error, "getblocktemplate: a body doesn't decode, set aside");
+        template = false;
+        block_template.clear();
+        template_only.clear();
+        template_new.clear();
+        Default::default()
+    });
     let template_txids: Vec<Txid> = block_template
         .iter()
         .map(|g| g.txid)
@@ -119,25 +149,16 @@ pub fn fetch(
     // The body is the template's, and so are its weight, policy size and fee: the node may hold
     // another witness variant by the time its entry was fetched, so only the entry's arrival
     // time is kept.
-    let now = Timestamp::now();
     let fetched_at: RapidHashMap<Txid, usize> = new_entries
         .iter()
         .enumerate()
         .map(|(i, entry)| (entry.txid, i))
         .collect();
-    let previous: RapidHashMap<Txid, &TxRecord> = mempool
-        .template_only
-        .iter()
-        .map(|record| (record.entry.txid, record))
-        .collect();
-    let mut unlisted = Vec::with_capacity(template_only.len());
     let mut block_template_txids: Vec<Txid> = Vec::with_capacity(block_template.len());
     for g in block_template {
         let txid = g.txid;
-        if template_only.contains(&txid) {
-            unlisted.push(template_record(g, mempool, &previous, now)?);
-        } else if template_new.contains(&txid) {
-            new_txs.insert(txid, g.decode()?);
+        if let Some(body) = bodies.remove(&txid) {
+            new_txs.insert(txid, body);
             let entry = MempoolEntryInfo {
                 txid,
                 wtxid: g.wtxid,
@@ -175,7 +196,7 @@ pub fn fetch(
 /// same witness (the pool's, leaving this cycle, block 0's last, or the graveyard's), else built
 /// from the template's body, first seen `now` unless the graveyard saw it before.
 fn template_record(
-    g: BlockTemplateTx,
+    g: &BlockTemplateTx,
     mempool: &State,
     previous: &RapidHashMap<Txid, &TxRecord>,
     now: Timestamp,

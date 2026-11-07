@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
 
 use brk_types::Transaction;
 
@@ -10,6 +10,7 @@ use crate::{
         Confirmed,
         preparer::{PoolDiff, TxAddition},
     },
+    stores::Moment,
 };
 
 /// Applies a prepared diff to private working state: bury removals, insert additions, tell the buried what the new blocks confirmed, then
@@ -40,15 +41,15 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     state.inherit_signaling(&entered);
     state.recheck_signaling(orphaned);
     if !confirmed.is_empty() {
-        state.graveyard.confirm(confirmed);
+        state.graveyard.confirm(confirmed, &mut state.linker);
     }
     // After the blocks, and only when every new one was read: a confirmed conflict outranks a
     // late arrival (with one unread, what vanished stays so).
-    state.graveyard.index_vanished();
+    state.graveyard.index_vanished(&mut state.linker);
     if !confirmed.incomplete {
         for txid in &entered {
             if let Some(record) = state.txs.record(txid) {
-                state.graveyard.relink(&record.tx);
+                state.graveyard.relink(&record.tx, &mut state.linker);
             }
         }
     }
@@ -56,7 +57,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
     state
         .graveyard
-        .evict_old(Instant::now(), |txid| listed.contains(&TxKey::from(txid)));
+        .evict_old(Moment::now(), |txid| listed.contains(&TxKey::from(txid)));
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
@@ -68,7 +69,7 @@ fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: Tx
     state.info.remove(record.entry.vsize, record.entry.fee);
     state.addrs.remove(&record);
     state.outpoint_spends.remove_spends(&record.tx, *key);
-    state.graveyard.bury(record, chunk_rate, reason);
+    state.graveyard.bury(record, chunk_rate, reason, &mut state.linker);
 }
 
 fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry) {

@@ -13,9 +13,10 @@ pub mod rbf;
 
 pub use rbf::ResolvedRbf;
 
-/// The most blocks a pending view corrects a pool behind the pin across, a day's (read once per
-/// publication and pin tip): one further behind tells nothing of what's pending now.
-const MAX_POOL_LAG: usize = 144;
+/// The most blocks a pending view corrects a pool behind the pin across, about an hour's: the pool
+/// normally trails the chain by a cycle (a block), and one further behind has stalled and tells
+/// nothing of what's pending now. It bounds the view's build too: every input of those blocks.
+const MAX_POOL_LAG: usize = 6;
 
 /// A body the pool built once, shared, and its content hash as its identity.
 fn published_json((bytes, hash): JsonBody) -> Result<(Arc<[u8]>, RepresentationId)> {

@@ -27,7 +27,7 @@ mod tests;
 
 pub use api::{
     MempoolBlockSource, PendingUtxos, PendingView, PublishedEntry, PublishedTx, RbfForTx,
-    RbfNode, ResolvedMempoolBlockDiff,
+    RbfNode, ResolvedMempoolBlockDiff, Spends,
 };
 pub use chain_waker::ChainWaker;
 pub use json::JsonBody;

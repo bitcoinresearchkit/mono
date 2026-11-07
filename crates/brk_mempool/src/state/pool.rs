@@ -9,7 +9,8 @@ use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
     stores::{
-        AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore, tx_store::TxRecord,
+        AddrTracker, Linker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore,
+        tx_store::TxRecord,
     },
 };
 
@@ -133,6 +134,7 @@ impl Pool {
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
+            linker: Linker::after_restore(self.graveyard.vanished_since_told()),
             template_only: Vec::new(),
         }
     }

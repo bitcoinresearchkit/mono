@@ -191,7 +191,7 @@ impl Mempool {
                 warn!("mempool: blocks since the last cycle unreadable, let go");
             }
             self.unread_cycles = 0;
-            self.state.graveyard.set_told(rpc.tip_hash);
+            self.state.graveyard.set_told(rpc.tip_hash, &mut self.state.linker);
         }
         self.state.template_only = template_only;
         // Every listed transaction is loaded (block 0's template-only bodies aren't the pool's).
@@ -221,7 +221,7 @@ impl Mempool {
             || unloaded
                 .iter()
                 .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
-        self.state.graveyard.end_cycle(&unloaded);
+        self.state.graveyard.end_cycle(&unloaded, &mut self.state.linker);
         self.rebuilder.tick(
             &self.state,
             block_template_txids.as_deref(),

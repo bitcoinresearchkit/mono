@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use brk_error::{Error, Result};
+use brk_error::Result;
 use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::FxHashSet;
 use serde::Serializer;
@@ -39,17 +39,16 @@ impl ReadOnlyState {
     }
 
     /// A transaction pending in `view`, from one completed publication: none for one that left
-    /// (mined ones the chain answers; evicted, expired or replaced ones are gone). A body whose
-    /// own inputs aren't all resolved yet answers `StateUpdating`, alone: others read meanwhile.
+    /// (mined ones the chain answers; evicted, expired or replaced ones are gone). An input not
+    /// resolved yet serves its prevout as null (Esplora's form for a coinbase input), as address
+    /// pages serve it, until a later publication fills it.
     pub fn transaction(&self, txid: &Txid, view: &PendingView) -> Result<Option<PublishedTx>> {
         let state = self.pool()?.at(view.tip())?;
-        let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
-            return Ok(None);
-        };
-        if !record.tx.is_resolved() {
-            return Err(Error::StateUpdating);
-        }
-        Ok(Some(PublishedTx::from_record(record)))
+        Ok(state
+            .txs
+            .record(txid)
+            .filter(|_| view.pending(txid))
+            .map(PublishedTx::from_record))
     }
 
     /// Spend status for a pending transaction's output, or `None` when the parent isn't pending

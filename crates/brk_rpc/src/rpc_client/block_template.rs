@@ -57,7 +57,11 @@ impl ClientInner {
                 .filter(|weight| *weight <= max_weight)
                 .ok_or_else(|| invalid("aggregate weight"))?;
         }
-        debug_assert_eq!(Self::audit_gbt(&transactions), Ok(()), "block template");
+        // Debug builds re-derive Core's invariants: a template failing them is set aside, as one
+        // that doesn't decode is in any build.
+        if cfg!(debug_assertions) {
+            Self::audit_gbt(&transactions).map_err(invalid)?;
+        }
 
         let mut result: Vec<BlockTemplateTx> = Vec::with_capacity(transactions.len());
         for raw in transactions {

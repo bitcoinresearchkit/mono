@@ -1,16 +1,16 @@
-use std::time::Instant;
-
 use brk_types::{BlockHash, FeeRate, Transaction, Txid};
 use rapidhash::{RapidHashSet, fast::RandomState};
 use smallvec::SmallVec;
 
 mod eviction;
 pub mod file;
-mod linker;
+pub mod linker;
+mod moment;
 pub mod tombstone;
 
 pub use file::GraveyardFile;
-use linker::Linker;
+pub use linker::Linker;
+pub use moment::Moment;
 pub use tombstone::TxTombstone;
 
 use crate::{
@@ -36,9 +36,9 @@ use crate::{
 /// holds exactly the lone tombstones and the roots, each with the time of its entry in `lone` or
 /// `trees`; `replacements` holds one entry for every `Replaced` tombstone, at its burial. Each
 /// queue keeps time order, and an entry `filed` no longer gives (or whose txid changed state since)
-/// is stale, skipped where read and dropped once they outnumber the rest. `since_told` lists the
-/// vanished burials since the blocks were last all told. What vanished while the view wasn't
-/// complete waits for a late replacer in the [`Linker`], which holds no tombstone of its own. A
+/// is stale, skipped where read and dropped once they outnumber the rest. What vanished, until
+/// the blocks or a late replacer can no longer have displaced it, the writer's [`Linker`] holds
+/// apart (publications never copy it), passed to what needs it. A
 /// restart files each tombstone again at its burial: one that became lone, or a root seen pending,
 /// after it can go up to a retention early.
 #[derive(Clone, Default)]
@@ -47,30 +47,25 @@ pub struct TxGraveyard {
     tombstones: CowMap<Txid, TxTombstone, RandomState>,
     predecessors_by_replacer: CowMap<Txid, SmallVec<[Txid; 1]>, RandomState>,
     /// Lone tombstones, by when each became lone.
-    lone: CowQueue<(Instant, Txid)>,
+    lone: CowQueue<(Moment, Txid)>,
     /// Tree roots, by when each became one, was buried, or was last seen pending.
-    trees: CowQueue<(Instant, Txid)>,
+    trees: CowQueue<(Moment, Txid)>,
     /// Each lone tombstone's and root's entry time in `lone` or `trees`: an entry at another is
     /// stale.
-    filed: CowMap<Txid, Instant, RandomState>,
+    filed: CowMap<Txid, Moment, RandomState>,
     /// The `Replaced` burials, so RBF listings never scan the far more numerous mined and dropped
     /// txs.
-    replacements: CowQueue<(Instant, Txid)>,
+    replacements: CowQueue<(Moment, Txid)>,
     /// The memory every body held takes ([`TxRecord::memory`]).
     bytes: u64,
     /// How many `Replaced` tombstones are held.
     replaced: usize,
-    /// What vanished while the view wasn't complete, for a late replacer to link.
-    linker: Linker,
     /// The tip whose blocks it was last told (`confirm`): the next cycle reads the blocks since,
     /// and so does one after a restart (it is saved with it).
     told: Option<BlockHash>,
     /// When every block up to `told` was last told: what was buried before, the blocks since
     /// didn't displace.
-    told_at: Option<Instant>,
-    /// What vanished since `told_at`, each with its burial: what the blocks since can have
-    /// displaced.
-    since_told: Vec<(Txid, Instant)>,
+    told_at: Option<Moment>,
 }
 
 impl TxGraveyard {
@@ -83,31 +78,34 @@ impl TxGraveyard {
     }
 
     /// When every block up to [`Self::told`] was last told.
-    pub fn told_at(&self) -> Option<Instant> {
+    pub fn told_at(&self) -> Option<Moment> {
         self.told_at
     }
 
-    /// `told` and `told_at` read back from disk, after the tombstones: what vanished since is
-    /// what the blocks since can have displaced.
-    fn restore_told(&mut self, tip: BlockHash, at: Option<Instant>) {
+    /// `told` and `told_at` read back from disk.
+    fn restore_told(&mut self, tip: BlockHash, at: Moment) {
         self.told = Some(tip);
-        self.told_at = at;
-        self.since_told = self
-            .tombstones
-            .iter()
-            .filter(|(_, tombstone)| {
-                matches!(tombstone.removal, TxRemoval::Vanished)
-                    && at.is_none_or(|at| tombstone.removed_at > at)
-            })
-            .map(|(txid, tombstone)| (*txid, tombstone.removed_at))
-            .collect();
+        self.told_at = Some(at);
         self.revision = self.revision.wrapping_add(1);
     }
 
+    /// What vanished since the blocks were last all told, each with its burial: what the blocks
+    /// since can have displaced ([`Linker::after_restore`]).
+    pub fn vanished_since_told(&self) -> Vec<(Txid, Moment)> {
+        self.tombstones
+            .iter()
+            .filter(|(_, tombstone)| {
+                matches!(tombstone.removal, TxRemoval::Vanished)
+                    && self.told_at.is_none_or(|at| tombstone.removed_at > at)
+            })
+            .map(|(txid, tombstone)| (*txid, tombstone.removed_at))
+            .collect()
+    }
+
     /// Every block up to `tip` told: a change publications and saves carry.
-    pub fn set_told(&mut self, tip: BlockHash) {
-        self.told_at = Some(Instant::now());
-        self.since_told.clear();
+    pub fn set_told(&mut self, tip: BlockHash, linker: &mut Linker) {
+        self.told_at = Some(Moment::now());
+        linker.told();
         if self.told != Some(tip) {
             self.told = Some(tip);
             self.revision = self.revision.wrapping_add(1);
@@ -167,20 +165,20 @@ impl TxGraveyard {
         })
     }
 
-    pub fn bury(&mut self, record: TxRecord, chunk_rate: FeeRate, removal: TxRemoval) {
-        let (txid, now) = (record.entry.txid, Instant::now());
+    /// Buries `record`: one vanished, `linker` waits for what can have displaced it (one read
+    /// back from disk, [`Self::vanished_since_told`] tells).
+    pub fn bury(
+        &mut self,
+        record: TxRecord,
+        chunk_rate: FeeRate,
+        removal: TxRemoval,
+        linker: &mut Linker,
+    ) {
+        let (txid, now) = (record.entry.txid, Moment::now());
         self.insert(record, chunk_rate, removal, now);
         if matches!(removal, TxRemoval::Vanished) {
-            self.vanished(txid, now);
+            linker.vanished(txid, now);
         }
-    }
-
-    /// `txid` vanished at `at` (buried so, or told so): what the blocks to come, or a late
-    /// replacer, can have displaced. One read back from disk is neither (`restore_told` tells
-    /// which the blocks since can have).
-    fn vanished(&mut self, txid: Txid, at: Instant) {
-        self.since_told.push((txid, at));
-        self.linker.vanished(txid, at);
     }
 
     /// A tombstone read back from disk, buried when it was (oldest first, as the queues keep
@@ -190,7 +188,7 @@ impl TxGraveyard {
         record: TxRecord,
         chunk_rate: FeeRate,
         removal: TxRemoval,
-        removed_at: Instant,
+        removed_at: Moment,
     ) {
         self.insert(record, chunk_rate, removal, removed_at);
     }
@@ -200,7 +198,7 @@ impl TxGraveyard {
         record: TxRecord,
         chunk_rate: FeeRate,
         removal: TxRemoval,
-        removed_at: Instant,
+        removed_at: Moment,
     ) {
         let txid = record.entry.txid;
         self.bytes += record.memory();
@@ -223,7 +221,7 @@ impl TxGraveyard {
 
     /// Files `txid`'s tombstone, just told `removal` at `at`: a replaced version under its
     /// replacer, a root (it replaced others) in `trees`, any other in `lone`.
-    fn told_removal(&mut self, txid: Txid, removal: TxRemoval, at: Instant) {
+    fn told_removal(&mut self, txid: Txid, removal: TxRemoval, at: Moment) {
         if let TxRemoval::Replaced { by } = removal {
             self.replaced += 1;
             self.filed.remove(&txid);
@@ -236,19 +234,19 @@ impl TxGraveyard {
         }
     }
 
-    fn file_lone(&mut self, txid: Txid, at: Instant) {
+    fn file_lone(&mut self, txid: Txid, at: Moment) {
         self.filed.insert(txid, at);
         self.lone.push_back((at, txid));
     }
 
-    fn file_root(&mut self, txid: Txid, at: Instant) {
+    fn file_root(&mut self, txid: Txid, at: Moment) {
         self.filed.insert(txid, at);
         self.trees.push_back((at, txid));
     }
 
     /// Lists `txid` among `by`'s predecessors, at `at`: `by` roots a tree from then on, unless
     /// it is itself a replaced version (its tree's root has its entry).
-    fn list(&mut self, txid: Txid, by: Txid, at: Instant) {
+    fn list(&mut self, txid: Txid, by: Txid, at: Moment) {
         let predecessors = self
             .predecessors_by_replacer
             .shard_mut(&by)
@@ -263,7 +261,7 @@ impl TxGraveyard {
 
     /// Takes `txid` off `by`'s predecessors, at `at`: `by`, replacing none any more, is lone from
     /// then on if buried (and replaced by none), and nothing if not.
-    fn unlist(&mut self, txid: &Txid, by: &Txid, at: Instant) {
+    fn unlist(&mut self, txid: &Txid, by: &Txid, at: Moment) {
         let emptied = self
             .predecessors_by_replacer
             .get_mut(by)
@@ -287,12 +285,12 @@ impl TxGraveyard {
     /// Drop the tombstone of a tx that came back to life (its predecessors stay: their replacer
     /// is pending again).
     pub fn exhume(&mut self, txid: &Txid) {
-        self.remove(txid, Instant::now());
+        self.remove(txid, Moment::now());
     }
 
     /// Removes `txid`'s tombstone, if any, at `at`: one that replaced others roots their tree
     /// from then on (it is pending again).
-    fn remove(&mut self, txid: &Txid, at: Instant) -> Option<TxTombstone> {
+    fn remove(&mut self, txid: &Txid, at: Moment) -> Option<TxTombstone> {
         let tombstone = self.tombstones.remove(txid)?;
         self.revision = self.revision.wrapping_add(1);
         self.bytes -= tombstone.record.memory();
@@ -310,7 +308,7 @@ impl TxGraveyard {
 
     /// Removes `txid`'s tombstone and every version it replaced, recursively: a tree, or the
     /// part of one under a version.
-    fn remove_tree(&mut self, txid: Txid, at: Instant) {
+    fn remove_tree(&mut self, txid: Txid, at: Moment) {
         let mut stack = vec![txid];
         while let Some(txid) = stack.pop() {
             if let Some(predecessors) = self.predecessors_by_replacer.get(&txid) {
@@ -321,7 +319,7 @@ impl TxGraveyard {
     }
 
     /// The tombstone buried at `at`, unless a later burial or an exhume replaced it.
-    fn current(&self, txid: &Txid, at: Instant) -> Option<&TxTombstone> {
+    fn current(&self, txid: &Txid, at: Moment) -> Option<&TxTombstone> {
         self.tombstones
             .get(txid)
             .filter(|tombstone| tombstone.removed_at == at)
@@ -332,15 +330,16 @@ impl TxGraveyard {
     /// closed, or one buried vanished); one mined by a block a reorg took off the chain that
     /// neither returned nor was mined again reads vanished, or replaced by a conflict the new
     /// blocks confirmed; a vanished one a confirmed conflict displaced reads replaced by it.
-    /// Displaced: buried since the blocks were last all told (`since_told`: a cycle that couldn't
-    /// read its blocks buried them vanished, the next cycle's read tells them here), or by a late
-    /// replacer the pool listed by then and never loaded ([`Linker::displaced`], in memory until
-    /// the next complete view: a restart or an unread block in between leaves such a one
-    /// vanished, as a replacer never seen does). An outpoint respent after its transaction left
-    /// (evicted, expired) replaced nothing. O(the blocks' transactions, and what vanished since
-    /// they were last all told or waits for a late replacer).
-    pub fn confirm(&mut self, blocks: &Confirmed) {
-        let now = Instant::now();
+    /// Displaced: buried since the blocks were last all told ([`Linker::since_told`]: a cycle
+    /// that couldn't read its blocks buried them vanished, the next cycle's read tells them
+    /// here), or by a late replacer the pool listed by then and never loaded
+    /// ([`Linker::displaced`], in memory until the next complete view: a restart or an unread
+    /// block in between leaves such a one vanished, as a replacer never seen does). An outpoint
+    /// respent after its transaction left (evicted, expired) replaced nothing. O(the blocks'
+    /// transactions, and what vanished since they were last all told or waits for a late
+    /// replacer).
+    pub fn confirm(&mut self, blocks: &Confirmed, linker: &mut Linker) {
+        let now = Moment::now();
         let mut changes: Vec<(Txid, TxRemoval)> = Vec::new();
         for txid in blocks.mined_txids() {
             if self
@@ -366,15 +365,15 @@ impl TxGraveyard {
                 changes.push((*txid, removal));
             }
         }
-        let mut displaced: Vec<(Txid, Instant, Txid)> = self
-            .since_told
+        let mut displaced: Vec<(Txid, Moment, Txid)> = linker
+            .since_told()
             .iter()
             .filter_map(|&(txid, at)| {
                 let tombstone = self.current(&txid, at)?;
                 Some((txid, at, conflict(tombstone)?))
             })
             .collect();
-        displaced.extend(self.linker.displaced(|outpoint| blocks.spender(outpoint)));
+        displaced.extend(linker.displaced(|outpoint| blocks.spender(outpoint)));
         let mut told: RapidHashSet<Txid> = changes.iter().map(|(txid, _)| *txid).collect();
         for (txid, at, by) in displaced {
             if !blocks.mined(&txid) && Self::is_vanished(&self.tombstones, &txid, at) && told.insert(txid) {
@@ -382,12 +381,12 @@ impl TxGraveyard {
             }
         }
         for (txid, removal) in changes {
-            self.reclassify(txid, removal, now);
+            self.reclassify(txid, removal, now, linker);
         }
     }
 
     /// A tombstone told another reason, as of `now`: its retention starts again.
-    fn reclassify(&mut self, txid: Txid, removal: TxRemoval, now: Instant) {
+    fn reclassify(&mut self, txid: Txid, removal: TxRemoval, now: Moment, linker: &mut Linker) {
         let Some(tombstone) = self.tombstones.get_mut(&txid) else {
             return;
         };
@@ -400,7 +399,7 @@ impl TxGraveyard {
         }
         self.told_removal(txid, removal, now);
         if matches!(removal, TxRemoval::Vanished) {
-            self.vanished(txid, now);
+            linker.vanished(txid, now);
         }
         self.revision = self.revision.wrapping_add(1);
     }
@@ -409,20 +408,20 @@ impl TxGraveyard {
     /// with that vanished no earlier than it was first listed reads replaced by it ([`Linker`]).
     /// Called after the cycle's blocks are told (`confirm`), and only when they all could be: a
     /// confirmed conflict comes first.
-    pub fn relink(&mut self, arrival: &Transaction) {
-        let now = Instant::now();
+    pub fn relink(&mut self, arrival: &Transaction, linker: &mut Linker) {
+        let now = Moment::now();
         let tombstones = &self.tombstones;
-        let losers = self.linker.losers(arrival, |txid, at| Self::is_vanished(tombstones, txid, at));
+        let losers = linker.losers(arrival, |txid, at| Self::is_vanished(tombstones, txid, at));
         for loser in losers {
-            self.reclassify(loser, TxRemoval::Replaced { by: arrival.txid }, now);
+            self.reclassify(loser, TxRemoval::Replaced { by: arrival.txid }, now, linker);
         }
     }
 
     /// This cycle's vanished, indexed for [`Self::relink`]: before it, so a same-cycle arrival
     /// finds them too.
-    pub fn index_vanished(&mut self) {
+    pub fn index_vanished(&self, linker: &mut Linker) {
         let tombstones = &self.tombstones;
-        self.linker.index(|txid, at| {
+        linker.index(|txid, at| {
             tombstones
                 .get(txid)
                 .filter(|tombstone| tombstone.removed_at == at)
@@ -431,10 +430,9 @@ impl TxGraveyard {
     }
 
     /// The cycle's end, with the listed transactions it couldn't load ([`Linker::end_cycle`]).
-    pub fn end_cycle(&mut self, unloaded: &RapidHashSet<Txid>) {
+    pub fn end_cycle(&self, unloaded: &RapidHashSet<Txid>, linker: &mut Linker) {
         let tombstones = &self.tombstones;
-        self.linker
-            .end_cycle(unloaded, |txid, at| Self::is_vanished(tombstones, txid, at));
+        linker.end_cycle(unloaded, |txid, at| Self::is_vanished(tombstones, txid, at));
         debug_assert!(self.consistent(), "graveyard invariants");
     }
 
@@ -462,7 +460,7 @@ impl TxGraveyard {
     fn is_vanished(
         tombstones: &CowMap<Txid, TxTombstone, RandomState>,
         txid: &Txid,
-        at: Instant,
+        at: Moment,
     ) -> bool {
         tombstones.get(txid).is_some_and(|tombstone| {
             tombstone.removed_at == at && matches!(tombstone.removal, TxRemoval::Vanished)

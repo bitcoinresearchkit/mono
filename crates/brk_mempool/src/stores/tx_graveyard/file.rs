@@ -1,6 +1,6 @@
 //! The graveyard on disk: every tombstone (its body with resolved prevouts, fee, first sighting,
-//! chunk rate, removal and age, in microseconds: burials keep their order against the moment it
-//! was last told) and the tip whose blocks it was told, with that moment, so the RBF trees, removal
+//! chunk rate, removal and the [`Moment`] it was buried, so a reboot loses none) and the tip whose
+//! blocks it was told, with that moment, so the RBF trees, removal
 //! reasons and first sightings outlive a restart; on a clean shutdown, the pool's records with it,
 //! so a restart publishes after one cycle (what changed meanwhile) instead of reloading the pool
 //! from Core. One lz4-compressed file, written whole to a temporary one, flushed, and renamed over
@@ -13,7 +13,7 @@ use std::{
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::Instant,
 };
 
 use bitcoin::{
@@ -29,7 +29,7 @@ use brk_types::{
 use rapidhash::RapidHashSet;
 use tracing::{info, warn};
 
-use super::{TxGraveyard, TxTombstone};
+use super::{Moment, TxGraveyard, TxTombstone};
 use crate::{
     TxRemoval,
     state::TxEntry,
@@ -37,7 +37,7 @@ use crate::{
 };
 
 /// Bumped when the layout changes: a file of another version is set aside, not read.
-const MAGIC: &[u8; 8] = b"BVGRAVE4";
+const MAGIC: &[u8; 8] = b"BVGRAVE5";
 /// The most a file may hold, and say it decompresses to (its bodies are capped at 256 MiB): a
 /// corrupt one allocates nothing past it.
 const MAX_FILE_BYTES: usize = 1 << 30;
@@ -66,7 +66,7 @@ impl GraveyardFile {
         })
     }
 
-    /// The graveyard last saved, its tombstones' ages carried over the downtime, and the pool a
+    /// The graveyard last saved, its tombstones buried when they were, and the pool a
     /// clean shutdown saved with it; empty ones without a file, or with one that doesn't read
     /// (set aside as `.unread`).
     pub fn load(&self) -> (TxGraveyard, Vec<TxRecord>) {
@@ -153,18 +153,12 @@ impl GraveyardFile {
     }
 }
 
-fn unix_millis() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |since| since.as_millis() as u64)
-}
-
 fn encode<'a>(
     graveyard: &TxGraveyard,
     pending: impl Fn(&Txid) -> Option<(&'a TxRecord, FeeRate)>,
     pool: Option<&ReadOnlyTxStore>,
 ) -> Vec<u8> {
-    let now = Instant::now();
+    let now = Moment::now();
     // Oldest first: loading buries them back in order. The pending heads of replacement trees
     // last, taken now (vanished, as far as a restart knows).
     let mut tombstones: Vec<TxTombstone> =
@@ -185,23 +179,22 @@ fn encode<'a>(
             removed_at: now,
         })
     }));
+    // In order whatever the clock did: loading checks it.
+    tombstones.sort_by_key(|tomb| tomb.removed_at);
     let mut out = Writer::default();
     out.bytes(MAGIC);
-    out.u64(unix_millis());
     match graveyard.told() {
         Some(tip) => {
             out.u8(1);
             out.bytes(&bitcoin::BlockHash::from(tip).to_byte_array());
-            // Its age: what was buried before, the blocks since didn't displace.
-            let at = graveyard.told_at().unwrap_or(now);
-            out.u64(now.saturating_duration_since(at).as_micros() as u64);
+            // When: what was buried before, the blocks since didn't displace.
+            out.u64(graveyard.told_at().unwrap_or(now).unix_nanos());
         }
         None => out.u8(0),
     }
     out.u64(tombstones.len() as u64);
     for tomb in &tombstones {
-        let age = now.saturating_duration_since(tomb.removed_at);
-        out.u64(age.as_micros() as u64);
+        out.u64(tomb.removed_at.unix_nanos());
         match tomb.removal {
             TxRemoval::Mined => out.u8(0),
             TxRemoval::Vanished => out.u8(1),
@@ -342,27 +335,22 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if input.take(MAGIC.len())? != MAGIC {
         return Err(Error::Parse("not a graveyard of this version".into()));
     }
-    // Ages grew by the downtime (none if the clock went back).
-    let down = Duration::from_millis(unix_millis().saturating_sub(input.u64()?));
-    let now = Instant::now();
     let told = match input.u8()? {
         0 => None,
         _ => {
             let tip = BlockHash::from(bitcoin::BlockHash::from_byte_array(input.array()?));
-            // Older than the clock can say: before every tombstone kept.
-            let age = Duration::from_micros(input.u64()?);
-            Some((tip, now.checked_sub(age + down)))
+            Some((tip, Moment::from_unix_nanos(input.u64()?)))
         }
     };
     let count = input.u64()?;
     let mut graveyard = TxGraveyard::default();
-    let mut previous_age = Duration::MAX;
+    let mut previous = Moment::from_unix_nanos(0);
     for _ in 0..count {
-        let age = Duration::from_micros(input.u64()?);
-        if age > previous_age {
+        let removed_at = Moment::from_unix_nanos(input.u64()?);
+        if removed_at < previous {
             return Err(Error::Parse("not in burial order".into()));
         }
-        previous_age = age;
+        previous = removed_at;
         let removal = match input.u8()? {
             0 => TxRemoval::Mined,
             1 => TxRemoval::Vanished,
@@ -373,10 +361,6 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
         };
         let chunk_rate = FeeRate::from_milli(input.u64()?);
         let record = read_record(&mut input)?;
-        // Older than the clock can say (past the machine's uptime): nothing of it is kept.
-        let Some(removed_at) = now.checked_sub(age + down) else {
-            continue;
-        };
         graveyard.restore(record, chunk_rate, removal, removed_at);
     }
     let pool = match input.u8()? {
@@ -402,7 +386,10 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if !graveyard.acyclic() {
         return Err(Error::Parse("a replacement cycle".into()));
     }
+    // What happens from now on comes after all of it, the clock set back since or not.
+    Moment::pass(previous);
     if let Some((tip, at)) = told {
+        Moment::pass(at);
         graveyard.restore_told(tip, at);
     }
     Ok((graveyard, pool))

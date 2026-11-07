@@ -17,28 +17,67 @@ pub struct PendingUtxos {
     /// Outputs mempool transactions pay the address that no pending transaction spends, ordered
     /// by txid prefix and vout.
     pub created: Vec<(Txid, Vout, Sats)>,
-    /// The most of the address's confirmed outputs pending transactions can spend: its own
-    /// pending spends, and every input still unresolved.
-    pub spends_at_most: usize,
-    /// Identifies the address's mempool transactions, those with inputs still unresolved (which
-    /// can spend its outputs) and the reader's view of them: zero without any.
+    /// Identifies the address's mempool transactions and the reader's view of them: zero
+    /// without any. With the spenders of its confirmed outputs ([`Spends::token`]), it identifies
+    /// its unspent outputs.
     pub token: u64,
     /// The publication read, as the reader sees it: what spends an outpoint.
     pool: Option<(Arc<Pool>, Arc<PendingView>)>,
 }
 
 impl PendingUtxos {
-    /// Whether a pending transaction spends an outpoint, one still resolving included (the
-    /// outpoint is known before what it pays). Each spender's inputs are read once, however many
-    /// of the outpoints asked about it spends.
-    pub fn spent_filter(&self) -> impl FnMut(&Txid, Vout) -> bool + '_ {
-        let mut spends = SpendFilter::default();
-        move |txid, vout| {
-            self.pool
-                .as_ref()
-                .is_some_and(|(pool, view)| spends.spent(pool, view, txid, vout))
+    /// What pending transactions spend of the address's confirmed outputs, asked one outpoint at
+    /// a time.
+    pub fn spends(&self) -> Spends<'_> {
+        Spends {
+            pending: self,
+            filter: SpendFilter::default(),
+            met: FxHashSet::default(),
         }
     }
+}
+
+/// The pending spenders of the outpoints asked about, met so far.
+pub struct Spends<'a> {
+    pending: &'a PendingUtxos,
+    filter: SpendFilter,
+    met: FxHashSet<TxKey>,
+}
+
+impl Spends<'_> {
+    /// Whether a pending transaction spends `txid:vout`, one still resolving included (the
+    /// outpoint is known before what it pays). Each spender's inputs are read once, however many
+    /// of the outpoints asked about it spends.
+    pub fn spent(&mut self, txid: &Txid, vout: Vout) -> bool {
+        let Some((pool, view)) = &self.pending.pool else {
+            return false;
+        };
+        let Some(spender) = self.filter.spender(pool, view, txid, vout) else {
+            return false;
+        };
+        self.met.insert(spender);
+        true
+    }
+
+    /// Identifies the unspent outputs read: the address's pending transactions, and the spenders
+    /// met of the outpoints asked about (all of them, once every outpoint was asked).
+    pub fn token(&self) -> u64 {
+        self.met
+            .iter()
+            .fold(self.pending.token, |token, key| token ^ token_part(SPENDER, key))
+    }
+}
+
+/// What a transaction is to an address's token: one of its own, or a spender of its outputs.
+const OWN: u8 = 0;
+const SPENDER: u8 = 1;
+
+/// `key`'s part in a token, keyed apart per role: one in both roles doesn't cancel out.
+fn token_part(role: u8, key: &TxKey) -> u64 {
+    let mut hasher = json::keyed_hasher();
+    hasher.write_u8(role);
+    hasher.write_u64(**key);
+    hasher.finish()
 }
 
 /// The pending spenders met so far, each with the outpoints its inputs spend (none for one the
@@ -47,13 +86,17 @@ impl PendingUtxos {
 struct SpendFilter(FxHashMap<TxKey, Option<FxHashSet<(Txid, Vout)>>>);
 
 impl SpendFilter {
-    fn spent(&mut self, pool: &Pool, view: &PendingView, txid: &Txid, vout: Vout) -> bool {
-        let Some(key) = pool
+    /// The pending transaction spending `txid:vout`, if any.
+    fn spender(
+        &mut self,
+        pool: &Pool,
+        view: &PendingView,
+        txid: &Txid,
+        vout: Vout,
+    ) -> Option<TxKey> {
+        let key = pool
             .outpoint_spends
-            .get(&OutpointKey::new(TxKey::from(txid), vout))
-        else {
-            return false;
-        };
+            .get(&OutpointKey::new(TxKey::from(txid), vout))?;
         // The stored key can collide: the spender's own inputs decide.
         self.0
             .entry(key)
@@ -72,6 +115,7 @@ impl SpendFilter {
             })
             .as_ref()
             .is_some_and(|inputs| inputs.contains(&(*txid, vout)))
+            .then_some(key)
     }
 }
 
@@ -115,8 +159,7 @@ impl ReadOnlyState {
         let pool = self.pool_arc()?;
         let state = pool.at(view.tip())?;
         let mut pending = PendingUtxos {
-            spends_at_most: state.addrs.resolving_inputs(),
-            token: state.addrs.resolving_token() ^ view.identity(),
+            token: view.identity(),
             pool: Some((pool.clone(), view.clone())),
             ..PendingUtxos::default()
         };
@@ -128,16 +171,8 @@ impl ReadOnlyState {
             let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };
-            // Hashed apart from the resolving ones' keys: one in both sets doesn't cancel out.
-            let mut hasher = json::keyed_hasher();
-            hasher.write_u64(*at.key);
-            pending.token ^= hasher.finish();
+            pending.token ^= token_part(OWN, &at.key);
             let tx = &record.tx;
-            pending.spends_at_most += tx
-                .input
-                .iter()
-                .filter(|txin| txin.prevout.as_ref().is_some_and(pays))
-                .count();
             for (vout, txout) in tx.output.iter().enumerate() {
                 if pays(txout) {
                     pending
@@ -146,10 +181,12 @@ impl ReadOnlyState {
                 }
             }
         }
+        // What spends one of them pays from the address's own output, resolved (its parent is
+        // pooled): one of its transactions, in the token already.
         let mut spends = SpendFilter::default();
         pending
             .created
-            .retain(|(txid, vout, _)| !spends.spent(state, view, txid, *vout));
+            .retain(|(txid, vout, _)| spends.spender(state, view, txid, *vout).is_none());
         pending
             .created
             .sort_unstable_by_key(|(txid, vout, _)| (TxidPrefix::from(txid), *vout));

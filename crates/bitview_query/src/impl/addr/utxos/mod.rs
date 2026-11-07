@@ -12,15 +12,19 @@ use crate::{
 /// An owned UTXO selection retaining only rollback protection until consumed.
 pub struct ResolvedAddrUtxos {
     pin: SafeLengths,
-    outpoints: Vec<(TxIndex, Vout)>,
+    /// The confirmed outpoints no pending transaction spends.
+    outpoints: Vec<(TxIndex, Txid, Vout)>,
     pending: PendingUtxos,
     anchor: BlockHash,
+    /// The pending transactions' part ([`brk_mempool::Spends::token`]).
+    token: u64,
 }
 
 impl ResolvedAddrUtxos {
-    /// Identifies the selection: the last confirmed activity and the pending transactions.
+    /// Identifies the selection: the last confirmed activity, the address's pending transactions
+    /// and what spends its confirmed outputs.
     pub fn representation(&self) -> String {
-        format!("{}-{:x}", self.anchor, self.pending.token)
+        format!("{}-{:x}", self.anchor, self.token)
     }
 }
 
@@ -38,7 +42,7 @@ impl Query {
         let pending = self.with_pending(mempool.as_deref(), &pin, |mempool, view| {
             mempool.addr_pending_utxos(addr, view)
         })?;
-        let (outpoints, anchor) = match found {
+        let (outpoints, anchor, token) = match found {
             Some((output_type, type_index)) => {
                 let last_tx = self
                     .addr_tx_history(output_type, type_index, None, &pin)?
@@ -46,24 +50,33 @@ impl Query {
                     .transpose()?
                     .ok_or(Error::UnknownAddress)?;
                 let height = self.confirmed_status_height_bounded(last_tx, lengths)?;
-                // The unspent set as of the pin: unavailable while a lowered publication sits
-                // below what the stores hold.
-                let outpoints: Vec<(TxIndex, Vout)> = pin
+                // The unspent set as of the pin (unavailable while a lowered publication sits
+                // below what the stores hold), without what pending transactions spend, read
+                // until one past the cap.
+                let txids = self.indexer().vecs().transactions.txid.reader();
+                let mut spends = pending.spends();
+                let mut outpoints = Vec::new();
+                for outpoint in pin
                     .addr_unspent_outpoints(output_type, type_index)
                     .ok_or(Error::StateUpdating)?
-                    // Pending spends may remove some: the cap applies after them.
-                    .take(
-                        max_utxos
-                            .saturating_add(pending.spends_at_most)
-                            .saturating_add(1),
-                    )
-                    .collect::<brk_error::Result<_>>()?;
-                (outpoints, self.block_hash_by_height(height, &pin)?)
+                {
+                    let (tx_index, vout) = outpoint?;
+                    let txid = txids.try_get(tx_index).data()?;
+                    if spends.spent(&txid, vout) {
+                        continue;
+                    }
+                    outpoints.push((tx_index, txid, vout));
+                    if outpoints.len() > max_utxos {
+                        break;
+                    }
+                }
+                let token = spends.token();
+                (outpoints, self.block_hash_by_height(height, &pin)?, token)
             }
             // Never confirmed: its pending outputs only, as Esplora answers.
-            None => (Vec::new(), tip),
+            None => (Vec::new(), tip, pending.token),
         };
-        if outpoints.len() + pending.created.len() > max_utxos + pending.spends_at_most {
+        if outpoints.len() + pending.created.len() > max_utxos {
             return Err(Error::TooManyUtxos { max: max_utxos });
         }
         Ok(ResolvedAddrUtxos {
@@ -71,6 +84,7 @@ impl Query {
             outpoints,
             pending,
             anchor,
+            token,
         })
     }
 
@@ -87,7 +101,7 @@ impl Query {
             ..
         } = resolved;
         let lengths = pin.lengths();
-        let outputs = self.unspent_outputs(&outpoints, &pending, lengths)?;
+        let outputs = self.unspent_outputs(&outpoints, lengths)?;
 
         // Statuses read other vectors: the raw readers above are released by now.
         let mut cached_status: Option<(Height, TxStatus)> = None;
@@ -124,24 +138,17 @@ impl Query {
         Ok(utxos)
     }
 
-    /// The confirmed outpoints' txids and values, without those pending transactions spend.
+    /// The confirmed outpoints' values.
     fn unspent_outputs(
         &self,
-        outpoints: &[(TxIndex, Vout)],
-        pending: &PendingUtxos,
+        outpoints: &[(TxIndex, Txid, Vout)],
         lengths: Lengths,
     ) -> Result<Vec<(TxIndex, Txid, Vout, Sats)>> {
         let vecs = self.indexer().vecs();
-        let txid_reader = vecs.transactions.txid.reader();
         let ranges = self.indexer().output_ranges(lengths);
         let value_reader = vecs.outputs.value.reader();
         let mut outputs = Vec::with_capacity(outpoints.len());
-        let mut spent = pending.spent_filter();
-        for &(tx_index, vout) in outpoints {
-            let txid = txid_reader.try_get(tx_index).data()?;
-            if spent(&txid, vout) {
-                continue;
-            }
+        for &(tx_index, txid, vout) in outpoints {
             let output = ranges
                 .get(tx_index)
                 .and_then(|outputs| outputs.get(vout))

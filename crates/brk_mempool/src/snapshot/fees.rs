@@ -154,8 +154,9 @@ fn optimize_median_fee(
         let empty = u128::from(4 * EMPTY_BLOCK_VSIZE);
         let step = 2 * empty * u128::from(increment.milli());
         let units = (2 * twice * u128::from(weight - 4 * EMPTY_BLOCK_VSIZE) + step) / (2 * step);
-        let milli = units * u128::from(increment.milli());
-        return FeeRate::from_milli(u64::try_from(milli).expect("below the median")).max(floor);
+        // A fraction of the mean of two fee rates, rounded up a step at most: it fits.
+        let milli = u64::try_from(units * u128::from(increment.milli())).unwrap_or(u64::MAX);
+        return FeeRate::from_milli(milli).max(floor);
     }
     let use_fee = previous_fee.map_or(median, |prev| FeeRate::mean(median, prev));
     use_fee.ceil_to(increment).max(floor)

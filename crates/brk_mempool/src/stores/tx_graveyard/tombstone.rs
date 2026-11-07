@@ -1,4 +1,4 @@
-use std::time::Instant;
+use super::Moment;
 
 use brk_types::{FeeRate, Txid};
 
@@ -14,7 +14,7 @@ pub struct TxTombstone {
     pub record: TxRecord,
     pub chunk_rate: FeeRate,
     pub removal: TxRemoval,
-    pub removed_at: Instant,
+    pub removed_at: Moment,
 }
 
 impl TxTombstone {

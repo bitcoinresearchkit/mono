@@ -1,11 +1,11 @@
 //! Letting go of tombstones: past their retention, then past the memory cap.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use brk_types::Txid;
 use rapidhash::RapidHashSet;
 
-use super::{TxGraveyard, TxTombstone};
+use super::{Moment, TxGraveyard, TxTombstone};
 use crate::stores::cow::CowQueue;
 
 /// How long a lone tombstone stays.
@@ -28,7 +28,7 @@ const STALE_SLACK: usize = 1_024;
 impl TxGraveyard {
     /// Whether `(at, txid)` is a lone tombstone's current entry: one filed then, replacing none
     /// and replaced by none.
-    fn lone_at(&self, txid: &Txid, at: Instant) -> bool {
+    fn lone_at(&self, txid: &Txid, at: Moment) -> bool {
         self.filed.get(txid) == Some(&at)
             && !self.predecessors_by_replacer.contains_key(txid)
             && self
@@ -39,7 +39,7 @@ impl TxGraveyard {
 
     /// Whether `(at, txid)` is a root's current entry: one filed then, replacing others and
     /// replaced by none.
-    fn root_at(&self, txid: &Txid, at: Instant) -> bool {
+    fn root_at(&self, txid: &Txid, at: Moment) -> bool {
         self.filed.get(txid) == Some(&at)
             && self.predecessors_by_replacer.contains_key(txid)
             && self
@@ -110,7 +110,7 @@ impl TxGraveyard {
     /// pending is looked at again a retention later). Past the cap: the oldest lone tombstones,
     /// then the oldest replaced versions, each with what it replaced, then the oldest trees no
     /// longer pending. O(what leaves the queues).
-    pub fn evict_old(&mut self, now: Instant, live: impl Fn(&Txid) -> bool) {
+    pub fn evict_old(&mut self, now: Moment, live: impl Fn(&Txid) -> bool) {
         let listed = self.replacements.len();
         self.evict_lone(now, false);
         self.evict_trees(now, &live, false);
@@ -135,7 +135,7 @@ impl TxGraveyard {
 
     /// `replacements`' stale front (a replaced version stays listed as long as its tombstone;
     /// `over_cap`: and the oldest versions while past [`MAX_MEMORY`], each with what it replaced).
-    fn evict_replaced(&mut self, now: Instant, over_cap: bool) {
+    fn evict_replaced(&mut self, now: Moment, over_cap: bool) {
         while let Some(&(at, txid)) = self.replacements.front() {
             let stale = self.current(&txid, at).is_none();
             if !stale && !(over_cap && self.over_cap()) {
@@ -150,7 +150,7 @@ impl TxGraveyard {
 
     /// `lone`'s front past [`RETENTION`] (`over_cap`: or while past [`MAX_MEMORY`]), and every
     /// stale entry before the first that stays.
-    fn evict_lone(&mut self, now: Instant, over_cap: bool) {
+    fn evict_lone(&mut self, now: Moment, over_cap: bool) {
         while let Some(&(at, txid)) = self.lone.front() {
             let lone = self.lone_at(&txid, at);
             let due = now.saturating_duration_since(at) >= RETENTION || over_cap && self.over_cap();
@@ -167,7 +167,7 @@ impl TxGraveyard {
     /// `trees`' front past [`TREE_RETENTION`] (`over_cap`: or while past [`MAX_MEMORY`]): each
     /// goes whole, unless its root is pending again (`live`), when it's looked at again a
     /// retention later. Every stale entry before the first that stays goes.
-    fn evict_trees(&mut self, now: Instant, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
+    fn evict_trees(&mut self, now: Moment, live: &impl Fn(&Txid) -> bool, over_cap: bool) {
         // A pass over the cap looks at each entry once: the pending ones it puts back.
         let mut looked = self.trees.len();
         while let Some(&(at, root)) = self.trees.front() {
@@ -212,8 +212,8 @@ impl TxGraveyard {
 
 /// The txids of `queue`'s entries `valid` holds current.
 fn filed(
-    queue: &CowQueue<(Instant, Txid)>,
-    valid: impl Fn(&Txid, Instant) -> bool,
+    queue: &CowQueue<(Moment, Txid)>,
+    valid: impl Fn(&Txid, Moment) -> bool,
 ) -> RapidHashSet<Txid> {
     queue
         .iter()
