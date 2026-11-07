@@ -208,13 +208,11 @@ impl ReadOnlyState {
         })
     }
 
-    /// The root of `txid`'s tree: the terminal replacer, or, when the last version the pool
-    /// knows was replaced by a transaction neither pending nor buried (a conflict a block
-    /// confirmed unseen), that transaction (mempool.space's mined replacement).
-    /// `txid`'s tree's root: its terminal replacer, or the replacer the pool never saw (a
-    /// confirmed conflict) that the last buried version names; past `remaining`, the newest
-    /// version the walk reached (`Err`). `roots` remembers every version walked, with the root
-    /// it reached: a walk meeting one stops there.
+    /// `txid`'s tree's root: the newest version the pool knows (the graveyard's
+    /// `newest_known_version` walk), or the replacer that version names when the pool never saw
+    /// it (a conflict a block confirmed: mempool.space's mined replacement). Past `remaining`,
+    /// the newest version the walk reached (`Err`). `roots` remembers every version walked, with
+    /// the root it reached: a walk meeting one stops there.
     fn tree_root(
         state: &Pool,
         txid: &Txid,

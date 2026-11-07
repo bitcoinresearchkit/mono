@@ -4,17 +4,40 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::Serializer;
 
 use crate::{
-    PendingView, PublishedTx, ReadOnlyState,
+    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
 
 impl ReadOnlyState {
+    /// Why a transaction left the pool at `tip`, while the graveyard remembers it: `None` for one
+    /// pending or unknown.
+    pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.graveyard.get(txid).map(|tomb| tomb.removal))
+    }
+
+    /// A pending transaction's entry facts at `tip` (Core's fee, vsize and first sighting): what
+    /// needs no input resolved.
+    pub fn entry(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<PublishedEntry>> {
+        let state = self.pool()?.at(tip)?;
+        Ok(state.txs.entry(txid).map(|entry| PublishedEntry {
+            fee: entry.fee,
+            vsize: entry.vsize,
+            first_seen: entry.first_seen,
+        }))
+    }
+
+    /// The txid array [`Self::txids_hash`] validates.
+    pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
+        Ok(self.pool()?.txs.txids())
+    }
+
     /// A transaction pending in `view`, from one completed publication: none for one that left
     /// (mined ones the chain answers; evicted, expired or replaced ones are gone). A body whose
     /// own inputs aren't all resolved yet answers `StateUpdating`, alone: others read meanwhile.
@@ -158,10 +181,11 @@ impl ReadOnlyState {
         }
     }
 
-    /// Order-sensitive validator for the current txid array.
+    /// The current txid array's validator: the pool's content revision, which every insert and
+    /// removal moves (so every change of the array, order included), made unique across restarts.
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
-        Ok(state.txs.txids_hash())
+        Ok(state.txs.content_revision() ^ crate::json::process_nonce())
     }
 
     /// The txid array [`Self::txids_hash`] validates, as JSON: encoded once per publication.

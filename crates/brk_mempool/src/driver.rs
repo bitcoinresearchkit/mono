@@ -194,8 +194,6 @@ impl Mempool {
             self.state.graveyard.set_told(rpc.tip_hash);
         }
         self.state.template_only = template_only;
-        prevouts::fill(&mut self.state, resolver);
-        let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
         // Every listed transaction is loaded (block 0's template-only bodies aren't the pool's).
         let membership_complete = self.state.contains_all(&rpc.live_txids);
         let unloaded: RapidHashSet<Txid> = if membership_complete {
@@ -207,6 +205,8 @@ impl Mempool {
                 .copied()
                 .collect()
         };
+        prevouts::fill(&mut self.state, resolver, &unloaded);
+        let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
         // What was asked for and didn't load counts a failure; once every unloaded one is stuck,
         // the pool publishes without them.
         for txid in requested.iter().filter(|txid| unloaded.contains(*txid)) {
@@ -228,6 +228,7 @@ impl Mempool {
             rpc.min_fee,
             &rpc.fee_deltas,
             &unloaded,
+            publishable,
         );
         if coherent_tip {
             // Never ahead of the chain readers pair the pool with.

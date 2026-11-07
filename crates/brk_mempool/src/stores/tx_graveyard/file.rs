@@ -39,7 +39,7 @@ use crate::{
 const MAGIC: &[u8; 8] = b"BVGRAVE3";
 /// The most a file may hold, and say it decompresses to (its bodies are capped at 256 MiB): a
 /// corrupt one allocates nothing past it.
-const MAX_BYTES: usize = 1 << 30;
+const MAX_FILE_BYTES: usize = 1 << 30;
 
 /// Where the graveyard is kept, and what the last save wrote.
 pub struct GraveyardFile {
@@ -92,10 +92,10 @@ impl GraveyardFile {
         }
     }
 
-    /// The file's bytes, none without one; one past [`MAX_BYTES`] isn't read.
+    /// The file's bytes, none without one; one past [`MAX_FILE_BYTES`] isn't read.
     fn read(&self) -> Result<Option<Vec<u8>>> {
         match fs::metadata(&self.path) {
-            Ok(metadata) if metadata.len() > MAX_BYTES as u64 => {
+            Ok(metadata) if metadata.len() > MAX_FILE_BYTES as u64 => {
                 Err(Error::Parse(format!("{} bytes", metadata.len())))
             }
             Ok(_) => Ok(Some(fs::read(&self.path)?)),
@@ -329,7 +329,7 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
         .first_chunk::<4>()
         .map(|prefix| u32::from_le_bytes(*prefix) as usize)
         .ok_or_else(|| Error::Parse("truncated".into()))?;
-    if claimed > MAX_BYTES {
+    if claimed > MAX_FILE_BYTES {
         return Err(Error::Parse(format!("claims {claimed} bytes")));
     }
     let bytes = lz4_flex::decompress_size_prepended(compressed)

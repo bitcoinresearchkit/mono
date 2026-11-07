@@ -94,7 +94,7 @@ impl Cluster {
 
     /// Linearize into chunks of non-increasing feerate and pass each chunk's members (in order)
     /// and feerate to `emit`, in chunk order: optimal up to 64 members, in Core 31's order, the
-    /// best remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize.rs`).
+    /// best remaining ancestor sets up to 4,096, the push order chunked beyond (`linearize/`).
     pub fn linearize(&mut self, emit: impl FnMut(&[CpfpClusterTxIndex], FeeRate)) {
         linearize(&self.nodes, &self.parents, &mut self.scratch, emit);
     }

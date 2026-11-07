@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use brk_types::{FeeRate, PreciseRecommendedFees, RecommendedFees};
 
 use super::block_stats::BlockStats;
@@ -20,6 +22,43 @@ const EMPTY_BLOCK_VSIZE: u64 = 500_000;
 /// `EMPTY_BLOCK_VSIZE` and this threshold, the final-block fee is
 /// scaled linearly by `(vsize - EMPTY_BLOCK_VSIZE) / EMPTY_BLOCK_VSIZE`.
 const FULL_BLOCK_VSIZE: u64 = 950_000;
+
+/// The recommended tiers and the blocks they stand on.
+#[derive(Default)]
+pub(crate) struct FeeView {
+    /// The view's own blocks when it is complete. An incomplete view holds back part of the pool,
+    /// so its blocks after block 0 would quote too low: the last view's stand in for them, and
+    /// for its block 0 too unless that is Core's template.
+    pub stats: Arc<[BlockStats]>,
+    pub whole: RecommendedFees,
+    pub precise: PreciseRecommendedFees,
+    /// Whether a complete view stands behind the tiers. False only before the first one.
+    pub complete: bool,
+}
+
+impl FeeView {
+    /// `held`: an incomplete view's predecessor, and whether its own block 0 is Core's template.
+    pub fn new(blocks: &[BlockStats], held: Option<(&FeeView, bool)>, min_fee: FeeRate) -> Self {
+        let (stats, complete): (Arc<[BlockStats]>, bool) = match held {
+            None => (blocks.into(), true),
+            Some((previous, template)) => {
+                let own = usize::from(template).min(blocks.len());
+                let stats = blocks[..own]
+                    .iter()
+                    .chain(previous.stats.iter().skip(own))
+                    .cloned()
+                    .collect();
+                (stats, previous.complete)
+            }
+        };
+        Self {
+            whole: whole(&stats, min_fee),
+            precise: precise(&stats, min_fee),
+            stats,
+            complete,
+        }
+    }
+}
 
 /// mempool.space's `getPreciseRecommendedFee` (backend/src/api/fee-api.ts), its tier formula
 /// over Bitview's projected blocks. One input differs: a block's median is the vsize-weighted

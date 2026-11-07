@@ -1,11 +1,13 @@
 use std::{
-    hash::{Hash, Hasher},
     ops::Deref,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, Vin};
-use rustc_hash::{FxHashSet, FxHasher};
+use rustc_hash::FxHashSet;
 
 use crate::{key::TxKey, state::TxEntry};
 
@@ -49,21 +51,12 @@ impl TxStore {
         self.read_only.clone()
     }
 
-    fn txid_position_hash(txid: &Txid, position: usize) -> u64 {
-        let mut hasher = FxHasher::default();
-        (position as u64).hash(&mut hasher);
-        txid.hash(&mut hasher);
-        hasher.finish()
-    }
-
     pub fn insert(&mut self, tx: Arc<Transaction>, entry: TxEntry) {
         let key = entry.key();
         debug_assert!(
             !self.read_only.records.contains_key(&key),
             "TxKey collision: {key:?} already mapped"
         );
-        let position = self.read_only.records.len();
-        let txid = entry.txid;
         self.sample_recent(&entry, &tx);
         if !tx.is_resolved() {
             self.unresolved.insert(key);
@@ -71,7 +64,6 @@ impl TxStore {
         let record = TxRecord::new(tx, entry);
         self.read_only.payments.add(&record);
         self.read_only.records.insert(key, record);
-        self.read_only.txids_hash ^= Self::txid_position_hash(&txid, position);
         self.bump_content_revision();
     }
 
@@ -94,14 +86,7 @@ impl TxStore {
     /// Remove by key and return the full record if present. `recent`
     /// is untouched: it's an "added" window, not a live-set mirror.
     pub fn remove_by_key(&mut self, key: &TxKey) -> Option<TxRecord> {
-        let last_txid = self.read_only.records.last()?.1.entry.txid;
-        let last_position = self.read_only.records.len() - 1;
-        let (position, _, record) = self.read_only.records.swap_remove_full(key)?;
-        self.read_only.txids_hash ^= Self::txid_position_hash(&record.entry.txid, position);
-        if position != last_position {
-            self.read_only.txids_hash ^= Self::txid_position_hash(&last_txid, last_position);
-            self.read_only.txids_hash ^= Self::txid_position_hash(&last_txid, position);
-        }
+        let (_, _, record) = self.read_only.records.swap_remove_full(key)?;
         self.unresolved.remove(key);
         self.read_only.payments.remove(&record);
         self.bump_content_revision();
@@ -130,8 +115,8 @@ impl TxStore {
             .get_mut(key)
             .expect("filled tx is pooled");
         record.fill(fills);
-        self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
         let resolved = record.tx.is_resolved();
+        self.bump_content_revision();
         if resolved {
             self.unresolved.remove(key);
         }
@@ -157,7 +142,9 @@ impl TxStore {
         true
     }
 
+    /// The next of one count across the process: no two stores' contents share a revision.
     fn bump_content_revision(&mut self) {
-        self.read_only.content_revision = self.read_only.content_revision.wrapping_add(1);
+        static NEXT: AtomicU64 = AtomicU64::new(1);
+        self.read_only.content_revision = NEXT.fetch_add(1, Ordering::Relaxed);
     }
 }

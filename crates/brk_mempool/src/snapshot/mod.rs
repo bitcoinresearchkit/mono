@@ -16,7 +16,7 @@ use std::{
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
 use brk_types::{
-    FeeRate, MempoolBlock, MempoolBlockHash, PreciseRecommendedFees, RecommendedFees, Transaction,
+    FeeRate, MempoolBlock, MempoolBlockHash, Transaction,
     Txid,
 };
 use builder::KeyIndex;
@@ -41,14 +41,10 @@ pub struct Snapshot {
     /// Every projected block's statistics: block 0's, then the package-aware projection's
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
-    /// The blocks `fees` and `precise_fees` stand on: these, or a complete view's held over.
-    pub(crate) fee_stats: Arc<[BlockStats]>,
-    pub precise_fees: PreciseRecommendedFees,
-    pub fees: RecommendedFees,
-    /// Whether a complete view stands behind `fees` and `precise_fees`: this one, or one an
-    /// incomplete view (still loading, or under a stale template: its own blocks after block 0
-    /// would quote too low) holds them over from. None before the first complete view.
-    pub(crate) fees_complete: bool,
+    pub(crate) fees: fees::FeeView,
+    /// Whether its view was complete (no template-only bodies, every listed transaction loaded
+    /// or stuck): its fee tiers are its own. A rebuild reuses it only for a view alike.
+    pub(crate) complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -67,7 +63,7 @@ pub struct Snapshot {
     pub(crate) unloaded: RapidHashSet<Txid>,
     /// The operator's fee deltas it ranked by: a rebuild under the same ones reuses it.
     pub(crate) fee_deltas: Box<[(Txid, i64)]>,
-    /// The served bodies of `fees`, `precise_fees` and every block's stats, serialized by the
+    /// The served bodies of the fee tiers and every block's stats, serialized by the
     /// first request after publication.
     fees_json: OnceLock<JsonBody>,
     precise_fees_json: OnceLock<JsonBody>,
@@ -87,29 +83,34 @@ impl Snapshot {
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
     /// `block0`: each member at its feerate there (its chunk's for the template's, the one it was
-    /// packed at for the packer's).
+    /// packed at for the packer's: `block0_packed`). `held_fees`: an incomplete view's
+    /// predecessor's tiers ([`fees::FeeView`]).
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn build(
         txs: Vec<SnapTx>,
         block0: Vec<(TxIndex, FeeRate)>,
+        block0_packed: bool,
         rest: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
         chunks: partition::Chunks,
         min_fee: FeeRate,
+        held_fees: Option<&fees::FeeView>,
     ) -> Self {
         let chunk_of = chunks.chunk_of(txs.len());
         let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
         let block0 = block0.into_iter().map(|(index, _)| index).collect();
-        let precise_fees = fees::precise(&block_stats, min_fee);
-        let fees = fees::whole(&block_stats, min_fee);
+        let fees = fees::FeeView::new(
+            &block_stats,
+            held_fees.map(|held| (held, !block0_packed)),
+            min_fee,
+        );
         Self {
             txs,
             block0,
-            block0_packed: false,
-            fee_stats: block_stats.as_slice().into(),
+            block0_packed,
             block_stats,
-            precise_fees,
             fees,
-            fees_complete: true,
+            complete: held_fees.is_none(),
             min_fee,
             key_to_idx,
             chunks,
@@ -129,7 +130,7 @@ impl Snapshot {
     /// mempool.space's `/api/v1/fees/recommended` body.
     pub(crate) fn fees_json(&self) -> Result<JsonBody> {
         self.ensure_fees()?;
-        Ok(self.fees_json.get_or_init(|| json::body(&self.fees)).clone())
+        Ok(self.fees_json.get_or_init(|| json::body(&self.fees.whole)).clone())
     }
 
     /// mempool.space's `/api/v1/fees/precise` body.
@@ -137,7 +138,7 @@ impl Snapshot {
         self.ensure_fees()?;
         Ok(self
             .precise_fees_json
-            .get_or_init(|| json::body(&self.precise_fees))
+            .get_or_init(|| json::body(&self.fees.precise))
             .clone())
     }
 
@@ -231,7 +232,7 @@ impl Snapshot {
     /// publication's): only before the first complete view are there none.
     pub(crate) fn ensure_fees(&self) -> Result<()> {
         self.ensure_projection()?;
-        if !self.fees_complete {
+        if !self.fees.complete {
             return Err(QueryError::StateUpdating);
         }
         Ok(())

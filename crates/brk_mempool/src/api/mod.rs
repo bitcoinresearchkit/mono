@@ -16,7 +16,7 @@ pub mod tx;
 pub use addr::PendingUtxos;
 pub use pending::PendingView;
 pub use mempool_block::MempoolBlockSource;
-pub use published_tx::PublishedTx;
+pub use published_tx::{PublishedEntry, PublishedTx};
 pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated past block captured for one diff request.

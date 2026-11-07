@@ -9,7 +9,7 @@
 
 use brk_rpc::Client;
 use brk_types::{Transaction, TxOut, Txid, Vin, Vout};
-use rapidhash::RapidHashMap;
+use rapidhash::{RapidHashMap, RapidHashSet};
 
 use crate::{
     key::TxKey,
@@ -26,8 +26,10 @@ enum FillTo {
 
 /// Fill every unfilled prevout the cycle can resolve, the pool's and block 0's template-only
 /// bodies' (served, and counted by their sigops). Same-cycle parents (pooled, template-only or
-/// retained) are filled directly. The remainder go through `resolver` in one batched call.
-pub fn fill<F>(state: &mut State, resolver: F)
+/// retained) are filled directly. The remainder go through `resolver` in one batched call, but
+/// those whose parent is listed and not loaded yet (`unloaded`): the node's UTXO set can't have
+/// them, they fill once it loads.
+pub fn fill<F>(state: &mut State, resolver: F, unloaded: &RapidHashSet<Txid>)
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
@@ -65,7 +67,7 @@ where
                     .map(|tomb| tomb.record.tx.as_ref())
             })
     };
-    let (in_mempool, holes) = gather(unresolved, parent);
+    let (in_mempool, holes) = gather(unresolved, parent, unloaded);
     let external = resolve_external(holes, resolver);
     let mut resolved = Vec::new();
     for (into, fills) in in_mempool.into_iter().chain(external) {
@@ -96,11 +98,12 @@ pub fn rpc_resolver(
 
 /// Single pass over the `unresolved` records: bucket each hole into a same-cycle fill (`parent`
 /// holds it: pooled, template-only, or a retained vanished one) or an external hole (parent is
-/// confirmed or unknown). Retained parents let the children of a just-mined parent resolve
-/// before the chain publishes its block.
+/// confirmed or unknown); a hole whose parent is `unloaded` waits. Retained parents let the
+/// children of a just-mined parent resolve before the chain publishes its block.
 fn gather<'a, 'p>(
     unresolved: impl Iterator<Item = (FillTo, &'a TxRecord)>,
     parent: impl Fn(&Txid) -> Option<&'p Transaction>,
+    unloaded: &RapidHashSet<Txid>,
 ) -> (
     Vec<(FillTo, Vec<(Vin, TxOut)>)>,
     Vec<(FillTo, Vec<(Vin, Txid, Vout)>)>,
@@ -119,7 +122,7 @@ fn gather<'a, 'p>(
                 parent(&txin.txid).and_then(|parent| parent.output.get(usize::from(txin.vout)))
             {
                 tx_fills.push((vin, out.clone()));
-            } else {
+            } else if !unloaded.contains(&txin.txid) {
                 tx_holes.push((vin, txin.txid, txin.vout));
             }
         }

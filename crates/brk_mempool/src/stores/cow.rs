@@ -139,10 +139,6 @@ impl<T: Clone> CowVec<T> {
         Arc::make_mut(&mut self.chunks[index / CHUNK]).get_mut(index % CHUNK)
     }
 
-    pub fn last(&self) -> Option<&T> {
-        self.chunks.last()?.last()
-    }
-
     pub fn push(&mut self, value: T) {
         if self.len.is_multiple_of(CHUNK) {
             self.chunks.push(Arc::new(Vec::with_capacity(CHUNK)));
@@ -215,10 +211,6 @@ impl<K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone> CowIndexMap<K, V, S
     /// The entry at `index` in dense order.
     pub fn get_index(&self, index: usize) -> Option<(&K, &V)> {
         self.entries.get(index).map(|(key, value)| (key, value))
-    }
-
-    pub fn last(&self) -> Option<(&K, &V)> {
-        self.entries.last().map(|(key, value)| (key, value))
     }
 
     /// Appends `key`, which must be absent.

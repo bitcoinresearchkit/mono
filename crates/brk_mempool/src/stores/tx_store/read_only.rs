@@ -14,7 +14,6 @@ use super::TxRecord;
 #[derive(Clone, Default)]
 pub struct ReadOnlyTxStore {
     pub(super) records: CowIndexMap<TxKey, TxRecord, FxBuildHasher>,
-    pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
     /// The latest arrivals by Core's first-seen time, newest first.
     pub(super) recent: Vec<(Timestamp, MempoolRecentTx)>,
@@ -66,11 +65,8 @@ impl ReadOnlyTxStore {
         self.records.values().map(|r| &r.entry.txid)
     }
 
-    pub fn txids_hash(&self) -> u64 {
-        self.txids_hash
-    }
-
-    /// Process-local revision for every mutation that can change serialized tx bodies.
+    /// The revision of every mutation that can change the txid array or serialized tx bodies,
+    /// unique in the process.
     pub fn content_revision(&self) -> u64 {
         self.content_revision
     }

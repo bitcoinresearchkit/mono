@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_types::{Timestamp, Transaction, VSize};
+use brk_types::{Sats, Timestamp, Transaction, VSize};
 
 use crate::stores::tx_store::TxRecord;
 
@@ -24,4 +24,12 @@ impl PublishedTx {
             digest: record.digest,
         }
     }
+}
+
+/// A pending transaction's entry as Core reports it.
+pub struct PublishedEntry {
+    pub fee: Sats,
+    /// Sigop-adjusted, what fee rates divide by.
+    pub vsize: VSize,
+    pub first_seen: Timestamp,
 }

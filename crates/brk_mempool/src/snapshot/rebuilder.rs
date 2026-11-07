@@ -7,7 +7,7 @@ use rapidhash::RapidHashSet;
 
 use crate::{State, key::TxKey};
 
-use super::{SnapTx, Snapshot, TxIndex, builder::ChunkCache, fees, partition};
+use super::{SnapTx, Snapshot, TxIndex, builder::ChunkCache, fees::FeeView, partition};
 
 /// Projected blocks, mempool.space's count: block 0 and seven packed after it, the last holding
 /// whatever is left.
@@ -26,9 +26,10 @@ impl Rebuilder {
 
     /// Reuse the private graph only when all of its inputs are unchanged.
     /// Publication and template history are committed together by the writer.
-    /// `unloaded`: listed transactions not loaded yet. With it and `state.template_only` (block
-    /// 0's bodies the listing lacks) empty the view is complete; otherwise blocks after block 0
-    /// withhold what can't follow it.
+    /// `unloaded`: listed transactions not loaded yet; the blocks after block 0 withhold what
+    /// can't follow them or `state.template_only` (block 0's bodies the listing lacks).
+    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck. With it and
+    /// no template-only bodies the view is complete: it stands behind its fee tiers.
     /// `gbt_txids`: Core's template, block 0; without one, the packer's first block is.
     pub fn tick(
         &mut self,
@@ -37,10 +38,12 @@ impl Rebuilder {
         min_fee: FeeRate,
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
+        membership_ready: bool,
     ) {
-        let complete = state.template_only.is_empty() && unloaded.is_empty();
+        let complete = state.template_only.is_empty() && membership_ready;
         let snapshot = &self.snapshot;
         if snapshot.ensure_projection().is_ok()
+            && snapshot.complete == complete
             && snapshot.min_fee == min_fee
             && *snapshot.fee_deltas == *fee_deltas
             && snapshot
@@ -60,42 +63,28 @@ impl Rebuilder {
             return;
         }
 
-        let mut snapshot = Self::build_snapshot(
+        let snapshot = Self::build_snapshot(
             state,
             gbt_txids,
             min_fee,
             fee_deltas,
             unloaded,
+            (!complete).then_some(&self.snapshot.fees),
             &mut self.chunks,
         );
-        // An incomplete view's blocks after block 0 hold part of the pool: the last complete
-        // view's blocks stand meanwhile (none before the first), but for this view's own block 0
-        // when it is Core's template (exact either way), their tiers worked out again at Core's
-        // current floor.
-        if !complete {
-            let previous = &self.snapshot;
-            snapshot.fees_complete = previous.fees_complete;
-            let fresh = usize::from(!snapshot.block0_packed);
-            snapshot.fee_stats = snapshot.block_stats[..fresh.min(snapshot.block_stats.len())]
-                .iter()
-                .chain(previous.fee_stats.iter().skip(fresh))
-                .cloned()
-                .collect();
-            snapshot.fees = fees::whole(&snapshot.fee_stats, min_fee);
-            snapshot.precise_fees = fees::precise(&snapshot.fee_stats, min_fee);
-        }
         self.snapshot = Arc::new(snapshot);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build_snapshot(
         state: &State,
         gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
         fee_deltas: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
+        held_fees: Option<&FeeView>,
         cache: &mut ChunkCache,
     ) -> Snapshot {
-        let complete = state.template_only.is_empty() && unloaded.is_empty();
         let (txs, key_to_idx, chunks) =
             Snapshot::build_txs(&state.txs, &state.template_only, fee_deltas, cache);
         let pooled = state.txs.len();
@@ -122,7 +111,7 @@ impl Rebuilder {
         for (index, _) in &template_block0 {
             excluded[index.as_usize()] = true;
         }
-        if !complete {
+        if !state.template_only.is_empty() || !unloaded.is_empty() {
             let bodies: Vec<&Transaction> = (0..txs.len()).map(|i| record_at(i).tx.as_ref()).collect();
             withhold(&bodies, &txs, pooled, unloaded, &mut excluded);
         }
@@ -159,9 +148,16 @@ impl Rebuilder {
         }
 
         let missing = gbt_txids.is_some_and(|gbt_txids| block0.len() != gbt_txids.len());
-        let mut snapshot =
-            Snapshot::build(txs, block0, &projection.blocks, key_to_idx, chunks, min_fee);
-        snapshot.block0_packed = packed;
+        let mut snapshot = Snapshot::build(
+            txs,
+            block0,
+            packed,
+            &projection.blocks,
+            key_to_idx,
+            chunks,
+            min_fee,
+            held_fees,
+        );
         snapshot.set_served(blocks, state.txs.content_revision(), missing);
         snapshot.template_only = state
             .template_only

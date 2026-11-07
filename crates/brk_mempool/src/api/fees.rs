@@ -13,7 +13,7 @@ impl ReadOnlyState {
     pub fn precise_fees(&self) -> Result<PreciseRecommendedFees> {
         let snapshot = self.snapshot();
         snapshot.ensure_fees()?;
-        Ok(snapshot.precise_fees.clone())
+        Ok(snapshot.fees.precise.clone())
     }
 
     /// [`Self::precise_fees`] as JSON.

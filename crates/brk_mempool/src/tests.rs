@@ -134,10 +134,12 @@ fn cpfp_answers_match_a_fresh_linearization() {
     let snapshot = Snapshot::build(
         txs.clone(),
         Vec::new(),
+        false,
         &[],
         KeyIndex::default(),
         chunks(&txs),
         FeeRate::default(),
+        None,
     );
     for i in 0..txs.len() {
         let seed = TxIndex::from(i);
@@ -513,7 +515,7 @@ fn rebuilds_follow_the_view_gaps() {
     let mut rebuilder = Rebuilder::default();
     let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
     let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
-        rebuilder.tick(state, Some(&[id(&t)]), FeeRate::default(), &[], unloaded);
+        rebuilder.tick(state, Some(&[id(&t)]), FeeRate::default(), &[], unloaded, unloaded.is_empty());
         let snapshot = rebuilder.snapshot().clone();
         let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
             .iter()
@@ -546,6 +548,15 @@ fn rebuilds_follow_the_view_gaps() {
         "the template-only gap changed"
     );
     assert_eq!(later, set(&[id(&p), id(&r), id(&c)]));
+
+    // A listed transaction stuck unloaded withholds what follows it, but holds no tiers back,
+    // even when nothing else changed since it was only missing.
+    let stuck = set(&[Txid::from(unloaded_parent)]);
+    let mut rebuilder = Rebuilder::default();
+    for ready in [false, true] {
+        rebuilder.tick(&state, None, FeeRate::default(), &[], &stuck, ready);
+        assert_eq!(rebuilder.snapshot().ensure_fees().is_ok(), ready);
+    }
 }
 
 /// An address's pending view, through ingestion, prevout fills and a publication: a transaction
@@ -607,11 +618,11 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             .filter(|(txid, _)| *txid != Txid::from(confirmed(83).txid))
             .map(|&hole| (hole, funding.clone()))
             .collect::<RapidHashMap<_, _>>()
-    });
+    }, &RapidHashSet::default());
     let mut rebuilder = Rebuilder::default();
     let tip = BlockHash::default();
     let mut publish = |state: &State, previous: &ReadOnlyState| {
-        rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default());
+        rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
         previous
             .updated(state, tip, rebuilder.snapshot().clone(), true)
             .expect("published")
@@ -673,7 +684,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
 
     prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
         holes.iter().map(|&hole| (hole, funding.clone())).collect::<RapidHashMap<_, _>>()
-    });
+    }, &RapidHashSet::default());
     let read = publish(&state, &read);
     let at = read.view_at(&tip).unwrap();
     let stats = read.addr_stats(&addr, &at).unwrap();
@@ -981,7 +992,7 @@ fn unseen_confirmed_replacers_root_their_trees() {
         .graveyard
         .bury(record, FeeRate::default(), TxRemoval::Replaced { by: conflict });
     let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default());
+    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
     let tip = BlockHash::default();
     let read = ReadOnlyState::default()
         .updated(&state, tip, rebuilder.snapshot().clone(), true)
@@ -1075,10 +1086,12 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
     let mut snapshot = Snapshot::build(
         txs,
         indexed[0].clone(),
+        false,
         &indexed[1..],
         KeyIndex::default(),
         Chunks::default(),
         FeeRate::default(),
+        None,
     );
     let bodies = blocks[..=later]
         .iter()
@@ -1208,7 +1221,7 @@ fn long_histories_come_truncated() {
             .bury(record, FeeRate::default(), TxRemoval::Replaced { by });
     }
     let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default());
+    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
     let tip = BlockHash::default();
     let read = ReadOnlyState::default()
         .updated(&state, tip, rebuilder.snapshot().clone(), true)
