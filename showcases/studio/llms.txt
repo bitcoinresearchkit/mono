@@ -146,12 +146,12 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - By balance (214): https://bitview.space/studio/presets/addresses/by-balance/
   - Over a balance (218): https://bitview.space/studio/presets/addresses/over-a-balance/
   - Under a balance (218): https://bitview.space/studio/presets/addresses/under-a-balance/
-- Mining (971): https://bitview.space/studio/presets/mining/
+- Mining (977): https://bitview.space/studio/presets/mining/
   - Hashing (4): https://bitview.space/studio/presets/mining/hashing/
   - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
   - Halvings (2): https://bitview.space/studio/presets/mining/halvings/
   - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
-  - Pools (950): https://bitview.space/studio/presets/mining/pools/
+  - Pools (956): https://bitview.space/studio/presets/mining/pools/
 - Network (639): https://bitview.space/studio/presets/network/
   - Blocks (12): https://bitview.space/studio/presets/network/blocks/
   - Transactions (200): https://bitview.space/studio/presets/network/transactions/
