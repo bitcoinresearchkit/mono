@@ -2,7 +2,7 @@
 //! `prioritisetransaction` deltas included) within Core's default budgets (mining options shape
 //! only block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
 //! descending feerate, in dependency order, each block within Core's weight and sigop budgets.
-//! Equal feerates go as Core 31's chunk index orders them: the shorter run of equal-feerate chunks
+//! Equal feerates go as Core's chunk index orders them: the shorter run of equal-feerate chunks
 //! within its cluster first, then the chunk whose greatest txid is lower. What block 0 left of a
 //! component is split into the clusters it now forms, each linearized again. A chunk that
 //! doesn't fit waits for the next block, and so does the rest of its component (Core's block
@@ -19,7 +19,7 @@ use brk_cpfp::Cluster;
 use brk_types::{FeeRate, SigOps, Txid, Weight};
 use rustc_hash::FxHashSet;
 
-use super::{SnapTx, TxIndex, cluster};
+use super::{SnapTx, TxIndex, builder::ChunkCache, cluster};
 
 /// A block's transactions stay under 3,992,000 WU (Core's 4,000,000 less its 8,000 reserved for
 /// the header and coinbase) and 79,600 sigops (80,000 less 400).
@@ -110,12 +110,15 @@ pub fn partition(
     chunks: &Chunks,
     excluded: &[bool],
     num_blocks: usize,
+    cache: &mut ChunkCache,
 ) -> Projection {
     debug_assert!(num_blocks > 0);
     debug_assert_eq!(txs.len(), excluded.len());
     let mut left = Chunks::default();
     let mut graph = Cluster::default();
     let mut rest: Vec<TxIndex> = Vec::new();
+    let mut ids = Vec::new();
+    let mut kept = ChunkCache::default();
     for component in chunks.components() {
         let members = chunks.span(component);
         let taken = members.iter().filter(|m| excluded[m.as_usize()]).count();
@@ -127,11 +130,11 @@ pub fn partition(
             rest.clear();
             rest.extend(members.iter().filter(|m| !excluded[m.as_usize()]));
             for piece in pieces(txs, &rest, excluded) {
-                let order = cluster::load(txs, &piece, &mut graph);
-                graph.linearize(|local, _| {
-                    let members = local.iter().map(|&l| order[u32::from(l) as usize]);
-                    left.push_chunk(members.clone(), cluster::paid_rate(txs, members));
-                });
+                let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, &mut kept);
+                for positions in linearized.chunks() {
+                    let chunk = positions.iter().map(|&p| ids[p as usize].1);
+                    left.push_chunk(chunk.clone(), cluster::paid_rate(txs, chunk));
+                }
                 left.end_component();
             }
             continue;
@@ -140,6 +143,7 @@ pub fn partition(
         }
         left.end_component();
     }
+    *cache = kept;
     let projection = pack(txs, &left, num_blocks);
     #[cfg(debug_assertions)]
     check_order(txs, excluded, &projection.blocks);
@@ -224,7 +228,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
             });
         }
     }
-    // Core 31's mining order: feerate, then the equal-feerate run, then the greatest txid. A
+    // Core's mining order: feerate, then the equal-feerate run, then the greatest txid. A
     // component's chunks keep their order (an equal-feerate later one has the longer run).
     cands.sort_unstable_by(|a, b| {
         by_rate(per_weight(a.fee, a.policy), per_weight(b.fee, b.policy))

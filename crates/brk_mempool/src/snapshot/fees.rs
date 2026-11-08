@@ -37,7 +37,8 @@ pub(crate) struct FeeView {
 }
 
 impl FeeView {
-    /// `held`: an incomplete view's predecessor, and whether its own block 0 is Core's template.
+    /// `held`: an incomplete view's predecessor, and whether its own block 0 is Core's whole
+    /// template.
     pub fn new(blocks: &[BlockStats], held: Option<(&FeeView, bool)>, min_fee: FeeRate) -> Self {
         let (stats, complete): (Arc<[BlockStats]>, bool) = match held {
             None => (blocks.into(), true),

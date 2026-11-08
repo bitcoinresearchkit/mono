@@ -83,7 +83,8 @@ impl Snapshot {
     /// every recommended-fee tier.
     /// `block0`: each member at its feerate there (its chunk's for the template's, the one it was
     /// packed at for the packer's: `block0_packed`). `held_fees`: an incomplete view's
-    /// predecessor's tiers ([`fees::FeeView`]).
+    /// predecessor's tiers, and whether this view's block 0 is Core's whole template
+    /// ([`fees::FeeView`]).
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn build(
         txs: Vec<SnapTx>,
@@ -93,14 +94,14 @@ impl Snapshot {
         key_to_idx: KeyIndex,
         chunks: partition::Chunks,
         min_fee: FeeRate,
-        held_fees: Option<&fees::FeeView>,
+        held_fees: Option<(&fees::FeeView, bool)>,
     ) -> Self {
         let chunk_of = chunks.chunk_of(txs.len());
         let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
         let block0 = block0.into_iter().map(|(index, _)| index).collect();
         let fees = fees::FeeView::new(
             &block_stats,
-            held_fees.map(|held| (held, !block0_packed)),
+            held_fees,
             min_fee,
         );
         Self {

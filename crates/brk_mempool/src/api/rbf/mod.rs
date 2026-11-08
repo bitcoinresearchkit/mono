@@ -202,8 +202,17 @@ impl ReadOnlyState {
             total -= budget - remaining;
             if let Some(mut node) = built
                 && !node.replaces.is_empty()
-                && (!full_rbf_only || node.full_rbf)
             {
+                // A cut tree's flag sees only what's served: ask the whole tree.
+                if truncated && !node.full_rbf {
+                    let budget = MAX_RBF_WORK.min(total);
+                    let mut remaining = budget;
+                    node.full_rbf = Self::any_non_signaling(state, root, &mut remaining);
+                    total -= budget - remaining;
+                }
+                if full_rbf_only && !node.full_rbf {
+                    continue;
+                }
                 node.truncated = truncated;
                 trees.push(node);
                 if trees.len() == limit {
@@ -218,9 +227,27 @@ impl ReadOnlyState {
         trees
     }
 
+    /// Whether anything `root` replaced, directly or not, didn't signal, within `remaining` steps.
+    fn any_non_signaling(state: &Pool, root: Txid, remaining: &mut usize) -> bool {
+        let mut stack = vec![root];
+        while let Some(txid) = stack.pop() {
+            for (predecessor, tombstone) in state.graveyard.predecessors_of(&txid) {
+                let Some(left) = remaining.checked_sub(1) else {
+                    return false;
+                };
+                *remaining = left;
+                if !tombstone.record.entry.rbf {
+                    return true;
+                }
+                stack.push(*predecessor);
+            }
+        }
+        false
+    }
+
     /// `txid`'s node and what it replaced, depth first, within `remaining` and [`MAX_RBF_DEPTH`].
     /// What doesn't fit is left out and sets `truncated`. Versions on `path` are built first, so
-    /// they are always kept. The flags (`full_rbf`) describe what the served tree holds.
+    /// they are always kept. The flags (`full_rbf`) describe the nodes built.
     fn build_rbf_node(
         txid: &Txid,
         txs: &ReadOnlyTxStore,
@@ -311,9 +338,9 @@ impl ReadOnlyState {
         Ok(root)
     }
 
-    /// What `txid` replaced, as nodes at `depth`, in the graveyard's order within the bounds. Past
-    /// them the rest is left out unvisited. The predecessor on `path` is built first and placed in
-    /// order when the others reach it, last otherwise.
+    /// What `txid` replaced, as nodes at `depth`, oldest first. The budget goes to the newest, so
+    /// past the bounds the oldest are left out unvisited. The predecessor on `path` is built before
+    /// any other and kept in its place.
     fn predecessor_nodes(
         txid: &Txid,
         txs: &ReadOnlyTxStore,
@@ -330,7 +357,7 @@ impl ReadOnlyState {
                 Self::build_rbf_node(next, txs, graveyard, remaining, truncated, depth, path)
             });
         let mut replaces = Vec::new();
-        for (predecessor, _) in graveyard.predecessors_of(txid) {
+        for (predecessor, _) in graveyard.predecessors_of(txid).rev() {
             if Some(predecessor) == next {
                 replaces.extend(first.take());
                 continue;
@@ -345,7 +372,9 @@ impl ReadOnlyState {
                 replaces.push(node);
             }
         }
+        // Not reached: it is older than all those built.
         replaces.extend(first);
+        replaces.reverse();
         replaces
     }
 

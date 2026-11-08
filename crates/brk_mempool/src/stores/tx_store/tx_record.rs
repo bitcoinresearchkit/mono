@@ -38,7 +38,7 @@ impl TxRecord {
         }
     }
 
-    /// What Core 31 measures feerates over: the weight, sigop-adjusted.
+    /// What Core measures feerates over: the weight, sigop-adjusted.
     pub fn policy_weight(&self) -> Weight {
         self.policy_sigops().adjust_weight(self.entry.weight)
     }

@@ -17,6 +17,8 @@ const NUM_BLOCKS: usize = 8;
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
     chunks: ChunkCache,
+    /// The same for what block 0 leaves of a component.
+    leftovers: ChunkCache,
 }
 
 impl Rebuilder {
@@ -71,6 +73,7 @@ impl Rebuilder {
             unloaded,
             (!complete).then_some(&self.snapshot.fees),
             &mut self.chunks,
+            &mut self.leftovers,
         );
         self.snapshot = Arc::new(snapshot);
     }
@@ -84,6 +87,7 @@ impl Rebuilder {
         unloaded: &RapidHashSet<Txid>,
         held_fees: Option<&FeeView>,
         cache: &mut ChunkCache,
+        leftovers: &mut ChunkCache,
     ) -> Snapshot {
         let (txs, key_to_idx, chunks) =
             Snapshot::build_txs(&state.txs, &state.template_only, fee_deltas, cache);
@@ -122,6 +126,7 @@ impl Rebuilder {
             &chunks,
             &excluded,
             NUM_BLOCKS - usize::from(!packed),
+            leftovers,
         );
         let block0 = if packed {
             match projection.blocks.first() {
@@ -156,7 +161,7 @@ impl Rebuilder {
             key_to_idx,
             chunks,
             min_fee,
-            held_fees,
+            held_fees.map(|held| (held, !packed && !missing)),
         );
         snapshot.set_served(blocks, state.txs.content_revision(), missing);
         snapshot.template_only = state

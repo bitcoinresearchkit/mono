@@ -13,7 +13,7 @@ use super::{SnapTx, TxIndex};
 /// The whole connected component holding `seed` over `parents ∪ children`, in txid order: one
 /// order whichever member a walk starts from and however the pool's slots fall, so every
 /// linearization of it (the snapshot's rates, each CPFP answer, a cached one) is the same. Never
-/// cut short: Core 31 keeps a cluster to 64 transactions; an older or other node's can be larger,
+/// cut short: Core keeps a cluster to 64 transactions; an older or other node's can be larger,
 /// linearized whole.
 pub fn walk(txs: &[SnapTx], seed: TxIndex) -> Vec<TxIndex> {
     walk_within(txs, seed, |_| true)

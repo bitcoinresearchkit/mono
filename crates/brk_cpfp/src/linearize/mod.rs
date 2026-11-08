@@ -5,15 +5,15 @@
 //! chunks are the runs a miner takes whole, each paying no more per weight unit than the one
 //! before. The algorithm depends on the component's size:
 //!
-//! - Up to [`EXACT_MAX`] members (Bitcoin Core 31's cluster limit): the optimal linearization,
-//!   the one Core 31 aims for ([`exact`]).
+//! - Up to [`EXACT_MAX`] members (Bitcoin Core's cluster limit): the optimal linearization,
+//!   the one Core aims for ([`exact`]).
 //! - Up to [`ANCESTOR_MAX`] members (a block's components, or a mempool's under a raised limit):
 //!   the best remaining ancestor set, repeatedly, then Core's PostLinearize ([`ancestor`]).
 //! - Larger: the component's own topological order, chunked. That is O(n) and optimal for a
 //!   chain, the usual shape of a block-filling component; the ancestor-set rows (8 MiB at their
 //!   limit) would let one crafted component stall a rebuild.
 //!
-//! Sizes are the caller's weights (sigop-adjusted for the mempool, as Core 31 linearizes) and fees
+//! Sizes are the caller's weights (sigop-adjusted for the mempool, as Core linearizes) and fees
 //! the ranked ones: Core's modified fees, signed, since an operator's delta can make one negative.
 //! Feerates compare as exact fractions. A chunk's published feerate is its fee over a quarter of
 //! its weight, as Core's chunks and mempool.space's effective feerates are, and never below zero.
@@ -39,7 +39,7 @@ fn published_rate(fee: impl Into<i128>, weight: Weight) -> FeeRate {
     FeeRate::from((Sats::from(u64::try_from(fee.into()).unwrap_or(0)), weight))
 }
 
-/// Members a component may have for the exact linearization: Bitcoin Core 31's cluster limit,
+/// Members a component may have for the exact linearization: Bitcoin Core's cluster limit,
 /// and one `u64` of members.
 const EXACT_MAX: usize = 64;
 

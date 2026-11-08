@@ -7,7 +7,7 @@
 //! closure, [`super::flow`]); while one exists, its feerate becomes the bar. When none does, the
 //! smallest closure paying exactly as much is the group, so the chunks come out minimal, as Core's.
 //!
-//! The chunks are then ordered as Core 31's `GetLinearization` orders them, and Core's
+//! The chunks are then ordered as Core's `GetLinearization` orders them, and Core's
 //! PostLinearize runs over the result, as Core runs it after every linearization.
 
 use brk_types::{CpfpClusterTxIndex, FeeRate, Weight};
@@ -122,7 +122,7 @@ pub(super) fn exact(
     emit_chunks(order, chunks, emit);
 }
 
-/// The optimal chunks in Core 31's order (`GetLinearization`), into `order`: of the chunks whose
+/// The optimal chunks in Core's order (`GetLinearization`), into `order`: of the chunks whose
 /// ancestors are out, the highest feerate, then the smallest weight, then the lowest greatest
 /// fallback place; inside a chunk, of the members whose parents are out, the highest own feerate,
 /// then the smallest weight, then the lowest fallback place. Only equal feerates move: the chunks

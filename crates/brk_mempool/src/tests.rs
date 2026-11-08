@@ -17,7 +17,7 @@ use crate::{
     state::{Ancestry, Block},
     snapshot::{
         SnapTx, Snapshot, TxIndex,
-        builder::KeyIndex,
+        builder::{ChunkCache, KeyIndex},
         cluster,
         partition::{Chunks, partition},
     },
@@ -47,7 +47,7 @@ fn projected_blocks_follow_dependencies_and_budgets() {
             last.vsize = VSize::from(last.weight);
         }
         let excluded: Vec<bool> = (0..n).map(|i| i < taken).collect();
-        let projection = partition(&txs, &chunks(&txs), &excluded, 7);
+        let projection = partition(&txs, &chunks(&txs), &excluded, 7, &mut ChunkCache::default());
         let blocks = &projection.blocks;
         assert!(blocks.len() <= 7);
         assert_eq!(

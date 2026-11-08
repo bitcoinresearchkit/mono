@@ -26,11 +26,50 @@ type MemberId = (TxKey, Weight, i64);
 #[derive(Default)]
 pub struct ChunkCache(FxHashMap<Box<[MemberId]>, Linearized>);
 
-struct Linearized {
+impl ChunkCache {
+    /// `component`'s linearization, as positions in `members`: last rebuild's when its members are
+    /// unchanged, solved otherwise. `kept` receives it for the next rebuild, and it comes back
+    /// from there.
+    pub(super) fn linearized<'a>(
+        &mut self,
+        txs: &[SnapTx],
+        component: &[TxIndex],
+        members: &mut Vec<(MemberId, TxIndex)>,
+        graph: &mut Cluster,
+        kept: &'a mut Self,
+    ) -> &'a Linearized {
+        members.clear();
+        members.extend(component.iter().map(|&m| {
+            let t = &txs[m.as_usize()];
+            ((TxKey::from(&t.txid), t.sigops.adjust_weight(t.weight), t.modified), m)
+        }));
+        members.sort_unstable_by_key(|&(id, _)| id);
+        let id: Box<[MemberId]> = members.iter().map(|&(id, _)| id).collect();
+        let linearized = self
+            .0
+            .remove(&id)
+            .unwrap_or_else(|| Snapshot::linearize_component(txs, component, members, graph));
+        kept.0.entry(id).insert_entry(linearized).into_mut()
+    }
+}
+
+pub(super) struct Linearized {
     /// Chunk after chunk, each member's position among the key's members, in topological order.
     order: Box<[u32]>,
     /// Each chunk's end in `order` (its rate is what its members pay, read when used).
     chunks: Box<[u32]>,
+}
+
+impl Linearized {
+    /// Each chunk's members, as positions among the key's members.
+    pub(super) fn chunks(&self) -> impl Iterator<Item = &[u32]> {
+        let mut start = 0;
+        self.chunks.iter().map(move |&end| {
+            let positions = &self.order[start..end as usize];
+            start = end as usize;
+            positions
+        })
+    }
 }
 
 impl Snapshot {
@@ -84,7 +123,7 @@ impl Snapshot {
         }
 
         Self::mirror_children(&mut snap_txs);
-        let chunks = Self::linearize(&mut snap_txs, &keys, cache);
+        let chunks = Self::linearize(&mut snap_txs, cache);
         (snap_txs, key_to_idx, chunks)
     }
 
@@ -124,12 +163,12 @@ impl Snapshot {
 
     /// Linearize every component: each member's `chunk_rate` becomes its chunk's feerate (a
     /// lone transaction keeps its own), and the chunks are returned for the projected blocks.
-    fn linearize(snap_txs: &mut [SnapTx], keys: &[TxKey], cache: &mut ChunkCache) -> Chunks {
+    fn linearize(snap_txs: &mut [SnapTx], cache: &mut ChunkCache) -> Chunks {
         let n = snap_txs.len();
         let mut chunks = Chunks::default();
         let mut visited = vec![false; n];
         let mut graph = Cluster::default();
-        let mut kept: FxHashMap<Box<[MemberId]>, Linearized> = FxHashMap::default();
+        let mut kept = ChunkCache::default();
         let mut members: Vec<(MemberId, TxIndex)> = Vec::new();
         for seed in 0..n {
             if visited[seed] {
@@ -143,27 +182,11 @@ impl Snapshot {
                 continue;
             }
             let component = cluster::walk(snap_txs, TxIndex::from(seed));
-            members.clear();
             for &m in &component {
                 visited[m.as_usize()] = true;
-                let t = &snap_txs[m.as_usize()];
-                members.push((
-                    (
-                        keys[m.as_usize()],
-                        t.sigops.adjust_weight(t.weight),
-                        t.modified,
-                    ),
-                    m,
-                ));
             }
-            members.sort_unstable_by_key(|&(id, _)| id);
-            let id: Box<[MemberId]> = members.iter().map(|&(id, _)| id).collect();
-            let linearized = cache.0.remove(&id).unwrap_or_else(|| {
-                Self::linearize_component(snap_txs, &component, &members, &mut graph)
-            });
-            let mut start = 0;
-            for &end in &linearized.chunks {
-                let positions = &linearized.order[start..end as usize];
+            let linearized = cache.linearized(snap_txs, &component, &mut members, &mut graph, &mut kept);
+            for positions in linearized.chunks() {
                 let txs = positions.iter().map(|&p| members[p as usize].1);
                 // Ordered by modified fees, shown by what the chunk pays.
                 let rate = cluster::paid_rate(snap_txs, txs.clone());
@@ -171,12 +194,10 @@ impl Snapshot {
                     snap_txs[m.as_usize()].chunk_rate = rate;
                 }
                 chunks.push_chunk(txs, rate);
-                start = end as usize;
             }
             chunks.end_component();
-            kept.insert(id, linearized);
         }
-        cache.0 = kept;
+        *cache = kept;
         chunks
     }
 

@@ -89,11 +89,7 @@ impl Query {
     }
 
     /// Load the captured selection from its pinned immutable prefix.
-    pub fn addr_utxos_resolved(
-        &self,
-        resolved: ResolvedAddrUtxos,
-        max_utxos: usize,
-    ) -> Result<Vec<Utxo>> {
+    pub fn addr_utxos_resolved(&self, resolved: ResolvedAddrUtxos) -> Result<Vec<Utxo>> {
         let ResolvedAddrUtxos {
             pin,
             outpoints,
@@ -132,9 +128,6 @@ impl Query {
             status: TxStatus::UNCONFIRMED,
             value,
         }));
-        if utxos.len() > max_utxos {
-            return Err(Error::TooManyUtxos { max: max_utxos });
-        }
         Ok(utxos)
     }
 

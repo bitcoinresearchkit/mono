@@ -262,7 +262,7 @@ async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Resp
             },
             move |q, resolved| {
                 Ok(Bytes::from(to_vec(
-                    &q.addr_utxos_resolved(resolved, max_utxos)?,
+                    &q.addr_utxos_resolved(resolved)?,
                 )?))
             },
         )

@@ -192,6 +192,7 @@ impl TxGraveyard {
         upkeep: &mut Upkeep,
     ) {
         let (txid, now) = (record.entry.txid, Moment::now());
+        upkeep.linker.undefer(&txid);
         self.insert(record, chunk_rate, removal, now, &mut upkeep.retention);
         if matches!(removal, TxRemoval::Vanished) {
             upkeep.linker.vanished(txid, now);
@@ -450,6 +451,28 @@ impl TxGraveyard {
         for loser in losers {
             self.reclassify(loser, TxRemoval::Replaced { by: arrival.txid }, now, upkeep);
         }
+    }
+
+    /// Relinks this cycle's arrivals (`entered`) and those held back earlier. With a block unread
+    /// (`all_read` false), holds this cycle's back instead, since a confirmed conflict takes
+    /// precedence. `arrival` gives a pooled transaction's body.
+    pub fn relink_arrivals<'a>(
+        &mut self,
+        entered: &[Txid],
+        all_read: bool,
+        arrival: impl Fn(&Txid) -> Option<&'a Transaction>,
+        upkeep: &mut Upkeep,
+    ) {
+        if !all_read {
+            entered.iter().for_each(|txid| upkeep.linker.defer(*txid));
+            return;
+        }
+        for txid in upkeep.linker.deferred().iter().chain(entered) {
+            if let Some(tx) = arrival(txid) {
+                self.relink(tx, upkeep);
+            }
+        }
+        upkeep.linker.clear_deferred();
     }
 
     /// Indexes this cycle's vanished tombstones by the outpoints they spent. Call before
