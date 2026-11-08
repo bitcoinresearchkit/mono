@@ -197,7 +197,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweaks/{height}",
         summary: "Cut-through tweaks",
-        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats: what a wallet restoring its balance alone scans. Spends count up to the last block at a height divisible by 144 (about a day) at or after the block, or up to the last indexed block for the blocks after that one, so an older block's answer changes once a day; a later spend leaves a transaction listed, which the later blocks' spent filters correct.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
@@ -211,7 +211,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/utxos/{height}",
         summary: "Taproot outputs",
-        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).",
+        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not, spends counted as for `tweaks`. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],

@@ -40,8 +40,9 @@ const PREFIX: &str = "/blindbit/mainnet";
 enum Lifetime {
     /// As long as the block: it changes only if a reorg replaces the block.
     Block,
-    /// Until the next block: it says what's spent as of the tip.
-    Tip,
+    /// As long as the block it counts spends up to: the last daily checkpoint at or after the
+    /// block, or the tip after it.
+    Spends,
 }
 
 impl AppState {
@@ -68,7 +69,9 @@ impl AppState {
                     let params = match lifetime {
                         Lifetime::Block => CacheParams::revalidate(tag)
                             .stable_if(block.is_settled(), cdn_cache_mode),
-                        Lifetime::Tip => CacheParams::live(format!("{tag}-{}", block.tip())),
+                        Lifetime::Spends => {
+                            CacheParams::live(format!("{tag}-{}", block.spent_as_of()))
+                        }
                     };
                     Ok((block, params))
                 },
@@ -241,7 +244,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             format!("tweaks-{dust_limit}"),
-                            Lifetime::Tip,
+                            Lifetime::Spends,
                             move |q, block| q.blindbit_tweaks(block, dust_limit),
                         )
                         .await
@@ -251,7 +254,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Cut-through tweaks")
-                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.")
+                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats: what a wallet restoring its balance alone scans. Spends count up to the last block at a height divisible by 144 (about a day) at or after the block, or up to the last indexed block for the blocks after that one, so an older block's answer changes once a day; a later spend leaves a transaction listed, which the later blocks' spent filters correct.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()
@@ -329,7 +332,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             "utxos".into(),
-                            Lifetime::Tip,
+                            Lifetime::Spends,
                             |q, block| q.blindbit_utxos(block),
                         )
                         .await
@@ -339,7 +342,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Taproot outputs")
-                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).")
+                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not, spends counted as for `tweaks`. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).")
                         .json_response::<Vec<BlindbitUtxo>>()
                         .not_modified()
                         .not_found()
