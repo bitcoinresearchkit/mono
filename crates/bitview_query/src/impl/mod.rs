@@ -41,7 +41,7 @@ pub use mining::ResolvedPoolBlocks;
 #[cfg(feature = "series")]
 pub use series::{ResolvedQuery, SeriesAnchor, SeriesRead};
 #[cfg(feature = "chain")]
-pub use silent_payments::BlindbitBlock;
+pub use silent_payments::{BlindbitBlock, BlindbitSpends};
 #[cfg(feature = "chain")]
 pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 #[cfg(feature = "chain")]

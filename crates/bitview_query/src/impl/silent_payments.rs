@@ -12,27 +12,32 @@ use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
-/// Blocks between the spent checkpoints: an older block's outputs count as spent by the blocks up
-/// to the last checkpoint at or after it, so its cut-through answers change about once a day, not
-/// with every block. A spend after the checkpoint leaves a superset, which wallets correct from
-/// the later blocks' spent filters.
-const SPENT_CHECKPOINT: usize = 144;
-
 /// A published block the BlindBit routes answer for, with the pin it was resolved under: every
 /// read of the answer stays in that publication.
 pub struct BlindbitBlock {
     height: Height,
     hash: BlockHash,
     pin: ReadPin,
-    spent_as_of: SpentAsOf,
 }
 
-/// The block whose spends, with every earlier block's, the cut-through routes count: the last
-/// spent checkpoint at or after the block, else the tip.
-struct SpentAsOf {
-    hash: BlockHash,
-    /// The inputs of the blocks up to it.
-    txin_end: TxInIndex,
+/// What a block's cut-through answers depend on: how far its Taproot outputs are spent.
+pub struct BlindbitSpends {
+    key: String,
+    is_final: bool,
+}
+
+impl BlindbitSpends {
+    /// Names the answers' state exactly: the hash of the block holding the latest spend of one of
+    /// this block's Taproot outputs, which commits to every earlier spend too.
+    pub fn key(&self) -> &str {
+        &self.key
+    }
+
+    /// Whether the answers can never change again: the block and its last spend are below the
+    /// reorg window, and no output it lists is left to spend.
+    pub fn is_final(&self) -> bool {
+        self.is_final
+    }
 }
 
 impl BlindbitBlock {
@@ -43,11 +48,6 @@ impl BlindbitBlock {
     /// Whether it lies below the reorg window: what's read of it alone never changes.
     pub fn is_settled(&self) -> bool {
         self.pin.lengths().is_settled(self.height)
-    }
-
-    /// The hash of the block up to which the cut-through routes count spends.
-    pub fn spent_as_of(&self) -> &BlockHash {
-        &self.spent_as_of.hash
     }
 }
 
@@ -150,25 +150,70 @@ impl Query {
         if height.to_usize() >= self.blindbit_computed() {
             return Err(Error::StateUpdating);
         }
+        let hash = self
+            .indexer()
+            .vecs()
+            .blocks
+            .blockhash
+            .collect_one(height)
+            .data()?;
+        Ok(BlindbitBlock { height, hash, pin })
+    }
+
+    /// How far the block's Taproot outputs are spent as of its publication: a later spend always
+    /// has a higher input index, so the highest finds the block that names the state.
+    pub fn blindbit_spends(&self, block: &BlindbitBlock) -> Result<BlindbitSpends> {
+        if self.blindbit_rows(block)?.is_empty() {
+            return Ok(BlindbitSpends {
+                key: "none".into(),
+                is_final: block.is_settled(),
+            });
+        }
         let vecs = self.indexer().vecs();
-        let hash = vecs.blocks.blockhash.collect_one(height).data()?;
-        let tip = published.to_usize() - 1;
-        let checkpoint = tip - tip % SPENT_CHECKPOINT;
-        let as_of = if height.to_usize() <= checkpoint { checkpoint } else { tip };
-        let lengths = pin.lengths();
-        let spent_as_of = SpentAsOf {
-            hash: vecs.blocks.blockhash.collect_one_at(as_of).data()?,
-            txin_end: if as_of + 1 < published.to_usize() {
-                vecs.inputs.first_txin_index.collect_one_at(as_of + 1).data()?
+        let lengths = block.pin.lengths();
+        let txouts = first_span(
+            &vecs.outputs.first_txout_index,
+            block.height.to_usize(),
+            lengths,
+            lengths.txout_index.to_usize(),
+        )?;
+        let types = vecs
+            .outputs
+            .output_type
+            .collect_range_at(txouts.start, txouts.end);
+        let spends = self
+            .plugins()
+            .outputs
+            .spent
+            .spending_txin_index
+            .collect_range_at(txouts.start, txouts.end);
+        if types.len() != txouts.len() || spends.len() != txouts.len() {
+            return Err(Error::Internal("Output spends missing"));
+        }
+        let (mut latest, mut any_unspent) = (None, false);
+        for (output_type, spend) in types.into_iter().zip(spends) {
+            if output_type != OutputType::P2TR {
+                continue;
+            }
+            let spend = TxInIndex::from(spend);
+            if spend.is_unspent() || spend >= lengths.txin_index {
+                any_unspent = true;
             } else {
-                lengths.txin_index
-            },
+                latest = latest.max(Some(spend));
+            }
+        }
+        let Some(latest) = latest else {
+            return Ok(BlindbitSpends {
+                key: "none".into(),
+                is_final: false,
+            });
         };
-        Ok(BlindbitBlock {
-            height,
-            hash,
-            pin,
-            spent_as_of,
+        let spending_tx = vecs.inputs.tx_index.collect_one(latest).data()?;
+        let tx_heights = self.plugins().mappings.tx_heights.load();
+        let spent_at: Height = tx_heights.cursor().get(spending_tx).data()?;
+        Ok(BlindbitSpends {
+            key: vecs.blocks.blockhash.collect_one(spent_at).data()?.to_string(),
+            is_final: block.is_settled() && !any_unspent && lengths.is_settled(spent_at),
         })
     }
 
@@ -192,8 +237,7 @@ impl Query {
     }
 
     /// Cut-through: the tweaks of the block's eligible transactions with an unspent Taproot output
-    /// holding at least `dust_limit` and the dust floor, spends counted up to the block's spent
-    /// checkpoint.
+    /// holding at least `dust_limit` and the dust floor, as of the block's publication.
     pub fn blindbit_tweaks(&self, block: &BlindbitBlock, dust_limit: Sats) -> Result<Vec<Tweak>> {
         let rows = self.blindbit_rows(block)?;
         if rows.is_empty() {
@@ -280,8 +324,8 @@ impl Query {
         })
     }
 
-    /// The Taproot outputs of the block's eligible transactions, spent or not up to the block's
-    /// spent checkpoint.
+    /// The Taproot outputs of the block's eligible transactions, spent or not as of the block's
+    /// publication.
     pub fn blindbit_utxos(&self, block: &BlindbitBlock) -> Result<Vec<BlindbitUtxo>> {
         let tx_indexes = self.blindbit_tx_indexes(self.blindbit_rows(block)?)?;
         if tx_indexes.is_empty() {
@@ -422,7 +466,7 @@ impl Query {
         })
     }
 
-    /// Whether each of the block's outputs is unspent up to the block's spent checkpoint.
+    /// Whether each of the block's outputs is unspent as of the block's publication.
     fn blindbit_unspent(
         &self,
         block: &BlindbitBlock,
@@ -437,12 +481,12 @@ impl Query {
         if spends.len() != outputs.txouts.len() {
             return Err(Error::Internal("Output spends missing"));
         }
-        let counted = block.spent_as_of.txin_end;
+        let published = block.pin.lengths().txin_index;
         Ok(spends
             .into_iter()
             .map(|spend| {
                 let spend = TxInIndex::from(spend);
-                spend.is_unspent() || spend >= counted
+                spend.is_unspent() || spend >= published
             })
             .collect())
     }

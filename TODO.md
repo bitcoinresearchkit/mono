@@ -214,9 +214,10 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   1,000-sat dust floor everywhere (`DUST_FLOOR`), off the series tree. Stored: each kept tx's tweak (x + parity
   column), each block's two BIP158 filters, per-height ends. Checked on 44 heights against silentpayments.dev,
   Core's BIP158 vectors and BIP352's. Council: 3 rounds, 8.0/8.1 last (`_notes/council-blindbit/log.md`; integration
-  tests and dustLimit URL canonicalization declined). `/tweaks` (cut-through) and `/utxos` count an older
-  block's spends up to a daily checkpoint (heights divisible by 144), the tip after it (2026-11-08). Left: the
-  draft index-server spec's `compute-index` once it settles.
+  tests and dustLimit URL canonicalization declined). `/tweaks` (cut-through) and `/utxos` answer as of the
+  tip, tagged by the block of the latest spend of the block's Taproot outputs; stable CDN tier once none can
+  change. Waiting on you: drop the stored floor so `dustLimit=0` returns everything (+2 GiB)? Left: the draft
+  index-server spec's `compute-index` only once it settles.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
   always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of

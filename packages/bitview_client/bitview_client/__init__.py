@@ -6762,7 +6762,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_tweaks(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Cut-through tweaks.
 
-        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats: what a wallet restoring its balance alone scans. Spends count up to the last block at a height divisible by 144 (about a day) at or after the block, or up to the last indexed block for the blocks after that one, so an older block's answer changes once a day; a later spend leaves a transaction listed, which the later blocks' spent filters correct.
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
 
         Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
         params: List[Tuple[str, Any]] = []
@@ -6790,7 +6790,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_utxos(self, height: Height) -> List[BlindbitUtxo]:
         """Taproot outputs.
 
-        Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not, spends counted as for `tweaks`. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+        Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
 
         Endpoint: `GET /blindbit/mainnet/utxos/{height}`"""
         return self.get_json(f'/blindbit/mainnet/utxos/{_segment(height)}')

@@ -40,8 +40,7 @@ const PREFIX: &str = "/blindbit/mainnet";
 enum Lifetime {
     /// As long as the block: it changes only if a reorg replaces the block.
     Block,
-    /// As long as the block it counts spends up to: the last daily checkpoint at or after the
-    /// block, or the tip after it.
+    /// Until one of the block's Taproot outputs is spent: it says what's spent as of the tip.
     Spends,
 }
 
@@ -70,7 +69,9 @@ impl AppState {
                         Lifetime::Block => CacheParams::revalidate(tag)
                             .stable_if(block.is_settled(), cdn_cache_mode),
                         Lifetime::Spends => {
-                            CacheParams::live(format!("{tag}-{}", block.spent_as_of()))
+                            let spends = q.blindbit_spends(&block)?;
+                            CacheParams::live(format!("{tag}-{}", spends.key()))
+                                .stable_if(spends.is_final(), cdn_cache_mode)
                         }
                     };
                     Ok((block, params))
@@ -254,7 +255,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Cut-through tweaks")
-                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats: what a wallet restoring its balance alone scans. Spends count up to the last block at a height divisible by 144 (about a day) at or after the block, or up to the last indexed block for the blocks after that one, so an older block's answer changes once a day; a later spend leaves a transaction listed, which the later blocks' spent filters correct.")
+                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()
@@ -342,7 +343,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Taproot outputs")
-                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not, spends counted as for `tweaks`. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).")
+                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).")
                         .json_response::<Vec<BlindbitUtxo>>()
                         .not_modified()
                         .not_found()
