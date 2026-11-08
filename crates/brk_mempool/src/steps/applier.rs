@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use brk_types::{Transaction, Txid};
+use brk_types::Txid;
 
 use crate::{
     Snapshot, TxRemoval,
     key::TxKey,
-    state::{State, TxEntry},
+    state::State,
     steps::{
         Confirmed,
         preparer::{PoolDiff, TxAddition},
@@ -34,9 +34,8 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     }
     let mut entered = Vec::with_capacity(added.len());
     for TxAddition { tx, entry } in added {
-        state.graveyard.exhume(&entry.txid, &mut state.upkeep);
         entered.push(entry.txid);
-        insert_one(state, tx, entry);
+        state.insert(Arc::new(tx), entry);
     }
     state.inherit_signaling(&entered);
     state.recheck_signaling(orphaned);
@@ -59,23 +58,9 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
-    let record = state.txs.remove_by_key(key).expect("removed tx is pooled");
-    let txid = record.entry.txid;
+    let record = state.remove(key);
     let chunk_rate = prev_snapshot
-        .chunk_rate_for(&txid)
+        .chunk_rate_for(&record.entry.txid)
         .unwrap_or_else(|| record.own_rate());
-    state.info.remove(record.entry.vsize, record.entry.fee);
-    state.addrs.remove(&record);
-    state.outpoint_spends.remove_spends(&record.tx, *key);
     state.graveyard.bury(record, chunk_rate, reason, &mut state.upkeep);
-}
-
-fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry) {
-    let tx = Arc::new(tx);
-    let key = entry.key();
-    state.info.add(entry.vsize, entry.fee);
-    state.outpoint_spends.insert_spends(&tx, key);
-    state.txs.insert(tx, entry);
-    let record = state.txs.record_by_key(&key).expect("just inserted");
-    state.addrs.add(record);
 }

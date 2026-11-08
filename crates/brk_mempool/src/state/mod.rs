@@ -5,13 +5,18 @@ mod pool;
 mod read_only;
 pub mod tx_entry;
 
+use std::sync::Arc;
+
 use brk_types::{MempoolInfo, Transaction, Txid};
 pub(crate) use ancestry::{Ancestry, Block};
 pub(crate) use pool::{BehindSlot, Pool};
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
 
-use crate::stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore, Upkeep, tx_store::TxRecord};
+use crate::{
+    key::TxKey,
+    stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
+};
 
 #[derive(Default)]
 pub struct State {
@@ -43,16 +48,36 @@ impl State {
             ..Self::default()
         };
         for TxRecord { tx, entry, .. } in pool {
-            let key = entry.key();
-            state.graveyard.exhume(&entry.txid, &mut state.upkeep);
-            state.info.add(entry.vsize, entry.fee);
-            state.outpoint_spends.insert_spends(&tx, key);
-            state.txs.insert(tx, entry);
-            let record = state.txs.record_by_key(&key).expect("just inserted");
-            state.addrs.add(record);
-            state.unverified.push(record.entry.txid);
+            let txid = entry.txid;
+            state.insert(tx, entry);
+            state.unverified.push(txid);
         }
         state
+    }
+
+    /// A transaction entering the pool: back from its tombstone if it has one, then in every
+    /// store derived from it. Pool membership changes only here and in [`Self::remove`]; the
+    /// stores' own methods aren't for anything else.
+    pub fn insert(&mut self, tx: Arc<Transaction>, entry: TxEntry) {
+        self.graveyard.exhume(&entry.txid, &mut self.upkeep);
+        let key = entry.key();
+        self.info.add(entry.vsize, entry.fee);
+        self.outpoint_spends.insert_spends(&tx, key);
+        self.txs.insert(tx, entry);
+        let record = self.txs.record_by_key(&key).expect("just inserted");
+        self.addrs.add(record);
+        debug_assert_eq!(self.info.count, self.txs.len());
+    }
+
+    /// [`Self::insert`]'s stores undone: the transaction out of every store derived from it, its
+    /// record left to the caller (its tombstone).
+    pub fn remove(&mut self, key: &TxKey) -> TxRecord {
+        let record = self.txs.remove_by_key(key).expect("removed tx is pooled");
+        self.info.remove(record.entry.vsize, record.entry.fee);
+        self.addrs.remove(&record);
+        self.outpoint_spends.remove_spends(&record.tx, *key);
+        debug_assert_eq!(self.info.count, self.txs.len());
+        record
     }
 
     pub fn contains_all(&self, live_txids: &[Txid]) -> bool {
