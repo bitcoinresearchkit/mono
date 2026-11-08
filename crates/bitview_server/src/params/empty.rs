@@ -3,7 +3,7 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 
 use crate::Error;
 
-/// Extractor that rejects requests carrying a nonempty query string.
+/// Extractor that rejects requests carrying a query string.
 /// Used on path-only endpoints to prevent cache-busting via injected
 /// query params (the cache key includes the URI).
 pub struct Empty;
@@ -16,10 +16,10 @@ where
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         match parts.uri.query() {
-            Some(q) if !q.is_empty() => Err(Error::bad_request(
+            Some(_) => Err(Error::bad_request(
                 "this endpoint does not accept query parameters",
             )),
-            _ => Ok(Empty),
+            None => Ok(Empty),
         }
     }
 }

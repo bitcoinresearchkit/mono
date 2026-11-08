@@ -34,7 +34,7 @@ use tower_http::{
         predicate::{NotForContentType, Predicate},
     },
     cors::CorsLayer,
-    normalize_path::{NormalizePath, NormalizePathLayer},
+    normalize_path::NormalizePathLayer,
     timeout::RequestBodyTimeoutLayer,
 };
 use tower_layer::Layer;
@@ -49,6 +49,7 @@ mod api;
 #[cfg(any(feature = "chain", feature = "urpd"))]
 mod body_response;
 mod cache;
+mod canonical_url;
 mod config;
 mod error;
 mod etag;
@@ -66,6 +67,8 @@ mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
 mod state;
+#[cfg(test)]
+mod tests;
 mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
@@ -200,7 +203,7 @@ fn compression_layer() -> CompressionLayer<impl Predicate> {
 }
 
 /// The complete HTTP application as served: every route plus the response middleware.
-pub type App = NormalizePath<Router>;
+pub type App = Router;
 
 pub struct Server {
     app: App,
@@ -330,8 +333,12 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
 
     let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
 
-    // NormalizePath must wrap the router (not be a layer) to run before route matching
-    Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
+    // NormalizePath must wrap the router (not be a layer) to run before route matching, and the
+    // URL check must wrap NormalizePath, to read the URL as it was sent.
+    let normalized = NormalizePathLayer::trim_trailing_slash().layer(router);
+    Ok(Router::new()
+        .fallback_service(normalized)
+        .layer(from_fn(canonical_url::reject)))
 }
 
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(
