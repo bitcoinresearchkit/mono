@@ -9676,19 +9676,19 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Tweak index
    *
-   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+   * The tweaks of a block's eligible transactions with a Taproot output of at least 1,000 sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 1,000 (BlindBit's is optional, and 0 by default). Every limit gets this same list.
    *
    * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
    *
    * @param {Height} height
-   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No
-   *   transaction is kept below 1,000 sats, Bitview's dust floor.
+   * @param {number} dustLimit - The wallet's dust limit in sats, at least 1,000, the least value held. Every limit gets the
+   *   same list, so one above 1,000 can list more than it asks for.
    * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Frozen<Tweak[]>>}
    */
   async getBlindbitTweakIndex(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    params.set('dustLimit', String(dustLimit));
     const query = params.toString();
     const path = `/blindbit/mainnet/tweak-index/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9697,19 +9697,19 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Cut-through tweaks
    *
-   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
    *
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
-   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Default: 0. No
-   *   transaction is kept below 1,000 sats, Bitview's dust floor.
+   * @param {number} dustLimit - The wallet's dust limit in sats, at least 1,000, the least value held. Every limit gets the
+   *   same list, so one above 1,000 can list more than it asks for.
    * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Frozen<Tweak[]>>}
    */
   async getBlindbitTweaks(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    params.set('dustLimit', String(dustLimit));
     const query = params.toString();
     const path = `/blindbit/mainnet/tweaks/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9751,7 +9751,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Taproot outputs
    *
-   * Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+   * Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
    *
    * Endpoint: `GET /blindbit/mainnet/utxos/{height}`
    *

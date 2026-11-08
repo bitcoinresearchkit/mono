@@ -29,7 +29,8 @@ pub(crate) fn generate_rust_client(
     writeln!(output, "// Auto-generated Bitview Rust client").unwrap();
     writeln!(output, "// Do not edit manually\n").unwrap();
     writeln!(output, "#![allow(non_snake_case)]").unwrap();
-    writeln!(output, "#![allow(clippy::useless_format)]\n").unwrap();
+    writeln!(output, "#![allow(clippy::useless_format)]").unwrap();
+    writeln!(output, "#![allow(clippy::vec_init_then_push)]\n").unwrap();
 
     client::generate_imports(&mut output);
     client::generate_index_accessors(&mut output, accessors);

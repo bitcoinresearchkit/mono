@@ -6747,26 +6747,26 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /blindbit/mainnet/block-hash/{height}`"""
         return self.get_json(f'/blindbit/mainnet/block-hash/{_segment(height)}')
 
-    def get_blindbit_tweak_index(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+    def get_blindbit_tweak_index(self, height: Height, dustLimit: int) -> List[Tweak]:
         """Tweak index.
 
-        The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. Transactions whose Taproot outputs all hold less than 1,000 sats are left out whatever `dustLimit` is (BlindBit's default of 0 keeps them).
+        The tweaks of a block's eligible transactions with a Taproot output of at least 1,000 sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 1,000 (BlindBit's is optional, and 0 by default). Every limit gets this same list.
 
         Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`"""
         params: List[Tuple[str, Any]] = []
-        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        params.append(('dustLimit', dustLimit))
         query = urlencode(params)
         path = f'/blindbit/mainnet/tweak-index/{_segment(height)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_blindbit_tweaks(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+    def get_blindbit_tweaks(self, height: Height, dustLimit: int) -> List[Tweak]:
         """Cut-through tweaks.
 
-        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats and 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans.
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
 
         Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
         params: List[Tuple[str, Any]] = []
-        if dustLimit is not None: params.append(('dustLimit', dustLimit))
+        params.append(('dustLimit', dustLimit))
         query = urlencode(params)
         path = f'/blindbit/mainnet/tweaks/{_segment(height)}{"?" + query if query else ""}'
         return self.get_json(path)
@@ -6790,7 +6790,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_utxos(self, height: Height) -> List[BlindbitUtxo]:
         """Taproot outputs.
 
-        Every Taproot output of the block's eligible transactions (those `tweak-index` lists with no dust limit), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+        Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
 
         Endpoint: `GET /blindbit/mainnet/utxos/{height}`"""
         return self.get_json(f'/blindbit/mainnet/utxos/{_segment(height)}')

@@ -58,7 +58,7 @@ pub use r#impl::{
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
-/// The dust floor the silent payments routes apply whatever a request asks.
+/// The least dust limit the silent payments routes take: they hold nothing smaller.
 #[cfg(feature = "chain")]
 pub use bitview_plugin_silent_payments::DUST_FLOOR;
 pub use output::*;
