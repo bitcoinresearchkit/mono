@@ -37,7 +37,6 @@ schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
-tokio-io-timeout = { workspace = true }
 tracing = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true, features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "limit", "normalize-path", "timeout"] }

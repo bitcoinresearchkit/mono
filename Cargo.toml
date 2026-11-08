@@ -126,7 +126,6 @@ statedb = { path = "crates/statedb", version = "0.13.0" }
 tempfile = "3.27.0"
 thiserror = "2.0.21"
 tokio = "1.54.1"
-tokio-io-timeout = "1.2.1"
 tower = { version = "0.5.3", features = ["util"] }
 tower-http = "0.7.1"
 tower-layer = "0.3"
