@@ -128,7 +128,7 @@ pub struct BlockExtras {
     #[serde(rename = "firstSeen")]
     pub first_seen: Option<Timestamp>,
 
-    /// Stale blocks at this height (always empty, not yet supported)
+    /// Stale blocks at this height the server's node knows, each server's own
     pub orphans: Vec<BlockOrphan>,
 
     /// Share of the expected block template the block matched, from mempool.space's own audits

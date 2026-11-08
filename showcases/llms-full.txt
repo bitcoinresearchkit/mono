@@ -1316,7 +1316,7 @@ Returns: JSON `ServerVersion`
 - `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
 - `coinbaseBip54`: `boolean | null` — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
 - `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
-- `orphans`: `BlockOrphan[]` (required) — Stale blocks at this height (always empty, not yet supported)
+- `orphans`: `BlockOrphan[]` (required) — Stale blocks at this height the server's node knows, each server's own
 - `matchRate`: `number | null` — Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
 - `expectedFees`: `Sats | null` — Fees of the expected block template (always null: it needs the mempool as it was)
 - `expectedWeight`: `Weight | null` — Weight of the expected block template (always null: it needs the mempool as it was)
@@ -1401,7 +1401,7 @@ Returns: JSON `ServerVersion`
 
 ### `BlockOrphanStatus`
 
-`invalid | headers-only | valid-headers | valid-fork`
+`valid-headers | valid-fork`
 
 ### `BlockPool`
 

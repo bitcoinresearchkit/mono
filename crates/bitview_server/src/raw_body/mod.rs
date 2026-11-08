@@ -103,11 +103,9 @@ impl RawBodyPermit {
         Some(permit.or_else(|| Self::try_acquire(budget))?.attach(response))
     }
 
-    /// Retain admission (when large) through a built response's body and any outer encoder.
+    /// Retain admission through a large response's body and any outer encoder.
     fn attach(self, mut response: Response) -> Response {
-        if !Self::is_small(&response) {
-            response.extensions_mut().insert(self);
-        }
+        response.extensions_mut().insert(self);
         response
     }
 

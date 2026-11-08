@@ -16,7 +16,8 @@ use super::{
     mempool_entry::MempoolEntry,
     mempool_state::MempoolState,
     responses::{
-        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetMempoolInfo,
+        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetChainTip,
+        GetMempoolInfo,
     },
     rpc_call::RpcCall,
     txid_array_parser::TxidArrayParser,
@@ -69,6 +70,12 @@ impl Client {
         let hash: &BitcoinBlockHash = hash.into();
         self.0.call_with_retry("getblockheader", &(hash,))
     }
+
+    /// The tip of every branch the node knows, the best chain's included.
+    pub fn get_chain_tips(&self) -> Result<Vec<GetChainTip>> {
+        self.0.call_with_retry("getchaintips", &NO_ARGS)
+    }
+
     /// The canonical block hashes of the inclusive height range `start..=end`, in height order,
     /// in sequential batches of `BATCH_CHUNK` (2,000) requests, each retried as single calls are
     /// (lost connections, the node warming up).

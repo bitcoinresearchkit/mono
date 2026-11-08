@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "full-api")]
-use std::thread;
+use std::{sync::mpsc::sync_channel, thread};
 use std::{
     path::PathBuf,
     thread::sleep,
@@ -145,6 +145,11 @@ where
     #[cfg(not(feature = "full-api"))]
     let query = AsyncQuery::build(&plugins, None);
 
+    // Before the server answers: a row first served without its stale blocks can stay so on the
+    // CDN.
+    #[cfg(feature = "full-api")]
+    query.sync(refresh_stale_blocks);
+
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
@@ -173,6 +178,18 @@ where
             mempool.start_with(resolver, || chain.tip_blockhash());
         });
         published
+    };
+    // On its own thread: a block arriving meanwhile never waits on the node's answers.
+    #[cfg(feature = "full-api")]
+    let stale_blocks = {
+        let query = query.sync(bitview_query::Query::clone);
+        let (refresh, wanted) = sync_channel(1);
+        thread::spawn(move || {
+            for () in wanted {
+                refresh_stale_blocks(&query);
+            }
+        });
+        refresh
     };
 
     info!("Waiting for new blocks...");
@@ -209,10 +226,21 @@ where
         );
         #[cfg(feature = "full-api")]
         published.published();
+        // Full, a read not yet started is due: it will see this publication.
+        #[cfg(feature = "full-api")]
+        let _ = stale_blocks.try_send(());
 
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);
         }
+    }
+}
+
+/// A failed read keeps the list as it was.
+#[cfg(feature = "full-api")]
+fn refresh_stale_blocks(query: &bitview_query::Query) {
+    if let Err(error) = query.refresh_stale_blocks() {
+        warn!("Stale blocks not refreshed: {error}");
     }
 }
 

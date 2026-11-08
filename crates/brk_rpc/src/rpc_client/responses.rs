@@ -1,6 +1,7 @@
 //! The fields Bitview reads of Bitcoin Core's RPC answers, under Core's names. serde skips
 //! every other field, so Core adding or reshaping those changes nothing here.
 
+use bitcoin::BlockHash;
 use serde::Deserialize;
 
 /// `getblockcount`: the best chain's height.
@@ -13,6 +14,19 @@ pub struct GetBlockHeaderVerbose {
     /// Zero or less when the block is off the best chain.
     pub confirmations: i64,
     pub height: i64,
+    /// `None` at genesis.
+    #[serde(rename = "previousblockhash")]
+    pub previous_block_hash: Option<BlockHash>,
+}
+
+/// One of `getchaintips`' tips.
+#[derive(Debug, Clone, Deserialize)]
+pub struct GetChainTip {
+    pub height: u32,
+    pub hash: BlockHash,
+    /// The tip's blocks off the best chain.
+    pub branchlen: u32,
+    pub status: String,
 }
 
 /// `getblocktemplate`.

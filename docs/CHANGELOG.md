@@ -69,6 +69,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The website answers a page's old address with a permanent redirect to its new one, the query kept
   (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`)
 - MCP: the server's icon is Bitview's app icon, and a link to its pages previews them, each named and described
+- A block's `orphans` list the stale blocks at its height that the server's node knows (`getchaintips`, every block of
+  each fork, refreshed with each new block), as mempool.space does; `status` is `valid-fork` or `valid-headers`
 
 ### Performance
 

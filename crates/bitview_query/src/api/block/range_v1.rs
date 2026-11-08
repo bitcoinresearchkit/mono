@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use bitcoin::hashes::{Hash, HashEngine, sha256};
-use bitview_types::BlockInfoV1;
+use bitview_types::{BlockInfoV1, BlockOrphan};
 use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{ReadableVec, VecIndex};
 
-use super::ResolvedBlocks;
+use super::{ResolvedBlocks, StaleBlocks};
 use crate::{Error, Query, Result};
 
 /// Blocks and their published prices, held by the blocks' pin.
@@ -11,12 +13,17 @@ pub struct ResolvedBlocksV1 {
     blocks: ResolvedBlocks,
     /// In ascending height order, reused when building descending rows.
     prices: Vec<Dollars>,
+    stale: Arc<StaleBlocks>,
 }
 
 /// Identifies extended rows by exactly the values their bodies use beyond the anchor's chain:
 /// the prices, so a deploy changing them (oracle configs, price tapes) never validates an older
-/// body.
-pub(crate) fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha256::Hash {
+/// body, and the stale blocks they list.
+pub(crate) fn blocks_v1_identity<'a>(
+    anchor: Option<BlockHash>,
+    prices: &[Dollars],
+    orphans: impl Iterator<Item = &'a BlockOrphan>,
+) -> sha256::Hash {
     let mut engine = sha256::Hash::engine();
     engine.input(&[u8::from(anchor.is_some())]);
     if let Some(hash) = anchor {
@@ -25,16 +32,27 @@ pub(crate) fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) 
     for price in prices {
         engine.input(&f64::from(*price).to_bits().to_le_bytes());
     }
+    for orphan in orphans {
+        engine.input(&u32::from(orphan.height).to_le_bytes());
+        engine.input(&*orphan.hash);
+        engine.input(&orphan.branchlen.to_le_bytes());
+        engine.input(&[orphan.status as u8]);
+        engine.input(&*orphan.prevhash);
+    }
     sha256::Hash::from_engine(engine)
 }
 
 impl ResolvedBlocksV1 {
-    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>) -> Result<Self> {
+    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>, stale: Arc<StaleBlocks>) -> Result<Self> {
         let (begin, end) = blocks.range();
         if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
         }
-        Ok(Self { blocks, prices })
+        Ok(Self {
+            blocks,
+            prices,
+            stale,
+        })
     }
 
     pub fn anchor(&self) -> Option<BlockHash> {
@@ -49,15 +67,17 @@ impl ResolvedBlocksV1 {
         self.blocks.is_settled()
     }
 
-    /// Identifies the rows: their chain's anchor and their prices.
+    /// Identifies the rows: their chain's anchor, their prices and the stale blocks they list.
     pub fn identity(&self) -> sha256::Hash {
-        blocks_v1_identity(self.anchor(), &self.prices)
+        let (begin, end) = self.blocks.range();
+        let orphans = (begin..end).flat_map(|height| self.stale.at(Height::from(height)));
+        blocks_v1_identity(self.anchor(), &self.prices, orphans)
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
         let (begin, end) = self.blocks.range();
         let pin = self.blocks.read_pin(query);
-        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices)?;
+        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices, self.stale)?;
         drop(pin);
         drop(self.blocks);
         build()
@@ -102,7 +122,7 @@ impl Query {
                 }
                 prices.into_iter().map(Dollars::from).collect()
             };
-        ResolvedBlocksV1::new(blocks, prices).map(Some)
+        ResolvedBlocksV1::new(blocks, prices, self.stale_blocks()).map(Some)
     }
 
     /// Resolve on a worker without materializing or retaining the price history.
@@ -130,7 +150,7 @@ impl Query {
             .cents
             .height
             .for_each_range_dyn_at(begin, end, &mut |cents| prices.push(Dollars::from(cents)));
-        ResolvedBlocksV1::new(blocks, prices)
+        ResolvedBlocksV1::new(blocks, prices, self.stale_blocks())
     }
 }
 
@@ -142,6 +162,7 @@ impl ResolvedBlocks {
         query: &Query,
         heights: &[Height],
         prices: &[Dollars],
+        stale: Arc<StaleBlocks>,
     ) -> Result<Vec<BlockInfoV1>> {
         let pin = self.read_pin(query);
         debug_assert_eq!(heights.len(), prices.len());
@@ -161,6 +182,7 @@ impl ResolvedBlocks {
                 heights[begin].to_usize() + 1,
                 &pin,
                 ascending_prices,
+                stale.clone(),
             )?);
             begin = end;
         }

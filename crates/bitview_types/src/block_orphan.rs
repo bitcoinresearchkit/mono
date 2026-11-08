@@ -2,7 +2,7 @@ use brk_types::{BlockHash, Height};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+/// A stale block at a height of the best chain: a block of a fork the node knows (bitcoind's
 /// `getchaintips`), as mempool.space lists it.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BlockOrphan {
@@ -16,16 +16,12 @@ pub struct BlockOrphan {
     pub prevhash: BlockHash,
 }
 
-/// How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
-/// `active`).
+/// How far the node validated a fork (bitcoind's `getchaintips` statuses for the forks it holds
+/// as valid).
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum BlockOrphanStatus {
-    /// The branch holds at least one invalid block
-    Invalid,
-    /// Not all of the branch's blocks are available, and its headers are not validated
-    HeadersOnly,
-    /// All of the branch's headers are valid, but not all of its blocks are available
+    /// All of the branch's blocks are available, but they were never fully validated
     ValidHeaders,
     /// The branch is fully validated but not part of the best chain
     ValidFork,

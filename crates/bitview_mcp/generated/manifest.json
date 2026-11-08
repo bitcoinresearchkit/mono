@@ -4119,14 +4119,6 @@
             "BlockOrphanStatus": {
               "oneOf": [
                 {
-                  "const": "invalid",
-                  "type": "string"
-                },
-                {
-                  "const": "headers-only",
-                  "type": "string"
-                },
-                {
                   "const": "valid-headers",
                   "type": "string"
                 },
@@ -5087,14 +5079,6 @@
             "BlockOrphanStatus": {
               "oneOf": [
                 {
-                  "const": "invalid",
-                  "type": "string"
-                },
-                {
-                  "const": "headers-only",
-                  "type": "string"
-                },
-                {
                   "const": "valid-headers",
                   "type": "string"
                 },
@@ -5764,14 +5748,6 @@
             },
             "BlockOrphanStatus": {
               "oneOf": [
-                {
-                  "const": "invalid",
-                  "type": "string"
-                },
-                {
-                  "const": "headers-only",
-                  "type": "string"
-                },
                 {
                   "const": "valid-headers",
                   "type": "string"
@@ -8504,14 +8480,6 @@
             "BlockOrphanStatus": {
               "oneOf": [
                 {
-                  "const": "invalid",
-                  "type": "string"
-                },
-                {
-                  "const": "headers-only",
-                  "type": "string"
-                },
-                {
                   "const": "valid-headers",
                   "type": "string"
                 },
@@ -9364,14 +9332,6 @@
             },
             "BlockOrphanStatus": {
               "oneOf": [
-                {
-                  "const": "invalid",
-                  "type": "string"
-                },
-                {
-                  "const": "headers-only",
-                  "type": "string"
-                },
                 {
                   "const": "valid-headers",
                   "type": "string"

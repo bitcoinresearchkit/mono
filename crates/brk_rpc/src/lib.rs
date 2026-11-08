@@ -13,4 +13,4 @@ mod rpc_response;
 pub use auth::Auth;
 pub use block_template_tx::BlockTemplateTx;
 pub use connect_args::ConnectArgs;
-pub use rpc_client::{BlockSpends, Client, GetBlockHeaderVerbose, MempoolState};
+pub use rpc_client::{BlockSpends, Client, GetBlockHeaderVerbose, GetChainTip, MempoolState};

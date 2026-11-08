@@ -293,9 +293,9 @@ Boolean = bool
 # Position of a transaction within a single block (0 = coinbase).
 # Distinct from `TxIndex`, which is the chain-wide global tx index.
 BlockTxIndex = int
-# How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
-# `active`).
-BlockOrphanStatus = Union[Literal["invalid"], Literal["headers-only"], Literal["valid-headers"], Literal["valid-fork"]]
+# How far the node validated a fork (bitcoind's `getchaintips` statuses for the forks it holds
+# as valid).
+BlockOrphanStatus = Union[Literal["valid-headers"], Literal["valid-fork"]]
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
@@ -1268,7 +1268,7 @@ class BlockStatus(_BlockStatusRequired, total=False):
 
 class BlockOrphan(TypedDict):
     """
-    A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+    A stale block at a height of the best chain: a block of a fork the node knows (bitcoind's
     `getchaintips`), as mempool.space lists it.
 
     Attributes:
@@ -1658,7 +1658,7 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         virtualSize: Virtual size in vbytes: weight / 4, unrounded
         coinbaseBip54: Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
         firstSeen: Timestamp when the block was first seen (always null, not yet supported)
-        orphans: Stale blocks at this height (always empty, not yet supported)
+        orphans: Stale blocks at this height the server's node knows, each server's own
         matchRate: Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
         expectedFees: Fees of the expected block template (always null: it needs the mempool as it was)
         expectedWeight: Weight of the expected block template (always null: it needs the mempool as it was)

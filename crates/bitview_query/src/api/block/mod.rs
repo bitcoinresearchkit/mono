@@ -11,6 +11,7 @@ pub mod info;
 pub mod range;
 pub mod range_v1;
 pub mod raw;
+mod stale;
 pub mod status;
 pub mod timestamp;
 pub mod txs;
@@ -18,6 +19,7 @@ pub mod txs;
 pub use range::ResolvedBlocks;
 pub(crate) use range_v1::blocks_v1_identity;
 pub use range_v1::ResolvedBlocksV1;
+pub(crate) use stale::StaleBlocks;
 pub use timestamp::ResolvedBlockTimestamp;
 
 impl Query {

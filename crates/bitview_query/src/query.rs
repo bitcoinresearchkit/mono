@@ -4,6 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(feature = "full-api")]
+use arc_swap::ArcSwap;
 #[cfg(feature = "series")]
 use arc_swap::ArcSwapOption;
 use bitview_plugin_indexer::Indexer;
@@ -21,7 +23,10 @@ use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 use crate::{Error, OptionData, QueryPluginSet, Result, plugins::QueryPlugins};
 #[cfg(feature = "full-api")]
-use crate::{PublicationCache, ReadPin, api::oracle::OracleChunks};
+use crate::{
+    PublicationCache, ReadPin,
+    api::{StaleBlocks, oracle::OracleChunks},
+};
 #[cfg(feature = "series")]
 use crate::{SeriesRegistry, pin::PublishedBounds};
 
@@ -39,6 +44,8 @@ pub(crate) struct QueryInner<'a> {
     pub(crate) live_oracle: PublicationCache<brk_oracle::Oracle>,
     #[cfg(feature = "full-api")]
     pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
+    #[cfg(feature = "full-api")]
+    pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,
@@ -87,6 +94,8 @@ impl Query {
                 live_oracle: Default::default(),
                 #[cfg(feature = "full-api")]
                 payment_chunks: Default::default(),
+                #[cfg(feature = "full-api")]
+                stale_blocks: Default::default(),
                 #[cfg(feature = "series")]
                 bounds: ArcSwapOption::empty(),
             }),

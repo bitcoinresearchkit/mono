@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::{io::Read, sync::Arc};
 
 use crate::{ReadPin, check_bound};
 use bitcoin::{
@@ -14,7 +14,7 @@ use brk_types::{
 };
 use vecdb::{ReadableVec, VecIndex};
 
-use super::{coinbase::Coinbase, header::HEADER_SIZE};
+use super::{StaleBlocks, coinbase::Coinbase, header::HEADER_SIZE};
 use crate::{Error, OptionData, Query, Result, api::mempool_fee_rate};
 
 impl Query {
@@ -77,6 +77,7 @@ impl Query {
         end: usize,
         pin: &ReadPin,
         prices: Vec<Dollars>,
+        stale: Arc<StaleBlocks>,
     ) -> Result<impl FnOnce() -> Result<Vec<BlockInfoV1>> + '_> {
         let columns = BlockColumns::capture(self, begin, end, pin.lengths())?;
         let (begin, count) = (columns.begin, columns.len());
@@ -311,7 +312,13 @@ impl Query {
                         coinbase_sequence,
                     ),
                     first_seen: None,
-                    orphans: vec![],
+                    // Until the list's next read, a reorg can leave a row's own block on it.
+                    orphans: stale
+                        .at(info.height)
+                        .iter()
+                        .filter(|orphan| orphan.hash != id)
+                        .cloned()
+                        .collect(),
                     match_rate: None,
                     expected_fees: None,
                     expected_weight: None,

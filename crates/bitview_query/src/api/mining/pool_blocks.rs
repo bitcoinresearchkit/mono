@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
 use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_primitives::PoolSlug;
 use bitview_types::BlockInfoV1;
 use brk_types::{BlockHash, Dollars, Height};
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, ResolvedBlocks, Result, api::block::blocks_v1_identity};
+use crate::{
+    Error, OptionData, Query, ResolvedBlocks, Result,
+    api::{StaleBlocks, block::blocks_v1_identity},
+};
 
 /// A pool-block page resolved against one exact published chain view.
 pub struct ResolvedPoolBlocks {
@@ -13,14 +18,17 @@ pub struct ResolvedPoolBlocks {
     /// In the same descending order as the heights.
     prices: Vec<Dollars>,
     activity_anchor: Option<BlockHash>,
+    stale: Arc<StaleBlocks>,
 }
 
 impl ResolvedPoolBlocks {
     /// Identifies the page: the extended rows' identity at the pool's last activity, and the
     /// selected heights, as a reclassification can change older rows at the same anchor.
     pub fn identity(&self) -> sha256::Hash {
+        let orphans = self.heights.iter().flat_map(|height| self.stale.at(*height));
+        let rows = blocks_v1_identity(self.activity_anchor, &self.prices, orphans);
         let mut engine = sha256::Hash::engine();
-        engine.input(blocks_v1_identity(self.activity_anchor, &self.prices).as_byte_array());
+        engine.input(rows.as_byte_array());
         for height in &self.heights {
             engine.input(&u32::from(*height).to_le_bytes());
         }
@@ -78,6 +86,7 @@ impl Query {
             heights,
             prices,
             activity_anchor,
+            stale: self.stale_blocks(),
         })
     }
 
@@ -87,8 +96,9 @@ impl Query {
             chain,
             heights,
             prices,
+            stale,
             ..
         } = resolved;
-        chain.build_v1_heights(self, &heights, &prices)
+        chain.build_v1_heights(self, &heights, &prices, stale)
     }
 }

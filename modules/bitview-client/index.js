@@ -171,7 +171,7 @@
  * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
  *   sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
- * @property {BlockOrphan[]} orphans - Stale blocks at this height (always empty, not yet supported)
+ * @property {BlockOrphan[]} orphans - Stale blocks at this height the server's node knows, each server's own
  * @property {?number=} matchRate - Share of the expected block template the block matched, from mempool.space's own audits
  *   (always null: it needs the mempool as it was)
  * @property {(Sats|null)=} expectedFees - Fees of the expected block template (always null: it needs the mempool as it was)
@@ -263,7 +263,7 @@
  * @property {BlockExtras} extras
  */
 /**
- * A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+ * A stale block at a height of the best chain: a block of a fork the node knows (bitcoind's
  * `getchaintips`), as mempool.space lists it.
  *
  * @typedef {Object} BlockOrphan
@@ -274,10 +274,10 @@
  * @property {BlockHash} prevhash - Hash of the block the stale block builds on
  */
 /**
- * How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
- * `active`).
+ * How far the node validated a fork (bitcoind's `getchaintips` statuses for the forks it holds
+ * as valid).
  *
- * @typedef {(("invalid")|("headers-only")|("valid-headers")|("valid-fork"))} BlockOrphanStatus
+ * @typedef {(("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
  * @typedef {Object} BlockPool
