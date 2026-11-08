@@ -49,7 +49,7 @@
         /* (Deep enough on the paper to be read as small text, 4.5:1 and more: the chapters' numbers, a pressed button.) */
         --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
         --gain: light-dark(#0a7d3e, #6ef096);
-        --loss: light-dark(#c02c27, #ff6a5c);
+        --loss: light-dark(#b92924, #ff6a5c);
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
@@ -215,7 +215,8 @@
         }
 
         .when {
-          color: var(--faint);
+          /* (A step toward --soft: over the evidence's warm cells the plain --faint falls just short of 4.5:1.) */
+          color: color-mix(in srgb, var(--faint), var(--soft) 40%);
         }
       }
 
@@ -388,6 +389,8 @@
         }
 
         span {
+          /* (A step toward --ink: the arrow's nudge carries it over the brighter cells.) */
+          color: color-mix(in srgb, var(--soft), var(--ink) 25%);
           animation: nudge 2.4s ease-in-out infinite;
 
           @media (prefers-reduced-motion: reduce) {

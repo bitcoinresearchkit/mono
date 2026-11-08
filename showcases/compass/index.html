@@ -573,12 +573,12 @@
           color: var(--ink);
         }
 
-        /* (A finger's reach, unseen, short of the buttons' over it.) */
+        /* (A finger's 44px, unseen: 8px up, short of the buttons' over it, and 12px down.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
             position: absolute;
-            inset: -6px 0 -10px;
+            inset: -8px 0 -12px;
           }
         }
       }
@@ -631,10 +631,12 @@
         }
 
         @media (pointer: coarse) {
+          /* (Its border is outside the box the inset counts from: 5px beyond the border box above, short of the
+             slider, and 7px under it, 3px of them into the top of the legend's line, which is empty: 44px in all.) */
           &::before {
             content: "";
             position: absolute;
-            inset: -6px 0;
+            inset: -6px 0 -8px;
           }
 
           /* (Its border is outside the box the inset counts from: 6px beyond it.) */
@@ -1279,14 +1281,8 @@
               cursor: default;
             }
 
-            /* (A finger's 44px, unseen.) */
-            @media (pointer: coarse) {
-              &::before {
-                content: "";
-                position: absolute;
-                inset: -14px -6px;
-              }
-            }
+            /* (No unseen reach: the lines are 20.8px apart, so a reach over them would sit on the buttons and words wrapped
+               over and under.) */
           }
 
         }

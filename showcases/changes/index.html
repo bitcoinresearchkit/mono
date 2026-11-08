@@ -169,12 +169,19 @@
         white-space: nowrap;
 
         a {
+          position: relative;
           color: var(--soft);
           font-weight: 500;
           text-decoration: none;
 
           &:hover {
             color: var(--ink);
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -12px 0;
           }
         }
       }
@@ -220,7 +227,7 @@
         .reach {
           display: none;
 
-          @media (width < 640px) {
+          @media (width < 640px), (pointer: coarse) {
             display: block;
             position: absolute;
             z-index: -1;
@@ -461,6 +468,17 @@
           max-width: 680px;
           margin: 4px 0 0;
           color: var(--soft);
+
+          /* (A link alone in its paragraph, as a release's "View changes": a thumb's reach, unseen, in the room around it.) */
+          > a:only-child {
+            position: relative;
+
+            &::after {
+              content: "";
+              position: absolute;
+              inset: -5px 0 -24px;
+            }
+          }
         }
 
         h3 {

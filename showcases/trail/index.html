@@ -214,6 +214,14 @@
         right: 28px;
       }
 
+      /* (A portrait phone turns the stage, so its right edge is the screen's bottom, where the 2D/3D toggle stays: the credit
+         ends above it. On the screen that's the toggle's height and a gap, so in the stage it's that over the stage's scale.) */
+      @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+        .topbar.is-2d #source-credit {
+          right: calc(28px + (34px + env(safe-area-inset-bottom)) / var(--stage-scale));
+        }
+      }
+
       #source-credit .credit-copy {
         opacity: 0.66;
       }
@@ -323,6 +331,13 @@
 
       .profitability-item.loss output {
         color: #ff5f53;
+      }
+
+      /* (Unrealized P&L paints its terrain in teals, which the loss figure sits over: a paler red there, 4.5:1 on them.) */
+      body:has(#metric option[value="unrealized_pnl"]:checked)
+        .profitability-item.loss
+        output {
+        color: #ff8e82;
       }
 
       .selectors {

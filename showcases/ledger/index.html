@@ -150,6 +150,9 @@
         justify-content: end;
         gap: 8px;
       }
+      .day {
+        display: flex;
+      }
       .go button,
       .go input {
         height: 32px;
@@ -568,9 +571,11 @@
         .brand span {
           display: none;
         }
-        .go input {
+        .go .day {
           display: none;
         }
+      }
+      @media (width < 640px), (pointer: coarse) {
         .brand,
         .go button {
           position: relative;
@@ -586,6 +591,10 @@
           position: absolute;
           inset: -6px 0;
         }
+        .go .day {
+          padding: 6px 0;
+          margin: -6px 0;
+        }
         input[type="range"] {
           position: relative;
           z-index: 1;
@@ -600,7 +609,7 @@
       <a class="brand" href="/" aria-label="Bitview"><img src="/assets/logo/logo.svg" alt="" /><span>Bitview</span></a>
       <span class="where" id="where" aria-live="polite"></span>
       <div class="go">
-        <input id="day" type="date" aria-label="Open a day" />
+        <label class="day"><input id="day" type="date" aria-label="Open a day" /></label>
         <button id="today" type="button">Today</button>
       </div>
     </header>

@@ -529,6 +529,17 @@
           &:hover b {
             color: var(--accent-ink);
           }
+
+          /* (For fingers, its reach a finger's, unseen: up into the tile's padding and down into the room above what's in it.) */
+          @media (pointer: coarse) {
+            position: relative;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -14px 0 -8px;
+            }
+          }
         }
 
         b {
@@ -620,6 +631,21 @@
 
         button:hover {
           color: var(--ink);
+        }
+
+        /* (For fingers, each crumb's reach a finger's, unseen: up and down; wrapped rows far enough apart for it.) */
+        @media (pointer: coarse) {
+          row-gap: 20px;
+
+          button {
+            position: relative;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -10px 0;
+            }
+          }
         }
       }
 
@@ -1050,6 +1076,17 @@
 
             &:hover {
               text-decoration-color: currentColor;
+            }
+
+            /* (For fingers, its reach a finger's, unseen: up and down.) */
+            @media (pointer: coarse) {
+              position: relative;
+
+              &::before {
+                content: "";
+                position: absolute;
+                inset: -12px 0;
+              }
             }
           }
         }

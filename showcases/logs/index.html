@@ -660,8 +660,11 @@
           background: var(--raise);
           color: var(--soft);
 
-          &:hover {
-            color: var(--ink);
+          /* (Only where something hovers: a touch screen keeps its last tap "hovering", and the close's reach would catch it.) */
+          @media (hover: hover) {
+            &:hover {
+              color: var(--ink);
+            }
           }
 
           svg {
@@ -768,6 +771,19 @@
 
           .close {
             display: grid;
+          }
+
+          /* (A finger's reach, unseen: 44px square around the 32px circle, into the room beside it.) */
+          @media (pointer: coarse) {
+            .close {
+              position: relative;
+
+              &::before {
+                content: "";
+                position: absolute;
+                inset: -6px;
+              }
+            }
           }
         }
 
@@ -1019,7 +1035,7 @@
       }
 
       /* (The search a finger tall without growing: a label behind the field, unseen, so a tap on the bar around it lands in it.) */
-      @media (pointer: coarse) and (max-width: 760px) {
+      @media (pointer: coarse) {
         .search .reach {
           display: block;
           position: absolute;
@@ -1028,6 +1044,14 @@
           top: 50%;
           height: 44px;
           translate: 0 -50%;
+        }
+      }
+
+      /* (Wider than a phone the bar isn't sticky: it holds the label's reach itself.) */
+      @media (pointer: coarse) and (min-width: 761px) {
+        .search {
+          position: relative;
+          z-index: 0;
         }
       }
 

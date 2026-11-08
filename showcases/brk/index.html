@@ -166,7 +166,7 @@
         top: 0;
         z-index: 5;
         border-bottom: 1px solid var(--hair);
-        background: color-mix(in oklab, var(--app), transparent 12%);
+        background: color-mix(in oklab, var(--app), transparent 8%);
         backdrop-filter: blur(12px);
 
         nav {
@@ -584,9 +584,9 @@
           visibility: hidden;
         }
       }
-      /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
+      /* (A finger's reach, unseen: the bar's and the foot's links, the support crates' names, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
          around them, never over a neighbour.) */
-      :is(.bar a, .button, button[data-copy], footer a) {
+      :is(.bar a, .button, button[data-copy], footer a, .support dt a) {
         position: relative;
 
         /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */

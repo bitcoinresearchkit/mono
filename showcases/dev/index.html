@@ -630,7 +630,6 @@
 
       /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       .code {
-        overflow: hidden;
         margin: 22px 0 0;
         border: 1px solid var(--rule);
         border-radius: 10px;
@@ -639,6 +638,7 @@
         pre {
           overflow-x: auto;
           margin: 0;
+          border-radius: 9px;
           padding: 16px 18px;
           font: 13px/1.65 var(--mono);
         }

@@ -255,6 +255,11 @@
         }
       }
       @media (hover: none) {
+        /* A finger's reach around the brand, unseen (the narrow bar's own, below, is wider). */
+        .brand {
+          padding: 11px 0;
+          margin: -11px 0;
+        }
         .find kbd {
           display: none;
         }
@@ -635,6 +640,16 @@
         a:hover text {
           text-decoration: underline;
         }
+        /* A finger's reach around each link, unseen, on touch only. */
+        .grip {
+          fill: transparent;
+          pointer-events: none;
+        }
+        @media (hover: none) {
+          .grip {
+            pointer-events: fill;
+          }
+        }
       }
       .sides {
         display: grid;
@@ -670,6 +685,23 @@
         }
         a.addr:hover {
           text-decoration: underline;
+        }
+        /* Reach for the links, unseen: the row's own padding, up for the address, down for the line under it. */
+        a.addr {
+          padding-top: 12px;
+          margin-top: -12px;
+        }
+        small {
+          padding: 2px 0 12px;
+          margin: -2px 0 -12px;
+        }
+        small a {
+          position: relative;
+        }
+        small a::before {
+          content: "";
+          position: absolute;
+          inset: -2px 0 -12px;
         }
         .val {
           font-weight: 500;
@@ -2824,18 +2856,18 @@
           yo += h + sOut.gap;
           to += th;
         }
-        const label = (x, yy, anchor, first, second, href) => {
+        const label = (x, yy, anchor, first, second, href, reach) => {
           const text = `<text x="${x}" y="${yy - 2}" text-anchor="${anchor}">${first}</text><text class="sub-text" x="${x}" y="${yy + 13}" text-anchor="${anchor}">${second}</text>`;
-          return href ? `<a href="${href}" aria-label="${first} ${second.replace(/<[^>]*>/g, "")}">${text}</a>` : text;
+          return href ? `<a href="${href}" data-reach="${reach}" aria-label="${first} ${second.replace(/<[^>]*>/g, "")}">${text}</a>` : text;
         };
         // As many labels as fit a side, a label apart: its first coins and its last (the folded rest, the fee).
         const room = Math.max(2, Math.floor((H - 18 - (top + 10)) / LABEL) + 1);
         const labelled = (mids, tail) => {
           const keep = mids.length <= room ? mids.map((_, i) => i) : [...Array(room - tail).keys(), ...mids.map((_, i) => i).slice(-tail)];
           const at = spread(keep.map((i) => mids[i]), LABEL, top + 10, H - 18);
-          return keep.map((i, k) => [i, at[k]]);
+          return keep.map((i, k) => [i, at[k], k ? Math.min(22, (at[k] - at[k - 1]) / 2) : 22, k < keep.length - 1 ? Math.min(22, (at[k + 1] - at[k]) / 2) : 22]);
         };
-        for (const [i, y] of labelled(inMid, 1)) {
+        for (const [i, y, up, down] of labelled(inMid, 1)) {
           const c = ins[i];
           const second = c.coinbase
             ? "new coins"
@@ -2844,18 +2876,32 @@
               : c.pnl !== undefined && !c.unconfirmed
                 ? `<tspan style="fill:var(--${c.pnl >= 0 ? "profit" : "loss"})">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
                 : esc(short(c.address ?? c.type, 5));
-          parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? url.tx(c.from) : null));
+          parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? url.tx(c.from) : null, `${up},${down}`));
         }
-        for (const [i, y] of labelled(outMid, t.tx.fee ? 2 : 1)) {
+        for (const [i, y, up, down] of labelled(outMid, t.tx.fee ? 2 : 1)) {
           const o = outs[i];
           const second = o.fee ? (narrow ? "fee" : "fee, to the miner") : o.rest ? `and ${int(o.rest)} more` : esc(short(o.address ?? (o.type === "op_return" ? "OP_RETURN" : o.type), 5));
-          parts.push(label(R + 14, y, "start", btc(o.value), second, o.address && !o.rest ? url.address(o.address) : null));
+          parts.push(label(R + 14, y, "start", btc(o.value), second, o.address && !o.rest ? url.address(o.address) : null, `${up},${down}`));
         }
         const defs = [...fades].map(
           ([color, id]) =>
             `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${L}" x2="${R}" y1="0" y2="0"><stop offset="0" style="stop-color:${color}" stop-opacity="0.95"/><stop offset="0.5" style="stop-color:${color}" stop-opacity="0.5"/><stop offset="1" style="stop-color:${color}" stop-opacity="0.32"/></linearGradient>`,
         );
         svg.innerHTML = `<defs>${defs.join("")}</defs>${parts.join("")}`;
+        // Each link's reach: a clear rectangle around its text, up and down as far as its neighbour allows (44px at most).
+        for (const a of svg.querySelectorAll("a[data-reach]")) {
+          const [up, down] = a.dataset.reach.split(",").map(Number);
+          const b = a.getBBox();
+          if (!b.width) continue;
+          const w = Math.max(44, b.width);
+          const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          r.setAttribute("class", "grip");
+          r.setAttribute("x", b.x - (w - b.width) / 2);
+          r.setAttribute("y", b.y + b.height / 2 - up);
+          r.setAttribute("width", w);
+          r.setAttribute("height", up + down);
+          a.prepend(r);
+        }
       }
 
       // ---------------------------------------------------------------- An address: what it holds on the left, its
