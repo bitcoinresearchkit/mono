@@ -9676,13 +9676,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Tweak index
    *
-   * The tweaks of a block's eligible transactions with a Taproot output of at least 1,000 sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 1,000 (BlindBit's is optional, and 0 by default). Every limit gets this same list.
+   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 600, the least value held (BlindBit's is optional, and 0 by default).
    *
    * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
    *
    * @param {Height} height
-   * @param {number} dustLimit - The wallet's dust limit in sats, at least 1,000, the least value held. Every limit gets the
-   *   same list, so one above 1,000 can list more than it asks for.
+   * @param {number} dustLimit - Least value in sats of a Taproot output for its transaction to be listed: at least 600,
+   *   the least value held.
    * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Frozen<Tweak[]>>}
    */
@@ -9697,13 +9697,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Cut-through tweaks
    *
-   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
    *
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
-   * @param {number} dustLimit - The wallet's dust limit in sats, at least 1,000, the least value held. Every limit gets the
-   *   same list, so one above 1,000 can list more than it asks for.
+   * @param {number} dustLimit - Least value in sats of a Taproot output for its transaction to be listed: at least 600,
+   *   the least value held.
    * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Frozen<Tweak[]>>}
    */

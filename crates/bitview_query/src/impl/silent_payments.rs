@@ -217,15 +217,30 @@ impl Query {
         })
     }
 
-    /// The tweaks of the block's eligible transactions: those the plugin keeps, with a Taproot
-    /// output holding at least the dust floor.
-    pub fn blindbit_tweak_index(&self, block: &BlindbitBlock) -> Result<Vec<Tweak>> {
-        self.blindbit_tweaks_where(self.blindbit_rows(block)?, |_| true)
+    /// The tweaks of the block's eligible transactions with a Taproot output holding at least
+    /// `dust_limit`, no less than the dust floor (the plugin keeps none below it).
+    pub fn blindbit_tweak_index(
+        &self,
+        block: &BlindbitBlock,
+        dust_limit: Sats,
+    ) -> Result<Vec<Tweak>> {
+        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
+        let rows = self.blindbit_rows(block)?;
+        if dust_limit == DUST_FLOOR || rows.is_empty() {
+            return self.blindbit_tweaks_where(rows, |_| true);
+        }
+        let outputs = self.blindbit_outputs(block)?;
+        self.blindbit_tweaks_where(rows, |tx| {
+            outputs
+                .taproot(tx)
+                .any(|(_, output)| outputs.values[output] >= dust_limit)
+        })
     }
 
     /// Cut-through: the tweaks of the block's eligible transactions with an unspent Taproot output
-    /// holding at least the dust floor, as of the block's publication.
-    pub fn blindbit_tweaks(&self, block: &BlindbitBlock) -> Result<Vec<Tweak>> {
+    /// holding at least `dust_limit`, no less than the dust floor, as of the block's publication.
+    pub fn blindbit_tweaks(&self, block: &BlindbitBlock, dust_limit: Sats) -> Result<Vec<Tweak>> {
+        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
         let rows = self.blindbit_rows(block)?;
         if rows.is_empty() {
             return Ok(Vec::new());
@@ -235,7 +250,7 @@ impl Query {
         self.blindbit_tweaks_where(rows, |tx| {
             outputs
                 .taproot(tx)
-                .any(|(_, output)| unspent[output] && outputs.values[output] >= DUST_FLOOR)
+                .any(|(_, output)| unspent[output] && outputs.values[output] >= dust_limit)
         })
     }
 

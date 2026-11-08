@@ -17,10 +17,10 @@ use crate::{
 pub const TAPROOT_ACTIVATION: usize = 709_632;
 
 /// The least a Taproot output holds for its transaction to be kept: one whose Taproot outputs all
-/// hold less (mostly inscription and rune postage, 330 to 999 sats) is left out everywhere. A kept
-/// transaction keeps all its Taproot outputs, whatever they hold: a wallet matches its outputs in
-/// order.
-pub const DUST_FLOOR: Sats = Sats::_1K;
+/// hold less (mostly inscription and rune postage) is left out everywhere. 600 is the limit Dana
+/// and Bull Bitcoin ask for, and sits above the many outputs of exactly 546. A kept transaction
+/// keeps all its Taproot outputs, whatever they hold: a wallet matches its outputs in order.
+pub const DUST_FLOOR: Sats = Sats::new(600);
 
 /// An eligible transaction.
 pub struct Eligible {

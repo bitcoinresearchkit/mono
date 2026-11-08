@@ -26,7 +26,7 @@ use brk_types::{Height, TweakX, TxIndex, Version};
 use vecdb::{AnyStoredVec, BytesVec, Database, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
-    PluginStorage::new(PluginId::new("silent_payments"), Version::new(6));
+    PluginStorage::new(PluginId::new("silent_payments"), Version::new(7));
 pub const ID: PluginId = STORAGE.id();
 
 /// BIP352 silent payments: every eligible transaction since Taproot's activation with a Taproot

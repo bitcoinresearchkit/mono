@@ -143,9 +143,8 @@ const TAGS: [(&str, &str); 13] = [
         eligible transactions, BIP158 filters of its new Taproot outputs and of its spends of \
         Taproot outputs, its eligible transactions' Taproot outputs and its spent index. \
         Precomputed: no curve math per request.\n\n\
-        Transactions whose Taproot outputs all hold less than 1,000 sats are left out \
-        (inscription and rune postage, mostly), so `dustLimit` must be at least 1,000. Every \
-        limit gets the same answer.",
+        Transactions whose Taproot outputs all hold less than 600 sats are left out \
+        (inscription and rune postage, mostly), so `dustLimit` must be at least 600.",
     ),
 ];
 

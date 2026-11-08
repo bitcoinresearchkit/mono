@@ -207,14 +207,14 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        Path(path): Path<HeightParam>,
                        QueryParams(query): QueryParams<DustLimitQuery>,
                        RequestState(state): RequestState| {
-                    query.check()?;
+                    let dust_limit = query.limit()?;
                     state
                         .respond_blindbit(
                             headers,
                             path.height,
-                            "tweak-index".into(),
+                            format!("tweak-index-{dust_limit}"),
                             Lifetime::Block,
-                            |q, block| q.blindbit_tweak_index(block),
+                            move |q, block| q.blindbit_tweak_index(block, dust_limit),
                         )
                         .await
                 },
@@ -223,7 +223,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Tweak index")
-                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least 1,000 sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 1,000 (BlindBit's is optional, and 0 by default). Every limit gets this same list.")
+                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required and must be at least 600, the least value held (BlindBit's is optional, and 0 by default).")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()
@@ -237,14 +237,14 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        Path(path): Path<HeightParam>,
                        QueryParams(query): QueryParams<DustLimitQuery>,
                        RequestState(state): RequestState| {
-                    query.check()?;
+                    let dust_limit = query.limit()?;
                     state
                         .respond_blindbit(
                             headers,
                             path.height,
-                            "tweaks".into(),
+                            format!("tweaks-{dust_limit}"),
                             Lifetime::Spends,
-                            |q, block| q.blindbit_tweaks(block),
+                            move |q, block| q.blindbit_tweaks(block, dust_limit),
                         )
                         .await
                 },
@@ -253,7 +253,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Cut-through tweaks")
-                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least 1,000 sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.")
+                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()
