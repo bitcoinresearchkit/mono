@@ -208,10 +208,15 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.arg);
                 if matches!(param.ty, Ty::List(_)) {
+                    let values = if param.required {
+                        safe_name.to_string()
+                    } else {
+                        format!("({safe_name} or [])")
+                    };
                     writeln!(
                         output,
-                        "        for _v in {}: params.append(('{}', _v))",
-                        safe_name, param.name
+                        "        for _v in {values}: params.append(('{}', _v))",
+                        param.name
                     )
                     .unwrap();
                 } else if param.required {

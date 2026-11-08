@@ -210,9 +210,14 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
         };
         if list {
             let v = value("v");
+            let values = if param.required {
+                ident.to_string()
+            } else {
+                format!("{ident}.into_iter().flatten()")
+            };
             writeln!(
                 output,
-                "        for v in {ident} {{ query.push(query_pair(\"{name}\", {v})); }}"
+                "        for v in {values} {{ query.push(query_pair(\"{name}\", {v})); }}"
             )
             .unwrap();
         } else if param.required {
