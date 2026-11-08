@@ -1771,7 +1771,7 @@ pub mod tree {
         terrapool: Pool = "*_terrapool",
         luxor: Pool = "*_luxor",
         _1thash: Pool = "*_1thash",
-        btccom: Pool = "*_btccom",
+        cloverpool: Pool = "*_cloverpool",
         bitfarms: Pool = "*_bitfarms",
         huobipool: Pool = "*_huobipool",
         wayicn: Pool = "*_wayicn",
@@ -1931,6 +1931,7 @@ pub mod tree {
         solopoolcom: Pool = "*_solopoolcom",
         noderunners: Pool = "*_noderunners",
         dmnd: Pool = "*_dmnd",
+        trustpool: Pool = "*_trustpool",
     } }
     shape! { Blocks at "series().blocks" {
         count: CumulativeFlow = "*_count",

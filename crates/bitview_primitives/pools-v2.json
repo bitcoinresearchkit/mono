@@ -65,7 +65,7 @@
   },
   {
     "id": 6,
-    "name": "BTC.com",
+    "name": "CloverPool",
     "addresses": [
       "1Bf9sZvBHPFGVPX71WX2njhd1NXKv5y7v5",
       "34qkc2iac6RsyxZVfyE2S5U5WcRsbg2dpK",
@@ -76,9 +76,10 @@
     "tags": [
       "/BTC.COM/",
       "/BTC.com/",
-      "btccom"
+      "btccom",
+      "cloverpool"
     ],
-    "link": "https://pool.btc.com"
+    "link": "https://cloverpool.com"
   },
   {
     "id": 7,
@@ -1836,5 +1837,12 @@
     "addresses": [],
     "tags": ["/DMND/"],
     "link": "https://www.dmnd.work/"
+  },
+  {
+    "id": 172,
+    "name": "TrustPool",
+    "addresses": [],
+    "tags": ["/trustpool/"],
+    "link": "https://trustpool.cc"
   }
 ]

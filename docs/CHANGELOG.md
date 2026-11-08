@@ -10,6 +10,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- Pools follow mempool's current `pools-v2.json`: BTC.com is CloverPool (pool 6: slug `cloverpool`, was `btccom`, in
+  `/api/v1/mining/pool/{slug}`, the tree key `pools.cloverpool` and series ids `pool_cloverpool_*`, were
+  `pool_btccom_*`), and TrustPool is pool 172 (`trustpool`), both with their logos. Blocks are attributed to pools again
+  (`POOL_ATTRIBUTION_VERSION` 4)
 - JavaScript client: a value the memory cache holds (`memCache`, on by default) is shared by every caller of its URL
   and now frozen deeply, so one caller changing it can't change the others' answers, and typed so (`Frozen<…>`,
   readonly all the way down, on every GET method's JSON answer, `getJson<T>` and series data; `any` and `unknown` stay
@@ -137,7 +141,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   kept 16 bits, so two outputs of one transaction to one address, 65,536 positions apart, would have shared a key;
   no transaction has that many outputs yet), and EPOBC's rule from v0.13.0 (no Taproot first input) applies to the whole history: it changed
   without a re-import, so blocks indexed before it kept the old rule
-- A reserved pool slug (`dummy146` and the 89 others no pool has) in `GET /api/v1/mining/pool/{slug}`,
+- A reserved pool slug (`dummy146` and the 88 others no pool has) in `GET /api/v1/mining/pool/{slug}`,
   `/hashrate` or `/blocks` answers 404 `unknown_pool`, as an unknown slug does: it read past the pool table and
   ended the server (release builds abort on a panic), or answered an empty pool for the testnet ids
 - The custom plugin example builds again: it forwards the idle warm-up to the default composition

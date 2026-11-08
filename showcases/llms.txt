@@ -1,6 +1,6 @@
 # Bitview
 
-> Free, open-source Bitcoin analytics API and block explorer. 21749 on-chain time-series and 107 API operations.
+> Free, open-source Bitcoin analytics API and block explorer. 21781 on-chain time-series and 107 API operations.
 
 ## API
 

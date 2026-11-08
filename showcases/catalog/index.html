@@ -1311,12 +1311,12 @@
         const amount = (/** @type {number} */ i) => ["sats", "btc"].includes(parts[i + 1]) || (parts[i + 1] === "to" && ["sats", "btc"].includes(parts[i + 3]));
         return parts.map((part, i) => (/^p[\d.]+$/.test(part) ? `${ordinalOf(part.slice(1))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
       };
-      /** Mining pools' names by their keys, as this server knows them ("btccom" "BTC.com"), once read (see below). */
+      /** Mining pools' names by their keys, as this server knows them ("cloverpool" "CloverPool"), once read (see below). */
       const poolNames = /** @type {Map<string, string>} */ (new Map());
       /** Whether anything's been drawn yet, and whether the last drawing had the pools' names (see render). */
       let drawn = false, drawnNamed = false;
       /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_p99_9" "…rarity 99.9th percentile"; a
-       * pool's by its name, "pool_btccom_hashrate_1m" "BTC.com hashrate 1 month". */
+       * pool's by its name, "pool_cloverpool_hashrate_1m" "CloverPool hashrate 1 month". */
       const humanize = (/** @type {string} */ name) => {
         const parts = name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean);
         const pool = parts[0] === "pool" ? poolNames.get(parts[1] ?? "") : undefined;

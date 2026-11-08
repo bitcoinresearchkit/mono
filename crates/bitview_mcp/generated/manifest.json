@@ -4201,7 +4201,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -4360,7 +4360,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -5168,7 +5169,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -5327,7 +5328,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -5845,7 +5847,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -6004,7 +6006,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -7437,7 +7440,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -7596,7 +7599,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ]
             }
           }
@@ -7748,7 +7752,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -7907,7 +7911,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             }
@@ -7960,7 +7965,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -8119,7 +8124,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ]
             }
           }
@@ -8580,7 +8586,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -8739,7 +8745,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -8819,7 +8826,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -8978,7 +8985,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ]
             }
           }
@@ -9439,7 +9447,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -9598,7 +9606,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -9668,7 +9677,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -9827,7 +9836,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ]
             }
           }
@@ -9945,7 +9955,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -10104,7 +10114,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             },
@@ -10280,7 +10291,7 @@
                 "terrapool",
                 "luxor",
                 "1thash",
-                "btccom",
+                "cloverpool",
                 "bitfarms",
                 "huobipool",
                 "wayicn",
@@ -10439,7 +10450,8 @@
                 "braiinssolo",
                 "solopoolcom",
                 "noderunners",
-                "dmnd"
+                "dmnd",
+                "trustpool"
               ],
               "type": "string"
             }

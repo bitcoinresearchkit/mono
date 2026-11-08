@@ -135,7 +135,7 @@ Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
 # A mining pool's identifier, as written in URLs.
-PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
+PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "cloverpool", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd", "trustpool"]
 # A percentage: a ratio times 100.
 Percent = float
 # Events per second.
@@ -4399,7 +4399,7 @@ class Pools(_Node):
     terrapool: Pool = _at(Pool, '*_terrapool')
     luxor: Pool = _at(Pool, '*_luxor')
     _1thash: Pool = _at(Pool, '*_1thash')
-    btccom: Pool = _at(Pool, '*_btccom')
+    cloverpool: Pool = _at(Pool, '*_cloverpool')
     bitfarms: Pool = _at(Pool, '*_bitfarms')
     huobipool: Pool = _at(Pool, '*_huobipool')
     wayicn: Pool = _at(Pool, '*_wayicn')
@@ -4559,6 +4559,7 @@ class Pools(_Node):
     solopoolcom: Pool = _at(Pool, '*_solopoolcom')
     noderunners: Pool = _at(Pool, '*_noderunners')
     dmnd: Pool = _at(Pool, '*_dmnd')
+    trustpool: Pool = _at(Pool, '*_trustpool')
 
 
 class Blocks(_Node):
@@ -5075,7 +5076,6 @@ class BitviewClient(BitviewClientBase):
       "braiinssolo": "Braiins Solo",
       "bravomining": "Bravo Mining",
       "btcc": "BTCC",
-      "btccom": "BTC.com",
       "btcdig": "BTCDig",
       "btcguild": "BTC Guild",
       "btclab": "BTCLab",
@@ -5092,6 +5092,7 @@ class BitviewClient(BitviewClientBase):
       "carbonnegative": "Carbon Negative",
       "ckpool": "CKPool",
       "cloudhashing": "CloudHashing",
+      "cloverpool": "CloverPool",
       "coinlab": "CoinLab",
       "cointerra": "Cointerra",
       "connectbtc": "ConnectBTC",
@@ -5192,6 +5193,7 @@ class BitviewClient(BitviewClientBase):
       "transactioncoinmining": "transactioncoinmining",
       "trickysbtcpool": "Tricky's BTC Pool",
       "triplemining": "TripleMining",
+      "trustpool": "TrustPool",
       "ultimuspool": "ULTIMUSPOOL",
       "unknown": "Unknown",
       "unomp": "UNOMP",

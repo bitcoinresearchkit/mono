@@ -12,7 +12,7 @@ use vecdb::Version;
 
 /// Increment when pool IDs, payout addresses, coinbase tags or the matching rule change.
 #[cfg(feature = "storage")]
-pub const POOL_ATTRIBUTION_VERSION: Version = Version::new(3);
+pub const POOL_ATTRIBUTION_VERSION: Version = Version::new(4);
 
 const JSON_DATA: &str = include_str!("../pools-v2.json");
 const TESTNET_IDS: &[u16] = &[145, 146, 149, 150, 156, 163];
