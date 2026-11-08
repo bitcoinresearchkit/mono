@@ -8,7 +8,7 @@
 
 > **IndexerFeature** = `object`
 
-Defined in: [modules/bitview-client/index.js:6882](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6882)
+Defined in: [modules/bitview-client/index.js:6970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6970)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6882](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Count`](Count.md)\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
 
 ### flag
 
-> **flag**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Boolean`](Boolean.md)\>
+> **flag**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Boolean`](Boolean.md)\>

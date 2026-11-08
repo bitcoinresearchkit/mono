@@ -8,7 +8,7 @@
 
 > **MeanComponents** = `object`
 
-Defined in: [modules/bitview-client/index.js:3018](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3018)
+Defined in: [modules/bitview-client/index.js:3104](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3104)
 
 ## Type Parameters
 

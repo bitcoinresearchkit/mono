@@ -8,7 +8,7 @@
 
 > **MappingsP2wsh** = `object`
 
-Defined in: [modules/bitview-client/index.js:6498](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6498)
+Defined in: [modules/bitview-client/index.js:6586](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6586)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6498](https://github.com/bitcoinres
 
 ### address
 
-> **address**: [`SeriesPattern34`](SeriesPattern34.md)\<[`Address`](Address.md)\>
+> **address**: [`SeriesPattern35`](SeriesPattern35.md)\<[`Address`](Address.md)\>
 
 ### identity
 
-> **identity**: [`SeriesPattern34`](SeriesPattern34.md)\<[`P2WSHAddressIndex`](P2WSHAddressIndex.md)\>
+> **identity**: [`SeriesPattern35`](SeriesPattern35.md)\<[`P2WSHAddressIndex`](P2WSHAddressIndex.md)\>

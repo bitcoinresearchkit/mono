@@ -8,7 +8,7 @@
 
 > **IndexerP2ms** = `object`
 
-Defined in: [modules/bitview-client/index.js:6604](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6604)
+Defined in: [modules/bitview-client/index.js:6692](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6692)
 
 ## Type Parameters
 
@@ -16,12 +16,12 @@ Defined in: [modules/bitview-client/index.js:6604](https://github.com/bitcoinres
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`P2MSOutputIndex`](P2MSOutputIndex.md)\>
+> **firstIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`P2MSOutputIndex`](P2MSOutputIndex.md)\>
 
 ### legacySigopCost
 
-> **legacySigopCost**: [`SeriesPattern27`](SeriesPattern27.md)\<[`SigOps`](SigOps.md)\>
+> **legacySigopCost**: [`SeriesPattern28`](SeriesPattern28.md)\<[`SigOps`](SigOps.md)\>
 
 ### txIndex
 
-> **txIndex**: [`SeriesPattern27`](SeriesPattern27.md)\<[`TxIndex`](TxIndex.md)\>
+> **txIndex**: [`SeriesPattern28`](SeriesPattern28.md)\<[`TxIndex`](TxIndex.md)\>

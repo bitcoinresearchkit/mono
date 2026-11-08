@@ -8,6 +8,6 @@
 
 > **OHLCDollars** = [`Dollars`](Dollars.md)[]
 
-Defined in: [modules/bitview-client/index.js:815](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L815)
+Defined in: [modules/bitview-client/index.js:880](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L880)
 
 ## Type Parameters

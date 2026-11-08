@@ -8,7 +8,7 @@
 
 > **FeesSeries** = `object`
 
-Defined in: [modules/bitview-client/index.js:4206](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4206)
+Defined in: [modules/bitview-client/index.js:4292](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4292)
 
 ## Type Parameters
 

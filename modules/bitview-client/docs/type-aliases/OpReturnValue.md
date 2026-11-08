@@ -8,7 +8,7 @@
 
 > **OpReturnValue** = `object`
 
-Defined in: [modules/bitview-client/index.js:4106](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4106)
+Defined in: [modules/bitview-client/index.js:4192](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4192)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:4106](https://github.com/bitcoinres
 
 ### btc
 
-> **btc**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Bitcoin`](Bitcoin.md) \| `null`\>
+> **btc**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Bitcoin`](Bitcoin.md) \| `null`\>
 
 ### usd
 
-> **usd**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **usd**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Dollars`](Dollars.md) \| `null`\>

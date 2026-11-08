@@ -8,7 +8,7 @@
 
 > **IndexerInputs** = `object`
 
-Defined in: [modules/bitview-client/index.js:6813](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6813)
+Defined in: [modules/bitview-client/index.js:6901](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6901)
 
 ## Type Parameters
 
@@ -16,28 +16,28 @@ Defined in: [modules/bitview-client/index.js:6813](https://github.com/bitcoinres
 
 ### firstTxinIndex
 
-> **firstTxinIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`TxInIndex`](TxInIndex-1.md)\>
+> **firstTxinIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxInIndex`](TxInIndex-1.md)\>
 
 ### outpoint
 
-> **outpoint**: [`SeriesPattern21`](SeriesPattern21.md)\<[`OutPoint`](../interfaces/OutPoint.md)\>
+> **outpoint**: [`SeriesPattern22`](SeriesPattern22.md)\<[`OutPoint`](../interfaces/OutPoint.md)\>
 
 ### outputType
 
-> **outputType**: [`SeriesPattern20`](SeriesPattern20.md)\<[`OutputType`](OutputType.md)\>
+> **outputType**: [`SeriesPattern21`](SeriesPattern21.md)\<[`OutputType`](OutputType.md)\>
 
 ### txIndex
 
-> **txIndex**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxIndex`](TxIndex.md)\>
+> **txIndex**: [`SeriesPattern21`](SeriesPattern21.md)\<[`TxIndex`](TxIndex.md)\>
 
 ### txoutIndex
 
-> **txoutIndex**: [`SeriesPattern21`](SeriesPattern21.md)\<[`TxOutIndex`](TxOutIndex-1.md)\>
+> **txoutIndex**: [`SeriesPattern22`](SeriesPattern22.md)\<[`TxOutIndex`](TxOutIndex-1.md)\>
 
 ### typeIndex
 
-> **typeIndex**: [`SeriesPattern21`](SeriesPattern21.md)\<[`TypeIndex`](TypeIndex.md)\>
+> **typeIndex**: [`SeriesPattern22`](SeriesPattern22.md)\<[`TypeIndex`](TypeIndex.md)\>
 
 ### value
 
-> **value**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Sats`](Sats.md)\>
+> **value**: [`SeriesPattern21`](SeriesPattern21.md)\<[`Sats`](Sats.md)\>

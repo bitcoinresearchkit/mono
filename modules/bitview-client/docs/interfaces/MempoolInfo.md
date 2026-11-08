@@ -6,7 +6,7 @@
 
 # Interface: MempoolInfo
 
-Defined in: [modules/bitview-client/index.js:751](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L751)
+Defined in: [modules/bitview-client/index.js:815](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L815)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:751](https://github.com/bitcoinrese
 
 > **count**: `number`
 
-Defined in: [modules/bitview-client/index.js:752](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L752)
+Defined in: [modules/bitview-client/index.js:816](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L816)
 
 Number of transactions in the mempool
 
@@ -24,7 +24,7 @@ Number of transactions in the mempool
 
 > **feeHistogram**: `number`[][]
 
-Defined in: [modules/bitview-client/index.js:755](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L755)
+Defined in: [modules/bitview-client/index.js:820](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L820)
 
 Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each
   entry the vsize of the transactions paying from its fee rate up to the previous entry's,
@@ -36,7 +36,7 @@ Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee r
 
 > **totalFee**: `number`
 
-Defined in: [modules/bitview-client/index.js:754](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L754)
+Defined in: [modules/bitview-client/index.js:819](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L819)
 
 Total fees of all transactions in the mempool (satoshis)
 
@@ -46,6 +46,7 @@ Total fees of all transactions in the mempool (satoshis)
 
 > **vsize**: `number`
 
-Defined in: [modules/bitview-client/index.js:753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L753)
+Defined in: [modules/bitview-client/index.js:817](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L817)
 
-Total virtual size of all transactions in the mempool (vbytes)
+Total virtual size of all transactions in the mempool (vbytes), sigop-adjusted as Bitcoin
+  Core's `getmempoolinfo` `bytes` and every fee rate measure it

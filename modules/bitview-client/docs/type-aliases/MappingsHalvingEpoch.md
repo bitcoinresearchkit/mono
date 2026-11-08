@@ -8,7 +8,7 @@
 
 > **MappingsHalvingEpoch** = `object`
 
-Defined in: [modules/bitview-client/index.js:6369](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6369)
+Defined in: [modules/bitview-client/index.js:6457](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6457)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:6369](https://github.com/bitcoinres
 
 ### firstHeight
 
-> **firstHeight**: [`SeriesPattern16`](SeriesPattern16.md)\<[`Height`](Height.md)\>
+> **firstHeight**: [`SeriesPattern17`](SeriesPattern17.md)\<[`Height`](Height.md)\>

@@ -8,6 +8,6 @@
 
 > **MempoolBlockDiffEntry** = [`RetainedRun`](RetainedRun.md) \| [`Transaction`](../interfaces/Transaction.md)
 
-Defined in: [modules/bitview-client/index.js:732](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L732)
+Defined in: [modules/bitview-client/index.js:796](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L796)
 
 ## Type Parameters

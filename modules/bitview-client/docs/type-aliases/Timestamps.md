@@ -8,7 +8,7 @@
 
 > **Timestamps** = `object`
 
-Defined in: [modules/bitview-client/index.js:6195](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6195)
+Defined in: [modules/bitview-client/index.js:6283](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6283)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6195](https://github.com/bitcoinres
 
 ### monotonic
 
-> **monotonic**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Timestamp`](Timestamp.md)\>
+> **monotonic**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Timestamp`](Timestamp.md)\>
 
 ### periodStart
 
-> **periodStart**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Timestamp`](Timestamp.md)\>
+> **periodStart**: [`SeriesPattern3`](SeriesPattern3.md)\<[`Timestamp`](Timestamp.md)\>

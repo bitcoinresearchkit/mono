@@ -8,6 +8,6 @@
 
 > **Timestamp** = `number`
 
-Defined in: [modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1299)
+Defined in: [modules/bitview-client/index.js:1376](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1376)
 
 ## Type Parameters

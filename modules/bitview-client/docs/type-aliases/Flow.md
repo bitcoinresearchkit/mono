@@ -8,7 +8,7 @@
 
 > **Flow**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:4756](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4756)
+Defined in: [modules/bitview-client/index.js:4842](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4842)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:4756](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<`A`\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<`A`\>
 
 ### cumulative
 

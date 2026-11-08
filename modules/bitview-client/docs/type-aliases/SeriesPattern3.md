@@ -8,7 +8,7 @@
 
 > **SeriesPattern3**\<`T`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2531](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2531)
+Defined in: [modules/bitview-client/index.js:2616](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2616)
 
 ## Type Parameters
 
@@ -22,9 +22,65 @@ Defined in: [modules/bitview-client/index.js:2531](https://github.com/bitcoinres
 
 > **by**: `object`
 
+#### by.day1
+
+> `readonly` **day1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.day3
+
+> `readonly` **day3**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.difficulty\_epoch
+
+> `readonly` **difficulty\_epoch**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+
+#### by.halving\_epoch
+
+> `readonly` **halving\_epoch**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+
+#### by.hour1
+
+> `readonly` **hour1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.hour12
+
+> `readonly` **hour12**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.hour4
+
+> `readonly` **hour4**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
 #### by.minute10
 
 > `readonly` **minute10**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.minute30
+
+> `readonly` **minute30**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.month1
+
+> `readonly` **month1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.month3
+
+> `readonly` **month3**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.month6
+
+> `readonly` **month6**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.week1
+
+> `readonly` **week1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.year1
+
+> `readonly` **year1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+
+#### by.year10
+
+> `readonly` **year10**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
 
 ### get
 

@@ -8,7 +8,7 @@
 
 > **MappingsTxIndex** = `object`
 
-Defined in: [modules/bitview-client/index.js:6225](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6225)
+Defined in: [modules/bitview-client/index.js:6313](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6313)
 
 ## Type Parameters
 
@@ -16,12 +16,12 @@ Defined in: [modules/bitview-client/index.js:6225](https://github.com/bitcoinres
 
 ### identity
 
-> **identity**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxIndex`](TxIndex.md)\>
+> **identity**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxIndex`](TxIndex.md)\>
 
 ### inputCount
 
-> **inputCount**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
+> **inputCount**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Count`](Count.md)\>
 
 ### outputCount
 
-> **outputCount**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
+> **outputCount**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Count`](Count.md)\>

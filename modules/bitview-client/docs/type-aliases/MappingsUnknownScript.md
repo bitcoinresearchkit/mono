@@ -8,7 +8,7 @@
 
 > **MappingsUnknownScript** = `object`
 
-Defined in: [modules/bitview-client/index.js:6433](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6433)
+Defined in: [modules/bitview-client/index.js:6521](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6521)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:6433](https://github.com/bitcoinres
 
 ### identity
 
-> **identity**: [`SeriesPattern35`](SeriesPattern35.md)\<[`UnknownScriptOutputIndex`](UnknownScriptOutputIndex.md)\>
+> **identity**: [`SeriesPattern36`](SeriesPattern36.md)\<[`UnknownScriptOutputIndex`](UnknownScriptOutputIndex.md)\>

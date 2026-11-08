@@ -8,7 +8,7 @@
 
 > **PerTxDistribution**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3796](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3796)
+Defined in: [modules/bitview-client/index.js:3882](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3882)
 
 ## Type Parameters
 
@@ -48,4 +48,4 @@ Defined in: [modules/bitview-client/index.js:3796](https://github.com/bitcoinres
 
 ### tx
 
-> **tx**: [`SeriesPattern19`](SeriesPattern19.md)\<`A`\>
+> **tx**: [`SeriesPattern20`](SeriesPattern20.md)\<`A`\>

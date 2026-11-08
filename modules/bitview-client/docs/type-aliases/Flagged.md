@@ -8,7 +8,7 @@
 
 > **Flagged** = `object`
 
-Defined in: [modules/bitview-client/index.js:4641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4641)
+Defined in: [modules/bitview-client/index.js:4727](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4727)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:4641](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Count`](Count.md)\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
 
 ### cumulative
 
@@ -24,7 +24,7 @@ Defined in: [modules/bitview-client/index.js:4641](https://github.com/bitcoinres
 
 ### flag
 
-> **flag**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Boolean`](Boolean.md)\>
+> **flag**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Boolean`](Boolean.md)\>
 
 ### share
 

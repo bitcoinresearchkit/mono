@@ -6,7 +6,7 @@
 
 # Interface: PoolHashrateEntry
 
-Defined in: [modules/bitview-client/index.js:1063](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1063)
+Defined in: [modules/bitview-client/index.js:1129](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1129)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1063](https://github.com/bitcoinres
 
 > **avgHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:1065](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1065)
+Defined in: [modules/bitview-client/index.js:1131](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1131)
 
 Average hashrate (H/s)
 
@@ -24,7 +24,7 @@ Average hashrate (H/s)
 
 > **poolName**: `string`
 
-Defined in: [modules/bitview-client/index.js:1067](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1067)
+Defined in: [modules/bitview-client/index.js:1133](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1133)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:1067](https://github.com/bitcoinres
 
 > **share**: `number`
 
-Defined in: [modules/bitview-client/index.js:1066](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1066)
+Defined in: [modules/bitview-client/index.js:1132](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1132)
 
 Pool's share of total network hashrate (0.0 - 1.0)
 
@@ -42,6 +42,6 @@ Pool's share of total network hashrate (0.0 - 1.0)
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:1064](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1064)
+Defined in: [modules/bitview-client/index.js:1130](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1130)
 
 Unix timestamp

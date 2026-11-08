@@ -8,7 +8,7 @@
 
 > **IndexerUnknownScript** = `object`
 
-Defined in: [modules/bitview-client/index.js:6580](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6580)
+Defined in: [modules/bitview-client/index.js:6668](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6668)
 
 ## Type Parameters
 
@@ -16,12 +16,12 @@ Defined in: [modules/bitview-client/index.js:6580](https://github.com/bitcoinres
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`UnknownScriptOutputIndex`](UnknownScriptOutputIndex.md)\>
+> **firstIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`UnknownScriptOutputIndex`](UnknownScriptOutputIndex.md)\>
 
 ### legacySigopCost
 
-> **legacySigopCost**: [`SeriesPattern35`](SeriesPattern35.md)\<[`SigOps`](SigOps.md)\>
+> **legacySigopCost**: [`SeriesPattern36`](SeriesPattern36.md)\<[`SigOps`](SigOps.md)\>
 
 ### txIndex
 
-> **txIndex**: [`SeriesPattern35`](SeriesPattern35.md)\<[`TxIndex`](TxIndex.md)\>
+> **txIndex**: [`SeriesPattern36`](SeriesPattern36.md)\<[`TxIndex`](TxIndex.md)\>

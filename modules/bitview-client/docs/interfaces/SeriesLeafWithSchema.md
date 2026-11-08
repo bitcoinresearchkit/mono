@@ -6,7 +6,7 @@
 
 # Interface: SeriesLeafWithSchema
 
-Defined in: [modules/bitview-client/index.js:1250](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1250)
+Defined in: [modules/bitview-client/index.js:1320](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1320)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1250](https://github.com/bitcoinres
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1256](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1256)
+Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1326)
 
 Human-readable metric definition, when documented.
 
@@ -24,7 +24,7 @@ Human-readable metric definition, when documented.
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [modules/bitview-client/index.js:1253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1253)
+Defined in: [modules/bitview-client/index.js:1323](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1323)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:1253](https://github.com/bitcoinres
 
 > **kind**: `string`
 
-Defined in: [modules/bitview-client/index.js:1252](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1252)
+Defined in: [modules/bitview-client/index.js:1322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1322)
 
 The value type, by its schema's name (e.g., "Sats", "Ratio").
 
@@ -42,7 +42,7 @@ The value type, by its schema's name (e.g., "Sats", "Ratio").
 
 > **name**: `string`
 
-Defined in: [modules/bitview-client/index.js:1251](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1251)
+Defined in: [modules/bitview-client/index.js:1321](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1321)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [modules/bitview-client/index.js:1251](https://github.com/bitcoinres
 
 > **nullable**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [modules/bitview-client/index.js:1254](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1254)
+Defined in: [modules/bitview-client/index.js:1324](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1324)
 
 Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
   undefined one (e.g. NaN).
@@ -61,6 +61,6 @@ Indexes whose values can be null: a missing value (e.g. a period without blocks)
 
 > **type**: [`JsonType`](../type-aliases/JsonType.md)
 
-Defined in: [modules/bitview-client/index.js:1257](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1257)
+Defined in: [modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1327)
 
 What the values are on the wire.

@@ -8,6 +8,6 @@
 
 > **BlockOrphanStatus** = `"invalid"` \| `"headers-only"` \| `"valid-headers"` \| `"valid-fork"`
 
-Defined in: [modules/bitview-client/index.js:222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L222)
+Defined in: [modules/bitview-client/index.js:280](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L280)
 
 ## Type Parameters

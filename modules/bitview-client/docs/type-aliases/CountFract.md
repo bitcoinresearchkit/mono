@@ -8,6 +8,6 @@
 
 > **CountFract** = `number`
 
-Defined in: [modules/bitview-client/index.js:340](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L340)
+Defined in: [modules/bitview-client/index.js:398](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L398)
 
 ## Type Parameters

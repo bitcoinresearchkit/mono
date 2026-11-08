@@ -8,7 +8,7 @@
 
 > **MappingsP2pk33** = `object`
 
-Defined in: [modules/bitview-client/index.js:6542](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6542)
+Defined in: [modules/bitview-client/index.js:6630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6630)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6542](https://github.com/bitcoinres
 
 ### address
 
-> **address**: [`SeriesPattern28`](SeriesPattern28.md)\<[`Address`](Address.md)\>
+> **address**: [`SeriesPattern29`](SeriesPattern29.md)\<[`Address`](Address.md)\>
 
 ### identity
 
-> **identity**: [`SeriesPattern28`](SeriesPattern28.md)\<[`P2PK33AddressIndex`](P2PK33AddressIndex.md)\>
+> **identity**: [`SeriesPattern29`](SeriesPattern29.md)\<[`P2PK33AddressIndex`](P2PK33AddressIndex.md)\>

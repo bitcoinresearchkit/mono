@@ -6,7 +6,7 @@
 
 # Interface: UrpdBuckets
 
-Defined in: [modules/bitview-client/index.js:1426](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1426)
+Defined in: [modules/bitview-client/index.js:1509](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1509)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1426](https://github.com/bitcoinres
 
 > **price**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1427](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1427)
+Defined in: [modules/bitview-client/index.js:1510](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1510)
 
 Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
   coins' creation prices round to (four significant digits of the price in cents).
@@ -25,7 +25,7 @@ Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the 
 
 > **realizedCap**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1431](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1431)
+Defined in: [modules/bitview-client/index.js:1514](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1514)
 
 Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
   each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
@@ -38,7 +38,7 @@ Realized cap contribution in USD: `price * supply` summed over the coins in each
 
 > **supply**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1429](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1429)
+Defined in: [modules/bitview-client/index.js:1512](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1512)
 
 Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or
   `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
@@ -49,7 +49,7 @@ Supply held with a last-move price inside each bucket, in BTC. With a `wakefulne
 
 > **unrealizedPnl**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1435](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1435)
+Defined in: [modules/bitview-client/index.js:1518](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1518)
 
 Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid
   capital, rounded to the cent once. Can be negative.

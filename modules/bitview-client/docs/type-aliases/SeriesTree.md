@@ -8,7 +8,7 @@
 
 > **SeriesTree** = `object`
 
-Defined in: [modules/bitview-client/index.js:7057](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7057)
+Defined in: [modules/bitview-client/index.js:7145](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7145)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **OpReturn** = `object`
 
-Defined in: [modules/bitview-client/index.js:5460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5460)
+Defined in: [modules/bitview-client/index.js:5546](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5546)
 
 ## Type Parameters
 
@@ -24,7 +24,7 @@ Defined in: [modules/bitview-client/index.js:5460](https://github.com/bitcoinres
 
 ### flag
 
-> **flag**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Boolean`](Boolean.md)\>
+> **flag**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Boolean`](Boolean.md)\>
 
 ### outputCount
 

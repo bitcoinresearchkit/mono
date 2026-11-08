@@ -8,7 +8,7 @@
 
 > **MappingsP2a** = `object`
 
-Defined in: [modules/bitview-client/index.js:6476](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6476)
+Defined in: [modules/bitview-client/index.js:6564](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6564)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6476](https://github.com/bitcoinres
 
 ### address
 
-> **address**: [`SeriesPattern26`](SeriesPattern26.md)\<[`Address`](Address.md)\>
+> **address**: [`SeriesPattern27`](SeriesPattern27.md)\<[`Address`](Address.md)\>
 
 ### identity
 
-> **identity**: [`SeriesPattern26`](SeriesPattern26.md)\<[`P2AAddressIndex`](P2AAddressIndex.md)\>
+> **identity**: [`SeriesPattern27`](SeriesPattern27.md)\<[`P2AAddressIndex`](P2AAddressIndex.md)\>

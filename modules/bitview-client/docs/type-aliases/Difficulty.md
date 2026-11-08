@@ -8,6 +8,6 @@
 
 > **Difficulty** = `number`
 
-Defined in: [modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L449)
+Defined in: [modules/bitview-client/index.js:507](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L507)
 
 ## Type Parameters

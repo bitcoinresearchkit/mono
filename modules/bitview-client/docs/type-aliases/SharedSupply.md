@@ -8,7 +8,7 @@
 
 > **SharedSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4357](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4357)
+Defined in: [modules/bitview-client/index.js:4443](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4443)
 
 ## Type Parameters
 

@@ -8,6 +8,6 @@
 
 > **CoinbaseTag** = `string`
 
-Defined in: [modules/bitview-client/index.js:320](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L320)
+Defined in: [modules/bitview-client/index.js:378](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L378)
 
 ## Type Parameters

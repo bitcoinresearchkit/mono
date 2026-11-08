@@ -8,7 +8,7 @@
 
 > **TxinIndex** = `object`
 
-Defined in: [modules/bitview-client/index.js:6214](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6214)
+Defined in: [modules/bitview-client/index.js:6302](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6302)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:6214](https://github.com/bitcoinres
 
 ### identity
 
-> **identity**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxInIndex`](TxInIndex-1.md)\>
+> **identity**: [`SeriesPattern21`](SeriesPattern21.md)\<[`TxInIndex`](TxInIndex-1.md)\>

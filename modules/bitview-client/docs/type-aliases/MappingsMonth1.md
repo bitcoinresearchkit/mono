@@ -8,7 +8,7 @@
 
 > **MappingsMonth1** = `object`
 
-Defined in: [modules/bitview-client/index.js:6281](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6281)
+Defined in: [modules/bitview-client/index.js:6369](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6369)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6281](https://github.com/bitcoinres
 
 ### date
 
-> **date**: [`SeriesPattern11`](SeriesPattern11.md)\<[`Date`](Date.md)\>
+> **date**: [`SeriesPattern12`](SeriesPattern12.md)\<[`Date`](Date.md)\>
 
 ### firstHeight
 
-> **firstHeight**: [`SeriesPattern11`](SeriesPattern11.md)\<[`Height`](Height.md)\>
+> **firstHeight**: [`SeriesPattern12`](SeriesPattern12.md)\<[`Height`](Height.md)\>

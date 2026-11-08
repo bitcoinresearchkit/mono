@@ -8,7 +8,7 @@
 
 > **IndexerP2tr** = `object`
 
-Defined in: [modules/bitview-client/index.js:6640](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6640)
+Defined in: [modules/bitview-client/index.js:6728](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6728)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6640](https://github.com/bitcoinres
 
 ### bytes
 
-> **bytes**: [`SeriesPattern32`](SeriesPattern32.md)\<[`P2TRBytes`](P2TRBytes.md)\>
+> **bytes**: [`SeriesPattern33`](SeriesPattern33.md)\<[`P2TRBytes`](P2TRBytes.md)\>
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`P2TRAddressIndex`](P2TRAddressIndex.md)\>
+> **firstIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`P2TRAddressIndex`](P2TRAddressIndex.md)\>

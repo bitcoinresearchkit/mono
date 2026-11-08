@@ -8,7 +8,7 @@
 
 > **Price** = `object`
 
-Defined in: [modules/bitview-client/index.js:6179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6179)
+Defined in: [modules/bitview-client/index.js:6267](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6267)
 
 ## Type Parameters
 
@@ -16,27 +16,27 @@ Defined in: [modules/bitview-client/index.js:6179](https://github.com/bitcoinres
 
 ### close
 
-> **close**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **close**: [`SeriesPattern3`](SeriesPattern3.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
 ### high
 
-> **high**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **high**: [`SeriesPattern3`](SeriesPattern3.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
 ### low
 
-> **low**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **low**: [`SeriesPattern3`](SeriesPattern3.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
 ### ohlc
 
-> **ohlc**: [`SeriesPattern2`](SeriesPattern2.md)\<[`OHLCDollars`](OHLCDollars.md)\>
+> **ohlc**: [`SeriesPattern3`](SeriesPattern3.md)\<[`OHLCDollars`](OHLCDollars.md)\>
 
 ### open
 
-> **open**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **open**: [`SeriesPattern3`](SeriesPattern3.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
 ### satsPerDollar
 
-> **satsPerDollar**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Sats`](Sats.md)\>
+> **satsPerDollar**: [`SeriesPattern2`](SeriesPattern2.md)\<[`Sats`](Sats.md)\>
 
 ### spot
 

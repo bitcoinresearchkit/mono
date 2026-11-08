@@ -8,7 +8,7 @@
 
 > **Fees** = `object`
 
-Defined in: [modules/bitview-client/index.js:4606](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4606)
+Defined in: [modules/bitview-client/index.js:4692](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4692)
 
 ## Type Parameters
 
@@ -32,4 +32,4 @@ Defined in: [modules/bitview-client/index.js:4606](https://github.com/bitcoinres
 
 ### feeRate
 
-> **feeRate**: [`SeriesPattern19`](SeriesPattern19.md)\<[`FeeRate`](FeeRate.md) \| `null`\>
+> **feeRate**: [`SeriesPattern20`](SeriesPattern20.md)\<[`FeeRate`](FeeRate.md) \| `null`\>

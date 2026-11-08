@@ -6,7 +6,7 @@
 
 # Interface: DiskUsage
 
-Defined in: [modules/bitview-client/index.js:488](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L488)
+Defined in: [modules/bitview-client/index.js:546](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L546)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:488](https://github.com/bitcoinrese
 
 > **bitcoin**: `string`
 
-Defined in: [modules/bitview-client/index.js:491](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L491)
+Defined in: [modules/bitview-client/index.js:549](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L549)
 
 Human-readable Bitcoin blocks directory size
 
@@ -24,7 +24,7 @@ Human-readable Bitcoin blocks directory size
 
 > **bitcoinBytes**: `number`
 
-Defined in: [modules/bitview-client/index.js:492](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L492)
+Defined in: [modules/bitview-client/index.js:550](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L550)
 
 Bitcoin blocks directory size in bytes
 
@@ -34,7 +34,7 @@ Bitcoin blocks directory size in bytes
 
 > **brk**: `string`
 
-Defined in: [modules/bitview-client/index.js:489](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L489)
+Defined in: [modules/bitview-client/index.js:547](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L547)
 
 Human-readable brk data size (e.g., "48.8 GiB")
 
@@ -44,7 +44,7 @@ Human-readable brk data size (e.g., "48.8 GiB")
 
 > **brkBytes**: `number`
 
-Defined in: [modules/bitview-client/index.js:490](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L490)
+Defined in: [modules/bitview-client/index.js:548](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L548)
 
 brk data size in bytes
 
@@ -54,6 +54,6 @@ brk data size in bytes
 
 > **ratio**: `number`
 
-Defined in: [modules/bitview-client/index.js:493](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L493)
+Defined in: [modules/bitview-client/index.js:551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L551)
 
 Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.

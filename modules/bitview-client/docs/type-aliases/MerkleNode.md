@@ -8,6 +8,6 @@
 
 > **MerkleNode** = `string`
 
-Defined in: [modules/bitview-client/index.js:771](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L771)
+Defined in: [modules/bitview-client/index.js:836](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L836)
 
 ## Type Parameters

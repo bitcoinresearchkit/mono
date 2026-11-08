@@ -6,7 +6,7 @@
 
 # Interface: SeriesCount
 
-Defined in: [modules/bitview-client/index.js:1232](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1232)
+Defined in: [modules/bitview-client/index.js:1302](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1302)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1232](https://github.com/bitcoinres
 
 > **distinct**: `number`
 
-Defined in: [modules/bitview-client/index.js:1233](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1233)
+Defined in: [modules/bitview-client/index.js:1303](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1303)
 
 Number of unique series available (e.g., realized_price, market_cap)
 
@@ -24,7 +24,7 @@ Number of unique series available (e.g., realized_price, market_cap)
 
 > **lazy**: `number`
 
-Defined in: [modules/bitview-client/index.js:1235](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1235)
+Defined in: [modules/bitview-client/index.js:1305](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1305)
 
 Number of lazy (computed on-the-fly) series-index combinations
 
@@ -34,7 +34,7 @@ Number of lazy (computed on-the-fly) series-index combinations
 
 > **stored**: `number`
 
-Defined in: [modules/bitview-client/index.js:1236](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1236)
+Defined in: [modules/bitview-client/index.js:1306](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1306)
 
 Number of eager (stored on disk) series-index combinations
 
@@ -44,6 +44,6 @@ Number of eager (stored on disk) series-index combinations
 
 > **total**: `number`
 
-Defined in: [modules/bitview-client/index.js:1234](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1234)
+Defined in: [modules/bitview-client/index.js:1304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1304)
 
 Total number of series-index combinations across all timeframes

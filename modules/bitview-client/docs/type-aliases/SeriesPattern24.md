@@ -8,7 +8,7 @@
 
 > **SeriesPattern24**\<`T`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2552](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2552)
+Defined in: [modules/bitview-client/index.js:2637](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2637)
 
 ## Type Parameters
 
@@ -22,13 +22,13 @@ Defined in: [modules/bitview-client/index.js:2552](https://github.com/bitcoinres
 
 > **by**: `object`
 
-#### by.empty\_script\_output\_index
+#### by.txout\_index
 
-> `readonly` **empty\_script\_output\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+> `readonly` **txout\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T` \| `null`\>
 
 ### get
 
-> **get**: (`index`) => [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\> \| `undefined`
+> **get**: (`index`) => [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T` \| `null`\> \| `undefined`
 
 #### Parameters
 
@@ -38,7 +38,7 @@ Defined in: [modules/bitview-client/index.js:2552](https://github.com/bitcoinres
 
 #### Returns
 
-[`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\> \| `undefined`
+[`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T` \| `null`\> \| `undefined`
 
 ### indexes
 

@@ -8,7 +8,7 @@
 
 > **PoolBlockCounts** = `object`
 
-Defined in: [modules/bitview-client/index.js:1030](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1030)
+Defined in: [modules/bitview-client/index.js:1096](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1096)
 
 ## Type Parameters
 

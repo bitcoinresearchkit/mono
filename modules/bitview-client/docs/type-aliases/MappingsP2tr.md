@@ -8,7 +8,7 @@
 
 > **MappingsP2tr** = `object`
 
-Defined in: [modules/bitview-client/index.js:6487](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6487)
+Defined in: [modules/bitview-client/index.js:6575](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6575)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6487](https://github.com/bitcoinres
 
 ### address
 
-> **address**: [`SeriesPattern32`](SeriesPattern32.md)\<[`Address`](Address.md)\>
+> **address**: [`SeriesPattern33`](SeriesPattern33.md)\<[`Address`](Address.md)\>
 
 ### identity
 
-> **identity**: [`SeriesPattern32`](SeriesPattern32.md)\<[`P2TRAddressIndex`](P2TRAddressIndex.md)\>
+> **identity**: [`SeriesPattern33`](SeriesPattern33.md)\<[`P2TRAddressIndex`](P2TRAddressIndex.md)\>

@@ -8,6 +8,6 @@
 
 > **Month3** = `number`
 
-Defined in: [modules/bitview-client/index.js:799](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L799)
+Defined in: [modules/bitview-client/index.js:864](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L864)
 
 ## Type Parameters

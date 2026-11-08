@@ -8,7 +8,7 @@
 
 > **DataBytesSeries** = `object`
 
-Defined in: [modules/bitview-client/index.js:4537](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4537)
+Defined in: [modules/bitview-client/index.js:4623](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4623)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:4537](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Bytes`](Bytes.md)\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Bytes`](Bytes.md)\>
 
 ### chainShare
 

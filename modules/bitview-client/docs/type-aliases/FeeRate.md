@@ -8,6 +8,6 @@
 
 > **FeeRate** = `number`
 
-Defined in: [modules/bitview-client/index.js:551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L551)
+Defined in: [modules/bitview-client/index.js:609](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L609)
 
 ## Type Parameters

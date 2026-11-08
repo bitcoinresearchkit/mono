@@ -8,7 +8,7 @@
 
 > **Outputs** = `object`
 
-Defined in: [modules/bitview-client/index.js:5583](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5583)
+Defined in: [modules/bitview-client/index.js:5669](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5669)
 
 ## Type Parameters
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:5583](https://github.com/bitcoinres
 
 ### spendingTxinIndex
 
-> **spendingTxinIndex**: [`SeriesPattern23`](SeriesPattern23.md)\<[`TxInIndex`](TxInIndex-1.md)\>
+> **spendingTxinIndex**: [`SeriesPattern24`](SeriesPattern24.md)\<[`TxInIndex`](TxInIndex-1.md)\>
 
 ### types
 

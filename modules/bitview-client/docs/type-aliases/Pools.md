@@ -8,7 +8,7 @@
 
 > **Pools** = `object`
 
-Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5975)
+Defined in: [modules/bitview-client/index.js:6062](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6062)
 
 ## Type Parameters
 
@@ -152,7 +152,7 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 
 ### blockPool
 
-> **blockPool**: [`SeriesPattern18`](SeriesPattern18.md)\<[`PoolSlug`](PoolSlug.md)\>
+> **blockPool**: [`SeriesPattern19`](SeriesPattern19.md)\<[`PoolSlug`](PoolSlug.md)\>
 
 ### braiinspool
 
@@ -169,10 +169,6 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 ### btcc
 
 > **btcc**: [`Pool`](Pool.md)
-
-### btccom
-
-> **btccom**: [`Pool`](Pool.md)
 
 ### btcdig
 
@@ -237,6 +233,10 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 ### cloudhashing
 
 > **cloudhashing**: [`Pool`](Pool.md)
+
+### cloverpool
+
+> **cloverpool**: [`Pool`](Pool.md)
 
 ### coinlab
 
@@ -637,6 +637,10 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 ### triplemining
 
 > **triplemining**: [`Pool`](Pool.md)
+
+### trustpool
+
+> **trustpool**: [`Pool`](Pool.md)
 
 ### ultimuspool
 

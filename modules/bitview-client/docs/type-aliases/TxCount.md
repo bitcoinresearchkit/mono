@@ -8,7 +8,7 @@
 
 > **TxCount** = `object`
 
-Defined in: [modules/bitview-client/index.js:4623](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4623)
+Defined in: [modules/bitview-client/index.js:4709](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4709)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:4623](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Count`](Count.md)\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
 
 ### cumulative
 

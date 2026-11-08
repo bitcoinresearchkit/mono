@@ -8,7 +8,7 @@
 
 > **FrozenObject**\<`T`\> = `{ readonly [K in keyof T]: Frozen<T[K]> }`
 
-Defined in: [modules/bitview-client/index.js:1621](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1621)
+Defined in: [modules/bitview-client/index.js:1704](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1704)
 
 ## Type Parameters
 

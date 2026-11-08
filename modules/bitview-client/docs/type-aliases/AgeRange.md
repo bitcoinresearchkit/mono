@@ -8,7 +8,7 @@
 
 > **AgeRange**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:5286](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5286)
+Defined in: [modules/bitview-client/index.js:5372](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5372)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **SeriesPattern28**\<`T`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2556](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2556)
+Defined in: [modules/bitview-client/index.js:2641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2641)
 
 ## Type Parameters
 
@@ -22,9 +22,9 @@ Defined in: [modules/bitview-client/index.js:2556](https://github.com/bitcoinres
 
 > **by**: `object`
 
-#### by.p2pk33\_address\_index
+#### by.p2ms\_output\_index
 
-> `readonly` **p2pk33\_address\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+> `readonly` **p2ms\_output\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
 
 ### get
 

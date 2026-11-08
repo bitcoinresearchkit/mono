@@ -8,7 +8,7 @@
 
 > **IndexerP2a** = `object`
 
-Defined in: [modules/bitview-client/index.js:6629](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6629)
+Defined in: [modules/bitview-client/index.js:6717](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6717)
 
 ## Type Parameters
 
@@ -16,8 +16,8 @@ Defined in: [modules/bitview-client/index.js:6629](https://github.com/bitcoinres
 
 ### bytes
 
-> **bytes**: [`SeriesPattern26`](SeriesPattern26.md)\<[`P2ABytes`](P2ABytes.md)\>
+> **bytes**: [`SeriesPattern27`](SeriesPattern27.md)\<[`P2ABytes`](P2ABytes.md)\>
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`P2AAddressIndex`](P2AAddressIndex.md)\>
+> **firstIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`P2AAddressIndex`](P2AAddressIndex.md)\>

@@ -8,7 +8,7 @@
 
 > **SeriesPattern14**\<`T`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2542](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2542)
+Defined in: [modules/bitview-client/index.js:2627](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2627)
 
 ## Type Parameters
 
@@ -22,9 +22,9 @@ Defined in: [modules/bitview-client/index.js:2542](https://github.com/bitcoinres
 
 > **by**: `object`
 
-#### by.year1
+#### by.month6
 
-> `readonly` **year1**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
+> `readonly` **month6**: [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`T`\>
 
 ### get
 

@@ -8,7 +8,7 @@
 
 > **IndexerTransactions** = `object`
 
-Defined in: [modules/bitview-client/index.js:6970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6970)
+Defined in: [modules/bitview-client/index.js:7058](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7058)
 
 ## Type Parameters
 
@@ -20,35 +20,35 @@ Defined in: [modules/bitview-client/index.js:6970](https://github.com/bitcoinres
 
 ### firstTxIndex
 
-> **firstTxIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`TxIndex`](TxIndex.md)\>
+> **firstTxIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxIndex`](TxIndex.md)\>
 
 ### firstTxinIndex
 
-> **firstTxinIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxInIndex`](TxInIndex-1.md)\>
+> **firstTxinIndex**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxInIndex`](TxInIndex-1.md)\>
 
 ### firstTxoutIndex
 
-> **firstTxoutIndex**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxOutIndex`](TxOutIndex-1.md)\>
+> **firstTxoutIndex**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxOutIndex`](TxOutIndex-1.md)\>
 
 ### locktime
 
-> **locktime**: [`SeriesPattern19`](SeriesPattern19.md)\<[`RawLockTime`](RawLockTime.md)\>
+> **locktime**: [`SeriesPattern20`](SeriesPattern20.md)\<[`RawLockTime`](RawLockTime.md)\>
 
 ### sigopCost
 
-> **sigopCost**: [`SeriesPattern19`](SeriesPattern19.md)\<[`SigOps`](SigOps.md)\>
+> **sigopCost**: [`SeriesPattern20`](SeriesPattern20.md)\<[`SigOps`](SigOps.md)\>
 
 ### size
 
-> **size**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Bytes`](Bytes.md)\>
+> **size**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Bytes`](Bytes.md)\>
 
 ### txid
 
-> **txid**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Txid`](Txid.md)\>
+> **txid**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Txid`](Txid.md)\>
 
 ### version
 
-> **version**: [`SeriesPattern19`](SeriesPattern19.md)\<[`TxVersion`](TxVersion.md)\>
+> **version**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxVersion`](TxVersion.md)\>
 
 ### versions
 
@@ -56,4 +56,4 @@ Defined in: [modules/bitview-client/index.js:6970](https://github.com/bitcoinres
 
 ### weight
 
-> **weight**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Weight`](Weight.md)\>
+> **weight**: [`SeriesPattern20`](SeriesPattern20.md)\<[`Weight`](Weight.md)\>

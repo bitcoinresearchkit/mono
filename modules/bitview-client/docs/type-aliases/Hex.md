@@ -8,6 +8,6 @@
 
 > **Hex** = `string`
 
-Defined in: [modules/bitview-client/index.js:625](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L625)
+Defined in: [modules/bitview-client/index.js:689](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L689)
 
 ## Type Parameters

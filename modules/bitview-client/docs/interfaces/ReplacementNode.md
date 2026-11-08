@@ -6,7 +6,7 @@
 
 # Interface: ReplacementNode
 
-Defined in: [modules/bitview-client/index.js:1179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1179)
+Defined in: [modules/bitview-client/index.js:1246](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1246)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1179](https://github.com/bitcoinres
 
 > **fullRbf**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1183)
+Defined in: [modules/bitview-client/index.js:1250](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1250)
 
 Any predecessor in this subtree was non-signaling.
 
@@ -24,7 +24,7 @@ Any predecessor in this subtree was non-signaling.
 
 > `optional` **interval?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1184)
+Defined in: [modules/bitview-client/index.js:1251](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1251)
 
 Seconds between this node's `time` and the successor that
   replaced it. Omitted on the root of an RBF response.
@@ -35,10 +35,10 @@ Seconds between this node's `time` and the successor that
 
 > `optional` **mined?**: `boolean` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1186](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1186)
+Defined in: [modules/bitview-client/index.js:1253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1253)
 
-`Some(true)` iff this node's tx is currently confirmed. Absent
-  on serialization otherwise.
+On a tree's root: `true` when a transaction anywhere in the tree is confirmed
+  (mempool.space's tree `mined`; the confirmed one is marked in its `tx`); absent otherwise.
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [modules/bitview-client/index.js:1186](https://github.com/bitcoinres
 
 > **replaces**: `ReplacementNode`[]
 
-Defined in: [modules/bitview-client/index.js:1188](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1188)
+Defined in: [modules/bitview-client/index.js:1258](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1258)
 
 ***
 
@@ -54,10 +54,22 @@ Defined in: [modules/bitview-client/index.js:1188](https://github.com/bitcoinres
 
 > **time**: `number`
 
-Defined in: [modules/bitview-client/index.js:1181](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1181)
+Defined in: [modules/bitview-client/index.js:1248](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1248)
 
 First-seen timestamp, duplicated here to match mempool.space's
   on-the-wire shape.
+
+***
+
+### truncated?
+
+> `optional` **truncated?**: `boolean` \| `null`
+
+Defined in: [modules/bitview-client/index.js:1255](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1255)
+
+On a tree's root: `true` when the tree was cut to its bounds (the newest 63 versions, at
+  most 4,096 transactions; its `fullRbf` flags then describe what it holds); absent
+  otherwise. mempool.space serves trees whole.
 
 ***
 
@@ -65,4 +77,4 @@ First-seen timestamp, duplicated here to match mempool.space's
 
 > **tx**: [`RbfTx`](RbfTx.md)
 
-Defined in: [modules/bitview-client/index.js:1180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1180)
+Defined in: [modules/bitview-client/index.js:1247](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1247)

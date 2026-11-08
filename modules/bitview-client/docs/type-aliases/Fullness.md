@@ -8,7 +8,7 @@
 
 > **Fullness** = `object`
 
-Defined in: [modules/bitview-client/index.js:4736](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4736)
+Defined in: [modules/bitview-client/index.js:4822](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4822)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:4736](https://github.com/bitcoinres
 
 ### block
 
-> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Percent`](Percent.md) \| `null`\>
+> **block**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Percent`](Percent.md) \| `null`\>
 
 ### max
 

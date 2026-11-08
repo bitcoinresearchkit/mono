@@ -8,7 +8,7 @@
 
 > **MappingsOpReturn** = `object`
 
-Defined in: [modules/bitview-client/index.js:6424](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6424)
+Defined in: [modules/bitview-client/index.js:6512](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6512)
 
 ## Type Parameters
 
@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:6424](https://github.com/bitcoinres
 
 ### identity
 
-> **identity**: [`SeriesPattern25`](SeriesPattern25.md)\<[`OpReturnOutputIndex`](OpReturnOutputIndex.md)\>
+> **identity**: [`SeriesPattern26`](SeriesPattern26.md)\<[`OpReturnOutputIndex`](OpReturnOutputIndex.md)\>

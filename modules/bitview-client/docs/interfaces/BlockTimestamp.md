@@ -6,7 +6,7 @@
 
 # Interface: BlockTimestamp
 
-Defined in: [modules/bitview-client/index.js:263](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L263)
+Defined in: [modules/bitview-client/index.js:321](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L321)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:263](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:265](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L265)
+Defined in: [modules/bitview-client/index.js:323](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L323)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:265](https://github.com/bitcoinrese
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:264](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L264)
+Defined in: [modules/bitview-client/index.js:322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L322)
 
 ***
 
@@ -30,6 +30,6 @@ Defined in: [modules/bitview-client/index.js:264](https://github.com/bitcoinrese
 
 > **timestamp**: `string`
 
-Defined in: [modules/bitview-client/index.js:266](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L266)
+Defined in: [modules/bitview-client/index.js:324](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L324)
 
 Block timestamp in ISO 8601 format

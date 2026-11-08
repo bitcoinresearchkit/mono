@@ -8,7 +8,7 @@
 
 > **IndexerBlocks** = `object`
 
-Defined in: [modules/bitview-client/index.js:6997](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6997)
+Defined in: [modules/bitview-client/index.js:7085](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7085)
 
 ## Type Parameters
 
@@ -16,36 +16,36 @@ Defined in: [modules/bitview-client/index.js:6997](https://github.com/bitcoinres
 
 ### blockhash
 
-> **blockhash**: [`SeriesPattern18`](SeriesPattern18.md)\<[`BlockHash`](BlockHash.md)\>
+> **blockhash**: [`SeriesPattern19`](SeriesPattern19.md)\<[`BlockHash`](BlockHash.md)\>
 
 ### coinbaseTag
 
-> **coinbaseTag**: [`SeriesPattern18`](SeriesPattern18.md)\<[`CoinbaseTag`](CoinbaseTag.md)\>
+> **coinbaseTag**: [`SeriesPattern19`](SeriesPattern19.md)\<[`CoinbaseTag`](CoinbaseTag.md)\>
 
 ### medianTime
 
-> **medianTime**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Timestamp`](Timestamp.md)\>
+> **medianTime**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Timestamp`](Timestamp.md)\>
 
 ### segwitTxCount
 
-> **segwitTxCount**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Count`](Count.md)\>
+> **segwitTxCount**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Count`](Count.md)\>
 
 ### segwitTxSize
 
-> **segwitTxSize**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Bytes`](Bytes.md)\>
+> **segwitTxSize**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Bytes`](Bytes.md)\>
 
 ### segwitTxWeight
 
-> **segwitTxWeight**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Weight`](Weight.md)\>
+> **segwitTxWeight**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Weight`](Weight.md)\>
 
 ### size
 
-> **size**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Bytes`](Bytes.md)\>
+> **size**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Bytes`](Bytes.md)\>
 
 ### timestamp
 
-> **timestamp**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Timestamp`](Timestamp.md)\>
+> **timestamp**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Timestamp`](Timestamp.md)\>
 
 ### weight
 
-> **weight**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Weight`](Weight.md)\>
+> **weight**: [`SeriesPattern19`](SeriesPattern19.md)\<[`Weight`](Weight.md)\>
