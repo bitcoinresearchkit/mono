@@ -43,13 +43,12 @@ impl Query {
         match read.resolve_confirmed_tx(txid) {
             Ok(transaction) => Ok(ResolvedTxBody::Chain(transaction)),
             Err(error) if Self::pool_answers(&error, read.pin()) => {
-                let Some(mempool) = mempool else {
+                let Some((mempool, view)) =
+                    self.pending_view(mempool.as_deref(), read.pin())?
+                else {
                     return Err(error);
                 };
-                let Some(view) = self.pending_view(&mempool, read.pin())? else {
-                    return Err(error);
-                };
-                match live(&mempool, &view)? {
+                match live(mempool, &view)? {
                     Some((value, hash)) => Ok(ResolvedTxBody::Memory { value, hash }),
                     None => Err(Self::unanswered(error, &view, txid)),
                 }

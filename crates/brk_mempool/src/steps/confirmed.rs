@@ -1,5 +1,5 @@
-//! What the blocks since the last cycle's tip confirmed, so a transaction that left is told mined
-//! from displaced by a confirmed conflict (mempool.space's mined replacements) from vanished.
+//! What the blocks since the last cycle's tip confirmed. It tells a transaction that left the pool
+//! as mined, displaced by a confirmed conflict (mempool.space's mined replacement), or vanished.
 
 use brk_error::Error;
 use brk_rpc::Client;

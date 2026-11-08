@@ -115,20 +115,23 @@ impl Mempool {
     fn restore_published(&mut self) {
         self.withheld = None;
         let published = self.read_only.load();
+        let previous = std::mem::take(&mut self.state.upkeep);
         // Before the first publication, the graveyard read back, if any: the pool reloads from
         // Core, as after a crash.
         self.state = published.pool.as_ref().map_or_else(
             || State::restored(self.loaded_graveyard.clone(), Vec::new()),
             |pool| pool.restore(),
         );
+        // What awaits a late replacer is the writer's alone, in no publication: kept.
+        self.state.upkeep.keep_awaited(previous);
         self.rebuilder.restore(
             published
                 .pool
                 .as_ref()
                 .map_or_else(Arc::default, |pool| pool.graph.clone()),
         );
-        // The blocks after those the restored graveyard was told are still to classify its
-        // removals by: it carries that tip.
+        // The restored graveyard carries its confirmed tip, so the next cycle reads the blocks
+        // after it and classifies removals by them.
         self.needs_recovery = false;
     }
 
@@ -166,7 +169,7 @@ impl Mempool {
         {
             return Err(Error::StateUpdating);
         }
-        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.state.graveyard.told());
+        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.state.graveyard.confirmed_tip());
         let diff = preparer::prepare(
             &rpc.live_txids,
             new_entries,
@@ -191,7 +194,7 @@ impl Mempool {
                 warn!("mempool: blocks since the last cycle unreadable, let go");
             }
             self.unread_cycles = 0;
-            self.state.graveyard.set_told(rpc.tip_hash, &mut self.state.upkeep);
+            self.state.graveyard.set_confirmed_tip(rpc.tip_hash, &mut self.state.upkeep);
             self.state.ancestry.follow(rpc.tip_hash, confirmed.path());
         }
         self.state.template_only = template_only;

@@ -50,8 +50,8 @@ impl Query {
         let bytes = parse_addr(addr)?;
         let mempool = self.mempool().ok_or(Error::MempoolNotAvailable)?;
         let pin = self.pin_safe_lengths()?;
-        let txs = match self.pending_view(&mempool, &pin)? {
-            Some(view) => mempool.addr_txs(&bytes, None, limit, &view)?,
+        let txs = match self.pending_view(Some(&mempool), &pin)? {
+            Some((mempool, view)) => mempool.addr_txs(&bytes, None, limit, &view)?,
             None => Vec::new(),
         };
         Ok(ResolvedAddrMempoolTxs(txs))

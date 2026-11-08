@@ -82,7 +82,7 @@ impl Pool {
                 || Arc::new(state.graveyard.clone()),
                 |pool| pool.graveyard.clone(),
             );
-        // The writer's when it was told this tip's blocks, else just the tip (they're unread).
+        // The writer's ancestry when it has applied this tip's blocks, else just the tip.
         let ancestry = if state.ancestry.tip() == Some(&tip) {
             state.ancestry.clone()
         } else {

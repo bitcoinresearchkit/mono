@@ -23,7 +23,7 @@ pub struct State {
     /// The graveyard's writer-only bookkeeping: when each tombstone is due, what vanished while
     /// something can still have displaced it.
     pub upkeep: Upkeep,
-    /// The blocks the graveyard was last told, back a few from that tip.
+    /// The graveyard's confirmed tip and its newest ancestors.
     pub ancestry: Ancestry,
     /// The last applied poll's template transactions the listing lacks (left Core's pool since
     /// it built the template), in its order: block 0's bodies alone, never pooled.

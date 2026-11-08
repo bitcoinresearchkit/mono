@@ -1,8 +1,7 @@
-//! What vanished, while something can still have displaced it: the blocks the next read tells
-//! (what vanished since the blocks were last all told), and late replacers (what vanished while
-//! the view wasn't complete, the per-cycle fetch cap holding listed transactions back, indexed by
-//! the outpoints it spent, so a replacer arriving cycles later still links it). The writer's
-//! alone: publications never copy it.
+//! Tracks vanished tombstones that may still turn out replaced. Two things can reveal the replacer
+//! after the fact: a block read later, and an arrival the per-cycle fetch cap held back. Burials
+//! are indexed by the outpoints they spent, so a replacer arriving cycles later still finds them.
+//! Only the writer uses this. Publications never copy it.
 
 use std::mem;
 
@@ -12,7 +11,7 @@ use smallvec::SmallVec;
 
 use super::Moment;
 
-/// A vanished burial waiting for a late replacer: its tombstone's time, and its cycle.
+/// A vanished burial awaiting a late replacer, with its burial time and cycle.
 #[derive(Clone, Copy)]
 struct Burial {
     txid: Txid,
@@ -20,58 +19,68 @@ struct Burial {
     cycle: u64,
 }
 
-/// Holds no tombstone: every question about one (still the vanished burial it indexed?) goes to
-/// the graveyard, through `vanished_at`.
+/// Holds only references to burials. Each use asks the graveyard whether the tombstone is still the
+/// vanished one buried then.
 ///
-/// Invariants: `since_told` holds the burials since the blocks were last all told; `unlinked`
-/// the burials of cycles whose view wasn't complete, and this cycle's once indexed; `pending` the
-/// burials not indexed yet (indexing drains it, an incomplete cycle's end keeps it);
-/// `unloaded_since` the listed transactions not loaded yet. A complete cycle's end clears the
-/// last three.
+/// - `since_confirmed` holds the burials since the blocks were last all applied.
+/// - `unlinked` holds the burials of cycles whose view wasn't complete, plus this cycle's once
+///   indexed.
+/// - `pending` holds the burials not indexed yet. Indexing drains it.
+/// - `unloaded_since` holds the listed transactions not loaded yet.
+///
+/// The end of a complete cycle clears the last three.
 #[derive(Clone, Default)]
 pub struct Linker {
-    /// What vanished since the blocks were last all told, each with its burial.
-    since_told: Vec<(Txid, Moment)>,
-    /// What vanished in cycles whose view wasn't complete, by the outpoints each spent.
+    /// What vanished since the blocks were last all applied, with each burial time.
+    since_confirmed: Vec<(Txid, Moment)>,
+    /// What vanished in cycles whose view wasn't complete, by each outpoint it spent.
     unlinked: RapidHashMap<(Txid, Vout), SmallVec<[Burial; 1]>>,
-    /// This cycle's vanished burials (and reclassifications), for `unlinked` unless the cycle's
-    /// view is complete.
+    /// This cycle's vanished burials and reclassifications, not indexed into `unlinked` yet.
     pending: Vec<(Txid, Moment)>,
-    /// Listed transactions not loaded yet, by the cycle each was first listed in: only one listed
-    /// by the cycle something vanished in can be what replaced it.
+    /// Listed transactions not loaded yet, with the cycle each was first listed in. Only a
+    /// transaction listed by the cycle something vanished in can have replaced it.
     unloaded_since: RapidHashMap<Txid, u64>,
     /// The current cycle's number.
     cycle: u64,
 }
 
 impl Linker {
-    /// One after a restart: what vanished since the blocks were last all told
-    /// (`TxGraveyard::vanished_since_told`), no late replacer awaited.
-    pub fn after_restore(since_told: Vec<(Txid, Moment)>) -> Self {
+    /// A linker after a restart: `since_confirmed` from the graveyard, no late replacer awaited.
+    pub fn after_restore(since_confirmed: Vec<(Txid, Moment)>) -> Self {
         Self {
-            since_told,
+            since_confirmed,
             ..Self::default()
         }
     }
 
-    /// `txid` vanished at `at` (buried so, or told so).
+    /// For a recovery from a panic: keeps what `previous` awaited a late replacer for, which no
+    /// publication holds. An entry for a burial the restored graveyard lacks is ignored when used.
+    /// `since_confirmed` stays the restored graveyard's.
+    pub fn keep_awaited(&mut self, previous: Self) {
+        self.unlinked = previous.unlinked;
+        self.unloaded_since = previous.unloaded_since;
+        self.cycle = previous.cycle;
+    }
+
+    /// `txid` vanished at `at`, by burial or by reclassification.
     pub fn vanished(&mut self, txid: Txid, at: Moment) {
-        self.since_told.push((txid, at));
+        self.since_confirmed.push((txid, at));
         self.pending.push((txid, at));
     }
 
-    /// What vanished since the blocks were last all told.
-    pub fn since_told(&self) -> &[(Txid, Moment)] {
-        &self.since_told
+    /// What vanished since the blocks were last all applied.
+    pub fn since_confirmed(&self) -> &[(Txid, Moment)] {
+        &self.since_confirmed
     }
 
-    /// Every block told: what vanished before, the blocks to come can't have displaced.
-    pub fn told(&mut self) {
-        self.since_told.clear();
+    /// Every block was applied: later blocks cannot have displaced what vanished before now.
+    pub fn blocks_confirmed(&mut self) {
+        self.since_confirmed.clear();
     }
 
-    /// This cycle's vanished, indexed by the outpoints they spent (`inputs`: a burial's, while it
-    /// is still that one): before [`Self::losers`], so a same-cycle arrival finds them too.
+    /// Indexes this cycle's vanished burials by the outpoints they spent. `inputs` returns a
+    /// burial's inputs while it is still that burial. Call before [`Self::losers`], so an arrival
+    /// in the same cycle finds them.
     pub fn index<'a>(&mut self, inputs: impl Fn(&Txid, Moment) -> Option<&'a [TxIn]>) {
         for (txid, at) in mem::take(&mut self.pending) {
             let Some(inputs) = inputs(&txid, at) else {
@@ -90,9 +99,10 @@ impl Linker {
         }
     }
 
-    /// What `arrival` replaced among the vanished: those it conflicts with that vanished no
-    /// earlier than it was first listed (one listed only later, spending an outpoint the vanished
-    /// one freed, replaced nothing), each once, still the burial indexed (`vanished_at`).
+    /// What `arrival` replaced among the vanished, each once: those it conflicts with that vanished
+    /// no earlier than it was first listed, and are still the burial indexed (`vanished_at`). A
+    /// transaction listed only later, spending an outpoint the vanished one freed, replaced
+    /// nothing.
     pub fn losers(
         &self,
         arrival: &Transaction,
@@ -113,7 +123,7 @@ impl Linker {
                 continue;
             };
             for burial in burials {
-                // Several of its inputs can lead to one loser: told once.
+                // Several of its inputs can lead to one loser: report it once.
                 if listed <= burial.cycle
                     && burial.txid != arrival.txid
                     && !losers.contains(&burial.txid)
@@ -126,10 +136,10 @@ impl Linker {
         losers
     }
 
-    /// What a confirmed spend displaced among the vanished waiting here: each burial a spender
-    /// (`spender` of an outpoint it spent) listed, and not loaded, by the cycle it vanished in
-    /// would have been told replaced by, had it arrived instead of confirming ([`Self::losers`]'s
-    /// rule). Each as `(loser, its burial, spender)`, still to check against its tombstone.
+    /// What a confirmed spend displaced among the burials waiting here. The rule is
+    /// [`Self::losers`]'s: the spender must have been listed, and not loaded, by the cycle the
+    /// burial vanished in. Returns `(loser, its burial time, spender)`, still to check against the
+    /// tombstone.
     pub fn displaced(
         &self,
         spender: impl Fn(&(Txid, Vout)) -> Option<Txid>,
@@ -154,9 +164,10 @@ impl Linker {
         displaced
     }
 
-    /// The cycle's end, with the listed transactions it couldn't load. None: no replacer of what
-    /// vanished is still to arrive, all is let go. Otherwise what's no longer vanished
-    /// (`vanished_at`) lets go, and the unloaded keep when they were first listed.
+    /// Ends a cycle. `unloaded` holds the listed transactions it couldn't load. If none, no
+    /// replacer is still to arrive and everything awaiting one is dropped. Otherwise burials no
+    /// longer vanished (`vanished_at`) are dropped, and the unloaded keep the cycle they were first
+    /// listed in.
     pub fn end_cycle(
         &mut self,
         unloaded: &RapidHashSet<Txid>,

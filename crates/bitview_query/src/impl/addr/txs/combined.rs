@@ -54,8 +54,8 @@ impl Query {
             },
         };
         let mempool = match (&mempool, confirmed_cursor) {
-            (Some(mempool), false) => match self.pending_view(mempool, &guard)? {
-                Some(view) => {
+            (Some(mempool), false) => match self.pending_view(Some(mempool), &guard)? {
+                Some((mempool, view)) => {
                     if let Some(txid) = &after_txid
                         && !mempool.addr_has_tx(&addr, txid, &view)?
                     {

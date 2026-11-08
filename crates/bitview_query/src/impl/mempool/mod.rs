@@ -48,65 +48,51 @@ impl MempoolTxids {
 }
 
 impl Query {
-    /// `read` of the pool as `pin` sees it ([`PendingView`]): at the pin's tip, or a few blocks
-    /// behind it (the moment after blocks publish, before the pool follows), or on a branch the
-    /// chain left (a reorg, until the pool follows), without what the pin's blocks past the two
-    /// chains' last common one settled. Nothing pending (the confirmed data answers alone) with no
-    /// mempool, or with one more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating` before its
-    /// first publication, and past a reorg deeper than the pool remembers (see
-    /// [`Self::pending_view`]). Every read asks for it only once the chain hasn't answered alone.
+    /// Runs `read` on the pool as `pin` sees it ([`Self::pending_view`]). With no view to read,
+    /// answers `T::default()`, which is nothing pending. Call this only after the chain alone
+    /// hasn't answered.
     pub(crate) fn with_pending<T: Default>(
         &self,
         mempool: Option<&ReadOnlyState>,
         pin: &ReadPin,
         read: impl FnOnce(&ReadOnlyState, &Arc<PendingView>) -> brk_error::Result<T>,
     ) -> Result<T> {
-        let Some(mempool) = mempool else {
-            return Ok(T::default());
-        };
         Ok(match self.pending_view(mempool, pin)? {
-            Some(view) => read(mempool, &view)?,
+            Some((mempool, view)) => read(mempool, &view)?,
             None => T::default(),
         })
     }
 
-    /// `mempool` with its view as `pin` sees it, if it has one ([`Self::with_pending`]).
-    pub(crate) fn pending(
+    /// The pool as `pin` sees it, with the publication the view reads.
+    ///
+    /// The pool usually sits at the pin's tip. It trails for a moment after each block, and after
+    /// a reorg it can sit on the branch the chain left, or ahead of the pin. Past its own tip the
+    /// view hides what the pin's blocks settled, counted from the newest block both chains hold.
+    /// See [`PendingView`].
+    ///
+    /// - `Ok(None)`: nothing pending can be told. Either there is no mempool, or the pool is more
+    ///   than [`MAX_POOL_LAG`] blocks behind and has stalled.
+    /// - `StateUpdating`: the pool hasn't published yet, or none of the blocks it remembers is on
+    ///   the pin's chain (a reorg deeper than its memory).
+    ///
+    /// A view past the tip is built once per publication and pin tip, and shared.
+    pub(crate) fn pending_view<'a>(
         &self,
-        mempool: Option<Arc<ReadOnlyState>>,
+        mempool: Option<&'a ReadOnlyState>,
         pin: &ReadPin,
-    ) -> Result<Option<(Arc<ReadOnlyState>, Arc<PendingView>)>> {
+    ) -> Result<Option<(&'a ReadOnlyState, Arc<PendingView>)>> {
         let Some(mempool) = mempool else {
             return Ok(None);
         };
-        Ok(self.pending_view(&mempool, pin)?.map(|view| (mempool, view)))
-    }
-
-    /// The pool as `pin` sees it: see [`Self::with_pending`]. Past the pool's tip, the pin's
-    /// blocks after the newest of the pool's tip and its ancestors the pin's chain holds settle
-    /// what they mined or conflicted: the pool's tip itself when the pool trails the pin, the
-    /// fork when a reorg left the pool on a branch the chain left (or ahead of the pin: the pool
-    /// is read before the pin, so only a reorg between the two). What only that branch mined, and
-    /// what the pool holds spending from it, is in no view for that moment
-    /// ([`PendingView::in_limbo`]). None more than [`MAX_POOL_LAG`]
-    /// blocks behind: nothing pending. `StateUpdating` before its first publication (what's
-    /// pending isn't known yet), and with none of the pool's ancestors on the pin's chain (a reorg
-    /// deeper than it remembers). Made once per publication and pin tip, every read of that moment
-    /// sharing it.
-    pub(crate) fn pending_view(
-        &self,
-        mempool: &ReadOnlyState,
-        pin: &ReadPin,
-    ) -> Result<Option<Arc<PendingView>>> {
         let Some(pool_tip) = mempool.tip() else {
             return Err(Error::StateUpdating);
         };
         let tip = pin.tip();
         if pool_tip == tip {
-            return Ok(Some(mempool.view_at(&tip)?));
+            return Ok(Some((mempool, mempool.view_at(&tip)?)));
         }
-        // The newest block both chains hold, and how many of the pool's lie past it: one the
-        // pin's chain doesn't hold is unknown to it, or past its lowered publication.
+        // Walk the pool's blocks newest first, to the first the pin's chain holds. `left` counts
+        // those passed. A block the chain lacks is unknown to it or past a lowered publication.
         let mut common = None;
         for (left, hash) in mempool.ancestry().rev().enumerate() {
             match self.height_by_hash_at(hash, pin) {
@@ -126,8 +112,8 @@ impl Query {
         if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
             return Ok(None);
         }
-        // Every input of the pin's blocks past that one: the outpoint it spends, and its spender
-        // (read once for the moment, by the first read of it).
+        // Every input of the pin's blocks past the common one, as the outpoint and its spender.
+        // Only the first reader of this publication and tip runs this.
         let spends = || -> Result<Vec<_>> {
             let vecs = self.indexer().vecs();
             let after = height.incremented();
@@ -151,12 +137,14 @@ impl Query {
             }
             Ok(spends)
         };
-        Ok(Some(mempool.view_behind(tip, left, spends)?))
+        Ok(Some((mempool, mempool.view_behind(tip, left, spends)?)))
     }
 
-    /// Whether a transaction lookup's chain `error` leaves the pool, as `pin` sees it, to answer:
-    /// a miss, or past a lowered publication (a rollback rewriting the rows past it) a
-    /// `StateUpdating`, the transaction not on the pin's chain either way.
+    /// Whether the pool may answer a transaction lookup the chain answered with `error`.
+    ///
+    /// True when the chain doesn't hold the transaction, or when its row sits past a lowered
+    /// publication (a rollback is rewriting it). Either way it isn't on the pin's chain, so a
+    /// transaction pending in the view is pending for this reader.
     pub(crate) fn pool_answers(error: &Error, pin: &ReadPin) -> bool {
         match error {
             Error::UnknownTxid => true,
@@ -165,9 +153,8 @@ impl Query {
         }
     }
 
-    /// What a lookup the pool didn't answer either is: the chain's `error`, unless a reorg the
-    /// pool hasn't followed yet left it in limbo ([`PendingView::in_limbo`]), then
-    /// `StateUpdating` for that moment.
+    /// The error for a lookup neither the chain nor the pool answered: the chain's `error`, or
+    /// `StateUpdating` for a transaction in limbo ([`PendingView::in_limbo`]).
     pub(crate) fn unanswered(error: Error, view: &PendingView, txid: &Txid) -> Error {
         if view.in_limbo(txid) {
             Error::StateUpdating

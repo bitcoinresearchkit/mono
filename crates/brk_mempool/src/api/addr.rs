@@ -45,9 +45,9 @@ pub struct Spends<'a> {
 }
 
 impl Spends<'_> {
-    /// Whether a pending transaction spends `txid:vout`, one still resolving included (the
-    /// outpoint is known before what it pays). Each spender's inputs are read once, however many
-    /// of the outpoints asked about it spends.
+    /// Whether a pending transaction spends `txid:vout`. A spender whose prevouts are still
+    /// resolving counts, because its outpoints are known first. Each spender's inputs are read
+    /// once, however many of the outpoints it spends.
     pub fn spent(&mut self, txid: &Txid, vout: Vout) -> bool {
         let Some((pool, view)) = &self.pending.pool else {
             return false;
@@ -59,8 +59,8 @@ impl Spends<'_> {
         true
     }
 
-    /// Identifies the unspent outputs read: the address's pending transactions, and the spenders
-    /// met of the outpoints asked about (all of them, once every outpoint was asked).
+    /// Identifies the unspent outputs read so far: the address's pending transactions, plus the
+    /// spenders found. Once every outpoint was asked, that covers all of them.
     pub fn token(&self) -> u64 {
         self.met
             .iter()
@@ -68,11 +68,12 @@ impl Spends<'_> {
     }
 }
 
-/// What a transaction is to an address's token: one of its own, or a spender of its outputs.
+/// A transaction's role in an address's token: one of its own, or a spender of its outputs.
 const OWN: u8 = 0;
 const SPENDER: u8 = 1;
 
-/// `key`'s part in a token, keyed apart per role: one in both roles doesn't cancel out.
+/// `key`'s contribution to a token, hashed per role so a transaction in both roles doesn't cancel
+/// itself out.
 fn token_part(role: u8, key: &TxKey) -> u64 {
     let mut hasher = json::keyed_hasher();
     hasher.write_u8(role);
@@ -80,8 +81,8 @@ fn token_part(role: u8, key: &TxKey) -> u64 {
     hasher.finish()
 }
 
-/// The pending spenders met so far, each with the outpoints its inputs spend (none for one the
-/// reader's view settled).
+/// The pending spenders found so far, each with the outpoints its inputs spend. `None` for one the
+/// reader's view settled.
 #[derive(Default)]
 struct SpendFilter(FxHashMap<TxKey, Option<FxHashSet<(Txid, Vout)>>>);
 
@@ -120,8 +121,8 @@ impl SpendFilter {
 }
 
 impl ReadOnlyState {
-    /// The address's pending statistics, as far as they are known: each transaction's outputs
-    /// from its arrival, each input once its prevout resolves.
+    /// The address's pending statistics, as far as known. A transaction's outputs count from its
+    /// arrival, and each input once its prevout resolves.
     pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
         let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {
@@ -181,8 +182,8 @@ impl ReadOnlyState {
                 }
             }
         }
-        // What spends one of them pays from the address's own output, resolved (its parent is
-        // pooled): one of its transactions, in the token already.
+        // Drop outputs a pending transaction spends. Such a spender pays from the address's own
+        // output, so it is one of the address's transactions and already in the token.
         let mut spends = SpendFilter::default();
         pending
             .created

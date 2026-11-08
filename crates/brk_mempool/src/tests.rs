@@ -603,9 +603,11 @@ fn graveyard_invariants_hold_through_random_histories() {
                         .chain(spends.iter().map(|(_, by)| *by))
                         .collect::<Vec<_>>();
                     let disconnected = (0..next(3)).map(|_| txid(next(48) as u8)).collect::<Vec<_>>();
-                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected), &mut upkeep);
+                    let listed = next(48) as u8;
+                    let live = |id: &Txid| *id == txid(listed);
+                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected), live, &mut upkeep);
                 }
-                7 => graveyard.set_told(
+                7 => graveyard.set_confirmed_tip(
                     BlockHash::from(bitcoin::BlockHash::from_byte_array([next(4) as u8; 32])),
                     &mut upkeep,
                 ),
@@ -746,7 +748,7 @@ fn graveyard_outlives_a_restart() {
         let record = TxRecord::new(Arc::new(tx), TxEntry::new(&info, raw.total_size() as u64, true));
         graveyard.bury(record, FeeRate::from_milli(1_234 * u64::from(seed)), removal, &mut upkeep);
     }
-    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
+    graveyard.set_confirmed_tip(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
     let head_info = MempoolEntryInfo {
         txid: head.txid,
         wtxid: head_raw.compute_wtxid(),
@@ -774,7 +776,7 @@ fn graveyard_outlives_a_restart() {
         assert!(back.record.entry.rbf);
         assert_eq!(back.record.digest, original.record.digest, "the same body, prevouts too");
         assert_eq!(back.removed_at, original.removed_at, "buried when it was, however long ago");
-        assert!(back.removed_at <= loaded.told_at().unwrap(), "buried before it was told");
+        assert!(back.removed_at <= loaded.confirmed_at().unwrap(), "buried before it was told");
     }
     assert!(loaded.consistent(&Upkeep::of(&loaded)), "its bookkeeping rebuilt");
     assert_eq!(
@@ -782,7 +784,7 @@ fn graveyard_outlives_a_restart() {
         [buried[0]],
         "the replacement's link"
     );
-    assert_eq!(loaded.told(), graveyard.told(), "the tip its blocks were told");
+    assert_eq!(loaded.confirmed_tip(), graveyard.confirmed_tip(), "the tip its blocks were told");
     let restored_head = loaded.get(&head.entry.txid).expect("the pending head");
     assert!(matches!(restored_head.removal, TxRemoval::Vanished));
     assert_eq!(restored_head.chunk_rate, head_rate);

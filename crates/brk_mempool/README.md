@@ -83,9 +83,10 @@ On a loaded `ReadOnlyState`:
   pooled, so never a spend without the output it spends). An address's unspent outputs follow
   the outpoints, known before: while an input resolves, its stats can lag its UTXO list.
 - `rbf_for_tx` and `recent_replacements_json` expose replacement relationships at the caller's
-  tip. The recent trees are walked once per publication (twice mempool.space's 25, spares for
-  those the caller's chain can't serve yet), and the listing, as the caller enriches it, is
-  encoded once per publication and reader tip.
+  tip. A tree holds 4,096 transactions at most; a listed one, 163 (the listing holds about what
+  one tree may), past which it comes cut (`truncated`). The recent trees are walked once per
+  publication (twice mempool.space's 25, spares for those the caller's chain can't serve yet),
+  and the listing, as the caller enriches it, is encoded once per publication and reader tip.
 
 ## Projection and fee tiers
 

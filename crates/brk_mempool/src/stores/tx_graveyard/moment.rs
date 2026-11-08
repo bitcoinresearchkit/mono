@@ -9,15 +9,14 @@ use std::{
 
 use brk_types::Timestamp;
 
-/// A moment the graveyard keeps: nanoseconds since the Unix epoch, as the wall clock read once at
-/// start and the monotonic clock since tell it. A clock step never moves it back within a run, it
-/// reads the same on every call for one moment (a tree's time served twice is one time), and any
-/// moment a file holds is one, however long before the machine booted.
+/// A time the graveyard stores, in nanoseconds since the Unix epoch: the wall clock read once at
+/// start, plus the monotonic clock since. A clock step never moves it backward within a run, and a
+/// moment read from a file stays valid however long before this boot it was written.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Moment(u64);
 
-/// How far [`Moment::now`] runs ahead of the wall clock read at start: past what a run whose
-/// clock was ahead (set back since) left on disk, so what happens now comes after it.
+/// How far [`Moment::now`] runs ahead of the wall clock read at start. It keeps new moments after
+/// any that a run with a clock set ahead left on disk.
 static AHEAD: AtomicU64 = AtomicU64::new(0);
 
 impl Moment {
@@ -32,7 +31,7 @@ impl Moment {
         Self(wall + AHEAD.load(Ordering::Relaxed) + instant.elapsed().as_nanos() as u64)
     }
 
-    /// [`Self::now`] from then on later than `moment`: one read back from disk.
+    /// Makes every later [`Self::now`] come after `moment`, one read from disk.
     pub fn pass(moment: Self) {
         let behind = moment.0.saturating_sub(Self::now().0);
         if behind > 0 {

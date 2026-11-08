@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_types::Transaction;
+use brk_types::{Transaction, Txid};
 
 use crate::{
     Snapshot, TxRemoval,
@@ -40,8 +40,9 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     }
     state.inherit_signaling(&entered);
     state.recheck_signaling(orphaned);
+    let live = |txid: &Txid| listed.contains(&TxKey::from(txid));
     if !confirmed.is_empty() {
-        state.graveyard.confirm(confirmed, &mut state.upkeep);
+        state.graveyard.confirm(confirmed, live, &mut state.upkeep);
     }
     // After the blocks, and only when every new one was read: a confirmed conflict outranks a
     // late arrival (with one unread, what vanished stays so).
@@ -55,9 +56,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     }
     // Pending is what Core lists, loaded or not: while the pool loads (after a restart, or past
     // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
-    state
-        .graveyard
-        .evict_old(Moment::now(), |txid| listed.contains(&TxKey::from(txid)), &mut state.upkeep);
+    state.graveyard.evict_old(Moment::now(), live, &mut state.upkeep);
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {

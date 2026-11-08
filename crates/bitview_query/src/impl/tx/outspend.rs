@@ -12,7 +12,7 @@ impl Query {
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(error) if Self::pool_answers(&error, &pin) => {
-                let error = match self.pending(mempool, &pin)? {
+                let error = match self.pending_view(mempool.as_deref(), &pin)? {
                     Some((mempool, view)) => match mempool.outspend_if_present(txid, vout, &view)? {
                         Some(outspend) => return Ok(outspend),
                         None => Self::unanswered(error, &view, txid),
@@ -36,7 +36,7 @@ impl Query {
         }
         // Confirmed spends answer first; the pool, as the pin sees it, adds a pending spend of the
         // rest.
-        Ok(match self.pending(mempool, &pin)? {
+        Ok(match self.pending_view(mempool.as_deref(), &pin)? {
             Some((mempool, view)) => mempool.outspend(txid, vout, &view)?,
             None => TxOutspend::UNSPENT,
         })
@@ -57,7 +57,7 @@ impl Query {
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
             Err(error) if Self::pool_answers(&error, &pin) => {
-                let Some((mempool, view)) = self.pending(mempool, &pin)? else {
+                let Some((mempool, view)) = self.pending_view(mempool.as_deref(), &pin)? else {
                     return Err(error);
                 };
                 return match mempool.outspends_if_present(txid, &view)? {
@@ -70,7 +70,7 @@ impl Query {
         let mut outspends = self.resolve_outspends(outputs.first, outputs.len, safe)?;
         // Only what the chain leaves unspent asks the pool.
         if outspends.iter().any(|outspend| !outspend.spent)
-            && let Some((mempool, view)) = self.pending(mempool, &pin)?
+            && let Some((mempool, view)) = self.pending_view(mempool.as_deref(), &pin)?
         {
             mempool.merge_outspends(txid, &mut outspends, &view)?;
         }

@@ -1,12 +1,14 @@
-//! The graveyard on disk: every tombstone (its body with resolved prevouts, fee, first sighting,
-//! chunk rate, removal and the [`Moment`] it was buried, so a reboot loses none) and the tip whose
-//! blocks it was told, with that moment, so the RBF trees, removal
-//! reasons and first sightings outlive a restart; on a clean shutdown, the pool's records with it,
-//! so a restart publishes after one cycle (what changed meanwhile) instead of reloading the pool
-//! from Core. One lz4-compressed file, written whole to a temporary one, flushed, and renamed over
-//! it: a crash mid-save leaves the last complete one (the periodic saves' carry no pool). What a
-//! body determines (txid, wtxid, size, weight, sigops, policy vsize, its own RBF signaling) is
-//! derived from it on reading, never taken from the file.
+//! The graveyard on disk, so RBF trees, removal reasons and first sightings outlive a restart.
+//!
+//! The file holds every tombstone: its body with resolved prevouts, fee, first sighting, chunk
+//! rate, removal and burial [`Moment`]. It also holds the confirmed tip and when it was set. On a
+//! clean shutdown it holds the pool's records too, so a restart publishes after one cycle instead
+//! of reloading the pool from Core. Periodic saves carry no pool.
+//!
+//! The file is one lz4-compressed image, written whole to a temporary file, flushed, and renamed
+//! over the old one, so a crash mid-save leaves the last complete save. Whatever a body determines
+//! (txid, wtxid, size, weight, sigops, policy vsize, its own RBF signaling) is derived on reading
+//! and never taken from the file.
 
 use std::{
     fs::{self, File},
@@ -186,12 +188,12 @@ fn encode<'a>(
     tombstones.sort_by_key(|tomb| tomb.removed_at);
     let mut out = Writer::default();
     out.bytes(MAGIC);
-    match graveyard.told() {
+    match graveyard.confirmed_tip() {
         Some(tip) => {
             out.u8(1);
             out.bytes(&bitcoin::BlockHash::from(tip).to_byte_array());
             // When: what was buried before, the blocks since didn't displace.
-            out.u64(graveyard.told_at().unwrap_or(now).unix_nanos());
+            out.u64(graveyard.confirmed_at().unwrap_or(now).unix_nanos());
         }
         None => out.u8(0),
     }
@@ -338,7 +340,7 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if input.take(MAGIC.len())? != MAGIC {
         return Err(Error::Parse("not a graveyard of this version".into()));
     }
-    let told = match input.u8()? {
+    let confirmed = match input.u8()? {
         0 => None,
         _ => {
             let tip = BlockHash::from(bitcoin::BlockHash::from_byte_array(input.array()?));
@@ -392,13 +394,13 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     // What happens from now on comes after all of it, the clock set back since or not: a little.
     // One from further ahead (a clock far off when it was written) would move every moment of
     // the run, so it isn't read.
-    let latest = told.map_or(previous, |(_, at)| at.max(previous));
+    let latest = confirmed.map_or(previous, |(_, at)| at.max(previous));
     if latest > Moment::now() + MAX_AHEAD {
         return Err(Error::Parse("from a clock ahead".into()));
     }
     Moment::pass(latest);
-    if let Some((tip, at)) = told {
-        graveyard.restore_told(tip, at);
+    if let Some((tip, at)) = confirmed {
+        graveyard.restore_confirmed_tip(tip, at);
     }
     Ok((graveyard, pool))
 }

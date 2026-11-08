@@ -14,21 +14,28 @@ use crate::{
     key::{OutpointKey, TxKey},
 };
 
-/// The reader tips past a pool's own whose views it keeps: a moment's readers share one tip, a
-/// few straddle the next block.
+/// How many reader tips past the pool's own tip keep a view. Readers of one moment share a tip, and
+/// a few straddle the next block.
 const BEHIND_TIPS: usize = 3;
 
-/// The pool as a reader pinned at a chain tip sees it: at that tip, as published; behind it, or on
-/// a branch the reader's chain left (a reorg the pool hasn't followed yet), without what the
-/// reader's blocks past the two chains' last common one settled: the transactions they mined,
-/// those they conflicted (spent an input of) and those descending from a conflicted one. On a left
-/// branch, without what's in limbo either ([`Self::in_limbo`]).
+/// A published pool as seen by a reader pinned at a chain tip.
+///
+/// At the pool's own tip the view hides nothing. Otherwise the reader's chain differs from the
+/// pool's in one of two ways:
+///
+/// - The reader is ahead: its newer blocks mined or conflicted some pooled transactions. Those,
+///   and everything spending from a conflicted one, are `settled` and hidden.
+/// - A reorg moved the reader's chain off the pool's branch. The same applies from the newest
+///   block both chains share, and what only the abandoned branch mined is in `limbo`
+///   ([`Self::in_limbo`]).
 pub struct PendingView {
-    /// The pool's tip: the view reads only the publication it was made from.
+    /// The tip of the publication this view was made from. The view reads only that publication.
     tip: BlockHash,
-    /// The reader's.
+    /// The tip the reader is pinned at.
     reader: BlockHash,
+    /// Pooled transactions hidden from this reader.
     settled: FxHashSet<TxKey>,
+    /// Transactions whose fate this reader can't know yet.
     limbo: FxHashSet<Txid>,
 }
 
@@ -41,8 +48,8 @@ impl PendingView {
         self.settled.is_empty()
     }
 
-    /// Tells views apart where what they settle differs: zero at the pool's tip (nothing
-    /// settled), the reader's tip hashed otherwise (one view per publication and reader tip).
+    /// Distinguishes views that hide different transactions: zero when nothing is hidden, otherwise
+    /// a hash of the reader's tip. A publication has one view per reader tip.
     pub(crate) fn identity(&self) -> u64 {
         if self.settles_nothing() {
             return 0;
@@ -52,7 +59,7 @@ impl PendingView {
         hasher.finish()
     }
 
-    /// Whether `txid`, pooled, is still pending as the reader sees it.
+    /// Whether a pooled transaction is still pending for this reader.
     pub(crate) fn pending(&self, txid: &Txid) -> bool {
         self.pending_key(&TxKey::from(txid))
     }
@@ -62,18 +69,19 @@ impl PendingView {
         self.settled.is_empty() || !self.settled.contains(key)
     }
 
-    /// Whether `txid` is unknown for the moment: mined only by the blocks of the pool's branch the
-    /// reader's chain left (their coinbases aside), or pooled spending from one of those. Core
-    /// puts the first back in its pool (unless the reader's blocks conflicted it, the second then
-    /// gone too), and the pool has them as they are once it follows the reorg, a cycle later. In
-    /// no view meanwhile.
+    /// Whether this reader can't know `txid`'s fate yet, because a reorg isn't followed yet.
+    ///
+    /// True for a non-coinbase transaction only the abandoned branch mined, and for a pooled
+    /// transaction spending from one. Core returns the first kind to its pool unless the reader's
+    /// blocks conflict it. The pool knows which once it follows the reorg, a cycle later. Until
+    /// then these transactions appear in no view, and a lookup of one answers `StateUpdating`.
     pub fn in_limbo(&self, txid: &Txid) -> bool {
         self.limbo.contains(txid)
     }
 }
 
 impl ReadOnlyState {
-    /// The pool for a reader at `tip`, when it's there.
+    /// The view for a reader pinned at the pool's own tip. Errors for any other tip.
     pub fn view_at(&self, tip: &BlockHash) -> Result<Arc<PendingView>> {
         self.pool()?.at(tip)?;
         Ok(Arc::new(PendingView {
@@ -84,111 +92,127 @@ impl ReadOnlyState {
         }))
     }
 
-    /// The pool for a reader at `reader`, past the newest of [`Self::ancestry`] its chain holds,
-    /// the pool's `left` newest blocks past that one (a reorg's branch; none when the pool only
-    /// trails the reader): `spends` gives the reader's blocks past it, each input the outpoint it
-    /// spends and its transaction. Made once per publication and reader tip: every read of the
-    /// moment after a block shares one (those arriving meanwhile wait for it, readers at another
-    /// tip don't). O(those inputs, the pooled spenders' inputs, and what they settle's outputs;
-    /// past a left branch, the pool's inputs too).
+    /// The view for a reader whose tip isn't the pool's.
+    ///
+    /// `left` counts the pool's newest blocks that the reader's chain doesn't hold: zero when the
+    /// pool only trails the reader, more after a reorg. `spends` yields every input of the reader's
+    /// blocks past the newest block both chains share, as the outpoint spent and the spending
+    /// transaction.
+    ///
+    /// Each publication builds one view per reader tip. Readers of that tip wait for the first
+    /// build and share it; readers of other tips don't wait. Costs O(those inputs, plus the inputs
+    /// and outputs of the transactions hidden), and O(the pool's inputs) when `left` isn't zero.
     pub fn view_behind<E: From<Error>, S: IntoIterator<Item = ((Txid, Vout), Txid)>>(
         &self,
         reader: BlockHash,
         left: usize,
         spends: impl FnOnce() -> std::result::Result<S, E>,
     ) -> std::result::Result<Arc<PendingView>, E> {
-        let state = self.pool()?;
-        let slot = {
-            let mut slots = state
-                .behind
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            match slots.iter().find(|(tip, _)| *tip == reader) {
-                Some((_, slot)) => slot.clone(),
-                None => {
-                    if slots.len() == BEHIND_TIPS {
-                        slots.remove(0);
-                    }
-                    let slot = BehindSlot::default();
-                    slots.push((reader, slot.clone()));
-                    slot
-                }
-            }
-        };
-        let mut behind = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(view) = behind.as_ref() {
+        let pool = self.pool()?;
+        let slot = slot_for(pool, reader);
+        let mut built = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(view) = built.as_ref() {
             return Ok(view.clone());
         }
-        let spends: RapidHashMap<(Txid, Vout), Txid> = spends()?.into_iter().collect();
-        // The pooled spenders of those outpoints, each checked once against its own inputs: mined
-        // when a block spends one of them by the transaction itself, conflicted when by another.
-        let mut candidates: Vec<TxKey> = spends
-            .keys()
-            .filter_map(|&(txid, vout)| {
-                state
-                    .outpoint_spends
-                    .get(&OutpointKey::new(TxKey::from(&txid), vout))
-            })
-            .collect();
-        candidates.sort_unstable();
-        candidates.dedup();
-        let mut settled = FxHashSet::default();
-        let mut conflicted = Vec::new();
-        for record in candidates.iter().filter_map(|key| state.txs.record_by_key(key)) {
-            let tx = &record.tx;
-            let Some(spender) = tx
-                .input
-                .iter()
-                .find_map(|input| spends.get(&(input.txid, input.vout)))
-            else {
-                continue;
-            };
-            settled.insert(record.entry.key());
-            if *spender != tx.txid {
-                conflicted.push(record);
-            }
-        }
-        // What spends a conflicted transaction's outputs can't confirm either.
-        while let Some(record) = conflicted.pop() {
-            for child in state.outpoint_spends.children(&state.txs, &record.tx) {
-                if settled.insert(child.entry.key()) {
-                    conflicted.push(child);
-                }
-            }
-        }
+        let spends: Spends = spends()?.into_iter().collect();
+        let mut settled = settled_by(pool, &spends);
         let limbo = if left == 0 {
             FxHashSet::default()
         } else {
-            limbo(state, left, &spends, &mut settled)
+            limbo(pool, left, &spends, &mut settled)
         };
         let view = Arc::new(PendingView {
-            tip: state.tip,
+            tip: pool.tip,
             reader,
             settled,
             limbo,
         });
-        *behind = Some(view.clone());
+        *built = Some(view.clone());
         Ok(view)
     }
 }
 
-/// What the pool's `left` newest blocks mined that the reader's (`spends`) didn't (every
-/// transaction they mined spends), then whatever `pool` holds spending from it, settled. Their
-/// coinbases aren't: gone with their blocks for good, and nothing pooled spends one so young.
-/// O(those blocks' transactions, and the pool's inputs when one is left).
+/// The inputs of the reader's blocks: each outpoint spent, with its spending transaction.
+type Spends = RapidHashMap<(Txid, Vout), Txid>;
+
+/// `reader`'s slot in `pool`, created if missing. The oldest slot goes when all are taken.
+fn slot_for(pool: &Pool, reader: BlockHash) -> BehindSlot {
+    let mut slots = pool
+        .behind
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some((_, slot)) = slots.iter().find(|(tip, _)| *tip == reader) {
+        return slot.clone();
+    }
+    if slots.len() == BEHIND_TIPS {
+        slots.remove(0);
+    }
+    let slot = BehindSlot::default();
+    slots.push((reader, slot.clone()));
+    slot
+}
+
+/// The pooled transactions `spends` settles.
+///
+/// A pooled transaction spending one of those outpoints was either mined (the spender is itself)
+/// or conflicted (the spender is another). Whatever spends from a conflicted one can't confirm
+/// either, so its descendants are settled too. A mined transaction's children stay pending.
+fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
+    let mut candidates: Vec<TxKey> = spends
+        .keys()
+        .filter_map(|&(txid, vout)| {
+            pool.outpoint_spends
+                .get(&OutpointKey::new(TxKey::from(&txid), vout))
+        })
+        .collect();
+    candidates.sort_unstable();
+    candidates.dedup();
+    let mut settled = FxHashSet::default();
+    let mut conflicted = Vec::new();
+    for record in candidates.iter().filter_map(|key| pool.txs.record_by_key(key)) {
+        let tx = &record.tx;
+        let Some(spender) = tx
+            .input
+            .iter()
+            .find_map(|input| spends.get(&(input.txid, input.vout)))
+        else {
+            continue;
+        };
+        settled.insert(record.entry.key());
+        if *spender != tx.txid {
+            conflicted.push(record);
+        }
+    }
+    while let Some(record) = conflicted.pop() {
+        for child in pool.outpoint_spends.children(&pool.txs, &record.tx) {
+            if settled.insert(child.entry.key()) {
+                conflicted.push(child);
+            }
+        }
+    }
+    settled
+}
+
+/// The transactions in limbo for a reader whose chain left the pool's `left` newest blocks. Pooled
+/// ones are added to `settled`, which hides them.
+///
+/// Limbo starts with what those blocks mined and the reader's blocks didn't. Every transaction a
+/// block mines spends an input, so `spends` names all the reader's non-coinbase ones. Coinbases are
+/// skipped: an abandoned block's coinbase is gone for good, and nothing pooled can spend one so
+/// young. Limbo then grows by every pooled transaction spending from it, transitively.
 fn limbo(
     pool: &Pool,
     left: usize,
-    spends: &RapidHashMap<(Txid, Vout), Txid>,
+    spends: &Spends,
     settled: &mut FxHashSet<TxKey>,
 ) -> FxHashSet<Txid> {
     let blocks = pool.ancestry.blocks();
-    debug_assert!(left < blocks.len(), "a common block among the pool's");
-    let mined: FxHashSet<&Txid> = spends.values().collect();
+    debug_assert!(left < blocks.len(), "the common block is one of the pool's");
+    let reader_mined: FxHashSet<&Txid> = spends.values().collect();
     let mut limbo: FxHashSet<Txid> = blocks[blocks.len().saturating_sub(left)..]
         .iter()
         .flat_map(|block| block.txids.iter().skip(1))
-        .filter(|txid| !mined.contains(txid))
+        .filter(|txid| !reader_mined.contains(txid))
         .copied()
         .collect();
     if limbo.is_empty() {
