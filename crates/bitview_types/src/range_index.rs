@@ -76,12 +76,13 @@ impl fmt::Display for RangeIndex {
 impl<'de> Deserialize<'de> for RangeIndex {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
-        let s = s.trim().trim_matches('"');
-        if s.is_empty() {
-            return Err(Error::custom("empty range index"));
-        }
         if let Ok(i) = s.parse::<i64>() {
-            return Ok(Self::Int(i));
+            // The one spelling of a number: no `01`, `+1` or `-0`.
+            return if i.to_string() == s {
+                Ok(Self::Int(i))
+            } else {
+                Err(Error::custom(format!("invalid number: `{s}`")))
+            };
         }
         if let Ok(date) = s.parse::<Date>() {
             return Ok(Self::Date(date));

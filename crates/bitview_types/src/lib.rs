@@ -1,8 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-use serde::Deserializer;
-
-use deser::de_unquote_usize;
 pub use deser::de_plain;
 
 #[cfg(test)]
@@ -150,10 +147,3 @@ pub use urpd_cohort::*;
 pub use urpd_weight::*;
 pub use utxo::*;
 pub use utxo_set::*;
-
-fn de_unquote_limit<'de, D>(deserializer: D) -> Result<Option<Limit>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_unquote_usize(deserializer).map(|limit| limit.map(Limit::from))
-}

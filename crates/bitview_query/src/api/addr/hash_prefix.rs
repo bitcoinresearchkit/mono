@@ -66,7 +66,7 @@ impl AddrHashPrefix {
     fn parse(prefix: &str) -> Result<Self> {
         let nibbles = prefix.len();
         if !(1..=Self::MAX_NIBBLES).contains(&nibbles)
-            || !prefix.bytes().all(|byte| byte.is_ascii_hexdigit())
+            || !prefix.bytes().all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
         {
             return Err(Self::parse_error());
         }
@@ -81,14 +81,14 @@ impl AddrHashPrefix {
             .map_or(Bound::Unbounded, |end| Bound::Excluded(AddrHash::new(end)));
 
         Ok(Self {
-            text: prefix.to_ascii_lowercase(),
+            text: prefix.to_owned(),
             range: (lower, upper),
         })
     }
 
     fn parse_error() -> Error {
         Error::InvalidParam(format!(
-            "hash prefix must be 1 to {} hexadecimal characters",
+            "hash prefix must be 1 to {} lowercase hexadecimal characters",
             Self::MAX_NIBBLES
         ))
     }

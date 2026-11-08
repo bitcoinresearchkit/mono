@@ -42,6 +42,7 @@ fn cursor(after: &str) -> Result<(i64, u64)> {
     after
         .rsplit_once('-')
         .and_then(|(process, seq)| Some((process.parse().ok()?, seq.parse().ok()?)))
+        .filter(|(process, seq)| format!("{process}-{seq}") == after)
         .ok_or_else(|| Error::bad_request("`after` takes an answer's `next`, as it is"))
 }
 

@@ -13,9 +13,7 @@ use std::{
 
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
-    Extension, Router, ServiceExt,
-    body::Body,
-    http::Request,
+    Extension, Router,
     middleware::from_fn,
     response::{IntoResponse, Redirect},
     routing::get,
@@ -34,10 +32,8 @@ use tower_http::{
         predicate::{NotForContentType, Predicate},
     },
     cors::CorsLayer,
-    normalize_path::{NormalizePath, NormalizePathLayer},
     timeout::RequestBodyTimeoutLayer,
 };
-use tower_layer::Layer;
 use tracing::info;
 
 use api::*;
@@ -50,6 +46,7 @@ mod api;
 #[cfg(feature = "full-api")]
 mod body_response;
 mod cache;
+mod canonical_url;
 mod config;
 mod error;
 mod etag;
@@ -201,11 +198,8 @@ fn compression_layer() -> CompressionLayer<impl Predicate> {
         )
 }
 
-/// The complete HTTP application as served: every route plus the response middleware.
-pub type App = NormalizePath<Router>;
-
 pub struct Server {
-    app: App,
+    app: Router,
     listener: TcpListener,
 }
 
@@ -232,18 +226,15 @@ impl Server {
         let Self { app, listener } = self;
         info!("Server listening on http://{}", listener.local_addr()?);
 
-        serve(
-            StallLimitListener(listener),
-            ServiceExt::<Request<Body>>::into_make_service(app),
-        )
-        .await?;
+        serve(StallLimitListener(listener), app).await?;
 
         Ok(())
     }
 }
 
-/// Builds the HTTP application for `query` without binding a socket.
-pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
+/// Builds the HTTP application for `query` without binding a socket: every route plus the
+/// response middleware.
+pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     #[cfg(feature = "series")]
     let series_bodies = query
         .run(|query| Ok(Arc::new(SeriesBodies::new(query))))
@@ -305,7 +296,9 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let state = AppState::new(query.clone(), shared);
 
     let website_router = WebsiteRouter(state.website.clone());
-    let mut router = ApiRouter::new().add_api_routes();
+    let mut router = ApiRouter::new()
+        .add_api_routes()
+        .route_layer(from_fn(canonical_url::refuse_respelled));
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/openapi.json")));
     }
@@ -331,10 +324,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
 
     let (router, openapi) = finish_openapi(router);
 
-    let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
-
-    // NormalizePath must wrap the router (not be a layer) to run before route matching
-    Ok(NormalizePathLayer::trim_trailing_slash().layer(router))
+    Ok(router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi)))))
 }
 
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(

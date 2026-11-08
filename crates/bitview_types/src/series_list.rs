@@ -95,7 +95,7 @@ impl fmt::Display for SeriesList {
 }
 
 /// The names as given, each exact (as the single-series routes take one): split on commas only,
-/// empty ones skipped.
+/// an empty one refused, as `a,` would be another spelling of `a`.
 fn sanitize<'a, S: Into<Cow<'a, str>>>(
     dirty: impl Iterator<Item = S>,
 ) -> Result<Vec<SeriesName>, &'static str> {
@@ -103,7 +103,7 @@ fn sanitize<'a, S: Into<Cow<'a, str>>>(
     for name in dirty {
         let name = name.into();
         if name.is_empty() {
-            continue;
+            return Err("A series name is empty");
         }
         if clean.len() == MAX_SERIES {
             return Err("At most 32 series may be requested");
