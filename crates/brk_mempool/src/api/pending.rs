@@ -10,8 +10,13 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     ReadOnlyState, json,
+    state::BehindSlot,
     key::{OutpointKey, TxKey},
 };
+
+/// The reader tips past a pool's own whose views it keeps: a moment's readers share one tip, a
+/// few straddle the next block.
+const BEHIND_TIPS: usize = 3;
 
 /// The pool as a reader pinned at a chain tip sees it: at that tip, as published; behind it,
 /// without what the chain's newer blocks settled: the transactions they mined, those they
@@ -67,21 +72,35 @@ impl ReadOnlyState {
     }
 
     /// The pool for a reader at `reader`, past its tip: `spends` gives the newer blocks' inputs,
-    /// each the outpoint it spends and its transaction. Made once per publication and reader tip,
-    /// under the pool's lock: every read of the moment after a block shares one (those arriving
-    /// meanwhile wait for it). O(those inputs, the pooled spenders' inputs, and what they settle's
-    /// outputs).
+    /// each the outpoint it spends and its transaction. Made once per publication and reader tip:
+    /// every read of the moment after a block shares one (those arriving meanwhile wait for it,
+    /// readers at another tip don't). O(those inputs, the pooled spenders' inputs, and what they
+    /// settle's outputs).
     pub fn view_behind<E: From<Error>, S: IntoIterator<Item = ((Txid, Vout), Txid)>>(
         &self,
         reader: BlockHash,
         spends: impl FnOnce() -> std::result::Result<S, E>,
     ) -> std::result::Result<Arc<PendingView>, E> {
         let state = self.pool()?;
-        let mut behind = state
-            .behind
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(view) = behind.as_ref().filter(|view| view.reader == reader) {
+        let slot = {
+            let mut slots = state
+                .behind
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            match slots.iter().find(|(tip, _)| *tip == reader) {
+                Some((_, slot)) => slot.clone(),
+                None => {
+                    if slots.len() == BEHIND_TIPS {
+                        slots.remove(0);
+                    }
+                    let slot = BehindSlot::default();
+                    slots.push((reader, slot.clone()));
+                    slot
+                }
+            }
+        };
+        let mut behind = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(view) = behind.as_ref() {
             return Ok(view.clone());
         }
         let spends: RapidHashMap<(Txid, Vout), Txid> = spends()?.into_iter().collect();

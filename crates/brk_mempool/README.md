@@ -31,11 +31,11 @@ tip readers pair the pool with: a pool is published only at that tip. A cycle at
 hasn't published yet is withheld, and goes out the moment the chain publishes it and calls
 `chain.published()` (a cycle starts at once if none was).
 
-`keep_graveyard` reads the graveyard back (ages carried over the downtime, what a body
-determines derived from it, a file that doesn't read set aside) and saves the last publication's
-every 5 minutes while it changes; `GraveyardSaver::save` saves it at shutdown. The pending heads
-of replacement trees go with it, so a restart finds each tree whether its head is still pending,
-confirmed meanwhile (the blocks since the saved tip are read) or gone.
+`keep_graveyard` reads the graveyard back (each tombstone buried when it was, however long ago,
+what a body determines derived from it, a file that doesn't read set aside) and saves the last
+publication's every 5 minutes while it changes; `GraveyardSaver::save` saves it at shutdown. The
+pending heads of replacement trees go with it, so a restart finds each tree whether its head is
+still pending, confirmed meanwhile (the blocks since the saved tip are read) or gone.
 
 `tick` drives one cycle manually, published at the node's tip; it resolves confirmed prevouts
 from the node's UTXO set (`gettxout`, the mempool's spends not counted), so no `txindex` is
@@ -68,18 +68,22 @@ On a loaded `ReadOnlyState`:
   without copying them. Every projected block is served but a last one holding more than a block
   (what's left of a busy mempool, mempool.space's catch-all): that one has only its statistics.
 - `transaction`, `entry` and the outspend reads take the caller's full chain-tip hash and require
-  a publication at that tip. `transaction` shares an immutable live or recently vanished body;
-  replaced tombstones are excluded; one whose inputs aren't all resolved yet answers
-  `StateUpdating`, alone.
+  a publication at that tip. `transaction` shares an immutable pending body; an input not
+  resolved yet has a null prevout (Esplora's form for a coinbase input) until a later
+  publication fills it.
 - `cpfp_info` reads the publication's own graph, at the caller's tip (`StateUpdating` for a
   transaction whose own inputs are still resolving).
 - `addr_stats`, `addr_pending_utxos`, `addr_txs`, `addr_has_tx` and `is_pending` read through a
   `PendingView`: `view_at(tip)` for a reader at the pool's tip, or `view_behind(spends)` for one a
   few blocks past it, the pool without what those blocks mined, conflicted, or descend from a
-  conflicted one. A transaction folds into the address view once it and every pooled parent
-  are resolved, so no address sees half of one.
-- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships at the caller's tip; the
-  recent trees (mempool.space's 25) are walked once per publication.
+  conflicted one. A transaction folds into the address view as far as it is known: its outputs
+  on arrival, each input once its prevout resolves (a pooled parent's once that parent is
+  pooled, so never a spend without the output it spends). An address's unspent outputs follow
+  the outpoints, known before: while an input resolves, its stats can lag its UTXO list.
+- `rbf_for_tx` and `recent_replacements_json` expose replacement relationships at the caller's
+  tip. The recent trees are walked once per publication (twice mempool.space's 25, spares for
+  those the caller's chain can't serve yet), and the listing, as the caller enriches it, is
+  encoded once per publication and reader tip.
 
 ## Projection and fee tiers
 

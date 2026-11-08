@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bitview_plugin_indexer::SafeLengths;
 use bitview_types::{RbfResponse, RbfTx, ReplacementNode};
 use brk_mempool::{RbfForTx, RbfNode};
@@ -51,31 +53,22 @@ impl Query {
         Ok(serialize_json(&response))
     }
 
-    /// Recent RBF replacements. Matches mempool.space's
-    /// `GET /api/v1/replacements` and `GET /api/v1/fullrbf/replacements`.
-    /// Most-recent first, capped at 25. `full_rbf_only` keeps only
-    /// trees with at least one non-signaling predecessor.
-    fn recent_replacements(&self, full_rbf_only: bool) -> Result<Vec<ReplacementNode>> {
-        let (mempool, pin) = self.mempool_then_pin()?;
-        let read = self.read_indexer_at(pin);
-        let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::MempoolNotAvailable)?;
-        let trees = mempool.recent_rbf_trees(full_rbf_only, &tip)?;
-        Ok(trees
-            .into_iter()
-            .map(|node| read.enrich_rbf_tree(node, full_rbf_only))
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .flatten()
-            .collect())
-    }
-
-    /// Serialize recent replacements with their exact content identity.
+    /// Recent RBF replacements, encoded with their content identity. Matches mempool.space's
+    /// `GET /api/v1/replacements` and `GET /api/v1/fullrbf/replacements`: most-recent first,
+    /// capped at 25, `full_rbf_only` keeping only trees with at least one non-signaling
+    /// predecessor. Enriched and encoded once per publication and indexed tip, shared.
     pub fn recent_replacements_json(
         &self,
         full_rbf_only: bool,
-    ) -> Result<(Vec<u8>, RepresentationId)> {
-        let replacements = self.recent_replacements(full_rbf_only)?;
-        Ok(serialize_json(&replacements))
+    ) -> Result<(Arc<[u8]>, RepresentationId)> {
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let reader = pin.tip();
+        let read = self.read_indexer_at(pin);
+        let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::MempoolNotAvailable)?;
+        let (bytes, hash) = mempool.recent_replacements_json(full_rbf_only, &tip, reader, |tree| {
+            read.enrich_rbf_tree(tree, full_rbf_only)
+        })?;
+        Ok((bytes, RepresentationId::Content(hash)))
     }
 }
 

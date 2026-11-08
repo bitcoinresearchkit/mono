@@ -13,7 +13,7 @@ use std::{
     io::{ErrorKind, Write},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use bitcoin::{
@@ -38,6 +38,9 @@ use crate::{
 
 /// Bumped when the layout changes: a file of another version is set aside, not read.
 const MAGIC: &[u8; 8] = b"BVGRAVE5";
+/// The most a file's moments may run ahead of the clock (one set back since, by a correction or a
+/// reboot before the clock syncs).
+const MAX_AHEAD: Duration = Duration::from_hours(1);
 /// The most a file may hold, and say it decompresses to (its bodies are capped at 256 MiB): a
 /// corrupt one allocates nothing past it.
 const MAX_FILE_BYTES: usize = 1 << 30;
@@ -386,10 +389,15 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
     if !graveyard.acyclic() {
         return Err(Error::Parse("a replacement cycle".into()));
     }
-    // What happens from now on comes after all of it, the clock set back since or not.
-    Moment::pass(previous);
+    // What happens from now on comes after all of it, the clock set back since or not: a little.
+    // One from further ahead (a clock far off when it was written) would move every moment of
+    // the run, so it isn't read.
+    let latest = told.map_or(previous, |(_, at)| at.max(previous));
+    if latest > Moment::now() + MAX_AHEAD {
+        return Err(Error::Parse("from a clock ahead".into()));
+    }
+    Moment::pass(latest);
     if let Some((tip, at)) = told {
-        Moment::pass(at);
         graveyard.restore_told(tip, at);
     }
     Ok((graveyard, pool))

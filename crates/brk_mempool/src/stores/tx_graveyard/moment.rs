@@ -48,11 +48,6 @@ impl Moment {
         self.0
     }
 
-    /// The time from `earlier` to it, zero when `earlier` isn't earlier.
-    pub fn saturating_duration_since(self, earlier: Self) -> Duration {
-        Duration::from_nanos(self.0.saturating_sub(earlier.0))
-    }
-
     /// Its whole second.
     pub fn timestamp(self) -> Timestamp {
         Timestamp::from((self.0 / 1_000_000_000) as usize)

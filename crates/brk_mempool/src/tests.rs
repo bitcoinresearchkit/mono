@@ -23,7 +23,7 @@ use crate::{
     },
     steps::{Confirmed, applier, preparer::{self, TxAddition}, prevouts},
     state::TxEntry,
-    stores::{Linker, TxGraveyard, TxStore, tx_store::TxRecord},
+    stores::{TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
     steps::TxRemoval,
 };
 
@@ -711,9 +711,9 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
 /// blocks confirmed; what the new blocks mined again, or no dropped block held, stays mined.
 #[test]
 fn reorged_out_tombstones_read_vanished_or_replaced() {
-    let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
+    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
     let outpoint = |seed: u8| (txid(80 + seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, linker: &mut Linker, seed: u8| {
+    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8| {
         let tx = Arc::new(spending(seed, &[outpoint(seed)]));
         let info = MempoolEntryInfo {
             txid: tx.txid,
@@ -724,18 +724,18 @@ fn reorged_out_tombstones_read_vanished_or_replaced() {
             first_seen: Timestamp::now(),
         };
         let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Mined, linker);
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Mined, upkeep);
     };
     // 1: dropped, nothing in its place; 2: dropped, a conflict confirmed; 3: dropped, mined again;
     // 4: its block stayed.
     for seed in 1..=4 {
-        bury(&mut graveyard, &mut linker, seed);
+        bury(&mut graveyard, &mut upkeep, seed);
     }
     graveyard.confirm(&Confirmed::of(
         [txid(3), txid(9)],
         [(outpoint(2), txid(9)), (outpoint(3), txid(3))],
         [1, 2, 3].map(txid),
-    ), &mut linker);
+    ), &mut upkeep);
     let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
     assert!(matches!(removal(1), TxRemoval::Vanished));
     assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
@@ -748,9 +748,9 @@ fn reorged_out_tombstones_read_vanished_or_replaced() {
 /// after a complete cycle, nothing is left waiting for one.
 #[test]
 fn late_replacers_relink_what_vanished_before_them() {
-    let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
+    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
     let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, linker: &mut Linker, seed: u8, spends: &[u8]| {
+    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, spends: &[u8]| {
         let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
         let tx = Arc::new(spending(seed, &outpoints));
         let info = MempoolEntryInfo {
@@ -762,27 +762,27 @@ fn late_replacers_relink_what_vanished_before_them() {
             first_seen: Timestamp::now(),
         };
         let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, linker);
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, upkeep);
     };
     let unloaded = |seeds: &[u8]| seeds.iter().map(|&s| txid(s)).collect::<RapidHashSet<Txid>>();
     let removal = |graveyard: &TxGraveyard, seed| graveyard.get(&txid(seed)).unwrap().removal;
 
     // 1 spent 90 and 91 and vanished while 2, its replacer (spending 91), was listed unloaded.
-    bury(&mut graveyard, &mut linker, 1, &[90, 91]);
-    graveyard.index_vanished(&mut linker);
-    graveyard.end_cycle(&unloaded(&[2]), &mut linker);
+    bury(&mut graveyard, &mut upkeep, 1, &[90, 91]);
+    graveyard.index_vanished(&mut upkeep);
+    graveyard.end_cycle(&unloaded(&[2]), &mut upkeep);
     // 3 is first listed after: it spends 90, which 1's leaving freed.
-    graveyard.end_cycle(&unloaded(&[2, 3]), &mut linker);
-    graveyard.relink(&spending(3, &[outpoint(90)]), &mut linker);
+    graveyard.end_cycle(&unloaded(&[2, 3]), &mut upkeep);
+    graveyard.relink(&spending(3, &[outpoint(90)]), &mut upkeep);
     assert!(matches!(removal(&graveyard, 1), TxRemoval::Vanished));
-    graveyard.relink(&spending(2, &[outpoint(91)]), &mut linker);
+    graveyard.relink(&spending(2, &[outpoint(91)]), &mut upkeep);
     assert!(matches!(removal(&graveyard, 1), TxRemoval::Replaced { by } if by == txid(2)));
     assert_eq!(graveyard.predecessors_of(&txid(2)).count(), 1);
 
-    bury(&mut graveyard, &mut linker, 4, &[92]);
-    graveyard.index_vanished(&mut linker);
-    graveyard.end_cycle(&unloaded(&[]), &mut linker);
-    graveyard.relink(&spending(5, &[outpoint(92)]), &mut linker);
+    bury(&mut graveyard, &mut upkeep, 4, &[92]);
+    graveyard.index_vanished(&mut upkeep);
+    graveyard.end_cycle(&unloaded(&[]), &mut upkeep);
+    graveyard.relink(&spending(5, &[outpoint(92)]), &mut upkeep);
     assert!(matches!(removal(&graveyard, 4), TxRemoval::Vanished));
 }
 
@@ -791,9 +791,9 @@ fn late_replacers_relink_what_vanished_before_them() {
 /// nothing.
 #[test]
 fn confirmed_conflicts_replace_only_what_they_displaced() {
-    let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
+    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
     let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, linker: &mut Linker, seed: u8, spends: &[u8]| {
+    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, spends: &[u8]| {
         let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
         let tx = Arc::new(spending(seed, &outpoints));
         let info = MempoolEntryInfo {
@@ -805,24 +805,24 @@ fn confirmed_conflicts_replace_only_what_they_displaced() {
             first_seen: Timestamp::now(),
         };
         let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, linker);
+        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, upkeep);
     };
     // 1 left (evicted, say), and 3 (spending 92 and 93) while 8, spending 93, was listed
     // unloaded; the cycle's blocks were all told.
-    bury(&mut graveyard, &mut linker, 1, &[90]);
-    bury(&mut graveyard, &mut linker, 3, &[92, 93]);
-    graveyard.index_vanished(&mut linker);
-    graveyard.end_cycle(&[txid(8)].into_iter().collect(), &mut linker);
-    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut linker);
+    bury(&mut graveyard, &mut upkeep, 1, &[90]);
+    bury(&mut graveyard, &mut upkeep, 3, &[92, 93]);
+    graveyard.index_vanished(&mut upkeep);
+    graveyard.end_cycle(&[txid(8)].into_iter().collect(), &mut upkeep);
+    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
     // 2 leaves as a block confirms 9 (spending 90 and 91), 7 (spending 92, which 3's leaving
     // freed) and 8.
-    bury(&mut graveyard, &mut linker, 2, &[91]);
+    bury(&mut graveyard, &mut upkeep, 2, &[91]);
     let spend = |seed: u8, by: u8| (outpoint(seed), txid(by));
     graveyard.confirm(&Confirmed::of(
         [7, 8, 9].map(txid),
         [spend(90, 9), spend(91, 9), spend(92, 7), spend(93, 8)],
         [],
-    ), &mut linker);
+    ), &mut upkeep);
     let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
     assert!(matches!(removal(1), TxRemoval::Vanished));
     assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
@@ -836,8 +836,8 @@ fn confirmed_conflicts_replace_only_what_they_displaced() {
 fn tombstones_and_trees_leave_after_their_retention() {
     use crate::stores::Moment;
     use std::time::Duration;
-    let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
-    let bury = |graveyard: &mut TxGraveyard, linker: &mut Linker, seed: u8, removal: TxRemoval| {
+    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
+    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, removal: TxRemoval| {
         let tx = Arc::new(spending(seed, &[(txid(100 + seed), Vout::from(0usize))]));
         let info = MempoolEntryInfo {
             txid: tx.txid,
@@ -848,19 +848,19 @@ fn tombstones_and_trees_leave_after_their_retention() {
             first_seen: Timestamp::now(),
         };
         let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), removal, linker);
+        graveyard.bury(record, FeeRate::default(), removal, upkeep);
     };
     let replaced = |by: u8| TxRemoval::Replaced { by: txid(by) };
     // 1 lone; 2, replaced by 3, replaced by 4, pending; 5 replaced by 6, which a block confirmed
     // unseen; 7 replaced by 8, mined; 9 replaced by 10, vanished but listed again.
-    bury(&mut graveyard, &mut linker, 1, TxRemoval::Vanished);
-    bury(&mut graveyard, &mut linker, 2, replaced(3));
-    bury(&mut graveyard, &mut linker, 3, replaced(4));
-    bury(&mut graveyard, &mut linker, 5, replaced(6));
-    bury(&mut graveyard, &mut linker, 7, replaced(8));
-    bury(&mut graveyard, &mut linker, 8, TxRemoval::Mined);
-    bury(&mut graveyard, &mut linker, 9, replaced(10));
-    bury(&mut graveyard, &mut linker, 10, TxRemoval::Vanished);
+    bury(&mut graveyard, &mut upkeep, 1, TxRemoval::Vanished);
+    bury(&mut graveyard, &mut upkeep, 2, replaced(3));
+    bury(&mut graveyard, &mut upkeep, 3, replaced(4));
+    bury(&mut graveyard, &mut upkeep, 5, replaced(6));
+    bury(&mut graveyard, &mut upkeep, 7, replaced(8));
+    bury(&mut graveyard, &mut upkeep, 8, TxRemoval::Mined);
+    bury(&mut graveyard, &mut upkeep, 9, replaced(10));
+    bury(&mut graveyard, &mut upkeep, 10, TxRemoval::Vanished);
     let start = Moment::now();
     let at = |hours: u64| start + Duration::from_secs(hours * 3_600 + 60);
     let holds = |graveyard: &TxGraveyard, seeds: &[u8]| -> Vec<bool> {
@@ -868,25 +868,25 @@ fn tombstones_and_trees_leave_after_their_retention() {
     };
     let pending = |id: &Txid| *id == txid(4) || *id == txid(10);
 
-    graveyard.evict_old(at(0), pending);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(0), pending, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[1, 2, 3, 5, 7, 8, 9, 10]), [true; 8]);
-    graveyard.evict_old(at(1), pending);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(1), pending, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[1]), [false], "a lone one goes after an hour");
-    graveyard.evict_old(at(23), pending);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(23), pending, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[2, 3, 5, 7, 8, 9, 10]), [true; 7], "trees stay a day");
-    graveyard.evict_old(at(24), pending);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(24), pending, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[5, 7, 8]), [false; 3], "a day after their root left");
     assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "while their root is pending");
     // Neither root is listed any more.
-    graveyard.evict_old(at(47), |_| false);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(47), |_| false, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "a day after last seen pending");
-    graveyard.evict_old(at(48), |_| false);
-    assert!(graveyard.consistent());
+    graveyard.evict_old(at(48), |_| false, &mut upkeep);
+    assert!(graveyard.consistent(&upkeep));
     assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [false; 4], "whole trees go");
     assert_eq!(graveyard.predecessors_of(&txid(4)).count(), 0);
 }
@@ -921,7 +921,7 @@ fn graveyard_invariants_hold_through_random_histories() {
             state % bound
         };
         let start = Moment::now();
-        let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
+        let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
         let mut hours = 0u64;
         for _ in 0..4_000 {
             let seed = next(48) as u8;
@@ -932,12 +932,12 @@ fn graveyard_invariants_hold_through_random_histories() {
                         1 => TxRemoval::Vanished,
                         _ => TxRemoval::Replaced { by: txid(next(48) as u8) },
                     };
-                    graveyard.bury(body(seed, next(40)), FeeRate::default(), removal, &mut linker);
+                    graveyard.bury(body(seed, next(40)), FeeRate::default(), removal, &mut upkeep);
                     if let TxRemoval::Replaced { by } = removal {
-                        graveyard.exhume(&by);
+                        graveyard.exhume(&by, &mut upkeep);
                     }
                 }
-                5 => graveyard.exhume(&txid(seed)),
+                5 => graveyard.exhume(&txid(seed), &mut upkeep),
                 6 => {
                     let spends = (0..next(6))
                         .map(|_| (outpoint(next(40)), txid(next(48) as u8)))
@@ -947,30 +947,30 @@ fn graveyard_invariants_hold_through_random_histories() {
                         .chain(spends.iter().map(|(_, by)| *by))
                         .collect::<Vec<_>>();
                     let disconnected = (0..next(3)).map(|_| txid(next(48) as u8)).collect::<Vec<_>>();
-                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected), &mut linker);
+                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected), &mut upkeep);
                 }
                 7 => graveyard.set_told(
                     BlockHash::from(bitcoin::BlockHash::from_byte_array([next(4) as u8; 32])),
-                    &mut linker,
+                    &mut upkeep,
                 ),
                 8 => {
-                    graveyard.index_vanished(&mut linker);
+                    graveyard.index_vanished(&mut upkeep);
                     let unloaded = (0..next(3)).map(|_| txid(next(48) as u8)).collect();
-                    graveyard.end_cycle(&unloaded, &mut linker);
+                    graveyard.end_cycle(&unloaded, &mut upkeep);
                 }
                 9 => {
-                    graveyard.exhume(&txid(seed));
-                    graveyard.relink(&spending(seed, &[outpoint(next(40))]), &mut linker);
+                    graveyard.exhume(&txid(seed), &mut upkeep);
+                    graveyard.relink(&spending(seed, &[outpoint(next(40))]), &mut upkeep);
                 }
                 _ => {
                     hours += next(30);
                     let listed = next(48) as u8;
-                    graveyard.evict_old(start + Duration::from_secs(hours * 3_600), |id| {
-                        *id == txid(listed)
-                    });
+                    let live = |id: &Txid| *id == txid(listed);
+                    let at = start + Duration::from_secs(hours * 3_600);
+                    graveyard.evict_old(at, live, &mut upkeep);
                 }
             }
-            assert!(graveyard.consistent(), "graveyard invariants, history {history}");
+            assert!(graveyard.consistent(&upkeep), "graveyard invariants, history {history}");
         }
     }
 }
@@ -1000,7 +1000,7 @@ fn wide_trees_keep_the_version_asked_for() {
             record,
             FeeRate::default(),
             TxRemoval::Replaced { by: unseen },
-            &mut state.linker,
+            &mut state.upkeep,
         );
     }
     let mut rebuilder = Rebuilder::default();
@@ -1112,7 +1112,7 @@ fn graveyard_outlives_a_restart() {
     let replacer = body(2).0.txid;
     // 4 was replaced by 5, pending when saved: its tree's head goes with it.
     let (head, head_raw) = body(5);
-    let (mut graveyard, mut linker) = (TxGraveyard::default(), Linker::default());
+    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
     let mut buried = Vec::new();
     for (seed, removal) in [
         (1, TxRemoval::Replaced { by: replacer }),
@@ -1131,9 +1131,9 @@ fn graveyard_outlives_a_restart() {
         };
         buried.push(tx.txid);
         let record = TxRecord::new(Arc::new(tx), TxEntry::new(&info, raw.total_size() as u64, true));
-        graveyard.bury(record, FeeRate::from_milli(1_234 * u64::from(seed)), removal, &mut linker);
+        graveyard.bury(record, FeeRate::from_milli(1_234 * u64::from(seed)), removal, &mut upkeep);
     }
-    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut linker);
+    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
     let head_info = MempoolEntryInfo {
         txid: head.txid,
         wtxid: head_raw.compute_wtxid(),
@@ -1163,6 +1163,7 @@ fn graveyard_outlives_a_restart() {
         assert_eq!(back.removed_at, original.removed_at, "buried when it was, however long ago");
         assert!(back.removed_at <= loaded.told_at().unwrap(), "buried before it was told");
     }
+    assert!(loaded.consistent(&Upkeep::of(&loaded)), "its bookkeeping rebuilt");
     assert_eq!(
         loaded.predecessors_of(&replacer).map(|(txid, _)| *txid).collect::<Vec<_>>(),
         [buried[0]],
@@ -1223,7 +1224,7 @@ fn unseen_confirmed_replacers_root_their_trees() {
         record,
         FeeRate::default(),
         TxRemoval::Replaced { by: conflict },
-        &mut state.linker,
+        &mut state.upkeep,
     );
     let mut rebuilder = Rebuilder::default();
     rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
@@ -1454,7 +1455,7 @@ fn long_histories_come_truncated() {
             record,
             FeeRate::default(),
             TxRemoval::Replaced { by },
-            &mut state.linker,
+            &mut state.upkeep,
         );
     }
     let mut rebuilder = Rebuilder::default();

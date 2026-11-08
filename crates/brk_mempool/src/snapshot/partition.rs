@@ -17,7 +17,7 @@ use std::mem;
 
 use brk_cpfp::Cluster;
 use brk_types::{FeeRate, SigOps, Txid, Weight};
-use rustc_hash::FxHashMap;
+use rustc_hash::FxHashSet;
 
 use super::{SnapTx, TxIndex, cluster};
 
@@ -149,27 +149,14 @@ pub fn partition(
 /// The clusters `rest` (what block 0 left of one component) forms without the excluded members,
 /// each in txid order, as [`cluster::walk`] gives a component.
 fn pieces(txs: &[SnapTx], rest: &[TxIndex], excluded: &[bool]) -> Vec<Vec<TxIndex>> {
-    let mut piece_of: FxHashMap<TxIndex, usize> = FxHashMap::default();
-    let mut pieces: Vec<Vec<TxIndex>> = Vec::new();
+    let mut placed: FxHashSet<TxIndex> = FxHashSet::default();
+    let mut pieces = Vec::new();
     for &seed in rest {
-        if piece_of.contains_key(&seed) {
+        if placed.contains(&seed) {
             continue;
         }
-        let id = pieces.len();
-        piece_of.insert(seed, id);
-        let mut piece = vec![seed];
-        let mut stack = vec![seed];
-        while let Some(m) = stack.pop() {
-            let t = &txs[m.as_usize()];
-            for &n in t.parents.iter().chain(&t.children) {
-                if !excluded[n.as_usize()] && !piece_of.contains_key(&n) {
-                    piece_of.insert(n, id);
-                    piece.push(n);
-                    stack.push(n);
-                }
-            }
-        }
-        piece.sort_unstable_by(|&a, &b| txs[a.as_usize()].txid.cmp(&txs[b.as_usize()].txid));
+        let piece = cluster::walk_within(txs, seed, |n| !excluded[n.as_usize()]);
+        placed.extend(piece.iter().copied());
         pieces.push(piece);
     }
     pieces

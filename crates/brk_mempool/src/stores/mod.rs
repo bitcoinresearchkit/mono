@@ -10,5 +10,5 @@ pub mod tx_store;
 pub use addr_tracker::AddrTracker;
 pub use live_payments::LivePayments;
 pub use outpoint_spends::OutpointSpends;
-pub use tx_graveyard::{Linker, Moment, TxGraveyard};
+pub use tx_graveyard::{Moment, TxGraveyard, Upkeep};
 pub use tx_store::{ReadOnlyTxStore, TxStore};

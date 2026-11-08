@@ -225,11 +225,11 @@ impl Snapshot {
         self.content_revision
     }
 
-    /// [`Self::ensure_projection`], with tiers from a complete view: its own, or one held over
-    /// (as long as views stay incomplete, the last one standing; Core unread, the last
-    /// publication's): only before the first complete view are there none.
+    /// Tiers from a complete view: its own, or one held over (as long as views stay incomplete,
+    /// the last one standing; Core unread, the last publication's): only before the first
+    /// complete view are there none. A block 0 missing a template member (which only its bodies
+    /// wait for) leaves them standing.
     pub(crate) fn ensure_fees(&self) -> Result<()> {
-        self.ensure_projection()?;
         if !self.fees.complete {
             return Err(QueryError::StateUpdating);
         }

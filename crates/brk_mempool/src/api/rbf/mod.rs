@@ -3,9 +3,10 @@
 use brk_error::Result;
 use brk_types::{BlockHash, FeeRate, Sats, Transaction, Txid, VSize};
 use rapidhash::{RapidHashMap, RapidHashSet};
+use serde::Serialize;
 
 use crate::{
-    ReadOnlyState,
+    JsonBody, ReadOnlyState, json,
     snapshot::Snapshot,
     state::{Pool, TxEntry},
     stores::{ReadOnlyTxStore, TxGraveyard},
@@ -21,6 +22,9 @@ pub use node::RbfNode;
 const MAX_RBF_WORK: usize = 4096;
 /// The trees a recent replacements listing holds: mempool.space's count.
 const RECENT_TREES: usize = 25;
+/// The trees walked for it: spares for those the chain can't serve yet (an unseen replacer it
+/// doesn't hold), so the listing still holds 25.
+const RECENT_WALKED: usize = 2 * RECENT_TREES;
 /// The versions a tree holds at most, newest first: past it, it is served cut (`truncated`). It
 /// bounds enrichment, JSON nesting and recursive destruction too: two levels a version plus the
 /// response's own, 127 at 63 versions, within serde_json's default limit (128) every Rust client
@@ -45,28 +49,10 @@ impl ReadOnlyState {
                 Ok(root) => (root, false),
                 Err(reached) => (reached, true),
             };
-        // The version as many levels above it as a tree goes deep: past it, the root is further
-        // (or an unseen replacer above the last known version, one level more).
-        let live = |txid: &Txid| state.txs.contains(txid);
-        let mut above = vec![*txid];
-        while let Some(&window) = above.last()
-            && window != root_txid
-            && above.len() < MAX_RBF_DEPTH
-            && let Some(by) = state.graveyard.next_version(&window, live)
-        {
-            above.push(by);
+        let path = Self::path_to(state, txid, root_txid);
+        if path[0] != root_txid {
+            (root_txid, truncated) = (path[0], true);
         }
-        let window = *above.last().expect("it");
-        if window != root_txid && above.len() == MAX_RBF_DEPTH {
-            (root_txid, truncated) = (window, true);
-        }
-        // The versions from the root down to it, built first: the budget always reaches it. An
-        // unseen replacer roots the tree one level above the last known version.
-        let mut path = Vec::with_capacity(above.len() + 1);
-        if window != root_txid {
-            path.push(root_txid);
-        }
-        path.extend(above.into_iter().rev());
         let mut replaces = Vec::new();
         for (predecessor, _) in state.graveyard.predecessors_of(txid) {
             if replaces.len() == MAX_RBF_WORK {
@@ -94,22 +80,84 @@ impl ReadOnlyState {
         Ok(RbfForTx { root, replaces })
     }
 
-    /// Recent terminal-replacer trees, most-recent first, deduplicated by root, 25 at most
-    /// (mempool.space's `/replacements`). `full_rbf_only` drops trees with no non-signaling
-    /// predecessor. Walked once per publication, by the first request.
+    /// The versions from `root` down to `txid`, root first, which a tree served for `txid` holds
+    /// (its build follows them first, so its budget always reaches `txid`). A tree goes
+    /// [`MAX_RBF_DEPTH`] deep: when `txid` lies deeper, the path starts that many levels above it
+    /// instead, at the version rooting the tree served. An unseen replacer roots its tree one
+    /// level above the last version the pool knows.
+    fn path_to(state: &Pool, txid: &Txid, root: Txid) -> Vec<Txid> {
+        let live = |txid: &Txid| state.txs.contains(txid);
+        let mut above = vec![*txid];
+        while let Some(&version) = above.last()
+            && version != root
+            && above.len() < MAX_RBF_DEPTH
+            && let Some(by) = state.graveyard.next_version(&version, live)
+        {
+            above.push(by);
+        }
+        let top = *above.last().expect("txid itself");
+        // Short of the root without running out of depth: the root is the unseen one above.
+        let unseen = top != root && above.len() < MAX_RBF_DEPTH;
+        let mut path = Vec::with_capacity(above.len() + 1);
+        if unseen {
+            path.push(root);
+        }
+        path.extend(above.into_iter().rev());
+        path
+    }
+
+    /// Recent terminal-replacer trees, most-recent first, deduplicated by root, 50 at most (twice
+    /// mempool.space's `/replacements`: [`Self::recent_replacements_json`] serves 25 of them).
+    /// `full_rbf_only` drops trees with no non-signaling predecessor. Walked once per
+    /// publication, by the first request.
     pub fn recent_rbf_trees(&self, full_rbf_only: bool, tip: &BlockHash) -> Result<Vec<RbfNode>> {
         let state = self.pool()?.at(tip)?;
-        Ok(state.recent_trees[usize::from(full_rbf_only)]
+        Ok(Self::recent_trees(state, full_rbf_only).to_vec())
+    }
+
+    fn recent_trees(state: &Pool, full_rbf_only: bool) -> &[RbfNode] {
+        state.recent_trees[usize::from(full_rbf_only)]
             .get_or_init(|| Self::walk_recent_trees(state, full_rbf_only))
-            .clone())
+    }
+
+    /// The recent listing as served (mempool.space's `/replacements`): the first 25 recent trees
+    /// `enrich` can serve (the chain's facts added; one it can't serve yet passes its place on),
+    /// encoded once per publication and `reader` tip (the chain `enrich` reads): every read of
+    /// that moment shares it, readers arriving meanwhile waiting for it.
+    pub fn recent_replacements_json<T: Serialize, E: From<brk_error::Error>>(
+        &self,
+        full_rbf_only: bool,
+        tip: &BlockHash,
+        reader: BlockHash,
+        mut enrich: impl FnMut(RbfNode) -> std::result::Result<Option<T>, E>,
+    ) -> std::result::Result<JsonBody, E> {
+        let state = self.pool()?.at(tip)?;
+        let mut built = state.replacements_json[usize::from(full_rbf_only)]
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((at, body)) = built.as_ref()
+            && *at == reader
+        {
+            return Ok(body.clone());
+        }
+        let mut served = Vec::with_capacity(RECENT_TREES);
+        for tree in Self::recent_trees(state, full_rbf_only) {
+            if served.len() == RECENT_TREES {
+                break;
+            }
+            served.extend(enrich(tree.clone())?);
+        }
+        let body = json::body(&served);
+        *built = Some((reader, body.clone()));
+        Ok(body)
     }
 
     /// Each tree has `rbf_for_tx`'s budget: one larger or nested deeper comes cut (`truncated`),
-    /// as there. The whole walk is bounded too (`RECENT_TREES + 1` trees' budgets, charged for
+    /// as there. The whole walk is bounded too (`RECENT_WALKED + 1` trees' budgets, charged for
     /// discarded candidates and stale graveyard entries): once that runs out the listing ends
     /// with the trees found so far.
     fn walk_recent_trees(state: &Pool, full_rbf_only: bool) -> Vec<RbfNode> {
-        let limit = RECENT_TREES;
+        let limit = RECENT_WALKED;
         let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
         // Every version a walk passed, with its tree's root: each chain is walked once, however
         // many of its versions the listing meets.

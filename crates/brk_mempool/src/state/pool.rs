@@ -9,12 +9,15 @@ use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
     stores::{
-        AddrTracker, Linker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore,
+        AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore, Upkeep,
         tx_store::TxRecord,
     },
 };
 
 use super::State;
+
+/// One reader tip's view past the pool's, once built: its readers wait for the first build.
+pub type BehindSlot = Arc<Mutex<Option<Arc<PendingView>>>>;
 
 /// One complete membership observation and its matching graph.
 pub(crate) struct Pool {
@@ -32,10 +35,14 @@ pub(crate) struct Pool {
     pub txids_json: OnceLock<Arc<[u8]>>,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
+    /// The recent listings as served, with the reader tip whose chain enriched them: the last
+    /// one built, shared by every read of that moment.
+    pub replacements_json: [Mutex<Option<(BlockHash, JsonBody)>>; 2],
     /// When it was published: of two saves of the graveyard, the later publication's wins.
     pub published_at: Instant,
-    /// The last view made for a reader past this pool's tip (the moment after a block), shared.
-    pub behind: Mutex<Option<Arc<PendingView>>>,
+    /// The views made for readers past this pool's tip (the moment after a block), one slot per
+    /// reader tip, the newest few: each is built once, its readers sharing it.
+    pub behind: Mutex<Vec<(BlockHash, BehindSlot)>>,
 }
 
 impl Pool {
@@ -84,6 +91,7 @@ impl Pool {
             info_json,
             txids_json,
             recent_trees: Default::default(),
+            replacements_json: Default::default(),
             published_at: Instant::now(),
             behind: Mutex::default(),
         }
@@ -134,7 +142,7 @@ impl Pool {
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
-            linker: Linker::after_restore(self.graveyard.vanished_since_told()),
+            upkeep: Upkeep::of(&self.graveyard),
             template_only: Vec::new(),
         }
     }

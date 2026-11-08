@@ -34,22 +34,22 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     }
     let mut entered = Vec::with_capacity(added.len());
     for TxAddition { tx, entry } in added {
-        state.graveyard.exhume(&entry.txid);
+        state.graveyard.exhume(&entry.txid, &mut state.upkeep);
         entered.push(entry.txid);
         insert_one(state, tx, entry);
     }
     state.inherit_signaling(&entered);
     state.recheck_signaling(orphaned);
     if !confirmed.is_empty() {
-        state.graveyard.confirm(confirmed, &mut state.linker);
+        state.graveyard.confirm(confirmed, &mut state.upkeep);
     }
     // After the blocks, and only when every new one was read: a confirmed conflict outranks a
     // late arrival (with one unread, what vanished stays so).
-    state.graveyard.index_vanished(&mut state.linker);
+    state.graveyard.index_vanished(&mut state.upkeep);
     if !confirmed.incomplete {
         for txid in &entered {
             if let Some(record) = state.txs.record(txid) {
-                state.graveyard.relink(&record.tx, &mut state.linker);
+                state.graveyard.relink(&record.tx, &mut state.upkeep);
             }
         }
     }
@@ -57,7 +57,7 @@ pub fn apply(state: &mut State, prev_snapshot: &Snapshot, diff: PoolDiff, confir
     // the fetch cap) a replacer it hasn't fetched yet still keeps its tree.
     state
         .graveyard
-        .evict_old(Moment::now(), |txid| listed.contains(&TxKey::from(txid)));
+        .evict_old(Moment::now(), |txid| listed.contains(&TxKey::from(txid)), &mut state.upkeep);
 }
 
 fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
@@ -69,7 +69,7 @@ fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: Tx
     state.info.remove(record.entry.vsize, record.entry.fee);
     state.addrs.remove(&record);
     state.outpoint_spends.remove_spends(&record.tx, *key);
-    state.graveyard.bury(record, chunk_rate, reason, &mut state.linker);
+    state.graveyard.bury(record, chunk_rate, reason, &mut state.upkeep);
 }
 
 fn insert_one(state: &mut State, tx: Transaction, entry: TxEntry) {
