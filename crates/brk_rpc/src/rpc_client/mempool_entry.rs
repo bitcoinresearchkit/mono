@@ -4,12 +4,42 @@ use serde::Deserialize;
 
 /// The subset of a `getmempoolentry` response that BRK consumes.
 #[derive(Deserialize)]
+#[serde(try_from = "WireEntry")]
 pub struct MempoolEntry {
     wtxid: Wtxid,
     vsize: VSize,
     weight: Weight,
     time: Timestamp,
     fees: MempoolFees,
+}
+
+/// A `getmempoolentry` response as sent. Core 32 adds `vsize_adjusted` and deprecates `vsize`, which
+/// holds the same sigop-adjusted size.
+#[derive(Deserialize)]
+struct WireEntry {
+    wtxid: Wtxid,
+    vsize_adjusted: Option<VSize>,
+    vsize: Option<VSize>,
+    weight: Weight,
+    time: Timestamp,
+    fees: MempoolFees,
+}
+
+impl TryFrom<WireEntry> for MempoolEntry {
+    type Error = &'static str;
+
+    fn try_from(wire: WireEntry) -> Result<Self, Self::Error> {
+        Ok(Self {
+            wtxid: wire.wtxid,
+            vsize: wire
+                .vsize_adjusted
+                .or(wire.vsize)
+                .ok_or("a mempool entry without a virtual size")?,
+            weight: wire.weight,
+            time: wire.time,
+            fees: wire.fees,
+        })
+    }
 }
 
 impl MempoolEntry {
