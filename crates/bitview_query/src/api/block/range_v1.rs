@@ -32,12 +32,13 @@ pub(crate) fn blocks_v1_identity<'a>(
     for price in prices {
         engine.input(&f64::from(*price).to_bits().to_le_bytes());
     }
-    for orphan in orphans {
-        engine.input(&u32::from(orphan.height).to_le_bytes());
-        engine.input(&*orphan.hash);
-        engine.input(&orphan.branchlen.to_le_bytes());
-        engine.input(&[orphan.status as u8]);
-        engine.input(&*orphan.prevhash);
+    // (Each field named: a new one doesn't compile until it's in the hash.)
+    for BlockOrphan { height, hash, branchlen, status, prevhash } in orphans {
+        engine.input(&u32::from(*height).to_le_bytes());
+        engine.input(&**hash);
+        engine.input(&branchlen.to_le_bytes());
+        engine.input(&[*status as u8]);
+        engine.input(&**prevhash);
     }
     sha256::Hash::from_engine(engine)
 }
