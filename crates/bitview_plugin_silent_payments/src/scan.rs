@@ -287,18 +287,14 @@ impl Scanner<'_> {
             }
         }
 
-        let keys = transaction
-            .input
-            .iter()
-            .zip(inputs)
-            .filter_map(|(input, index)| {
-                let prevout = self.prevout(
-                    columns.input_types[index],
-                    columns.input_type_indexes[index],
-                )?;
-                input_key(&prevout, input)
-            })
-            .collect::<Vec<PublicKey>>();
+        let mut keys = Vec::<PublicKey>::with_capacity(transaction.input.len());
+        for (input, index) in transaction.input.iter().zip(inputs) {
+            let prevout = self.prevout(
+                columns.input_types[index],
+                columns.input_type_indexes[index],
+            )?;
+            keys.extend(prevout.and_then(|prevout| input_key(&prevout, input)));
+        }
         let Some(smallest_outpoint) = smallest_outpoint(&transaction.input) else {
             return Ok(None);
         };
@@ -307,20 +303,25 @@ impl Scanner<'_> {
             .tweak(&smallest_outpoint, &keys.iter().collect::<Vec<_>>()))
     }
 
-    fn prevout(&self, output_type: OutputType, type_index: TypeIndex) -> Option<Prevout> {
+    /// What the input spends, `None` for an output type that contributes no key. A key the indexer
+    /// doesn't hold is an error: leaving the input out would store a wrong tweak.
+    fn prevout(&self, output_type: OutputType, type_index: TypeIndex) -> Result<Option<Prevout>> {
+        const MISSING: Error = Error::Internal("Spent output's key not indexed");
         let addrs = &self.indexer.vecs().addrs;
         let index = usize::from(type_index);
-        match output_type {
+        Ok(match output_type {
             OutputType::P2PKH => {
-                addrs.p2pkh.bytes.collect_one_at(index).map(|hash| Prevout::P2PKH(*hash))
+                let hash = addrs.p2pkh.bytes.collect_one_at(index).ok_or(MISSING)?;
+                Some(Prevout::P2PKH(*hash))
             }
             OutputType::P2SH => Some(Prevout::P2SH),
             OutputType::P2WPKH => Some(Prevout::P2WPKH),
             OutputType::P2TR => {
-                addrs.p2tr.bytes.collect_one_at(index).map(|key| Prevout::P2TR(*key))
+                let key = addrs.p2tr.bytes.collect_one_at(index).ok_or(MISSING)?;
+                Some(Prevout::P2TR(*key))
             }
             _ => None,
-        }
+        })
     }
 
     /// Whether the input spends a segwit output above version 1, which BIP352 leaves for future
