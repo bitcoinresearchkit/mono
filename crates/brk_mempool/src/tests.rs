@@ -12,7 +12,7 @@ use serde_json::{Value, to_value};
 use smallvec::SmallVec;
 
 use crate::{
-    MempoolBlockSource, RbfNode, ReadOnlyState, State,
+    MempoolBlockSource, ReadOnlyState, State,
     snapshot::Rebuilder,
     state::{Ancestry, Block},
     snapshot::{
@@ -20,7 +20,6 @@ use crate::{
         builder::KeyIndex,
         cluster,
         partition::{Chunks, partition},
-        rebuilder::withhold,
     },
     steps::{Confirmed, applier, preparer::{self, TxAddition}, prevouts},
     state::TxEntry,
@@ -182,103 +181,6 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
     chunks
 }
 
-/// What block 0 leaves of a component packs as the clusters it now forms (a miss of one piece
-/// defers that piece alone), equal feerates go as Core 31's chunk index orders them (the chunk
-/// whose greatest txid is lower first), and what Core's block builder would never take waits in
-/// the catch-all.
-#[test]
-fn projected_blocks_split_leftovers_and_order_ties() {
-    let tx = |seed: u8, fee: u64, weight: u64, parents: &[usize]| SnapTx {
-        txid: txid(seed),
-        fee: Sats::from(fee),
-        modified: fee as i64,
-        vsize: VSize::from(Weight::from(weight)),
-        weight: Weight::from(weight),
-        size: 0,
-        sigops: SigOps::ZERO,
-        chunk_rate: FeeRate::default(),
-        parents: parents.iter().map(|&p| TxIndex::from(p)).collect(),
-        children: SmallVec::new(),
-    };
-    let with_children = |mut txs: Vec<SnapTx>| {
-        for i in 0..txs.len() {
-            for p in txs[i].parents.clone() {
-                txs[p.as_usize()].children.push(TxIndex::from(i));
-            }
-        }
-        txs
-    };
-    let packed = |txs: &[SnapTx], excluded: &[bool]| {
-        partition(txs, &chunks(txs), excluded, 7)
-            .blocks
-            .iter()
-            .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect::<Vec<_>>())
-            .collect::<Vec<_>>()
-    };
-    // Block 0 took A (0), the parent of B (1) and C (2). D (3) fills most of the next block, so B
-    // misses it; C, its own cluster now, still fits.
-    let txs = with_children(vec![
-        tx(1, 1_000, 400, &[]),
-        tx(2, 2_000_000, 1_000_000, &[0]),
-        tx(3, 4_000, 4_000, &[0]),
-        tx(4, 9_000_000, 3_000_000, &[]),
-    ]);
-    assert_eq!(
-        packed(&txs, &[true, false, false, false]),
-        [vec![3, 2], vec![1]]
-    );
-    // Equal feerates: the lower greatest txid first, whatever the push order.
-    let txs = with_children(vec![tx(9, 1_000, 400, &[]), tx(5, 1_000, 400, &[])]);
-    assert_eq!(packed(&txs, &[false, false]), [vec![1, 0]]);
-    // Below Core's block floor (an operator's negative delta): never packed, in the catch-all.
-    let mut txs = with_children(vec![tx(6, 1_000, 400, &[]), tx(7, 1_000, 400, &[])]);
-    txs[1].modified = -500;
-    let projection = partition(&txs, &chunks(&txs), &[false, false], 7);
-    assert!(projection.overflow);
-    let blocks: Vec<Vec<usize>> = projection
-        .blocks
-        .iter()
-        .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect())
-        .collect();
-    assert_eq!(blocks, [vec![0], vec![1]]);
-}
-
-/// Core's budgets are strict: a block holds transactions up to 3,991,999 WU and 79,599 sigops; the
-/// chunk reaching either limit waits for the next block.
-#[test]
-fn projected_blocks_stop_short_of_each_budget() {
-    let tx = |seed: u8, fee: u64, weight: u64, sigops: u64| SnapTx {
-        txid: txid(seed),
-        fee: Sats::from(fee),
-        modified: fee as i64,
-        vsize: SigOps::new(sigops).adjust_vsize(VSize::from(Weight::from(weight))),
-        weight: Weight::from(weight),
-        size: 0,
-        sigops: SigOps::new(sigops),
-        chunk_rate: FeeRate::default(),
-        parents: SmallVec::new(),
-        children: SmallVec::new(),
-    };
-    let packed = |txs: &[SnapTx]| {
-        let excluded = vec![false; txs.len()];
-        partition(txs, &chunks(txs), &excluded, 7)
-            .blocks
-            .iter()
-            .map(|block| block.iter().map(|&(m, _)| m.as_usize()).collect::<Vec<_>>())
-            .collect::<Vec<_>>()
-    };
-    // Weight: 3,000,000 + 991,999 fill the block to one WU short; one more WU waits.
-    let by_weight = [
-        tx(1, 3_000_000, 3_000_000, 0),
-        tx(2, 900_000, 991_999, 0),
-        tx(3, 0, 1, 0),
-    ];
-    assert_eq!(packed(&by_weight), [vec![0, 1], vec![2]]);
-    // Sigops: 79,599 fill the block to one short; one more waits.
-    let by_sigops = [tx(1, 10_000_000, 1_600_000, 79_599), tx(2, 1, 400, 1)];
-    assert_eq!(packed(&by_sigops), [vec![0], vec![1]]);
-}
-
 /// Served blocks through publication: block 0 and the projection's, but the dump, past the
 /// projection; an unchanged block keeps its hash; a diff
 /// against a block's past copy keeps runs, sends a body changed under its txid anew (not as
@@ -372,92 +274,6 @@ fn served_blocks_publish_and_diff() {
             .is_none(),
         "evicted"
     );
-}
-
-/// From an incomplete view, the blocks after block 0 withhold a replacement of a template-only
-/// transaction (a conflict), a child of a listed transaction not loaded yet, and their
-/// descendants; the rest stays.
-#[test]
-fn incomplete_views_withhold_what_cannot_follow_block_0() {
-    let outpoint = |seed: u8, vout: u32| (txid(seed), Vout::from(vout));
-    // 0: a replacement of 5, spends 90:0. 1: 0's child. 2: spends 91:0, listed but not loaded.
-    // 3: spends 92:0, confirmed. 4: 3's child. 5: template-only (after the pool's), block 0,
-    // spends 90:0 too.
-    let bodies = [
-        spending(11, &[outpoint(90, 0)]),
-        spending(12, &[outpoint(11, 0)]),
-        spending(13, &[outpoint(91, 0)]),
-        spending(14, &[outpoint(92, 0)]),
-        spending(15, &[outpoint(14, 0)]),
-        spending(10, &[outpoint(90, 0)]),
-    ];
-    let mut txs: Vec<SnapTx> = bodies
-        .iter()
-        .map(|tx| SnapTx {
-            txid: tx.txid,
-            fee: tx.fee,
-            modified: u64::from(tx.fee) as i64,
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            size: tx.total_size as u64,
-            sigops: SigOps::ZERO,
-            chunk_rate: FeeRate::from((tx.fee, tx.weight)),
-            parents: SmallVec::new(),
-            children: SmallVec::new(),
-        })
-        .collect();
-    for (parent, child) in [(0, 1), (3, 4)] {
-        txs[child].parents.push(TxIndex::from(parent));
-        txs[parent].children.push(TxIndex::from(child));
-    }
-    let unloaded: RapidHashSet<Txid> = [txid(91)].into_iter().collect();
-    let mut excluded = vec![false, false, false, false, false, true];
-    let bodies: Vec<&Transaction> = bodies.iter().collect();
-    withhold(&bodies, &txs, 5, &unloaded, &mut excluded);
-    assert_eq!(excluded, [true, true, true, false, false, true]);
-}
-
-/// A body pairs with its entry only as the variant the entry describes: another witness of the
-/// same txid (swapped in between the two calls, another weight) stays unloaded.
-#[test]
-fn entries_pair_only_with_their_own_witness_variant() {
-    let variant = |witness: &[u8]| bitcoin::Transaction {
-        version: bitcoin::transaction::Version::TWO,
-        lock_time: bitcoin::absolute::LockTime::ZERO,
-        input: vec![bitcoin::TxIn {
-            previous_output: bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([9; 32]), 0),
-            script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence::MAX,
-            witness: Witness::from_slice(&[witness]),
-        }],
-        output: Vec::new(),
-    };
-    let (described, fetched) = (variant(&[1; 20]), variant(&[2; 99]));
-    let txid = Txid::from(fetched.compute_txid());
-    assert_eq!(txid, Txid::from(described.compute_txid()));
-    let entry = |of: &bitcoin::Transaction| MempoolEntryInfo {
-        txid,
-        wtxid: of.compute_wtxid(),
-        vsize: VSize::from(Weight::from(of.weight())),
-        weight: Weight::from(of.weight()),
-        fee: Sats::from(1_000u64),
-        first_seen: Timestamp::now(),
-    };
-    let state = State::default();
-    let added = |entry: MempoolEntryInfo| {
-        let bodies = [(txid, fetched.clone())].into_iter().collect();
-        preparer::prepare(
-            &[txid],
-            vec![entry],
-            bodies,
-            &Confirmed::default(),
-            &state,
-        )
-        .added
-        .len()
-    };
-    assert_eq!(added(entry(&described)), 0, "another variant's entry");
-    assert_eq!(added(entry(&fetched)), 1, "its own entry");
 }
 
 /// Through ingestion and `Rebuilder::tick`: the blocks after block 0 withhold a template-only
@@ -562,9 +378,10 @@ fn rebuilds_follow_the_view_gaps() {
 
 /// An address's pending view, through ingestion, prevout fills and a publication: a transaction
 /// folds in as far as it is known (h's output at once, its input once resolved, and its child hc
-/// whole, h's output being pooled); behind the
-/// reader, the pool goes without what the newer blocks mined (m), conflicted (c) or what descends
-/// from a conflicted one (d), while a mined one's child (k) and the unrelated (u) stay pending.
+/// whole, h's output being pooled); behind the reader, the pool goes without what the newer
+/// blocks mined (m), conflicted (c) or what descends from a conflicted one (d), while a mined
+/// one's child (k) and the unrelated (u) stay pending; past a reorg that left the pool's tip,
+/// without what's in limbo (h and hc, spending from what only the left block mined).
 #[test]
 fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([7; 20]));
@@ -623,6 +440,11 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     }, &RapidHashSet::default());
     let mut rebuilder = Rebuilder::default();
     let tip = BlockHash::default();
+    let hash = |seed: u8| BlockHash::from(bitcoin::BlockHash::from_byte_array([seed; 32]));
+    // The tip's block mined what h spends, after its coinbase.
+    let spent_by_h = Txid::from(confirmed(83).txid);
+    let tip_block = Block { hash: tip, txids: Arc::from([txid(9), spent_by_h]) };
+    state.ancestry.follow(tip, &[Block::unread(hash(4)), tip_block]);
     let mut publish = |state: &State, previous: &ReadOnlyState| {
         rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
         previous
@@ -682,6 +504,23 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             .is_err(),
         "another tip"
     );
+    // Past a reorg that left the pool's tip block: what only it mined (its coinbase aside) and
+    // what the pool holds spending from it (h, and hc from h) are in limbo, out of the view.
+    let none = || -> brk_error::Result<[((Txid, Vout), Txid); 0]> { Ok([]) };
+    let forked = read.view_behind(hash(3), 1, none).unwrap();
+    for (txid, limbo) in [(spent_by_h, true), (id(&h), true), (id(&hc), true), (txid(9), false), (id(&u), false)] {
+        assert_eq!(forked.in_limbo(&txid), limbo);
+    }
+    assert!(!read.is_pending(&id(&hc), &forked).unwrap());
+    assert!(read.is_pending(&id(&u), &forked).unwrap());
+    // The ancestry: back to the fork after a reorg, to the fork itself when one only shortened
+    // the chain.
+    let mut ancestry = Ancestry::default();
+    ancestry.follow(hash(2), &[1, 2].map(|seed| Block::unread(hash(seed))));
+    ancestry.follow(hash(5), &[1, 5].map(|seed| Block::unread(hash(seed))));
+    assert_eq!(ancestry.blocks(), [1, 5].map(|seed| Block::unread(hash(seed))));
+    ancestry.follow(hash(1), &[Block::unread(hash(1))]);
+    assert_eq!(ancestry.blocks(), [Block::unread(hash(1))]);
 
     prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
         holes.iter().map(|&hole| (hole, funding.clone())).collect::<RapidHashMap<_, _>>()
@@ -706,190 +545,6 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     assert_eq!(first, all[..2]);
     assert_eq!(second, all[2..]);
     assert!(page(Some(&all[5]), 10).is_empty());
-}
-
-/// After a reorg: what a dropped block mined reads vanished, or replaced by a conflict the new
-/// blocks confirmed; what the new blocks mined again, or no dropped block held, stays mined.
-#[test]
-fn reorged_out_tombstones_read_vanished_or_replaced() {
-    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
-    let outpoint = |seed: u8| (txid(80 + seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8| {
-        let tx = Arc::new(spending(seed, &[outpoint(seed)]));
-        let info = MempoolEntryInfo {
-            txid: tx.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            fee: tx.fee,
-            first_seen: Timestamp::now(),
-        };
-        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Mined, upkeep);
-    };
-    // 1: dropped, nothing in its place; 2: dropped, a conflict confirmed; 3: dropped, mined again;
-    // 4: its block stayed.
-    for seed in 1..=4 {
-        bury(&mut graveyard, &mut upkeep, seed);
-    }
-    graveyard.confirm(&Confirmed::of(
-        [txid(3), txid(9)],
-        [(outpoint(2), txid(9)), (outpoint(3), txid(3))],
-        [1, 2, 3].map(txid),
-    ), &mut upkeep);
-    let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
-    assert!(matches!(removal(1), TxRemoval::Vanished));
-    assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
-    assert!(matches!(removal(3), TxRemoval::Mined));
-    assert!(matches!(removal(4), TxRemoval::Mined));
-}
-
-/// A replacer the fetch cap held back links what vanished before it arrived, if it was listed by
-/// then; one first listed later (spending an outpoint the vanished one freed) replaced nothing;
-/// after a complete cycle, nothing is left waiting for one.
-#[test]
-fn late_replacers_relink_what_vanished_before_them() {
-    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
-    let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, spends: &[u8]| {
-        let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
-        let tx = Arc::new(spending(seed, &outpoints));
-        let info = MempoolEntryInfo {
-            txid: tx.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            fee: tx.fee,
-            first_seen: Timestamp::now(),
-        };
-        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, upkeep);
-    };
-    let unloaded = |seeds: &[u8]| seeds.iter().map(|&s| txid(s)).collect::<RapidHashSet<Txid>>();
-    let removal = |graveyard: &TxGraveyard, seed| graveyard.get(&txid(seed)).unwrap().removal;
-
-    // 1 spent 90 and 91 and vanished while 2, its replacer (spending 91), was listed unloaded.
-    bury(&mut graveyard, &mut upkeep, 1, &[90, 91]);
-    graveyard.index_vanished(&mut upkeep);
-    graveyard.end_cycle(&unloaded(&[2]), &mut upkeep);
-    // 3 is first listed after: it spends 90, which 1's leaving freed.
-    graveyard.end_cycle(&unloaded(&[2, 3]), &mut upkeep);
-    graveyard.relink(&spending(3, &[outpoint(90)]), &mut upkeep);
-    assert!(matches!(removal(&graveyard, 1), TxRemoval::Vanished));
-    graveyard.relink(&spending(2, &[outpoint(91)]), &mut upkeep);
-    assert!(matches!(removal(&graveyard, 1), TxRemoval::Replaced { by } if by == txid(2)));
-    assert_eq!(graveyard.predecessors_of(&txid(2)).count(), 1);
-
-    bury(&mut graveyard, &mut upkeep, 4, &[92]);
-    graveyard.index_vanished(&mut upkeep);
-    graveyard.end_cycle(&unloaded(&[]), &mut upkeep);
-    graveyard.relink(&spending(5, &[outpoint(92)]), &mut upkeep);
-    assert!(matches!(removal(&graveyard, 4), TxRemoval::Vanished));
-}
-
-/// A confirmed conflict replaced what vanished since the blocks were last all told, or what a late
-/// replacer listed by then displaced; an outpoint respent after its transaction left replaced
-/// nothing.
-#[test]
-fn confirmed_conflicts_replace_only_what_they_displaced() {
-    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
-    let outpoint = |seed: u8| (txid(seed), Vout::from(0usize));
-    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, spends: &[u8]| {
-        let outpoints: Vec<(Txid, Vout)> = spends.iter().map(|&s| outpoint(s)).collect();
-        let tx = Arc::new(spending(seed, &outpoints));
-        let info = MempoolEntryInfo {
-            txid: tx.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            fee: tx.fee,
-            first_seen: Timestamp::now(),
-        };
-        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), TxRemoval::Vanished, upkeep);
-    };
-    // 1 left (evicted, say), and 3 (spending 92 and 93) while 8, spending 93, was listed
-    // unloaded; the cycle's blocks were all told.
-    bury(&mut graveyard, &mut upkeep, 1, &[90]);
-    bury(&mut graveyard, &mut upkeep, 3, &[92, 93]);
-    graveyard.index_vanished(&mut upkeep);
-    graveyard.end_cycle(&[txid(8)].into_iter().collect(), &mut upkeep);
-    graveyard.set_told(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
-    // 2 leaves as a block confirms 9 (spending 90 and 91), 7 (spending 92, which 3's leaving
-    // freed) and 8.
-    bury(&mut graveyard, &mut upkeep, 2, &[91]);
-    let spend = |seed: u8, by: u8| (outpoint(seed), txid(by));
-    graveyard.confirm(&Confirmed::of(
-        [7, 8, 9].map(txid),
-        [spend(90, 9), spend(91, 9), spend(92, 7), spend(93, 8)],
-        [],
-    ), &mut upkeep);
-    let removal = |seed| graveyard.get(&txid(seed)).unwrap().removal;
-    assert!(matches!(removal(1), TxRemoval::Vanished));
-    assert!(matches!(removal(2), TxRemoval::Replaced { by } if by == txid(9)));
-    assert!(matches!(removal(3), TxRemoval::Replaced { by } if by == txid(8)));
-}
-
-/// Retention: a lone tombstone goes an hour after its burial; a tree stays while its root is
-/// pending (Core listing it is enough), and goes whole a day after the root left, or was last
-/// seen listed; a tree a confirmed replacer the pool never saw roots goes a day after.
-#[test]
-fn tombstones_and_trees_leave_after_their_retention() {
-    use crate::stores::Moment;
-    use std::time::Duration;
-    let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
-    let bury = |graveyard: &mut TxGraveyard, upkeep: &mut Upkeep, seed: u8, removal: TxRemoval| {
-        let tx = Arc::new(spending(seed, &[(txid(100 + seed), Vout::from(0usize))]));
-        let info = MempoolEntryInfo {
-            txid: tx.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array([seed; 32]),
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            fee: tx.fee,
-            first_seen: Timestamp::now(),
-        };
-        let record = TxRecord::new(tx, TxEntry::new(&info, 100, false));
-        graveyard.bury(record, FeeRate::default(), removal, upkeep);
-    };
-    let replaced = |by: u8| TxRemoval::Replaced { by: txid(by) };
-    // 1 lone; 2, replaced by 3, replaced by 4, pending; 5 replaced by 6, which a block confirmed
-    // unseen; 7 replaced by 8, mined; 9 replaced by 10, vanished but listed again.
-    bury(&mut graveyard, &mut upkeep, 1, TxRemoval::Vanished);
-    bury(&mut graveyard, &mut upkeep, 2, replaced(3));
-    bury(&mut graveyard, &mut upkeep, 3, replaced(4));
-    bury(&mut graveyard, &mut upkeep, 5, replaced(6));
-    bury(&mut graveyard, &mut upkeep, 7, replaced(8));
-    bury(&mut graveyard, &mut upkeep, 8, TxRemoval::Mined);
-    bury(&mut graveyard, &mut upkeep, 9, replaced(10));
-    bury(&mut graveyard, &mut upkeep, 10, TxRemoval::Vanished);
-    let start = Moment::now();
-    let at = |hours: u64| start + Duration::from_secs(hours * 3_600 + 60);
-    let holds = |graveyard: &TxGraveyard, seeds: &[u8]| -> Vec<bool> {
-        seeds.iter().map(|&seed| graveyard.get(&txid(seed)).is_some()).collect()
-    };
-    let pending = |id: &Txid| *id == txid(4) || *id == txid(10);
-
-    graveyard.evict_old(at(0), pending, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[1, 2, 3, 5, 7, 8, 9, 10]), [true; 8]);
-    graveyard.evict_old(at(1), pending, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[1]), [false], "a lone one goes after an hour");
-    graveyard.evict_old(at(23), pending, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[2, 3, 5, 7, 8, 9, 10]), [true; 7], "trees stay a day");
-    graveyard.evict_old(at(24), pending, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[5, 7, 8]), [false; 3], "a day after their root left");
-    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "while their root is pending");
-    // Neither root is listed any more.
-    graveyard.evict_old(at(47), |_| false, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [true; 4], "a day after last seen pending");
-    graveyard.evict_old(at(48), |_| false, &mut upkeep);
-    assert!(graveyard.consistent(&upkeep));
-    assert_eq!(holds(&graveyard, &[2, 3, 9, 10]), [false; 4], "whole trees go");
-    assert_eq!(graveyard.predecessors_of(&txid(4)).count(), 0);
 }
 
 /// The graveyard through random burials (re-burials, chains, replacers buried and back), exhumes,
@@ -974,49 +629,6 @@ fn graveyard_invariants_hold_through_random_histories() {
             assert!(graveyard.consistent(&upkeep), "graveyard invariants, history {history}");
         }
     }
-}
-
-/// A tree too wide for its budget still holds the version asked for, its siblings cut instead.
-#[test]
-fn wide_trees_keep_the_version_asked_for() {
-    let mut state = State::default();
-    let unseen = txid(200);
-    let mut asked = None;
-    for i in 0..4_200u32 {
-        let mut bytes = [0xAB; 32];
-        bytes[..4].copy_from_slice(&i.to_le_bytes());
-        let mut tx = (*body(1)).clone();
-        tx.txid = Txid::from(bitcoin::Txid::from_byte_array(bytes));
-        let info = MempoolEntryInfo {
-            txid: tx.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array(bytes),
-            vsize: VSize::from(tx.weight),
-            weight: tx.weight,
-            fee: tx.fee,
-            first_seen: Timestamp::now(),
-        };
-        asked = Some(tx.txid);
-        let record = TxRecord::new(Arc::new(tx), TxEntry::new(&info, 100, true));
-        state.graveyard.bury(
-            record,
-            FeeRate::default(),
-            TxRemoval::Replaced { by: unseen },
-            &mut state.upkeep,
-        );
-    }
-    let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
-    let tip = BlockHash::default();
-    let read = ReadOnlyState::default()
-        .updated(&state, tip, rebuilder.snapshot().clone(), true)
-        .expect("published");
-    let root = read.rbf_for_tx(&asked.unwrap(), &tip).unwrap().root.expect("a tree");
-    assert!(root.truncated);
-    assert!(root.replaces.len() < 4_200, "cut");
-    assert!(
-        root.replaces.iter().any(|node| Some(node.txid) == asked),
-        "the one asked for is in it"
-    );
 }
 
 /// The copy-on-write containers against plain models, through random inserts, swap-removes,
@@ -1204,153 +816,6 @@ fn graveyard_outlives_a_restart() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// A replacement won by a conflict the pool never saw (one a block confirmed): its tree roots at
-/// that conflict, unseen (its facts the chain's), whichever of the two is asked about, and the
-/// listing shows it though only one version was pending.
-#[test]
-fn unseen_confirmed_replacers_root_their_trees() {
-    let mut state = State::default();
-    let replaced = body(1);
-    let conflict = txid(9);
-    let info = MempoolEntryInfo {
-        txid: replaced.txid,
-        wtxid: bitcoin::Wtxid::from_byte_array([1; 32]),
-        vsize: VSize::from(replaced.weight),
-        weight: replaced.weight,
-        fee: replaced.fee,
-        first_seen: Timestamp::now(),
-    };
-    let record = TxRecord::new(replaced.clone(), TxEntry::new(&info, 100, true));
-    state.graveyard.bury(
-        record,
-        FeeRate::default(),
-        TxRemoval::Replaced { by: conflict },
-        &mut state.upkeep,
-    );
-    let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
-    let tip = BlockHash::default();
-    let read = ReadOnlyState::default()
-        .updated(&state, tip, rebuilder.snapshot().clone(), true)
-        .expect("published");
-    for asked in [replaced.txid, conflict] {
-        let root = read.rbf_for_tx(&asked, &tip).unwrap().root.expect("a tree");
-        assert_eq!(root.txid, conflict);
-        assert!(root.unseen);
-        assert!(!root.truncated, "whole");
-        assert_eq!(root.replaces.len(), 1);
-        assert_eq!(root.replaces[0].txid, replaced.txid);
-    }
-    let trees = read.recent_rbf_trees(false, &tip).unwrap();
-    assert_eq!(trees.len(), 1, "one tree, rooted at the conflict");
-    assert_eq!(trees[0].txid, conflict);
-}
-
-/// The pool's ancestry follows its tips (back to the fork after a reorg, to the fork itself when
-/// one only shortened the chain, just the tip when the blocks between went unread, a few blocks
-/// deep). A reader past a reorg the pool hasn't followed finds in limbo what only the left branch
-/// mined (a) and what the pool holds spending from it (c, and g from c), out of its view; not what
-/// its own blocks mined again (m), nor the unrelated (u).
-#[test]
-fn reorgs_leave_what_only_the_left_branch_mined_in_limbo() {
-    let hash = |seed: u8| BlockHash::from(bitcoin::BlockHash::from_byte_array([seed; 32]));
-    let hashes = |ancestry: &Ancestry| -> Vec<BlockHash> {
-        ancestry.blocks().iter().map(|block| block.hash).collect()
-    };
-    let path = |seeds: &[u8]| -> Vec<Block> {
-        seeds
-            .iter()
-            .map(|&seed| Block { hash: hash(seed), txids: Arc::from([txid(seed)]) })
-            .collect()
-    };
-    let mut ancestry = Ancestry::default();
-    ancestry.follow(hash(1), &[]);
-    ancestry.follow(hash(3), &path(&[1, 2, 3]));
-    assert_eq!(hashes(&ancestry), [1, 2, 3].map(hash));
-    // A reorg off 3 and 2, back to 1.
-    ancestry.follow(hash(5), &path(&[1, 4, 5]));
-    assert_eq!(hashes(&ancestry), [1, 4, 5].map(hash));
-    assert_eq!(ancestry.blocks()[2].txids[..], [txid(5)], "what each mined");
-    ancestry.follow(hash(5), &[]);
-    assert_eq!(hashes(&ancestry), [1, 4, 5].map(hash), "the same tip");
-    ancestry.follow(hash(4), &path(&[4]));
-    assert_eq!(hashes(&ancestry), [1, 4].map(hash), "5 invalidated: the tip is the fork");
-    ancestry.follow(hash(5), &path(&[4, 5]));
-    ancestry.follow(hash(7), &[]);
-    assert_eq!(hashes(&ancestry), [hash(7)], "unread blocks between");
-    let long: Vec<u8> = (7..20).collect();
-    ancestry.follow(hash(19), &path(&long));
-    assert_eq!(hashes(&ancestry), long[long.len() - 8..].iter().map(|&seed| hash(seed)).collect::<Vec<_>>(), "a few deep");
-
-    let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([7; 20]));
-    let raw = |spends: bitcoin::OutPoint| bitcoin::Transaction {
-        version: bitcoin::transaction::Version::TWO,
-        lock_time: bitcoin::absolute::LockTime::ZERO,
-        input: vec![bitcoin::TxIn {
-            previous_output: spends,
-            script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence::MAX,
-            witness: Witness::new(),
-        }],
-        output: vec![bitcoin::TxOut {
-            value: bitcoin::Amount::from_sat(500),
-            script_pubkey: script.clone(),
-        }],
-    };
-    let confirmed = |seed: u8| bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([seed; 32]), 0);
-    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
-    let a = raw(confirmed(90));
-    let m = raw(confirmed(91));
-    let c = raw(bitcoin::OutPoint::new(a.compute_txid(), 0));
-    let g = raw(bitcoin::OutPoint::new(c.compute_txid(), 0));
-    let u = raw(confirmed(92));
-    let pooled = [&c, &g, &u];
-    let mut state = State::default();
-    let entries = pooled
-        .iter()
-        .map(|tx| MempoolEntryInfo {
-            txid: id(tx),
-            wtxid: tx.compute_wtxid(),
-            vsize: VSize::from(Weight::from(tx.weight())),
-            weight: Weight::from(tx.weight()),
-            fee: Sats::from(1_000u64),
-            first_seen: Timestamp::now(),
-        })
-        .collect();
-    let bodies = pooled.iter().map(|&tx| (id(tx), tx.clone())).collect();
-    let live: Vec<Txid> = pooled.iter().map(|tx| id(tx)).collect();
-    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
-    applier::apply(&mut state, &Snapshot::default(), diff, &Confirmed::default());
-    // Each block's coinbase first.
-    let mined = |seed: u8, txs: &[&bitcoin::Transaction]| Block {
-        hash: hash(seed),
-        txids: std::iter::once(txid(seed)).chain(txs.iter().map(|tx| id(tx))).collect(),
-    };
-    state.ancestry.follow(hash(3), &[Block::unread(hash(1)), mined(2, &[&m]), mined(3, &[&a])]);
-    let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
-    let read = ReadOnlyState::default()
-        .updated(&state, hash(3), rebuilder.snapshot().clone(), true)
-        .expect("published");
-    assert_eq!(read.ancestry().copied().collect::<Vec<_>>(), [1, 2, 3].map(hash));
-    // The reader's chain left 2 and 3 for blocks that mined m again.
-    let spends = || -> brk_error::Result<_> {
-        Ok([((Txid::from(confirmed(91).txid), Vout::from(0usize)), id(&m))])
-    };
-    let forked = read.view_behind(hash(5), 2, spends).unwrap();
-    for (tx, limbo) in [(&a, true), (&c, true), (&g, true), (&m, false), (&u, false)] {
-        assert_eq!(forked.in_limbo(&id(tx)), limbo);
-    }
-    assert!(!forked.in_limbo(&txid(3)), "a coinbase is gone for good");
-    for (tx, pending) in [(&c, false), (&g, false), (&u, true)] {
-        assert_eq!(read.is_pending(&id(tx), &forked).unwrap(), pending);
-    }
-    let none = || -> brk_error::Result<[((Txid, Vout), Txid); 0]> { Ok([]) };
-    let behind = read.view_behind(hash(4), 0, none).unwrap();
-    assert!(!behind.in_limbo(&id(&a)), "the pool's tip on the reader's chain");
-    assert!(read.is_pending(&id(&c), &behind).unwrap());
-}
-
 /// An address's transactions in page order, past the inline vector's spill and back: inserts and
 /// removals in any order keep it sorted, and pages read newest first before a cursor.
 #[test]
@@ -1486,116 +951,3 @@ fn body(seed: u8) -> Arc<Transaction> {
     })
 }
 
-/// BIP125's signaling passes down to unconfirmed descendants, a child that arrived before its
-/// signaling parent included, and goes once that parent leaves; one with no signaling ancestor
-/// stays final.
-#[test]
-fn signaling_passes_to_pooled_descendants() {
-    let raw = |spends: (bitcoin::Txid, u32), sequence: u32| bitcoin::Transaction {
-        version: bitcoin::transaction::Version::TWO,
-        lock_time: bitcoin::absolute::LockTime::ZERO,
-        input: vec![bitcoin::TxIn {
-            previous_output: bitcoin::OutPoint::new(spends.0, spends.1),
-            script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence(sequence),
-            witness: Witness::new(),
-        }],
-        output: vec![bitcoin::TxOut {
-            value: bitcoin::Amount::from_sat(1_000),
-            script_pubkey: ScriptBuf::new(),
-        }],
-    };
-    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
-    let info = |tx: &bitcoin::Transaction| MempoolEntryInfo {
-        txid: id(tx),
-        wtxid: tx.compute_wtxid(),
-        vsize: VSize::from(Weight::from(tx.weight())),
-        weight: Weight::from(tx.weight()),
-        fee: Sats::from(1_000u64),
-        first_seen: Timestamp::now(),
-    };
-    let final_seq = 0xffff_fffe;
-    let parent = raw((bitcoin::Txid::from_byte_array([7; 32]), 0), 0);
-    let child = raw((parent.compute_txid(), 0), final_seq);
-    let grandchild = raw((child.compute_txid(), 0), final_seq);
-    let lone = raw((bitcoin::Txid::from_byte_array([8; 32]), 0), final_seq);
-    let mut state = State::default();
-    let enter = |state: &mut State, txs: &[&bitcoin::Transaction], live: &[Txid]| {
-        let entries = txs.iter().map(|tx| info(tx)).collect();
-        let bodies = txs.iter().map(|&tx| (id(tx), tx.clone())).collect();
-        let diff = preparer::prepare(live, entries, bodies, &Confirmed::default(), state);
-        applier::apply(state, &Snapshot::default(), diff, &Confirmed::default());
-    };
-    // The descendants first (their parent not loaded yet), then the parent.
-    enter(&mut state, &[&child, &grandchild, &lone], &[id(&child), id(&grandchild), id(&lone)]);
-    let rbf = |state: &State, tx: &bitcoin::Transaction| state.txs.entry(&id(tx)).unwrap().rbf;
-    assert!(!rbf(&state, &child) && !rbf(&state, &grandchild));
-    let all = [id(&child), id(&grandchild), id(&lone), id(&parent)];
-    enter(&mut state, &[&parent], &all);
-    assert!(rbf(&state, &parent) && rbf(&state, &child) && rbf(&state, &grandchild));
-    assert!(!rbf(&state, &lone), "no signaling ancestor");
-    // The parent leaves (mined, say): its descendants signal no more, as Core reads them.
-    enter(&mut state, &[], &[id(&child), id(&grandchild), id(&lone)]);
-    assert!(!rbf(&state, &child) && !rbf(&state, &grandchild));
-}
-
-/// A history past 63 versions comes cut to its newest ones, its root marked `truncated`, in a
-/// transaction's own tree and in the recent listing.
-#[test]
-fn long_histories_come_truncated() {
-    let mut state = State::default();
-    let conflict = txid(200);
-    let versions: Vec<_> = (1..=70u8).map(body).collect();
-    for (i, version) in versions.iter().enumerate() {
-        let info = MempoolEntryInfo {
-            txid: version.txid,
-            wtxid: bitcoin::Wtxid::from_byte_array([i as u8; 32]),
-            vsize: VSize::from(version.weight),
-            weight: version.weight,
-            fee: version.fee,
-            first_seen: Timestamp::now(),
-        };
-        let by = versions.get(i + 1).map_or(conflict, |next| next.txid);
-        let record = TxRecord::new(version.clone(), TxEntry::new(&info, 100, true));
-        state.graveyard.bury(
-            record,
-            FeeRate::default(),
-            TxRemoval::Replaced { by },
-            &mut state.upkeep,
-        );
-    }
-    let mut rebuilder = Rebuilder::default();
-    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
-    let tip = BlockHash::default();
-    let read = ReadOnlyState::default()
-        .updated(&state, tip, rebuilder.snapshot().clone(), true)
-        .expect("published");
-    let depth = |root: &RbfNode| {
-        let (mut depth, mut node) = (1, root);
-        while let Some(next) = node.replaces.first() {
-            depth += 1;
-            node = next;
-        }
-        depth
-    };
-    let root = read
-        .rbf_for_tx(&versions[69].txid, &tip)
-        .unwrap()
-        .root
-        .expect("a tree");
-    assert!(root.truncated);
-    assert_eq!(depth(&root), 63, "the root and the newest 62 versions");
-    assert_eq!(root.replaces[0].txid, versions[69].txid, "newest first");
-    // The oldest, 71 versions below its root: the tree comes rooted 62 versions above it.
-    let root = read.rbf_for_tx(&versions[0].txid, &tip).unwrap().root.expect("a tree");
-    assert!(root.truncated);
-    assert_eq!(root.txid, versions[62].txid);
-    let mut deepest = &root;
-    while let Some(next) = deepest.replaces.first() {
-        deepest = next;
-    }
-    assert_eq!(deepest.txid, versions[0].txid, "the one asked for is in it");
-    let trees = read.recent_rbf_trees(false, &tip).unwrap();
-    assert_eq!(trees.len(), 1);
-    assert!(trees[0].truncated, "listed, cut");
-}

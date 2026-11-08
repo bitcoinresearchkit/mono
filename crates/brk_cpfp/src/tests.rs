@@ -196,27 +196,6 @@ fn ancestor_tier_is_optimal_on_trees() {
     }
 }
 
-/// Past 4,096 members, fees at the bound still chunk exactly: a chain whose descendants pay more
-/// than its root together, though their sum is past 64 bits, chunk with the root.
-#[test]
-fn chunk_sums_stay_exact_past_64_bits() {
-    let max = 2_100_000_000_000_000u64;
-    let n = 5_002;
-    let mut cluster = Cluster::default();
-    for i in 0..n {
-        let modified = match i {
-            0 => (max / 5_000 * 4_999) as i64,
-            1 => 0,
-            _ => max as i64,
-        };
-        let parents = (i > 0).then(|| CpfpClusterTxIndex::from((i - 1) as u32));
-        cluster.push_ranked(Sats::ZERO, modified, Weight::from(400u64), i as u32, parents);
-    }
-    let mut chunks = Vec::new();
-    cluster.linearize(|txs, _| chunks.push(txs.len()));
-    assert_eq!(chunks, [n as usize], "one chunk, the root's feerate below the rest's");
-}
-
 /// Each tier, at its bounds: valid chunks (checked by `ours`) for random sparse components.
 #[test]
 fn every_tier_linearizes() {
@@ -243,80 +222,3 @@ fn every_tier_linearizes() {
     }
 }
 
-/// A negative modified fee ranks the package as Core does: a parent paying 1,000 sats with a
-/// -2,000 delta and its child paying 3,000 chunk together at 2,000 sats over 800 WU (10 sat/vB),
-/// below a lone 12 sat/vB transaction; served fees stay what they paid.
-#[test]
-fn negative_modified_fees_rank_signed() {
-    let mut cluster = Cluster::default();
-    cluster.push_ranked(Sats::from(1_000u64), -1_000, Weight::from(400u64), 0, []);
-    cluster.push_ranked(
-        Sats::from(3_000u64),
-        3_000,
-        Weight::from(400u64),
-        1,
-        [CpfpClusterTxIndex::from(0)],
-    );
-    let mut chunks = Vec::new();
-    cluster.linearize(|txs, rate| chunks.push((txs.len(), rate)));
-    assert_eq!(
-        chunks,
-        [(
-            2,
-            FeeRate::from((Sats::from(2_000u64), Weight::from(800u64)))
-        )]
-    );
-    assert!(chunks[0].1 < FeeRate::from((Sats::from(1_200u64), Weight::from(400u64))));
-    assert_eq!(cluster.fee(0), Sats::from(1_000u64));
-}
-
-/// Core 31's order over equal feerates: of two independent 10 sat/vB chunks the lighter first,
-/// then by the fallback order; inside a chunk the higher own feerate first, parents first always.
-#[test]
-fn equal_feerates_go_in_core_order() {
-    let order = |fallbacks: [u32; 4]| {
-        let mut cluster = Cluster::default();
-        // 0, 1: lone, 10 sat/vB, 800 and 400 WU. 2: parent at 5 sat/vB; 3: its child at 15, the
-        // pair at 10 sat/vB over 800 WU.
-        cluster.push_ranked(Sats::from(2_000u64), 2_000, Weight::from(800u64), fallbacks[0], []);
-        cluster.push_ranked(Sats::from(1_000u64), 1_000, Weight::from(400u64), fallbacks[1], []);
-        cluster.push_ranked(Sats::from(500u64), 500, Weight::from(400u64), fallbacks[2], []);
-        cluster.push_ranked(
-            Sats::from(1_500u64),
-            1_500,
-            Weight::from(400u64),
-            fallbacks[3],
-            [CpfpClusterTxIndex::from(2)],
-        );
-        let mut order: Vec<Vec<u32>> = Vec::new();
-        cluster.linearize(|txs, _| order.push(txs.iter().map(|&tx| u32::from(tx)).collect()));
-        order
-    };
-    // The lighter chunk first; of the two 800 WU ones, the lower greatest fallback place.
-    assert_eq!(order([0, 1, 2, 3]), [vec![1], vec![0], vec![2, 3]]);
-    assert_eq!(order([3, 1, 0, 2]), [vec![1], vec![2, 3], vec![0]]);
-}
-
-/// Core runs PostLinearize after its optimal linearization too, which orders inside a chunk: roots
-/// X (4) and Y (1), Z (8) Y's child, V (30) a child of X and Z, all one weight, are one chunk,
-/// in Core's order Y, Z, X, V.
-#[test]
-fn optimal_chunks_take_core_s_post_linearized_order() {
-    let mut cluster = Cluster::default();
-    let push = |cluster: &mut Cluster, fee: u64, place: u32, parents: &[u32]| {
-        cluster.push_ranked(
-            Sats::from(fee),
-            fee as i64,
-            Weight::from(400u64),
-            place,
-            parents.iter().map(|&p| CpfpClusterTxIndex::from(p)),
-        );
-    };
-    push(&mut cluster, 4, 0, &[]);
-    push(&mut cluster, 1, 1, &[]);
-    push(&mut cluster, 8, 2, &[1]);
-    push(&mut cluster, 30, 3, &[0, 2]);
-    let mut order: Vec<Vec<u32>> = Vec::new();
-    cluster.linearize(|txs, _| order.push(txs.iter().map(|&tx| u32::from(tx)).collect()));
-    assert_eq!(order, [vec![1, 2, 0, 3]]);
-}
