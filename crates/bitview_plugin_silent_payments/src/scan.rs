@@ -63,18 +63,13 @@ fn may_have_key(output_type: OutputType) -> bool {
     )
 }
 
-/// Whether a transaction may be eligible and is kept, from its outputs' types and values and the
-/// types its inputs spend: a Taproot output holding at least the [`DUST_FLOOR`], and an input
-/// BIP352 may count a key for.
-pub(crate) fn is_candidate(
-    output_types: &[OutputType],
-    output_values: &[Sats],
-    input_types: &[OutputType],
-) -> bool {
-    output_types
+/// Whether a transaction may be eligible and is kept, from the types its inputs spend: a Taproot
+/// output holding at least the [`DUST_FLOOR`], and an input BIP352 may count a key for.
+pub(crate) fn is_candidate(transaction: &Transaction, input_types: &[OutputType]) -> bool {
+    transaction
+        .output
         .iter()
-        .zip(output_values)
-        .any(|(&output_type, &value)| output_type == OutputType::P2TR && value >= DUST_FLOOR)
+        .any(|output| output.script_pubkey.is_p2tr() && Sats::from(output.value) >= DUST_FLOOR)
         && input_types.iter().any(|&output_type| may_have_key(output_type))
 }
 
@@ -88,14 +83,9 @@ pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Resu
     if scanned.is_empty() {
         return Ok(blocks);
     }
-    let columns = Columns::read(indexer, scanned);
-    let scanner = Scanner {
-        indexer,
-        tweaker,
-        columns: &columns,
-    };
+    let scanner = Scanner::read(indexer, tweaker, scanned);
     blocks.extend(
-        (0..columns.blocks.len())
+        (0..scanner.blocks.len())
             .into_par_iter()
             .map(|block| scanner.block(block))
             .collect::<Result<Vec<_>>>()?,
@@ -103,8 +93,11 @@ pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Resu
     Ok(blocks)
 }
 
-/// The indexer columns a range of blocks is scanned from, each from its range's start (`*_base`).
-struct Columns {
+/// Scans a range of blocks, from the indexer columns it needs of them, each from its range's start
+/// (`*_base`).
+struct Scanner<'a> {
+    indexer: &'a Indexer,
+    tweaker: &'a Tweaker,
     blocks: Vec<(BlkPosition, Bytes32)>,
     /// Each block's first transaction, then the range's end.
     tx_bounds: Vec<usize>,
@@ -112,18 +105,13 @@ struct Columns {
     /// Each transaction's first input, then the range's end.
     txin_bounds: Vec<usize>,
     txin_base: usize,
-    /// Each transaction's first output, then the range's end.
-    txout_bounds: Vec<usize>,
-    txout_base: usize,
-    output_types: Vec<OutputType>,
-    output_values: Vec<Sats>,
     /// The output type each input spends.
     input_types: Vec<OutputType>,
     input_type_indexes: Vec<TypeIndex>,
 }
 
-impl Columns {
-    fn read(indexer: &Indexer, heights: Range<usize>) -> Self {
+impl<'a> Scanner<'a> {
+    fn read(indexer: &'a Indexer, tweaker: &'a Tweaker, heights: Range<usize>) -> Self {
         let vecs = indexer.vecs();
         let txs = &vecs.transactions;
         let tx_bounds = bounds(
@@ -145,19 +133,11 @@ impl Columns {
             tx_end - tx_base,
             vecs.inputs.output_type.len(),
         );
-        let txout_bounds = bounds(
-            txs.first_txout_index
-                .collect_range_at(tx_base, tx_end + 1)
-                .into_iter()
-                .map(|index| index.get().to_usize())
-                .collect(),
-            tx_end - tx_base,
-            vecs.outputs.output_type.len(),
-        );
         let (txin_base, txin_end) = (txin_bounds[0], txin_bounds[tx_end - tx_base]);
-        let (txout_base, txout_end) = (txout_bounds[0], txout_bounds[tx_end - tx_base]);
 
         Self {
+            indexer,
+            tweaker,
             blocks: vecs
                 .blocks
                 .position
@@ -169,10 +149,6 @@ impl Columns {
             tx_base,
             txin_bounds,
             txin_base,
-            txout_bounds,
-            txout_base,
-            output_types: vecs.outputs.output_type.collect_range_at(txout_base, txout_end),
-            output_values: vecs.outputs.value.collect_range_at(txout_base, txout_end),
             input_types: vecs.inputs.output_type.collect_range_at(txin_base, txin_end),
             input_type_indexes: vecs.inputs.type_index.collect_range_at(txin_base, txin_end),
         }
@@ -182,12 +158,6 @@ impl Columns {
     fn inputs(&self, tx: usize) -> Range<usize> {
         let tx = tx - self.tx_base;
         self.txin_bounds[tx] - self.txin_base..self.txin_bounds[tx + 1] - self.txin_base
-    }
-
-    /// The transaction's outputs, from the range's first output.
-    fn outputs(&self, tx: usize) -> Range<usize> {
-        let tx = tx - self.tx_base;
-        self.txout_bounds[tx] - self.txout_base..self.txout_bounds[tx + 1] - self.txout_base
     }
 
     /// The block's transactions.
@@ -203,55 +173,21 @@ impl Columns {
         start..end
     }
 
-    /// The block's outputs, from the range's first output.
-    fn block_outputs(&self, block: usize) -> Range<usize> {
-        let txs = self.txs(block);
-        let [start, end] =
-            [txs.start, txs.end].map(|tx| self.txout_bounds[tx - self.tx_base] - self.txout_base);
-        start..end
-    }
-
-    fn is_candidate(&self, tx: usize) -> bool {
-        let outputs = self.outputs(tx);
-        is_candidate(
-            &self.output_types[outputs.clone()],
-            &self.output_values[outputs],
-            &self.input_types[self.inputs(tx)],
-        )
-    }
-}
-
-/// `count` ranges' first indexes, read up to one past the last range: the end of the last range
-/// is the next one's first index, or `total` when none follows yet.
-fn bounds(mut firsts: Vec<usize>, count: usize, total: usize) -> Vec<usize> {
-    debug_assert!(firsts.len() == count || firsts.len() == count + 1);
-    if firsts.len() == count {
-        firsts.push(total);
-    }
-    firsts
-}
-
-struct Scanner<'a> {
-    indexer: &'a Indexer,
-    tweaker: &'a Tweaker,
-    columns: &'a Columns,
-}
-
-impl Scanner<'_> {
     /// The block's eligible transactions (its coinbase left out: it spends nothing) and filters,
     /// from its bytes in Core's block files, parsed once.
     fn block(&self, block: usize) -> Result<BlockScan> {
-        let columns = self.columns;
-        let (position, size) = columns.blocks[block];
+        let (position, size) = self.blocks[block];
         let bytes = self
             .indexer
             .reader()
             .read_raw_bytes(position, u32::from(size) as usize)?;
         let parsed = deserialize::<Block>(&bytes)?;
-        let txs = columns.txs(block);
+        let txs = self.txs(block);
         debug_assert_eq!(parsed.txdata.len(), txs.len(), "transactions of block {block}");
         let candidates = (txs.start + 1..txs.end)
-            .filter(|&tx| columns.is_candidate(tx))
+            .filter(|&tx| {
+                is_candidate(&parsed.txdata[tx - txs.start], &self.input_types[self.inputs(tx)])
+            })
             .collect::<Vec<_>>();
         let eligible = candidates
             .into_par_iter()
@@ -260,11 +196,8 @@ impl Scanner<'_> {
                 Ok(self.tweak(tx, transaction)?.map(|tweak| Eligible {
                     tx_index: TxIndex::from(tx),
                     tweak,
-                    has_off_curve_key: new_outputs(
-                        slice::from_ref(transaction),
-                        &columns.output_types[columns.outputs(tx)],
-                    )
-                    .any(|key| !is_on_curve(key)),
+                    has_off_curve_key: new_outputs(slice::from_ref(transaction))
+                        .any(|key| !is_on_curve(key)),
                 }))
             })
             .collect::<Result<Vec<_>>>()?
@@ -272,12 +205,11 @@ impl Scanner<'_> {
             .flatten()
             .collect::<Vec<_>>();
         let block_hash = parsed.block_hash().to_byte_array();
-        let output_types = &columns.output_types[columns.block_outputs(block)];
-        let input_types = &columns.input_types[columns.block_inputs(block)];
+        let input_types = &self.input_types[self.block_inputs(block)];
         Ok(BlockScan {
             has_off_curve_key: eligible.iter().any(|tx| tx.has_off_curve_key),
             eligible,
-            new_outputs_filter: filter(&block_hash, new_outputs(&parsed.txdata, output_types)),
+            new_outputs_filter: filter(&block_hash, new_outputs(&parsed.txdata)),
             spent_outputs_filter: filter(
                 &block_hash,
                 spent_outputs(&block_hash, &parsed.txdata, input_types),
@@ -288,13 +220,12 @@ impl Scanner<'_> {
     /// The transaction's tweak, or `None` when it isn't eligible: it spends a segwit output above
     /// version 1, or BIP352 counts none of its inputs' keys, or they sum to infinity.
     fn tweak(&self, tx: usize, transaction: &Transaction) -> Result<Option<Tweak>> {
-        let columns = self.columns;
-        let inputs = columns.inputs(tx);
-        let types = &columns.input_types[inputs.clone()];
+        let inputs = self.inputs(tx);
+        let types = &self.input_types[inputs.clone()];
         debug_assert_eq!(types.len(), transaction.input.len(), "inputs of transaction {tx}");
         for (input, &output_type) in inputs.clone().zip(types) {
             if output_type == OutputType::UnknownScript
-                && self.spends_future_segwit(columns.txin_base + input)?
+                && self.spends_future_segwit(self.txin_base + input)?
             {
                 return Ok(None);
             }
@@ -302,10 +233,7 @@ impl Scanner<'_> {
 
         let mut keys = Vec::<PublicKey>::with_capacity(transaction.input.len());
         for (input, index) in transaction.input.iter().zip(inputs) {
-            let prevout = self.prevout(
-                columns.input_types[index],
-                columns.input_type_indexes[index],
-            )?;
+            let prevout = self.prevout(self.input_types[index], self.input_type_indexes[index])?;
             keys.extend(prevout.and_then(|prevout| input_key(&prevout, input)));
         }
         let Some(smallest_outpoint) = smallest_outpoint(&transaction.input) else {
@@ -368,4 +296,14 @@ impl Scanner<'_> {
             .witness_version()
             .is_some_and(|version| version.to_num() > 1))
     }
+}
+
+/// `count` ranges' first indexes, read up to one past the last range: the end of the last range
+/// is the next one's first index, or `total` when none follows yet.
+fn bounds(mut firsts: Vec<usize>, count: usize, total: usize) -> Vec<usize> {
+    debug_assert!(firsts.len() == count || firsts.len() == count + 1);
+    if firsts.len() == count {
+        firsts.push(total);
+    }
+    firsts
 }

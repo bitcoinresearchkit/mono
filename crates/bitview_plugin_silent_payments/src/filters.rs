@@ -26,18 +26,14 @@ pub fn filter<E: AsRef<[u8]>>(
     bytes
 }
 
-/// The x-only keys of the block's Taproot outputs; `output_types` classifies its outputs, in order.
-pub fn new_outputs<'a>(
-    txdata: &'a [Transaction],
-    output_types: &'a [OutputType],
-) -> impl Iterator<Item = &'a [u8]> {
+/// The x-only keys of the transactions' Taproot outputs.
+pub fn new_outputs(txdata: &[Transaction]) -> impl Iterator<Item = &[u8]> {
     txdata
         .iter()
         .flat_map(|tx| &tx.output)
-        .zip(output_types)
-        .filter(|(_, output_type)| **output_type == OutputType::P2TR)
+        .filter(|output| output.script_pubkey.is_p2tr())
         // `OP_1`, a 32-byte push, then the key.
-        .map(|(output, _)| &output.script_pubkey.as_bytes()[2..])
+        .map(|output| &output.script_pubkey.as_bytes()[2..])
 }
 
 /// The block's spends of Taproot outputs as BlindBit hashes them: the first 8 bytes of

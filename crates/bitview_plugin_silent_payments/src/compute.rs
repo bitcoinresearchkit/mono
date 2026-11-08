@@ -27,21 +27,13 @@ impl ComputePlugin for Vecs {
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
         let vecs = indexer.vecs();
-        let (txs, inputs, outputs, addrs) = (
-            &vecs.transactions,
-            &vecs.inputs,
-            &vecs.outputs,
-            &vecs.addrs,
-        );
+        let (txs, inputs, addrs) = (&vecs.transactions, &vecs.inputs, &vecs.addrs);
         let version = txs.first_tx_index.version()
             + txs.first_txin_index.version()
-            + txs.first_txout_index.version()
             + txs.position.version()
             + txs.total_size.version()
             + vecs.blocks.position.version()
             + vecs.blocks.size.version()
-            + outputs.output_type.version()
-            + outputs.value.version()
             + inputs.output_type.version()
             + inputs.type_index.version()
             + inputs.outpoint.version()

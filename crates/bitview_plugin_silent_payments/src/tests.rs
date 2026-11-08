@@ -9,7 +9,7 @@ use bitcoin::{
     absolute::LockTime, consensus::deserialize, hashes::Hash, hex::FromHex,
     opcodes::all::OP_RETURN, secp256k1::PublicKey, transaction::Version,
 };
-use brk_types::{OutputType, Sats};
+use brk_types::OutputType;
 
 use crate::{
     compute::batches,
@@ -99,26 +99,41 @@ fn bip158_vectors() {
     }
 }
 
-/// A transaction's output types and values, the types its inputs spend, and whether it's kept.
-type Candidate = (&'static [OutputType], &'static [u64], &'static [OutputType], bool);
+/// A transaction's outputs (whether Taproot, their value), the types its inputs spend, and whether
+/// it's kept.
+type Candidate = (&'static [(bool, u64)], &'static [OutputType], bool);
 
 /// A transaction is kept for a Taproot output of 600 sats or more (its smaller Taproot outputs
 /// kept beside it) and an input that may carry a key.
 #[test]
 fn candidates() {
     use OutputType::{P2PKH, P2SH, P2TR, P2WPKH, P2WSH};
-    let sats = |values: &[u64]| values.iter().map(|&v| Sats::new(v)).collect::<Vec<_>>();
     let cases: [Candidate; 6] = [
-        (&[P2TR], &[600], &[P2WPKH], true),
-        (&[P2TR], &[599], &[P2WPKH], false),
-        (&[P2TR, P2TR], &[330, 5_000], &[P2PKH], true),
-        (&[P2WPKH], &[5_000], &[P2TR], false),
-        (&[P2TR], &[5_000], &[P2WSH], false),
-        (&[P2TR], &[5_000], &[P2WSH, P2SH], true),
+        (&[(true, 600)], &[P2WPKH], true),
+        (&[(true, 599)], &[P2WPKH], false),
+        (&[(true, 330), (true, 5_000)], &[P2PKH], true),
+        (&[(false, 5_000)], &[P2TR], false),
+        (&[(true, 5_000)], &[P2WSH], false),
+        (&[(true, 5_000)], &[P2WSH, P2SH], true),
     ];
-    for (outputs, values, inputs, expected) in cases {
-        let candidate = is_candidate(outputs, &sats(values), inputs);
-        assert_eq!(candidate, expected, "{outputs:?} {values:?} {inputs:?}");
+    for (outputs, inputs, expected) in cases {
+        let transaction = Transaction {
+            version: Version::TWO,
+            lock_time: LockTime::ZERO,
+            input: Vec::new(),
+            output: outputs
+                .iter()
+                .map(|&(taproot, value)| TxOut {
+                    value: Amount::from_sat(value),
+                    script_pubkey: ScriptBuf::from_bytes(if taproot {
+                        [&[0x51, 0x20][..], &[1; 32]].concat()
+                    } else {
+                        [&[0x00, 0x14][..], &[2; 20]].concat()
+                    }),
+                })
+                .collect(),
+        };
+        assert_eq!(is_candidate(&transaction, inputs), expected, "{outputs:?} {inputs:?}");
     }
 }
 
@@ -135,8 +150,8 @@ fn batch_boundaries() {
     assert_eq!(batches(5..5).count(), 0);
 }
 
-/// The new outputs' filter holds each Taproot output's x-only key, read through the indexer's
-/// output types aligned across the block's transactions, and nothing else.
+/// The new outputs' filter holds each Taproot output's x-only key across the block's transactions,
+/// and nothing else.
 #[test]
 fn new_output_keys() {
     let output = |script: Vec<u8>| TxOut {
@@ -154,8 +169,7 @@ fn new_output_keys() {
         transaction(vec![output(taproot(1)), output([&[0x00, 0x14][..], &[2; 20]].concat())]),
         transaction(vec![output(taproot(1)), output(taproot(3))]),
     ];
-    let types = [OutputType::P2TR, OutputType::P2WPKH, OutputType::P2TR, OutputType::P2TR];
-    let keys = new_outputs(&txdata, &types).collect::<Vec<_>>();
+    let keys = new_outputs(&txdata).collect::<Vec<_>>();
     assert_eq!(keys, [[1; 32].as_slice(), &[1; 32], &[3; 32]]);
     let block_hash = [9; 32];
     assert_eq!(filter(&block_hash, keys), filter(&block_hash, [[1; 32], [3; 32]]));

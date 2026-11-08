@@ -124,9 +124,6 @@ impl Tweaker {
     /// `input_hash·A`, where `A` sums `keys` and `input_hash` hashes the [`smallest_outpoint`]
     /// with `A`. `None` when `keys` is empty or sums to infinity: the transaction isn't eligible.
     pub fn tweak(&self, smallest_outpoint: &[u8; 36], keys: &[&PublicKey]) -> Option<Tweak> {
-        if keys.is_empty() {
-            return None;
-        }
         let sum = PublicKey::combine_keys(keys).ok()?;
         let mut hash = self.inputs_hash.clone();
         hash.update(smallest_outpoint);

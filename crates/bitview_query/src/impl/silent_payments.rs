@@ -8,7 +8,7 @@ use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve
 use bitview_primitives::{Lengths, TxInIndex};
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
 use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Tweak, TxIndex, Vout};
-use vecdb::{AnyVec, ReadableVec, VecIndex};
+use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
@@ -103,40 +103,14 @@ fn end_span<I: VecIndex>(
 }
 
 impl Query {
-    /// The last block served, for `info` and `block-height`: the published tip, or the plugin's
-    /// last block while it catches up after a restart.
+    /// The published tip, for `info` and `block-height`.
     pub fn blindbit_tip(&self) -> Result<(Height, BlockHash)> {
         let pin = self.pin_safe_lengths()?;
-        let served = self
-            .blindbit_computed()
-            .min(pin.lengths().height.to_usize());
-        let height = Height::from(
-            served
-                .checked_sub(1)
-                .ok_or_else(|| Error::NotFound("No block indexed".into()))?,
-        );
-        let hash = self
-            .indexer()
-            .vecs()
-            .blocks
-            .blockhash
-            .collect_one(height)
-            .data()?;
-        Ok((height, hash))
-    }
-
-    /// How many blocks the plugin holds every column of.
-    fn blindbit_computed(&self) -> usize {
-        let silent_payments = self.plugins().silent_payments;
-        [
-            silent_payments.has_off_curve_key.len(),
-            silent_payments.end_tweak_index.len(),
-            silent_payments.end_new_outputs_filter_index.len(),
-            silent_payments.end_spent_outputs_filter_index.len(),
-        ]
-        .into_iter()
-        .min()
-        .unwrap_or_default()
+        let height = pin
+            .lengths()
+            .last_height()
+            .ok_or_else(|| Error::NotFound("No block indexed".into()))?;
+        Ok((height, pin.tip()))
     }
 
     /// A published block by height, pinned until the answer is built.
@@ -146,10 +120,6 @@ impl Query {
         check_bound(&pin, height, published)?;
         if height >= published {
             return Err(Error::NotFound("Height not indexed".into()));
-        }
-        // A publication can run ahead of the plugin's blocks while it catches up after a restart.
-        if height.to_usize() >= self.blindbit_computed() {
-            return Err(Error::StateUpdating);
         }
         let hash = self
             .indexer()
