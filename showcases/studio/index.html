@@ -10681,7 +10681,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day; year is each point's year (rebase(A, year) starts each year at 1×, when(A, year == 2021) keeps 2021), and year(A, 2021) and year(A, 2021, 2024) are halving()'s for years. over(age_1y_to_18m_supply) is that band's series summed with the same series of every band above it (the coins over 1 year old), and under(age_1y_to_18m_supply) every band's below it (the coins under 1 year old), by an amount or count of an age_, amount_, balance_, profit_ or loss_ band, each by its name (not a price or a percent: sum what it's made of, then divide); profit and loss bands run from the deepest loss up, so over(profit_10_to_20_percent_supply) is the coins over 10% in profit and under(loss_0_to_10_percent_supply) those over 10% in loss. shift(A, 30d) is A 30 days later (-30d, earlier), shift(A, 1y) on the same date a year on, shift(A, 1halving) as far into the next halving cycle as into its own: A, shift(A, 1halving) and shift(A, 2halving) show each cycle over the two before it. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo, y or halving (210,000 blocks); some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
@@ -12916,6 +12916,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         exp: [1, "exp(x)", "the exponential: e to the power x", (x) => x.map(Math.exp)],
         sqrt: [1, "sqrt(x)", "square root", (x) => x.map(Math.sqrt)],
         abs: [1, "abs(x)", "absolute value", (x) => x.map(Math.abs)],
+        over: [1, "over(x)", "x, an amount or count of an age, amount, balance, profit or loss band, summed with the same series of every band above: over(age_1y_to_18m_supply) is the coins over 1 year old", null],
+        under: [1, "under(x)", "the same series of every band below x's, summed: under(age_1y_to_18m_supply) is the coins under 1 year old, under(loss_0_to_10_percent_supply) those over 10% in loss", null],
         min: [2, "min(a, b)", "smaller of two", null],
         max: [2, "max(a, b)", "larger of two", null],
         when: [2, "when(x, condition)", "x where the condition holds (not 0), none elsewhere: when(A, date >= 2020-05-11)", null],
@@ -12981,6 +12983,38 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
 
       const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/≠/g, "!=");
+      /** Every series of the bands that split the coins (age, amount, balance, profit: the deepest loss the lowest), by its id: its bands, low to high, its band's place in them, and where in a band it is. @type {Map<string, { bands: any[], at: number, path: string[] }> | undefined} */
+      let bandSeries;
+      const inBands = (/** @type {string} */ name) => {
+        if (!bandSeries) {
+          const found = (bandSeries = new Map());
+          for (const bands of [...[tree.age.ranges, tree.utxos.amounts, tree.addresses.balances].map(Object.values), ...Object.values(tree.profitability).map((family) => Object.values(family).reverse())]) {
+            const walk = (/** @type {any} */ node, /** @type {string[]} */ path, /** @type {number} */ at) => {
+              if (isLeaf(node)) found.set(node.name, { bands, at, path });
+              else if (node && typeof node === "object") for (const [key, value] of Object.entries(node)) walk(value, [...path, key], at);
+            };
+            bands.forEach((band, at) => walk(band, [], at));
+          }
+        }
+        return bandSeries.get(name);
+      };
+      const isBandSum = (/** @type {Node} */ node) => node.k === "call" && (node.f === "over" || node.f === "under");
+      /**
+       * over(x) or under(x) as the sum it is: x's band and those above it, or those below it (a band without the series, as
+       * 0-sat outputs have no supply, adds nothing), added from the far end in: each cutoff is the one beyond it plus a
+       * band, a part they share (see parts). What can't be added (a price, a percent) isn't.
+       * @param {Extract<Node, { k: "call" }>} node @returns {Node}
+       */
+      function bandSum(node) {
+        const signature = FUNCTIONS[node.f][1], arg = node.args[0], found = arg.k === "series" ? inBands(arg.v) : undefined;
+        if (!found) throw new Error(`${signature}: x is a series of an age, amount, balance, profit or loss band, by its name, like age_1y_to_18m_supply`);
+        if (found.path[0] === "costBasis" || found.path.includes("percent")) throw new Error(`${signature}: a price or a percent doesn't add up across bands: sum what it's made of, then divide`);
+        const side = node.f === "over" ? found.bands.slice(found.at).reverse() : found.bands.slice(0, found.at);
+        if (!side.length) throw new Error(`${signature}: this is the lowest band, none is below it`);
+        const names = side.flatMap((other) => ((leaf) => (isLeaf(leaf) ? [leaf.name] : []))(found.path.reduce((leaf, key) => leaf?.[key], other)));
+        return names.length ? names.map((v) => /** @type {Node} */ ({ k: "series", v })).reduce((a, b) => ({ k: "bin", op: "+", a, b })) : { k: "num", v: 0 };
+      }
+
       /** Formulas as parsed, by their text (each edit normalizes every layer: its formula's read once, not again). */
       const parsed = new Map();
       /** @returns {Node} */
@@ -13061,10 +13095,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return node;
       }
 
-      /** The layers a formula reads, by letter, or with `kind` "series", the series it names, "call", the functions it calls. @param {Node} node @returns {Set<string>} */
+      /**
+       * The layers a formula reads, by letter, or with `kind` "series", the series it names, "reads", those it reads (a band
+       * sum's bands), "written", those as it writes them (a band sum whole, its over(x)), "call", the functions it calls.
+       * @param {Node} node @returns {Set<string>}
+       */
       function refsOf(node, kind = "ref", into = new Set()) {
-        if (node.k === "ref" || node.k === "series") {
-          if (node.k === kind) into.add(node.v);
+        if (isBandSum(node) && kind === "written") into.add(`${/** @type {any} */ (node).f}(${/** @type {any} */ (node).args[0].v})`);
+        else if (isBandSum(node) && kind === "reads") {
+          try {
+            refsOf(bandSum(/** @type {any} */ (node)), "series", into);
+          } catch {
+            // (Not a band's series: computing it says so.)
+          }
+        } else if (node.k === "ref" || node.k === "series") {
+          if (node.k === (kind === "written" || kind === "reads" ? "series" : kind)) into.add(node.v);
         }
         else if (node.k === "neg") refsOf(node.a, kind, into);
         else if (node.k === "bin") (refsOf(node.a, kind, into), refsOf(node.b, kind, into));
@@ -13087,11 +13132,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /** The series a formula layer can turn into: those it names. @param {Layer} layer */
-      const turnsInto = (layer) => (layer.formula !== undefined ? seriesNamed(layer.formula).filter(isSeriesName) : []);
-      /** The series a formula names, if it parses. @returns {string[]} */
-      function seriesNamed(formula) {
+      const turnsInto = (layer) => (layer.formula !== undefined ? seriesNamed(layer.formula, "written").filter(isSeriesName) : []);
+      /** The series a formula names (`kind`: see refsOf), if it parses. @returns {string[]} */
+      function seriesNamed(formula, kind = "series") {
         try {
-          return [...refsOf(parse(formula), "series")];
+          return [...refsOf(parse(formula), kind)];
         } catch {
           return [];
         }
@@ -13127,6 +13172,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return "number";
           }
           case "call":
+            if (isBandSum(node)) return unitOfNode(bandSum(node), unitOfRef);
             if (node.f === "min" || node.f === "max") {
               const a = unitOfNode(node.args[0], unitOfRef), b = unitOfNode(node.args[1], unitOfRef);
               return a && b && a !== b ? "number" : a ?? b;
@@ -13136,26 +13182,82 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * Evaluates to a vector of `length` points, or a scalar; windows (spans of time, in days, where `inWindow`) run as
-       * the points of `index`. @returns {Vector | number}
+       * Every part of a formula as computed, whichever formula, layer or chart needed it first, by its operation and its
+       * inputs by identity (see idOf: a series on a timeline is one array, a part another): the same inputs, the same
+       * array, never made twice and never out of date (an input that changes is another array, so another key). Its arrays
+       * are shared, so they're never written to: what changes one copies it first (see liveCopy). The most recently used.
+       * @type {Map<string, Vector | number>}
        */
-      function evaluate(node, length, ref, index, inWindow = false, memo = /** @type {Map<string, Vector | number> | undefined} */ (undefined)) {
-        // A part met before (in this formula or another of the chart's: sma(A, 4y) in three bands) is computed once.
-        const key = memo && !inWindow && (node.k === "call" || node.k === "bin" || node.k === "neg") ? JSON.stringify(node) : "";
-        const met = key ? memo?.get(key) : undefined;
-        if (met !== undefined) return met;
-        const value = evaluateAnew(node, length, ref, index, inWindow, memo);
-        if (key) memo?.set(key, value);
+      const parts = new Map();
+      /** How many `parts` holds (a daily series is about 52 KB). */
+      const KEPT_PARTS = 500;
+      /** The part at `key`, made once. @param {string} key @param {() => Vector | number} make @returns {Vector | number} */
+      function part(key, make) {
+        if (parts.has(key)) return lastUsed(parts, key, /** @type {Vector | number} */ (parts.get(key)));
+        const value = make();
+        parts.set(key, value);
+        if (parts.size > KEPT_PARTS) parts.delete(/** @type {string} */ (parts.keys().next().value));
         return value;
       }
-      /** @param {Node} node @returns {Vector | number} */
-      function evaluateAnew(node, length, ref, index, inWindow, memo) {
-        const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within, memo);
+      /** An input's place in a key: a series or part by its identity, a number as itself. @param {Vector | number} value */
+      const inputKey = (value) => (typeof value === "number" ? String(value) : `#${idOf(value)}`);
+      /** Functions reading more than their arguments (halving cycles' epochs) or how they're written (rebase of a shift): computed each time. */
+      const UNSHARED = new Set(["halving", "shift", "rebase"]);
+      /** A function's part as `parts` knows it, "" for one not kept: one reading no series, or that fails (computing it says why). @param {Extract<Node, { k: "call" }>} node @returns {string} */
+      function callKey(node, length, ref, index) {
+        if (UNSHARED.has(node.f)) return "";
+        try {
+          const inputs = node.args.map((arg) => (arg.k === "num" ? JSON.stringify(arg) : inputKey(evaluate(arg, length, ref, index))));
+          return inputs.some((input) => input.startsWith("#")) ? `${node.f}@${index}(${inputs})` : "";
+        } catch {
+          return "";
+        }
+      }
+      /**
+       * Evaluates to a vector of `length` points, or a scalar; windows (spans of time, in days, where `inWindow`) run as
+       * the points of `index`. A part already computed, in this formula or any other, is that one (see parts).
+       * @returns {Vector | number}
+       */
+      function evaluate(node, length, ref, index, inWindow = false) {
+        if (isBandSum(node)) return evaluate(bandSum(/** @type {any} */ (node)), length, ref, index, inWindow);
+        if (node.k === "bin" || node.k === "neg") {
+          // (Each side once, a side that fails failing the whole: a sum of bands is as deep as its bands.)
+          const a = evaluate(node.a, length, ref, index, inWindow), b = node.k === "bin" ? evaluate(node.b, length, ref, index, inWindow) : undefined;
+          const make = () => (node.k === "bin" ? pointwise(node.op, a, /** @type {Vector | number} */ (b)) : typeof a === "number" ? -a : restarted(a.map((v) => -v), a));
+          return inWindow || (typeof a === "number" && typeof b !== "object") ? make() : part(`${node.k === "bin" ? node.op : "neg"}(${inputKey(a)},${b === undefined ? "" : inputKey(b)})`, make);
+        }
+        const key = !inWindow && node.k === "call" ? callKey(node, length, ref, index) : "";
+        return key ? part(key, () => evaluateAnew(node, length, ref, index, inWindow)) : evaluateAnew(node, length, ref, index, inWindow);
+      }
+      /** The four operations a formula is mostly made of, over at least one vector, each its own loop (no call per point: without a JIT, it's most of the cost). @param {string} op @param {Vector | number} a @param {Vector | number} b @returns {Vector} */
+      function arithmetic(op, a, b) {
+        const n = /** @type {Vector} */ (typeof a === "number" ? b : a).length, out = new Float64Array(n);
+        const x = typeof a === "number" ? new Float64Array(n).fill(a) : a, y = typeof b === "number" ? new Float64Array(n).fill(b) : b;
+        if (op === "+") for (let i = 0; i < n; i++) out[i] = x[i] + y[i];
+        else if (op === "-") for (let i = 0; i < n; i++) out[i] = x[i] - y[i];
+        else if (op === "*") for (let i = 0; i < n; i++) out[i] = x[i] * y[i];
+        else for (let i = 0; i < n; i++) out[i] = x[i] / y[i];
+        return restarted(out, a, b);
+      }
+      /** Two sides point by point, by `f`, with their restarts. @param {Vector | number} a @param {Vector | number} b @param {(x: number, y: number) => number} f @returns {Vector | number} */
+      function lift(a, b, f) {
+        if (typeof a === "number") return typeof b === "number" ? f(a, b) : restarted(b.map((v) => f(a, v)), b);
+        return restarted(typeof b === "number" ? a.map((v) => f(v, b)) : a.map((v, i) => f(v, b[i])), a, b);
+      }
+      // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none: an infinity (a
+      // log of 0, a division by 0) is none either. Joined, a side with none decides nothing the other decides
+      // alone: true | none is true, false & none false.)
+      const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (!Number.isFinite(x) || !Number.isFinite(y) ? NaN : Number(test(x, y)));
+      const or = (/** @type {number} */ x, /** @type {number} */ y) => ((Number.isFinite(x) && x !== 0) || (Number.isFinite(y) && y !== 0) ? 1 : Number.isFinite(x) && Number.isFinite(y) ? 0 : NaN);
+      const and = (/** @type {number} */ x, /** @type {number} */ y) => (x === 0 || y === 0 ? 0 : Number.isFinite(x) && Number.isFinite(y) ? 1 : NaN);
+      /** Each operator on two numbers. @type {Record<string, (x: number, y: number) => number>} */
+      const POINTWISE = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": and, "|": or };
+      /** An operator over two sides. @param {string} op @param {Vector | number} a @param {Vector | number} b */
+      const pointwise = (op, a, b) => ("+-*/".includes(op) && (typeof a !== "number" || typeof b !== "number") ? arithmetic(op, a, b) : lift(a, b, POINTWISE[op]));
+      /** @param {Exclude<Node, { k: "bin" | "neg" }>} node @returns {Vector | number} */
+      function evaluateAnew(node, length, ref, index, inWindow) {
+        const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within);
         const vec = (value) => (typeof value === "number" ? new Float64Array(length).fill(value) : value);
-        const lift = (a, b, f) => {
-          if (typeof a === "number") return typeof b === "number" ? f(a, b) : restarted(b.map((v) => f(a, v)), b);
-          return restarted(typeof b === "number" ? a.map((v) => f(v, b)) : a.map((v, i) => f(v, b[i])), a, b);
-        };
         switch (node.k) {
           case "num":
             if (node.unit && !inWindow) throw new Error(`${node.text} is a span of time, for a window: sma(x, ${node.text})`);
@@ -13167,21 +13269,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return ref("date", "date");
           case "year":
             return yearsOf(vec(ref("date", "date")));
-          case "neg": {
-            const a = sub(node.a);
-            return typeof a === "number" ? -a : restarted(a.map((v) => -v), a);
-          }
-          case "bin": {
-            const a = sub(node.a), b = sub(node.b);
-            // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none: an infinity (a
-            // log of 0, a division by 0) is none either. Joined, a side with none decides nothing the other decides
-            // alone: true | none is true, false & none false.)
-            const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (!Number.isFinite(x) || !Number.isFinite(y) ? NaN : Number(test(x, y)));
-            const or = (/** @type {number} */ x, /** @type {number} */ y) => ((Number.isFinite(x) && x !== 0) || (Number.isFinite(y) && y !== 0) ? 1 : Number.isFinite(x) && Number.isFinite(y) ? 0 : NaN);
-            const and = (/** @type {number} */ x, /** @type {number} */ y) => (x === 0 || y === 0 ? 0 : Number.isFinite(x) && Number.isFinite(y) ? 1 : NaN);
-            const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": and, "|": or }[node.op];
-            return lift(a, b, op);
-          }
           case "call": {
             const [arity, signature, , run, , usual] = FUNCTIONS[node.f];
             const windowed = arity >= 2 && run !== null, spanned = windowed && node.args.length === arity;
@@ -15938,7 +16025,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
-      const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? [...seriesNamed(layer.formula), ...seriesUnnamed(layer.formula)] : [])))];
+      const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? [...seriesNamed(layer.formula, "reads"), ...seriesUnnamed(layer.formula)] : [])))];
       /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
       // (A heatmap's dates, the price's: its days drawn on them, see Heat.)
       const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : heatLike(layer) ? ["price"] : [])), ...formulaSeries(doc)])];
@@ -15952,6 +16039,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const vectorIds = new WeakMap();
       let vectorCount = 0;
       const idOf = (/** @type {object} */ vector) => vectorIds.get(vector) ?? (vectorIds.set(vector, ++vectorCount), vectorCount);
+      /** Series on a chart's points (gone with their data), by those points: charts on the same ones share them, and so what's computed from them (see parts). The most recently used. @type {Map<string, WeakMap<object, any>>} */
+      const alignedSets = new Map();
+      const alignedOn = (/** @type {number} */ lo, /** @type {number[]} */ times) => {
+        const key = `${lo}|${times}`, aligned = lastUsed(alignedSets, key, alignedSets.get(key) ?? new WeakMap());
+        if (alignedSets.size > 16) alignedSets.delete(/** @type {string} */ (alignedSets.keys().next().value));
+        return aligned;
+      };
       /**
        * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
        * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
@@ -16007,7 +16101,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {number[]} */
           const times = [];
           for (let i = 0; i < timeOf.length; i++) if (!Number.isNaN(timeOf[i])) (position[i] = times.length), times.push(timeOf[i]);
-          frame = { id: ++frameCount, datas, lo, times, position, aligned: new Map(), series: new Map(), computed: new Map(), trimmed: null };
+          frame = { id: ++frameCount, datas, lo, times, position, aligned: alignedOn(lo, times), series: new Map(), computed: new Map(), trimmed: null };
           frames.set(frameKey, frame);
           // (By chart: the open one's kept, whatever the previews drawn meanwhile.)
           prune(frames, 8, (key) => Boolean(chart) && key.startsWith(`${chart.id}@`));
@@ -16078,8 +16172,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Formulas, in dependency order; a loop is an error, not a hang.
         const byLetter = new Map(doc.layers.map((layer) => [layer.letter, layer]));
         const visiting = new Set(), LOOP = "Formulas refer to each other in a loop";
-        /** The parts of the chart's formulas computed so far, shared between them. */
-        const memo = new Map();
         /**
          * A layer's result, made once a resolve by `make` (a formula's, or one made from layers): a loop through it is an
          * error, as a failure in it is (short, with its detail, where it says one).
@@ -16123,10 +16215,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A blank one by its own none-at-each-date: the same message as an error's, but not one.)
             return result?.values ? idOf(result.values) : result?.blank ? idOf(result.blank) : result?.error ?? "-";
           });
-          const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
+          const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "reads")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
           return kept(layer, key, () => {
             const value = evaluate(node, length, (name, kind) => {
-              if (kind === "date") return new Float64Array(times);
+              if (kind === "date") return timelineOf(times);
               if (kind === "series") {
                 const input = bySeries.get(name);
                 if (!input?.values) throw new Error(`${name}: ${input?.error ? quiet(input.error) : "no data"}`);
@@ -16142,7 +16234,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (result?.blank) return result.blank;
               if (!result?.values) throw result?.error ? failing(`${name} has no data (${quiet(result.detail ?? result.error)})`, `${name} has no data`) : new Error(`${name} has no data`);
               return result.values;
-            }, doc.index, false, memo);
+            }, doc.index);
             if (!length) throw new Error("Name a series, or add one, to give the formula a timeline");
             const values = typeof value === "number" ? new Float64Array(length).fill(value) : value;
             const unit = unitOfNode(node, (name, kind) => {
@@ -22256,7 +22348,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           heatDays.set(want.key, asked);
           heatAsking++;
           const weight = /** @type {any} */ (want.weight || undefined), agg = /** @type {any} */ (want.agg);
-          (want.day === "latest" ? client.getUrpdLatest(/** @type {any} */ (want.cohort), agg, weight, { memCache: false }) : client.getUrpd(/** @type {any} */ (want.cohort), want.day, agg, weight, { memCache: false }))
+          (want.day === "latest" ? client.getUrpdLatest(/** @type {any} */ (want.cohort), agg, weight) : client.getUrpd(/** @type {any} */ (want.cohort), want.day, agg, weight))
             .then((urpd) => {
               if (heatDays.get(want.key) !== asked) return;
               const buckets = /** @type {any} */ (urpd).buckets, n = buckets.price.length;
@@ -23807,8 +23899,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** @param {Chart} doc A copy, so edits made meanwhile don't mix in. @returns {Promise<Thumb | null>} null when a fetch failed */
       async function drawThumb(doc) {
-        const index = await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
-        const data = await resolve({ ...doc, index });
+        // (The open chart's own data, or any chart's all in memory: asked for once, not again at another interval. Not a finer
+        // interval's: only part of its history loads.)
+        const held = !FINE.has(doc.index) && (doc.id === chart?.id || seriesIn(doc).every((name) => loads.has(`${name}@${doc.index}`)));
+        const index = held ? doc.index : await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
+        // (Its own frame, the open chart's not changed by a copy of it: the arrays are shared all the same, see parts.)
+        const data = await resolve({ ...doc, index, ...(held ? { id: `${doc.id}:mark` } : {}) });
         if (retryFailed(data, index)) return null;
         const bubbles = await bubblesAt(doc, data, index);
         if (!bubbles) return null;
@@ -31866,7 +31962,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const used = chart.layers.find((item) => item.letter === letter);
           return used ? `${letter} (${labelOf(used)})` : letter;
         }),
-        ...refsOf(node, "series"),
+        ...refsOf(node, "written"),
         // (Each point's date and year: what the formula reads too.)
         ...[...VALUES].filter((name) => JSON.stringify(node).includes(`"k":"${name}"`)),
       ];
@@ -34327,6 +34423,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function windowError(/** @type {any} */ node) {
         if (!node || typeof node !== "object") return "";
         if (node.k === "call") {
+          if (isBandSum(node)) {
+            try {
+              return bandSum(node) && "";
+            } catch (error) {
+              return /** @type {Error} */ (error).message;
+            }
+          }
           const [arity, signature, , run] = FUNCTIONS[node.f] ?? [];
           const span = arity >= 2 && run !== null && node.args.length === arity ? node.args[arity - 1] : null, p = node.f === "percentile" ? node.args[1] : null;
           // (A number written, its sign as written: -(-30d) is 30d. Anything else is computing's to say.)
