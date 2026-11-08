@@ -1,4 +1,4 @@
-use std::{iter, ops::Range};
+use std::{iter, ops::Range, slice};
 
 use bitcoin::{Block, Transaction, consensus::deserialize, hashes::Hash, secp256k1::PublicKey};
 use bitview_plugin_indexer::Indexer;
@@ -10,7 +10,7 @@ use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{
     filters::{filter, new_outputs, spent_outputs},
-    tweak::{Prevout, Tweaker, input_key, smallest_outpoint},
+    tweak::{Prevout, Tweaker, input_key, is_on_curve, smallest_outpoint},
 };
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
@@ -26,12 +26,16 @@ pub const DUST_FLOOR: Sats = Sats::new(600);
 pub struct Eligible {
     pub tx_index: TxIndex,
     pub tweak: Tweak,
+    /// Whether one of its Taproot outputs' keys is off the curve.
+    has_off_curve_key: bool,
 }
 
 /// A block's scanning data.
 pub struct BlockScan {
     /// Its eligible transactions, in block order.
     pub eligible: Vec<Eligible>,
+    /// Whether one of its eligible transactions has a Taproot output key off the curve.
+    pub has_off_curve_key: bool,
     /// Its new Taproot output keys' filter.
     pub new_outputs_filter: Vec<u8>,
     /// Its spends of Taproot outputs' filter.
@@ -44,6 +48,7 @@ impl BlockScan {
     fn before_activation() -> Self {
         Self {
             eligible: Vec::new(),
+            has_off_curve_key: false,
             new_outputs_filter: filter::<&[u8]>(&[0; 32], []),
             spent_outputs_filter: filter::<&[u8]>(&[0; 32], []),
         }
@@ -251,19 +256,27 @@ impl Scanner<'_> {
         let eligible = candidates
             .into_par_iter()
             .map(|tx| {
-                Ok(self
-                    .tweak(tx, &parsed.txdata[tx - txs.start])?
-                    .map(|tweak| Eligible {
-                        tx_index: TxIndex::from(tx),
-                        tweak,
-                    }))
+                let transaction = &parsed.txdata[tx - txs.start];
+                Ok(self.tweak(tx, transaction)?.map(|tweak| Eligible {
+                    tx_index: TxIndex::from(tx),
+                    tweak,
+                    has_off_curve_key: new_outputs(
+                        slice::from_ref(transaction),
+                        &columns.output_types[columns.outputs(tx)],
+                    )
+                    .any(|key| !is_on_curve(key)),
+                }))
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
         let block_hash = parsed.block_hash().to_byte_array();
         let output_types = &columns.output_types[columns.block_outputs(block)];
         let input_types = &columns.input_types[columns.block_inputs(block)];
         Ok(BlockScan {
-            eligible: eligible.into_iter().flatten().collect(),
+            has_off_curve_key: eligible.iter().any(|tx| tx.has_off_curve_key),
+            eligible,
             new_outputs_filter: filter(&block_hash, new_outputs(&parsed.txdata, output_types)),
             spent_outputs_filter: filter(
                 &block_hash,

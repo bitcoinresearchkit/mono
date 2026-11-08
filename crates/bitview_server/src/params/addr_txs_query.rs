@@ -11,6 +11,7 @@ pub struct AddressTxsQuery {
     /// cursor skips the mempool). One that is neither answers 422.
     pub after_txid: Option<Txid>,
     /// Transactions to return, at most 50 (the default); larger values return 50.
+    #[serde(default, deserialize_with = "bitview_types::de_plain")]
     pub max_txs: Option<usize>,
 }
 
@@ -19,6 +20,7 @@ pub struct AddressTxsQuery {
 #[serde(deny_unknown_fields)]
 pub struct AddressChainTxsQuery {
     /// Transactions to return, at most 25 (the default); larger values return 25.
+    #[serde(default, deserialize_with = "bitview_types::de_plain")]
     pub max_txs: Option<usize>,
 }
 
@@ -27,6 +29,7 @@ pub struct AddressChainTxsQuery {
 #[serde(deny_unknown_fields)]
 pub struct AddressMempoolTxsQuery {
     /// Transactions to return, at most 50 (the default); larger values return 50.
+    #[serde(default, deserialize_with = "bitview_types::de_plain")]
     pub max_txs: Option<usize>,
 }
 

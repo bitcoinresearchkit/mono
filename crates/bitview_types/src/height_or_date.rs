@@ -8,6 +8,8 @@ use serde::{
     de::{Error, Visitor},
 };
 
+use crate::deser::plain_number;
+
 /// A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HeightOrDate {
@@ -42,7 +44,7 @@ impl FromStr for HeightOrDate {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(date) = s.parse::<Date>() {
             Ok(Self::Date(date))
-        } else if let Ok(height) = s.parse::<u32>() {
+        } else if let Some(height) = plain_number::<u32>(s) {
             Ok(Self::Height(Height::from(height)))
         } else {
             Err(format!(

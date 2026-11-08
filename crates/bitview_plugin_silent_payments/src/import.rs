@@ -13,6 +13,7 @@ impl Vecs {
             tx_index: PcoVec::import(&db, "tweak_tx_index", version)?,
             tweak_parity: PcoVec::import(&db, "tweak_parity", version)?,
             tweak_x: BytesVec::import(&db, "tweak_x", version)?,
+            has_off_curve_key: PcoVec::import(&db, "has_off_curve_key", version)?,
             end_new_outputs_filter_index: PcoVec::import(
                 &db,
                 "end_new_outputs_filter_index",

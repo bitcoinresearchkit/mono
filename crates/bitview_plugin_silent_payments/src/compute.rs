@@ -64,6 +64,8 @@ impl ComputePlugin for Vecs {
                 for byte in block.spent_outputs_filter {
                     self.spent_outputs_filter.push(byte);
                 }
+                self.has_off_curve_key
+                    .push(u8::from(block.has_off_curve_key));
                 self.end_tweak_index
                     .push(TweakIndex::from(self.tx_index.len()));
                 self.end_new_outputs_filter_index
@@ -78,17 +80,26 @@ impl ComputePlugin for Vecs {
 }
 
 impl Vecs {
-    /// Validates every column against `version`, then keeps the blocks below `max_from` (or all
-    /// stored), their rows and their filters' bytes. Returns the first block to scan.
+    /// Validates every column against `version`, then keeps the blocks below `max_from` that every
+    /// per-block column holds (a hard stop can land between their writes), their rows and their
+    /// filters' bytes. Returns the first block to scan.
     fn prepare(&mut self, version: Version, max_from: usize, exit: &Exit) -> Result<usize> {
         let _lock = exit.lock();
         for vec in self.stored_mut() {
             vec.any_validate_computed_version_or_reset(version)?;
         }
-        let height = max_from.min(self.end_tweak_index.len());
+        let height = [
+            self.has_off_curve_key.len(),
+            self.end_tweak_index.len(),
+            self.end_new_outputs_filter_index.len(),
+            self.end_spent_outputs_filter_index.len(),
+        ]
+        .into_iter()
+        .fold(max_from, usize::min);
         let rows = end_before(&self.end_tweak_index, height)?;
         let new_outputs = end_before(&self.end_new_outputs_filter_index, height)?;
         let spent_outputs = end_before(&self.end_spent_outputs_filter_index, height)?;
+        self.has_off_curve_key.truncate_if_needed_at(height)?;
         self.end_tweak_index.truncate_if_needed_at(height)?;
         self.end_new_outputs_filter_index
             .truncate_if_needed_at(height)?;

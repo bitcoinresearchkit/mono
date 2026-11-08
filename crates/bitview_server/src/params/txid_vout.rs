@@ -7,5 +7,6 @@ use brk_types::{Txid, Vout};
 pub struct TxidVout {
     pub txid: Txid,
     /// Output index
+    #[serde(deserialize_with = "bitview_types::de_plain")]
     pub vout: Vout,
 }

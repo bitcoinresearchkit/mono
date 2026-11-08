@@ -10,7 +10,10 @@ pub struct SearchQuery {
     #[schemars(example = &"realized price")]
     pub q: String,
     /// Maximum number of results, 1 to 1,000 (default: 100)
-    #[serde(default = "SearchQuery::default_limit")]
+    #[serde(
+        default = "SearchQuery::default_limit",
+        deserialize_with = "crate::de_plain"
+    )]
     #[schemars(example = 10, example = 100)]
     pub limit: PageSize,
 }

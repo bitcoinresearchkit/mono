@@ -16,7 +16,7 @@ const MAX_DUST_LIMIT: Sats = Sats::_10K;
 pub struct DustLimitQuery {
     /// Least value in sats of a Taproot output for its transaction to be listed: from 600, the
     /// least value held, to 10,000.
-    #[serde(rename = "dustLimit")]
+    #[serde(rename = "dustLimit", deserialize_with = "bitview_types::de_plain")]
     dust_limit: u64,
 }
 
@@ -37,6 +37,7 @@ impl DustLimitQuery {
 #[derive(Deserialize, JsonSchema)]
 pub struct BlindbitFilterParam {
     pub kind: BlindbitFilterKind,
+    #[serde(deserialize_with = "bitview_types::de_plain")]
     pub height: Height,
 }
 

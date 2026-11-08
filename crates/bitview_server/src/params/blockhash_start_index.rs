@@ -9,5 +9,6 @@ pub struct BlockHashStartIndex {
 
     /// Starting transaction index within the block (0-based)
     #[schemars(example = 0)]
+    #[serde(deserialize_with = "bitview_types::de_plain")]
     pub start_index: BlockTxIndex,
 }

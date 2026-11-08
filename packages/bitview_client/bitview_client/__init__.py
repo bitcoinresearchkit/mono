@@ -6790,7 +6790,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_utxos(self, height: Height) -> List[BlindbitUtxo]:
         """Taproot outputs.
 
-        Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).
+        Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.
 
         Endpoint: `GET /blindbit/mainnet/utxos/{height}`"""
         return self.get_json(f'/blindbit/mainnet/utxos/{_segment(height)}')

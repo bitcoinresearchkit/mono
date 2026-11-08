@@ -80,6 +80,12 @@ fn compressed_key(bytes: &[u8]) -> Option<PublicKey> {
     (bytes.len() == 33).then(|| PublicKey::from_slice(bytes).ok()).flatten()
 }
 
+/// Whether a Taproot output's x-only key is a point on the curve. One that isn't can't be spent or
+/// be a silent payment, and spdk refuses a whole block's outputs over it.
+pub fn is_on_curve(key: &[u8]) -> bool {
+    XOnlyPublicKey::from_slice(key).is_ok()
+}
+
 /// The smallest outpoint the inputs spend, by its 36-byte serialization: txid, then vout
 /// little-endian.
 pub fn smallest_outpoint<'a>(inputs: impl IntoIterator<Item = &'a TxIn>) -> Option<[u8; 36]> {

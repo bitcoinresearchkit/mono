@@ -15,7 +15,7 @@ use crate::{
     compute::batches,
     filters::{filter, new_outputs, spent_outputs},
     scan::is_candidate,
-    tweak::{Prevout, Tweaker, input_key, smallest_outpoint},
+    tweak::{Prevout, Tweaker, input_key, is_on_curve, smallest_outpoint},
 };
 
 struct Input {
@@ -190,6 +190,15 @@ fn spent_output_hashes() {
     let input_types = [OutputType::UnknownScript, OutputType::P2TR, OutputType::P2WPKH];
     let hashes = spent_outputs(&block_hash, &txdata, &input_types).collect::<Vec<_>>();
     assert_eq!(hashes, [bytes("6e5de5825186ae76").as_slice()]);
+}
+
+/// BIP340's invalid key vectors (one off the curve, one past the field) are refused, secp256k1's
+/// generator isn't.
+#[test]
+fn output_keys_on_the_curve() {
+    assert!(is_on_curve(&bytes("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")));
+    assert!(!is_on_curve(&bytes("eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34")));
+    assert!(!is_on_curve(&bytes("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc30")));
 }
 
 /// Bitcoin Core's BIP158 vectors (`src/test/data/blockfilters.json`): block hash, block, the

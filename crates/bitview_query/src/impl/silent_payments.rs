@@ -4,7 +4,7 @@
 use std::ops::Range;
 
 use bitcoin::{Block, consensus::deserialize, hashes::Hash, hex::DisplayHex};
-use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, spent_outputs};
+use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
 use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Tweak, TxIndex, Vout};
@@ -20,21 +20,21 @@ pub struct BlindbitBlock {
     pin: ReadPin,
 }
 
-/// What a block's cut-through answers depend on: how far its Taproot outputs are spent.
+/// What a cut-through answer depends on: how far the outputs it's about are spent.
 pub struct BlindbitSpends {
     key: String,
     is_final: bool,
 }
 
 impl BlindbitSpends {
-    /// Names the answers' state exactly: the hash of the block holding the latest spend of one of
-    /// this block's Taproot outputs, which commits to every earlier spend too.
+    /// Names the answer's state exactly: the hash of the block holding the latest spend of one of
+    /// those outputs, which commits to every earlier spend too.
     pub fn key(&self) -> &str {
         &self.key
     }
 
-    /// Whether the answers can never change again: the block and its last spend are below the
-    /// reorg window, and no output it lists is left to spend.
+    /// Whether the answer can never change again: the block and its last spend are below the
+    /// reorg window, and none of those outputs is left to spend.
     pub fn is_final(&self) -> bool {
         self.is_final
     }
@@ -129,6 +129,7 @@ impl Query {
     fn blindbit_computed(&self) -> usize {
         let silent_payments = self.plugins().silent_payments;
         [
+            silent_payments.has_off_curve_key.len(),
             silent_payments.end_tweak_index.len(),
             silent_payments.end_new_outputs_filter_index.len(),
             silent_payments.end_spent_outputs_filter_index.len(),
@@ -160,60 +161,47 @@ impl Query {
         Ok(BlindbitBlock { height, hash, pin })
     }
 
-    /// How far the block's Taproot outputs are spent as of its publication: a later spend always
-    /// has a higher input index, so the highest finds the block that names the state.
-    pub fn blindbit_spends(&self, block: &BlindbitBlock) -> Result<BlindbitSpends> {
-        if self.blindbit_rows(block)?.is_empty() {
+    /// How far the Taproot outputs an answer is about, those of the block's eligible transactions
+    /// holding at least `least`, are spent as of its publication: a later spend always has a
+    /// higher input index, so the highest finds the block that names the state.
+    pub fn blindbit_spends(&self, block: &BlindbitBlock, least: Sats) -> Result<BlindbitSpends> {
+        let rows = self.blindbit_rows(block)?;
+        if rows.is_empty() {
             return Ok(BlindbitSpends {
                 key: "none".into(),
                 is_final: block.is_settled(),
             });
         }
-        let vecs = self.indexer().vecs();
-        let lengths = block.pin.lengths();
-        let txouts = first_span(
-            &vecs.outputs.first_txout_index,
-            block.height.to_usize(),
-            lengths,
-            lengths.txout_index.to_usize(),
-        )?;
-        let types = vecs
-            .outputs
-            .output_type
-            .collect_range_at(txouts.start, txouts.end);
-        let spends = self
-            .plugins()
-            .outputs
-            .spent
-            .spending_txin_index
-            .collect_range_at(txouts.start, txouts.end);
-        if types.len() != txouts.len() || spends.len() != txouts.len() {
-            return Err(Error::Internal("Output spends missing"));
-        }
+        let tx_indexes = self.blindbit_tx_indexes(rows)?;
+        let outputs = self.blindbit_outputs(block)?;
+        let spends = self.blindbit_output_spends(block, &outputs)?;
         let (mut latest, mut any_unspent) = (None, false);
-        for (output_type, spend) in types.into_iter().zip(spends) {
-            if output_type != OutputType::P2TR {
-                continue;
-            }
-            let spend = TxInIndex::from(spend);
-            if spend.is_unspent() || spend >= lengths.txin_index {
-                any_unspent = true;
-            } else {
-                latest = latest.max(Some(spend));
+        for tx in tx_indexes {
+            for (_, output) in outputs.taproot(tx) {
+                if outputs.values[output] < least {
+                    continue;
+                }
+                match spends[output] {
+                    Some(spend) => latest = latest.max(Some(spend)),
+                    None => any_unspent = true,
+                }
             }
         }
         let Some(latest) = latest else {
             return Ok(BlindbitSpends {
                 key: "none".into(),
-                is_final: false,
+                is_final: block.is_settled() && !any_unspent,
             });
         };
+        let vecs = self.indexer().vecs();
         let spending_tx = vecs.inputs.tx_index.collect_one(latest).data()?;
         let tx_heights = self.plugins().mappings.tx_heights.load();
         let spent_at: Height = tx_heights.cursor().get(spending_tx).data()?;
         Ok(BlindbitSpends {
             key: vecs.blocks.blockhash.collect_one(spent_at).data()?.to_string(),
-            is_final: block.is_settled() && !any_unspent && lengths.is_settled(spent_at),
+            is_final: block.is_settled()
+                && !any_unspent
+                && block.pin.lengths().is_settled(spent_at),
         })
     }
 
@@ -246,11 +234,11 @@ impl Query {
             return Ok(Vec::new());
         }
         let outputs = self.blindbit_outputs(block)?;
-        let unspent = self.blindbit_unspent(block, &outputs)?;
+        let spends = self.blindbit_output_spends(block, &outputs)?;
         self.blindbit_tweaks_where(rows, |tx| {
             outputs
                 .taproot(tx)
-                .any(|(_, output)| unspent[output] && outputs.values[output] >= dust_limit)
+                .any(|(_, output)| spends[output].is_none() && outputs.values[output] >= dust_limit)
         })
     }
 
@@ -326,14 +314,21 @@ impl Query {
     }
 
     /// The Taproot outputs of the block's eligible transactions, spent or not as of the block's
-    /// publication.
+    /// publication, but those whose key is off the curve.
     pub fn blindbit_utxos(&self, block: &BlindbitBlock) -> Result<Vec<BlindbitUtxo>> {
         let tx_indexes = self.blindbit_tx_indexes(self.blindbit_rows(block)?)?;
         if tx_indexes.is_empty() {
             return Ok(Vec::new());
         }
         let outputs = self.blindbit_outputs(block)?;
-        let unspent = self.blindbit_unspent(block, &outputs)?;
+        let spends = self.blindbit_output_spends(block, &outputs)?;
+        let check_keys = self
+            .plugins()
+            .silent_payments
+            .has_off_curve_key
+            .collect_one(block.height)
+            .data()?
+            != 0;
         let vecs = self.indexer().vecs();
         let timestamp = vecs.blocks.timestamp.collect_one(block.height).data()?;
         let txids = vecs
@@ -357,6 +352,9 @@ impl Query {
                     .bytes
                     .collect_one_at(usize::from(type_indexes[output]))
                     .data()?;
+                if check_keys && !is_on_curve(&key[..]) {
+                    continue;
+                }
                 utxos.push(BlindbitUtxo {
                     txid,
                     vout,
@@ -365,7 +363,7 @@ impl Query {
                     block_height: block.height,
                     block_hash: block.hash,
                     timestamp,
-                    spent: !unspent[output],
+                    spent: spends[output].is_some(),
                 });
             }
         }
@@ -467,12 +465,12 @@ impl Query {
         })
     }
 
-    /// Whether each of the block's outputs is unspent as of the block's publication.
-    fn blindbit_unspent(
+    /// The input spending each of the block's outputs as of the block's publication, if any.
+    fn blindbit_output_spends(
         &self,
         block: &BlindbitBlock,
         outputs: &BlockOutputs,
-    ) -> Result<Vec<bool>> {
+    ) -> Result<Vec<Option<TxInIndex>>> {
         let spends = self
             .plugins()
             .outputs
@@ -485,10 +483,7 @@ impl Query {
         let published = block.pin.lengths().txin_index;
         Ok(spends
             .into_iter()
-            .map(|spend| {
-                let spend = TxInIndex::from(spend);
-                spend.is_unspent() || spend >= published
-            })
+            .map(|spend| Some(TxInIndex::from(spend)).filter(|s| !s.is_unspent() && *s < published))
             .collect())
     }
 }

@@ -3,7 +3,10 @@
 use serde::Deserializer;
 
 use deser::de_unquote_usize;
+pub use deser::de_plain;
 
+#[cfg(test)]
+mod tests;
 #[macro_use]
 mod with_range_format;
 mod addr_chain_stats;

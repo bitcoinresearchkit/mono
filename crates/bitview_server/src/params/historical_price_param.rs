@@ -9,6 +9,7 @@ use brk_types::Timestamp;
 #[serde(deny_unknown_fields)]
 pub struct HistoricalPriceParam {
     /// UNIX timestamp: the latest close at or before it
+    #[serde(default, deserialize_with = "bitview_types::de_plain")]
     pub timestamp: Option<Timestamp>,
     /// Quote currency: USD, the only one served
     #[allow(dead_code, reason = "deserializing it is the check")]

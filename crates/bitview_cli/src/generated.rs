@@ -211,7 +211,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/utxos/{height}",
         summary: "Taproot outputs",
-        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).",
+        description: "Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],

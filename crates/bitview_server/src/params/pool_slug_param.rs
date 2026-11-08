@@ -31,5 +31,6 @@ pub struct PoolSlugParam {
 pub struct PoolSlugAndHeightParam {
     #[schemars(with = "PoolSlug")]
     pub slug: SlugText,
+    #[serde(deserialize_with = "bitview_types::de_plain")]
     pub height: Height,
 }

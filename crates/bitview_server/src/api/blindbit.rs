@@ -17,7 +17,7 @@ use bitview_types::{
     BlindbitBlockHash, BlindbitBlockHeight, BlindbitFilter, BlindbitInfo, BlindbitSpentIndex,
     BlindbitUtxo,
 };
-use brk_types::{Height, Tweak, Txid};
+use brk_types::{Height, Sats, Tweak, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -40,8 +40,9 @@ const PREFIX: &str = "/blindbit/mainnet";
 enum Lifetime {
     /// As long as the block: it changes only if a reorg replaces the block.
     Block,
-    /// Until one of the block's Taproot outputs is spent: it says what's spent as of the tip.
-    Spends,
+    /// Until one of the Taproot outputs it's about is spent, those of the block's eligible
+    /// transactions holding at least this: it says what's spent as of the tip.
+    Spends(Sats),
 }
 
 impl AppState {
@@ -68,8 +69,8 @@ impl AppState {
                     let params = match lifetime {
                         Lifetime::Block => CacheParams::revalidate(tag)
                             .stable_if(block.is_settled(), cdn_cache_mode),
-                        Lifetime::Spends => {
-                            let spends = q.blindbit_spends(&block)?;
+                        Lifetime::Spends(least) => {
+                            let spends = q.blindbit_spends(&block, least)?;
                             CacheParams::live(format!("{tag}-{}", spends.key()))
                                 .stable_if(spends.is_final(), cdn_cache_mode)
                         }
@@ -243,7 +244,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             format!("tweaks-{dust_limit}"),
-                            Lifetime::Spends,
+                            Lifetime::Spends(dust_limit),
                             move |q, block| q.blindbit_tweaks(block, dust_limit),
                         )
                         .await
@@ -331,7 +332,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             "utxos".into(),
-                            Lifetime::Spends,
+                            Lifetime::Spends(Sats::ZERO),
                             |q, block| q.blindbit_utxos(block),
                         )
                         .await
@@ -341,7 +342,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Taproot outputs")
-                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs).")
+                        .description("Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.")
                         .json_response::<Vec<BlindbitUtxo>>()
                         .not_modified()
                         .not_found()
