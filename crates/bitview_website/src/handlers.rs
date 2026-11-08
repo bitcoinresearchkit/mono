@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, path::Path};
 
 use axum::{
     body::Body,
@@ -22,10 +22,13 @@ pub async fn file_handler(
     uri: Uri,
     ExtractPath(path): ExtractPath<String>,
 ) -> Result<Response<Body>, Error> {
+    if !is_one_address(uri.path()) {
+        return Err(not_found());
+    }
     if let Some(to) = moved(uri.path(), uri.query()) {
         return Ok(Redirect::permanent(&to).into_response());
     }
-    serve(website, path, headers).await
+    serve(website, path, uri, headers).await
 }
 
 /// Where a request under a moved page's old folder goes now: the same place under the new one, its query kept.
@@ -41,8 +44,9 @@ pub(crate) fn moved(path: &str, query: Option<&str>) -> Option<String> {
 pub async fn index_handler(
     State(website): State<Website>,
     headers: HeaderMap,
+    uri: Uri,
 ) -> Result<Response<Body>, Error> {
-    serve(website, String::new(), headers).await
+    serve(website, String::new(), uri, headers).await
 }
 
 /// A file's version, its content hash.
@@ -55,10 +59,11 @@ static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
 async fn serve(
     website: Website,
     path: String,
+    uri: Uri,
     headers: HeaderMap,
 ) -> Result<Response<Body>, Error> {
     if website.filesystem_path().is_none() {
-        return respond(&website, &path, &headers);
+        return respond(&website, &path, &uri, &headers);
     }
     let permit = FILESYSTEM_READS
         .acquire()
@@ -66,7 +71,7 @@ async fn serve(
         .map_err(|e| Error::internal(e.to_string()))?;
     spawn_blocking(move || {
         let _permit = permit;
-        respond(&website, &path, &headers)
+        respond(&website, &path, &uri, &headers)
     })
     .await
     .map_err(|e| Error::internal(e.to_string()))?
@@ -75,15 +80,27 @@ async fn serve(
 fn respond(
     website: &Website,
     path: &str,
+    uri: &Uri,
     request_headers: &HeaderMap,
 ) -> Result<Response<Body>, Error> {
-    let path = sanitize(path);
     let File {
         path: file,
         contents,
         hash: file_hash,
         content_type,
-    } = website.get_file(&path)?;
+    } = website.get_file(path)?;
+    let has_slash = path.ends_with('/');
+    // A folder's page is at its address with the slash, the links' and the sitemap's.
+    if !path.is_empty() && !has_slash && file.ends_with(Path::new(path).join("index.html")) {
+        let query = uri.query().map(|query| format!("?{query}")).unwrap_or_default();
+        return Ok(Redirect::permanent(&format!("{}/{query}", uri.path())).into_response());
+    }
+    // A slash after a file's name, or a query for anything but a page, whose script reads it.
+    if (has_slash && file.ends_with(Path::new(path)))
+        || (uri.query().is_some() && content_type != "text/html")
+    {
+        return Err(not_found());
+    }
     // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
     let etag = (!cfg!(debug_assertions))
         .then(|| file_hash.map_or_else(|| Cow::Owned(hash(&contents)), Cow::Borrowed));
@@ -122,10 +139,19 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
     );
 }
 
-/// Sanitize path to prevent directory traversal attacks
-fn sanitize(path: &str) -> String {
-    path.split('/')
-        .filter(|s| !s.is_empty() && *s != "." && *s != "..")
-        .collect::<Vec<_>>()
-        .join("/")
+/// Whether the path as sent is written the one way: no escape, no empty, `.` or `..` segment, which
+/// also keeps a request inside the website, and no `index.html`, as a folder's page is at the
+/// folder's address.
+fn is_one_address(path: &str) -> bool {
+    let path = path.strip_prefix('/').unwrap_or(path);
+    !path.contains('%')
+        && path
+            .strip_suffix('/')
+            .unwrap_or(path)
+            .split('/')
+            .all(|segment| !matches!(segment, "" | "." | ".." | "index.html"))
+}
+
+fn not_found() -> Error {
+    Error::not_found("File not found")
 }

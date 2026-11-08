@@ -1232,7 +1232,6 @@ dependencies = [
  "serde",
  "tokio",
  "tower-http",
- "tower-layer",
  "tracing",
 ]
 

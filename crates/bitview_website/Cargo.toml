@@ -22,6 +22,5 @@ tracing = { workspace = true }
 brk_logger = { workspace = true }
 # The example's server: a multi-thread runtime and its layers.
 tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }
-tower-http = { workspace = true, features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "normalize-path", "timeout", "trace"] }
-tower-layer = { workspace = true }
+tower-http = { workspace = true, features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "timeout", "trace"] }
 

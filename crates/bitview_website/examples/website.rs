@@ -6,7 +6,6 @@ use std::{
 };
 
 use axum::{
-    ServiceExt,
     body::Body,
     http::{Request, Response, StatusCode, Uri},
     middleware::{self, Next},
@@ -17,10 +16,8 @@ use brk_logger::init;
 use tokio::net::TcpListener;
 use tower_http::{
     catch_panic::CatchPanicLayer, classify::ServerErrorsFailureClass,
-    compression::CompressionLayer, cors::CorsLayer, normalize_path::NormalizePathLayer,
-    timeout::TimeoutLayer, trace::TraceLayer,
+    compression::CompressionLayer, cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
-use tower_layer::Layer;
 use tracing::{Span, error, info};
 
 #[tokio::main]
@@ -97,11 +94,5 @@ async fn main() -> Result<()> {
     };
     info!("website server listening on {}", listener.local_addr()?);
 
-    let service = NormalizePathLayer::trim_trailing_slash().layer(app);
-
-    serve(
-        listener,
-        ServiceExt::<Request<Body>>::into_make_service(service),
-    )
-    .await
+    serve(listener, app).await
 }
