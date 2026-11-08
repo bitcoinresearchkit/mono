@@ -19,8 +19,9 @@ use tokio::{
 };
 
 /// How long a write may make no progress. Slow readers keep their connection: any progress starts
-/// this over.
-const SEND_STALL: Duration = Duration::from_secs(30);
+/// this over. Long enough for a lost packet to be sent again, and under a read's 4 s deadline: a
+/// request waiting for the admission a stalled client holds gets it in time.
+const SEND_STALL: Duration = Duration::from_secs(3);
 
 /// Accepts connections whose writes are limited by [`SEND_STALL`].
 pub struct StallLimitListener(pub TcpListener);
