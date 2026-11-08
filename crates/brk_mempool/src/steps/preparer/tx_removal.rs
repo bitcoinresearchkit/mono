@@ -3,10 +3,10 @@
 
 use brk_types::Txid;
 
-/// `Replaced` = a tx added this cycle, one still live, or one a new block confirmed spends one of
-/// its inputs (a replacement inferred from conflicting outpoints; a confirmed conflict is
-/// mempool.space's mined replacement). `by` is the immediate successor. The chain extends if
-/// `by` is itself later replaced. Walk it forward via `TxGraveyard::next_version`.
+/// `Replaced` = a tx added this cycle, or one a new block confirmed, spends one of its inputs. The
+/// replacement is inferred from conflicting outpoints, and a confirmed conflict is mempool.space's
+/// mined replacement. `by` is the immediate successor, and the chain extends if `by` is replaced
+/// later. Walk it forward with `TxGraveyard::next_version`.
 ///
 /// `Mined` = a block since the last cycle confirmed it (until a reorg takes that block off the
 /// chain: then `Vanished`, or `Replaced` by a conflict the new blocks confirmed).

@@ -46,8 +46,10 @@ pub enum AddrTxs {
     Many(Leaves),
 }
 
-/// A sorted set of an address's transactions in shared leaves. A publication sharing the entry
-/// costs a write the leaf it touches, not the set, however busy the address is.
+/// A sorted set of an address's transactions in shared leaves. While a publication shares the
+/// entry, the first write copies the list of leaf pointers and each write the leaf it touches, not
+/// the transactions of the whole set. Leaves aren't merged: below [`SPILL`] / 2 transactions, the
+/// set goes back to the inline vector.
 #[derive(Clone, Default)]
 pub struct Leaves {
     /// Sorted, none empty, each holding what sorts before the next one's first.

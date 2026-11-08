@@ -4,12 +4,12 @@ use std::{
 };
 
 use brk_error::Result;
-use brk_types::{BlockHash, MempoolRecentTx, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{BlockHash, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::FxHashSet;
 use serde::Serializer;
 
 use crate::{
-    PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval, json,
+    JsonBody, PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval, json,
     key::{OutpointKey, TxKey},
     state::Pool,
 };
@@ -202,10 +202,14 @@ impl ReadOnlyState {
             .clone())
     }
 
-    /// Recently observed additions, including transactions that have since left.
-    pub fn recent_txs(&self) -> Result<Vec<MempoolRecentTx>> {
+    /// Recently observed additions, including transactions that have since left, as JSON: encoded
+    /// once per publication.
+    pub fn recent_json(&self) -> Result<JsonBody> {
         let state = self.pool()?;
-        Ok(state.txs.recent().cloned().collect())
+        Ok(state
+            .recent_json
+            .get_or_init(|| json::body(&state.txs.recent().collect::<Vec<_>>()))
+            .clone())
     }
 
     /// Transaction times and an order-sensitive hash of that exact result,

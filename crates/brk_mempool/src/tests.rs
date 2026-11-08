@@ -494,7 +494,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     for (tx, pending) in [(&m, false), (&k, true), (&c, false), (&d, false), (&u, true)] {
         assert_eq!(read.is_pending(&id(tx), &behind).unwrap(), pending);
     }
-    let utxos = read.addr_pending_utxos(&addr, &behind).unwrap();
+    let utxos = read.addr_pending_utxos(&addr, usize::MAX, &behind).unwrap();
     assert_eq!(utxos.created.len(), 2, "k's and u's outputs");
     let mut spends = utxos.spends();
     assert!(spends.spent(&id(&m), Vout::from(0usize)));

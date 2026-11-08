@@ -125,6 +125,29 @@ pub fn fetch(
     }
     let capped = new_txids.len() == MAX_TX_FETCHES_PER_CYCLE;
 
+    // Records restored from a shutdown save, a cap's worth per cycle, against Core's entries: one
+    // Core now holds under another witness is fetched afresh. Only while it is listed (the pool
+    // holds what one listing held), and not a template's (its body is the template's).
+    let checked = mempool.unverified.len().min(MAX_TX_FETCHES_PER_CYCLE);
+    let checking = &mempool.unverified[mempool.unverified.len() - checked..];
+    if !checking.is_empty() {
+        let (entries, _) = client.fetch_new_pool_data(checking, &[])?;
+        let variants: RapidHashSet<Txid> = entries
+            .iter()
+            .filter(|entry| {
+                mempool
+                    .txs
+                    .record(&entry.txid)
+                    .is_some_and(|record| record.entry.wtxid != entry.wtxid)
+            })
+            .map(|entry| entry.txid)
+            .filter(|txid| !block_template.iter().any(|g| g.txid == *txid))
+            .collect();
+        if !variants.is_empty() {
+            new_txids.extend(state.live_txids.iter().filter(|txid| variants.contains(*txid)));
+        }
+    }
+
     let (mut new_entries, mut new_txs) = client.fetch_new_pool_data(&template_txids, &new_txids)?;
     let requested = new_txids;
     let fetched: RapidHashSet<Txid> = new_entries
@@ -183,6 +206,7 @@ pub fn fetch(
 
     Ok(Fetched {
         state,
+        checked,
         new_entries,
         new_txs,
         block_template_txids: template.then_some(block_template_txids),

@@ -48,6 +48,10 @@ impl PendingView {
         self.settled.is_empty()
     }
 
+    pub(crate) fn settled(&self) -> &FxHashSet<TxKey> {
+        &self.settled
+    }
+
     /// Distinguishes views that hide different transactions: zero when nothing is hidden, otherwise
     /// a hash of the reader's tip. A publication has one view per reader tip.
     pub(crate) fn identity(&self) -> u64 {

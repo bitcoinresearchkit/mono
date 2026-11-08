@@ -9,6 +9,8 @@ pub struct Fetched {
     /// Passthrough fields from the batched RPC fetch: the listing (`getrawmempool`), fee floor,
     /// chain tip.
     pub state: MempoolState,
+    /// How many of the newest `State::unverified` records this cycle checked.
+    pub checked: usize,
     /// `MempoolEntryInfo` for newly-observed txids only (existing ones
     /// keep their first-sight entry on the live store).
     pub new_entries: Vec<MempoolEntryInfo>,

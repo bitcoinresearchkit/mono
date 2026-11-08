@@ -35,6 +35,9 @@ pub(crate) struct Pool {
     /// The txid array as JSON, built by the first request (a publication with the same members
     /// shares it too).
     pub txids_json: OnceLock<Arc<[u8]>>,
+    /// The recently added transactions as JSON and its hash, built by the first request (a
+    /// publication with the same contents shares it too).
+    pub recent_json: OnceLock<JsonBody>,
     /// The recent replacement trees (all, then full-RBF only), walked by the first request.
     pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
     /// The recent listings as served, with the reader tip whose chain enriched them: the last
@@ -69,6 +72,9 @@ impl Pool {
         let txids_json = previous
             .filter(|pool| pool.txs.membership_revision() == state.txs.membership_revision())
             .map_or_else(OnceLock::new, |pool| pool.txids_json.clone());
+        let recent_json = previous
+            .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
+            .map_or_else(OnceLock::new, |pool| pool.recent_json.clone());
         // Shared while its mapping is unchanged.
         let outpoint_spends = previous
             .filter(|pool| pool.outpoint_spends.revision() == state.outpoint_spends.revision())
@@ -99,6 +105,7 @@ impl Pool {
             graph,
             info_json,
             txids_json,
+            recent_json,
             recent_trees: Default::default(),
             replacements_json: Default::default(),
             published_at: Instant::now(),
@@ -153,6 +160,7 @@ impl Pool {
             graveyard: self.graveyard.as_ref().clone(),
             upkeep: Upkeep::of(&self.graveyard),
             ancestry: self.ancestry.clone(),
+            unverified: Vec::new(),
             template_only: Vec::new(),
         }
     }

@@ -46,8 +46,9 @@ pub fn prepare(
         })
         .collect();
     let mut removed = classify_removals(&live, &added, confirmed, state);
-    // A pooled txid fetched again is a template's witness variant: its record leaves for the
-    // new body, which takes its place (and first sighting) in the same apply.
+    // A pooled txid fetched again is a witness variant (the template's, or one a restored record's
+    // check found): its record leaves for the new body, which takes its place (and first sighting)
+    // in the same apply.
     removed.extend(
         added
             .iter()

@@ -7,9 +7,9 @@
 //! component is split into the clusters it now forms, each linearized again. A chunk that
 //! doesn't fit waits for the next block, and so does the rest of its component (Core's block
 //! builder skips the cluster); a block closes once 1,000 chunks in a row failed with it within
-//! 4,000 WU of full (Core's `BlockAssembler`). As Core's, a candidate is tested at its
-//! sigop-adjusted weight and the block counts its actual weight. A chunk no block could hold waits
-//! for the last, which takes whatever is left (mempool.space's catch-all, then more than a block);
+//! 4,000 WU of full (Core's `BlockAssembler`). As in Core 32, a candidate is tested at its actual
+//! weight, while feerates use its sigop-adjusted weight. A chunk no block could hold waits for the
+//! last, which takes whatever is left (mempool.space's catch-all, then more than a block);
 //! trailing empty blocks are not made. The budgets are Core's defaults (`-blockreservedweight`,
 //! `-bytespersigop`).
 
@@ -178,7 +178,7 @@ struct Candidate {
     prefix: Weight,
     /// Its members' greatest txid (Core's fallback order compares the bytes): the second.
     max_txid: Txid,
-    /// Actual weight, what a block counts (a candidate is tested at `policy`, as Core's).
+    /// Actual weight: what a block counts, and what a candidate is tested at (Core 32).
     weight: Weight,
     sigops: SigOps,
 }
@@ -186,7 +186,7 @@ struct Candidate {
 impl Candidate {
     /// Whether it fits a block holding `weight` and `sigops` of transactions.
     fn fits(&self, weight: Weight, sigops: SigOps) -> bool {
-        weight + self.policy < MAX_WEIGHT && sigops + self.sigops < MAX_SIGOPS
+        weight + self.weight < MAX_WEIGHT && sigops + self.sigops < MAX_SIGOPS
     }
 }
 

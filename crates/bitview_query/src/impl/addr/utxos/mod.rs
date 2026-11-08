@@ -40,7 +40,7 @@ impl Query {
         let found = self.find_addr_bytes(addr, &pin)?;
         let tip = pin.tip();
         let pending = self.with_pending(mempool.as_deref(), &pin, |mempool, view| {
-            mempool.addr_pending_utxos(addr, view)
+            mempool.addr_pending_utxos(addr, max_utxos, view)
         })?;
         let (outpoints, anchor, token) = match found {
             Some((output_type, type_index)) => {

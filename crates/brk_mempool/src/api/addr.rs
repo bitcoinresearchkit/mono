@@ -8,7 +8,7 @@ use crate::{
     PendingView, PublishedTx, ReadOnlyState, json,
     key::{OutpointKey, TxKey},
     state::Pool,
-    stores::addr_tracker::AddrTx,
+    stores::{addr_tracker::AddrTx, tx_store::TxRecord},
 };
 
 /// An address's pending UTXO changes in one completed publication.
@@ -128,33 +128,47 @@ impl ReadOnlyState {
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(AddressMempoolStats::default());
         };
-        if view.settles_nothing() || entry.txs.iter().all(|tx| view.pending_key(&tx.key)) {
-            return Ok(entry.stats.clone());
+        let mut stats = entry.stats.clone();
+        if view.settles_nothing() {
+            return Ok(stats);
         }
-        // Folded again without what the newer blocks settled.
+        // Take out what the view hides, walking the smaller of the two sets.
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
-        let mut stats = AddressMempoolStats::default();
-        for tx in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
-            let Some(record) = state.txs.record_by_key(&tx.key) else {
-                continue;
-            };
+        let mut take_out = |record: &TxRecord| {
             for prevout in record.tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
                 if pays(prevout) {
-                    stats.add_spend(prevout);
+                    stats.remove_spend(prevout);
                 }
             }
             for txout in record.tx.output.iter().filter(|txout| pays(txout)) {
-                stats.add_funding(txout);
+                stats.remove_funding(txout);
             }
-            stats.tx_count += 1;
+            stats.tx_count -= 1;
+        };
+        if view.settled().len() < entry.txs.len() {
+            view.settled()
+                .iter()
+                .filter_map(|key| state.txs.record_by_key(key))
+                .filter(|record| entry.txs.contains(&AddrTx::from(*record)))
+                .for_each(&mut take_out);
+        } else {
+            entry
+                .txs
+                .iter()
+                .filter(|tx| !view.pending_key(&tx.key))
+                .filter_map(|tx| state.txs.record_by_key(&tx.key))
+                .for_each(&mut take_out);
         }
         Ok(stats)
     }
 
-    /// The address's unspent pending outputs, and what spends its outputs.
+    /// The address's unspent pending outputs, and what spends its outputs. Reading stops once they
+    /// are sure to pass `max`, leaving more than `max` in `created`: pending spends can remove at
+    /// most as many outputs as the address's pending inputs.
     pub fn addr_pending_utxos(
         &self,
         addr: &AddressBytes,
+        max: usize,
         view: &Arc<PendingView>,
     ) -> Result<PendingUtxos> {
         let pool = self.pool_arc()?;
@@ -168,7 +182,11 @@ impl ReadOnlyState {
             return Ok(pending);
         };
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
+        let enough = max.saturating_add(entry.stats.spent_txo_count as usize);
         for at in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
+            if pending.created.len() > enough {
+                break;
+            }
             let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };

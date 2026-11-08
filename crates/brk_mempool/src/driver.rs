@@ -9,7 +9,7 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, TxOut, Txid, Vout};
+use brk_types::{BlockHash, MempoolEntryInfo, TxOut, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::{error, info, warn};
 
@@ -116,14 +116,17 @@ impl Mempool {
         self.withheld = None;
         let published = self.read_only.load();
         let previous = std::mem::take(&mut self.state.upkeep);
+        let unverified = std::mem::take(&mut self.state.unverified);
         // Before the first publication, the graveyard read back, if any: the pool reloads from
         // Core, as after a crash.
         self.state = published.pool.as_ref().map_or_else(
             || State::restored(self.loaded_graveyard.clone(), Vec::new()),
             |pool| pool.restore(),
         );
-        // What awaits a late replacer is the writer's alone, in no publication: kept.
+        // What awaits a late replacer and the unchecked records are the writer's alone, in no
+        // publication: kept.
         self.state.upkeep.keep_awaited(previous);
+        self.state.unverified = unverified;
         self.rebuilder.restore(
             published
                 .pool
@@ -150,6 +153,7 @@ impl Mempool {
             template_only,
             capped,
             requested,
+            checked,
         } = fetcher::fetch(&self.client, &self.state, &self.failing)?;
         // The first load fills the cap every cycle until the pool publishes; after it, a full
         // cycle means a flood of new transactions.
@@ -169,62 +173,11 @@ impl Mempool {
         {
             return Err(Error::StateUpdating);
         }
-        let confirmed = Confirmed::since(&self.client, rpc.tip_hash, self.state.graveyard.confirmed_tip());
-        let diff = preparer::prepare(
-            &rpc.live_txids,
-            new_entries,
-            new_txs,
-            &confirmed,
-            &self.state,
-        );
-        // A panic after this point requires restoring private indexes before reuse. The private
-        // state changes from here: what was withheld no longer is it.
-        self.withheld = None;
-        self.needs_recovery = true;
-        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
-        // An unread block is read again next cycle; one that never reads (pruned since) is let go
-        // after a few, what it confirmed reading as vanished.
-        self.unread_cycles = if confirmed.incomplete {
-            self.unread_cycles + 1
-        } else {
-            0
-        };
-        if self.unread_cycles == 0 || self.unread_cycles >= MAX_UNREAD_CYCLES {
-            if self.unread_cycles > 0 {
-                warn!("mempool: blocks since the last cycle unreadable, let go");
-            }
-            self.unread_cycles = 0;
-            self.state.graveyard.set_confirmed_tip(rpc.tip_hash, &mut self.state.upkeep);
-            self.state.ancestry.follow(rpc.tip_hash, confirmed.path());
-        }
+        self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked);
         self.state.template_only = template_only;
-        // Every listed transaction is loaded (block 0's template-only bodies aren't the pool's).
-        let membership_complete = self.state.contains_all(&rpc.live_txids);
-        let unloaded: RapidHashSet<Txid> = if membership_complete {
-            RapidHashSet::default()
-        } else {
-            rpc.live_txids
-                .iter()
-                .filter(|txid| !self.state.txs.contains(txid))
-                .copied()
-                .collect()
-        };
+        let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
         prevouts::fill(&mut self.state, resolver, &unloaded);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
-        // What was asked for and didn't load counts a failure; once every unloaded one is stuck,
-        // the pool publishes without them.
-        for txid in requested.iter().filter(|txid| unloaded.contains(*txid)) {
-            let failures = self.failing.entry(*txid).or_default();
-            *failures = failures.saturating_add(1);
-            if *failures == STUCK_AFTER {
-                warn!(%txid, "mempool: a listed transaction won't load, published without it");
-            }
-        }
-        self.failing.retain(|txid, _| unloaded.contains(txid));
-        let publishable = membership_complete
-            || unloaded
-                .iter()
-                .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
         self.state.graveyard.end_cycle(&unloaded, &mut self.state.upkeep);
         self.rebuilder.tick(
             &self.state,
@@ -243,6 +196,75 @@ impl Mempool {
             }
         }
         Ok(coherent_tip)
+    }
+
+    /// Applies one observation at `tip` to the private state: what left and arrived, what the
+    /// blocks since the confirmed tip settled, and the restored records `checked` this cycle.
+    fn apply_observation(
+        &mut self,
+        tip: BlockHash,
+        live: &[Txid],
+        new_entries: Vec<MempoolEntryInfo>,
+        new_txs: RapidHashMap<Txid, bitcoin::Transaction>,
+        checked: usize,
+    ) {
+        let confirmed = Confirmed::since(&self.client, tip, self.state.graveyard.confirmed_tip());
+        let diff = preparer::prepare(live, new_entries, new_txs, &confirmed, &self.state);
+        // A panic after this point requires restoring private indexes before reuse. The private
+        // state changes from here: what was withheld no longer is it.
+        self.withheld = None;
+        self.needs_recovery = true;
+        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
+        let unchecked = self.state.unverified.len() - checked;
+        self.state.unverified.truncate(unchecked);
+        // An unread block is read again next cycle; one that never reads (pruned since) is let go
+        // after a few, what it confirmed reading as vanished.
+        self.unread_cycles = if confirmed.incomplete {
+            self.unread_cycles + 1
+        } else {
+            0
+        };
+        if self.unread_cycles == 0 || self.unread_cycles >= MAX_UNREAD_CYCLES {
+            if self.unread_cycles > 0 {
+                warn!("mempool: blocks since the last cycle unreadable, let go");
+            }
+            self.unread_cycles = 0;
+            self.state.graveyard.set_confirmed_tip(tip, &mut self.state.upkeep);
+            self.state.ancestry.follow(tip, confirmed.path());
+        }
+    }
+
+    /// The listed transactions not loaded yet, and whether the pool can publish: every listed one
+    /// is loaded, or every one missing is stuck. Counts a failure for each one `requested` this
+    /// cycle that still didn't load.
+    fn track_unloaded(
+        &mut self,
+        live: &[Txid],
+        requested: &[Txid],
+    ) -> (RapidHashSet<Txid>, bool) {
+        // Block 0's template-only bodies aren't the pool's, so they don't count as loaded.
+        let membership_complete = self.state.contains_all(live);
+        let unloaded: RapidHashSet<Txid> = if membership_complete {
+            RapidHashSet::default()
+        } else {
+            live.iter()
+                .filter(|txid| !self.state.txs.contains(txid))
+                .copied()
+                .collect()
+        };
+        for txid in requested.iter().filter(|txid| unloaded.contains(*txid)) {
+            let failures = self.failing.entry(*txid).or_default();
+            *failures = failures.saturating_add(1);
+            if *failures == STUCK_AFTER {
+                warn!(%txid, "mempool: a listed transaction won't load, published without it");
+            }
+        }
+        self.failing.retain(|txid, _| unloaded.contains(txid));
+        let publishable = membership_complete
+            || unloaded
+                .iter()
+                .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
+        (unloaded, publishable)
     }
 
     /// Saves the last publication's graveyard when it changed since the last save that

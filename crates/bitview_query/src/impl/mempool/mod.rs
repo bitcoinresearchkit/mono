@@ -36,7 +36,7 @@ pub struct MempoolTxids {
 }
 
 impl MempoolTxids {
-    /// The array's order-sensitive validator.
+    /// The array's validator: the pool's membership revision, unique to this process.
     pub fn hash(&self) -> u64 {
         self.hash
     }
@@ -195,10 +195,10 @@ impl Query {
         published_json(self.require_mempool()?.mempool_blocks_json()?)
     }
 
-    /// Serialize recent transactions with their exact content identity.
-    pub fn mempool_recent_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
-        let recent = self.require_mempool()?.recent_txs()?;
-        Ok(serialize_json(&recent))
+    /// The recently added transactions with their exact content identity, built once per
+    /// publication.
+    pub fn mempool_recent_json(&self) -> Result<(Arc<[u8]>, RepresentationId)> {
+        published_json(self.require_mempool()?.recent_json()?)
     }
 
     /// Transaction times and an exact, order-sensitive result hash from one
