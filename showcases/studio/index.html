@@ -12998,7 +12998,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return bandSeries.get(name);
       };
-      const isBandSum = (/** @type {Node} */ node) => node.k === "call" && (node.f === "over" || node.f === "under");
+      const isBandSum = (/** @type {string} */ f) => f === "over" || f === "under";
       /**
        * over(x) or under(x) as the sum it is: x's band and those above it, or those below it (a band without the series, as
        * 0-sat outputs have no supply, adds nothing), added from the far end in: each cutoff is the one beyond it plus a
@@ -13009,10 +13009,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const signature = FUNCTIONS[node.f][1], arg = node.args[0], found = arg.k === "series" ? inBands(arg.v) : undefined;
         if (!found) throw new Error(`${signature}: x is a series of an age, amount, balance, profit or loss band, by its name, like age_1y_to_18m_supply`);
         if (found.path[0] === "costBasis" || found.path.includes("percent")) throw new Error(`${signature}: a price or a percent doesn't add up across bands: sum what it's made of, then divide`);
-        const side = node.f === "over" ? found.bands.slice(found.at).reverse() : found.bands.slice(0, found.at);
-        if (!side.length) throw new Error(`${signature}: this is the lowest band, none is below it`);
-        const names = side.flatMap((other) => ((leaf) => (isLeaf(leaf) ? [leaf.name] : []))(found.path.reduce((leaf, key) => leaf?.[key], other)));
-        return names.length ? names.map((v) => /** @type {Node} */ ({ k: "series", v })).reduce((a, b) => ({ k: "bin", op: "+", a, b })) : { k: "num", v: 0 };
+        const names = (node.f === "over" ? found.bands.slice(found.at).reverse() : found.bands.slice(0, found.at)).flatMap((other) => ((leaf) => (isLeaf(leaf) ? [leaf.name] : []))(found.path.reduce((leaf, key) => leaf?.[key], other)));
+        if (!names.length) throw new Error(`${signature}: no band below this one has this series`);
+        return names.map((v) => /** @type {Node} */ ({ k: "series", v })).reduce((a, b) => ({ k: "bin", op: "+", a, b }));
       }
 
       /** Formulas as parsed, by their text (each edit normalizes every layer: its formula's read once, not again). */
@@ -13101,10 +13100,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Node} node @returns {Set<string>}
        */
       function refsOf(node, kind = "ref", into = new Set()) {
-        if (isBandSum(node) && kind === "written") into.add(`${/** @type {any} */ (node).f}(${/** @type {any} */ (node).args[0].v})`);
-        else if (isBandSum(node) && kind === "reads") {
+        if (node.k === "call" && isBandSum(node.f) && kind === "written") into.add(`${node.f}(${/** @type {{ v: string }} */ (node.args[0]).v})`);
+        else if (node.k === "call" && isBandSum(node.f) && kind === "reads") {
           try {
-            refsOf(bandSum(/** @type {any} */ (node)), "series", into);
+            refsOf(bandSum(node), "series", into);
           } catch {
             // (Not a band's series: computing it says so.)
           }
@@ -13172,7 +13171,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return "number";
           }
           case "call":
-            if (isBandSum(node)) return unitOfNode(bandSum(node), unitOfRef);
+            if (isBandSum(node.f)) return unitOfNode(bandSum(node), unitOfRef);
             if (node.f === "min" || node.f === "max") {
               const a = unitOfNode(node.args[0], unitOfRef), b = unitOfNode(node.args[1], unitOfRef);
               return a && b && a !== b ? "number" : a ?? b;
@@ -13186,11 +13185,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * inputs by identity (see idOf: a series on a timeline is one array, a part another): the same inputs, the same
        * array, never made twice and never out of date (an input that changes is another array, so another key). Its arrays
        * are shared, so they're never written to: what changes one copies it first (see liveCopy). The most recently used.
+       * (Under it, the series on each chart's points, alignedSets; over it, each layer's finished result, frame.computed.)
        * @type {Map<string, Vector | number>}
        */
       const parts = new Map();
-      /** How many `parts` holds (a daily series is about 52 KB). */
+      /** How many `parts` holds (a daily series is about 52 KB). Not at the fine intervals: arrays of up to 96,000 points, made anew as the view moves. */
       const KEPT_PARTS = 500;
+      const keepsParts = (/** @type {boolean} */ inWindow, /** @type {string} */ index) => !inWindow && !FINE.has(index);
       /** The part at `key`, made once. @param {string} key @param {() => Vector | number} make @returns {Vector | number} */
       function part(key, make) {
         if (parts.has(key)) return lastUsed(parts, key, /** @type {Vector | number} */ (parts.get(key)));
@@ -13199,35 +13200,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (parts.size > KEPT_PARTS) parts.delete(/** @type {string} */ (parts.keys().next().value));
         return value;
       }
-      /** An input's place in a key: a series or part by its identity, a number as itself. @param {Vector | number} value */
-      const inputKey = (value) => (typeof value === "number" ? String(value) : `#${idOf(value)}`);
+      /** An input's place in a key: a series or part by its identity, a number as itself (-0 apart: a division tells them apart). @param {Vector | number} value */
+      const inputKey = (value) => (typeof value !== "number" ? `#${idOf(value)}` : Object.is(value, -0) ? "-0" : String(value));
       /** Functions reading more than their arguments (halving cycles' epochs) or how they're written (rebase of a shift): computed each time. */
       const UNSHARED = new Set(["halving", "shift", "rebase"]);
-      /** A function's part as `parts` knows it, "" for one not kept: one reading no series, or that fails (computing it says why). @param {Extract<Node, { k: "call" }>} node @returns {string} */
-      function callKey(node, length, ref, index) {
-        if (UNSHARED.has(node.f)) return "";
-        try {
-          const inputs = node.args.map((arg) => (arg.k === "num" ? JSON.stringify(arg) : inputKey(evaluate(arg, length, ref, index))));
-          return inputs.some((input) => input.startsWith("#")) ? `${node.f}@${index}(${inputs})` : "";
-        } catch {
-          return "";
-        }
-      }
       /**
        * Evaluates to a vector of `length` points, or a scalar; windows (spans of time, in days, where `inWindow`) run as
        * the points of `index`. A part already computed, in this formula or any other, is that one (see parts).
        * @returns {Vector | number}
        */
       function evaluate(node, length, ref, index, inWindow = false) {
-        if (isBandSum(node)) return evaluate(bandSum(/** @type {any} */ (node)), length, ref, index, inWindow);
-        if (node.k === "bin" || node.k === "neg") {
-          // (Each side once, a side that fails failing the whole: a sum of bands is as deep as its bands.)
-          const a = evaluate(node.a, length, ref, index, inWindow), b = node.k === "bin" ? evaluate(node.b, length, ref, index, inWindow) : undefined;
-          const make = () => (node.k === "bin" ? pointwise(node.op, a, /** @type {Vector | number} */ (b)) : typeof a === "number" ? -a : restarted(a.map((v) => -v), a));
-          return inWindow || (typeof a === "number" && typeof b !== "object") ? make() : part(`${node.k === "bin" ? node.op : "neg"}(${inputKey(a)},${b === undefined ? "" : inputKey(b)})`, make);
-        }
-        const key = !inWindow && node.k === "call" ? callKey(node, length, ref, index) : "";
-        return key ? part(key, () => evaluateAnew(node, length, ref, index, inWindow)) : evaluateAnew(node, length, ref, index, inWindow);
+        if (node.k === "call" && isBandSum(node.f)) return evaluate(bandSum(node), length, ref, index, inWindow);
+        if (node.k !== "bin" && node.k !== "neg") return evaluateAnew(node, length, ref, index, inWindow);
+        // (Each side once, a side that fails failing the whole: a sum of bands is as deep as its bands.)
+        const a = evaluate(node.a, length, ref, index, inWindow), b = node.k === "bin" ? evaluate(node.b, length, ref, index, inWindow) : undefined;
+        const make = () => (node.k === "bin" ? pointwise(node.op, a, /** @type {Vector | number} */ (b)) : typeof a === "number" ? -a : restarted(a.map((v) => -v), a));
+        return !keepsParts(inWindow, index) || (typeof a === "number" && typeof b !== "object") ? make() : part(`${node.k === "bin" ? node.op : "neg"}(${inputKey(a)},${b === undefined ? "" : inputKey(b)})`, make);
       }
       /** The four operations a formula is mostly made of, over at least one vector, each its own loop (no call per point: without a JIT, it's most of the cost). @param {string} op @param {Vector | number} a @param {Vector | number} b @returns {Vector} */
       function arithmetic(op, a, b) {
@@ -13287,46 +13275,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               return out;
             }
             const args = node.args.map((arg, i) => sub(arg, spanned ? i === arity - 1 : inWindow));
-            if (node.f === "when") return lift(args[0], args[1], (x, holds) => (holds && Number.isFinite(holds) ? x : NaN));
-            // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
-            if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-            // (A shifted series rebased by period (one period laid over another): a period begun late left out there.)
-            if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]), shifts(node.args[0]));
-            // (A halving cycle or a year alone, from 1× at its start: where it is, or moved to start where another does.)
-            if (node.f === "halving" || node.f === "year") {
-              const cycles = node.f === "halving", [least, says] = PERIODS_TAKEN[node.f];
-              if (FINE.has(index)) throw failing(`${node.f}: from its ${cycles ? "cycle" : "year"}'s first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-              const [n, at] = args.slice(1);
-              if ([n, at ?? least].some((period) => typeof period !== "number" || !Number.isInteger(period) || period < least)) throw new Error(`${signature}: ${says}`);
-              return periodAlone(vec(args[0]), cycles ? vec(ref("halving_epoch", "series")) : yearsOf(vec(ref("date", "date"))), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
-            }
-            // (Where one has none, none: an infinity too, a division by 0.)
-            if (!run) return lift(args[0], args[1], ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max));
-            if (windowed) {
-              // (A usual span, in points at any interval: 14 RSI's, 26 MACD's; its days for what's said.)
-              const days = spanned ? args[arity - 1] : usual ? usual * INTERVAL_DAYS[index] : Infinity, p = args[1];
-              if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-              if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
-              if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
-              const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
-              if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
-              const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
-              // (A growth over all of history, or a span, with nothing to grow from: said so.)
-              if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
-              // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
-              // RSI's stochastic, MACD's signal, reach twice as far.)
-              const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
-              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
-                const written = spanned ? node.args[arity - 1] : null;
-                throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff"].includes(node.f));
+            const compute = () => {
+              if (node.f === "when") return lift(args[0], args[1], (x, holds) => (holds && Number.isFinite(holds) ? x : NaN));
+              // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
+              if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+              // (A shifted series rebased by period (one period laid over another): a period begun late left out there.)
+              if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]), shifts(node.args[0]));
+              // (A halving cycle or a year alone, from 1× at its start: where it is, or moved to start where another does.)
+              if (node.f === "halving" || node.f === "year") {
+                const cycles = node.f === "halving", [least, says] = PERIODS_TAKEN[node.f];
+                if (FINE.has(index)) throw failing(`${node.f}: from its ${cycles ? "cycle" : "year"}'s first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+                const [n, at] = args.slice(1);
+                if ([n, at ?? least].some((period) => typeof period !== "number" || !Number.isInteger(period) || period < least)) throw new Error(`${signature}: ${says}`);
+                return periodAlone(vec(args[0]), cycles ? vec(ref("halving_epoch", "series")) : yearsOf(vec(ref("date", "date"))), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
               }
-              return out;
-            }
-            // (A drawdown is from the highest of all history: on a finer interval, only part of it loads.)
-            if (node.f === "drawdown" && FINE.has(index)) throw failing(`drawdown: from the highest of all history, more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
-            const x = vec(args[0]), out = run(x, 0, 0, false, INTERVAL_DAYS[index]);
-            // (Point by point, a drawdown aside: from the highest so far, past any restart.)
-            return node.f === "drawdown" ? out : restarted(out, x);
+              // (Where one has none, none: an infinity too, a division by 0.)
+              if (!run) return lift(args[0], args[1], ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max));
+              if (windowed) {
+                // (A usual span, in points at any interval: 14 RSI's, 26 MACD's; its days for what's said.)
+                const days = spanned ? args[arity - 1] : usual ? usual * INTERVAL_DAYS[index] : Infinity, p = args[1];
+                if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+                if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
+                if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
+                const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
+                if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
+                const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
+                // (A growth over all of history, or a span, with nothing to grow from: said so.)
+                if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
+                // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
+                // RSI's stochastic, MACD's signal, reach twice as far.)
+                const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
+                if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
+                  const written = spanned ? node.args[arity - 1] : null;
+                  throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff"].includes(node.f));
+                }
+                return out;
+              }
+              // (A drawdown is from the highest of all history: on a finer interval, only part of it loads.)
+              if (node.f === "drawdown" && FINE.has(index)) throw failing(`drawdown: from the highest of all history, more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+              const x = vec(args[0]), out = run(x, 0, 0, false, INTERVAL_DAYS[index]);
+              // (Point by point, a drawdown aside: from the highest so far, past any restart.)
+              return node.f === "drawdown" ? out : restarted(out, x);
+            };
+            return keepsParts(inWindow, index) && !UNSHARED.has(node.f) && args.some((arg) => typeof arg !== "number") ? part(`${node.f}@${index}(${args.map(inputKey)})`, compute) : compute();
           }
         }
       }
@@ -13664,8 +13655,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const keepAsideOpened = (doc) => void (isPreview(doc) && !drafts.has(doc) && (asideDirty.add(doc), save()));
 
+      /** Pools mempool renamed (old slug, new): their key and their series' ids both change, so neither finds the other below. */
+      const POOLS_RENAMED = /** @type {[string, string][]} */ ([["btccom", "cloverpool"]]);
+      const poolSeries = (/** @type {string} */ name) => POOLS_RENAMED.reduce((n, [from, to]) => (n.startsWith(`pool_${from}_`) ? `pool_${to}_${n.slice(from.length + 6)}` : n), name);
+      const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from, to]) => (p.startsWith(`pools.${from}.`) ? `pools.${to}.${p.slice(from.length + 7)}` : p), path);
+      /** A chart saved or linked under a pool's old name, on its new one. @param {Layer} layer */
+      function followPool(layer) {
+        if (layer.series) layer.series = poolSeries(layer.series);
+        if (layer.path) layer.path = poolPath(layer.path);
+        if (layer.formula === undefined) return;
+        const names = new Map([...seriesNamed(layer.formula)].flatMap((name) => (poolSeries(name) === name ? [] : [[name, poolSeries(name)]])));
+        layer.formula = renamed(layer.formula, names);
+        if (layer.paths) layer.paths = Object.fromEntries(Object.entries(layer.paths).map(([name, path]) => [poolSeries(name), poolPath(path)]));
+      }
+
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
+        for (const layer of doc.layers) followPool(layer);
         // A series follows its path: renamed in a newer client, it takes the new name; its path is learned (or
         // relearned) from the catalog once that is indexed.
         for (const layer of doc.layers) {
@@ -16101,7 +16107,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {number[]} */
           const times = [];
           for (let i = 0; i < timeOf.length; i++) if (!Number.isNaN(timeOf[i])) (position[i] = times.length), times.push(timeOf[i]);
-          frame = { id: ++frameCount, datas, lo, times, position, aligned: alignedOn(lo, times), series: new Map(), computed: new Map(), trimmed: null };
+          frame = { id: ++frameCount, datas, lo, times, position, aligned: FINE.has(doc.index) ? new WeakMap() : alignedOn(lo, times), series: new Map(), computed: new Map(), trimmed: null };
           frames.set(frameKey, frame);
           // (By chart: the open one's kept, whatever the previews drawn meanwhile.)
           prune(frames, 8, (key) => Boolean(chart) && key.startsWith(`${chart.id}@`));
@@ -34423,7 +34429,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function windowError(/** @type {any} */ node) {
         if (!node || typeof node !== "object") return "";
         if (node.k === "call") {
-          if (isBandSum(node)) {
+          if (isBandSum(node.f)) {
             try {
               return bandSum(node) && "";
             } catch (error) {

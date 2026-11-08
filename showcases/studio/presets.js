@@ -731,97 +731,99 @@ export function studioPresets(client, facts) {
    * so a flow's month alone (SOPR's week), a change's too, its percent from the sum of the bands' own; no percentiles,
    * prices by dollar or heatmaps, which no sum makes. Prices and ratios from the sums, never from the bands' own.
    * @param {any[]} bands low to high @param {number} at @param {boolean} over
-   * @param {any} [whole] all of them, where it's a cohort: a sum in coins or counts of more bands than there are outside
-   * it, as the whole less those (none of them has the series: the whole itself, as the coins over 1 sat, 0-sat outputs
-   * holding none). Dollars never so: each band's rounded to the cent, a difference of them is off by cents, and where
-   * the true value is 0 (coins from before there was a price) it reads as a negative cap.
    */
-  const cutoffCohort = (bands, at, over, whole) => {
+  const cutoffCohort = (bands, at, over) => {
     const edge = bands[at];
     /** A formula as a series: in another formula, by its name. @param {string} formula @param {any} like @param {string} [format] */
     const made = (formula, like, format) => ({ name: formula.includes(" ") ? `(${formula})` : formula, indexes: () => like.indexes(), formula, ...(format ? { format } : {}) });
     /** The bands' series at `path`, summed. @param {string[]} path */
-    const sum = (...path) => {
-      // (A share divides its own whole, the whole's a greater one: never one less the other.)
-      const exact = !path.includes("share") && !path.includes("usd") && !["capital", "realized", "unrealized"].includes(path[0]);
-      const read = (/** @type {any} */ root) => path.reduce((node, key) => node?.[key], root), band = read(edge), all = exact ? read(whole) : undefined;
-      if (!isLeaf(band)) return undefined;
-      const holding = (/** @type {any[]} */ list) => list.filter((other) => isLeaf(read(other))).length;
-      const outside = holding(over ? bands.slice(0, at) : bands.slice(at)), inside = holding(over ? bands.slice(at) : bands.slice(0, at));
-      if (isLeaf(all) && outside + 1 < inside) return outside ? made(`${all.name} - ${over ? "under" : "over"}(${band.name})`, band) : all;
-      return made(`${over ? "over" : "under"}(${band.name})`, band);
-    };
+    const sum = (...path) => ((band) => (isLeaf(band) ? made(`${over ? "over" : "under"}(${band.name})`, band) : undefined))(path.reduce((node, key) => node?.[key], edge));
     const between = (/** @type {any} */ a, /** @type {string} */ op, /** @type {any} */ b, /** @type {string} */ format = "") => (a && b ? made(`${a.name} ${op} ${b.name}`, a, format) : undefined);
     /** A bitcoin amount's two sums. @param {string[]} path */
     const pair = (...path) => (sum(...path, "btc") ? { btc: sum(...path, "btc"), usd: sum(...path, "usd") } : undefined);
-    /** A flow's month and all time. @param {string[]} path */
-    const flowOf = (...path) => (sum(...path, "sum", "_1m") ? { sum: { _1m: sum(...path, "sum", "_1m") }, cumulative: sum(...path, "cumulative") } : undefined);
+    /** A flow's month and all time, each by `read` (a sum, a pair). @param {(...path: string[]) => any} read @param {string[]} path */
+    const flowOf = (read, ...path) => (read(...path, "sum", "_1m") ? { sum: { _1m: read(...path, "sum", "_1m") }, cumulative: read(...path, "cumulative") } : undefined);
+    /** Two flows' `op`, their month and all time. @param {any} a @param {any} b @param {string} op */
+    const flowsOf = (a, b, op) => (a && b ? { sum: { _1m: between(a.sum._1m, op, b.sum._1m) }, cumulative: between(a.cumulative, op, b.cumulative) } : undefined);
     /** Its change over the month: the bands' own, and as a percent of where it started. @param {any} value @param {string[]} path */
-    const delta = (value, ...path) => ((change) => (change && value ? { absolute: { _1m: change }, percent: { _1m: made(`100 * ${change.name} / (${value.name} - ${change.name})`, change, "percent") } } : undefined))(sum(...path, "delta", "absolute", "_1m"));
+    const delta = (value, ...path) => {
+      const change = sum(...path, "delta", "absolute", "_1m");
+      return change && value ? { absolute: { _1m: change }, percent: { _1m: made(`100 * ${change.name} / (${value.name} - ${change.name})`, change, "percent") } } : undefined;
+    };
     /** Two sides of a whole: each with its share of both. @param {any} high @param {any} low @param {(side: any) => any} [wrap] */
     const sides = (high, low, wrap = (side) => side) => {
       if (!high || !low) return [];
       const share = made(`100 * ${high.name} / (${high.name} + ${low.name})`, high, "percent");
       return [{ ...wrap(high), share }, { ...wrap(low), share: made(`100 - ${share.name}`, low, "percent") }];
     };
-    /** A flow from two: their sums' `op`, its month and all time. @param {any} a @param {any} b @param {string} op */
-    const flowsOf = (a, b, op) => (a && b ? { sum: { _1m: between(a.sum._1m, op, b.sum._1m) }, cumulative: between(a.cumulative, op, b.cumulative) } : undefined);
-    const coins = pair("supply", "total"), cap = sum("capital", "realizedCap"), count = sum("utxos", "count", "value"), funded = sum("funded", "value");
+
+    const funded = sum("funded", "value");
+
+    const coins = pair("supply", "total");
     const [coinsInProfit, coinsInLoss] = sides(sum("supply", "inProfit", "btc"), sum("supply", "inLoss", "btc"), (btc) => ({ btc }));
+    // (What ages out of the under-side is its top band's, a series as it is; into the over-side, the same coins aging in.)
+    const agedOut = over ? undefined : bands[at - 1].supply?.agedOut;
+
+    const cap = sum("capital", "realizedCap");
     const [capitalInProfit, capitalInLoss] = sides(sum("capital", "inProfit"), sum("capital", "inLoss"));
-    const profit = flowOf("realized", "profit"), loss = flowOf("realized", "loss"), destroyed = sum("realized", "valueDestroyed", "sum", "_1w"), net = sum("realized", "netPnl", "sum", "_1w");
-    const days = sum("activity", "coindaysDestroyed", "sum", "_1m"), moved = sum("activity", "transferVolume", "sum", "_1m", "btc");
-    const paper = [sum("unrealized", "profit"), sum("unrealized", "loss")], realizedPrice = between(cap, "/", coins?.btc, "usd");
+
+    const count = sum("utxos", "count", "value");
+
+    const coindays = sum("activity", "coindaysDestroyed", "sum", "_1m"), moved = sum("activity", "transferVolume", "sum", "_1m", "btc");
+
+    const profit = flowOf(sum, "realized", "profit"), loss = flowOf(sum, "realized", "loss");
+    const destroyed = sum("realized", "valueDestroyed", "sum", "_1w"), net = sum("realized", "netPnl", "sum", "_1w");
+
+    const paperProfit = sum("unrealized", "profit"), paperLoss = sum("unrealized", "loss");
+
+    const realizedPrice = between(cap, "/", coins?.btc, "usd");
+
     return {
-      ...(edge.funded && { funded: { value: funded, delta: delta(funded, "funded") } }),
-      ...(edge.supply && { supply: {
-        total: coins, share: sum("supply", "share"), inProfit: coinsInProfit, inLoss: coinsInLoss, delta: delta(coins?.btc, "supply"),
-        // (What ages out of the under-side is its top band's, a series as it is; into the over-side, the same coins aging in.)
-        agedOut: over ? undefined : bands[at - 1].supply?.agedOut,
-      } }),
-      ...(edge.capital && { capital: { realizedCap: cap, share: sum("capital", "share"), inProfit: capitalInProfit, inLoss: capitalInLoss, delta: delta(cap, "capital") } }),
-      ...(edge.utxos && { utxos: { count: { value: count, delta: delta(count, "utxos", "count") }, spentCount: flowOf("utxos", "spentCount") } }),
-      ...(edge.activity && { activity: {
-        transferVolume: pair("activity", "transferVolume", "sum", "_1m") && { sum: { _1m: pair("activity", "transferVolume", "sum", "_1m") }, cumulative: pair("activity", "transferVolume", "cumulative") },
-        coindaysDestroyed: flowOf("activity", "coindaysDestroyed"),
-        dormancy: days && moved ? { _1m: between(days, "/", moved, "number") } : undefined,
-      } }),
-      ...(edge.realized && { realized: {
+      funded: edge.funded && { value: funded, delta: delta(funded, "funded") },
+      supply: edge.supply && { total: coins, share: sum("supply", "share"), inProfit: coinsInProfit, inLoss: coinsInLoss, delta: delta(coins?.btc, "supply"), agedOut },
+      capital: edge.capital && { realizedCap: cap, share: sum("capital", "share"), inProfit: capitalInProfit, inLoss: capitalInLoss, delta: delta(cap, "capital") },
+      utxos: edge.utxos && { count: { value: count, delta: delta(count, "utxos", "count") }, spentCount: flowOf(sum, "utxos", "spentCount") },
+      activity: edge.activity && {
+        transferVolume: flowOf(pair, "activity", "transferVolume"),
+        coindaysDestroyed: flowOf(sum, "activity", "coindaysDestroyed"),
+        dormancy: coindays && moved ? { _1m: between(coindays, "/", moved, "number") } : undefined,
+      },
+      realized: edge.realized && {
         profit, loss, netPnl: flowsOf(profit, loss, "-"), grossPnl: flowsOf(profit, loss, "+"),
-        valueDestroyed: flowOf("realized", "valueDestroyed"),
+        valueDestroyed: flowOf(sum, "realized", "valueDestroyed"),
         // (What came out of the coins spent is what went in and the net: SOPR with no value created stored.)
         sopr: destroyed && net ? { _1w: made(`(${destroyed.name} + ${net.name}) / ${destroyed.name}`, destroyed, "ratio") } : undefined,
-      } }),
-      ...(edge.unrealized && { unrealized: { profit: paper[0], loss: paper[1], netPnl: between(paper[0], "-", paper[1]), nupl: between(sum("unrealized", "netPnl"), "/", coins?.usd, "ratio") } }),
-      ...(edge.costBasis && realizedPrice && { costBasis: { byCoin: { realizedPrice, avg: { mvrv: made(`${t.price.close.name} / ${realizedPrice.name}`, realizedPrice, "ratio") } } } }),
+      },
+      unrealized: edge.unrealized && { profit: paperProfit, loss: paperLoss, netPnl: between(paperProfit, "-", paperLoss), nupl: between(sum("unrealized", "netPnl"), "/", coins?.usd, "ratio") },
+      costBasis: edge.costBasis && realizedPrice && { byCoin: { realizedPrice, avg: { mvrv: made(`${t.price.close.name} / ${realizedPrice.name}`, realizedPrice, "ratio") } } },
     };
   };
   /**
    * One side's cutoffs, a folder of them with their comparisons: `edges`, each the band starting there and how it reads.
-   * @param {[string, any][]} list the bands, low to high @param {[string, string][]} edges @param {boolean} over @param {any} whole see cutoffCohort
+   * @param {[string, any][]} list the bands, low to high @param {[string, string][]} edges @param {boolean} over
    * @param {{ folder: string, by: string, name: (edge: string) => string, who: (edge: string) => string, of?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} o
    * `by`: what its comparisons are by; `of`, `lookOf`: as a family's.
    * @returns {SectionNode}
    */
-  const cutoffFolder = (list, edges, over, whole, o) => {
+  const cutoffFolder = (list, edges, over, o) => {
     const nodes = list.map(([, node]) => node), read = new Map(edges), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const members = edges.map(([key]) => {
       if (at(key) < 0) throw new Error(`No band ${key}`);
-      return /** @type {[string, any]} */ ([key, cutoffCohort(nodes, at(key), over, whole)]);
+      return /** @type {[string, any]} */ ([key, cutoffCohort(nodes, at(key), over)]);
     });
     return section(o.folder, family(members, (key) => ({ name: o.name(/** @type {string} */ (read.get(key))), who: o.who(/** @type {string} */ (read.get(key))) }), { by: o.by, ...(o.of ? { of: o.of } : {}), ...(o.lookOf ? { lookOf: o.lookOf } : {}) }));
   };
   /**
    * The bands' cutoffs, the coins (or addresses) over each edge and those under it: `edges`, low to high (a side of one
    * band alone isn't one: it's that band's own page).
-   * @param {any} bands @param {[string, string][]} edges @param {any} whole see cutoffCohort
+   * @param {any} bands @param {[string, string][]} edges
    * @param {{ noun: string, by: string, name: (side: string, edge: string) => string, who: (side: string, edge: string) => string, of?: string }} o
    * `noun`: what it cuts by, in its folders' names; `by`: in its comparisons'.
    * @returns {SectionNode[]}
    */
-  const cutoffs = (bands, edges, whole, o) => {
+  const cutoffs = (bands, edges, o) => {
     const list = entries(bands), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
-    return /** @type {[string, boolean, string][]} */ ([["Over", true, "minimum"], ["Under", false, "maximum"]]).map(([side, over, end]) => cutoffFolder(list, edges.filter(([key]) => (over ? list.length - at(key) : at(key)) > 1), over, whole, { folder: `${side} ${o.noun}`, by: `${end} ${o.by}`, name: (edge) => o.name(side, edge), who: (edge) => o.who(side, edge), of: o.of }));
+    return /** @type {[string, boolean, string][]} */ ([["Over", true, "minimum"], ["Under", false, "maximum"]]).map(([side, over, end]) => cutoffFolder(list, edges.filter(([key]) => (over ? list.length - at(key) : at(key)) > 1), over, { folder: `${side} ${o.noun}`, by: `${end} ${o.by}`, name: (edge) => o.name(side, edge), who: (edge) => o.who(side, edge), of: o.of }));
   };
   /**
    * A holder group's coins over each profit and over each loss, from its profit bands (the deepest loss the lowest:
@@ -831,7 +833,7 @@ export function studioPresets(client, facts) {
    */
   const profitCutoffs = (key, bands) => {
     const list = entries(bands).reverse(), { who } = holderName(key), of = key === "all" ? undefined : `${who.toLowerCase()}'`;
-    return /** @type {[string, boolean, [string, string][], string][]} */ ([["profit", true, PROFIT_EDGES, "in profit"], ["loss", false, LOSS_EDGES, "in loss"]]).map(([what, over, edges, state]) => cutoffFolder(list, edges, over, t.holders[key], { folder: `Over a ${what}`, by: `minimum ${what}, ${who.toLowerCase()}`, name: (edge) => `Over ${edge} ${state}`, who: (edge) => `${who}, over ${edge} ${state}`, of, lookOf: profitBandLook }));
+    return /** @type {[string, boolean, [string, string][], string][]} */ ([["profit", true, PROFIT_EDGES, "in profit"], ["loss", false, LOSS_EDGES, "in loss"]]).map(([what, over, edges, state]) => cutoffFolder(list, edges, over, { folder: `Over a ${what}`, by: `minimum ${what}, ${who.toLowerCase()}`, name: (edge) => `Over ${edge} ${state}`, who: (edge) => `${who}, over ${edge} ${state}`, of, lookOf: profitBandLook }));
   };
   /** Where the age bands can be cut. (Not 4 and 6 months: those are stored, Holders' age cutoffs.) @type {[string, string][]} */
   const AGE_EDGES = [["_1dTo1w", "1 day"], ["_1wTo1m", "1 week"], ["_1mTo2m", "1 month"], ["_2mTo3m", "2 months"], ["_3mTo4m", "3 months"], ["_5mTo6m", "5 months"], ["_9mTo1y", "9 months"], ["_1yTo18m", "1 year"], ["_18mTo2y", "18 months"], ["_2yTo3y", "2 years"], ["_3yTo4y", "3 years"], ["_4yTo5y", "4 years"], ["_5yTo6y", "5 years"], ["_6yTo7y", "6 years"], ["_7yTo8y", "7 years"], ["_8yTo10y", "8 years"], ["_10yTo12y", "10 years"], ["_12yTo15y", "12 years"], ["over15y", "15 years"]];
@@ -974,7 +976,7 @@ export function studioPresets(client, facts) {
       // (The bands young to old, the oldest with no upper edge: nothing ages out of it, its aged-out series zeros by
       // construction, so no such charts.)
       section("Age bands", family(entries(t.age.ranges).map(([key, c], i, all) => /** @type {[string, any]} */ (i === all.length - 1 ? [key, { ...c, supply: { ...c.supply, agedOut: undefined } }] : [key, c])), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `Coins ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
-      ...cutoffs(t.age.ranges, AGE_EDGES, t.holders.all, { noun: "an age", by: "age", name: (side, edge) => `${side} ${edge} old`, who: (side, edge) => `Coins ${side.toLowerCase()} ${edge} old` }),
+      ...cutoffs(t.age.ranges, AGE_EDGES, { noun: "an age", by: "age", name: (side, edge) => `${side} ${edge} old`, who: (side, edge) => `Coins ${side.toLowerCase()} ${edge} old` }),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
@@ -982,7 +984,7 @@ export function studioPresets(client, facts) {
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "UTXO amount", disjoint: true })),
-      ...cutoffs(t.utxos.amounts, AMOUNT_EDGES, t.holders.all, { noun: "an amount", by: "UTXO amount", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `UTXOs of ${side.toLowerCase()} ${edge}` }),
+      ...cutoffs(t.utxos.amounts, AMOUNT_EDGES, { noun: "an amount", by: "UTXO amount", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `UTXOs of ${side.toLowerCase()} ${edge}` }),
       section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { by: "output type", disjoint: true })),
     ], { icon: "cube" }),
     section("Addresses", [
@@ -994,7 +996,7 @@ export function studioPresets(client, facts) {
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} addresses`))),
       ]),
       section("By balance", family(entries(t.addresses.balances), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `Addresses holding ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "address balance", disjoint: true, of: "all addresses'" })),
-      ...cutoffs(t.addresses.balances, AMOUNT_EDGES, undefined, { noun: "a balance", by: "address balance", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `Addresses holding ${side.toLowerCase()} ${edge}`, of: "all addresses'" }),
+      ...cutoffs(t.addresses.balances, AMOUNT_EDGES, { noun: "a balance", by: "address balance", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `Addresses holding ${side.toLowerCase()} ${edge}`, of: "all addresses'" }),
     ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
