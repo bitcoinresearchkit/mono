@@ -216,7 +216,7 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   Core's BIP158 vectors and BIP352's. Council: 3 rounds, 8.0/8.1 last (`_notes/council-blindbit/log.md`; integration
   tests and dustLimit URL canonicalization declined). `/tweaks` (cut-through) and `/utxos` answer as of the
   tip, tagged by the block of the latest spend of the block's Taproot outputs; stable CDN tier once none can
-  change. `dustLimit` is required and at least 600 (lower is refused). Left: the draft
+  change. `dustLimit` is required, from 600 to 10,000 (anything else is refused). Left: the draft
   index-server spec's `compute-index` only once it settles.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,

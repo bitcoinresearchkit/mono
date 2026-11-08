@@ -144,7 +144,7 @@ const TAGS: [(&str, &str); 13] = [
         Taproot outputs, its eligible transactions' Taproot outputs and its spent index. \
         Precomputed: no curve math per request.\n\n\
         Transactions whose Taproot outputs all hold less than 600 sats are left out \
-        (inscription and rune postage, mostly), so `dustLimit` must be at least 600.",
+        (inscription and rune postage, mostly), so `dustLimit` runs from 600 to 10,000.",
     ),
 ];
 
