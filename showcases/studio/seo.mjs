@@ -1,5 +1,5 @@
 // Beside the page, for those who find Studio: sitemap.xml, every address it has (Home, the presets' page,
-// each section, each preset: the page's own code makes them, read from it), and llms.txt, its guide for assistants (the
+// each section, each preset: made by addresses.js, the page's own), and llms.txt, its guide for assistants (the
 // page's own "about" section, as Markdown, with the presets' sections at their addresses). Made from the presets as a
 // server's chain makes them (the local one's by default), and written again whenever the presets or the guide change:
 //
@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { addressesOf } from "./addresses.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
@@ -31,9 +32,6 @@ const places = new Set(presets.map((preset) => preset.p.join(" › ")));
 const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
-const code = /\/\* addresses:[^*]*\*\/([\s\S]*?)\/\* \/addresses \*\//.exec(html)?.[1];
-if (!code) throw new Error("No addresses in the page: the sitemap is made from them");
-const addressesOf = /** @type {(list: { p: string[] }[]) => { presets: string[], sections: Map<string, string> }} */ (new Function(`${code}\nreturn addressesOf;`)());
 const book = addressesOf(presets);
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
