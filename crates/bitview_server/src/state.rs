@@ -116,7 +116,9 @@ impl AppState {
         }
     }
 
-    /// [`Self::respond_admitted`] for transaction, block and address bodies.
+    /// Transaction, block and address bodies. They share `chain_bodies`, so a body takes a permit
+    /// only once built, and only when large: a large one finding none free waits for one and is
+    /// built again.
     #[cfg(feature = "full-api")]
     pub async fn respond_read<S: 'static>(
         &self,
@@ -125,14 +127,17 @@ impl AppState {
         select: impl FnOnce(&Query) -> Result<(S, CacheParams)> + Clone + Send + 'static,
         build: impl FnOnce(&Query, S) -> Result<Bytes> + Clone + Send + 'static,
     ) -> Response<Body> {
-        self.respond_admitted(
-            &self.chain_query,
-            &self.chain_bodies,
-            headers,
-            content_type,
-            select,
-            build,
-        )
+        let budget = self.chain_bodies.clone();
+        self.read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
+            let (source, params) = select(q)?;
+            if params.etag.matches(&headers) {
+                return Ok(Some(ResponseExtended::new_not_modified(&params)));
+            }
+            let bytes = build(q, source)?;
+            Ok(RawBodyPermit::respond_built(permit, &budget, params, bytes, |h| {
+                h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+            }))
+        })
         .await
         .unwrap_or_else(|error| Error::from(error).into_response())
     }
@@ -234,8 +239,7 @@ impl AppState {
 
     /// JSON whose validator comes with its bytes, or comes first: `f` answers [`Built::Unchanged`]
     /// when the request's validator already matches, before building. Building is bounded by
-    /// `admission`; a large body then takes a `chain_bodies` permit that it keeps until sent,
-    /// building again once one is free.
+    /// `admission`; a large body then takes a `chain_bodies` permit, as in [`Self::respond_read`].
     #[cfg(feature = "full-api")]
     async fn respond_json_built(
         &self,
@@ -260,13 +264,7 @@ impl AppState {
             if params.etag.matches(&headers) {
                 return Ok(Some(ResponseExtended::new_not_modified(&params)));
             }
-            if !RawBodyPermit::retains(bytes.len()) {
-                return Ok(Some(Self::assemble_response(params, bytes, json)));
-            }
-            let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&budget)) else {
-                return Ok(None);
-            };
-            Ok(Some(permit.response(params, bytes, json)))
+            Ok(RawBodyPermit::respond_built(permit, &budget, params, bytes, json))
         })
         .await
         .unwrap_or_else(|error| Error::from(error).into_response())

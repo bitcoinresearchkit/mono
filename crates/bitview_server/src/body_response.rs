@@ -14,9 +14,10 @@ use tokio::{
 use crate::{AppState, CacheParams, extended::ResponseExtended, raw_body::RawBodyPermit};
 
 impl AppState {
-    /// Selection, validator, and body belong to one read operation. The body takes a `bodies`
-    /// permit before it is built and, when large, keeps it until its last frame is sent; without
-    /// a free one, selection runs again once one is.
+    /// Selection, validator, and body belong to one read operation, on a route with `bodies` to
+    /// itself. The body takes a permit before it is built and, when large, keeps it until its last
+    /// frame is sent; without a free one, selection runs again once one is. Bodies this large
+    /// aren't built only to be dropped; routes sharing `chain_bodies` use [`Self::respond_read`].
     pub async fn respond_admitted<S: 'static>(
         &self,
         admission: &Arc<Semaphore>,

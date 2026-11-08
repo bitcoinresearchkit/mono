@@ -295,10 +295,8 @@ impl AppState {
                 if params.etag.matches(&headers) {
                     return Ok(Some(ResponseExtended::new_not_modified(&params)));
                 }
-                let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
-                    return Ok(None);
-                };
-                Ok(Some(permit.attach(build(q, snapshot, params)?)))
+                let response = build(q, snapshot, params)?;
+                Ok(RawBodyPermit::attach_built(permit, &bodies, response))
             })
             .await?)
     }

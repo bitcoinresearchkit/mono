@@ -58,9 +58,7 @@ impl AppState {
     ) -> Result<Response> {
         let cdn_cache_mode = self.cdn_cache_mode;
         Ok(self
-            .respond_admitted(
-                &self.chain_query,
-                &self.chain_bodies,
+            .respond_read(
                 headers,
                 "application/json",
                 move |q| {
@@ -79,7 +77,7 @@ impl AppState {
                 },
                 move |q, block| Ok(to_vec(&build(q, &block)?)?.into()),
             )
-            .await?)
+            .await)
     }
 
     /// A route about the tip alone.
@@ -90,9 +88,7 @@ impl AppState {
         build: fn(Height) -> T,
     ) -> Result<Response> {
         Ok(self
-            .respond_admitted(
-                &self.chain_query,
-                &self.chain_bodies,
+            .respond_read(
                 headers,
                 "application/json",
                 move |q| {
@@ -101,7 +97,7 @@ impl AppState {
                 },
                 move |_, height| Ok(to_vec(&build(height))?.into()),
             )
-            .await?)
+            .await)
     }
 }
 

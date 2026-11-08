@@ -166,6 +166,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The RPC password no longer shows when the connection settings or a client are printed for debugging
 - A request body (a transaction broadcast, an MCP call) that sends nothing for 10 seconds fails: a stalled one held
   its admission permit
+- Clients that stop reading large chain responses (256 KiB or more) hold up only other large ones: eight of them
+  made every transaction, block, address and BlindBit read answer 504
 - The server's log tail (`/api/server/logs`) keeps at most 1,024 bytes of a line: a request's URI is whatever its
   client sent, and every read of the tail copies all of them
 - `GET /api/v1/mining/reward-stats/0` answers 400 from the path itself ("expected a nonzero usize")
