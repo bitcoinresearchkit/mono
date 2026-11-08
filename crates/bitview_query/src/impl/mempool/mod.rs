@@ -105,7 +105,8 @@ impl Query {
         if pool_tip == tip {
             return Ok(Some(mempool.view_at(&tip)?));
         }
-        // The newest block both chains hold, and how many of the pool's lie past it.
+        // The newest block both chains hold, and how many of the pool's lie past it: one the
+        // pin's chain doesn't hold is unknown to it, or past its lowered publication.
         let mut common = None;
         for (left, hash) in mempool.ancestry().rev().enumerate() {
             match self.height_by_hash_at(hash, pin) {
@@ -114,6 +115,7 @@ impl Query {
                     break;
                 }
                 Err(Error::NotFound(_)) => {}
+                Err(Error::StateUpdating) if pin.is_lowered() => {}
                 Err(error) => return Err(error),
             }
         }
@@ -152,14 +154,25 @@ impl Query {
         Ok(Some(mempool.view_behind(tip, left, spends)?))
     }
 
-    /// What a lookup neither the pin's chain nor the pool as the pin sees it answers is: unknown,
-    /// unless a reorg the pool hasn't followed yet left it in limbo ([`PendingView::in_limbo`]),
-    /// then `StateUpdating` for that moment.
-    pub(crate) fn unknown_txid(view: &PendingView, txid: &Txid) -> Error {
+    /// Whether a transaction lookup's chain `error` leaves the pool, as `pin` sees it, to answer:
+    /// a miss, or past a lowered publication (a rollback rewriting the rows past it) a
+    /// `StateUpdating`, the transaction not on the pin's chain either way.
+    pub(crate) fn pool_answers(error: &Error, pin: &ReadPin) -> bool {
+        match error {
+            Error::UnknownTxid => true,
+            Error::StateUpdating => pin.is_lowered(),
+            _ => false,
+        }
+    }
+
+    /// What a lookup the pool didn't answer either is: the chain's `error`, unless a reorg the
+    /// pool hasn't followed yet left it in limbo ([`PendingView::in_limbo`]), then
+    /// `StateUpdating` for that moment.
+    pub(crate) fn unanswered(error: Error, view: &PendingView, txid: &Txid) -> Error {
         if view.in_limbo(txid) {
             Error::StateUpdating
         } else {
-            Error::UnknownTxid
+            error
         }
     }
 

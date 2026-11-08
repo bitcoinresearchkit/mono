@@ -52,7 +52,9 @@ replaced. Reads see it as the pin does: past its tip, without what the pin's
 blocks after the newest block both chains hold mined or conflicted. RBF trees
 read it as is, after the chain. What only a replaced branch mined, and what the
 pool holds spending from it, is in no view until the pool follows (a second): a
-lookup of it answers 503.
+lookup of it answers 503. A transaction lookup past a lowered publication (a
+rollback rewriting its rows) asks the pool too, and answers 503 only when the
+pool doesn't hold it pending.
 
 `read` and `read_with_admission` execute the query closure once on a blocking
 worker. Calls in one closure take their own pins and can observe different

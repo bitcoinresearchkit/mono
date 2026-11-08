@@ -45,9 +45,11 @@ impl Query {
     }
 
     /// The transaction's status, and whether its block lies below the reorg window. A transaction
-    /// not in the chain is unconfirmed, pending or unknown alike, as Esplora answers.
+    /// not in the chain is unconfirmed, pending or unknown alike, as Esplora answers; past a
+    /// lowered publication ([`Self::pool_answers`]), one the pool holds pending as the pin sees it.
     pub fn transaction_status(&self, txid: &Txid) -> Result<(TxStatus, bool)> {
-        let read = self.read_indexer()?;
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let read = self.read_indexer_at(pin);
         match read.resolve_confirmed_position(txid) {
             Ok((_, height)) => {
                 let lengths = read.pin().lengths();
@@ -55,6 +57,16 @@ impl Query {
                 Ok((status, lengths.is_settled(height)))
             }
             Err(Error::UnknownTxid) => Ok((TxStatus::UNCONFIRMED, false)),
+            Err(error) if Self::pool_answers(&error, read.pin()) => {
+                let pending = self.with_pending(mempool.as_deref(), read.pin(), |mempool, view| {
+                    mempool.is_pending(txid, view)
+                })?;
+                if pending {
+                    Ok((TxStatus::UNCONFIRMED, false))
+                } else {
+                    Err(error)
+                }
+            }
             Err(error) => Err(error),
         }
     }

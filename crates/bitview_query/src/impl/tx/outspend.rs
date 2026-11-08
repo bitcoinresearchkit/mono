@@ -11,16 +11,18 @@ impl Query {
         let safe = pin.lengths();
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
-            // An output no known transaction holds is unspent, as Esplora answers (one a reorg left
-            // in limbo is unknown for the moment).
-            Err(Error::UnknownTxid) => {
-                return match self.pending(mempool, &pin)? {
+            Err(error) if Self::pool_answers(&error, &pin) => {
+                let error = match self.pending(mempool, &pin)? {
                     Some((mempool, view)) => match mempool.outspend_if_present(txid, vout, &view)? {
-                        Some(outspend) => Ok(outspend),
-                        None if view.in_limbo(txid) => Err(Error::StateUpdating),
-                        None => Ok(TxOutspend::UNSPENT),
+                        Some(outspend) => return Ok(outspend),
+                        None => Self::unanswered(error, &view, txid),
                     },
-                    None => Ok(TxOutspend::UNSPENT),
+                    None => error,
+                };
+                // An output no known transaction holds is unspent, as Esplora answers.
+                return match error {
+                    Error::UnknownTxid => Ok(TxOutspend::UNSPENT),
+                    error => Err(error),
                 };
             }
             Err(error) => return Err(error),
@@ -54,11 +56,14 @@ impl Query {
         let safe = pin.lengths();
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
-            Err(Error::UnknownTxid) => {
-                let (mempool, view) = self.pending(mempool, &pin)?.ok_or(Error::UnknownTxid)?;
-                return mempool
-                    .outspends_if_present(txid, &view)?
-                    .ok_or_else(|| Self::unknown_txid(&view, txid));
+            Err(error) if Self::pool_answers(&error, &pin) => {
+                let Some((mempool, view)) = self.pending(mempool, &pin)? else {
+                    return Err(error);
+                };
+                return match mempool.outspends_if_present(txid, &view)? {
+                    Some(outspends) => Ok(outspends),
+                    None => Err(Self::unanswered(error, &view, txid)),
+                };
             }
             Err(error) => return Err(error),
         };
