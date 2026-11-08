@@ -43,6 +43,7 @@ use tracing::info;
 use api::*;
 use cache::CacheParams;
 use response_size_above::ResponseSizeAbove;
+use stall_limit::StallLimitListener;
 use state::*;
 
 mod api;
@@ -65,6 +66,7 @@ mod response_size_above;
 mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
+mod stall_limit;
 mod state;
 mod unacceptable_encoding;
 
@@ -230,7 +232,7 @@ impl Server {
         info!("Server listening on http://{}", listener.local_addr()?);
 
         serve(
-            listener,
+            StallLimitListener(listener),
             ServiceExt::<Request<Body>>::into_make_service(app),
         )
         .await?;
