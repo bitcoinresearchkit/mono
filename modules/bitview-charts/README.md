@@ -64,7 +64,9 @@ chart.show(365);                                 // the last 365 points in view
   over its plot (a legend, a highlight), laid out with it, under the crosshair, taking no pointer (its children may).
 - `addLine`, `addBand`, `addBars`, `addCandles`, `addCustom` (each with a side: `"right"`, else `"left"`: its own scale,
   its axis at the chart's left), `add(series, side)`, `remove(series)`, `order(list)` (its series drawn in that order,
-  the last on top), `setRange(lo, hi, side)` (no range: fitted), `setScale(side, { mode, top, bottom })` (a side's
+  the last on top), `setRange(lo, hi, side)` (no range: fitted), `fittedRange(time, side)` (the range a real fit gives
+  that side's scale, a held one left held at its range: the fit's margins, bases, other side and overlays stay as it
+  left them; nothing to fit, the range as it is), `setScale(side, { mode, top, bottom })` (a side's
   scale's look, now and a left one made later), `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
 - `setLegend({ onPress })`: its legend, over its plot's top left (made once, returned): `set(items)`, each
   `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;

@@ -16521,18 +16521,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const scaleRange = (i, side) => ((scale) => (scale ? { from: scale.lo, to: scale.hi } : null))(scaleOn(i, side));
       /** Pane `i`'s scale on a side held at a range, or (none) fitted to the view again. @param {number} i @param {"left" | "right"} side @param {{ from: number, to: number } | null} range */
       const holdScale = (i, side, range) => (engine.panes[i]?.setRange(range?.from, range?.to, side), engine.invalidate(true));
-      /** The range pane `i`'s scale on a side would show fitted to the view, where it's held now (it stays held). @param {number} i @param {string} side */
-      const fittedRange = (i, side) => {
-        const pane = engine.panes[i], scale = scaleOn(i, side);
-        if (!pane || !scale) return null;
-        const left = side === "left", auto = left ? pane.leftAuto : pane.auto, was = [scale.lo, scale.hi];
-        left ? (pane.leftAuto = true) : (pane.auto = true);
-        pane.fit(engine.time);
-        const range = { from: scale.lo, to: scale.hi };
-        left ? (pane.leftAuto = auto) : (pane.auto = auto);
-        if (!auto) scale.fit(was[0], was[1]);
-        return range;
-      };
       /** Pane `i`'s scale's mode on a side, as Studio numbers them (see MODES). @param {number} i @param {string} side */
       const scaleMode = (i, side) => SCALE_MODES.indexOf(scaleOn(i, side)?.mode ?? "linear");
       /** Where a drawn series draws a value: CSS pixels from its pane's top, on its scale (see the library's chart.y); none, null. @param {any} series @param {number} value */
@@ -20401,7 +20389,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!started) {
               started = true;
               for (const move of moves) {
-                move.to = fittedRange(move.i, move.side) ?? move.range;
+                move.to = engine.panes[move.i]?.fittedRange(engine.time, move.side) ?? move.range;
                 holdScale(move.i, move.side, move.range);
               }
               // (From here on, a view moved is moved by something else.)

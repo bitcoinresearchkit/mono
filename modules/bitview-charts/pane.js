@@ -560,6 +560,24 @@ export class Pane {
     return Math.max(0, Math.floor(time.from));
   }
 
+  /**
+   * The range a fit to the view would give its scale on `side`, a scale held staying held where it was. One real fit
+   * runs, so its other work (the other side, overlays, bases, margins) stays done.
+   * @param {import("./timeline.js").Timeline} time @param {"left" | "right"} side
+   * @returns {{ from: number, to: number } | null} none without a scale on that side
+   */
+  fittedRange(time, side) {
+    const left = side === "left", scale = left ? this.left : this.scale;
+    if (!scale) return null;
+    const auto = left ? this.leftAuto : this.auto, was = [scale.lo, scale.hi];
+    left ? (this.leftAuto = true) : (this.auto = true);
+    this.fit(time);
+    const range = { from: scale.lo, to: scale.hi };
+    left ? (this.leftAuto = auto) : (this.auto = auto);
+    if (!auto) scale.fit(was[0], was[1]);
+    return range;
+  }
+
   /** Fitted to its series in the timeline's view (a relative scale's, each read against its first value in view). @param {import("./timeline.js").Timeline} time */
   fit(time) {
     const n = this.series.length;
