@@ -1,10 +1,12 @@
 //! Private state owned exclusively by the update loop.
 
+mod ancestry;
 mod pool;
 mod read_only;
 pub mod tx_entry;
 
 use brk_types::{MempoolInfo, Transaction, Txid};
+pub(crate) use ancestry::{Ancestry, Block};
 pub(crate) use pool::{BehindSlot, Pool};
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
@@ -21,6 +23,8 @@ pub struct State {
     /// The graveyard's writer-only bookkeeping: when each tombstone is due, what vanished while
     /// something can still have displaced it.
     pub upkeep: Upkeep,
+    /// The blocks the graveyard was last told, back a few from that tip.
+    pub ancestry: Ancestry,
     /// The last applied poll's template transactions the listing lacks (left Core's pool since
     /// it built the template), in its order: block 0's bodies alone, never pooled.
     pub template_only: Vec<TxRecord>,

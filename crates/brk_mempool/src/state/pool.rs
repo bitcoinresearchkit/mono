@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::State;
+use super::{Ancestry, State};
 
 /// One reader tip's view past the pool's, once built: its readers wait for the first build.
 pub type BehindSlot = Arc<Mutex<Option<Arc<PendingView>>>>;
@@ -22,6 +22,8 @@ pub type BehindSlot = Arc<Mutex<Option<Arc<PendingView>>>>;
 /// One complete membership observation and its matching graph.
 pub(crate) struct Pool {
     pub tip: BlockHash,
+    /// `tip` and its newest ancestors.
+    pub ancestry: Ancestry,
     pub info: MempoolInfo,
     pub txs: Arc<ReadOnlyTxStore>,
     pub addrs: Arc<AddrTracker>,
@@ -80,8 +82,15 @@ impl Pool {
                 || Arc::new(state.graveyard.clone()),
                 |pool| pool.graveyard.clone(),
             );
+        // The writer's when it was told this tip's blocks, else just the tip (they're unread).
+        let ancestry = if state.ancestry.tip() == Some(&tip) {
+            state.ancestry.clone()
+        } else {
+            Ancestry::of(tip)
+        };
         Self {
             tip,
+            ancestry,
             info: state.info.clone(),
             txs,
             addrs,
@@ -143,6 +152,7 @@ impl Pool {
             outpoint_spends: self.outpoint_spends.as_ref().clone(),
             graveyard: self.graveyard.as_ref().clone(),
             upkeep: Upkeep::of(&self.graveyard),
+            ancestry: self.ancestry.clone(),
             template_only: Vec::new(),
         }
     }

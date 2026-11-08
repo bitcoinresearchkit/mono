@@ -60,7 +60,12 @@ impl Query {
                         && !mempool.addr_has_tx(&addr, txid, &view)?
                     {
                         if !mempool.is_pending(txid, &view)? {
-                            return Err(Error::UnknownAfterTxid);
+                            // One a reorg left in limbo is unknown for the moment only.
+                            return Err(if view.in_limbo(txid) {
+                                Error::StateUpdating
+                            } else {
+                                Error::UnknownAfterTxid
+                            });
                         }
                         // Another address's pending transaction: nothing after it here, as a
                         // confirmed cursor outside the history has nothing before it.

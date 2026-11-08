@@ -48,9 +48,11 @@ to the address state afterward (a catch-up's or rollback's write holds that lock
 and address reads answer 503 meanwhile), and UTXO set snapshots are replaced by
 rename. The mempool publishes only at the published tip and is loaded before the
 pin, so it is at the pin's tip, behind it, or (mid-reorg) on the branch being
-replaced: a lookup the chain answers first reads it as is (it only adds what is
-still pending), while address views, which add it to the chain's numbers, use
-the confirmed state alone until it is at the pin's tip.
+replaced. Reads see it as the pin does: past its tip, without what the pin's
+blocks after the newest block both chains hold mined or conflicted. RBF trees
+read it as is, after the chain. What only a replaced branch mined, and what the
+pool holds spending from it, is in no view until the pool follows (a second): a
+lookup of it answers 503.
 
 `read` and `read_with_admission` execute the query closure once on a blocking
 worker. Calls in one closure take their own pins and can observe different

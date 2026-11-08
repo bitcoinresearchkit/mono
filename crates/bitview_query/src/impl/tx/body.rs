@@ -30,7 +30,8 @@ impl<T> ResolvedTxBody<T> {
 impl Query {
     /// Resolve `txid` to its confirmed transaction or, through `live`, to the mempool's value
     /// and its content hash: the chain answers first, the pool only for what is still pending as
-    /// the pin sees it (`StateUpdating` before the pool's first publication).
+    /// the pin sees it (`StateUpdating` before the pool's first publication, and for what a reorg
+    /// the pool hasn't followed yet left in limbo, [`Self::unknown_txid`]).
     pub(crate) fn resolve_tx_body<T>(
         &self,
         txid: &Txid,
@@ -45,7 +46,8 @@ impl Query {
                 let view = self
                     .pending_view(&mempool, read.pin())?
                     .ok_or(Error::UnknownTxid)?;
-                let (value, hash) = live(&mempool, &view)?.ok_or(Error::UnknownTxid)?;
+                let (value, hash) = live(&mempool, &view)?
+                    .ok_or_else(|| Self::unknown_txid(&view, txid))?;
                 Ok(ResolvedTxBody::Memory { value, hash })
             }
             Err(error) => Err(error),

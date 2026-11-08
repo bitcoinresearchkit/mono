@@ -192,6 +192,7 @@ impl Mempool {
             }
             self.unread_cycles = 0;
             self.state.graveyard.set_told(rpc.tip_hash, &mut self.state.upkeep);
+            self.state.ancestry.follow(rpc.tip_hash, confirmed.path());
         }
         self.state.template_only = template_only;
         // Every listed transaction is loaded (block 0's template-only bodies aren't the pool's).

@@ -3,9 +3,13 @@
 
 use brk_error::Error;
 use brk_rpc::Client;
+use std::sync::Arc;
+
 use brk_types::{BlockHash, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::{debug, warn};
+
+use crate::state::Block;
 
 /// The most blocks read back from a new tip, and along a branch a reorg took off the chain: more
 /// arrive between two cycles only after a stall of hours (or a reorg that deep), and what they
@@ -19,6 +23,10 @@ pub struct Confirmed {
     spends: RapidHashMap<(Txid, Vout), Txid>,
     /// What the blocks a reorg took off the chain mined: the last tip's branch, back to the fork.
     disconnected: RapidHashSet<Txid>,
+    /// The new tip's chain back to the fork with the last tip's, the fork first (unread), the tip
+    /// last, each with what it mined. Empty when the tip didn't move, on the first cycle, or when a
+    /// walk stopped short.
+    path: Vec<Block>,
     /// A new block, or one a reorg took off the chain, couldn't be read: the next cycle reads the
     /// blocks again, from the same last tip.
     pub incomplete: bool,
@@ -71,20 +79,27 @@ impl Confirmed {
             }
         }
         let mut hash = tip;
+        let mut newer = Vec::new();
         for _ in 0..MAX_BLOCKS {
             if hash == fork {
                 break;
             }
             match client.get_block_spends(&hash) {
                 Ok(block) => {
-                    confirmed.txids.extend(block.txids);
+                    let txids: Arc<[Txid]> = block.txids.into();
+                    confirmed.txids.extend(txids.iter().copied());
                     confirmed.spends.extend(block.spends);
+                    newer.push(Block { hash, txids });
                     hash = block.prev;
                 }
                 Err(error) => return failed(confirmed, error),
             }
         }
-        if !on_chain || hash != fork {
+        if on_chain && hash == fork {
+            confirmed.path = std::iter::once(Block::unread(fork))
+                .chain(newer.into_iter().rev())
+                .collect();
+        } else {
             warn!(
                 max = MAX_BLOCKS,
                 "mempool: more blocks since the last cycle than read; what the rest mined reads vanished"
@@ -96,6 +111,12 @@ impl Confirmed {
     /// What the new blocks mined.
     pub fn mined_txids(&self) -> impl Iterator<Item = &Txid> {
         self.txids.iter()
+    }
+
+    /// The new tip's chain back to the fork with the last tip's, the fork first: empty when
+    /// not known.
+    pub fn path(&self) -> &[Block] {
+        &self.path
     }
 
     /// What the blocks a reorg took off the chain mined.
@@ -120,6 +141,7 @@ impl Confirmed {
             txids: txids.into_iter().collect(),
             spends: spends.into_iter().collect(),
             disconnected: disconnected.into_iter().collect(),
+            path: Vec::new(),
             incomplete: false,
         }
     }

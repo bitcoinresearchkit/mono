@@ -11,13 +11,17 @@ impl Query {
         let safe = pin.lengths();
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
-            // An output no known transaction holds is unspent, as Esplora answers.
+            // An output no known transaction holds is unspent, as Esplora answers (one a reorg left
+            // in limbo is unknown for the moment).
             Err(Error::UnknownTxid) => {
-                return Ok(match self.pending(mempool, &pin)? {
-                    Some((mempool, view)) => mempool.outspend_if_present(txid, vout, &view)?,
-                    None => None,
-                }
-                .unwrap_or(TxOutspend::UNSPENT));
+                return match self.pending(mempool, &pin)? {
+                    Some((mempool, view)) => match mempool.outspend_if_present(txid, vout, &view)? {
+                        Some(outspend) => Ok(outspend),
+                        None if view.in_limbo(txid) => Err(Error::StateUpdating),
+                        None => Ok(TxOutspend::UNSPENT),
+                    },
+                    None => Ok(TxOutspend::UNSPENT),
+                };
             }
             Err(error) => return Err(error),
         };
@@ -54,7 +58,7 @@ impl Query {
                 let (mempool, view) = self.pending(mempool, &pin)?.ok_or(Error::UnknownTxid)?;
                 return mempool
                     .outspends_if_present(txid, &view)?
-                    .ok_or(Error::UnknownTxid);
+                    .ok_or_else(|| Self::unknown_txid(&view, txid));
             }
             Err(error) => return Err(error),
         };

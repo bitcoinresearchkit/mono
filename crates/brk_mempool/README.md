@@ -74,9 +74,11 @@ On a loaded `ReadOnlyState`:
 - `cpfp_info` reads the publication's own graph, at the caller's tip (`StateUpdating` for a
   transaction whose own inputs are still resolving).
 - `addr_stats`, `addr_pending_utxos`, `addr_txs`, `addr_has_tx` and `is_pending` read through a
-  `PendingView`: `view_at(tip)` for a reader at the pool's tip, or `view_behind(spends)` for one a
-  few blocks past it, the pool without what those blocks mined, conflicted, or descend from a
-  conflicted one. A transaction folds into the address view as far as it is known: its outputs
+  `PendingView`: `view_at(tip)` for a reader at the pool's tip, or `view_behind` for one a few
+  blocks past it, or on a chain a reorg left the pool's branch for (past the newest of `ancestry()`
+  that chain holds): the pool without what the reader's blocks past that one mined, conflicted, or
+  descend from a conflicted one. Past a left branch, `in_limbo` tells what only that branch mined
+  and what the pool holds spending from it: in no view, unknown until the pool follows. A transaction folds into the address view as far as it is known: its outputs
   on arrival, each input once its prevout resolves (a pooled parent's once that parent is
   pooled, so never a spend without the output it spends). An address's unspent outputs follow
   the outpoints, known before: while an input resolves, its stats can lag its UTXO list.

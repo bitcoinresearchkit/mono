@@ -14,6 +14,7 @@ use smallvec::SmallVec;
 use crate::{
     MempoolBlockSource, RbfNode, ReadOnlyState, State,
     snapshot::Rebuilder,
+    state::{Ancestry, Block},
     snapshot::{
         SnapTx, Snapshot, TxIndex,
         builder::KeyIndex,
@@ -650,9 +651,9 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let spends = || -> brk_error::Result<_> {
         Ok([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), conflict)])
     };
-    let behind = read.view_behind(reader, spends).unwrap();
+    let behind = read.view_behind(reader, 0, spends).unwrap();
     let again = read
-        .view_behind(reader, || -> brk_error::Result<[_; 0]> {
+        .view_behind(reader, 0, || -> brk_error::Result<[_; 0]> {
             panic!("read once for the moment")
         })
         .unwrap();
@@ -1243,6 +1244,111 @@ fn unseen_confirmed_replacers_root_their_trees() {
     let trees = read.recent_rbf_trees(false, &tip).unwrap();
     assert_eq!(trees.len(), 1, "one tree, rooted at the conflict");
     assert_eq!(trees[0].txid, conflict);
+}
+
+/// The pool's ancestry follows its tips (back to the fork after a reorg, to the fork itself when
+/// one only shortened the chain, just the tip when the blocks between went unread, a few blocks
+/// deep). A reader past a reorg the pool hasn't followed finds in limbo what only the left branch
+/// mined (a) and what the pool holds spending from it (c, and g from c), out of its view; not what
+/// its own blocks mined again (m), nor the unrelated (u).
+#[test]
+fn reorgs_leave_what_only_the_left_branch_mined_in_limbo() {
+    let hash = |seed: u8| BlockHash::from(bitcoin::BlockHash::from_byte_array([seed; 32]));
+    let hashes = |ancestry: &Ancestry| -> Vec<BlockHash> {
+        ancestry.blocks().iter().map(|block| block.hash).collect()
+    };
+    let path = |seeds: &[u8]| -> Vec<Block> {
+        seeds
+            .iter()
+            .map(|&seed| Block { hash: hash(seed), txids: Arc::from([txid(seed)]) })
+            .collect()
+    };
+    let mut ancestry = Ancestry::default();
+    ancestry.follow(hash(1), &[]);
+    ancestry.follow(hash(3), &path(&[1, 2, 3]));
+    assert_eq!(hashes(&ancestry), [1, 2, 3].map(hash));
+    // A reorg off 3 and 2, back to 1.
+    ancestry.follow(hash(5), &path(&[1, 4, 5]));
+    assert_eq!(hashes(&ancestry), [1, 4, 5].map(hash));
+    assert_eq!(ancestry.blocks()[2].txids[..], [txid(5)], "what each mined");
+    ancestry.follow(hash(5), &[]);
+    assert_eq!(hashes(&ancestry), [1, 4, 5].map(hash), "the same tip");
+    ancestry.follow(hash(4), &path(&[4]));
+    assert_eq!(hashes(&ancestry), [1, 4].map(hash), "5 invalidated: the tip is the fork");
+    ancestry.follow(hash(5), &path(&[4, 5]));
+    ancestry.follow(hash(7), &[]);
+    assert_eq!(hashes(&ancestry), [hash(7)], "unread blocks between");
+    let long: Vec<u8> = (7..20).collect();
+    ancestry.follow(hash(19), &path(&long));
+    assert_eq!(hashes(&ancestry), long[long.len() - 8..].iter().map(|&seed| hash(seed)).collect::<Vec<_>>(), "a few deep");
+
+    let script = ScriptBuf::new_p2wpkh(&bitcoin::WPubkeyHash::from_byte_array([7; 20]));
+    let raw = |spends: bitcoin::OutPoint| bitcoin::Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: bitcoin::absolute::LockTime::ZERO,
+        input: vec![bitcoin::TxIn {
+            previous_output: spends,
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::Sequence::MAX,
+            witness: Witness::new(),
+        }],
+        output: vec![bitcoin::TxOut {
+            value: bitcoin::Amount::from_sat(500),
+            script_pubkey: script.clone(),
+        }],
+    };
+    let confirmed = |seed: u8| bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([seed; 32]), 0);
+    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
+    let a = raw(confirmed(90));
+    let m = raw(confirmed(91));
+    let c = raw(bitcoin::OutPoint::new(a.compute_txid(), 0));
+    let g = raw(bitcoin::OutPoint::new(c.compute_txid(), 0));
+    let u = raw(confirmed(92));
+    let pooled = [&c, &g, &u];
+    let mut state = State::default();
+    let entries = pooled
+        .iter()
+        .map(|tx| MempoolEntryInfo {
+            txid: id(tx),
+            wtxid: tx.compute_wtxid(),
+            vsize: VSize::from(Weight::from(tx.weight())),
+            weight: Weight::from(tx.weight()),
+            fee: Sats::from(1_000u64),
+            first_seen: Timestamp::now(),
+        })
+        .collect();
+    let bodies = pooled.iter().map(|&tx| (id(tx), tx.clone())).collect();
+    let live: Vec<Txid> = pooled.iter().map(|tx| id(tx)).collect();
+    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
+    applier::apply(&mut state, &Snapshot::default(), diff, &Confirmed::default());
+    // Each block's coinbase first.
+    let mined = |seed: u8, txs: &[&bitcoin::Transaction]| Block {
+        hash: hash(seed),
+        txids: std::iter::once(txid(seed)).chain(txs.iter().map(|tx| id(tx))).collect(),
+    };
+    state.ancestry.follow(hash(3), &[Block::unread(hash(1)), mined(2, &[&m]), mined(3, &[&a])]);
+    let mut rebuilder = Rebuilder::default();
+    rebuilder.tick(&state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
+    let read = ReadOnlyState::default()
+        .updated(&state, hash(3), rebuilder.snapshot().clone(), true)
+        .expect("published");
+    assert_eq!(read.ancestry().copied().collect::<Vec<_>>(), [1, 2, 3].map(hash));
+    // The reader's chain left 2 and 3 for blocks that mined m again.
+    let spends = || -> brk_error::Result<_> {
+        Ok([((Txid::from(confirmed(91).txid), Vout::from(0usize)), id(&m))])
+    };
+    let forked = read.view_behind(hash(5), 2, spends).unwrap();
+    for (tx, limbo) in [(&a, true), (&c, true), (&g, true), (&m, false), (&u, false)] {
+        assert_eq!(forked.in_limbo(&id(tx)), limbo);
+    }
+    assert!(!forked.in_limbo(&txid(3)), "a coinbase is gone for good");
+    for (tx, pending) in [(&c, false), (&g, false), (&u, true)] {
+        assert_eq!(read.is_pending(&id(tx), &forked).unwrap(), pending);
+    }
+    let none = || -> brk_error::Result<[((Txid, Vout), Txid); 0]> { Ok([]) };
+    let behind = read.view_behind(hash(4), 0, none).unwrap();
+    assert!(!behind.in_limbo(&id(&a)), "the pool's tip on the reader's chain");
+    assert!(read.is_pending(&id(&c), &behind).unwrap());
 }
 
 /// An address's transactions in page order, past the inline vector's spill and back: inserts and

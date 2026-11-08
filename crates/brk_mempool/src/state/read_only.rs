@@ -103,6 +103,16 @@ impl ReadOnlyState {
         self.pool.as_ref().map(|pool| pool.tip)
     }
 
+    /// The published pool's tip and its newest ancestors, oldest first (the tip last): none
+    /// before the first publication.
+    pub fn ancestry(&self) -> impl DoubleEndedIterator<Item = &BlockHash> {
+        self.pool
+            .as_ref()
+            .map_or(&[][..], |pool| pool.ancestry.blocks())
+            .iter()
+            .map(|block| &block.hash)
+    }
+
     pub(crate) fn pool(&self) -> Result<&Pool> {
         self.pool.as_deref().ok_or(Error::StateUpdating)
     }

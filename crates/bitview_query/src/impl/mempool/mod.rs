@@ -49,10 +49,11 @@ impl MempoolTxids {
 
 impl Query {
     /// `read` of the pool as `pin` sees it ([`PendingView`]): at the pin's tip, or a few blocks
-    /// behind it (the moment after blocks publish, before the pool follows) without what they
-    /// settled. Nothing pending (the confirmed data answers alone) with no mempool, or with one
-    /// more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating` before its first publication
-    /// and for the moment a reorg leaves the pool on a branch the chain left (see
+    /// behind it (the moment after blocks publish, before the pool follows), or on a branch the
+    /// chain left (a reorg, until the pool follows), without what the pin's blocks past the two
+    /// chains' last common one settled. Nothing pending (the confirmed data answers alone) with no
+    /// mempool, or with one more than [`MAX_POOL_LAG`] blocks behind; `StateUpdating` before its
+    /// first publication, and past a reorg deeper than the pool remembers (see
     /// [`Self::pending_view`]). Every read asks for it only once the chain hasn't answered alone.
     pub(crate) fn with_pending<T: Default>(
         &self,
@@ -81,13 +82,17 @@ impl Query {
         Ok(self.pending_view(&mempool, pin)?.map(|view| (mempool, view)))
     }
 
-    /// The pool as `pin` sees it: see [`Self::with_pending`]. None more than [`MAX_POOL_LAG`]
+    /// The pool as `pin` sees it: see [`Self::with_pending`]. Past the pool's tip, the pin's
+    /// blocks after the newest of the pool's tip and its ancestors the pin's chain holds settle
+    /// what they mined or conflicted: the pool's tip itself when the pool trails the pin, the
+    /// fork when a reorg left the pool on a branch the chain left (or ahead of the pin: the pool
+    /// is read before the pin, so only a reorg between the two). What only that branch mined, and
+    /// what the pool holds spending from it, is in no view for that moment
+    /// ([`PendingView::in_limbo`]). None more than [`MAX_POOL_LAG`]
     /// blocks behind: nothing pending. `StateUpdating` before its first publication (what's
-    /// pending isn't known yet), and with a pool the pin can't see:
-    /// on a branch the chain left (a reorg, until the pool follows: a cycle, about a second), or
-    /// ahead of the pin (the pool is read before the pin, so only a reorg between the two).
-    /// Behind the pin, made once per publication and pin tip, every read of that moment sharing
-    /// it.
+    /// pending isn't known yet), and with none of the pool's ancestors on the pin's chain (a reorg
+    /// deeper than it remembers). Made once per publication and pin tip, every read of that moment
+    /// sharing it.
     pub(crate) fn pending_view(
         &self,
         mempool: &ReadOnlyState,
@@ -100,24 +105,35 @@ impl Query {
         if pool_tip == tip {
             return Ok(Some(mempool.view_at(&tip)?));
         }
-        let height = match self.height_by_hash_at(&pool_tip, pin) {
-            Ok(height) => height,
-            Err(Error::NotFound(_)) => return Err(Error::StateUpdating),
-            Err(error) => return Err(error),
+        // The newest block both chains hold, and how many of the pool's lie past it.
+        let mut common = None;
+        for (left, hash) in mempool.ancestry().rev().enumerate() {
+            match self.height_by_hash_at(hash, pin) {
+                Ok(height) => {
+                    common = Some((height, left));
+                    break;
+                }
+                Err(Error::NotFound(_)) => {}
+                Err(error) => return Err(error),
+            }
+        }
+        let Some((height, left)) = common else {
+            return Err(Error::StateUpdating);
         };
         let lengths = pin.lengths();
         if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
             return Ok(None);
         }
-        // Every input of the blocks past the pool's tip: the outpoint it spends, and its spender
+        // Every input of the pin's blocks past that one: the outpoint it spends, and its spender
         // (read once for the moment, by the first read of it).
         let spends = || -> Result<Vec<_>> {
             let vecs = self.indexer().vecs();
-            let first = vecs
-                .inputs
-                .first_txin_index
-                .collect_one(height.incremented())
-                .data()?;
+            let after = height.incremented();
+            let first = if after < lengths.height {
+                vecs.inputs.first_txin_index.collect_one(after).data()?
+            } else {
+                lengths.txin_index
+            };
             let mut outpoint = vecs.inputs.outpoint.cursor();
             let mut spender = vecs.inputs.tx_index.cursor();
             let txid = vecs.transactions.txid.reader();
@@ -133,7 +149,18 @@ impl Query {
             }
             Ok(spends)
         };
-        Ok(Some(mempool.view_behind(tip, spends)?))
+        Ok(Some(mempool.view_behind(tip, left, spends)?))
+    }
+
+    /// What a lookup neither the pin's chain nor the pool as the pin sees it answers is: unknown,
+    /// unless a reorg the pool hasn't followed yet left it in limbo ([`PendingView::in_limbo`]),
+    /// then `StateUpdating` for that moment.
+    pub(crate) fn unknown_txid(view: &PendingView, txid: &Txid) -> Error {
+        if view.in_limbo(txid) {
+            Error::StateUpdating
+        } else {
+            Error::UnknownTxid
+        }
     }
 
     fn require_mempool(&self) -> Result<Arc<ReadOnlyState>> {
