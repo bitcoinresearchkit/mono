@@ -5,10 +5,9 @@ HTTP API server for Bitcoin on-chain analytics.
 Brotli, gzip and zstd compression skips small responses; a request refusing every encoding
 (identity included) gets 406 before any handler runs. The server can also serve a folder of pages (the showcases by default).
 
-Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
-`urpd` imply) gate the routes; `full-api` enables all of them and is the default.
-Custom compositions can disable default features and enable only the route
-families they provide; each family pulls the plugins its endpoints read. This crate does not
+`series` serves the generic series routes and `full-api`, the default, adds every other route.
+Custom compositions can disable default features and enable `series` alone, which needs only the
+mappings plugin; `full-api` needs every plugin its endpoints read. This crate does not
 depend on the official Bitview composition.
 
 ## Usage

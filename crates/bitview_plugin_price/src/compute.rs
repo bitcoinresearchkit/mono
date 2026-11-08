@@ -5,14 +5,14 @@ use bitview_primitives::Float64;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
-    Config, Oracle, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
+    Config, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
     pre_oracle_prices_from,
 };
 use brk_types::Height;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
-use crate::{Dependencies, Vecs, feed_blocks_for_warmup, feed_blocks_with};
+use crate::{Dependencies, Vecs, feed_blocks_with, warm_oracle};
 
 impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
@@ -71,12 +71,8 @@ impl Vecs {
         let mut oracle = match self.oracle.take() {
             Some((next, oracle)) if next == committed => oracle,
             _ => {
-                let config = Config::for_height(committed);
                 let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
-                let warmup = config.window_size.min(committed - START_HEIGHT_SLOW);
-                Oracle::from_checkpoint(ref_bin, config, |o| {
-                    feed_blocks_for_warmup(o, indexer, (committed - warmup)..committed, None)
-                })?
+                warm_oracle(indexer, ref_bin, committed, None)?
             }
         };
 

@@ -9,11 +9,8 @@ repository.workspace = true
 
 [features]
 default = ["full-api"]
-full-api = ["chain", "series", "urpd", "bitview_query/full-api"]
-chain = ["price", "bitview_query/chain"]
+full-api = ["series", "bitview_query/full-api"]
 series = ["bitview_query/series"]
-urpd = ["price", "bitview_query/urpd"]
-price = ["bitview_query/price"]
 
 [dependencies]
 bitcoin = { workspace = true }

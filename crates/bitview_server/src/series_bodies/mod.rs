@@ -23,14 +23,14 @@ impl SeriesBodies {
     pub fn new(query: &Query) -> Self {
         let query_capacity = available_parallelism().map_or(1, |count| count.get());
         let catalog = PreparedJson::new(query.series_catalog());
-        let search = search_params(catalog.bytes(), query.vecs().series_names());
+        let search = search_params(catalog.bytes(), query.registry().series_names());
         Self {
             catalog,
             count: PreparedJson::new(query.series_count()),
             indexes: PreparedJson::new(query.indexes()),
-            list: list_params(query.vecs().series_names()),
+            list: list_params(query.registry().series_names()),
             search,
-            info: info_params(query.vecs().series_names().iter().map(|&name| {
+            info: info_params(query.registry().series_names().iter().map(|&name| {
                 (
                     name,
                     query

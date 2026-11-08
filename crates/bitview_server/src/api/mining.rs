@@ -5,13 +5,12 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_types::{
     BlockFeeRatesEntry, BlockFeeRatesPreciseEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry,
     BlockSizesWeights, DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry,
     PoolInfo, PoolsSummary, RewardStats,
 };
-use brk_types::{BlockHash, Dollars, Height};
+use brk_types::Height;
 use serde_json::to_vec;
 
 use super::blocks;
@@ -26,26 +25,6 @@ use crate::{
 };
 const POOL_BLOCKS_LIMIT: usize = 100;
 
-fn pool_blocks_params(
-    anchor: Option<BlockHash>,
-    heights: &[Height],
-    prices: &[Dollars],
-) -> CacheParams {
-    // Reuse the V1 row/catalog schema and price identity. Sparse selection also
-    // participates: reclassification can change older rows at the same anchor.
-    let identity = blocks::blocks_v1_identity(anchor, prices);
-    let mut engine = sha256::Hash::engine();
-    engine.input(identity.as_byte_array());
-    for height in heights {
-        engine.input(&u32::from(*height).to_le_bytes());
-    }
-    let identity = sha256::Hash::from_engine(engine);
-    CacheParams::live(format!(
-        "pool-blocks-{}-{identity}",
-        blocks::V1_BLOCK_SCHEMA
-    ))
-}
-
 async fn serve_pool_blocks(
     state: AppState,
     headers: HeaderMap,
@@ -59,8 +38,11 @@ async fn serve_pool_blocks(
             move |q| {
                 let blocks =
                     q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
-                let params =
-                    pool_blocks_params(blocks.activity_anchor(), blocks.heights(), blocks.prices());
+                let params = CacheParams::live(format!(
+                    "pool-blocks-{}-{}",
+                    blocks::V1_BLOCK_SCHEMA,
+                    blocks.identity()
+                ));
                 Ok((blocks, params))
             },
             |q, blocks| Ok(Bytes::from(to_vec(&q.pool_blocks_resolved(blocks)?)?)),

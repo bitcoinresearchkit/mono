@@ -87,13 +87,9 @@ unbounded.
 
 ## Features
 
-The API features select endpoints and the plugins those endpoints read: `chain` (blocks, transactions, addresses, mining, mempool, UTXO set; implies
-`price`), `series`, `price` (oracle prices) and `urpd` (implies `price`); `full-api` enables all of
-them. Each plugin an enabled API feature reads adds its typed `HasX` requirement to
-`QueryPluginSet` and exposes its typed accessor.
-
-`full-api` is the default for standalone users; composition and adapter crates
-should disable default features and select only what they expose. Generic
-`Vecs` discovery (the `series` feature) works with any `Traversable` plugin
-without a dependency on that plugin crate. Query construction keeps direct typed
+`series` serves the generic series API: it discovers every series through `Traversable`, with no
+dependency on the plugin crates, so any composition with the mappings plugin can serve it.
+`full-api`, the default for standalone users, adds every other endpoint (chain, mempool, oracle,
+URPD), and each plugin they read adds its typed `HasX` requirement to `QueryPluginSet`. Composition
+and adapter crates should disable default features and select what they expose. Query construction keeps direct typed
 references, so hot paths perform no dynamic lookup.

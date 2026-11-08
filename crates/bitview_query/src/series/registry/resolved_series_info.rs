@@ -1,0 +1,41 @@
+use std::sync::Arc;
+
+use bitview_primitives::SeriesName;
+use bitview_types::SeriesInfo;
+
+use super::{SeriesRegistry, series::Series};
+
+/// Borrowed metadata resolution; materialize the response only when needed.
+pub struct ResolvedSeriesInfo<'a> {
+    series: &'a Series<'a>,
+    value_type: &'static str,
+    unit: Option<&'a Arc<str>>,
+}
+
+impl SeriesRegistry<'_> {
+    pub(crate) fn resolve_series_info(
+        &self,
+        series: &SeriesName,
+    ) -> Option<ResolvedSeriesInfo<'_>> {
+        let series = self.by_series.get(series.as_str())?;
+        let value_type = series.first()?.vec.value_type_name();
+        let unit = self.units.get(value_type);
+        Some(ResolvedSeriesInfo {
+            series,
+            value_type,
+            unit,
+        })
+    }
+}
+
+impl ResolvedSeriesInfo<'_> {
+    pub fn into_info(self) -> SeriesInfo {
+        SeriesInfo {
+            description: self.series.description.clone(),
+            indexes: self.series.indexes().collect(),
+            nullable: self.series.nullable().collect(),
+            value_type: self.value_type.into(),
+            unit: self.unit.cloned(),
+        }
+    }
+}

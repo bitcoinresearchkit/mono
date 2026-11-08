@@ -43,6 +43,13 @@ The `derive` feature re-exports the `Plugin` and `PluginSet` derives; see
 
 The plugin API is experimental.
 
+## Where reads live
+
+A plugin owns what is stored, how it is computed, and any read that needs its private layout or
+rules (`read_state`, `published_spend`, `warm_oracle`). Answering a question belongs in
+`bitview_query`: combining plugins, the mempool and the node, and shaping a response. Routes,
+parameters, caching and encoding belong in `bitview_server`.
+
 ## Plugin layout
 
 Every built-in plugin crate (except the indexer) has the same root:

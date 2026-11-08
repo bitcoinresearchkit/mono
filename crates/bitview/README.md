@@ -43,10 +43,10 @@ may extend `bitview_default`, as the example does, or start from scratch):
 bitview = { version = "0.12", features = ["series"] }
 ```
 
-Route-family features (`chain`, `series`, `urpd`, `price`) flow through
-`bitview_server` to `bitview_query`, so only the selected typed API surface and
-its plugin crates are compiled. The indexer is the mandatory runner baseline.
-`full-api` enables the complete chain, series, and URPD API.
+`series` serves the generic series API, which any composition with the mappings plugin can
+expose; `full-api` adds every other endpoint (chain, mempool, oracle, URPD) and requires the plugins
+they read. The features flow through `bitview_server` to `bitview_query`, so only the selected API
+and its plugin crates are compiled. The indexer is the mandatory runner baseline.
 
 ## License
 

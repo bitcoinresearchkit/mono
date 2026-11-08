@@ -47,7 +47,7 @@ use stall_limit::StallLimitListener;
 use state::*;
 
 mod api;
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 mod body_response;
 mod cache;
 mod config;
@@ -58,7 +58,7 @@ mod json_error;
 mod params;
 mod port;
 mod prepared_json;
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 mod raw_body;
 mod request_deadline;
 mod request_state;
@@ -79,7 +79,7 @@ pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use raw_body::RawBodyPermit;
 
 #[cfg(feature = "series")]
@@ -218,8 +218,9 @@ impl Server {
 
         config.website.log();
         #[cfg(feature = "series")]
-        query
-            .sync(|q| log_shared_series(q.vecs().shared_series(), q.vecs().value_type_conflicts()));
+        query.sync(|q| {
+            log_shared_series(q.registry().shared_series(), q.registry().value_type_conflicts())
+        });
 
         Ok(Self {
             app: app(query, config).await?,
@@ -247,7 +248,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let series_bodies = query
         .run(|query| Ok(Arc::new(SeriesBodies::new(query))))
         .await?;
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     let mining_pools_body = Arc::new(prepared_json::PreparedJson::new(
         query.sync(|query| query.all_pools()),
     ));
@@ -256,42 +257,42 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         chain_query: Arc::new(Semaphore::new(
             thread::available_parallelism().map_or(4, NonZero::get),
         )),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         history_query: Arc::new(Semaphore::new(2)),
         disk_query: Arc::new(Semaphore::new(1)),
         disk_walk: Default::default(),
-        #[cfg(feature = "price")]
+        #[cfg(feature = "full-api")]
         oracle_replays: Arc::new(Semaphore::new(1)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         raw_block_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         historical_price_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         historical_price_cache: Arc::default(),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_txid_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_block_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mempool_block_diff_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         node: query
             .run(|query| Ok(query.client().asynchronous()?))
             .await?,
         #[cfg(feature = "series")]
         series_bodies,
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         utxo_set_query: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         utxo_set_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "urpd")]
+        #[cfg(feature = "full-api")]
         urpd_query: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "urpd")]
+        #[cfg(feature = "full-api")]
         urpd_bodies: Arc::new(Semaphore::new(2)),
-        #[cfg(feature = "chain")]
+        #[cfg(feature = "full-api")]
         mining_pools_body,
         data_path: config.data_path,
         website: config.website,

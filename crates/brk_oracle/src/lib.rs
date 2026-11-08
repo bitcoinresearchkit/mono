@@ -36,7 +36,7 @@ pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::{PaymentFilter, Skip, Tally};
 pub use histogram::Histogram;
 use scale::NUM_BINS;
-pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
+pub use scale::{bin_to_cents, cents_to_bin, dollars_bin_offset, one_dollar_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
 
 pub use stencil::ROUND_DOLLARS;

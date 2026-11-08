@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "price")]
+#[cfg(feature = "full-api")]
 use std::thread;
 use std::{
     path::PathBuf,
@@ -12,7 +12,7 @@ use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
 use brk_exit::Exit;
 use brk_logger::init;
-#[cfg(feature = "price")]
+#[cfg(feature = "full-api")]
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
@@ -38,7 +38,7 @@ use update::update;
 
 /// How often an idle server reads what the next update will: an update a minute after the last
 /// still finds it in memory, one ten minutes after mostly on disk.
-#[cfg(feature = "price")]
+#[cfg(feature = "full-api")]
 const WARM_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Fully resolved settings for one Bitview runner.
@@ -131,27 +131,27 @@ where
     )?;
 
     // Only the chain and price reads use the mempool: without them no driver runs.
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     let mut mempool = Mempool::new(&client);
     // The RBF trees, removal reasons and first sightings outlive restarts: saved every few
     // minutes, and the last publication's at shutdown.
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     {
         let graveyard = mempool.keep_graveyard(server.data_path.join("mempool").join("graveyard"));
         exit.register_cleanup(move || graveyard.save());
     }
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     let query = AsyncQuery::build(&plugins, Some(mempool.read_only_clone()));
-    #[cfg(not(feature = "price"))]
+    #[cfg(not(feature = "full-api"))]
     let query = AsyncQuery::build(&plugins, None);
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     let template = mempool.read_only_clone();
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     let published = {
         // The indexer first; what it can't give (a parent above its tip, or a script it reads
         // from a block file that won't read), Core's UTXO set.
@@ -178,7 +178,7 @@ where
     info!("Waiting for new blocks...");
 
     loop {
-        #[cfg(feature = "price")]
+        #[cfg(feature = "full-api")]
         let mut warmed = Instant::now();
         // Compare against published state, not a cached node observation: a
         // reorg can replace the tip without changing its height.
@@ -188,7 +188,7 @@ where
             }
             // Idle minutes leave what the next update reads on disk: read it again before it
             // goes cold, from the template the next block most likely shares.
-            #[cfg(feature = "price")]
+            #[cfg(feature = "full-api")]
             if warmed.elapsed() >= WARM_INTERVAL {
                 plugins.warm(&template.load().template_transactions());
                 warmed = Instant::now();
@@ -207,7 +207,7 @@ where
             "Updated to block {height} {hash} in {:.2?}",
             start.elapsed()
         );
-        #[cfg(feature = "price")]
+        #[cfg(feature = "full-api")]
         published.published();
 
         if server_handle.is_finished() {

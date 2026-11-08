@@ -16,6 +16,19 @@ pub fn sats_to_bin(sats: Sats) -> Option<usize> {
     (bin < NUM_BINS).then_some(bin)
 }
 
+/// The fractional bin of the price at which `sats` buys one dollar; taken as a payment of a round
+/// amount instead, [`dollars_bin_offset`] bins lower.
+#[inline]
+pub fn one_dollar_bin(sats: Sats) -> f64 {
+    ((*sats as f64).log10() + 2.0) * BINS_PER_DECADE as f64
+}
+
+/// How many bins lower a price reads when a payment is `dollars` instead of one dollar.
+#[inline]
+pub fn dollars_bin_offset(dollars: f64) -> f64 {
+    dollars.log10() * BINS_PER_DECADE as f64
+}
+
 /// Converts a fractional bin to a USD price in cents. At the $100 reference,
 /// sats = 100 * 1e8 / P, so P = 10^(10 - bin / 200) dollars.
 #[inline]

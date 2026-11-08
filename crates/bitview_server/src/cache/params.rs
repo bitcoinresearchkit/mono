@@ -1,6 +1,6 @@
 use axum::http::HeaderMap;
 use bitview_primitives::BlockHashPrefix;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
 #[cfg(feature = "series")]
 use bitview_query::{ResolvedQuery, SeriesAnchor};
@@ -100,7 +100,7 @@ impl CacheParams {
         }
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub fn representation(version: Version, identity: RepresentationId) -> Self {
         match identity {
             RepresentationId::Content(hash) => Self::live_hash(hash),

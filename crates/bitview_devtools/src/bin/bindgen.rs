@@ -9,7 +9,7 @@ use std::{
 use aide::axum::ApiRouter;
 use bitview_bindgen::{ClientOutputPaths, generate_clients};
 use bitview_devtools::import;
-use bitview_query::Vecs;
+use bitview_query::SeriesRegistry;
 use bitview_server::{ApiRoutes, finish_openapi};
 use serde_json::{json, to_string, to_string_pretty};
 
@@ -90,7 +90,7 @@ fn run() -> Result<()> {
 
 fn generate(check: bool, scope: OutputScope) -> Result<()> {
     let imported = import()?;
-    let vecs = Vecs::build(&imported.plugins);
+    let registry = SeriesRegistry::build(&imported.plugins);
 
     let (_, openapi) = finish_openapi(ApiRouter::new().add_api_routes());
 
@@ -112,7 +112,7 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
     };
     let output_paths = output_paths(&output_root, scope);
 
-    generate_clients(vecs.catalog(), &to_string(&openapi)?, &output_paths)?;
+    generate_clients(registry.catalog(), &to_string(&openapi)?, &output_paths)?;
     if matches!(scope, OutputScope::All) {
         generate_registry_manifest(&output_root)?;
     }

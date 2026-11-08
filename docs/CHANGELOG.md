@@ -10,6 +10,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- `bitview`, `bitview_server` and `bitview_query` keep two API features: `series`, the generic series routes, and
+  `full-api`, every other route too. The `chain`, `price` and `urpd` features are gone: enable `full-api` for them
+- `bitview_query`: `Vecs` is `SeriesRegistry`, and `Query::vecs()` is `Query::registry()`; `QueryPlugins` and the `Supports*` traits are
+  no longer exported (`QueryPluginSet` is the bound), and `ResolvedBlocksV1` and `ResolvedPoolBlocks` give `identity()` in
+  place of their `prices`, `heights` and `activity_anchor` getters
 - Pools follow mempool's current `pools-v2.json`: BTC.com is CloverPool (pool 6: slug `cloverpool`, was `btccom`, in
   `/api/v1/mining/pool/{slug}`, the tree key `pools.cloverpool` and series ids `pool_cloverpool_*`, were
   `pool_btccom_*`), and TrustPool is pool 172 (`trustpool`), both with their logos. Blocks are attributed to pools again

@@ -9,6 +9,7 @@ mod value;
 pub use by_type::{OutputTypeVecs, Vecs as TypesVecs};
 pub use dependencies::Dependencies;
 pub use has::HasOutputs;
+pub use spent::published_spend;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{Count, Count32};

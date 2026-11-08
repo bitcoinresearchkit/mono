@@ -5,12 +5,11 @@ use axum::{
     http::{HeaderMap, HeaderValue, Method, header},
     response::Response,
 };
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::{
     Error as QueryError, Query, ResolvedBlocks, ResolvedBlocksV1, Result as QueryResult,
 };
 use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex};
-use brk_types::{BlockHash, Dollars, Height, Hex, Timestamp, Transaction, Txid};
+use brk_types::{BlockHash, Height, Hex, Timestamp, Transaction, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 
@@ -30,6 +29,7 @@ const BLOCK_TXS_PAGE_SIZE: u32 = 25;
 const BASE_BLOCK_SCHEMA: &str = "v3";
 const HEADER_SCHEMA: &str = "header-v2";
 const RAW_SCHEMA: &str = "raw-v2";
+/// Covers the extended rows' formulas and bundled pool catalog: bumped when either changes.
 pub const V1_BLOCK_SCHEMA: &str = "v1-5";
 
 fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode) -> CacheParams {
@@ -40,25 +40,8 @@ fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode)
     CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
-// The namespace covers the row formulas and bundled pool catalog. Bump it when
-// either changes. Prices also participate, so a deploy changing them (oracle
-// configs, price tapes) never validates an older body. Hash exactly the values
-// used by the body.
-pub fn blocks_v1_identity(anchor: Option<BlockHash>, prices: &[Dollars]) -> sha256::Hash {
-    let mut engine = sha256::Hash::engine();
-    engine.input(&[u8::from(anchor.is_some())]);
-    if let Some(hash) = anchor {
-        engine.input(&*hash);
-    }
-    for price in prices {
-        engine.input(&f64::from(*price).to_bits().to_le_bytes());
-    }
-    sha256::Hash::from_engine(engine)
-}
-
 fn blocks_v1_params(snapshot: &ResolvedBlocksV1, cdn_cache_mode: CdnCacheMode) -> CacheParams {
-    let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
-    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{identity}");
+    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{}", snapshot.identity());
     CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
@@ -69,7 +52,7 @@ fn block_v1_params(
     let height = snapshot
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
-    let identity = blocks_v1_identity(snapshot.anchor(), snapshot.prices());
+    let identity = snapshot.identity();
     let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity}"));
     Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
 }

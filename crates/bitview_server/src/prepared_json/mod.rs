@@ -10,7 +10,7 @@ pub struct PreparedJson {
 }
 
 impl PreparedJson {
-    #[cfg(any(feature = "series", feature = "chain"))]
+    #[cfg(feature = "series")]
     pub fn new(value: impl serde::Serialize) -> Self {
         Self::from_bytes(Bytes::from(serde_json::to_vec(&value).unwrap()))
     }

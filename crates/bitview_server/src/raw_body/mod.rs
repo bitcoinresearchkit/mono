@@ -24,7 +24,7 @@ pub struct RawBodyPermit {
 impl RawBodyPermit {
     // Eight concurrent responses per budget: raw blocks are at most 4 MB each (32 MB in all),
     // chain JSON can be larger.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub const CAPACITY: usize = 8;
 
     /// Bodies at least this large keep their permit until sent; smaller ones release it once

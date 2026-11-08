@@ -5,7 +5,7 @@ use axum::Json;
 use bitview_types::ErrorBody;
 use schemars::JsonSchema;
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use crate::extended::TypedText;
 
 pub trait TransformResponseExtended {
@@ -23,24 +23,19 @@ pub trait TransformResponseExtended {
         R: JsonSchema,
         F: FnOnce(TransformResponse<'_, R>) -> TransformResponse<'_, R>;
     /// 200 with text/plain content type whose body parses as `T`
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     fn text_response<T>(self) -> Self
     where
         T: JsonSchema;
     /// 200 with application/octet-stream content type
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     fn binary_response(self) -> Self;
     /// 200 with text/csv content type (adds CSV as alternative response format)
     #[cfg(feature = "series")]
     fn csv_response(self) -> Self;
-    #[cfg(any(
-        feature = "chain",
-        feature = "price",
-        feature = "series",
-        feature = "urpd"
-    ))]
+    #[cfg(feature = "series")]
     fn not_found(self) -> Self;
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     /// 422: a pagination cursor that names no known transaction.
     fn unknown_cursor(self) -> Self;
     fn not_modified(self) -> Self;
@@ -85,7 +80,7 @@ impl<'t> TransformResponseExtended for TransformOperation<'t> {
         self.response_with::<200, Json<R>, _>(|res| f(res.description("Successful response")))
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     fn text_response<T>(self) -> Self
     where
         T: JsonSchema,
@@ -93,7 +88,7 @@ impl<'t> TransformResponseExtended for TransformOperation<'t> {
         self.response_with::<200, TypedText<T>, _>(|res| res.description("Successful response"))
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     fn binary_response(self) -> Self {
         self.response_with::<200, Vec<u8>, _>(|res| res.description("Raw binary data"))
     }
@@ -111,17 +106,12 @@ impl<'t> TransformResponseExtended for TransformOperation<'t> {
         self
     }
 
-    #[cfg(any(
-        feature = "chain",
-        feature = "price",
-        feature = "series",
-        feature = "urpd"
-    ))]
+    #[cfg(feature = "series")]
     fn not_found(self) -> Self {
         self.error_response::<404>("Resource not found")
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     fn unknown_cursor(self) -> Self {
         self.error_response::<422>("Pagination cursor not found")
     }

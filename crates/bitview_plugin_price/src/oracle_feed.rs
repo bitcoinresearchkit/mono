@@ -3,7 +3,7 @@ use std::ops::Range;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, Lengths, TxOutIndex};
 use brk_error::{Error, Result};
-use brk_oracle::{HistogramRaw, Oracle, PaymentFilter, Tally};
+use brk_oracle::{Config, HistogramRaw, Oracle, PaymentFilter, START_HEIGHT_SLOW, Tally};
 use brk_types::{OutputType, Sats};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
@@ -12,14 +12,22 @@ use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
 /// blocks read in parallel.
 const BATCH_HEIGHTS: usize = 1_000;
 
-/// Feed blocks into an Oracle when callers only need the warmed EMA/window state.
-pub fn feed_blocks_for_warmup<IM: StorageMode>(
-    oracle: &mut Oracle,
+/// An oracle ready for block `end`: seeded at `seed_bin`, the reference bin before it, and warmed
+/// by replaying its window's blocks ending there, never below the oracle's first block. `cap` keeps
+/// the replay inside a publication.
+pub fn warm_oracle<IM: StorageMode>(
     indexer: &Indexer<IM>,
-    range: Range<usize>,
+    seed_bin: f64,
+    end: usize,
     cap: Option<&Lengths>,
-) -> Result<()> {
-    feed_blocks_with(oracle, indexer, range, cap, |_, _, _| {})
+) -> Result<Oracle> {
+    let config = Config::for_height(end);
+    let start = end
+        .saturating_sub(config.window_size)
+        .max(START_HEIGHT_SLOW.min(end));
+    Oracle::from_checkpoint(seed_bin, config, |oracle| {
+        feed_blocks_with(oracle, indexer, start..end, cap, |_, _, _| {})
+    })
 }
 
 /// Feed a range of blocks into an Oracle and call `on_block` after each

@@ -1,35 +1,35 @@
 use std::{future::Future, path::PathBuf, sync::Arc, time::Instant};
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use axum::http::{HeaderValue, header};
 use axum::{
     body::{Body, Bytes},
     http::{HeaderMap, Response},
     response::IntoResponse,
 };
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use bitview_query::PublicationCache;
 use bitview_query::{AsyncQuery, Error as QueryError, Query, RepresentationId, Result};
 use brk_rpc::AsyncClient;
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use brk_types::Version;
 use derive_more::Deref;
 use jiff::Timestamp;
-#[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 use serde::Serialize;
-#[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+#[cfg(feature = "full-api")]
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
 use crate::{CacheParams, CdnCacheMode, Error, Website, extended::ResponseExtended};
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 use crate::{prepared_json::PreparedJson, raw_body::RawBodyPermit};
 
 /// What a JSON builder gives [`AppState::respond_json_built`]: the request's copy is current
 /// (decided before building), or a body and its validator.
-#[cfg(feature = "chain")]
+#[cfg(feature = "full-api")]
 enum Built {
     Unchanged(CacheParams),
     Body(Bytes, CacheParams),
@@ -49,46 +49,46 @@ pub struct SharedState {
     pub chain_query: Arc<Semaphore>,
     /// Whole-history aggregates (the mining statistics): a few at once, apart from chain reads,
     /// so a client looping on them waits behind itself, not ahead of every point read.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub history_query: Arc<Semaphore>,
     pub disk_query: Arc<Semaphore>,
     pub disk_walk: crate::api::server::LastWalk,
     /// Oracle replays (searches, histograms at a height or a day), which read every output of their
     /// blocks: one at a time, waiting apart from other reads.
-    #[cfg(feature = "price")]
+    #[cfg(feature = "full-api")]
     pub oracle_replays: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub raw_block_bodies: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub historical_price_bodies: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     /// The full-history representation, shared by requests for the same publication.
     pub historical_price_cache: Arc<PublicationCache<(Bytes, RepresentationId)>>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub mempool_txid_bodies: Arc<Semaphore>,
     /// Block templates, about 10 MB each.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub mempool_block_bodies: Arc<Semaphore>,
     /// Block template diffs: small, except right after a block.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub mempool_block_diff_bodies: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub broadcast_requests: Arc<Semaphore>,
     /// Transaction, block and address-history bodies.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub chain_bodies: Arc<Semaphore>,
     pub node: AsyncClient,
     #[cfg(feature = "series")]
     pub series_bodies: Arc<SeriesBodies>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub utxo_set_query: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub utxo_set_bodies: Arc<Semaphore>,
-    #[cfg(feature = "urpd")]
+    #[cfg(feature = "full-api")]
     pub urpd_query: Arc<Semaphore>,
-    #[cfg(feature = "urpd")]
+    #[cfg(feature = "full-api")]
     pub urpd_bodies: Arc<Semaphore>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub mining_pools_body: Arc<PreparedJson>,
     pub data_path: PathBuf,
     pub website: Website,
@@ -117,7 +117,7 @@ impl AppState {
     }
 
     /// [`Self::respond_admitted`] for transaction, block and address bodies.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub async fn respond_read<S: 'static>(
         &self,
         headers: HeaderMap,
@@ -203,7 +203,7 @@ impl AppState {
     }
 
     /// Immediate JSON response whose validator is derived from its exact bytes.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub fn respond_json_content_value<T: Serialize>(
         &self,
         headers: &HeaderMap,
@@ -214,7 +214,7 @@ impl AppState {
     }
 
     /// JSON response whose representation identity is produced with its bytes.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub async fn respond_json_bound<B: AsRef<[u8]> + Send + 'static>(
         &self,
         headers: HeaderMap,
@@ -236,7 +236,7 @@ impl AppState {
     /// when the request's validator already matches, before building. Building is bounded by
     /// `admission`; a large body then takes a `chain_bodies` permit that it keeps until sent,
     /// building again once one is free.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     async fn respond_json_built(
         &self,
         admission: &Arc<Semaphore>,
@@ -278,7 +278,7 @@ impl AppState {
     /// Anything published while one builds may be in it (a block, a rollback): then its content
     /// tags it. Inputs `f` would reject are checked by the caller first: a matching tag would
     /// answer before `f` runs.
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "full-api")]
     pub async fn respond_json_history<T: Serialize>(
         &self,
         headers: HeaderMap,
@@ -302,7 +302,7 @@ impl AppState {
     }
 
     /// JSON response whose validator is derived from the exact serialized value.
-    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+    #[cfg(feature = "full-api")]
     pub async fn respond_json_content<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
     where
         T: Serialize + Send + 'static,
@@ -314,7 +314,7 @@ impl AppState {
 
     /// [`Self::respond_json_content`] for a value its URL pins: settled below the reorg
     /// window, it takes the stable CDN tier.
-    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+    #[cfg(feature = "full-api")]
     pub async fn respond_json_settled<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
     where
         T: Serialize + Send + 'static,
@@ -325,7 +325,7 @@ impl AppState {
     }
 
     /// [`Self::respond_json_settled`] under its own admission: work heavy enough to wait apart.
-    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+    #[cfg(feature = "full-api")]
     pub async fn respond_json_settled_on<T, F>(
         &self,
         admission: &Arc<Semaphore>,
