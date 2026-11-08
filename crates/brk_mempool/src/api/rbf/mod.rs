@@ -113,11 +113,6 @@ impl ReadOnlyState {
     /// [`Self::recent_replacements_json`] serves 25 of them, as mempool.space's `/replacements`
     /// does. `full_rbf_only` drops trees with no non-signaling predecessor. The first request of
     /// each publication walks them.
-    pub fn recent_rbf_trees(&self, full_rbf_only: bool, tip: &BlockHash) -> Result<Vec<RbfNode>> {
-        let state = self.pool()?.at(tip)?;
-        Ok(Self::recent_trees(state, full_rbf_only).to_vec())
-    }
-
     fn recent_trees(state: &Pool, full_rbf_only: bool) -> &[RbfNode] {
         state.recent_trees[usize::from(full_rbf_only)]
             .get_or_init(|| Self::walk_recent_trees(state, full_rbf_only))
@@ -156,16 +151,16 @@ impl ReadOnlyState {
     }
 
     /// Each tree has [`LISTED_TREE_WORK`]: one larger or nested deeper comes cut (`truncated`).
-    /// The whole walk is bounded too (`RECENT_WALKED + 1` trees' budgets, charged for discarded
-    /// candidates and stale graveyard entries): once that runs out the listing ends with the trees
-    /// found so far.
+    /// The whole walk is bounded too, by `RECENT_WALKED + 1` full trees' budgets, charged for
+    /// discarded candidates and stale graveyard entries: once that runs out the listing ends with
+    /// the trees found so far. It is that large so one long chain can't crowd out the other trees.
     fn walk_recent_trees(state: &Pool, full_rbf_only: bool) -> Vec<RbfNode> {
         let limit = RECENT_WALKED;
         let mut seen: RapidHashSet<Txid> = RapidHashSet::default();
         // Every version a walk passed, with its tree's root: each chain is walked once, however
         // many of its versions the listing meets.
         let mut roots: RapidHashMap<Txid, Txid> = RapidHashMap::default();
-        let mut total = LISTED_TREE_WORK.saturating_mul(limit + 1);
+        let mut total = MAX_RBF_WORK.saturating_mul(limit + 1);
         let mut trees = Vec::new();
         for candidate in state.graveyard.replacements_recent_first() {
             let Some(left) = total.checked_sub(1) else {
