@@ -382,10 +382,10 @@
 
         /* (Short of the whole screen, so what's on now shows under it from the first moment: its programmes on a desk, its
            head and first programmes' tops on a phone. A short screen: its words and dock set the height.) */
-        min-height: calc(100svh - 132px);
+        min-height: calc(100svh - 108px);
 
         @media (min-width: 720px) {
-          min-height: calc(100svh - 200px);
+          min-height: calc(100svh - 146px);
           padding-top: calc(96px + var(--bar-top));
         }
 
@@ -997,7 +997,7 @@
 
         /* (The first row's room held while the script fills it: what shows on arrival doesn't move.) */
         &:has(#blocks-title) {
-          min-height: 184px;
+          min-height: 130px;
         }
 
         h2 {
@@ -1731,7 +1731,7 @@
         position: relative;
         z-index: 2;
         gap: var(--dock-gap);
-        min-height: calc(var(--dock-w) * 10 / 16 + 34px);
+        min-height: calc(var(--dock-w) * 11 / 16 + 34px);
         margin: clamp(14px, 3svh, 34px) 0 0;
         padding: 16px var(--gutter) 18px;
         scroll-snap-type: x proximity;
@@ -1741,19 +1741,27 @@
         }
 
         .tile {
-          aspect-ratio: 16 / 10;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          aspect-ratio: 16 / 11;
+          background: #0c0b09;
           transform-origin: 50% 100%;
           transition: scale 0.32s var(--lift), box-shadow 0.32s, opacity 0.32s;
 
+          > canvas {
+            inset: 0 0 auto;
+            height: 62%;
+          }
+
           &.named::after {
-            inset: 18% 0 0;
+            content: none;
           }
 
           /* (One caption, one size and baseline: the names' own faces are the stage's and the sheets', too small to read here.) */
           .name {
-            left: 10px;
-            right: 10px;
-            bottom: 9px;
+            position: static;
+            padding: 0 10px 8px;
             color: var(--ink);
             font: 650 13px/1.25 var(--sans);
             letter-spacing: -0.01em;
@@ -1828,54 +1836,63 @@
         }
       }
 
-      /* ── On now: the chain as a television's guide. Each block a programme, as wide as it ran, the block forming at the
-         end of the line, growing, under a Now that keeps time. ── */
+      /* ── On now: the chain as one strip of time. Each block a segment, as wide as it ran, touching the next; the block forming at the end of the line. ── */
 
       .row.guide {
         --minute: clamp(12px, 1.25vw, 22px);
-        padding-top: 8px;
-        padding-bottom: 12px;
+        gap: 0;
+        margin: 0 var(--gutter) 18px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 12px;
+        background: var(--card);
+        box-shadow: 0 0 0 1px var(--line);
         scroll-snap-type: none;
-        overflow-x: hidden;
 
         > li {
-          flex: 1 0 max(172px, var(--m, 10) * var(--minute));
+          flex: 1 0 max(136px, var(--m, 10) * var(--minute));
 
           &:last-child {
-            flex-basis: max(216px, var(--m, 10) * var(--minute));
+            flex-basis: max(190px, var(--m, 10) * var(--minute));
           }
 
           &[hidden] {
             display: none;
+          }
+
+          &:not(:last-child) {
+            box-shadow: inset -1px 0 0 var(--line);
           }
         }
 
         .p {
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          height: 112px;
-          padding: 10px 12px;
-          background: var(--card);
+          justify-content: center;
+          gap: 3px;
+          height: 66px;
+          border-radius: 0;
+          padding: 0 14px;
+          background: none;
+          box-shadow: none;
 
-          .t {
-            color: var(--text);
-            font-size: 13px;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-
-            @container (max-width: 150px) {
-              .dur {
-                display: none;
-              }
-            }
+          &:hover {
+            box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink), transparent 68%);
           }
 
           .h {
-            margin-top: 1px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
             color: var(--ink);
-            font: 600 16px var(--mono);
+            font: 600 15px var(--mono);
             letter-spacing: -0.02em;
+
+            small {
+              color: var(--text);
+              font: 500 12.5px var(--sans);
+              letter-spacing: 0;
+            }
           }
 
           .by {
@@ -1883,9 +1900,8 @@
             align-items: center;
             gap: 6px;
             min-width: 0;
-            color: var(--ink);
+            color: var(--text);
             font-size: 12.5px;
-            font-weight: 600;
 
             span:last-child {
               overflow: hidden;
@@ -1895,44 +1911,26 @@
           }
 
           .logo {
-            width: 16px;
-            height: 16px;
-          }
-
-          .m {
-            overflow: hidden;
-            color: var(--text);
-            font-size: 13px;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-
+            width: 15px;
+            height: 15px;
           }
 
           &.now {
-            background: linear-gradient(120deg, color-mix(in oklab, var(--brand), var(--card) 74%), var(--card) 70%);
-            box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand), transparent 42%);
-
-            .t {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              color: var(--ink);
-              font-weight: 600;
-            }
+            background: linear-gradient(100deg, color-mix(in oklab, var(--brand), var(--card) 70%), var(--card));
 
             .h {
-              font-size: 21px;
-            }
-
-            .by {
-              font-size: 14px;
+              font-size: 16px;
             }
           }
 
           &.fresh {
             animation: arrive 1.1s var(--lift);
           }
+        }
+
+        > li:has(> a:focus-visible) > a {
+          scale: 1;
+          box-shadow: inset 0 0 0 2px var(--focus);
         }
       }
 
@@ -2900,7 +2898,7 @@
       const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#c29a63" });
       const dock = $("dock");
       /** What the scenes read, kept here so a scene drawn at any size sees the same picture. */
-      const data = { count: /** @type {number | null} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
+      const data = { count: /** @type {number | null} */ (null), next: /** @type {any} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
       const tiles = FEATURED.map((t, i) => {
         const name = el("span", { className: "name" }, t.name, el("small", {}, t.kind ?? ""));
         name.dataset.face = t.id;
@@ -2936,9 +2934,9 @@
       function channelReading(/** @type {string} */ id) {
         const block = data.blocks[0], num = (/** @type {number} */ i) => latestSeries(i);
         switch (id) {
-          case "studio": return data.count ? ["Series to chart", grouped(data.count)] : null;
+          case "studio": return block ? ["Forming now", grouped(block.height + 1)] : null;
           case "oracle": return data.price ? ["Read from the chain", dollars(data.price.USD)] : null;
-          case "explorer": return block ? ["Forming now", grouped(block.height + 1)] : null;
+          case "explorer": return data.next ? ["In the next block", `${grouped(data.next.nTx)} txs`] : null;
           case "globe": { const p = data.pools?.pools?.[0]; return p ? ["Leading pool this week", p.name] : null; }
           case "trail": { const v = num(3); return valid(v) ? ["Realized price", dollars(/** @type {number} */ (v))] : null; }
           case "stack": { const v = num(4); return valid(v) ? ["Sats per dollar", grouped(/** @type {number} */ (v))] : null; }
@@ -3135,7 +3133,7 @@
         if (!frame && !(reduced && drawn)) frame = requestAnimationFrame(drawScene);
       }
       /** Where each scene's focus sits, and how much of it a tile shows: every tile one composition, the art centred, the same size. */
-      const TILE_FIT = /** @type {Record<string, [number, number, number]>} */ ({ oracle: [0.54, 0.37, 1.35], explorer: [0.5, 0.5, 1.5], globe: [0.51, 0.38, 0.52], trail: [0.5, 0.4, 1.5], stack: [0.52, 0.36, 1.4], compass: [0.5, 0.38, 0.56] });
+      const TILE_FIT = /** @type {Record<string, [number, number, number]>} */ ({ oracle: [0.54, 0.37, 1.35], explorer: [0.5, 0.5, 1.5], globe: [0.51, 0.38, 0.36], trail: [0.5, 0.4, 1.5], stack: [0.52, 0.36, 1.4], compass: [0.5, 0.38, 0.38] });
       let drawingTile = false;
       function tileStudio(/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ W, /** @type {number} */ H) {
         const price = normalized(0), realized = normalized(3);
@@ -3382,18 +3380,18 @@
       function programme(/** @type {any} */ b, /** @type {number} */ before) {
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
         const fee = feeRate(b.extras?.medianFee ?? 0);
-        const tile = el("a", { className: "tile p", href: `/explorer/block/${b.height}`, ariaLabel: `Block ${grouped(b.height)}, mined by ${pool.name}` },
-          el("div", {}, el("div", { className: "t" }, took(b.timestamp - before)), el("div", { className: "h" }, grouped(b.height))),
-          el("div", {}, el("div", { className: "by" }, logo(pool.slug, pool.name), el("span", {}, pool.name)), el("div", { className: "m" }, `${grouped(b.tx_count)} txs · ${fee} sat/vB`)));
+        const tile = el("a", { className: "tile p", href: `/explorer/block/${b.height}`, title: `${grouped(b.tx_count)} transactions · ${fee} sat/vB`, ariaLabel: `Block ${grouped(b.height)}, mined by ${pool.name}, ${took(b.timestamp - before)}` },
+          el("div", { className: "h" }, grouped(b.height), el("small", {}, took(b.timestamp - before))),
+          el("div", { className: "by" }, logo(pool.slug, pool.name), el("span", {}, pool.name)));
         const li = el("li", {}, tile);
         li.style.setProperty("--m", String(ran(b.timestamp - before)));
         return li;
       }
-      const formingWhen = el("span", {}, ""), formingFacts = el("div", { className: "m" }, "");
-      const formingHeight = el("div", { className: "h" }, "–");
+      const formingWhen = el("small", {}, ""), formingFacts = el("span", {}, "");
+      const formingHeight = el("span", {}, "–");
       const forming = el("li", {}, el("a", { className: "tile p now", href: "/explorer/" },
-        el("div", {}, el("div", { className: "t" }, el("span", { className: "live" }, "Now"), formingWhen), formingHeight),
-        el("div", {}, el("div", { className: "by" }, el("span", {}, "Next block, forming")), formingFacts)));
+        el("div", { className: "h" }, el("span", { className: "live" }, "Now"), formingHeight, formingWhen),
+        el("div", { className: "by" }, formingFacts)));
       /** When the last block was found (s); the newest block drawn. */
       let lastAt = 0, guideFilled = false, blockTop = "";
       /** The last time someone used the page: a block arriving interrupts an idle screen, and only says so to someone using it. */
@@ -3429,7 +3427,7 @@
         if (!lastAt) return;
         const seconds = Math.max(0, Date.now() / 1000 - lastAt);
         forming.style.setProperty("--m", String(ran(seconds)));
-        formingWhen.textContent = seconds < 60 ? "under a minute" : `${Math.floor(seconds / 60)} min so far`;
+        formingWhen.textContent = seconds < 60 ? "just now" : `${Math.floor(seconds / 60)} min so far`;
       }
       /** As many whole programmes as the row has room for, newest last, the rest hidden: nothing cut at either edge; a wider screen shows more. */
       function fitGuide() {
@@ -3437,7 +3435,7 @@
         let used = 0;
         const shown = /** @type {HTMLElement[]} */ ([...guide.children]).reverse();
         for (const li of shown) {
-          const least = li === forming ? 216 : 172, wide = Math.max(least, Number(li.style.getPropertyValue("--m") || 10) * minute);
+          const least = li === forming ? 190 : 136, wide = Math.max(least, Number(li.style.getPropertyValue("--m") || 10) * minute);
           li.hidden = used + wide > room;
           if (!li.hidden) used += wide + gap;
         }
@@ -3543,7 +3541,7 @@
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         ctx.scale(dpr, dpr);
         // ("ink": the page's own, whichever scheme it's in.)
-        const hue = (/** @type {number} */ k) => (c.colors[k] === "ink" ? (darkScheme.matches ? "#f6f3ee" : "#16130f") : c.colors[k]);
+        const hue = (/** @type {number} */ k) => (c.colors[k] === "ink" ? (darkScheme.matches ? "#f6f3ee" : "#16130f") : darkScheme.matches ? c.colors[k] : `#${c.colors[k].slice(1).match(/../g).map((h) => Math.round(parseInt(h, 16) * 0.62).toString(16).padStart(2, "0")).join("")}`);
         const lists = c.series.map((s) => (c.daily ? lastYear.get(s) ?? [] : (histories.get(s) ?? []).slice(-120)));
         const all = lists.flat().filter((v) => v != null && (!c.log || v > 0));
         if (!all.length) return;
@@ -3746,7 +3744,9 @@
           // (The next block, as the mempool has it now: the guide's forming programme, the Explorer's title on the stage.)
           read("/api/v1/fees/mempool-blocks").then((next) => {
             const b = next[0];
-            formingFacts.textContent = b ? `${grouped(b.nTx)} txs · ${feeRate(b.medianFee)} sat/vB` : "";
+            formingFacts.textContent = b ? `${grouped(b.nTx)} txs waiting · ${feeRate(b.medianFee)} sat/vB` : "";
+            data.next = b ?? null;
+            showReading();
             if (b) facts.explorer = `<b>${grouped(b.nTx)}</b> transactions forming the next block, ${feeRate(b.medianFee)} sat/vB`;
             else delete facts.explorer;
             showReading();
