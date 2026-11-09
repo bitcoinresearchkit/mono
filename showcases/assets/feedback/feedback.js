@@ -43,8 +43,10 @@
   function link() {
     if (!shareable()) return "";
     try {
-      const own = feedback.link?.();
-      const place = own ? new URL(own, location.href) : location;
+      // (A page with its own says what may go: nothing, if it has nothing safe to say.)
+      const own = feedback.link ? feedback.link() : location.href;
+      if (!own) return "";
+      const place = new URL(own, location.href);
       const exact = mask(place.pathname + place.search + place.hash);
       return exact.replace(/\/$/, "") === page.replace(/\/$/, "") || exact.length > 6000 ? "" : exact;
     } catch {

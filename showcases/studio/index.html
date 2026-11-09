@@ -37795,7 +37795,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function reportedSketch(/** @type {Chart} */ doc) {
         const pick = (/** @type {any} */ from, /** @type {string[]} */ names) => Object.fromEntries(names.filter((name) => from[name] !== undefined).map((name) => [name, from[name]]));
         const sketch = toSketch(doc);
-        return { ...pick(sketch, ["index", "range", "halvings", "legend", "panes", "view"]), layers: sketch.layers.map((/** @type {any} */ layer) => ({ ...pick(layer, ["series", "letter", "type", "side", "pane"]), ...(layer.formula === undefined ? {} : { formula: "(their own)" }) })) };
+        return { ...pick(sketch, ["index", "range", "halvings", "legend", "view"]), ...(sketch.panes ? { panes: sketch.panes.map((/** @type {any} */ pane) => pick(pane, ["mode", "stack", "reverse", "size"])) } : {}), layers: sketch.layers.map((/** @type {any} */ layer) => ({ ...pick(layer, ["series", "letter", "type", "side", "pane"]), ...(layer.formula === undefined ? {} : { formula: "(their own)" }) })) };
       }
       /** What a feedback note attaches: a preset's address, or that part of a chart of someone's own, in the link's readable form. */
       /** @type {any} */ (window).bitviewFeedback.link = () => (home || !chart.layers.length ? null : (presetAddress(chart) ?? `${linkBase()}${sketchText(reportedSketch(chart))}`));

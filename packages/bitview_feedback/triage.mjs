@@ -11,11 +11,12 @@
 //
 // A note's life: pulled to a spool file (and only then deleted upstream), classified into a record (every note gets one,
 // the unclassifiable too), shown in one digest, its spool file then gone; records and digests after 30 days.
-// Each step is safe to repeat, so a crash anywhere loses nothing and the next run carries on.
+// Each step is safe to repeat, so a run dying anywhere loses nothing and the next carries on (a power cut can lose what the
+// disk hadn't yet written).
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BROWSER, CONTEXT, PAGE } from "./shapes.js";
+import { BROWSER, CONTEXT, LINK, PAGE, VERSION } from "./shapes.js";
 
 const HOME = /** @type {string} */ (process.env.HOME);
 /** Outside every git repo, on purpose: nothing a stranger wrote is ever committed. */
@@ -91,7 +92,7 @@ function contextFits(text) {
   }
 }
 /** The Worker's contract: anything else is not one of its rows. @param {any} row */
-const wellFormed = (row) => Number.isSafeInteger(row.id) && [row.day, row.link, row.version, row.context, row.message].every((field) => typeof field === "string") && /^\d{4}-\d{2}-\d{2}$/.test(row.day) && fits(row.page, PAGE) && fits(row.browser, BROWSER) && contextFits(row.context);
+const wellFormed = (row) => Number.isSafeInteger(row.id) && [row.day, row.context, row.message].every((field) => typeof field === "string") && /^\d{4}-\d{2}-\d{2}$/.test(row.day) && fits(row.link, LINK) && fits(row.version, VERSION) && fits(row.page, PAGE) && fits(row.browser, BROWSER) && contextFits(row.context);
 
 /** Is what was sent the one served now? The value goes no further: a patched node's version or build would single it out.
  * @param {string} sent @param {string | null | undefined} now */
@@ -143,7 +144,7 @@ async function classify(message) {
         if (!line.trim()) continue;
         const event = JSON.parse(line);
         if (event.type === "system" && event.subtype === "init") {
-          sealed = JSON.stringify(event.tools) === '["StructuredOutput"]' && !event.mcp_servers?.length;
+          sealed = JSON.stringify(event.tools) === '["StructuredOutput"]' && !event.mcp_servers?.length && !event.slash_commands?.length && !event.skills?.length;
           if (!sealed) return "unsealed";
         }
         if (event.type === "assistant" && event.message.content.some((/** @type {any} */ part) => part.type === "tool_use" && part.name !== "StructuredOutput")) return "tool";
@@ -168,10 +169,10 @@ function accountWords() {
   const file = `${HOME}/.claude.json`;
   if (!existsSync(file)) return [];
   const { emailAddress = "", fullName = "", displayName = "" } = JSON.parse(readFileSync(file, "utf8")).oauthAccount ?? {};
-  return `${emailAddress.split("@")[0]} ${fullName} ${displayName}`.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 4);
+  return `${emailAddress} ${fullName} ${displayName}`.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 4);
 }
 const ACCOUNT = accountWords();
-/** However it's spelled out: letters apart, or with words between. @param {string} title */
+/** Spelled plainly or with its letters apart; an encoding could still pass, which is why a person reads a title before it's added. @param {string} title */
 const namesAccount = (title) => ACCOUNT.some((word) => title.toLowerCase().replace(/[^a-z0-9]/g, "").includes(word));
 
 /** @param {any} answer */
@@ -219,8 +220,10 @@ async function classifyPending(deadline) {
   const pending = readdirSync(SPOOL).filter((name) => name.endsWith(".json")).map((name) => Number(name.slice(0, -5))).filter((id) => !known.has(id)).sort((a, b) => a - b);
   const counts = { bug: 0, confusing: 0, feature: 0, praise: 0, spam: 0, unclassified: 0, tools: 0, unsealed: 0 };
   const all = records();
-  // (A day's ceiling however many runs there are: every call leaves a record.)
-  const allowed = Math.min(pending.length, Math.max(0, MAX_DAY - all.filter((record) => Date.now() - record.classified < DAY_MS).length));
+  // (A calendar day's ceiling however many runs there are: every finished call leaves a record. Not the last 24 hours, or a
+  // daily run a minute early would find yesterday's still counted.)
+  const dayOf = (/** @type {number} */ time) => new Date(time).toISOString().slice(0, 10), today = dayOf(Date.now());
+  const allowed = Math.min(pending.length, Math.max(0, MAX_DAY - all.filter((record) => dayOf(record.classified) === today).length));
   let next = 0;
   await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
     while (next < allowed && Date.now() < deadline) {

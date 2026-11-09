@@ -54,6 +54,7 @@
   document.addEventListener("click", (event) => {
     if (!/** @type {Element} */ (event.target).closest?.("[data-feedback]")) return;
     if (feedback.open) feedback.open();
+    else if (feedback.asked) feedback.asked.focus();
     else {
       if (!sheet) loadSheet();
       const asked = document.body.appendChild(document.createElement("textarea"));
