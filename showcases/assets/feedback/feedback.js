@@ -6,13 +6,12 @@
 // - A press opens a text box, and that's all there is: type, send. At the top of a phone's screen, so the keyboard comes
 //   up under it; in the bottom corner on a desk. Opened from the press itself, or iOS won't raise the keyboard.
 // - Nothing leaves until Send: nothing is asked of the inbox's host as a page loads, on Bitview or on a node of someone's
-//   own. What goes with the note is what makes it reproducible, said in one line: the exact address with what can name
-//   someone masked (a page whose address holds their own figures sends its folder alone), the build, browser, screen and
-//   theme, and the page's recent errors. Nothing that identifies a person.
+//   own. What goes with the note is what makes it reproducible, said in one line: the app's folder, the build, browser,
+//   screen and theme, and, only from a page that declares its address holds nothing of the sender's own (see `shareable`),
+//   that address and the page's recent errors, with what can name someone masked. Nothing that identifies a person.
 (() => {
   const INBOX = "https://feedback.bitview.space/";
   const PRIVACY = "https://github.com/bitcoinresearchkit/mono/tree/next/packages/bitview_feedback#readme";
-  const INCLUDED = "Includes page, browser, screen and recent errors.";
   const compact = matchMedia("(max-width: 760px), (max-height: 520px)");
 
   /** The app's folder alone, always sent: "/" for anything that isn't one (`/index.html`). */
@@ -32,13 +31,15 @@
   ]);
   const mask = (/** @type {string} */ text) => MASKS.reduce((masked, [shape, name]) => masked.replace(shape, name), location.hostname ? text.replaceAll(location.hostname, ":host") : text);
 
-  /** A page whose address holds someone's own figures says so. */
-  const addressPrivate = () => Boolean(document.querySelector('meta[name="bitview-feedback"][content="address-private"]'));
-  /** Where this is, masked, or nothing when that's only the folder, or a page whose address holds someone's own figures.
+  /** Whether this page has said its address and errors hold nothing of the sender's own, with
+   * `<meta name="bitview-feedback" content="address-shareable" />`. A page that hasn't sends its folder alone: a new page,
+   * or a shape the masks don't know, can't leak by default. */
+  const shareable = () => Boolean(document.querySelector('meta[name="bitview-feedback"][content="address-shareable"]'));
+  /** Where this is, masked, or nothing when that's only the folder or the page hasn't declared it shareable.
    * A page whose state isn't in its address (a Studio chart) says what address would open it; if it can't, the bug may be
    * why, and the note still goes. */
   function link() {
-    if (addressPrivate()) return "";
+    if (!shareable()) return "";
     try {
       const own = /** @type {any} */ (window).bitviewFeedbackLink?.();
       const place = own ? new URL(own, location.href) : location;
@@ -64,14 +65,15 @@
     // (What the page is really showing, whichever way it decided: the card's own background, light or dark as it is.)
     theme: Number(/\d+/.exec(getComputedStyle(card).backgroundColor)?.[0]) > 127 ? "light" : "dark",
     mode: /** @type {any} */ (navigator).standalone === true || matchMedia("(display-mode: standalone)").matches ? "app" : "browser",
-    // (Masked before it's cut, or a token cut in half would slip past; none from a page whose address holds someone's own figures.)
-    errors: addressPrivate() ? [] : /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors ?? []).map((text) => mask(text).slice(0, 300)),
+    // (Masked before it's cut, or a token cut in half would slip past; an error can quote the address, so it needs the same declaration.)
+    errors: shareable() ? /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors ?? []).map((text) => mask(text).slice(0, 300)) : [],
   });
 
-  /** @type {{ show: () => void } | undefined} */
+  /** @type {{ show: (typed?: string) => void } | undefined} */
   let made;
 
   function make() {
+    const INCLUDED = shareable() ? "Includes address, browser, screen and errors." : "Includes page name, browser and screen.";
     const host = document.createElement("bitview-feedback");
     const root = host.attachShadow({ mode: "open" });
     root.innerHTML = `<style>
@@ -178,9 +180,11 @@
       if (document.activeElement === document.body || document.activeElement === host) opener?.focus({ preventScroll: true });
     });
 
-    function show() {
+    /** @param {string} [typed] Written while this was still loading. */
+    function show(typed) {
       if (card.matches(":popover-open")) return;
       opener = /** @type {HTMLElement | null} */ (document.activeElement);
+      if (typed) message.value = typed;
       say(INCLUDED);
       ready();
       card.showPopover();
@@ -194,12 +198,13 @@
     return { show };
   }
 
-  /** Opens the card: from a press, for iOS to raise the keyboard. */
-  function open() {
+  /** Opens the card: from a press, for iOS to raise the keyboard. @param {string} [typed] */
+  function open(typed) {
     made ??= make();
-    made.show();
+    made.show(typed);
   }
 
   /** @type {any} */ (window).bitviewFeedback = { open };
-  if (/** @type {any} */ (window).bitviewFeedbackAsked) open();
+  const asked = /** @type {any} */ (window).bitviewFeedbackAsked;
+  if (asked) open(asked.value);
 })();

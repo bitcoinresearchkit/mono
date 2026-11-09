@@ -33,12 +33,20 @@
   const place = (/** @type {string} */ address) => { try { const url = new URL(address, location.href); return url.origin === location.origin ? url.pathname : "another site"; } catch { return "somewhere"; } };
   addEventListener("error", (event) => noted(event.message ? `${event.message} (${place(event.filename)}:${event.lineno})` : `Couldn't load ${place(/** @type {any} */ (event.target)?.src ?? /** @type {any} */ (event.target)?.href ?? "")}`), true);
   addEventListener("unhandledrejection", (event) => noted(String(event.reason?.message ?? event.reason)));
-  // (Answered here, so a press before that file has come isn't lost: it opens as soon as it has.)
+  // (Answered here, so a press before that file has come isn't lost: it opens as soon as it has. iOS raises the keyboard
+  // only for a focus made during the press itself, so until then a field no one sees holds it, and hands over what's typed.)
   document.addEventListener("click", (event) => {
     if (!/** @type {Element} */ (event.target).closest?.("[data-feedback]")) return;
     const feedback = /** @type {any} */ (window).bitviewFeedback;
     if (feedback) feedback.open();
-    else /** @type {any} */ (window).bitviewFeedbackAsked = true;
+    else {
+      const asked = document.body.appendChild(document.createElement("textarea"));
+      asked.style.cssText = "position: fixed; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px";
+      asked.setAttribute("aria-label", "Report a bug");
+      asked.addEventListener("blur", () => { asked.remove(); /** @type {any} */ (window).bitviewFeedbackAsked = null; });
+      /** @type {any} */ (window).bitviewFeedbackAsked = asked;
+      asked.focus({ preventScroll: true });
+    }
   });
   // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
   const app = script?.dataset.app, name = app ? `Bitview ${app}` : "Bitview", short = app ?? name;
