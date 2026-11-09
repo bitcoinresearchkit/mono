@@ -1,7 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
@@ -30,7 +29,7 @@ impl CreationCapital {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
@@ -38,9 +37,9 @@ impl CreationCapital {
         // Split before rounding: each side's exact creation value, rounded once.
         let split_version = version + Version::ONE;
         Ok(Self {
-            base: CohortCapital::import(db, name, version, mappings, window_starts, all_capital)?,
-            in_profit: Fiat::import(db, &name("capital_in_profit"), split_version, mappings)?,
-            in_loss: Fiat::import(db, &name("capital_in_loss"), split_version, mappings)?,
+            base: CohortCapital::import(db, name, version, indexes, window_starts, all_capital)?,
+            in_profit: Fiat::import(db, &name("capital_in_profit"), split_version, indexes)?,
+            in_loss: Fiat::import(db, &name("capital_in_loss"), split_version, indexes)?,
         })
     }
 

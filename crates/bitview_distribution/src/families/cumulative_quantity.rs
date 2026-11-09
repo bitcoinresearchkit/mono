@@ -1,8 +1,8 @@
 use bitview_compute::{NumericValue, Quantity};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CumulativeSource, LazyPerBlockCumulativeRolling, LazyWindowStartVec, shapes::Windows,
+    CumulativeSource, IndexSources, LazyPerBlockCumulativeRolling, LazyWindowStartVec,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;
@@ -29,7 +29,7 @@ where
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored =
@@ -39,7 +39,7 @@ where
             version,
             stored.cumulative_source(),
             window_starts,
-            mappings,
+            indexes,
         );
         Ok(Self { value, stored })
     }

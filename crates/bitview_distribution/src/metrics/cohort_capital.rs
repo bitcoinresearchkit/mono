@@ -1,8 +1,7 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyFiatPerBlock, LazyIndexedVec, LazyPercentPerBlock,
+    CachedSeries, IndexSources, LazyFiatPerBlock, LazyIndexedVec, LazyPercentPerBlock,
     LazyRollingDeltasFiatFromHeight, LazyWindowStartVec, ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
@@ -46,11 +45,11 @@ impl CapitalViews {
         version: Version,
         capital: &impl ReadableCloneableVec<Height, Cents>,
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         let fiat = |metric: &str| {
-            LazyFiatPerBlock::from_cents_source(&name(metric), version, capital, mappings)
+            LazyFiatPerBlock::from_cents_source(&name(metric), version, capital, indexes)
         };
         let share_name = name("capital_share");
         let source = LazyIndexedVec::new(
@@ -68,9 +67,9 @@ impl CapitalViews {
                 version + Version::TWO,
                 capital,
                 window_starts,
-                mappings,
+                indexes,
             ),
-            share: LazyPercentPerBlock::from_height_source(&share_name, version, &source, mappings),
+            share: LazyPercentPerBlock::from_height_source(&share_name, version, &source, indexes),
         }
     }
 }
@@ -91,13 +90,13 @@ impl CohortCapital {
         db: &Database,
         name: impl Fn(&str) -> String,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let stored = import_stored(db, &name("realized_cap_cents"), version)?;
         Ok(Self {
-            views: CapitalViews::new(name, version, &stored, all_capital, mappings, window_starts),
+            views: CapitalViews::new(name, version, &stored, all_capital, indexes, window_starts),
             stored,
         })
     }

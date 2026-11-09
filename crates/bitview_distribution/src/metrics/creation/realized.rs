@@ -1,8 +1,7 @@
 use crate::{families::CumulativeFiat, metrics::RealizedBlockData};
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -32,13 +31,13 @@ impl CreationRealized {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
         let flow = |metric: &str| {
-            CumulativeFiat::import(db, &name(metric), flow_version, mappings, window_starts)
+            CumulativeFiat::import(db, &name(metric), flow_version, indexes, window_starts)
         };
         Ok(Self {
             profit: flow("realized_profit")?,
@@ -47,7 +46,7 @@ impl CreationRealized {
                 db,
                 &name("net_realized_pnl"),
                 flow_version,
-                mappings,
+                indexes,
                 window_starts,
             )?,
             value_destroyed: flow("value_destroyed")?,

@@ -1,8 +1,7 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CumulativeSource, FiatType, LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec,
-    shapes::Windows,
+    CumulativeSource, FiatType, IndexSources, LazyFiatPerBlockCumulativeWithSums,
+    LazyWindowStartVec, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, Version};
@@ -22,7 +21,7 @@ impl<C: FiatType> CumulativeFiat<C> {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored = CumulativeSource::import(
@@ -34,7 +33,7 @@ impl<C: FiatType> CumulativeFiat<C> {
             name,
             version,
             stored.cumulative_source(),
-            mappings,
+            indexes,
             window_starts,
         );
         Ok(Self { value, stored })

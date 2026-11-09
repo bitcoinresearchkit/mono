@@ -1,6 +1,5 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPerBlock, Price, import_cached};
+use bitview_vecs::{CachedSeries, IndexSources, LazyPerBlock, Price, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
@@ -33,11 +32,11 @@ impl CohortCostBasis {
         db: &Database,
         name: impl Fn(&str) -> String,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
     ) -> Result<Self> {
         let stored = import_cached(db, &name("cost_basis_by_coin_avg_cents"), version)?;
         let price =
-            |metric: &str| Price::from_height_source(&name(metric), version, &stored, mappings);
+            |metric: &str| Price::from_height_source(&name(metric), version, &stored, indexes);
         Ok(Self {
             by_coin: ByCoin {
                 avg: price("cost_basis_by_coin_avg"),

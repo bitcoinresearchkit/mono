@@ -1,7 +1,7 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CumulativeSource, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, shapes::Windows,
+    CumulativeSource, IndexSources, LazyValuePerBlockCumulativeRolling, LazyWindowStartVec,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
@@ -23,7 +23,7 @@ impl CumulativeValue {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored = |unit: &str| format!("{name}_cumulative_{unit}");
@@ -34,7 +34,7 @@ impl CumulativeValue {
             version,
             sats.cumulative_source(),
             cents.cumulative_source(),
-            mappings,
+            indexes,
             window_starts,
         );
         Ok(Self { value, sats, cents })

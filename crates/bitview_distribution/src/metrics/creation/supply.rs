@@ -1,7 +1,6 @@
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
@@ -35,7 +34,7 @@ impl CreationSupply {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
@@ -46,7 +45,7 @@ impl CreationSupply {
                 db,
                 &name("supply"),
                 version,
-                mappings,
+                indexes,
                 window_starts,
                 spot_price,
                 all_supply,
@@ -55,10 +54,10 @@ impl CreationSupply {
                 db,
                 &name("supply_in_profit"),
                 version,
-                mappings,
+                indexes,
                 spot_price,
             )?,
-            in_loss: Supply::import(db, &name("supply_in_loss"), version, mappings, spot_price)?,
+            in_loss: Supply::import(db, &name("supply_in_loss"), version, indexes, spot_price)?,
         })
     }
 

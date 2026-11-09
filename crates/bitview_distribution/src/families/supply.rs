@@ -1,6 +1,5 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazySpotValuePerBlock};
+use bitview_vecs::{CachedSeries, IndexSources, LazySpotValuePerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode, WritableVec};
@@ -21,12 +20,12 @@ impl Supply {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let stored = import_stored(db, &format!("{name}_sats"), version)?;
         let value =
-            LazySpotValuePerBlock::from_sats_source(name, version, &stored, mappings, spot_price);
+            LazySpotValuePerBlock::from_sats_source(name, version, &stored, indexes, spot_price);
         Ok(Self { value, stored })
     }
 

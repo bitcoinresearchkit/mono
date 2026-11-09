@@ -1,7 +1,8 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, LazyPerBlockWithDeltas, LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{
+    CachedSeries, IndexSources, LazyPerBlockWithDeltas, LazyWindowStartVec, shapes::Windows,
+};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
@@ -22,7 +23,7 @@ impl CountWithDeltas {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored = import_stored(db, name, version)?;
@@ -31,7 +32,7 @@ impl CountWithDeltas {
             version,
             &stored,
             Version::TWO,
-            mappings,
+            indexes,
             window_starts,
         );
         Ok(Self { count, stored })

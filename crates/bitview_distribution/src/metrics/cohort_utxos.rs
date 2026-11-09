@@ -1,8 +1,8 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPerBlockCumulativeRolling, LazyPerBlockWithDeltas, LazyWindowStartVec, shapes::Windows,
+    IndexSources, LazyPerBlockCumulativeRolling, LazyPerBlockWithDeltas, LazyWindowStartVec,
+    shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Height, Version};
@@ -36,7 +36,7 @@ impl StoredUtxos {
         db: &Database,
         name: impl Fn(&str) -> String,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
@@ -44,14 +44,14 @@ impl StoredUtxos {
                 db,
                 &name("utxo_count"),
                 version,
-                mappings,
+                indexes,
                 window_starts,
             )?,
             spent_count: CumulativeQuantity::import(
                 db,
                 &name("spent_utxo_count"),
                 version + Version::ONE,
-                mappings,
+                indexes,
                 window_starts,
             )?,
         })
@@ -72,7 +72,7 @@ impl UtxoViews {
         delta_version: Version,
         unspent: &impl ReadableCloneableVec<Height, Count>,
         spent: &impl ReadableCloneableVec<Height, Count>,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         Self {
@@ -81,7 +81,7 @@ impl UtxoViews {
                 version,
                 unspent,
                 delta_version,
-                mappings,
+                indexes,
                 window_starts,
             ),
             spent_count: LazyPerBlockCumulativeRolling::from_cumulative_source(
@@ -89,7 +89,7 @@ impl UtxoViews {
                 version,
                 spent,
                 window_starts,
-                mappings,
+                indexes,
             ),
         }
     }

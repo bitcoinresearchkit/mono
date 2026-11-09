@@ -1,9 +1,8 @@
 use crate::families::{CumulativeQuantity, CumulativeValue};
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::CoinDays;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -28,7 +27,7 @@ impl CreationActivity {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
@@ -38,14 +37,14 @@ impl CreationActivity {
                 db,
                 &name("transfer_volume"),
                 version,
-                mappings,
+                indexes,
                 window_starts,
             )?,
             coindays_destroyed: CumulativeQuantity::import(
                 db,
                 &name("coindays_destroyed"),
                 version,
-                mappings,
+                indexes,
                 window_starts,
             )?,
         })

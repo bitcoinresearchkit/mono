@@ -14,9 +14,8 @@ pub use supply::CreationSupply;
 pub use unrealized::CreationUnrealized;
 
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
@@ -40,7 +39,7 @@ impl CreationCohort {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         totals: ShareTotals<'_>,
@@ -51,7 +50,7 @@ impl CreationCohort {
                 db,
                 cohort,
                 version,
-                mappings,
+                indexes,
                 window_starts,
                 spot_price,
                 totals.supply,
@@ -60,15 +59,15 @@ impl CreationCohort {
                 db,
                 cohort,
                 version,
-                mappings,
+                indexes,
                 window_starts,
                 totals.capital,
             )?,
-            utxos: StoredUtxos::import(db, name, version, mappings, window_starts)?,
-            activity: CreationActivity::import(db, cohort, version, mappings, window_starts)?,
-            realized: CreationRealized::import(db, cohort, version, mappings, window_starts)?,
-            unrealized: CreationUnrealized::import(db, cohort, version, mappings)?,
-            cost_basis: CohortCostBasis::import(db, name, version, mappings)?,
+            utxos: StoredUtxos::import(db, name, version, indexes, window_starts)?,
+            activity: CreationActivity::import(db, cohort, version, indexes, window_starts)?,
+            realized: CreationRealized::import(db, cohort, version, indexes, window_starts)?,
+            unrealized: CreationUnrealized::import(db, cohort, version, indexes)?,
+            cost_basis: CohortCostBasis::import(db, name, version, indexes)?,
         })
     }
 

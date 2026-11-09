@@ -1,7 +1,7 @@
 use crate::families::Fiat;
 use bitview_cohort::{CohortContext, CohortId};
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
+use bitview_vecs::IndexSources;
 use brk_error::Result;
 use brk_types::{Cents, CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -35,15 +35,15 @@ impl CreationUnrealized {
         db: &Database,
         cohort: CohortId,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let amount =
-            |metric: &str| Fiat::import(db, &name(metric), version + Version::ONE, mappings);
+            |metric: &str| Fiat::import(db, &name(metric), version + Version::ONE, indexes);
         Ok(Self {
             profit: amount("unrealized_profit")?,
             loss: amount("unrealized_loss")?,
-            net_pnl: Fiat::import(db, &name("net_unrealized_pnl"), version, mappings)?,
+            net_pnl: Fiat::import(db, &name("net_unrealized_pnl"), version, indexes)?,
         })
     }
 

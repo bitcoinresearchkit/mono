@@ -1,6 +1,5 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazySpotValuePerBlock, LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazySpotValuePerBlock, LazyWindowStartVec, shapes::Windows};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
@@ -24,13 +23,13 @@ impl SupplyViews {
         supply: &impl ReadableCloneableVec<Height, Sats>,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         let total =
-            LazySpotValuePerBlock::from_sats_source(name, version, supply, mappings, spot_price);
+            LazySpotValuePerBlock::from_sats_source(name, version, supply, indexes, spot_price);
         Self {
-            change: SupplyChange::new(name, version, &total, all_supply, mappings, window_starts),
+            change: SupplyChange::new(name, version, &total, all_supply, indexes, window_starts),
             total,
         }
     }

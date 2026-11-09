@@ -1,6 +1,5 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
@@ -24,18 +23,18 @@ impl CohortSupply {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
         spot_price: &ReadableBoxedVec<Height, Cents>,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let total = Supply::import(db, name, version, mappings, spot_price)?;
+        let total = Supply::import(db, name, version, indexes, spot_price)?;
         let change = SupplyChange::new(
             name,
             version,
             &total.value,
             all_supply,
-            mappings,
+            indexes,
             window_starts,
         );
         Ok(Self { total, change })

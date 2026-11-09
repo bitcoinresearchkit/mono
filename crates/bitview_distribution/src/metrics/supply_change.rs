@@ -1,9 +1,8 @@
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyIndexedVec, LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock,
-    LazyWindowStartVec, ops::Quotient, shapes::Windows,
+    IndexSources, LazyIndexedVec, LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight,
+    LazySpotValuePerBlock, LazyWindowStartVec, ops::Quotient, shapes::Windows,
 };
 use brk_types::{Height, Sats, SatsSigned, Version};
 use vecdb::{BinaryTransform, ReadableCloneableVec};
@@ -29,7 +28,7 @@ impl SupplyChange {
         version: Version,
         total: &LazySpotValuePerBlock,
         all_supply: &impl ReadableCloneableVec<Height, Sats>,
-        mappings: &MappingsVecs,
+        indexes: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         let share_name = format!("{name}_share");
@@ -41,13 +40,13 @@ impl SupplyChange {
             |_, supply, all_supply| Quotient::<PartsPerMillion32>::apply(supply, all_supply),
         );
         let share =
-            LazyPercentPerBlock::from_height_source(&share_name, version, &source, mappings);
+            LazyPercentPerBlock::from_height_source(&share_name, version, &source, indexes);
         let delta = LazyRollingDeltasAmountFromHeight::new(
             &format!("{name}_delta"),
             version + Version::TWO,
             &total.sats.height,
             window_starts,
-            mappings,
+            indexes,
         );
         Self { delta, share }
     }
