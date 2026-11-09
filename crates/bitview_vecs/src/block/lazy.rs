@@ -7,7 +7,6 @@ use vecdb::{
 };
 
 use crate::{DerivedResolutions, IndexSources, Resolutions};
-use bitview_compute::ComputedVecValue;
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(merge)]
@@ -62,7 +61,7 @@ where
     pub fn from_lazy<F, S2T>(name: &str, version: Version, source: &LazyPerBlock<S1T, S2T>) -> Self
     where
         F: UnaryTransform<S1T, T>,
-        S2T: ComputedVecValue + JsonSchema,
+        S2T: VecValue,
     {
         Self {
             height: LazyVec::transformed::<F>(

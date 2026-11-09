@@ -1,4 +1,3 @@
-use bitview_compute::ComputedVecValue;
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use derive_more::{Deref, DerefMut};
@@ -30,13 +29,16 @@ macro_rules! define_derived_resolutions {
         impl<T, S1T> DerivedResolutions<T, S1T>
         where
             T: VecValue + PartialOrd + JsonSchema + 'static,
-            S1T: VecValue + PartialOrd + JsonSchema,
+            S1T: VecValue,
         {
             pub fn from_resolutions<F: UnaryTransform<S1T, T>>(
                 name: &str,
                 version: Version,
                 source: &Resolutions<S1T>,
-            ) -> Self {
+            ) -> Self
+            where
+                S1T: PartialOrd + JsonSchema,
+            {
                 Self::from_sources::<F>(
                     name, version,
                     PerResolution {
@@ -53,7 +55,8 @@ macro_rules! define_derived_resolutions {
             ) -> Self
             where
                 F: UnaryTransform<S1T, T>,
-                S2T: ComputedVecValue + JsonSchema,
+                S1T: PartialOrd + JsonSchema,
+                S2T: VecValue,
             {
                 Self::from_sources::<F>(
                     name, version,
