@@ -1,7 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::{Inputs, collect_age_range, write_chunks, write_locked};
 use bitview_plugin_age::Vecs as AgeVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinDays};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -14,8 +13,12 @@ use super::{RangeVecs, Vecs};
 const HOURS_PER_DAY: f64 = 24.0;
 
 impl Vecs {
-    pub(crate) fn compute(&mut self, indexer: &Indexer, age: &AgeVecs, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
+    pub(crate) fn compute(
+        &mut self,
+        age: &AgeVecs,
+        starting_height: Height,
+        exit: &Exit,
+    ) -> Result<()> {
         let transfer_volumes = AgeRange::from_fn(|id| {
             &id.select(&age.ranges)
                 .activity

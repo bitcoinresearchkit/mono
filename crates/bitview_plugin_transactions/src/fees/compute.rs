@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use bitview_compute::write_locked;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, Count};
+use bitview_primitives::{Boolean, Count, Lengths};
 use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
 use brk_error::Result;
@@ -40,6 +40,13 @@ struct Batch {
     bits: [Vec<u64>; READ],
 }
 
+/// What the fee pass fills besides its own series.
+pub(crate) struct FeeOutputs<'a, 'v> {
+    pub vsize: &'a mut TxDistribution<VSize>,
+    pub transfer_volume: &'a mut CachedSeries<Height, Sats>,
+    pub valued: &'a mut Valued<'v>,
+}
+
 impl Vecs {
     /// The fee pass, which also yields the per-block fee, effective fee rate and `vsize`
     /// distributions from the values it holds, every kind's value (`valued`, and its CPFP roles'),
@@ -48,14 +55,13 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
-        vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
-        valued: &mut Valued<'_>,
+        outputs: FeeOutputs<'_, '_>,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        self.compute_fees(indexer, mappings, vsize, transfer_volume, valued, exit)?;
+        self.compute_fees(indexer, mappings, outputs, starting_lengths, exit)?;
         self.total_cumulative.compute_cumulative(
-            indexer.compute_start().height,
+            starting_lengths.height,
             &self.total,
             exit,
         )?;
@@ -102,12 +108,15 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
-        vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
-        valued: &mut Valued<'_>,
+        outputs: FeeOutputs<'_, '_>,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
+        let FeeOutputs {
+            vsize,
+            transfer_volume,
+            valued,
+        } = outputs;
         let vecs = indexer.vecs();
         let columns = Columns::new(indexer);
         let (txs, inputs, outputs) = (&vecs.transactions, &vecs.inputs, &vecs.outputs);

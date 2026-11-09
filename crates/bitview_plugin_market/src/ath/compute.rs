@@ -1,5 +1,4 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{Days, Seconds};
@@ -17,13 +16,11 @@ use super::{
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         prices: &PriceVecs,
         mappings: &MappingsVecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
-
         self.high.cents.height.compute_all_time_high(
             starting_height,
             &prices.spot.cents.height,

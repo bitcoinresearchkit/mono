@@ -1,6 +1,5 @@
 use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::DifficultyVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use brk_error::Result;
@@ -21,15 +20,13 @@ fn reward_per_phs(reward_24h: f64, hash_rate: f64) -> f64 {
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         lookback: &LookbackVecs,
         difficulty_vecs: &DifficultyVecs,
         coinbase_sats_24h_sum: &impl ReadableVec<Height, Sats>,
         coinbase_usd_24h_sum: &impl ReadableVec<Height, Dollars>,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
-
         // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
         let daily_share = LazyVec::new(
             "difficulty_hashrate_daily_share",

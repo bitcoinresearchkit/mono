@@ -3,6 +3,7 @@ use std::iter;
 use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, write_chunks, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
 use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
@@ -23,7 +24,8 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        self.compute_primary(dependencies, context.exit())?;
+        let starting_lengths = context.start();
+        self.compute_primary(dependencies, starting_lengths, context.exit())?;
         let supplies = dependencies.age.age_supplies();
         let weights = self.age_ranges.urpd_weight_sources();
         compute_cost_basis(
@@ -33,7 +35,7 @@ impl ComputePlugin for Vecs {
                 .as_array_mut()
                 .map(|cohort| &mut cohort.mobile.cost_basis),
             dependencies.age.all_supply().version() + dependencies.urpd.timestamps.version(),
-            usize::from(dependencies.indexer.compute_start().height),
+            usize::from(starting_lengths.height),
             dependencies.urpd,
             &weights,
             &supplies,
@@ -44,15 +46,18 @@ impl ComputePlugin for Vecs {
 }
 
 impl Vecs {
-    fn compute_primary(&mut self, dependencies: Dependencies<'_>, exit: &Exit) -> Result<()> {
+    fn compute_primary(
+        &mut self,
+        dependencies: Dependencies<'_>,
+        starting_lengths: Lengths,
+        exit: &Exit,
+    ) -> Result<()> {
         let Dependencies {
-            indexer,
             urpd: _,
             mappings,
             price: _,
             age,
         } = dependencies;
-        let starting_lengths = indexer.compute_start();
         let transfer_volumes = AgeRange::from_fn(|id| {
             &id.select(&age.ranges)
                 .activity

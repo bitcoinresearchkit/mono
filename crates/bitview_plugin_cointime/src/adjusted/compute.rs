@@ -1,5 +1,4 @@
 use bitview_distribution::AllChainSources;
-use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, PartsPerMillionSigned32, PartsPerMillionSigned64, Ratio};
 use bitview_vecs::{LazyRollingSumAmountFromHeight, ops::BoundedOdds};
 use brk_error::Result;
@@ -12,15 +11,13 @@ use super::{super::activity, Vecs};
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         inflation_rate: &impl ReadableVec<Height, PartsPerMillionSigned64>,
         volume: &LazyRollingSumAmountFromHeight,
         all_chain: &AllChainSources,
         activity: &activity::Vecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
-
         self.inflation_rate.fixed.height.compute_transform2(
             starting_height,
             &activity.liveliness_source.height,

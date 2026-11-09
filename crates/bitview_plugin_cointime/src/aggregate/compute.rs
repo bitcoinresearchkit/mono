@@ -4,10 +4,10 @@ use bitview_compute::{
     write_locked,
 };
 use bitview_plugin_age::Vecs as AgeVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 use vecdb::AnyVec;
 
 use super::{super::AgeRangeVecs, Vecs};
@@ -15,9 +15,9 @@ use super::{super::AgeRangeVecs, Vecs};
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         age: &AgeVecs,
         age_range: &AgeRangeVecs,
+        start: Height,
         exit: &Exit,
     ) -> Result<()> {
         let accounting = age.accounting_sources();
@@ -29,7 +29,7 @@ impl Vecs {
         inputs.len = inputs.len.min(accounting.min_len());
         let range = inputs.prepare(
             self.sources.iter_any_stored_mut().collect::<Vec<_>>(),
-            usize::from(indexer.compute_start().height),
+            usize::from(start),
             exit,
         )?;
 

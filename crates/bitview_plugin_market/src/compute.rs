@@ -13,24 +13,27 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_lengths = context.start();
         let Dependencies {
-            indexer,
             price: prices,
             mappings,
         } = dependencies;
         let exit = context.exit();
 
         let (ath, (range, moving_average)) = join(
-            || self.ath.compute(indexer, prices, mappings, exit),
+            || {
+                self.ath
+                    .compute(prices, mappings, starting_lengths.height, exit)
+            },
             || {
                 join(
                     || {
                         self.range
-                            .compute(indexer, prices, &mappings.lookback, exit)
+                            .compute(prices, &mappings.lookback, starting_lengths.height, exit)
                     },
                     || {
                         self.moving_average
-                            .compute(indexer, &mappings.lookback, prices, exit)
+                            .compute(&mappings.lookback, prices, starting_lengths, exit)
                     },
                 )
             },

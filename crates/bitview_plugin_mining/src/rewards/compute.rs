@@ -1,4 +1,3 @@
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
@@ -22,14 +21,12 @@ fn unclaimed_rewards(height: Height, coinbase: Sats, fees: Sats) -> Sats {
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         lookback: &LookbackVecs,
         transactions: &TransactionsVecs,
         prices: &PriceVecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
-
         // coinbase and fees are independent — parallelize
         let window_starts = lookback.window_starts();
         let (r_coinbase, r_fees) = join(

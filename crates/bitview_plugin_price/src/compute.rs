@@ -15,9 +15,12 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 use crate::{Dependencies, Vecs, feed_blocks_with, warm_oracle};
 
 impl Vecs {
-    fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
-
+    fn compute_prices(
+        &mut self,
+        indexer: &Indexer,
+        starting_height: Height,
+        exit: &Exit,
+    ) -> Result<()> {
         let source_version = [
             indexer.vecs().transactions.txid.version(),
             indexer.vecs().transactions.first_tx_index.version(),
@@ -121,10 +124,11 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
 
-        self.compute_prices(indexer, exit)?;
+        self.compute_prices(indexer, starting_height, exit)?;
         write_locked(
             [
                 &mut self.spot.cents.height as &mut dyn AnyStoredVec,

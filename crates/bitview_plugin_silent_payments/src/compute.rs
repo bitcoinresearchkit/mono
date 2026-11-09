@@ -24,6 +24,7 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let start = context.start();
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
         let vecs = indexer.vecs();
@@ -40,7 +41,7 @@ impl ComputePlugin for Vecs {
             + addrs.p2pkh.bytes.version()
             + addrs.p2tr.bytes.version();
 
-        let start = self.prepare(version, indexer.compute_start().height.to_usize(), exit)?;
+        let start = self.prepare(version, start.height.to_usize(), exit)?;
         let tweaker = Tweaker::default();
         for heights in batches(start..txs.first_tx_index.len()) {
             for block in scan(indexer, &tweaker, heights)? {

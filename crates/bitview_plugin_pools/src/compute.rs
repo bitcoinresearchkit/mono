@@ -5,6 +5,7 @@ use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
 
@@ -18,12 +19,13 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let start = context.start().height;
         let Dependencies { indexer, mining } = dependencies;
         let exit = context.exit();
 
         // Blocks and their totals publish together, once both are complete.
         let mut snapshot = self.heights.stage();
-        self.compute_pool(indexer, exit, &mut snapshot)?;
+        self.compute_pool(indexer, start, exit, &mut snapshot)?;
         self.fill_rewards(mining, &mut snapshot);
         self.heights.publish(snapshot);
         Ok(())
@@ -82,6 +84,7 @@ impl Vecs {
     fn compute_pool(
         &mut self,
         indexer: &Indexer,
+        start: Height,
         exit: &Exit,
         snapshot: &mut PoolSnapshot,
     ) -> Result<()> {
@@ -105,7 +108,7 @@ impl Vecs {
         let min = prepare_computed(
             [&mut self.block_pool],
             dep_version,
-            indexer.compute_start().height.to_usize(),
+            start.to_usize(),
             exit,
         )?;
 

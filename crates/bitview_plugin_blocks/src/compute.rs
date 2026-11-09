@@ -14,9 +14,9 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
-        let starting_height = indexer.compute_start().height;
         let window_starts = mappings.lookback.window_starts();
         let blocks = &indexer.vecs().blocks;
 
@@ -31,7 +31,7 @@ impl ComputePlugin for Vecs {
         let ((interval, sigop_cost), (size, weight)) = join(
             || {
                 join(
-                    || interval.compute(indexer, exit),
+                    || interval.compute(indexer, starting_height, exit),
                     || {
                         sigop_cost.compute_cumulative_sum_from_indexes(
                             starting_height,

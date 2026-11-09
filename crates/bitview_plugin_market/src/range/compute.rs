@@ -1,22 +1,21 @@
 use bitview_compute::compute_rolling_extrema_from_starts;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::priced_starts;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 
 use super::Vecs;
 
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         prices: &PriceVecs,
         lookback: &LookbackVecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
         let price = &prices.spot.cents.height;
 
         let [week, month, year] = &mut self.extrema;

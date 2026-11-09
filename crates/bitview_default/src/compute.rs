@@ -64,6 +64,7 @@ impl DefaultPlugins {
     /// branch spawns its own dependents and hands over its plugin as soon as it completes; every
     /// branch is joined before the composition commits.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
+        let context = context.with_start(self.indexer.compute_start());
         let indexer = self.indexer.as_ref();
         let from = indexer.compute_start().height;
 
@@ -97,7 +98,6 @@ impl DefaultPlugins {
                 timed_compute(
                     &mut *self.market,
                     MarketDependencies {
-                        indexer,
                         price,
                         mappings,
                     },
@@ -176,7 +176,6 @@ impl DefaultPlugins {
                 timed_compute(
                     &mut *self.mining,
                     MiningDependencies {
-                        indexer,
                         mappings,
                         blocks: self.blocks.as_ref(),
                         transactions,
@@ -209,7 +208,6 @@ impl DefaultPlugins {
                 timed_compute(
                     &mut *supply,
                     SupplyDependencies {
-                        indexer,
                         outputs,
                         mining,
                         price,
@@ -272,7 +270,6 @@ impl DefaultPlugins {
                         &mut *self.coinflow,
                         CoinflowDependencies {
                             urpd,
-                            indexer,
                             mappings,
                             price,
                             age,
@@ -323,7 +320,6 @@ impl DefaultPlugins {
                     &mut *self.cointime,
                     CointimeDependencies {
                         urpd,
-                        indexer,
                         mappings,
                         price,
                         inflation_rate: &supply.inflation_rate,
@@ -342,7 +338,6 @@ impl DefaultPlugins {
                             &mut *self.bedrock,
                             BedrockDependencies {
                                 urpd,
-                                indexer,
                                 age,
                                 holders,
                                 cointime,
@@ -355,7 +350,6 @@ impl DefaultPlugins {
                         timed_compute(
                             &mut *self.rarity_meter,
                             RarityMeterDependencies {
-                                indexer,
                                 holders,
                                 cointime,
                                 coinflow,

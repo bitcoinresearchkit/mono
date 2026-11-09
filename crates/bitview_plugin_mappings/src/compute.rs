@@ -11,10 +11,9 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
-
-        let starting_height = indexer.compute_start().height;
 
         self.tx_heights
             .update(&indexer.vecs().transactions.first_tx_index, starting_height);

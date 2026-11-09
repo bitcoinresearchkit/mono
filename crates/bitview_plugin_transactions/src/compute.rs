@@ -4,7 +4,11 @@ use brk_error::Result;
 use rayon::{join, prelude::*};
 
 use super::Vecs;
-use crate::{Dependencies, fees::Valued, flagged::TxValue};
+use crate::{
+    Dependencies,
+    fees::{FeeOutputs, Valued},
+    flagged::TxValue,
+};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -14,6 +18,7 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_lengths = context.start();
         let Dependencies {
             indexer,
             mappings,
@@ -32,7 +37,7 @@ impl ComputePlugin for Vecs {
             ..
         } = self;
         let exit = context.exit();
-        let start = indexer.compute_start().height;
+        let start = starting_lengths.height;
         let price = &price.spot.cents.height;
 
         // The counts, from the indexer's, apart from the values the fee pass gives the same kinds.
@@ -47,7 +52,7 @@ impl ComputePlugin for Vecs {
                         join(
                             || count.compute(start, &mappings.lookback.window_starts(), exit),
                             || {
-                                patterns.compute(indexer, mappings, exit)?;
+                                patterns.compute(indexer, mappings, starting_lengths, exit)?;
                                 patterns.kinds_mut().into_iter().try_for_each(|kind| {
                                     kind.value.compute_cents(start, price, exit)
                                 })
@@ -56,10 +61,10 @@ impl ComputePlugin for Vecs {
                     },
                     || {
                         join(
-                            || feature_counts.compute(indexer, exit),
+                            || feature_counts.compute(indexer, start, exit),
                             || {
                                 join(
-                                    || version_counts.compute(indexer, exit),
+                                    || version_counts.compute(indexer, start, exit),
                                     || {
                                         inscription.count.count.compute_cumulative_transformed(
                                             start,
@@ -98,9 +103,12 @@ impl ComputePlugin for Vecs {
                 fees.compute(
                     indexer,
                     mappings,
-                    &mut vsize.distribution,
-                    &mut transfer_volume.cumulative.sats.height,
-                    &mut valued,
+                    FeeOutputs {
+                        vsize: &mut vsize.distribution,
+                        transfer_volume: &mut transfer_volume.cumulative.sats.height,
+                        valued: &mut valued,
+                    },
+                    starting_lengths,
                     exit,
                 )?;
                 // Each block's dollars, its sats at its price, every kind's at once.

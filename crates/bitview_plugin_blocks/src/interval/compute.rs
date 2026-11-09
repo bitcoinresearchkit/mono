@@ -3,13 +3,18 @@ use brk_error::Result;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Seconds;
 use brk_exit::Exit;
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use super::Vecs;
 
 impl Vecs {
-    pub fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
+    pub fn compute(
+        &mut self,
+        indexer: &Indexer,
+        starting_height: Height,
+        exit: &Exit,
+    ) -> Result<()> {
         let mut prev_timestamp = None;
         self.0.compute_from(
             starting_height,

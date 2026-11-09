@@ -73,6 +73,7 @@ pub fn run<R: Replay>(
     version: Version,
     indexer: &Indexer,
     spot: &impl ReadableVec<Height, Cents>,
+    start: Height,
     exit: &Exit,
     replay: impl FnOnce(&mut R, &mut R::State, Range<usize>, &[Cents]) -> Result<()>,
 ) -> Result<()> {
@@ -83,7 +84,7 @@ pub fn run<R: Replay>(
     };
     let end = indexer.vecs().blocks.blockhash.len().min(spot.len());
     let mut start = resume.map_or(0, |len| {
-        usize::from(indexer.compute_start().height)
+        usize::from(start)
             .min(end)
             .min(len)
             .min(plugin.checkpoint_len())

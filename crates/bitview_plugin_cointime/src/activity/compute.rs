@@ -1,10 +1,9 @@
 use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{BoundedRatio, CoinBlocks};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Bitcoin;
+use brk_types::{Bitcoin, Height};
 use vecdb::ComputeVec;
 
 use super::Vecs;
@@ -12,12 +11,11 @@ use super::Vecs;
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         age: &AgeVecs,
         holders: &HoldersVecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
         let circulating_supply = &holders.cohorts.all.supply.total.sats.height;
 
         self.coinblocks_created.compute_cumulative_transformed(

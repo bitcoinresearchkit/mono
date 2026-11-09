@@ -12,8 +12,8 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies {
-            indexer,
             mappings,
             blocks,
             transactions,
@@ -21,15 +21,20 @@ impl ComputePlugin for Vecs {
         } = dependencies;
         let exit = context.exit();
 
-        self.rewards
-            .compute(indexer, &mappings.lookback, transactions, prices, exit)?;
+        self.rewards.compute(
+            &mappings.lookback,
+            transactions,
+            prices,
+            starting_height,
+            exit,
+        )?;
 
         self.hash.compute(
-            indexer,
             &mappings.lookback,
             &blocks.difficulty,
             &self.rewards.coinbase.sum._24h.sats.height,
             &self.rewards.coinbase.sum._24h.usd.height,
+            starting_height,
             exit,
         )?;
 

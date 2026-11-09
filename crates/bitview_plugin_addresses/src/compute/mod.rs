@@ -16,6 +16,7 @@ impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+        let start = context.start().height;
         self.discard_unpublished_state();
         let version = deps.version();
         let Dependencies {
@@ -29,6 +30,7 @@ impl ComputePlugin for Vecs {
             version,
             indexer,
             &price.spot.cents.height,
+            start,
             exit,
             |vecs, addrs, heights, prices| {
                 let output_heights = mappings.output_heights.load_full();

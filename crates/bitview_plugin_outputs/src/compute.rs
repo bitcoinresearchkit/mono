@@ -14,6 +14,7 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_lengths = context.start();
         let Dependencies {
             indexer,
             mappings,
@@ -29,11 +30,11 @@ impl ComputePlugin for Vecs {
             ..
         } = self;
         let exit = context.exit();
-        let start = indexer.compute_start().height;
+        let start = starting_lengths.height;
 
         // The spend index reads only indexer columns: it runs beside everything else.
         let (spent, created) = join(
-            || spent.compute(indexer, mappings, exit),
+            || spent.compute(indexer, mappings, starting_lengths, exit),
             || -> Result<()> {
                 let outputs = &indexer.vecs().outputs;
                 // Price-independent output facts; require neither Inputs nor transaction
@@ -51,7 +52,7 @@ impl ComputePlugin for Vecs {
                 count.compute(start, &mappings.lookback.window_starts(), exit)?;
                 let (fiat, counts) = join(
                     || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
-                    || types.compute(indexer, exit),
+                    || types.compute(indexer, start, exit),
                 );
                 fiat?;
                 counts

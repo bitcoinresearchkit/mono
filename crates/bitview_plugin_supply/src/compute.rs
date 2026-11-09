@@ -14,15 +14,15 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies {
-            indexer,
             outputs,
             mining,
             price,
         } = dependencies;
 
         self.burned.compute_from_pair(
-            indexer.compute_start().height,
+            starting_height,
             &price.spot.cents.height,
             &outputs.op_return_value.block.sats,
             &mining.rewards.unclaimed.block.sats,

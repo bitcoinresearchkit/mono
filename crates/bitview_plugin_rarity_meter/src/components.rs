@@ -1,8 +1,8 @@
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -201,14 +201,13 @@ impl Components {
 
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         holders: &HoldersVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
         spot: &impl ReadableVec<Height, Cents>,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
         let Self {
             all,
             sth,

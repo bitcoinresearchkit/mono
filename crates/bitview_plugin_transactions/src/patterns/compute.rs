@@ -3,7 +3,7 @@ use std::ops::Range;
 use bitview_compute::{WRITE_INTERVAL, write_locked};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, Count};
+use bitview_primitives::{Boolean, Count, Lengths};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats};
@@ -23,6 +23,7 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
+        start: Lengths,
         exit: &Exit,
     ) -> Result<()> {
         let features = &indexer.vecs().transactions.features;
@@ -48,7 +49,7 @@ impl Vecs {
             &mut flags,
             &mut counts,
             version,
-            indexer.compute_start(),
+            start,
             mappings.tx_index.input_count.len(),
             tx_counts.len(),
             mappings,

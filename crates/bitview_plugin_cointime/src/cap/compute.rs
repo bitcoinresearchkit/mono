@@ -1,5 +1,5 @@
 use bitview_plugin_holders::Vecs as HoldersVecs;
-use bitview_plugin_indexer::Indexer;
+use bitview_primitives::Lengths;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CentsSigned, Dollars};
@@ -13,13 +13,12 @@ use super::{
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         holders: &HoldersVecs,
         activity: &activity::Vecs,
         value: &value::Vecs,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
         let realized_cap_cents = &holders.cohorts.all.capital.total.cents.height;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 

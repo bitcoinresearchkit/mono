@@ -23,9 +23,9 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let start = context.start();
         let Dependencies {
             urpd,
-            indexer,
             age,
             holders,
             cointime,
@@ -59,7 +59,7 @@ impl ComputePlugin for Vecs {
                 .iter_mut()
                 .flat_map(ModeVecs::replay_stored_mut)
                 .collect::<Vec<_>>(),
-            usize::from(indexer.compute_start().height),
+            usize::from(start.height),
             context.exit(),
         )?;
         let (start, end) = (range.start, range.end);

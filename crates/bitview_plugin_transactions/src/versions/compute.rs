@@ -3,6 +3,7 @@ use bitview_primitives::Count;
 use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 
 use crate::flagged::TxValue;
 
@@ -33,8 +34,7 @@ impl Vecs {
 }
 
 impl Counts<'_> {
-    pub(crate) fn compute(self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let start = indexer.compute_start().height;
+    pub(crate) fn compute(self, indexer: &Indexer, start: Height, exit: &Exit) -> Result<()> {
         let source = &indexer.vecs().transactions.versions;
         let sources = [
             &*source.v1.block,

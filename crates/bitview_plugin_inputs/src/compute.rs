@@ -15,6 +15,7 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_height = context.start().height;
         let Dependencies { indexer, mappings } = dependencies;
         let exit = context.exit();
 
@@ -30,18 +31,18 @@ impl ComputePlugin for Vecs {
                     spends,
                     indexer,
                     mappings,
-                    indexer.compute_start().height,
+                    starting_height,
                     Height::from(indexer.vecs().blocks.blockhash.len()),
                     exit,
                 )
             },
             || {
                 count.compute(
-                    indexer.compute_start().height,
+                    starting_height,
                     &mappings.lookback.window_starts(),
                     exit,
                 )?;
-                types.compute(indexer, exit)
+                types.compute(indexer, starting_height, exit)
             },
         );
         spends_result?;

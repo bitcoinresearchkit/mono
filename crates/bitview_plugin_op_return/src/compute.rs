@@ -13,6 +13,7 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        let starting_lengths = context.start();
         let Dependencies {
             indexer,
             fees,
@@ -20,7 +21,6 @@ impl ComputePlugin for Vecs {
         } = dependencies;
         let exit = context.exit();
 
-        let starting_lengths = indexer.compute_start();
         let vecs = indexer.vecs();
         let raw = &vecs.op_return;
         let txs = &vecs.transactions;

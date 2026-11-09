@@ -1,13 +1,12 @@
 use bitview_compute::ComputeRollingMedianFromStarts;
 use bitview_plugin_holders::Vecs as HoldersVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{CoinDays, DollarDaysPerCoin, Float64};
 use bitview_vecs::first_wholly_priced;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Bitcoin, Dollars, Timestamp};
+use brk_types::{Bitcoin, Dollars, Height, Timestamp};
 use vecdb::{ComputeVec, ReadableVec};
 
 use super::Vecs;
@@ -15,13 +14,12 @@ use super::Vecs;
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         mappings: &MappingsVecs,
         prices: &PriceVecs,
         holders: &HoldersVecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
         let coindays_destroyed = &holders.cohorts.all.activity.coindays_destroyed;
         let circulating_supply = &holders.cohorts.all.supply.total.btc.height;
 

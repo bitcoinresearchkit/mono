@@ -5,12 +5,18 @@ use bitview_plugin_indexer::Indexer;
 use bitview_vecs::{CoinbasePolicy, compute_type_counts};
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 use vecdb::{AnyVec, VecIndex};
 
 use super::Vecs;
 
 impl Vecs {
-    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        starting_height: Height,
+        exit: &Exit,
+    ) -> Result<()> {
         let txs = &indexer.vecs().transactions;
         let types = &indexer.vecs().inputs.output_type;
         let txid_len = txs.txid.len();
@@ -23,7 +29,7 @@ impl Vecs {
             &txs.first_tx_index,
             txid_len,
             entries_len,
-            indexer.compute_start().height,
+            starting_height,
             types.version()
                 + txs.first_tx_index.version()
                 + txs.first_txin_index.version()

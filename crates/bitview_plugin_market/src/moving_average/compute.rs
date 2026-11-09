@@ -1,7 +1,7 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_primitives::Lengths;
 use bitview_vecs::priced_starts;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,12 +12,11 @@ use super::Vecs;
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         lookback: &LookbackVecs,
         prices: &PriceVecs,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
         let close = &prices.spot.cents.height;
 
         self.sma_prefix_sum

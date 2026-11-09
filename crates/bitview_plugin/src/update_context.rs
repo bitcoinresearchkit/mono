@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use bitview_primitives::Lengths;
 use brk_exit::Exit;
 use vecdb::Database;
 
@@ -11,11 +12,31 @@ const COMPACTION_DELAY: Duration = Duration::from_secs(5);
 #[derive(Clone, Copy)]
 pub struct UpdateContext<'a> {
     exit: &'a Exit,
+    start: Option<Lengths>,
 }
 
 impl<'a> UpdateContext<'a> {
     pub const fn new(exit: &'a Exit) -> Self {
-        Self { exit }
+        Self {
+            exit,
+            start: None,
+        }
+    }
+
+    /// Sets the fixed recompute point for the dependents after the indexer's pass.
+    pub const fn with_start(self, start: Lengths) -> Self {
+        Self {
+            start: Some(start),
+            ..self
+        }
+    }
+
+    /// The fixed recompute point for this update's dependents.
+    ///
+    /// Panics when the composition forgot to set it after the indexer's pass: a pipeline bug.
+    pub fn start(self) -> Lengths {
+        self.start
+            .expect("Pipeline bug: dependent computed without a recompute start")
     }
 
     pub const fn exit(self) -> &'a Exit {

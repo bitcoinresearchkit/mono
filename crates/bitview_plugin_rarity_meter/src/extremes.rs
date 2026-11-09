@@ -1,11 +1,10 @@
 use bitview_plugin_holders::Vecs as HoldersVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Ratio;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Bitcoin, Dollars, Version};
+use brk_types::{Bitcoin, Dollars, Height, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use super::extreme::{Extreme, REALIZED, SELL_SIDE_RISK, SUPPLY_IN_LOSS};
@@ -83,8 +82,7 @@ impl Extremes {
         })
     }
 
-    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
-        let from = indexer.compute_start().height;
+    pub(crate) fn compute(&mut self, from: Height, exit: &Exit) -> Result<()> {
         self.supply_in_loss.compute(from, SUPPLY_IN_LOSS, exit)?;
         self.realized_profit_sum_24h.compute(from, REALIZED, exit)?;
         self.realized_loss_sum_24h.compute(from, REALIZED, exit)?;

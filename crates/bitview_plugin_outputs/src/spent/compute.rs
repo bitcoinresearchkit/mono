@@ -2,7 +2,7 @@ use std::iter::repeat_n;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Index40, TxInIndex, TxOutIndex};
+use bitview_primitives::{Index40, Lengths, TxInIndex, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
@@ -17,10 +17,9 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         mappings: &MappingsVecs,
+        starting_lengths: Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_lengths = indexer.compute_start();
-
         let dep_version = indexer.vecs().inputs.txout_index.version()
             + indexer.vecs().outputs.first_txout_index.version()
             + indexer.vecs().inputs.first_txin_index.version()

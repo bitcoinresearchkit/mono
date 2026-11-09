@@ -1,9 +1,9 @@
 use bitview_plugin_age::Vecs as AgeVecs;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::DollarBlocks;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 use vecdb::ComputeVec;
 
 use super::{super::activity, Vecs};
@@ -11,13 +11,12 @@ use super::{super::activity, Vecs};
 impl Vecs {
     pub(crate) fn compute(
         &mut self,
-        indexer: &Indexer,
         prices: &PriceVecs,
         age: &AgeVecs,
         activity: &activity::Vecs,
+        starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
-        let starting_height = indexer.compute_start().height;
         let coinblocks_destroyed = &age.coinblocks_destroyed;
 
         for (target, source) in [
