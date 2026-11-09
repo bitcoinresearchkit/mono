@@ -397,26 +397,17 @@
         position: absolute;
         inset: 0;
 
-        img {
+        > :is(img, video) {
           position: absolute;
           inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
-          /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
-          object-position: 70% var(--art-y, 35%);
           opacity: 0;
           transition: opacity 0.45s ease;
 
           &.on {
             opacity: 1;
-          }
-
-          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view; in a phone's band, its
-             top 57% as tall as the band.) */
-          &[src$="/studio.jpg"] {
-            --art-y: 10%;
-            --art-top: 0.57;
           }
         }
 
@@ -445,8 +436,6 @@
           overflow: hidden;
 
           img {
-            bottom: auto;
-            height: calc(100% / var(--art-top, 1));
 
             /* (Installed on iOS, the page runs up under the status bar: the picture starts under it, where it did, and
                its own top, mirrored, fills the strip above, its colours carried up to the screen's edge.) */
@@ -1648,7 +1637,7 @@
           transform-origin: 50% 100%;
           transition: scale 0.32s var(--lift), box-shadow 0.32s, opacity 0.32s;
 
-          > canvas {
+          > img {
             inset: 0 0 auto;
             height: 62%;
           }
@@ -1713,7 +1702,7 @@
 
         @media (prefers-reduced-motion: no-preference) {
           li[aria-current="true"] .bar {
-            animation: fill 9s linear both;
+            animation: fill 7s linear both;
           }
 
           .billboard[data-held] & li[aria-current="true"] .bar {
@@ -1917,19 +1906,6 @@
 
       .billboard {
         --accent: #64cfbc;
-
-        .art canvas {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0;
-          transition: opacity 0.45s ease;
-
-          &.on {
-            opacity: 1;
-          }
-        }
 
         /* (Calendar's channel is the one on paper: the whole screen turns parchment, the page's one change of ground.) */
         &[data-channel="calendar"] {
@@ -2255,12 +2231,34 @@
             font-size: 1.15em;
           }
 
-          img {
+          :is(img, video) {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
+          }
+
+          .watch {
+            position: absolute;
+            left: 50%;
+            top: 42%;
+            z-index: 1;
+            display: grid;
+            place-items: center;
+            width: 64px;
+            height: 64px;
+            border: 0;
+            border-radius: 50%;
+            color: #0d0c0b;
+            background: rgb(246 243 238 / 0.92);
+            cursor: pointer;
+            translate: -50% -50%;
+
+            svg {
+              width: 26px;
+              height: 26px;
+            }
           }
 
           /* (Its foot into the sheet, under the words over it.) */
@@ -2626,7 +2624,7 @@
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
            others. showcases/home.mjs checks it's FEATURED's first, as its own page names it.) -->
-      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /><canvas id="scene"></canvas></div>
+      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" fetchpriority="high" /><video id="clip" muted playsinline loop></video></div>
       <div class="feature">
         <p class="syncing" id="syncing" hidden><span id="syncing-words"></span><i></i></p>
         <div class="words" id="words" aria-live="off">
@@ -2788,21 +2786,22 @@
         return `${t.live ? `<span class="live">Live</span>` : ""}${facts[t.id] ? `<span>${facts[t.id]}</span>` : ""}`;
       }
 
-      // ── The stage: a television that's already on. Each app is a channel, full bleed, drawn live from this node's data; the
-      // dock along its foot is every channel at once, each tile its live picture. Pointing, focusing, a thumb sliding the dock
-      // or swiping the screen tunes to it; left alone it turns by itself (its tile's foot filling, a CSS animation, nothing per
-      // frame). Tuning by remote (arrows, numbers, a swipe) rolls the picture through a burst of the latest block's hash. ──
+      // ── The stage: a television that's already on. Each app is a channel, full bleed: a picture of the real thing with
+      // everything else taken away, and, when it can matter, a clip of it moving, both made from the app itself by
+      // showcases/home.mjs. Pointing, focusing, a thumb sliding the dock or swiping the screen tunes to it; left alone it
+      // turns by itself (its tile's foot filling, a CSS animation, nothing per frame). Tuning by remote rolls the picture
+      // through a burst of the latest block's hash. ──
 
-      const billboard = $("billboard"), art = /** @type {HTMLElement} */ (document.querySelector(".art")), studioArt = /** @type {HTMLImageElement} */ (art.querySelector("img")), scene = /** @type {HTMLCanvasElement} */ ($("scene")), sceneCtx = /** @type {CanvasRenderingContext2D} */ (scene.getContext("2d"));
+      const billboard = $("billboard"), art = /** @type {HTMLElement} */ (document.querySelector(".art")), clip = /** @type {HTMLVideoElement} */ ($("clip"));
       /** Each channel's own colour. */
       const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#c29a63" });
       const dock = $("dock");
-      /** What the scenes read, kept here so a scene drawn at any size sees the same picture. */
+      /** What the stage's readings and the roll read. */
       const data = { next: /** @type {any} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
       const tiles = FEATURED.map((t, i) => {
         const name = el("span", { className: "name" }, t.name, el("small", {}, t.kind ?? ""));
         name.dataset.face = t.id;
-        const pic = el("canvas", { className: "thumb" });
+        const pic = el("img", { alt: "", decoding: "async", src: `/assets/home/covers/${t.id}.jpg` });
         const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, name, el("i", { className: "bar", ariaHidden: "true" }));
         a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && show(i));
         a.addEventListener("focus", () => show(i, false, lastInputKey));
@@ -2829,7 +2828,10 @@
         return copy;
       }));
       $("words").append(room);
-      let at = -1, current = 0, tunedAt = 0;
+      /** Each channel's picture, the first in the page, the others asked for when wanted. */
+      const pictures = FEATURED.map((t, i) => (i ? art.insertBefore(el("img", { alt: "", decoding: "async" }), clip) : /** @type {HTMLImageElement} */ (art.querySelector("img"))));
+      const armed = (/** @type {number} */ i) => (pictures[i].src || (pictures[i].src = banner(FEATURED[i].id)), pictures[i]);
+      let at = -1, current = 0, asked = 0, loaded = false;
       /** A channel's reading as this node has it now: its label and figure, or nothing yet. */
       function channelReading(/** @type {string} */ id) {
         const block = data.blocks[0], num = (/** @type {number} */ i) => latestSeries(i);
@@ -2855,7 +2857,10 @@
         if (i === at) return;
         const t = FEATURED[i];
         at = current = i;
-        tunedAt = performance.now() / 1000;
+        // (Its picture ready before it's shown: a crossfade, never a flash of nothing; the next channel's asked for now.)
+        const stamp = ++asked, put = () => stamp === asked && pictures.forEach((p, k) => p.classList.toggle("on", k === i));
+        i && !pictures[i].complete ? armed(i).decode().then(put, put) : (armed(i), put());
+        if (loaded) armed((i + 1) % FEATURED.length);
         tiles.forEach((li, k) => li.setAttribute("aria-current", String(k === i)));
         billboard.dataset.channel = t.id;
         billboard.style.setProperty("--accent", CHANNEL_COLOR[t.id]);
@@ -2866,12 +2871,42 @@
         open.href = t.href;
         open.setAttribute("aria-label", `Open ${t.name}`);
         $("bb-about").setAttribute("aria-label", `More about ${t.name}`);
-        studioArt.classList.toggle("on", t.id === "studio");
-        scene.classList.toggle("on", t.id !== "studio");
         if (rolled && !reduced) roll(i);
-        drawn = false;
-        wakeScene();
+        runClip();
       }
+
+      // ── The clip: fetched whole when it can matter, one at a time, kept for the visit. Only a mouse's stage plays one by itself;
+      // a phone, data saver, a slow connection or a wish for less motion keeps the picture, and a clip plays only when asked for, in a title's sheet. ──
+      const autoplays = () => !reduced && mouse.matches && !navigator.connection?.saveData && !/2g|3g/.test(navigator.connection?.effectiveType ?? "");
+      /** @type {Map<string, Promise<string>>} */
+      const clips = new Map();
+      /** A clip's address, fetched once (a server without byte ranges can still play it, a Safari needing them). */
+      const clipUrl = (/** @type {string} */ id) => clips.get(id) ?? /** @type {Promise<string>} */ (clips.set(id, fetch(`/assets/home/videos/${id}.mp4`).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status))))).then((b) => URL.createObjectURL(b)).catch((e) => (clips.delete(id), Promise.reject(e)))).get(id));
+      /** The channel whose clip the stage's player holds. */
+      let clipIn = -1;
+      /** Brings the player in line with the stage: called whenever the channel or what may run changes, and safe to call again. */
+      function runClip() {
+        const i = at, still = !loaded || !autoplays() || resting();
+        if (still || clipIn !== i) clip.pause();
+        if (clipIn !== i) clip.classList.remove("on");
+        if (still) return;
+        if (clipIn === i) return void clip.play().catch(() => {});
+        clipUrl(FEATURED[i].id).then((url) => {
+          if (i !== at || clipIn === i || resting()) return;
+          clipIn = i;
+          clip.src = url;
+          clip.play().catch(() => {});
+        }, () => {});
+      }
+      // (Starting from its top, a clip gives its turn its own length, so a channel is on for exactly as long as its footage.)
+      clip.addEventListener("playing", () => {
+        clip.classList.add("on");
+        if (clip.currentTime > 0.25) return;
+        const turn = dock.querySelector('li[aria-current="true"] .bar')?.getAnimations()[0];
+        turn?.effect?.updateTiming({ duration: clip.duration * 1000 });
+        if (turn) turn.currentTime = 0;
+      });
+      addEventListener("load", () => setTimeout(() => ((loaded = true), armed((at + 1) % FEATURED.length), runClip()), 600), { once: true });
 
       // ── The roll between channels: the number, a band of the latest block's hash, phosphor over the picture ──
       function roll(/** @type {number} */ i) {
@@ -2888,8 +2923,11 @@
       document.addEventListener("keydown", () => (lastInputKey = true), true);
       document.addEventListener("pointerdown", () => (lastInputKey = false), true);
       const keyed = () => billboard.contains(document.activeElement) && /** @type {Element} */ (document.activeElement).matches(":focus-visible");
+      /** Nothing moves: the visitor stopped it, opened a title, or can't see it. (Resting a pointer or focus on it only holds the turn.) */
+      const resting = () => stopped || sheetOpen || !onScreen || document.hidden;
       function hold() {
-        billboard.toggleAttribute("data-held", stopped || hovered || keyed() || sheetOpen || !onScreen || document.hidden);
+        billboard.toggleAttribute("data-held", resting() || hovered || keyed());
+        runClip();
       }
       dock.addEventListener("animationend", (e) => /** @type {AnimationEvent} */ (e).animationName === "fill" && show((at + 1) % FEATURED.length, true));
       billboard.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && ((hovered = true), hold()));
@@ -2899,10 +2937,11 @@
       document.addEventListener("toggle", (e) => {
         if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
         sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
+        if (!sheetOpen) sheet.querySelector("video")?.pause();
         hold();
       }, true);
-      document.addEventListener("visibilitychange", () => (hold(), document.hidden || (round(), wakeScene())));
-      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), billboard.toggleAttribute("data-off", !onScreen), hold(), wakeScene())).observe(billboard);
+      document.addEventListener("visibilitychange", () => (hold(), document.hidden || round()));
+      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), billboard.toggleAttribute("data-off", !onScreen), hold())).observe(billboard);
       function stop(/** @type {boolean} */ value) {
         stopped = value;
         $("pause").setAttribute("aria-label", stopped ? "Play" : "Pause");
@@ -2928,189 +2967,8 @@
       }, { passive: true });
       $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
 
-      // ── The scenes: each channel's art, drawn from what this node reads, full screen and small, by one set of drawings ──
-
-      let geoDots = /** @type {[number, number][]} */ ([]), blockDigits = /** @type {number[]} */ ([]), stackWindow = /** @type {number[]} */ ([]), emberArt = /** @type {HTMLCanvasElement | null} */ (null), emberStale = true;
       const valid = (/** @type {any} */ n) => typeof n === "number" && Number.isFinite(n);
-      const normalizedCache = new WeakMap();
-      const normalizedSource = (/** @type {number[] | undefined} */ source) => {
-        if (!source) return [];
-        if (normalizedCache.has(source)) return normalizedCache.get(source);
-        const s = source.filter(valid), min = Math.min(...s), span = Math.max(...s) - min || 1, result = s.map((v) => (v - min) / span);
-        normalizedCache.set(source, result);
-        return result;
-      };
-      const normalized = (/** @type {number} */ i) => normalizedSource(data.series[i]?.data);
       const latestSeries = (/** @type {number} */ i) => data.series[i]?.data.findLast(valid);
-      const hashValue = (/** @type {number} */ i) => (blockDigits.length ? blockDigits[i % blockDigits.length] : 0);
-      const offscreen = (/** @type {number} */ w, /** @type {number} */ h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return /** @type {[HTMLCanvasElement, CanvasRenderingContext2D]} */ ([c, c.getContext("2d")]); };
-      function createEmber(){
-      const [c,g]=offscreen(1100,1000),s=normalized(0),hasData=s.length>0||data.blocks.length>0;
-      const cx=550,cy=500;g.translate(cx,cy);
-      const halo=g.createRadialGradient(0,0,180,0,0,510);halo.addColorStop(0,'#ff480000');halo.addColorStop(.25,'#fe490008');halo.addColorStop(.55,'#fa410017');halo.addColorStop(1,'#fb3c0000');g.fillStyle=halo;g.fillRect(-550,-500,1100,1000);
-      if(!hasData){g.strokeStyle='#ff702e33';g.lineWidth=1;g.beginPath();g.ellipse(0,0,310,270,-.3,0,Math.PI*2);g.stroke();g.strokeStyle='#ff702e18';g.beginPath();g.ellipse(0,0,370,325,-.3,0,Math.PI*2);g.stroke();return c}
-      let seed=(data.blocks[0]?.height||1)>>>0;const rnd=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return(seed>>>0)/4294967296};
-      // A point's radial position follows a historical monthly price; its variation follows the block hash.
-      for(let i=0;i<31500;i++){
-      const a=rnd()*Math.PI*2,history=s.length?s[Math.floor(a/(Math.PI*2)*s.length)]:hashValue(i),r=250+Math.pow(rnd(),1.9)*126+history*19;
-      const warp=17*Math.sin(a*3)+9*Math.cos(a*7),x=Math.cos(a)*(r+warp),y=Math.sin(a)*(r+warp)*.88;
-      const light=rnd(),alpha=(.12+light*.68)*(r<310?1:.64);g.strokeStyle=light>.94?`rgba(255,212,134,${alpha})`:light>.55?`rgba(255,112,42,${alpha})`:`rgba(211,57,15,${alpha})`;
-      const len=1+rnd()*9*(r<285?2:1);g.lineWidth=.5+rnd()*1.05;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a+.6)*len,y+Math.sin(a+.6)*len*.88);g.stroke();
-      }
-      g.globalCompositeOperation='screen';for(let j=0;j<4;j++){g.strokeStyle=`rgba(255,137,63,${.18-j*.03})`;g.lineWidth=1;g.beginPath();for(let i=0;i<=720;i++){const a=i/720*Math.PI*2,v=s.length?s[Math.floor((i%720)/720*s.length)]:0,r=246+j*7+v*22+Math.sin(a*3)*16;const x=Math.cos(a)*r,y=Math.sin(a)*r*.88;if(i===0)g.moveTo(x,y);else g.lineTo(x,y)}g.stroke()}
-      return c;
-      }
-      function renderEmber(ctx,W,H,t){if(emberStale){emberArt=createEmber();emberStale=false}const phone=W<650,sz=phone?Math.min(W*1.4,H*.72):Math.min(H*1.02,W*.72),x=phone?W*.54:W*.66,y=phone?H*.37:H*.415;ctx.save();ctx.translate(x,y);ctx.rotate(-.32+Math.sin(t*.11)*.02);const breath=1+Math.sin(t*.35)*.009;ctx.scale(breath,breath);ctx.drawImage(emberArt,-sz/2,-sz*.455,sz,sz*.91);ctx.restore();if(data.price){ctx.strokeStyle='#d9824a55';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+sz*.12,y+sz*.07);ctx.lineTo(x+sz*.27,y+sz*.12);ctx.lineTo(x+sz*.34,y+sz*.12);ctx.stroke();if(!phone){ctx.fillStyle='#ba9d83';ctx.font='9px Lilex';ctx.fillText('CHAIN-DERIVED / USD',x+sz*.275,y+sz*.105)}}}
-      function renderExplorer(ctx,W,H,t){
-      const phone=W<650,side=phone?Math.min(W*.62,H*.3):Math.min(W*.36,H*.43),cx=phone?W*.5:W*.65,cy=H*.40+side*.335,fill=data.blocks[0]?Math.min(data.blocks[0].weight/4000000,1)*(reduced||drawingTile?1:Math.max(0,Math.min(1,(t-tunedAt)/1.15))):0,n=18;
-      ctx.save();ctx.translate(cx,cy);ctx.rotate(Math.sin(t*.18)*.018);const p=(x,y,z=0)=>[(x-y)*side*.56,(x+y)*side*.3-z*side*.67];
-      function face(a,b,c,d,color){ctx.beginPath();ctx.moveTo(...p(...a));ctx.lineTo(...p(...b));ctx.lineTo(...p(...c));ctx.lineTo(...p(...d));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#bf8cff20';ctx.stroke()}
-      face([-.5,.5,0],[.5,.5,0],[.5,.5,1],[-.5,.5,1],'#23112d');face([.5,-.5,0],[.5,.5,0],[.5,.5,1],[.5,-.5,1],'#3b1c56');
-      for(let y=0;y<n;y++)for(let x=0;x<n;x++){const a=x/n-.5,b=y/n-.5;const on=(y*n+x)/(n*n)<fill,h=hashValue(x+y*n);face([a,b,1],[a+.94/n,b,1],[a+.94/n,b+.94/n,1],[a,b+.94/n,1],on?`hsl(${268+h*30} 65% ${30+h*35}%)`:'#291d35')}
-      for(let y=0;y<n;y++)for(let x=0;x<n;x++){const a=x/n-.5,z=y/n;const h=hashValue(y*n+x+14);face([.5,a,z],[.5,a+.93/n,z],[.5,a+.93/n,z+.93/n],[.5,a,z+.93/n],z<fill?`hsl(${267+h*20} 48% ${16+h*25}%)`:'#151019');face([a,.5,z],[a+.93/n,.5,z],[a+.93/n,.5,z+.93/n],[a,.5,z+.93/n],z<fill?`hsl(${267+h*20} 48% ${10+h*15}%)`:'#100b14')}
-      ctx.restore();
-      }
-      function renderGlobe(ctx,W,H,t){
-      const phone=W<650,r=phone?W*.48:Math.min(H*.31,W*.25),cx=phone?W*.51:W*.66,cy=phone?H*.38:H*.40,rotation=-.8+t*.055;
-      const glow=ctx.createRadialGradient(cx,cy,r*.65,cx,cy,r*1.15);glow.addColorStop(0,'#d3691010');glow.addColorStop(.8,'#ee852a0b');glow.addColorStop(1,'#ef882000');ctx.fillStyle=glow;ctx.fillRect(cx-r*1.2,cy-r*1.2,r*2.4,r*2.4);
-      ctx.strokeStyle='#bd824328';ctx.lineWidth=.7;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.ellipse(cx,cy,r,Math.max(1,r*Math.abs(i/3)),0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(cx,cy,Math.max(1,r*Math.abs(i/3)),r,0,0,Math.PI*2);ctx.stroke()}
-      for(const [lon,lat] of geoDots){const z=Math.cos(lat)*Math.cos(lon+rotation),x=Math.cos(lat)*Math.sin(lon+rotation),y=Math.sin(lat);if(z<-.05)continue;ctx.fillStyle=`rgba(255,${140+Math.floor(z*35)},${55+Math.floor(z*40)},${.2+Math.max(z,0)*.75})`;const dot=(phone?1.2:1.5)*(1+z*.2);ctx.beginPath();ctx.arc(cx+x*r,cy-y*r,dot,0,Math.PI*2);ctx.fill()}
-      ctx.strokeStyle='#df9b5860';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
-      if(data.pools?.blockCount){let a=-Math.PI/2+t*.02;data.pools.pools.forEach((pool,i)=>{const span=pool.blockCount/data.pools.blockCount*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r*1.075,a+.009,a+Math.max(.01,span-.009));ctx.strokeStyle=`rgba(255,168,87,${Math.max(.2,.9-i*.08)})`;ctx.lineWidth=i===0?3:1.5;ctx.stroke();a+=span})}
-      }
-      function renderTrail(ctx,W,H,t){
-      const s=normalized(0),base=normalized(3);if(!s.length)return;const phone=W<650,width=phone?W*1.8:W*.9,ox=phone?-W*.4:W*.25,oy=phone?H*.26:H*.19,h=phone?H*.29:H*.44;
-      for(let row=26;row>=0;row--){ctx.beginPath();s.forEach((v,i)=>{const x=ox+i/(s.length-1)*width-row*5,y=oy+(1-v)*h*.6+row*6+(base[i]||0)*row*1.4+Math.sin(t*.2+i*.08+row*.1)*2;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.strokeStyle=row%6===0?'#c9ad6e99':`rgba(141,189,106,${.12+(26-row)/26*.55})`;ctx.lineWidth=row%6===0?1.3:.8;ctx.stroke()}
-      }
-      function renderStack(ctx,W,H,t){
-      const s=normalizedSource(stackWindow);if(!s.length)return;const phone=W<650,width=phone?W*.95:W*.62,ox=phone?W*.08:W*.37,base=phone?H*.49:H*.57,bar=width/s.length;
-      s.forEach((v,i)=>{const h=25+v*H*.29;const y=base-h;const g=ctx.createLinearGradient(0,y,0,base);g.addColorStop(0,i===s.length-1?'#d8f4b2':'#9bda85');g.addColorStop(1,'#345d2a08');ctx.fillStyle=g;ctx.globalAlpha=.3+i/s.length*.7;ctx.fillRect(ox+i*bar,y,bar*.6,h);ctx.fillStyle='#b9e598';ctx.fillRect(ox+i*bar,y,bar*.6,2);ctx.globalAlpha=1});
-      const x=ox+(Math.sin(t*.3)*.5+.5)*width;ctx.strokeStyle='#b7e59844';ctx.beginPath();ctx.moveTo(x,base-H*.33);ctx.lineTo(x,base+20);ctx.stroke();
-      }
-      function renderCompass(ctx,W,H,t){
-      const phone=W<650,r=phone?W*.45:Math.min(H*.31,W*.25),cx=phone?W*.5:W*.66,cy=phone?H*.38:H*.39,v=latestSeries(2);
-      for(let ring=0;ring<7;ring++)for(let i=0;i<90;i++){if(i%10===9)continue;const a=(i/90)*Math.PI*1.6+Math.PI*.7,rs=r*(.72+ring*.04);ctx.beginPath();ctx.arc(cx,cy,rs,a,a+.035);ctx.strokeStyle=`hsla(${325-(i/90)*225} 47% 64% / ${.2+ring*.1})`;ctx.lineWidth=phone?3:5;ctx.stroke()}
-      if(valid(v)){const a=Math.PI*.7+Math.max(0,Math.min(1,(v+1)/2))*Math.PI*1.6;ctx.save();ctx.translate(cx,cy);ctx.rotate(a+Math.sin(t*.4)*.005);ctx.fillStyle='#e9e8d9';ctx.beginPath();ctx.moveTo(r*.67,0);ctx.lineTo(-r*.14,-5);ctx.lineTo(-r*.1,0);ctx.lineTo(-r*.14,5);ctx.closePath();ctx.fill();ctx.restore()}
-      if(!drawingTile){ctx.fillStyle='#bdafa5';ctx.font='9px Lilex';ctx.textAlign='center';ctx.fillText('FEAR',cx-r*.63,cy+r*.72);ctx.fillText('OPTIMISM',cx+r*.64,cy+r*.72);ctx.textAlign='left';}
-      }
-      function renderCalendar(ctx,W,H,t){
-      const phone=W<650,y=phone?(H<650?140:H*.24):H*.19,available=H*.42,sz=phone?Math.min(W*.78,Math.max(90,available*1.35)):Math.min(W*.43,H*.58),x=phone?(W-sz)/2:W*.46,block=data.blocks[0];
-      const date=block?new Date(block.timestamp*1000):null,days=date?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate():31,start=date?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),1)).getUTCDay():0;
-      ctx.fillStyle='#453b28';ctx.font=`${phone?(H<650?14:18):27}px Instrument`;ctx.fillText(date?date.toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):'A little history, every day.',x,y);const top=y+(phone&&H<650?21:35),cell=sz/7;ctx.font=`${phone?(H<650?6:9):11}px Lilex`;
-      'SMTWTFS'.split('').forEach((d,i)=>ctx.fillText(d,x+i*cell+4,top));
-      for(let i=0;i<days;i++){const col=(i+start)%7,row=Math.floor((i+start)/7),px=x+col*cell,py=top+20+row*cell*.8;ctx.strokeStyle='#5d513a2c';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+cell-5,py);ctx.stroke();ctx.fillStyle='#7e735f';ctx.font=`${phone?(H<650?7:11):17}px Instrument`;ctx.fillText(String(i+1),px+4,py+cell*.45);const matching=data.blocks.filter(b=>{const d=new Date(b.timestamp*1000);return date&&d.getUTCDate()===i+1&&d.getUTCMonth()===date.getUTCMonth()&&d.getUTCFullYear()===date.getUTCFullYear()});if(matching.length){ctx.fillStyle='#74532f';ctx.fillRect(px+3,py+cell*.58,Math.min(matching.length*3,cell-9),3)}}
-      if(date&&!(phone&&H<650)){ctx.fillStyle='#7a6b50';ctx.font='8px Lilex';ctx.fillText('MARKS / LATEST 15 BLOCKS',x,top+cell*5.2+18)}
-      }
-      function renderStudio() {}
-      const renderers = /** @type {Record<string, (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void>} */ ({ oracle: renderEmber, explorer: renderExplorer, globe: renderGlobe, trail: renderTrail, stack: renderStack, compass: renderCompass, calendar: renderCalendar, studio: renderStudio });
-      const paper = (/** @type {string} */ id) => (id === "calendar" ? "#d8cfb9" : "#0c0b09");
-      let drawn = false, frame = 0, lastFrame = 0, sceneW = 0, sceneH = 0;
-      /** Whether the channel on air has no motion: a page asking for less, and Calendar, drawn once per change. */
-      const still = () => reduced || FEATURED[at]?.id === "calendar";
-      function sizeScene() {
-        const dpr = Math.min(devicePixelRatio || 1, 2);
-        sceneW = art.clientWidth;
-        sceneH = art.clientHeight;
-        scene.width = Math.round(sceneW * dpr);
-        scene.height = Math.round(sceneH * dpr);
-        sceneCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawn = false;
-        wakeScene();
-      }
-      function drawScene(/** @type {number} */ now) {
-        frame = 0;
-        const t = FEATURED[at];
-        if (!t || t.id === "studio" || !onScreen || document.hidden) return;
-        if (!still() && now - lastFrame < 33) return void (frame = requestAnimationFrame(drawScene));
-        lastFrame = now;
-        sceneCtx.fillStyle = paper(t.id);
-        sceneCtx.fillRect(0, 0, sceneW, sceneH);
-        sceneCtx.save();
-        renderers[t.id](sceneCtx, sceneW, sceneH, reduced ? 0 : now / 1000);
-        sceneCtx.restore();
-        drawn = true;
-        if (!still()) frame = requestAnimationFrame(drawScene);
-      }
-      function wakeScene() {
-        if (!frame && !(still() && drawn)) frame = requestAnimationFrame(drawScene);
-      }
-      /** Where each scene's focus sits, and how much of it a tile shows: every tile one composition, the art centred, the same size. */
-      const TILE_FIT = /** @type {Record<string, [number, number, number]>} */ ({ oracle: [0.54, 0.37, 1.35], explorer: [0.5, 0.5, 1.5], globe: [0.51, 0.38, 0.36], trail: [0.5, 0.4, 1.5], stack: [0.52, 0.36, 1.4], compass: [0.5, 0.38, 0.38] });
-      let drawingTile = false;
-      function tileStudio(/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ W, /** @type {number} */ H) {
-        const price = normalized(0), realized = normalized(3);
-        if (price.length < 2) return;
-        const y = (/** @type {number} */ v) => H * 0.86 - v * H * 0.62, x = (/** @type {number} */ i) => (i / (price.length - 1)) * W;
-        for (const [list, fill] of /** @type {[number[], string][]} */ ([[price, "#1e6a6a"], [realized, "#c8913f"]])) {
-          g.beginPath();
-          g.moveTo(0, H);
-          list.forEach((v, i) => g.lineTo(x(i), y(v)));
-          g.lineTo(W, H);
-          g.closePath();
-          g.fillStyle = fill;
-          g.fill();
-        }
-        g.beginPath();
-        price.forEach((v, i) => (i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v))));
-        g.strokeStyle = "#f1eee4";
-        g.lineWidth = 1.2;
-        g.stroke();
-      }
-      function tileCalendar(/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ W, /** @type {number} */ H) {
-        const block = data.blocks[0];
-        if (!block) return;
-        const date = new Date(block.timestamp * 1000), day = date.getUTCDate();
-        g.textAlign = "center";
-        g.fillStyle = "#d8cfb9";
-        g.font = `${H * 0.56}px Instrument, serif`;
-        g.fillText(String(day), W / 2, H * 0.58);
-        // (This month's days under it, each a dot, today lit.)
-        const days = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate(), cols = 16, gap = Math.min(W * 0.042, 5.5), left = W / 2 - ((Math.min(days, cols) - 1) * gap) / 2;
-        for (let i = 0; i < days; i++) {
-          g.fillStyle = i + 1 === day ? "#d8cfb9" : "rgba(216,207,185,.28)";
-          g.beginPath();
-          g.arc(left + (i % cols) * gap, H * 0.72 + Math.floor(i / cols) * gap, 1.2, 0, Math.PI * 2);
-          g.fill();
-        }
-        g.textAlign = "left";
-      }
-      /** Every channel's tile, drawn once from what's known now: the dock is the whole set at a glance, nothing per frame. */
-      function drawTiles() {
-        drawingTile = true;
-        FEATURED.forEach((t, i) => {
-          const c = /** @type {HTMLCanvasElement} */ (tiles[i].querySelector("canvas"));
-          const box = c.getBoundingClientRect();
-          if (!box.width) return;
-          const dpr = Math.min(devicePixelRatio || 1, 2), W = box.width, H = box.height;
-          c.width = Math.round(W * dpr);
-          c.height = Math.round(H * dpr);
-          const g = /** @type {CanvasRenderingContext2D} */ (c.getContext("2d"));
-          g.setTransform(dpr, 0, 0, dpr, 0, 0);
-          g.fillStyle = "#0c0b09";
-          g.fillRect(0, 0, W, H);
-          g.save();
-          if (t.id === "studio") tileStudio(g, W, H);
-          else if (t.id === "calendar") tileCalendar(g, W, H);
-          else {
-            const [fx, fy, scale] = TILE_FIT[t.id];
-            g.translate(W / 2, H * 0.44);
-            g.scale(scale, scale);
-            g.translate(-fx * W, -fy * H);
-            renderers[t.id](g, W, H, 1);
-          }
-          g.restore();
-        });
-        drawingTile = false;
-      }
-      /** Anything the scenes read changed: redrawn from it. */
-      function chainChanged(/** @type {boolean} */ ember) {
-        if (ember) emberStale = true;
-        drawn = false;
-        wakeScene();
-        drawTiles();
-        showReading();
-      }
-      new ResizeObserver(sizeScene).observe(art);
       show(0);
       hold();
 
@@ -3179,6 +3037,12 @@
         const card = /** @type {HTMLElement | null} */ (document.querySelector(`#shelves a.dev-${t.id}`)?.cloneNode(true) ?? null);
         if (card) card.tabIndex = -1;
         const picture = card ?? el("img", { alt: "", src: banner(t.id) });
+        // (A title's clip, played when asked for: a phone's way to see it move.)
+        const watch = card ? null : el("button", { className: "watch", type: "button", ariaLabel: `Play a clip of ${t.name}` }, icon("i-play"));
+        watch?.addEventListener("click", () => clipUrl(t.id).then((url) => {
+          picture.replaceWith(el("video", { muted: true, playsInline: true, autoplay: true, loop: true, src: url }));
+          watch.remove();
+        }, () => watch.remove()));
         // (What it shows now, if it shows anything.)
         const now = meta(t), m = el("p", { className: "meta" });
         m.innerHTML = now;
@@ -3190,7 +3054,7 @@
         const known = [["Category", kind], ...(t.made ? [["Made from", t.made]] : [])];
         sheet.replaceChildren(
           shut,
-          el("div", { className: "hero" }, el("div", { className: "shot" }, picture), el("div", { className: "over" }, el("p", { className: "kind" }, kind), heading, el("div", { className: "buttons" }, go, sharer(t)))),
+          el("div", { className: "hero" }, el("div", { className: "shot" }, picture, ...(watch ? [watch] : [])), el("div", { className: "over" }, el("p", { className: "kind" }, kind), heading, el("div", { className: "buttons" }, go, sharer(t)))),
           el("div", { className: "body" }, words, el("dl", {}, ...known.map(([term, value]) => el("div", {}, el("dt", {}, term), el("dd", {}, value))))),
         );
         sheet.setAttribute("aria-label", t.name);
@@ -3611,7 +3475,7 @@
       async function round() {
         if (reading || document.hidden) return;
         reading = true;
-        loadScenes();
+        loadReadings();
         const parts = [
           part("price-panel", read("/api/v1/prices"), (p) => {
             $("price").textContent = dollars(p.USD);
@@ -3619,17 +3483,14 @@
             facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
             facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
             showReading();
-            showReading();
           }).then((ok) => ok || ((data.price = null), forget("oracle", "stack"))),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read("/api/blocks/tip/height", "text").then((h) => ((tipSeen = h), document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h))))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {
-            const changed = list[0]?.id !== data.blocks[0]?.id;
             data.blocks = list;
-            if (changed) blockDigits = list.flatMap((/** @type {any} */ b) => Array.from(/** @type {string} */ (b.id), (h) => parseInt(h, 16) / 15));
             drawGuide(list);
-            if (changed) chainChanged(true);
+            showReading();
             answered("blocks-title", guide, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
@@ -3645,7 +3506,7 @@
             else delete facts.explorer;
             showReading();
           }, () => ((formingFacts.textContent = ""), (data.next = null), forget("explorer"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => { const changed = d.blockCount !== data.pools?.blockCount || d.pools[0]?.slug !== data.pools?.pools[0]?.slug; data.pools = d; drawPools(d); if (changed) chainChanged(false); return d; }).then((d) => ( answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
+          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => { data.pools = d; drawPools(d); showReading(); return d; }).then((d) => ( answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
           rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
             if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
@@ -3717,28 +3578,9 @@
         timeForming();
         read("/api/blocks/tip/height", "text").then((h) => h !== tipSeen && round(), () => {});
       }
-      /** The scenes' readings: the map's dots once, the months of history until they've answered and while this node is still syncing (called each round). */
-      function loadScenes() {
-      if (!geoDots.length) read("/modules/world-atlas/2.0.2/countries-110m.json").then((atlas) => {
-        const { scale, translate } = atlas.transform;
-        const arcs = atlas.arcs.map((/** @type {number[][]} */ arc) => { let x = 0, y = 0; return arc.map((p) => { x += p[0]; y += p[1]; return [x * scale[0] + translate[0], y * scale[1] + translate[1]]; }); });
-        const [, m] = offscreen(720, 360);
-        m.fillStyle = "#fff";
-        const polygon = (/** @type {number[][]} */ rings) => {
-          m.beginPath();
-          for (const ring of rings) { let first = true; for (const ai of ring) { const points = ai < 0 ? [...arcs[~ai]].reverse() : arcs[ai]; for (const [lon, lat] of points) { const x = (lon + 180) * 2, y = (90 - lat) * 2; if (first) (m.moveTo(x, y), (first = false)); else m.lineTo(x, y); } } m.closePath(); }
-          m.fill("evenodd");
-        };
-        atlas.objects.countries.geometries.forEach((/** @type {any} */ g) => { if (g.type === "Polygon") polygon(g.arcs); else if (g.type === "MultiPolygon") g.arcs.forEach(polygon); });
-        const pixels = m.getImageData(0, 0, 720, 360).data;
-        for (let lat = -58; lat < 82; lat += 2.1) for (let lon = -180; lon < 180; lon += 2.1 / Math.max(0.3, Math.cos((lat * Math.PI) / 180))) { const x = Math.floor((lon + 180) * 2), y = Math.floor((90 - lat) * 2); if (pixels[(y * 720 + x) * 4 + 3] > 128) geoDots.push([(lon * Math.PI) / 180, (lat * Math.PI) / 180]); }
-        chainChanged(false);
-      }, () => {});
-      if (!data.series.length || sync?.blocks_behind > 0) read(`/api/series/bulk?series=price,mvrv,nupl,realized_price,sats_per_dollar&index=month1&start=-160`).then((list) => {
-        data.series = list;
-        stackWindow = list[4]?.data.slice(-30) ?? [];
-        chainChanged(true);
-      }, () => {});
+      /** The stage's readings from the series: read until they've answered, and while this node is still syncing. */
+      function loadReadings() {
+        if (!data.series.length || sync?.blocks_behind > 0) read(`/api/series/bulk?series=price,mvrv,nupl,realized_price,sats_per_dollar&index=month1&start=-1`).then((list) => ((data.series = list), showReading()), () => {});
       }
       round();
       setInterval(round, 30_000);
