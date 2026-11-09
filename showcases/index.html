@@ -290,7 +290,7 @@
           &::before {
             content: "";
             position: absolute;
-            inset: -11px -4px;
+            inset: -14px -4px;
           }
         }
       }
@@ -3263,7 +3263,8 @@
       // never under a minute), the newest at the end; after it the block forming, growing, under a Now. ──
 
       const guide = row("blocks-title", "guide");
-      guide.append(...bones(9, () => el("span", { className: "tile bone p" })));
+      guide.append(...bones(14, () => el("span", { className: "tile bone p" })));
+      fitGuide();
       /** Each block's programme, by its hash, while it's shown. @type {Map<string, HTMLElement>} */
       const blockTiles = new Map();
       /** How long a block took, in words. */
@@ -3317,10 +3318,10 @@
         const seconds = Math.max(0, Date.now() / 1000 - lastAt);
         formingWhen.textContent = seconds < 60 ? "just now" : `${Math.floor(seconds / 60)} min so far`;
       }
-      /** As many whole, equal blocks as the row has room for, the forming one kept: the newest are shown, the rest hidden. */
+      /** As many whole, equal cells as the row has room for, the last (the forming block) always among them: the newest shown, the rest hidden. */
       function fitGuide() {
         const shown = guide.clientWidth < 520 ? 0 : Math.floor((guide.clientWidth - 200) / 150);
-        /** @type {HTMLElement[]} */ ([...guide.children]).forEach((li, i, all) => (li.hidden = li !== forming && all.length - 1 - i > shown));
+        /** @type {HTMLElement[]} */ ([...guide.children]).forEach((li, i, all) => (li.hidden = all.length - 1 - i > shown));
       }
       new ResizeObserver(fitGuide).observe(guide);
       function drawGuide(/** @type {any[]} */ list) {
