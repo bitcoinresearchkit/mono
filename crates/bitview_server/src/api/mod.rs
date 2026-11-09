@@ -12,6 +12,8 @@ use super::AppState;
 use crate::{Error, extended::TransformResponseExtended, params::Empty};
 
 #[cfg(feature = "full-api")]
+mod addr_validation;
+#[cfg(feature = "full-api")]
 mod addrs;
 #[cfg(feature = "full-api")]
 mod blindbit;

@@ -14,9 +14,11 @@ use bitview_primitives::{Index, SeriesName};
 use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, PaginatedSeries, Pagination, SearchQuery,
-    SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
+    SeriesData, SeriesInfo, SeriesSelection,
 };
 use brk_types::Version;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_vec};
 
 use crate::{
@@ -27,6 +29,12 @@ use crate::{
     params::{Empty, SeriesParam},
     request_state::RequestState,
 };
+
+#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
+struct SeriesNameWithIndex {
+    series: SeriesName,
+    index: Index,
+}
 
 pub async fn serve_list(state: AppState, headers: HeaderMap, pagination: Pagination) -> Response {
     AppState::respond_with_future(&headers, state.series_bodies.list.clone(), async {

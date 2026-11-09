@@ -13,7 +13,7 @@ use serde_json::to_vec;
 
 use crate::{
     AppState, CacheParams,
-    api::tags,
+    api::{addr_validation::validate_address, tags},
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
         AddressAfterTxidParam, AddressChainTxsQuery, AddressHashPrefixParam,
@@ -206,7 +206,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             Path(path): Path<ValidateAddressParam>,
             _: Empty
         | -> crate::error::Result<Response> {
-            let validation = AddressValidation::from_addr(path.checked()?);
+            let validation = validate_address(path.checked()?);
             Ok(Response::cached_json(&headers, &CacheParams::deploy(), move || validation))
         }, |op| op
             .id("validate_address")
