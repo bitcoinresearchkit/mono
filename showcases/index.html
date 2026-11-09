@@ -2891,7 +2891,7 @@
       $("words").append(room);
       let at = -1, current = 0, tunedAt = 0;
       /** A channel's reading as this node has it now: its label and figure, or nothing yet. */
-      function reading(/** @type {string} */ id) {
+      function channelReading(/** @type {string} */ id) {
         const block = data.blocks[0], num = (/** @type {number} */ i) => latestSeries(i);
         switch (id) {
           case "studio": return data.count ? ["Series to chart", grouped(data.count)] : null;
@@ -2906,7 +2906,7 @@
         return null;
       }
       function showReading() {
-        const r = reading(FEATURED[at].id);
+        const r = channelReading(FEATURED[at].id);
         $("reading-label").textContent = r?.[0] ?? "";
         $("reading-value").textContent = r?.[1] ?? "";
       }
