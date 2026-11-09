@@ -196,6 +196,22 @@
       }
 
       /* (Dark in either scheme: the bar, the billboard, every cover; their tokens resolve dark.) */
+      /* (Over paper the bar is paper: past the stage, in light, its glass and pill turn to the page's ground.) */
+      @media (prefers-color-scheme: light) {
+        body:has(.billboard[data-off]) .top {
+          --glass-rgb: 243 241 236;
+          color-scheme: light;
+
+          > .glass {
+            bottom: -30px;
+
+            &::after {
+              background: linear-gradient(rgb(var(--glass-rgb)) calc(100% - 30px), rgb(var(--glass-rgb) / 0));
+            }
+          }
+        }
+      }
+
       .top,
       .billboard,
       .tile,
@@ -206,6 +222,7 @@
       /* ── The bar: the brand; the chain's height, the price and the next block's fee ── */
 
       .top {
+        --glass-rgb: 13 12 11;
         position: fixed;
         inset: 0 0 auto;
         z-index: 30;
@@ -251,88 +268,7 @@
                page's art would meet the bar; under its contents enough for its words over anything; past its foot,
                easing out with the blur over 120px from its pills' middle (an ease-out curve's stops): a long, even fall,
                begun under its contents, not after them.) */
-            background: linear-gradient(#0d0c0b 14px, rgb(13 12 11 / 0.88) calc(100% - 120px), rgb(13 12 11 / 0.752) calc(100% - 110px), rgb(13 12 11 / 0.634) calc(100% - 100px), rgb(13 12 11 / 0.524) calc(100% - 90px), rgb(13 12 11 / 0.424) calc(100% - 80px), rgb(13 12 11 / 0.334) calc(100% - 70px), rgb(13 12 11 / 0.253) calc(100% - 60px), rgb(13 12 11 / 0.182) calc(100% - 50px), rgb(13 12 11 / 0.122) calc(100% - 40px), rgb(13 12 11 / 0.073) calc(100% - 30px), rgb(13 12 11 / 0.035) calc(100% - 20px), rgb(13 12 11 / 0.010) calc(100% - 10px), rgb(13 12 11 / 0.000) calc(100% - 0px));
-          }
-        }
-
-        nav {
-          display: flex;
-          gap: 22px;
-          margin-right: auto;
-          margin-left: 36px;
-          font-size: 14px;
-
-          a {
-            color: var(--soft);
-            transition: color 0.2s, background-color 0.2s;
-
-            &:hover,
-            &[aria-current="true"] {
-              color: var(--ink);
-            }
-
-            &[aria-current="true"] {
-              font-weight: 600;
-            }
-          }
-        }
-
-        /* (A phone's: the sections as chips on a line of their own, under the brand, sliding sideways, as a streaming
-           app's categories; the one in view filled.) */
-        @media (max-width: 899px) {
-          flex-wrap: wrap;
-          row-gap: 0;
-          height: auto;
-          padding-bottom: 10px;
-
-          .brand,
-          .status {
-            height: 56px;
-          }
-
-          .status:not([hidden]) {
-            height: 30px;
-            margin: 13px 0;
-          }
-
-          nav {
-            order: 3;
-            flex: 1 0 100%;
-            gap: 8px;
-            /* (Room above and below inside the scroller, which clips: each chip's reach, 44 px, held in it.) */
-            margin: -6px calc(-1 * var(--gutter));
-            padding: 6px var(--gutter);
-            overflow-x: auto;
-            scrollbar-width: none;
-            font-size: 13px;
-
-            &::-webkit-scrollbar {
-              display: none;
-            }
-
-            a {
-              position: relative;
-              flex: none;
-              border-radius: 16px;
-              padding: 6px 13px;
-              color: var(--text);
-              background: rgb(13 12 11 / 0.45);
-              box-shadow: inset 0 0 0 1px rgb(246 243 238 / 0.16);
-              backdrop-filter: blur(14px);
-              -webkit-backdrop-filter: blur(14px);
-
-              &[aria-current="true"] {
-                color: #0d0c0b;
-                background: #f6f3ee;
-                box-shadow: none;
-              }
-
-              &::before {
-                content: "";
-                position: absolute;
-                inset: -6px 0;
-              }
-            }
+            background: linear-gradient(rgb(var(--glass-rgb)) 14px, rgb(var(--glass-rgb) / 0.95) calc(100% - 120px), rgb(var(--glass-rgb) / 0.752) calc(100% - 110px), rgb(var(--glass-rgb) / 0.634) calc(100% - 100px), rgb(var(--glass-rgb) / 0.524) calc(100% - 90px), rgb(var(--glass-rgb) / 0.424) calc(100% - 80px), rgb(var(--glass-rgb) / 0.334) calc(100% - 70px), rgb(var(--glass-rgb) / 0.253) calc(100% - 60px), rgb(var(--glass-rgb) / 0.182) calc(100% - 50px), rgb(var(--glass-rgb) / 0.122) calc(100% - 40px), rgb(var(--glass-rgb) / 0.073) calc(100% - 30px), rgb(var(--glass-rgb) / 0.035) calc(100% - 20px), rgb(var(--glass-rgb) / 0.010) calc(100% - 10px), rgb(var(--glass-rgb) / 0.000) calc(100% - 0px));
           }
         }
       }
@@ -356,7 +292,7 @@
           &::before {
             content: "";
             position: absolute;
-            inset: -9px 0;
+            inset: -11px -4px;
           }
         }
       }
@@ -420,8 +356,10 @@
         }
       }
 
-      /* ── The billboard: a featured title, its picture full bleed; it turns to the next on its own (paused while
-         pointed at, focused, or with less motion asked for), each title a segment that fills as it shows ── */
+      /* ── The stage: what a TV's home is, one screen, not a page. A title's picture full bleed, its words and ways in over
+         it, and along its foot the dock: every app, one of them the title shown. Moving along the dock (pointed at, focused,
+         swiped) changes the stage at once; left alone, it turns by itself, the tile's own foot filling as it shows. Dark in
+         either scheme: a screen, not paper. ── */
 
       .billboard {
         position: relative;
@@ -429,31 +367,22 @@
         flex-direction: column;
         justify-content: flex-end;
         overflow: hidden;
-        /* (Its height leaves the apps in view under it: on a phone their first line, on a desk their top.) */
-        padding: 0 0 8px;
+        padding: calc(68px + var(--bar-top)) 0 8px;
         color: var(--text);
         background: var(--app);
 
-        /* (A phone's: its words clear of the bar's two lines, held sideways too; its rows the space over them (its
-           picture's, see .art), its words, its buttons and its pages.) */
-        @media (max-width: 719px) {
-          display: grid;
-          grid-template: 1fr repeat(3, auto) / 100%;
-          min-height: min(540px, 72svh);
-          padding-top: calc(110px + var(--bar-top));
+        /* (Short of the whole screen, so what's on now shows under it from the first moment: its programmes on a desk, its
+           head and first programmes' tops on a phone. A short screen: its words and dock set the height.) */
+        min-height: calc(100svh - 132px);
+
+        @media (min-width: 720px) {
+          min-height: calc(100svh - 200px);
+          padding-top: calc(96px + var(--bar-top));
         }
 
-        /* (A desk's, a streaming home's: most of the first screen, 16:9 of its width up to 78% of its height, the apps'
-           top under it; taller only as its words need: they never come under the bar.) */
-        @media (min-width: 720px) {
-          min-height: clamp(420px, min(56.25vw, 78svh), 1080px);
-          padding-top: calc(96px + var(--bar-top));
-          padding-bottom: clamp(36px, 7svh, 88px);
-
-          /* (Dark, the apps rise 96 px into its fade (main's margin); on paper, the band ends cleanly above them.) */
-          @media (prefers-color-scheme: dark) {
-            padding-bottom: calc(clamp(36px, 7svh, 88px) + 96px);
-          }
+        /* (On paper, the screen a panel set into it.) */
+        @media (prefers-color-scheme: light) {
+          border-radius: 0 0 28px 28px;
         }
       }
 
@@ -470,9 +399,8 @@
           /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
           object-position: 70% var(--art-y, 35%);
           opacity: 0;
-          transition: opacity 0.6s ease;
+          transition: opacity 0.45s ease;
 
-          /* (The one showing, still: one fades into the next, nothing else moves.) */
           &.on {
             opacity: 1;
           }
@@ -484,34 +412,35 @@
             --art-top: 0.57;
           }
 
-          /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
           &[src$="/oracle.jpg"] {
             --art-drop: 0px;
           }
         }
 
-        /* (Its words' ground: the picture darkened to the left and the foot, where they sit.) */
+        /* (The picture showing, drifting slowly back to rest: a screen's, never a still.) */
+        @media (prefers-reduced-motion: no-preference) {
+          img.on {
+            animation: drift 22s cubic-bezier(0.2, 0.6, 0.3, 1) both;
+          }
+        }
+
+        /* (Its words' ground: the picture darkened to the left and the foot, where they and the dock sit.) */
         &::after {
           content: "";
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 60%, transparent) 24%, transparent 52%),
-            linear-gradient(to right, var(--app) 0, color-mix(in srgb, var(--app) 94%, transparent) 22%, color-mix(in srgb, var(--app) 62%, transparent) 40%, transparent 64%),
+            linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 84%, transparent) 24%, color-mix(in srgb, var(--app) 30%, transparent) 42%, transparent 62%),
+            linear-gradient(to right, var(--app) 0, color-mix(in srgb, var(--app) 94%, transparent) 26%, color-mix(in srgb, var(--app) 58%, transparent) 42%, transparent 66%),
             linear-gradient(to bottom, rgb(13 12 11 / 0.75), rgb(13 12 11 / 0.25) 14%, transparent 26%);
         }
 
-        /* (A phone's: a band from the top to a set height over its words' foot, where it fades into their ground: the
-           picture as wide as a phone can show it, clear over the words, their first lines on its fade, the rest on the
-           dark. Its foot from the buttons' row, which every title shares: a title's words, however many lines, never move
-           or scale it. Full bleed, a phone showed a tenth of it, the most of that shaded for the words.) */
+        /* (A phone's: a band from the top down past its middle, fading into the words' ground, the picture as wide as a
+           phone shows it.) */
         @media (max-width: 719px) {
-          grid-row: auto / 3;
-          grid-column: 1;
-          bottom: 100px;
+          bottom: 50%;
           overflow: hidden;
 
-          /* (A picture whose subject is its top: that top the band's height, the rest under it cut.) */
           img {
             bottom: auto;
             height: calc(100% / var(--art-top, 1));
@@ -528,9 +457,19 @@
 
           &::after {
             background:
-              linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 80%, transparent) 48px, transparent 150px),
+              linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 82%, transparent) 70px, transparent 188px),
               linear-gradient(to bottom, rgb(13 12 11 / 0.55), transparent 110px);
           }
+        }
+      }
+
+      @keyframes drift {
+        from {
+          transform: scale(1.07) translate3d(-1.2%, 0.8%, 0);
+        }
+
+        to {
+          transform: none;
         }
       }
 
@@ -538,45 +477,33 @@
         position: relative;
         z-index: 1;
         width: 100%;
-        margin: 0 auto;
         padding: 0 var(--gutter);
 
         > div {
           max-width: 600px;
         }
 
-        /* (A phone's: its words, buttons and pages in the billboard's rows; its lines close, the picture over them the
-           taller.) */
-        @media (max-width: 719px) {
-          grid-row: 2 / -1;
-          display: grid;
-          grid-template-rows: subgrid;
+        .blurb {
+          margin-top: 8px;
+        }
 
+        .buttons {
+          margin-top: 18px;
+        }
+
+        @media (max-width: 719px) {
           .meta {
             margin-top: 10px;
           }
-
-          .blurb {
-            margin-top: 6px;
-          }
-
-          .buttons {
-            margin-top: 20px;
-          }
-
-          .paging {
-            margin-top: 18px;
-          }
         }
 
-        /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher. Its fact
-           and buttons at the screen's scale, as its title and blurb are.) */
+        /* (A desk: its fact and buttons at the screen's scale, as its title and blurb are; its pause on its buttons' line.) */
         @media (min-width: 720px) {
           --column: clamp(520px, 42vw, 780px);
           display: grid;
           grid-template-columns: auto 1fr;
           align-items: center;
-          column-gap: 32px;
+          column-gap: 16px;
 
           > div {
             max-width: var(--column);
@@ -587,6 +514,8 @@
           }
 
           .buttons {
+            margin-top: 22px;
+
             > * {
               height: clamp(46px, 3.1vw, 58px);
               padding: 0 clamp(26px, 2vw, 36px);
@@ -598,8 +527,6 @@
             }
           }
 
-          /* (Its title on one line where the screen has room, wider than the words under it if it must, as a streaming
-             title's logo is; its blurb the column's.) */
           .words {
             grid-column: 1 / -1;
             max-width: none;
@@ -608,10 +535,34 @@
               max-width: var(--column);
             }
           }
+        }
+      }
 
-          .paging {
-            margin: 24px 0 0;
-          }
+      /* (This node still syncing: said on the stage, over the words, where nothing else moves for it.) */
+      .syncing:not([hidden]) {
+        position: absolute;
+        left: var(--gutter);
+        bottom: calc(100% + 14px);
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: min(380px, 100% - 2 * var(--gutter));
+        margin: 0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--ink);
+        background: rgb(13 12 11 / 0.72);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        font-size: 13px;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+
+        i {
+          display: block;
+          height: 3px;
+          border-radius: 2px;
+          background: linear-gradient(to right, var(--brand) var(--of, 0%), rgb(246 243 238 / 0.14) var(--of, 0%));
         }
       }
 
@@ -642,7 +593,7 @@
 
       .kind {
         margin: 0;
-        color: var(--soft);
+        color: var(--text);
         font-size: 12.5px;
         font-weight: 650;
         letter-spacing: 0.08em;
@@ -650,7 +601,10 @@
       }
 
       .billboard .title {
-        display: block;
+        /* (As tall as the serif titles' line, whichever title shows: nothing above it moves as the script adds the others.) */
+        display: flex;
+        align-items: flex-end;
+        min-height: 46px;
         max-width: none;
         margin: 10px 0 0;
         padding: 0;
@@ -662,6 +616,7 @@
         text-wrap: balance;
 
         @media (min-width: 720px) {
+          min-height: clamp(46px, 7.73vw, 153px);
           font-size: clamp(40px, 6.4vw, 128px);
         }
       }
@@ -781,20 +736,13 @@
         }
       }
 
-      /* Its titles: a segment each, the one showing filling as it shows; then a pause, for whoever wants it still. */
-      .paging {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 22px 0 0;
-      }
-
+      /* (Its turning held still by whoever wants it so; beside the ways in, quietly.) */
       .pause {
         position: relative;
         display: grid;
         place-items: center;
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         border: 0;
         border-radius: 50%;
         padding: 0;
@@ -814,7 +762,7 @@
         &::before {
           content: "";
           position: absolute;
-          inset: -10px;
+          inset: -8px;
         }
 
         &[hidden] {
@@ -822,53 +770,16 @@
         }
       }
 
-      .pages {
-        display: flex;
-        gap: 6px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
+      .paging {
+        position: absolute;
+        right: var(--gutter);
+        bottom: 9px;
 
-        button {
-          position: relative;
-          width: 32px;
-          height: 24px;
-          border: 0;
-          padding: 0;
-          background: none;
-          cursor: pointer;
-
-          @media (pointer: coarse) {
-            height: 44px;
-          }
-
-          &::before,
-          &::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: calc(50% - 1.5px);
-            height: 3px;
-            border-radius: 2px;
-          }
-
-          &::before {
-            right: 0;
-            background: color-mix(in oklab, var(--ink), transparent 72%);
-          }
-
-          &::after {
-            width: 0;
-            background: var(--ink);
-          }
-
-          &[aria-current="true"]::after {
-            width: var(--done, 100%);
-          }
-
-          &:hover::before {
-            background: color-mix(in oklab, var(--ink), transparent 55%);
-          }
+        @media (min-width: 720px) {
+          position: static;
+          display: flex;
+          align-items: center;
+          margin: 22px 0 0;
         }
       }
 
@@ -1014,16 +925,16 @@
           --grid-gap: 16px;
           --tile-h: calc(var(--tile-w) * 10 / 16);
         }
-
-        /* (On a desk the first row rises into the billboard's fade, as a streaming home's does.) */
-        @media (min-width: 720px) and (prefers-color-scheme: dark) {
-          margin-top: -96px;
-        }
       }
 
       .shelf {
         position: relative;
         margin-top: 36px;
+
+        /* (The first row's room held while the script fills it: what shows on arrival doesn't move.) */
+        &:has(#blocks-title) {
+          min-height: 184px;
+        }
 
         h2 {
           scroll-margin-top: calc(80px + var(--bar-top));
@@ -1037,10 +948,6 @@
         &[data-failed] {
           .row > li > * {
             opacity: 0.45;
-          }
-
-          h2 .live {
-            display: none;
           }
         }
 
@@ -1099,13 +1006,9 @@
             &::before {
               content: "";
               position: absolute;
-              inset: -12px -6px;
+              inset: -16px -10px;
             }
           }
-        }
-
-        .live {
-          align-self: center;
         }
       }
 
@@ -1114,7 +1017,7 @@
         display: flex;
         gap: var(--grid-gap);
         margin: 0;
-        padding: 6px var(--gutter) 14px;
+        padding: 10px var(--gutter) 18px;
         /* (Sideways only: a Top 10's numerals, their boxes past its foot, made it scroll up and down too, a page's scroll
            taken by it as the pointer crossed it.) */
         overflow-x: auto;
@@ -1134,24 +1037,6 @@
           flex: 0 0 var(--tile-w);
           min-width: 0;
           scroll-snap-align: start;
-        }
-
-        /* (The apps: every one at once, a grid, not a row to slide: four across from a tablet up, two on a phone (eight
-           fill either, no hole in a last line); each cover its picture's own shape, 16:10.) */
-        &.apps-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: var(--grid-gap);
-          overflow: visible;
-          scroll-snap-type: none;
-
-          @media (min-width: 720px) {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-          }
-
-          > li {
-            flex: none;
-          }
         }
       }
 
@@ -1352,6 +1237,10 @@
         > canvas {
           inset: auto 0 0;
           height: 58%;
+
+          @container (max-width: 199px) {
+            height: 46%;
+          }
         }
 
         .label {
@@ -1756,6 +1645,291 @@
           }
         }
       }
+      /* ── The dock: every app on one line, the one showing lifted and lit; a touch screen's slides under the thumb ── */
+
+      .row.dock {
+        --dock-w: max(132px, (100vw - 2 * var(--gutter) - 7 * var(--dock-gap)) / 8);
+        --dock-gap: clamp(8px, 0.9vw, 14px);
+        position: relative;
+        z-index: 2;
+        gap: var(--dock-gap);
+        min-height: calc(var(--dock-w) * 10 / 16 + 34px);
+        margin: clamp(14px, 3svh, 34px) 0 0;
+        padding: 16px var(--gutter) 18px;
+        scroll-snap-type: x proximity;
+
+        > li {
+          flex: 0 0 var(--dock-w);
+        }
+
+        .tile {
+          aspect-ratio: 16 / 10;
+          transform-origin: 50% 100%;
+          transition: scale 0.32s var(--lift), box-shadow 0.32s, opacity 0.32s;
+
+          &.named::after {
+            inset: 30% 0 0;
+          }
+
+          /* (One caption, one size and baseline: the names' own faces are the stage's and the sheets', too small to read here.) */
+          .name {
+            left: 10px;
+            right: 10px;
+            bottom: 9px;
+            color: var(--ink);
+            font: 650 13px/1.25 var(--sans);
+            letter-spacing: -0.01em;
+            text-transform: none;
+
+            @media (min-width: 1100px) {
+              font-size: clamp(13px, 0.95vw, 15.5px);
+            }
+          }
+        }
+
+        /* (A desk's tiles fall back while one shows; on a touch screen every tile keeps its own light.) */
+        @media (pointer: fine) {
+          .tile {
+            opacity: 0.88;
+          }
+
+          &:hover .tile,
+          li:hover .tile {
+            opacity: 1;
+          }
+        }
+
+        /* (Shown, lifted and lit; keys on it too, a ring clear of the tile as well: two states, two looks.) */
+        li[aria-current="true"] .tile {
+          scale: 1.05;
+          opacity: 1;
+          box-shadow: 0 0 0 1.5px rgb(246 243 238 / 0.62), 0 18px 40px -12px rgb(0 0 0 / 0.75);
+        }
+
+        &.row > li:has(> a:focus-visible) .tile {
+          scale: 1.05;
+          outline: 3px solid var(--ink);
+          outline-offset: 3px;
+          box-shadow: 0 0 0 1.5px rgb(246 243 238 / 0.62), 0 18px 40px -12px rgb(0 0 0 / 0.75);
+        }
+
+        /* (How long it has left: along its foot, filling while it shows, held with the stage.) */
+        .bar {
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          z-index: 2;
+          width: 100%;
+          height: 3px;
+          transform: scaleX(0);
+          transform-origin: 0 50%;
+          background: var(--ink);
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+          li[aria-current="true"] .bar {
+            animation: fill 9s linear both;
+          }
+
+          .billboard[data-held] & li[aria-current="true"] .bar {
+            animation-play-state: paused;
+          }
+        }
+      }
+
+      @keyframes fill {
+        to {
+          transform: scaleX(1);
+        }
+      }
+
+      /* ── On now: the chain as a television's guide. Each block a programme, as wide as it ran, the block forming at the
+         end of the line, growing, under a Now that keeps time. ── */
+
+      .row.guide {
+        --minute: clamp(12px, 1.25vw, 22px);
+        padding-top: 8px;
+        padding-bottom: 12px;
+        scroll-snap-type: none;
+
+        > li {
+          flex: 0 0 max(128px, var(--m, 10) * var(--minute));
+        }
+
+        .p {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          height: 112px;
+          padding: 10px 12px;
+          background: #151311;
+
+          .t {
+            color: var(--soft);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+
+            @container (max-width: 139px) {
+              .dur {
+                display: none;
+              }
+            }
+          }
+
+          .h {
+            margin-top: 1px;
+            color: var(--ink);
+            font: 600 16px var(--mono);
+            letter-spacing: -0.02em;
+          }
+
+          .by {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            color: var(--ink);
+            font-size: 12.5px;
+            font-weight: 600;
+
+            span:last-child {
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+            }
+          }
+
+          .logo {
+            width: 16px;
+            height: 16px;
+          }
+
+          .m {
+            overflow: hidden;
+            color: var(--soft);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+
+            @container (max-width: 139px) {
+              display: none;
+            }
+          }
+
+          &.now {
+            background: linear-gradient(120deg, color-mix(in oklab, var(--brand), #151311 74%), #151311 70%);
+            box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand), transparent 42%);
+
+            .t {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: var(--ink);
+              font-weight: 600;
+            }
+
+            .h {
+              font-size: 21px;
+            }
+
+            .by {
+              font-size: 14px;
+            }
+          }
+
+          &.fresh {
+            animation: arrive 1.1s var(--lift);
+          }
+        }
+      }
+
+      @keyframes arrive {
+        from {
+          translate: 24px 0;
+          background: color-mix(in oklab, var(--brand), #151311 50%);
+        }
+      }
+
+      /* (A tile tilts under the pointer, a light moving across it, as a television's focused cover does.) */
+      @media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+        .tile {
+          transform: perspective(620px) rotateX(calc(var(--ry, 0) * 1deg)) rotateY(calc(var(--rx, 0) * 1deg));
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            border-radius: inherit;
+            background: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%), rgb(246 243 238 / 0.14), transparent 60%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+          }
+
+          &:hover::before {
+            opacity: 1;
+          }
+
+          &:not(:hover) {
+            transition: transform 0.45s var(--lift), scale 0.3s var(--lift), box-shadow 0.3s, opacity 0.3s;
+          }
+        }
+      }
+
+      /* (A row's cover keys are on, a remote's: lifted, the ring clear of its neighbours, the row's height room for it.) */
+      .row.row.row > li:has(> a:focus-visible) {
+        z-index: 3;
+
+        > a {
+          scale: 1.06;
+          box-shadow: 0 0 0 3px var(--focus), 0 18px 40px -12px rgb(0 0 0 / 0.6);
+          transition: scale 0.2s var(--lift);
+        }
+      }
+
+      /* ── This node: what the server says of itself, first of the row of what's under the hood ── */
+
+      .status-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 12px 14px;
+
+        .label {
+          color: var(--soft);
+          font-size: 12.5px;
+          font-weight: 600;
+        }
+
+        .state {
+          color: var(--ink);
+          font-size: clamp(20px, 9.5cqw, 30px);
+          font-weight: 750;
+          line-height: 1.05;
+          letter-spacing: -0.03em;
+
+          &.ok {
+            color: var(--live);
+          }
+
+          &.behind {
+            color: var(--brand-text);
+          }
+        }
+
+        .small {
+          display: -webkit-box;
+          overflow: hidden;
+          color: var(--soft);
+          font-size: 12px;
+          line-height: 1.35;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+      }
 
       /* ── About a title: a sheet (a card on a desk), as a streaming title's More info: its picture, and over its foot its
          kind, its name and its ways in; what it shows now, its line and its words, beside what's known of it ── */
@@ -1806,6 +1980,12 @@
           svg {
             width: 16px;
             height: 16px;
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -5px;
           }
         }
 
@@ -2059,11 +2239,6 @@
           margin: 0;
         }
 
-        .server b {
-          color: var(--text);
-          font-weight: 500;
-        }
-
         /* (Its links in columns, as a streaming service's foot, across its width: Bitview and this server first, then
            the apps, the developers', running your own; on a phone, Bitview across, the rest two by two.) */
         .columns {
@@ -2153,18 +2328,10 @@
               &::before {
                 content: "";
                 position: absolute;
-                inset: -12px 0;
+                inset: -12px -11px;
               }
             }
           }
-        }
-
-        .ok {
-          color: var(--live);
-        }
-
-        .behind {
-          color: var(--brand-text);
         }
       }
 
@@ -2194,18 +2361,10 @@
     <header class="top">
       <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-      <nav aria-label="Sections">
-        <a href="#apps-title">Apps</a>
-        <a href="#blocks-title">Blocks</a>
-        <a href="#pools-title">Pools</a>
-        <a href="#charts-title">Charts</a>
-        <a href="#topics-title">Topics</a>
-        <a href="#dev-title">Developers</a>
-      </nav>
       <p class="status" id="status-bar" hidden>
-        <span class="tip" id="tip"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
-        <span id="price-panel" hidden><b class="num" id="price"></b><span class="vh" data-said></span></span>
-        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
+        <span class="tip" id="tip" title="The latest block this node has read"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
+        <span id="price-panel" hidden title="Bitcoin's price, read from the chain by this node"><b class="num" id="price"></b><span class="vh" data-said></span></span>
+        <span class="fee" id="fees-panel" hidden title="The fee rate to get into the next block"><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
     </header>
 
@@ -2216,6 +2375,7 @@
            others. showcases/home.mjs checks it's FEATURED's first, as its own page names it.) -->
       <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
       <div class="feature">
+        <p class="syncing" id="syncing" hidden><span id="syncing-words"></span><i></i></p>
         <div class="words" id="words" aria-live="off">
           <div>
             <p class="kind"><span id="bb-kind">Charts</span></p>
@@ -2225,23 +2385,20 @@
           </div>
         </div>
         <div class="buttons">
-          <a class="primary" id="bb-open" href="/studio/" data-open="studio" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-play" /></svg>Open</a>
+          <a class="primary" id="bb-open" href="/studio/" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-play" /></svg>Open</a>
           <button class="secondary" type="button" id="bb-about"><svg aria-hidden="true"><use href="#i-info" /></svg>More info</button>
         </div>
-        <div class="paging">
-          <ol class="pages" id="pages" aria-label="Featured titles"></ol>
-          <button class="pause" type="button" id="pause" aria-label="Pause" hidden><svg aria-hidden="true"><use href="#i-pause" /></svg></button>
-        </div>
+        <div class="paging"><button class="pause" type="button" id="pause" aria-label="Pause" hidden><svg aria-hidden="true"><use href="#i-pause" /></svg></button></div>
       </div>
+      <ul class="row dock" id="dock" aria-label="Apps"></ul>
     </section>
 
     <main id="shelves">
-      <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
-      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">On now <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
-      <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Featured charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
-      <section class="shelf" aria-labelledby="dev-title"><h2 id="dev-title">For developers</h2></section>
+      <section class="shelf" aria-labelledby="dev-title"><h2 id="dev-title">Under the hood</h2></section>
     </main>
 
 
@@ -2249,7 +2406,6 @@
       <div class="columns">
         <div class="home">
           <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-          <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
           <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span></p>
         </div>
         <div id="footer-apps">
@@ -2367,40 +2523,7 @@
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "oracle", "globe", "trail", "stack", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
-
-      /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
-       * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
-      const OPENS = "bitview.opened";
-      function readOpens() {
-        try {
-          const raw = JSON.parse(localStorage.getItem(OPENS) ?? "{}") ?? {};
-          return /** @type {Record<string, number>} */ (Object.fromEntries(Object.entries(raw).flatMap(([id, v]) => {
-            const at = typeof v === "number" ? v : v?.at;
-            return Number.isFinite(at) ? [[id, at]] : [];
-          })));
-        } catch {
-          return {};
-        }
-      }
-      /** As they were on arriving: the rows' order (nothing moves while you look). */
-      const opens = readOpens();
-      function opened(/** @type {string} */ id) {
-        const now = readOpens();
-        now[id] = Date.now();
-        try {
-          localStorage.setItem(OPENS, JSON.stringify(now));
-        } catch {}
-      }
-      // (Any way in carrying its title, data-open, counts when followed, clicked or middle-clicked, wherever it is: a
-      // tile, its sheet, the billboard.)
-      for (const kind of ["click", "auxclick"])
-        document.addEventListener(kind, (event) => {
-          const a = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.("a[data-open]"));
-          if (a && (kind === "click" || /** @type {MouseEvent} */ (event).button === 1)) opened(/** @type {string} */ (a.dataset.open));
-        });
-      /** The last opened first; the rest as listed. */
-      const used = (/** @type {Title[]} */ list) => [...list].sort((a, b) => (opens[b.id] ?? 0) - (opens[a.id] ?? 0));
+      const FEATURED = ["studio", "oracle", "explorer", "globe", "trail", "stack", "compass", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** Live facts, by title, as this server says them: shown in the billboard and sheets. @type {Record<string, string>} */
       const facts = {};
@@ -2408,27 +2531,29 @@
         return `${t.live ? `<span class="live">Live</span>` : ""}${facts[t.id] ? `<span>${facts[t.id]}</span>` : ""}`;
       }
 
-      // ── The billboard: a title every nine seconds, its segment filling; held while pointed at, focused by keys or a sheet's
-      // open, paused by its button, not turning at all with less motion asked for; its frames asked for only while it
-      // turns ──
+      // ── The stage: a title at a time, the dock's tile for it lifted. Pointing at or focusing a tile, or sliding the dock
+      // under a thumb, shows that title at once; left alone, it turns by itself every nine seconds, by its tile's foot
+      // filling (a CSS animation, so nothing runs per frame), held while pointed at, focused by keys, a sheet's open, it's
+      // off screen, or stopped ──
 
       const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
-      // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp screen; as wide as the first one says
-      // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
-      // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
-      // phone Studio's band, its top only, the widest there.)
-      // (The first, in the page from its start; the others made here, loaded when near their turn.)
-      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", src: banner(t.id), srcset: `${banner(t.id)} 1900w, ${banner(t.id).replace(".jpg", "@2x.jpg")} 2880w`, sizes: first.sizes, loading: "lazy" })) : first));
-      const pages = FEATURED.map((t, i) => {
-        const button = el("button", { type: "button", ariaLabel: t.name });
-        button.addEventListener("click", () => {
-          // (A title chosen is said; the turning ones aren't, every nine seconds.)
-          $("words").setAttribute("aria-live", "polite");
-          show(i);
-          setTimeout(() => $("words").setAttribute("aria-live", "off"), 1000);
-        });
-        $("pages").append(el("li", {}, button));
-        return button;
+      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", sizes: first.sizes })) : first));
+      /** A title's picture, its file asked for the first time it's wanted. */
+      const armed = (/** @type {number} */ i) => {
+        const p = pictures[i];
+        if (!p.src) ((p.srcset = `${banner(FEATURED[i].id)} 1900w, ${banner(FEATURED[i].id).replace(".jpg", "@2x.jpg")} 2880w`), (p.src = banner(FEATURED[i].id)));
+        return p;
+      };
+      const dock = $("dock");
+      const tiles = FEATURED.map((t, i) => {
+        const name = el("span", { className: "name" }, t.name);
+        name.dataset.face = t.id;
+        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, el("img", { alt: "", decoding: "async", src: poster(t.id) }), name, el("i", { className: "bar", ariaHidden: "true" }));
+        a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && show(i));
+        a.addEventListener("focus", () => show(i));
+        const li = el("li", {}, a);
+        dock.append(li);
+        return li;
       });
       /** A title's words, into the shown ones or a copy of them. */
       function fill(/** @type {Element} */ words, /** @type {Title} */ t) {
@@ -2448,79 +2573,98 @@
         return copy;
       }));
       $("words").append(room);
-      const SHOW = 9000;
-      /** The title turned to (at), the one its words and buttons show (current: the same once its words are in). */
-      let at = -1, current = 0, elapsed = 0, fading = 0;
-      function show(/** @type {number} */ i) {
+      /** The title asked for (at), the one its words and buttons show (current: the same once its picture is ready); `asked`, so a later ask wins. */
+      let at = -1, current = 0, asked = 0;
+      /** Shows a title. `turned`: by the stage's own turning, its tile brought into view (nothing moves a row someone's using). */
+      function show(/** @type {number} */ i, /** @type {boolean} */ turned = false) {
         if (i === at) return;
-        const t = FEATURED[i], first = at < 0;
+        const t = FEATURED[i], firstOne = at < 0, stamp = ++asked;
         at = i;
-        elapsed = 0;
-        pictures.forEach((p, k) => {
-          p.classList.toggle("on", k === i);
-        });
-        pages.forEach((b, k) => (b.setAttribute("aria-current", String(k === i)), b.style.setProperty("--done", reduced && k === i ? "100%" : "0%")));
-        const words = $("words"), put = () => {
+        tiles.forEach((li, k) => li.setAttribute("aria-current", String(k === i)));
+        if (turned && dock.scrollWidth > dock.clientWidth) dock.scrollTo({ left: tiles[i].offsetLeft - parseFloat(getComputedStyle(dock).paddingLeft), behavior: reduced ? "auto" : "smooth" });
+        const put = () => {
+          if (stamp !== asked) return;
           current = i;
           fill(shown, t);
+          pictures.forEach((p, k) => p.classList.toggle("on", k === i));
           const open = /** @type {HTMLAnchorElement} */ ($("bb-open"));
           open.href = t.href;
-          open.dataset.open = t.id;
           open.setAttribute("aria-label", `Open ${t.name}`);
           $("bb-about").setAttribute("aria-label", `More about ${t.name}`);
-          words.classList.remove("out");
+          $("words").classList.remove("out");
         };
-        // (A later title meanwhile: this one's words never come in.)
-        clearTimeout(fading);
-        if (first || reduced) return put();
-        words.classList.add("out");
-        fading = setTimeout(put, 200);
+        if (firstOne) return put();
+        // (The picture decoded before it's shown: a crossfade, never a flash of nothing.)
+        $("words").classList.add("out");
+        armed(i).decode().then(put, put);
       }
       const billboard = $("billboard");
-      let stopped = false, hovered = false, sheetOpen = false, onScreen = true, running = false, last = 0;
-      // (Held by a keyboard's focus in it, shown by its ring, read as it is: a click's (a title's bar, More info, its sheet's
-      // focus coming back) holds nothing, else it held until a click somewhere else; a key pressed on it after, it does.)
+      let stopped = false, hovered = false, sheetOpen = false, onScreen = true;
+      /** Whether keys are on it. */
       const keyed = () => billboard.contains(document.activeElement) && /** @type {Element} */ (document.activeElement).matches(":focus-visible");
-      const turning = () => !reduced && !stopped && !hovered && !keyed() && !sheetOpen && onScreen && !document.hidden;
-      function wake() {
-        if (running || !turning()) return;
-        running = true;
-        last = performance.now();
-        requestAnimationFrame(tick);
+      function hold() {
+        billboard.toggleAttribute("data-held", stopped || hovered || keyed() || sheetOpen || !onScreen || document.hidden);
       }
-      function tick(/** @type {number} */ now) {
-        if (!turning()) return void (running = false);
-        // (A frame's time, at most a tenth of a second: a stall, or a tab coming back, never skips a title.)
-        elapsed += Math.min(100, now - last);
-        last = now;
-        pages[at].style.setProperty("--done", `${Math.min(100, (elapsed / SHOW) * 100)}%`);
-        if (elapsed >= SHOW) show((at + 1) % FEATURED.length);
-        requestAnimationFrame(tick);
-      }
-      billboard.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && (hovered = true));
-      billboard.addEventListener("pointerleave", () => ((hovered = false), wake()));
-      // (Woken once focus has moved: during its focusout, the standard still has the one leaving focused.)
-      billboard.addEventListener("focusout", (e) => billboard.contains(/** @type {Node | null} */ (e.relatedTarget)) || setTimeout(wake));
-      // (Held while a title's sheet is open, More info's or a cover's: nothing turns behind the one read. Its toggle caught
-      // on its way down: it doesn't bubble.)
+      dock.addEventListener("animationend", (e) => /** @type {AnimationEvent} */ (e).animationName === "fill" && show((at + 1) % FEATURED.length, true));
+      billboard.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && ((hovered = true), hold()));
+      billboard.addEventListener("pointerleave", () => ((hovered = false), hold()));
+      billboard.addEventListener("focusin", hold);
+      billboard.addEventListener("focusout", () => setTimeout(hold));
+      // (Its toggle caught on its way down: it doesn't bubble.)
       document.addEventListener("toggle", (e) => {
         if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
         sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
-        wake();
+        hold();
       }, true);
-      document.addEventListener("visibilitychange", wake);
-      // (Its last word: scrolled off and back between two of its calls, it says both, oldest first.)
-      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), wake())).observe(billboard);
-      show(0);
-      $("pause").hidden = reduced;
-      $("pause").addEventListener("click", () => {
-        stopped = !stopped;
+      document.addEventListener("visibilitychange", () => (hold(), document.hidden || round()));
+      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), billboard.toggleAttribute("data-off", !onScreen), hold())).observe(billboard);
+      function stop(/** @type {boolean} */ value) {
+        stopped = value;
         $("pause").setAttribute("aria-label", stopped ? "Play" : "Pause");
         /** @type {SVGUseElement} */ ($("pause").querySelector("use")).setAttribute("href", stopped ? "#i-play" : "#i-pause");
-        wake();
-      });
-      wake();
+        hold();
+      }
+      $("pause").hidden = reduced;
+      $("pause").addEventListener("click", () => stop(!stopped));
+      // (A thumb on the dock: the tile for how far it's slid shows, first to last; the stage stays where it's put.)
+      let sliding = false;
+      dock.addEventListener("pointerdown", (e) => e.pointerType === "touch" && ((sliding = true), stop(true)), { passive: true });
+      dock.addEventListener("scroll", () => {
+        if (!sliding) return;
+        show(Math.round((dock.scrollLeft / Math.max(1, dock.scrollWidth - dock.clientWidth)) * (FEATURED.length - 1)));
+      }, { passive: true });
+      show(0);
+      hold();
       $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
+      // (The other pictures fetched once the page has loaded, one after another, so moving along the dock is instant.)
+      addEventListener("load", () => FEATURED.slice(1).reduce((chain, t, i) => chain.then(() => armed(i + 1).decode().catch(() => {})), Promise.resolve()));
+
+      // (The tile under the pointer tilts; one element's custom properties a frame.)
+      if (mouse.matches && !reduced) {
+        let aimed = /** @type {HTMLElement | null} */ (null), box = /** @type {DOMRect | null} */ (null), px = 0, py = 0, framed = false;
+        const release = () => {
+          if (aimed) for (const prop of ["--rx", "--ry", "--gx", "--gy"]) aimed.style.removeProperty(prop);
+          aimed = box = null;
+        };
+        document.addEventListener("pointermove", (e) => {
+          const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest?.(".tile"));
+          if (tile !== aimed) (release(), (aimed = tile), (box = tile?.getBoundingClientRect() ?? null));
+          px = e.clientX;
+          py = e.clientY;
+          if (framed || !aimed) return;
+          framed = true;
+          requestAnimationFrame(() => {
+            framed = false;
+            if (!aimed || !box) return;
+            const x = (px - box.left) / box.width, y = (py - box.top) / box.height;
+            aimed.style.setProperty("--rx", ((x - 0.5) * 7).toFixed(2));
+            aimed.style.setProperty("--ry", ((0.5 - y) * 7).toFixed(2));
+            aimed.style.setProperty("--gx", `${(x * 100).toFixed(1)}%`);
+            aimed.style.setProperty("--gy", `${(y * 100).toFixed(1)}%`);
+          });
+        }, { passive: true });
+        document.addEventListener("pointerleave", release);
+      }
 
       // ── Shelves ──
 
@@ -2553,18 +2697,6 @@
         return button;
       }
 
-      /** A cover for a title: its picture, its name in its face. */
-      function cover(/** @type {Title} */ t) {
-        const name = el("span", { className: "name" }, t.name);
-        if (t.face) name.dataset.face = t.face;
-        const a = el("a", { className: "tile named", href: t.href }, el("img", { alt: "", loading: "lazy", src: poster(t.id) }), name);
-        a.dataset.open = t.id;
-        return el("li", {}, a, info(t));
-      }
-
-      const apps = row("apps-title", "apps-grid");
-      for (const t of used(APPS)) apps.append(cover(t));
-
       /** Each developer card's statement: large, in type, set here (the API's answer read live). @type {Record<string, () => HTMLElement>} */
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
@@ -2579,11 +2711,10 @@
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {
         const a = el("a", { className: `tile card dev-${t.id}`, href: t.href }, el("span", { className: "label" }, t.name), STATEMENTS[t.id]());
-        a.dataset.open = t.id;
         return el("li", {}, a, info(t));
       }
       const dev = row("dev-title");
-      for (const t of used(DEV)) dev.append(card(t));
+      for (const t of DEV) dev.append(card(t));
 
       // ── About: a sheet, its picture, its words, its ways in, what's known of it ──
 
@@ -2592,7 +2723,6 @@
       function about(/** @type {Title} */ t, /** @type {HTMLElement} */ source) {
         const kind = t.kind ?? "For developers";
         const go = el("a", { className: "primary", href: t.href }, icon("i-play"), "Open");
-        go.dataset.open = t.id;
         const shut = el("button", { className: "close", type: "button", ariaLabel: "Close" }, icon("i-close"));
         shut.addEventListener("click", () => sheet.hidePopover());
         const heading = el("h3", {}, t.name);
@@ -2664,8 +2794,8 @@
         shelf.toggleAttribute("data-failed", !ok);
         title.querySelector(".stale")?.remove();
         if (ok) return;
+        if (list.querySelector(".bone, .none")) return void list.replaceChildren(el("li", { className: "none" }, "This server isn't answering. This row fills in when it does."));
         title.append(el("small", { className: "stale" }, "not answering"));
-        if (list.querySelector(".bone")) list.replaceChildren(el("li", { className: "none" }, "This server isn't answering. This row fills in when it does."));
       }
       /** A row's tiles put in order without taking out the ones that stay (a focused one keeps its focus). */
       function reconcile(/** @type {HTMLElement} */ list, /** @type {HTMLElement[]} */ items) {
@@ -2690,34 +2820,64 @@
         return mark;
       }
 
-      const blocks = row("blocks-title");
-      blocks.append(...bones(8, () => el("span", { className: "tile bone" })));
-      /** Each block's tile, by its hash, while it's shown (a block replaced at its height: a tile of its own). @type {Map<string, HTMLElement>} */
+      // ── On now: the chain as a television's guide. Each block a programme as wide as it ran (the miners' own clock, so
+      // never under a minute), the newest at the end; after it the block forming, growing, under a Now. ──
+
+      const guide = row("blocks-title", "guide");
+      guide.append(...bones(9, () => el("span", { className: "tile bone p" })));
+      /** Each block's programme, by its hash, while it's shown. @type {Map<string, HTMLElement>} */
       const blockTiles = new Map();
-      function blockTile(/** @type {any} */ b) {
+      const clock = new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
+      /** How long a programme ran, in minutes, as the guide draws it (a very long one cut short). */
+      const ran = (/** @type {number} */ seconds) => Math.min(60, Math.max(1, seconds / 60));
+      /** The same in words: the guide's widths, said. */
+      const took = (/** @type {number} */ seconds) => (seconds < 60 ? "under a min" : `${Math.round(seconds / 60)} min`);
+      function programme(/** @type {any} */ b, /** @type {number} */ before) {
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
-        const when = el("div", { className: "ago" }, ago(b.timestamp));
-        when.dataset.at = String(b.timestamp);
-        const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
-        const tile = el("a", { className: "tile block", href: `/explorer/block/${b.height}` },
-          el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
-          el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
-        tile.dataset.open = "explorer";
-        tile.dataset.label = `Block ${grouped(b.height)}, mined by ${pool.name}`;
-        tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
-        return el("li", {}, tile);
+        const fee = feeRate(b.extras?.medianFee ?? 0);
+        const tile = el("a", { className: "tile p", href: `/explorer/block/${b.height}`, ariaLabel: `Block ${grouped(b.height)}, mined by ${pool.name}` },
+          el("div", {}, el("div", { className: "t" }, clock.format(b.timestamp * 1000), el("span", { className: "dur" }, ` · ${took(b.timestamp - before)}`)), el("div", { className: "h" }, grouped(b.height))),
+          el("div", {}, el("div", { className: "by" }, logo(pool.slug, pool.name), el("span", {}, pool.name)), el("div", { className: "m" }, `${grouped(b.tx_count)} txs · ${fee} sat/vB`)));
+        const li = el("li", {}, tile);
+        li.style.setProperty("--m", String(ran(b.timestamp - before)));
+        return li;
       }
-      function drawBlocks(/** @type {any[]} */ list) {
-        const shown = list.slice(0, 12);
-        const items = shown.map((b) => blockTiles.get(b.id) ?? /** @type {HTMLElement} */ (blockTiles.set(b.id, blockTile(b)).get(b.id)));
-        const keep = new Set(shown.map((b) => b.id));
+      const formingWhen = el("span", {}, ""), formingFacts = el("div", { className: "m" }, "");
+      const formingHeight = el("div", { className: "h" }, "–");
+      const forming = el("li", {}, el("a", { className: "tile p now", href: "/explorer/" },
+        el("div", {}, el("div", { className: "t" }, el("span", { className: "live" }, "Now"), formingWhen), formingHeight),
+        el("div", {}, el("div", { className: "by" }, el("span", {}, "Next block, forming")), formingFacts)));
+      /** When the last block was found (s); the height it'd make the next one. */
+      let lastAt = 0, guideFilled = false;
+      /** The forming programme's length and words, from the clock. */
+      function timeForming() {
+        if (!lastAt) return;
+        const seconds = Math.max(0, Date.now() / 1000 - lastAt);
+        forming.style.setProperty("--m", String(ran(seconds)));
+        formingWhen.textContent = seconds < 60 ? "under a minute" : `${Math.floor(seconds / 60)} min so far`;
+      }
+      function drawGuide(/** @type {any[]} */ list) {
+        if (!list.length) return guide.replaceChildren(el("li", { className: "none" }, "No blocks yet. They appear here as this node reads them."));
+        const pinned = !guideFilled || guide.scrollLeft + guide.clientWidth >= guide.scrollWidth - 8;
+        // (Oldest first; the oldest has nothing before it, so it's the line's start and left out.)
+        const ordered = list.slice(0, 14).reverse();
+        const keep = new Set(ordered.map((b) => b.id));
         for (const id of blockTiles.keys()) if (!keep.has(id)) blockTiles.delete(id);
-        reconcile(blocks, items);
-        for (const tile of /** @type {NodeListOf<HTMLElement>} */ (blocks.querySelectorAll("a.block"))) {
-          const when = /** @type {HTMLElement} */ (tile.querySelector(".ago"));
-          when.textContent = ago(Number(when.dataset.at));
-          tile.setAttribute("aria-label", `${tile.dataset.label}, ${when.textContent}`);
-        }
+        const items = ordered.slice(1).map((b, i) => {
+          let li = blockTiles.get(b.id);
+          if (!li) {
+            li = programme(b, ordered[i].timestamp);
+            blockTiles.set(b.id, li);
+            if (guideFilled) /** @type {Element} */ (li.firstElementChild).classList.add("fresh");
+          }
+          return li;
+        });
+        reconcile(guide, [...items, forming]);
+        lastAt = list[0].timestamp;
+        formingHeight.textContent = grouped(list[0].height + 1);
+        timeForming();
+        guideFilled = true;
+        if (pinned) guide.scrollLeft = guide.scrollWidth;
       }
 
       const pools = row("pools-title");
@@ -2738,7 +2898,6 @@
           const bar = el("span", { className: "bar", ariaHidden: "true" });
           bar.style.setProperty("--of", String(p.blockCount / d.pools[0].blockCount));
           const tile = el("a", { className: "rank", href: "/globe/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
-          tile.dataset.open = "globe";
           tile.setAttribute("aria-label", `${i + 1}: ${p.name}, ${share} of this week's blocks`);
           return el("li", {}, tile);
         }));
@@ -2858,7 +3017,6 @@
       const chartTiles = CHARTS.map((c) => {
         const canvas = el("canvas"), value = el("span", { className: "value" }), moved = el("span", { className: "moved" });
         const tile = el("a", { className: "tile chart", href: c.href }, canvas, el("span", { className: "label" }, c.name), el("span", { className: "now" }, value, moved));
-        tile.dataset.open = "studio";
         watch(canvas, () => paint(canvas, c));
         charts.append(el("li", {}, tile));
         return { c, canvas, value, moved };
@@ -2904,7 +3062,6 @@
         /** @type {Chart | null} */
         const chart = series ? { name, href, series: [series], colors: ["#ffffff"], log: true, unit: String } : null;
         const tile = el("a", { className: "tile topic", href, style: `--hue:${hue}` }, canvas, count, el("span", { className: "topic-name" }, name));
-        tile.dataset.open = "studio";
         if (chart) watch(canvas, () => paint(canvas, chart));
         topics.append(el("li", {}, tile));
         return { slug, count, canvas, chart };
@@ -2946,6 +3103,8 @@
       }
       const forget = (/** @type {string[]} */ ...ids) => ids.forEach((id) => (delete facts[id], refresh(id)));
       let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateSaid = "synced", rounds = 0, reading = false, counted = false;
+      const statusState = el("span", { className: "state" }, "–"), statusMore = el("span", { className: "small" }, "");
+      dev.prepend(el("li", {}, el("a", { className: "tile status-card", href: "/logs/" }, el("span", { className: "label" }, "This node"), el("div", {}, statusState, statusMore))));
       function showServer() {
         const behind = sync && sync.blocks_behind > 0, state = sync ? (behind ? "syncing" : "synced") : "unread";
         $("tip-state").textContent = sync ? (behind ? "Syncing, at block" : "Synced to block") : "This server's state is unavailable";
@@ -2953,17 +3112,21 @@
         $("tip-height").classList.toggle("num", !!sync);
         $("tip").classList.toggle("behind", state !== "synced");
         $("status-bar").hidden = false;
-        $("server-state").innerHTML = !sync ? `<span class="behind">its state unavailable</span>`
-          : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
-          : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
-        const whole = (/** @type {string} */ s) => s.replaceAll(" ", " ");
-        $("server-more").textContent = `${health ? ` · ${whole(`Bitview ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
+        const pct = sync?.tip_height ? Math.min(100, (sync.indexed_height / sync.tip_height) * 100) : 0;
+        statusState.textContent = !sync ? "Not answering" : behind ? `Syncing ${pct.toFixed(0)}%` : "Synced";
+        statusState.className = `state ${!sync ? "behind" : behind ? "behind" : "ok"}`;
+        statusMore.textContent = [sync ? `Block ${grouped(sync.indexed_height)}` : "", health ? `Bitview ${health.version}` : "", health ? `up ${lasting(health.uptime_seconds)}` : "", disk].filter(Boolean).join(" · ");
+        $("syncing").hidden = !behind;
+        if (behind) {
+          $("syncing-words").textContent = `This node is syncing: block ${grouped(sync.indexed_height)} of ${grouped(sync.tip_height)}`;
+          /** @type {HTMLElement} */ ($("syncing").querySelector("i")).style.setProperty("--of", `${pct.toFixed(2)}%`);
+        }
         if (state === stateSaid) return;
         stateSaid = state;
         $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
       }
       async function round() {
-        if (reading) return;
+        if (reading || document.hidden) return;
         reading = true;
         const parts = [
           part("price-panel", read("/api/v1/prices"), (p) => {
@@ -2975,14 +3138,22 @@
           }).then((ok) => ok || forget("oracle", "stack")),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
-          read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
+          read("/api/blocks/tip/height", "text").then((h) => ((tipSeen = h), document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h))))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {
-            drawBlocks(list);
-            answered("blocks-title", blocks, true);
+            drawGuide(list);
+            answered("blocks-title", guide, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
             refresh("calendar");
-          }, () => (answered("blocks-title", blocks, false), forget("calendar"))),
+          }, () => (answered("blocks-title", guide, false), forget("calendar"))),
+          // (The next block, as the mempool has it now: the guide's forming programme, the Explorer's title on the stage.)
+          read("/api/v1/fees/mempool-blocks").then((next) => {
+            const b = next[0];
+            formingFacts.textContent = b ? `${grouped(b.nTx)} txs · ${feeRate(b.medianFee)} sat/vB` : "";
+            if (b) facts.explorer = `<b>${grouped(b.nTx)}</b> transactions forming the next block, ${feeRate(b.medianFee)} sat/vB`;
+            else delete facts.explorer;
+            refresh("explorer");
+          }, () => ((formingFacts.textContent = ""), forget("explorer"))),
           rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
           rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
@@ -3008,67 +3179,27 @@
         reading = false;
       }
 
-      // (The bar solid once the billboard's buttons are past; the section in view lit in it, nothing while the billboard
-      // shows. A band across the screen's middle, in pixels: a percentage of rootMargin is of the width.)
-      const links = [...document.querySelectorAll(".top nav a")];
-      let onBillboard = true;
-      new IntersectionObserver((entries) => {
-        onBillboard = entries.at(-1).isIntersecting;
-        if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
-        else update();
-      }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
-      // (The section lit: the one crossing a line just under the bar, where a section jumped to lands; between two, the
-      // last one lit stays. The chip lit, on a phone, slid into view.)
-      let sections = /** @type {IntersectionObserver | null} */ (null);
-      /** The section lit, and the one crossing the line under the bar now. */
-      let lit = "", crossing = "";
-      function light(/** @type {string} */ id) {
-        // (Only on a change: a jump passes every section between.)
-        if (id === lit) return;
-        lit = id;
-        for (const a of links) {
-          const on = a.getAttribute("href") === `#${id}`;
-          a.setAttribute("aria-current", String(on));
-          // (A phone's chips: the lit one slid to their middle, the bar's row alone moving.)
-          const nav = /** @type {HTMLElement} */ (a.parentElement);
-          if (on && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: /** @type {HTMLElement} */ (a).offsetLeft - (nav.clientWidth - /** @type {HTMLElement} */ (a).offsetWidth) / 2, behavior: reduced ? "auto" : "smooth" });
-        }
-      }
-      function watchSections() {
-        sections?.disconnect();
-        const line = /** @type {HTMLElement} */ (document.querySelector(".top")).offsetHeight + 40;
-        sections = new IntersectionObserver((entries) => {
-          for (const e of entries) if (e.isIntersecting) crossing = /** @type {string} */ (e.target.querySelector("h2")?.id);
-          update();
-        }, { rootMargin: `-${line}px 0px -${Math.max(0, innerHeight - line - 1)}px` });
-        for (const shelf of document.querySelectorAll(".shelf")) sections.observe(shelf);
-      }
-      watchSections();
-      addEventListener("resize", watchSections);
-      // (At the page's foot the last sections can't reach the line: there, the last one lit; back up from it, the one
-      // crossing again. Worked out in one place, whichever of the watchers and the scroll speaks last.)
-      const lastSection = /** @type {string} */ ([...document.querySelectorAll(".shelf h2")].at(-1)?.id);
-      function update() {
-        if (onBillboard) return;
-        const id = innerHeight + scrollY >= document.documentElement.scrollHeight - 2 ? lastSection : crossing;
-        if (id) light(id);
-      }
-      addEventListener("scroll", update, { passive: true });
 
-      // (Arrow keys, as a television's remote: left and right along a row, up and down to the cover nearest in the row
-      // above or below; the row slides to keep it in view.)
-      $("shelves").addEventListener("keydown", (event) => {
-        const key = /** @type {KeyboardEvent} */ (event).key, from = /** @type {HTMLElement} */ (event.target);
-        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key) || !from.matches(".row > li > a")) return;
-        const li = /** @type {HTMLElement} */ (from.parentElement);
+      // (Arrow keys, as a television's remote, from the first press: the stage's tile first; left and right along a row or
+      // the buttons, up and down to the nearest thing that way, each row sliding to keep it in view. A sheet open keeps its own.)
+      const STOPS = "#billboard .buttons > :not([hidden]), .row > li > a";
+      document.addEventListener("keydown", (event) => {
+        const key = event.key;
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key) || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || sheet.matches(":popover-open")) return;
+        const from = /** @type {HTMLElement | null} */ (document.activeElement);
+        if (!from || from === document.body) {
+          event.preventDefault();
+          return void /** @type {HTMLElement} */ (tiles[at].firstElementChild).focus();
+        }
+        if (!from.matches(STOPS)) return;
+        const li = /** @type {HTMLElement | null} */ (from.closest("li"));
         let target = /** @type {HTMLElement | null | undefined} */ (null);
-        if (key === "ArrowLeft") target = li.previousElementSibling?.querySelector("a");
-        else if (key === "ArrowRight") target = li.nextElementSibling?.querySelector("a");
-        else {
-          // (Up or down: the nearest line of covers that way, a grid's next line or the next row, and in it the cover
-          // nearest across.)
+        if (key === "ArrowLeft" || key === "ArrowRight") {
+          const next = key === "ArrowRight";
+          target = /** @type {HTMLElement | null | undefined} */ (li ? (next ? li.nextElementSibling : li.previousElementSibling)?.querySelector("a") : next ? from.nextElementSibling : from.previousElementSibling);
+        } else {
           const at = from.getBoundingClientRect(), down = key === "ArrowDown";
-          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".shelf .row > li > a")]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
+          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(STOPS)]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
           const beyond = ways.filter(([, r]) => (down ? r.top > at.bottom - 4 : r.bottom < at.top + 4));
           const line = down ? Math.min(...beyond.map(([, r]) => r.top)) : Math.max(...beyond.map(([, r]) => r.bottom));
           target = /** @type {HTMLElement | undefined} */ (beyond.filter(([, r]) => Math.abs((down ? r.top : r.bottom) - line) < 8).sort(([, a], [, b]) => Math.abs(a.left - at.left) - Math.abs(b.left - at.left))[0]?.[0]);
@@ -3076,13 +3207,22 @@
         if (!target) return;
         event.preventDefault();
         target.focus({ preventScroll: true });
-        target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
+        if (target.closest("main")) target.scrollIntoView({ block: "center", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
+        else (target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" }), scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }));
       });
       // (The foot's apps, named as their pages name them, in this page's order.)
       $("footer-apps").append(...APPS.map((t) => el("a", { href: t.href }, t.name)));
       $("public").hidden = location.hostname === "bitview.space";
+      /** The height the last round read: a new one, seen sooner than a round, starts a round. */
+      let tipSeen = "";
+      function pulse() {
+        if (document.hidden) return;
+        timeForming();
+        read("/api/blocks/tip/height", "text").then((h) => h !== tipSeen && round(), () => {});
+      }
       round();
       setInterval(round, 30_000);
+      setInterval(pulse, 10_000);
     </script>
   </body>
 </html>
