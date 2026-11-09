@@ -230,9 +230,9 @@
         z-index: 30;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
         height: calc(64px + var(--bar-top));
-        color: var(--ink);
         padding: var(--bar-top) var(--gutter) 0;
         /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
            progressive blur. Five layers behind its contents (each costs Mullvad's CPU drawing ~2ms a frame: ten
@@ -280,7 +280,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-right: auto;
+        color: var(--ink);
         font-size: 16px;
         font-weight: 650;
         letter-spacing: -0.01em;
@@ -2250,20 +2250,23 @@
             left: 50%;
             top: 42%;
             z-index: 1;
-            display: grid;
-            place-items: center;
-            width: 64px;
-            height: 64px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 44px;
             border: 0;
-            border-radius: 50%;
+            border-radius: 22px;
+            padding: 0 18px 0 14px;
             color: #0d0c0b;
             background: rgb(246 243 238 / 0.92);
+            font: 600 14px var(--sans);
+            white-space: nowrap;
             cursor: pointer;
             translate: -50% -50%;
 
             svg {
-              width: 26px;
-              height: 26px;
+              width: 18px;
+              height: 18px;
             }
           }
 
@@ -2614,7 +2617,6 @@
         <span id="price-panel" hidden title="Bitcoin's price, read from the chain by this node"><b class="num" id="price"></b><span class="vh" data-said></span></span>
         <span class="fee" id="fees-panel" hidden title="The fee rate to get into the next block"><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
-      <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
     </header>
 
     <h1 class="vh">Bitview</h1>
@@ -3036,7 +3038,7 @@
         if (card) card.tabIndex = -1;
         const picture = card ?? el("img", { alt: "", src: banner(t.id) });
         // (A title's clip, played when asked for: a phone's way to see it move.)
-        const watch = card ? null : el("button", { className: "watch", type: "button", ariaLabel: `Play a clip of ${t.name}` }, icon("i-play"));
+        const watch = card ? null : el("button", { className: "watch", type: "button" }, icon("i-play"), "Watch clip");
         watch?.addEventListener("click", () => clipUrl(t.id).then((url) => {
           picture.replaceWith(el("video", { muted: true, playsInline: true, autoplay: true, loop: true, src: url }));
           watch.remove();
