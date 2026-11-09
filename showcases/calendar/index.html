@@ -865,10 +865,19 @@
           right: 0;
         }
       }
-          .feedback-foot {
-        padding: 28px 16px 40px;
-        text-align: center;
-        opacity: 0.7;
+              .top [data-feedback] {
+        margin-left: 6px;
+      }
+      @media (max-width: 640px) {
+        .top {
+          position: relative;
+        }
+        .top [data-feedback] {
+          position: absolute;
+          top: calc(max(14px, env(safe-area-inset-top)) + 4px);
+          right: 0;
+          margin: 0;
+        }
       }
     </style>
   </head>
@@ -884,6 +893,7 @@
           <button type="button" id="forward" class="num"></button>
         </nav>
         <dl class="totals" id="totals"></dl>
+        <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
       </header>
 
       <!-- In reading order: the year (or the day), its pools, its notes (so on a phone the data comes first, and the pools,
@@ -902,7 +912,6 @@
           <ol id="note-list"></ol>
         </section>
       </main>
-      <footer class="feedback-foot"><button type="button" data-feedback>Feedback</button></footer>
     </div>
     <div class="tip" id="tip" hidden aria-hidden="true"></div>
 

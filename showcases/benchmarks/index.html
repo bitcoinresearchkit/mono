@@ -680,11 +680,7 @@
           color: var(--ink);
         }
       }
-          footer button[data-feedback] {
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-    </style>
+        </style>
   </head>
   <body>
     <header class="bar">
@@ -692,6 +688,7 @@
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <a href="/dev/">Run your own</a>
         <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches">Recordings</a>
+        <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
         <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </header>
@@ -738,7 +735,7 @@
         </section>
       </div>
 
-      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span> <button type="button" data-feedback>Feedback</button></footer>
+      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span></footer>
     </main>
 
     <script>

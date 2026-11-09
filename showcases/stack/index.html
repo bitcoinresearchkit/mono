@@ -6,7 +6,7 @@
     <script src="/assets/launch/launch.js" data-app="Stack" data-color="#00d632"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="bitview-feedback" content="address-unticked" />
+    <meta name="bitview-feedback" content="address-private" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f2" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
     <title>Stack · Bitview</title>
@@ -1442,20 +1442,13 @@
         align-items: center;
         gap: 14px;
       }
-      .actions [data-feedback] {
-        opacity: 0.7;
-
-        &:hover {
-          opacity: 1;
-        }
-      }
     </style>
   </head>
   <body>
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <span class="actions"><button type="button" data-feedback>Feedback</button><button type="button" class="pill action" id="share" disabled>Share</button></span>
+        <span class="actions"><button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button><button type="button" class="pill action" id="share" disabled>Share</button></span>
       </header>
 
       <main>

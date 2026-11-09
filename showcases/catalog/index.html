@@ -1290,13 +1290,13 @@
           }
         }
       }
-          .feedback-foot {
-        padding: 28px 16px 40px;
-        text-align: center;
-        opacity: 0.7;
+              .bar [data-feedback] {
+        justify-self: end;
       }
-      main {
-        min-height: 100dvh;
+      @media (max-width: 739px), (max-height: 519px) {
+        .bar {
+          grid-template-columns: auto minmax(0, 1fr) auto;
+        }
       }
     </style>
   </head>
@@ -1310,9 +1310,9 @@
         <kbd>/</kbd>
         <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
       </form>
+      <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
     </header>
     <main id="main"></main>
-    <footer class="feedback-foot"><button type="button" data-feedback>Feedback</button></footer>
     <p class="said" id="said" aria-live="polite"></p>
     <script type="module">
       // @ts-check

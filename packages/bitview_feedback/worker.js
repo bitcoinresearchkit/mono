@@ -9,23 +9,23 @@
 /** The most a body may weigh, read as it arrives (a chunked request states no length). */
 const MAX_BODY = 32_768;
 const MAX_MESSAGE = 4_000;
-const MAX_CONTACT = 200;
 /** Unread messages the inbox holds before it refuses more: the job empties it. */
-const MAX_UNREAD = 2_000;
+const MAX_UNREAD = 500;
 
 /** The app's folder alone: `/explorer/address/bc1...` would name an address. */
 const PAGE = /^\/(?:[a-z0-9_-]{1,40}\/)?$/;
-/** The exact address, masked by the page, unless the sender unticked it: same-site only, printable ASCII. */
-const LINK = /^(?:\/[\x21-\x7e]{0,5999})?$/;
+/** The exact address, masked by the page: on this site only (not `//elsewhere`), printable ASCII. */
+const LINK = /^(?:\/(?![/\\])[\x21-\x7e]{0,5999})?$/;
 const VERSION = /^[\w-]{0,64}$/;
 const BROWSER = /^(?:chromium|firefox|safari|other)-(?:phone|desk)$/;
-/** What's sent so a report can be reproduced, each by its exact shape: none of it can carry words. */
+/** What's sent so a report can be reproduced, each by its exact shape. One that doesn't fit is kept empty, never a reason
+ * to lose the note. */
 const CONTEXT = {
   build: /^[\w.+-]{0,40}$/,
   os: /^(?:ios|android|macos|windows|linux|other)$/,
   major: /^\d{0,4}$/,
   viewport: /^\d{1,5}x\d{1,5}$/,
-  scale: /^\d(?:\.\d)?$/,
+  scale: /^\d{1,2}(?:\.\d)?$/,
   theme: /^(?:light|dark)$/,
   mode: /^(?:app|browser)$/,
 };
@@ -44,7 +44,7 @@ const clean = (text) => (typeof text === "string" ? text.toWellFormed().replaceA
  * it's counted, in the edge's memory; this is the one read of it. @param {string} ip */
 function sender(ip) {
   if (!ip.includes(":")) return ip;
-  const [head, tail = ""] = ip.split("::"), left = head.split(":"), right = tail ? tail.split(":") : [];
+  const [head, tail = ""] = ip.split("::"), left = head ? head.split(":") : [], right = tail ? tail.split(":") : [];
   return [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right].slice(0, 4).join(":");
 }
 
@@ -65,17 +65,10 @@ async function read(request) {
   }
 }
 
-/** The context kept: only the known fields, each checked, the errors one line each. Null if anything's off. @param {any} raw */
+/** The context kept: only the known fields, each checked, the errors one line each, at most a few. @param {any} raw */
 function context(raw) {
-  if (!raw || typeof raw !== "object" || !Array.isArray(raw.errors) || raw.errors.length > MAX_ERRORS) return null;
-  /** @type {Record<string, unknown>} */
-  const kept = {};
-  for (const [name, shape] of Object.entries(CONTEXT)) {
-    if (typeof raw[name] !== "string" || !shape.test(raw[name])) return null;
-    kept[name] = raw[name];
-  }
-  const errors = raw.errors.map((/** @type {unknown} */ error) => clean(error).replaceAll(/\s+/g, " "));
-  if (errors.some((error) => !error || error.length > MAX_ERROR)) return null;
+  const kept = Object.fromEntries(Object.entries(CONTEXT).map(([name, shape]) => [name, typeof raw?.[name] === "string" && shape.test(raw[name]) ? raw[name] : ""]));
+  const errors = (Array.isArray(raw?.errors) ? raw.errors : []).map((/** @type {unknown} */ error) => clean(error).replaceAll(/\s+/g, " ").slice(0, MAX_ERROR)).filter(Boolean).slice(0, MAX_ERRORS);
   return JSON.stringify({ ...kept, errors });
 }
 
@@ -98,24 +91,23 @@ export default {
     const text = await read(request);
     if (text === null) return answer(413);
     const body = parse(text);
-    const message = clean(body?.message), contact = clean(body?.contact).replaceAll(/\s+/g, " ");
+    const message = clean(body?.message);
     const { page, link, version, browser } = body ?? {};
-    if (!message || message.length > MAX_MESSAGE || contact.length > MAX_CONTACT) return answer(400);
+    if (!message || message.length > MAX_MESSAGE) return answer(400);
     if (typeof page !== "string" || !PAGE.test(page)) return answer(400);
     if (typeof link !== "string" || !LINK.test(link)) return answer(400);
     if (typeof version !== "string" || !VERSION.test(version)) return answer(400);
     if (typeof browser !== "string" || !BROWSER.test(browser)) return answer(400);
     const kept = context(body?.context);
-    if (!kept) return answer(400);
 
     // (A repeat is looked for first, as an insert that fails still uses up an id. The cap from the ids' two ends, two rows
     // read, not a count of every row on each request: ids are never reused and only ever deleted oldest first, so the
     // span is the rows there are.)
     const { meta } = await env.DB.prepare(
-      `INSERT INTO feedback (day, page, link, version, browser, context, message, contact)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE page = ? AND message = ?)
+      `INSERT INTO feedback (day, page, link, version, browser, context, message)
+       SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE page = ? AND message = ?)
        AND COALESCE((SELECT id FROM feedback ORDER BY id DESC LIMIT 1) - (SELECT id FROM feedback ORDER BY id LIMIT 1) + 1, 0) < ?`,
-    ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, kept, message, contact, page, message, MAX_UNREAD).run();
+    ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, kept, message, page, message, MAX_UNREAD).run();
     if (meta.changes) return answer(204);
     // (An exact repeat of something unread is simply already here; else the inbox is full, and that's said.)
     return answer((await env.DB.prepare("SELECT 1 FROM feedback WHERE page = ? AND message = ?").bind(page, message).first()) ? 204 : 503);

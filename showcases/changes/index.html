@@ -132,9 +132,9 @@
         background: var(--pane);
 
         @media (width < 640px) {
-          grid-template-columns: auto minmax(0, 1fr);
+          grid-template-columns: auto minmax(0, 1fr) auto;
 
-          .ends {
+          .ends a {
             display: none;
           }
         }
@@ -688,13 +688,8 @@
         color: var(--faint);
         font-size: 12.5px;
       }
-          .feedback-foot {
-        padding: 28px 16px 40px;
-        text-align: center;
-        opacity: 0.7;
-      }
-      #sections {
-        min-height: 100dvh;
+              .ends [data-feedback] {
+        align-self: center;
       }
     </style>
   </head>
@@ -706,7 +701,7 @@
         <label class="reach" for="q"></label>
         <input type="search" id="q" placeholder="An id, an endpoint, a word" aria-label="Find what changed" autocomplete="off" spellcheck="false" />
       </form>
-      <nav class="ends" aria-label="Elsewhere"><a href="/api">API reference</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>
+      <nav class="ends" aria-label="Elsewhere"><button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button><a href="/api">API reference</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>
     </header>
     <div class="page">
       <h1>Changes</h1>
@@ -718,7 +713,6 @@
         <nav id="nav" aria-label="Sections"></nav>
         <main id="sections"></main>
       </div>
-      <footer class="feedback-foot"><button type="button" data-feedback>Feedback</button></footer>
     </div>
 
     <script type="module">

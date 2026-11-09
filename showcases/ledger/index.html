@@ -602,11 +602,7 @@
           margin: -13px 0;
         }
       }
-          .hint button[data-feedback] {
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-    </style>
+        </style>
   </head>
   <body>
     <header class="bar">
@@ -615,6 +611,7 @@
       <div class="go">
         <label class="day"><input id="day" type="date" aria-label="Open a day" /></label>
         <button id="today" type="button">Today</button>
+        <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
       </div>
     </header>
     <h1 class="vh">Ledger</h1>
@@ -653,7 +650,7 @@
     <footer class="foot">
       <div class="years" id="years" aria-hidden="true"></div>
       <input id="ribbon" type="range" min="0" value="0" aria-label="Turn to a day" />
-      <div class="hint"><span class="pointer">Turn a page by its corner, or click it · ← → to turn, Home and End</span><span class="finger">Swipe a page from its edge, or tap it</span> <span class="feedback">· <button type="button" data-feedback>Feedback</button></span></div>
+      <div class="hint"><span class="pointer">Turn a page by its corner, or click it · ← → to turn, Home and End</span><span class="finger">Swipe a page from its edge, or tap it</span></div>
     </footer>
     <script type="module">
       // ---------------------------------------------------------------- Reads.

@@ -1211,17 +1211,14 @@
           }
         }
       }
-          footer button[data-feedback] {
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-    </style>
+        </style>
   </head>
   <body>
     <div class="stage">
       <header class="bar shell">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <span class="tip" id="tip"></span>
+        <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
       </header>
 
       <section class="hero shell" id="hero" aria-labelledby="price">
@@ -1330,7 +1327,7 @@
     </main>
 
     <footer class="shell">
-      <p>Read live from this server: <a href="/api/oracle/price">its price</a>, its blocks' payments and its mempool's, by <a href="https://crates.io/crates/brk_oracle">brk_oracle</a>. Inspired by <a href="https://utxo.live/oracle/">UTXOracle</a>. <button type="button" data-feedback>Feedback</button></p>
+      <p>Read live from this server: <a href="/api/oracle/price">its price</a>, its blocks' payments and its mempool's, by <a href="https://crates.io/crates/brk_oracle">brk_oracle</a>. Inspired by <a href="https://utxo.live/oracle/">UTXOracle</a>.</p>
     </footer>
 
     <script type="module">
