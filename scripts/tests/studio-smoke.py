@@ -521,6 +521,8 @@ def read_link(link):
     hash, *rest = link.split("#chart=", 1)[1].split("&")
     chart = json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
     fields = dict(field.split("=", 1) for field in rest)
+    if "range" in fields:
+        fields["range"] = fields["range"].lower()
     if "from" in fields:
         chart["view"] = {"from": fields.pop("from"), "to": fields.pop("to")}
     return {**chart, **fields}

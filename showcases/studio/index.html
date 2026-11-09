@@ -10666,7 +10666,7 @@
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3m, 1y, 4y, 8y or max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), and "interval" (10m, 30m, 1h, 4h, 12h, 1d, 3d, 1w, 1m, 3m, 6m, 1y or 10y, where 1m, 3m and 6m are months), as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1y&amp;interval=1w. A chart's link takes the same after its chart.</p>
+          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), and "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&amp;interval=1W. A chart's link takes the same after its chart.</p>
           <h2>A chart</h2>
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
@@ -11598,7 +11598,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ];
       const INTERVAL_ORDER = INTERVALS.flatMap(([, items]) => items.map(([id]) => id));
       const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
-      /** Each interval by its label as a link writes it, lowercase ("1w"), the picker's own (no two alike: minutes are 10m and 30m alone). */
+      /** Each interval by its label as the picker shows it ("1W"), read in any case (no two alike: minutes are 10m and 30m alone). */
       const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(([id, label]) => [String(label).toLowerCase(), id]));
       /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
       const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
@@ -29297,12 +29297,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A preset opened at its address (a visit, not a step back): what the address says of how to look at it, else as it
-       * opens, whatever view was left on it here (whoever follows a link sees what it says). Edited here, it's yours: as
-       * you left it, but for what the address says. @param {number} i
+       * opens, whatever view was left on it here (whoever follows a link sees what it says). Edited here: the preset as
+       * made all the same, as a preview, yours untouched and a tap away. @param {number} i
        */
       function presetByAddress(i) {
+        const look = linkLookOf(new URLSearchParams(location.hash.slice(1))), had = editedPreset(i);
+        if (had && presetEdited(had)) {
+          const made = freshPreset(i), doc = previewLike(made) ?? made;
+          takeLinkLook(doc, look, presetLook(i));
+          addPreview(doc);
+          keepAsideOpened(doc);
+          linkWindow = doc.id;
+          setTimeout(() => toast("The preset as made. Your edited copy is untouched", { label: "Open yours", run: () => openPreset(i) }));
+          return doc;
+        }
         const doc = presetChart(i);
-        takeLinkLook(doc, linkLookOf(new URLSearchParams(location.hash.slice(1))), presetEdited(doc) ? undefined : presetLook(i));
+        takeLinkLook(doc, look, presetLook(i));
         linkWindow = doc.id;
         return doc;
       }
@@ -29380,8 +29390,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function prunePresets(/** @type {Chart | null} */ keep) {
         const lately = new Set(viewed());
-        // (One at an interval of its own: kept, as an edit is.)
-        const left = library.presets.filter((doc) => doc === keep || !pristine(doc) || doc.index !== "day1" || (lately.has(doc.id) && (!presets || presetIndex(doc) >= 0)));
+        const left = library.presets.filter((doc) => doc === keep || !pristine(doc) || (lately.has(doc.id) && (!presets || presetIndex(doc) >= 0)));
         // (Recent's, once the presets are read, as they're made now: one changed since, made anew.)
         const stale = presets ? left.filter((doc) => doc !== keep && pristine(doc) && keptPreset(presetIndex(doc), doc) !== doc) : [];
         if (left.length === library.presets.length && !stale.length) return;
@@ -37789,17 +37798,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(dates ? { view: dates } : {}),
         };
       }
+      /** The view a link carries for a chart: the one it shows, or was left on; its range showing, none. @param {Chart} doc */
+      const carriedView = (doc) => (doc === chart ? shownView() : openView(doc));
       /** The dates a chart shows, where they aren't its range's: the first bar's and the last's, past the data too; else null. @param {Chart} doc */
       function linkDates(doc) {
-        const kept = doc === chart ? shownView() : openView(doc);
+        const kept = carriedView(doc);
         return kept ? Object.fromEntries((/** @type {const} */ (["from", "to"])).map((edge) => [edge, dateText(timeAt(kept.index, indexAt(kept.index, kept[edge][0]) + Math.round(kept[edge][1])))])) : null;
       }
       /** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out. @param {Chart} doc @param {{ index: string, range: string }} made */
       function lookFields(doc, made) {
         const dates = linkDates(doc);
-        // (A time in a date's field to the minute: "2026-11-08T14:30".)
+        // (A time in a date's field to the minute: "2026-11-08T14:30". A view at the latest, up to it, as it comes: no end.
+        // Values as the buttons show them: "1W", "Max".)
         const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
-        return [...(dates ? [`from=${field(dates.from)}`, `to=${field(dates.to)}`] : doc.range !== made.range ? [`range=${doc.range}`] : []), ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index].toLowerCase()}`] : [])].join("&");
+        const look = dates ? [`from=${field(dates.from)}`, ...(carriedView(doc)?.latest ? [] : [`to=${field(dates.to)}`])] : doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : [];
+        return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : [])].join("&");
       }
       /**
        * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
