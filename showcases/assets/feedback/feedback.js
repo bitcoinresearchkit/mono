@@ -2,7 +2,7 @@
 // Every showcase's way to report a bug, in one place (loaded by `/assets/launch/launch.js`, which each page loads first).
 //
 // - A page has `<button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>` in its own
-//   bar; launch.js draws the icon and answers its press (and Studio's ⌘K) by calling `bitviewFeedback.open()`.
+//   bar; launch.js draws the icon, makes `window.bitviewFeedback` (this file adds its `open`) and answers the press.
 // - A press opens a text box, and that's all there is: type, send. At the top of a phone's screen, so the keyboard comes
 //   up under it; in the bottom corner on a desk. Opened from the press itself, or iOS won't raise the keyboard.
 // - Nothing leaves until Send: nothing is asked of the inbox's host as a page loads, on Bitview or on a node of someone's
@@ -12,7 +12,7 @@
 (() => {
   const INBOX = "https://feedback.bitview.space/";
   const PRIVACY = "https://github.com/bitcoinresearchkit/mono/tree/next/packages/bitview_feedback#readme";
-  const compact = matchMedia("(max-width: 760px), (max-height: 520px)");
+  const feedback = /** @type {any} */ (window).bitviewFeedback;
 
   /** The app's folder alone, always sent: "/" for anything that isn't one (`/index.html`). */
   const folder = location.pathname.split("/")[1], page = /^[a-z0-9_-]{1,40}$/.test(folder) ? `/${folder}/` : "/";
@@ -25,7 +25,9 @@
     [new RegExp(`${START}[123mn][1-9A-HJ-NP-Za-km-z]{25,34}${END}`, "g"), ":address"],
     [new RegExp(`${START}[xyztuvYZUV](?:pub|prv)[1-9A-HJ-NP-Za-km-z]{70,}${END}`, "g"), ":key"],
     [new RegExp(`${START}[0-9a-fA-F]{40,}${END}`, "g"), ":hash"],
-    [/[a-z][a-z0-9+.-]*:\/\/[^\s/"']+/gi, ""],
+    [/[a-z][a-z0-9+.-]*(?::|%3A)(?:\/|%2F){2}[^\s/"'%]+/gi, ""],
+    [/[^\s/?&#="'%:@]+(?:@|%40)[^\s/?&#"'%:@]+/g, ":email"],
+    [new RegExp(`${START}[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}${END}`, "gi"), ":id"],
     [new RegExp(`${START}[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){3,7}${END}`, "g"), ":ip"],
     [new RegExp(`${START}\\d{1,3}(?:\\.\\d{1,3}){3}${END}`, "g"), ":ip"],
   ]);
@@ -41,7 +43,7 @@
   function link() {
     if (!shareable()) return "";
     try {
-      const own = /** @type {any} */ (window).bitviewFeedbackLink?.();
+      const own = feedback.link?.();
       const place = own ? new URL(own, location.href) : location;
       const exact = mask(place.pathname + place.search + place.hash);
       return exact.replace(/\/$/, "") === page.replace(/\/$/, "") || exact.length > 6000 ? "" : exact;
@@ -56,24 +58,24 @@
   const major = /(?:Firefox|Chrome|Chromium|Version)\/(\d+)/.exec(agent)?.[1] ?? "";
   const os = /iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1) ? "ios" : /Android/.test(agent) ? "android" : /Macintosh/.test(agent) ? "macos" : /Windows/.test(agent) ? "windows" : /Linux|X11/.test(agent) ? "linux" : "other";
 
-  /** How to see what the sender saw, and nothing of who they are: sizes to the nearest 10 px, as a window's exact size is
-   * close to a fingerprint and no layout turns on the last digit. @param {HTMLElement} card */
+  /** How to see what the sender saw, and nothing of who they are: a window's width to 10 px and height to 100, as its exact
+   * size is close to a fingerprint and no layout turns on the last digits. @param {HTMLElement} card */
   const context = (card) => ({
     os, major,
-    viewport: `${Math.round(innerWidth / 10) * 10}x${Math.round(innerHeight / 10) * 10}`,
+    viewport: `${Math.round(innerWidth / 10) * 10}x${Math.round(innerHeight / 100) * 100}`,
     scale: String(Math.round(devicePixelRatio * 2) / 2),
     // (What the page is really showing, whichever way it decided: the card's own background, light or dark as it is.)
     theme: Number(/\d+/.exec(getComputedStyle(card).backgroundColor)?.[0]) > 127 ? "light" : "dark",
     mode: /** @type {any} */ (navigator).standalone === true || matchMedia("(display-mode: standalone)").matches ? "app" : "browser",
     // (Masked before it's cut, or a token cut in half would slip past; an error can quote the address, so it needs the same declaration.)
-    errors: shareable() ? /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors ?? []).map((text) => mask(text).slice(0, 300)) : [],
+    errors: shareable() ? /** @type {string[]} */ (feedback.errors).map((text) => mask(text).slice(0, 300)) : [],
   });
 
   /** @type {{ show: (typed?: string) => void } | undefined} */
   let made;
 
   function make() {
-    const INCLUDED = shareable() ? "Includes address, browser, screen and errors." : "Includes page name, browser and screen.";
+    const INCLUDED = shareable() ? "Includes page link, browser, screen and errors." : "Includes page name, browser and screen.";
     const host = document.createElement("bitview-feedback");
     const root = host.attachShadow({ mode: "open" });
     root.innerHTML = `<style>
@@ -143,7 +145,9 @@
     /** Enter sends where there's a real keyboard, as in a chat; a phone's Enter is a new line and its arrow sends. */
     const fine = matchMedia("(hover: hover) and (pointer: fine)");
     message.addEventListener("keydown", (/** @type {KeyboardEvent} */ event) => {
-      if (event.key === "Enter" && !event.shiftKey && !event.isComposing && fine.matches) (event.preventDefault(), form.requestSubmit());
+      if (event.key !== "Enter" || event.shiftKey || event.isComposing || !fine.matches) return;
+      event.preventDefault();
+      form.requestSubmit();
     });
 
     form.addEventListener("submit", async (/** @type {SubmitEvent} */ event) => {
@@ -152,7 +156,7 @@
       sending = message.readOnly = true;
       ready();
       try {
-        const body = JSON.stringify({ message: message.value, page, link: link(), version, browser: `${engine}-${compact.matches ? "phone" : "desk"}`, context: { build, ...context(card) } });
+        const body = JSON.stringify({ message: message.value, page, link: link(), version, browser: `${engine}-${matchMedia("(pointer: coarse)").matches ? "phone" : "desk"}`, context: { build, ...context(card) } });
         const response = await fetch(INBOX, { method: "POST", body, credentials: "omit", referrerPolicy: "no-referrer", keepalive: true, signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw response.status;
         message.value = "";
@@ -204,7 +208,6 @@
     made.show(typed);
   }
 
-  /** @type {any} */ (window).bitviewFeedback = { open };
-  const asked = /** @type {any} */ (window).bitviewFeedbackAsked;
-  if (asked) open(asked.value);
+  feedback.open = open;
+  if (feedback.asked) open(feedback.asked.value);
 })();

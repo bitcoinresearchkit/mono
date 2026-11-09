@@ -17,6 +17,9 @@
 //   blurring what's behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status
 //   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
 // - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
+//
+// Being first, it also holds what every page's feedback button needs from its very start (`/assets/feedback/feedback.js`
+// is the rest): `window.bitviewFeedback`, the icon, the page's recent errors and a press that comes early.
 (() => {
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
@@ -24,11 +27,24 @@
   // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
   // (A way to report a bug: its own file. A page's button is a bare icon, drawn from before the page is: nothing moves.)
-  document.head.append(Object.assign(document.createElement("script"), { src: "/assets/feedback/feedback.js", fetchPriority: "low" }));
+  const feedback = /** @type {any} */ (window).bitviewFeedback = { errors: /** @type {string[]} */ ([]), asked: null, open: null, link: null };
+  /** @type {HTMLScriptElement | null} */
+  let sheet = null;
+  const loadSheet = () => {
+    sheet = document.head.appendChild(Object.assign(document.createElement("script"), { src: "/assets/feedback/feedback.js", fetchPriority: "low" }));
+    // (It didn't come: a press waiting on it is told, and the next press tries again.)
+    sheet.onerror = () => {
+      sheet = null;
+      if (!feedback.asked) return;
+      feedback.asked.blur();
+      alert("Couldn't open the report box. Please try again.");
+    };
+  };
+  loadSheet();
   document.head.append(Object.assign(document.createElement("style"), { textContent: `:where(button[data-feedback]) { position: relative; display: inline-grid; place-items: center; appearance: none; margin: 0; padding: 0; border: 0; background: none; color: inherit; opacity: 0.6; cursor: pointer; &:hover { opacity: 1; } &::before { content: ""; width: 16px; height: 16px; background: currentColor; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.6 5.9a2.4 2.4 0 0 1 4.8 0'/%3E%3Crect x='4.6' y='5.9' width='6.8' height='8.1' rx='3.4'/%3E%3Cpath d='M8 8.6V14M4.6 9.4H2.2M11.4 9.4h2.4M5 6.7 3.2 5.1M11 6.7l1.8-1.6M5 12.6l-1.8 1.5M11 12.6l1.8 1.5M6.3 2.2l.7 1.4M9.7 2.2 9 3.6'/%3E%3C/svg%3E") center / contain no-repeat; } &::after { content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); } }` }));
   // (The page's recent errors, for a note to carry if one is ever sent: in memory, this page's, the last five, from its
   // very start, which is why here. Failed files too: a script that didn't load explains a lot.)
-  const errors = /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors = []);
+  const { errors } = feedback;
   const noted = (/** @type {string} */ text) => { if (text && errors.at(-1) !== text && (errors.push(text.slice(0, 1000)), errors.length > 5)) errors.shift(); };
   const place = (/** @type {string} */ address) => { try { const url = new URL(address, location.href); return url.origin === location.origin ? url.pathname : "another site"; } catch { return "somewhere"; } };
   addEventListener("error", (event) => noted(event.message ? `${event.message} (${place(event.filename)}:${event.lineno})` : `Couldn't load ${place(/** @type {any} */ (event.target)?.src ?? /** @type {any} */ (event.target)?.href ?? "")}`), true);
@@ -37,14 +53,14 @@
   // only for a focus made during the press itself, so until then a field no one sees holds it, and hands over what's typed.)
   document.addEventListener("click", (event) => {
     if (!/** @type {Element} */ (event.target).closest?.("[data-feedback]")) return;
-    const feedback = /** @type {any} */ (window).bitviewFeedback;
-    if (feedback) feedback.open();
+    if (feedback.open) feedback.open();
     else {
+      if (!sheet) loadSheet();
       const asked = document.body.appendChild(document.createElement("textarea"));
       asked.style.cssText = "position: fixed; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px";
       asked.setAttribute("aria-label", "Report a bug");
-      asked.addEventListener("blur", () => { asked.remove(); /** @type {any} */ (window).bitviewFeedbackAsked = null; });
-      /** @type {any} */ (window).bitviewFeedbackAsked = asked;
+      asked.addEventListener("blur", () => { asked.remove(); feedback.asked = null; });
+      feedback.asked = asked;
       asked.focus({ preventScroll: true });
     }
   });

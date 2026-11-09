@@ -7,7 +7,7 @@ workers_dev = false
 preview_urls = false
 routes = [{ pattern = "feedback.bitview.space", custom_domain = true }]
 
-# Cloudflare keeps no per-request logs of this Worker (they're on by default for a new one).
+# This Worker's own request logs off (on by default for a new one). Cloudflare's aggregate analytics are separate.
 [observability]
 enabled = false
 
@@ -19,4 +19,4 @@ database_id = "SET-AT-DEPLOY"
 [[ratelimits]]
 name = "LIMIT"
 namespace_id = "1001"
-simple = { limit = 5, period = 60 }
+simple = { limit = 2, period = 60 }

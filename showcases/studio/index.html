@@ -34017,7 +34017,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
-          { title: "Report a bug", text: "A note to the Bitview project: a bug, something confusing, an idea.", icon: "recent", run: () => /** @type {any} */ (window).bitviewFeedback?.open(), anywhere: true },
+          { title: "Report a bug", text: "A note to the Bitview project: a bug, something confusing, an idea.", icon: "recent", run: () => /** @type {HTMLElement} */ (document.querySelector("[data-feedback]")).click(), anywhere: true },
           canTravel(true) ? { title: "Undo", text: placingPath() ? "The path's last point taken back." : libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
@@ -37742,7 +37742,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * braces too, a chat cuts a trailing "]}" off; a "+", read as a space by what decodes forms.)
        */
       // (An "&" too: a title's "&chart=" never reads as a field of the link.)
-      const linkText = (/** @type {Chart} */ doc) => JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+&]/g, (char) => encodeURIComponent(char));
+      const sketchText = (/** @type {object} */ sketch) => JSON.stringify(sketch).replace(/[\s"<>`%#\\{}[\]+&]/g, (char) => encodeURIComponent(char));
+      const linkText = (/** @type {Chart} */ doc) => sketchText(toSketch(doc));
       /**
        * A chart's link, compressed (every link Studio writes; one written out, JSON, is read too: an assistant's, which
        * can't compress it); compressing failed, written out. @param {Chart} doc @param {Promise<Uint8Array>} [bytes] its
@@ -37789,8 +37790,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
         return i >= 0 && settled() && presetShown && doc.range === freshPreset(i).range ? addresses()?.presets[i] ?? null : null;
       }
-      /** What a feedback note attaches: the chart's address, in its readable form, so what's sent is what the sender sees. */
-      /** @type {any} */ (window).bitviewFeedbackLink = () => (home || !chart.layers.length ? null : (presetAddress(chart) ?? `${linkBase()}${linkText(chart)}`));
+      /** Of a chart someone made, what a feedback note may carry: what it plots and how it's framed, by name, never what they
+       * typed or placed on it (a title, labels, drawings, levels, a formula's numbers), which can be their own figures. */
+      function reportedSketch(/** @type {Chart} */ doc) {
+        const pick = (/** @type {any} */ from, /** @type {string[]} */ names) => Object.fromEntries(names.filter((name) => from[name] !== undefined).map((name) => [name, from[name]]));
+        const sketch = toSketch(doc);
+        return { ...pick(sketch, ["index", "range", "halvings", "legend", "panes", "view"]), layers: sketch.layers.map((/** @type {any} */ layer) => ({ ...pick(layer, ["series", "letter", "type", "side", "pane"]), ...(layer.formula === undefined ? {} : { formula: "(their own)" }) })) };
+      }
+      /** What a feedback note attaches: a preset's address, or that part of a chart of someone's own, in the link's readable form. */
+      /** @type {any} */ (window).bitviewFeedback.link = () => (home || !chart.layers.length ? null : (presetAddress(chart) ?? `${linkBase()}${sketchText(reportedSketch(chart))}`));
       /**
        * The open chart's links, from one compressing of it (the same chart in both): the one to copy, and the one for a QR
        * code (base32: the fewest modules; compressing failed, the copy's, written out).
