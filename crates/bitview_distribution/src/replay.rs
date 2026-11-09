@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use brk_error::{Error, Result};
-use brk_exit::Exit;
+use brk_exit::{Exit, ExitGuard};
 use brk_types::{BlockHash, Cents, Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
@@ -53,10 +53,10 @@ pub trait Replay {
     /// The length the plugin's checkpoints reach.
     fn checkpoint_len(&self) -> usize;
 
-    /// Under the exit lock: rolls the checkpoints back to at most `start` and truncates the
-    /// outputs there, through [`Indexer::rewrite_from`] where they land; returns where, or 0
+    /// Under `lock`, the exit lock: rolls the checkpoints back to at most `start` and truncates
+    /// the outputs there, through [`Indexer::rewrite_from`] where they land; returns where, or 0
     /// when they cannot (nothing rolled back: [`run`] resets the plugin).
-    fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize>;
+    fn roll_back(&mut self, start: usize, indexer: &Indexer, lock: &ExitGuard) -> Result<usize>;
 
     /// The state at the start of `height`, from the checkpoints; `None` when they cannot give it.
     fn restore(&self, state: &mut Self::State, height: Height) -> Option<()>;
@@ -96,8 +96,8 @@ pub fn run<R: Replay>(
     let (mut state, mut prices) = live.map_or_else(Default::default, |s| (s.state, s.prices));
     if !reuse && start > 0 {
         start = {
-            let _lock = exit.lock();
-            plugin.roll_back(start, indexer)?
+            let lock = exit.lock();
+            plugin.roll_back(start, indexer, &lock)?
         };
         if start > 0 && plugin.restore(&mut state, Height::from(start)).is_none() {
             start = 0;

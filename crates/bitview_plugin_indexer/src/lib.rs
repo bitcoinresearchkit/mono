@@ -11,7 +11,7 @@ use bitview_plugin::{
 use bitview_primitives::Lengths;
 use bitview_traversable::{AnyStoredVec, Traversable, TreeNode};
 use brk_error::{Error, Result};
-use brk_exit::Exit;
+use brk_exit::{Exit, ExitGuard};
 use brk_reader::{Reader, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use crossbeam_channel::{Receiver, bounded};
@@ -88,6 +88,14 @@ pub struct Indexer<M: StorageMode = Rw> {
 struct ResumePoint {
     lengths: Lengths,
     prev_hash: Option<BlockHash>,
+}
+
+/// The lengths and tip of a finished [`Indexer::prepare_commit`]. Only that makes one and only
+/// [`Indexer::publish`] takes one, so a publication always carries a preparation's own values.
+#[must_use = "nothing reaches readers until `Indexer::publish` takes this"]
+pub struct PreparedCommit {
+    lengths: Lengths,
+    tip: BlockHash,
 }
 
 enum ImportValidation {
@@ -479,8 +487,8 @@ impl Indexer {
     }
 
     /// Rolls back to `starting_lengths`, first publishing the prefix below them once no reader
-    /// holds a later publication. Callers hold the exit lock.
-    pub fn roll_back_to(&mut self, starting_lengths: &Lengths) -> Result<()> {
+    /// holds a later publication. `_lock` is the caller's exit lock, held across all of it.
+    pub fn roll_back_to(&mut self, starting_lengths: &Lengths, _lock: &ExitGuard) -> Result<()> {
         let local_height = self.vecs.next_height();
         if local_height == starting_lengths.height {
             return Ok(());
@@ -519,7 +527,7 @@ impl Indexer {
         };
 
         let lock = exit.lock();
-        self.roll_back_to(&starting_lengths)?;
+        self.roll_back_to(&starting_lengths, &lock)?;
         drop(lock);
         self.compute_start = self.floored(starting_lengths);
 
@@ -699,10 +707,10 @@ impl Indexer {
         rewrite()
     }
 
-    /// Finishes the indexer's own writes and returns the lengths a commit publishes.
-    pub fn prepare_commit(&mut self) -> Result<Lengths> {
+    /// Finishes the indexer's own writes and returns what a commit publishes.
+    pub fn prepare_commit(&mut self) -> Result<PreparedCommit> {
         self.finish_ingestion()?;
-        Ok(match Lengths::from_local(&self.vecs, &self.stores)? {
+        let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
             None if self.vecs.next_height().is_zero()
                 && self.stores.next_height()? == Some(Height::ZERO) =>
@@ -714,16 +722,18 @@ impl Indexer {
                     "Indexer checkpoints became inconsistent during the update",
                 ));
             }
-        })
+        };
+        let tip = self.tip_of(&lengths);
+        Ok(PreparedCommit { lengths, tip })
     }
 
-    /// Publishes `lengths` from [`Self::prepare_commit`] as the pipeline-wide safe-lengths
-    /// snapshot. A `complete` update (every plugin computed) also clears the rollback floor.
-    pub fn publish(&mut self, lengths: Lengths, complete: bool) -> Result<()> {
+    /// Publishes a [`Self::prepare_commit`] as the pipeline-wide safe-lengths snapshot. A
+    /// `complete` update (every plugin computed) also clears the rollback floor.
+    pub fn publish(&mut self, prepared: PreparedCommit, complete: bool) -> Result<()> {
+        let PreparedCommit { lengths, tip } = prepared;
         // `prepare_commit` waited for the stores' ingestion: they hold exactly `lengths`.
         let unspent = self.stores.addr_unspent_views();
-        self.state
-            .finish_update(lengths, self.tip_of(&lengths), Some(unspent));
+        self.state.finish_update(lengths, tip, Some(unspent));
         if complete {
             self.floor.clear()?;
         }

@@ -1,6 +1,7 @@
 use bitview_distribution::replay::{LiveState, Replay, validate_outputs};
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
+use brk_exit::ExitGuard;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::Stamp;
@@ -31,7 +32,7 @@ impl Replay for Vecs {
     /// outputs where they land (the block loop appends from there), readers lowered there first.
     /// When the saved changes do not reach it (a reorg deeper than the protected tail) nothing is
     /// rolled back and [`replay::run`](bitview_distribution::replay::run) resets the plugin.
-    fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
+    fn roll_back(&mut self, start: usize, indexer: &Indexer, _lock: &ExitGuard) -> Result<usize> {
         let stamp = Stamp::from(Height::from(start));
         let rewind = start < self.caps.end();
         let landing = if rewind {

@@ -52,10 +52,10 @@ impl DefaultPlugins {
         let Some(starting) = self.indexer.reorg()? else {
             return Ok(());
         };
-        let _lock = context.exit().lock();
+        let lock = context.exit().lock();
         self.addresses
-            .roll_back_to(usize::from(starting.height), &self.indexer)?;
-        self.indexer.roll_back_to(&starting)
+            .roll_back_to(usize::from(starting.height), &self.indexer, &lock)?;
+        self.indexer.roll_back_to(&starting, &lock)
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
@@ -430,11 +430,11 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     fn commit(&mut self, complete: bool) -> Result<()> {
-        let lengths = self.indexer.prepare_commit()?;
+        let prepared = self.indexer.prepare_commit()?;
         // Address state changes in place: it is published with the lengths, under the lock its
         // readers take before they pin, so they read the state of the publication they pin.
         self.addresses
-            .publish_state_with(|| self.indexer.publish(lengths, complete))
+            .publish_state_with(|| self.indexer.publish(prepared, complete))
     }
 
     fn write_published(&mut self) -> Result<()> {

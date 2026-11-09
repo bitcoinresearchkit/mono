@@ -2,6 +2,7 @@ use bitview_distribution::replay::{LiveState, Replay, validate_outputs};
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_error::Result;
+use brk_exit::ExitGuard;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Stamp};
@@ -42,8 +43,8 @@ impl Replay for Vecs {
     }
 
     /// Also truncates the outputs where the state lands: the block loop appends from there.
-    fn roll_back(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
-        let landing = self.roll_back_to(start, indexer)?;
+    fn roll_back(&mut self, start: usize, indexer: &Indexer, lock: &ExitGuard) -> Result<usize> {
+        let landing = self.roll_back_to(start, indexer, lock)?;
         if landing > 0 {
             indexer.rewrite_from(Height::from(landing), || self.truncate_outputs(landing))?;
         }
@@ -115,8 +116,14 @@ impl Vecs {
     /// find the state at another length than their pin and answer at once that it is updating.
     /// Returns where it lands: `start` when nothing lies past it, or 0 when the saved changes do
     /// not reach below it (a reorg deeper than the protected tail): nothing is rolled back, and
-    /// the caller's reset rebuilds the plugin.
-    pub fn roll_back_to(&mut self, start: usize, indexer: &Indexer) -> Result<usize> {
+    /// the caller's reset rebuilds the plugin. `_lock` is the caller's exit lock, held across all
+    /// of it.
+    pub fn roll_back_to(
+        &mut self,
+        start: usize,
+        indexer: &Indexer,
+        _lock: &ExitGuard,
+    ) -> Result<usize> {
         self.discard_unpublished_state();
         let current = usize::from(self.state.max_stamped_len()).max(self.caps.end());
         if start == 0 || start >= current {
