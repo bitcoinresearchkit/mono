@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use bitview_plugin_price::{block_payments, block_tally, feed_blocks_with, warm_oracle};
 use bitview_primitives::Lengths;
-use bitview_types::{OracleBlock, OracleBlockPayments, OraclePayments};
+use bitview_types::{OracleBlock, OracleBlockPayments, OracleOutputs, OraclePayments};
 use brk_oracle::{
     Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, Search, Tally, bin_to_cents, dollars_bin_offset,
     one_dollar_bin,
@@ -305,7 +305,19 @@ fn reading(
         first_bin: search.first_bin as u16,
         scores: search.scores,
         histogram: oracle.ema().clone(),
-        outputs: tally.into(),
+        outputs: oracle_outputs(tally),
+    }
+}
+
+fn oracle_outputs(tally: Tally) -> OracleOutputs {
+    OracleOutputs {
+        coinbase: tally.coinbase,
+        fan_out: tally.fan_out,
+        op_return: tally.op_return,
+        taproot: tally.taproot,
+        dust: tally.dust,
+        round_btc: tally.round_btc,
+        payments: tally.payments,
     }
 }
 

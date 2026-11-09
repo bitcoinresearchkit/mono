@@ -133,11 +133,6 @@ The output-filtering rules (1,000-sat dust floor, excluded P2TR, round-BTC exclu
 
 Between heights 340,000 and 508,000 the oracle runs a slower cold-start configuration (`alpha` = 0.10, ~19-block span, `window_size` = 40, `shape_weight` = 8). In the thin pre-2018 output mix the fast default octave-locks onto the round-dollar half-price pattern, so the slow EMA and the shape-anchoring restoring force resist that drift. At 508,000 `Oracle::reconfigure` switches to the defaults above (`shape_weight` back to 0), and `Config::for_height` returns the right one for any height.
 
-## Features
-
-`schemars` adds JSON Schema derives to the histogram types (Bitview's server enables it for its oracle endpoints);
-the default build does not depend on `schemars`.
-
 ## Comparison with UTXOracle
 
 Both detect round dollar amounts in a log-scale histogram of output values; they make different engineering choices:

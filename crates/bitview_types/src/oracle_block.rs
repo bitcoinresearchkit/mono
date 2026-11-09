@@ -1,5 +1,4 @@
-use brk_oracle::{HistogramEma, Tally};
-use brk_types::{BlockHash, Dollars, Height};
+use brk_types::{BlockHash, Dollars, Height, Histogram};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +36,7 @@ pub struct OracleBlock {
     /// The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
     /// before it (live, the mempool's as the next block's), each block's counts weighted
     /// `(2/7) * (5/7)^age`, the newest at age 0.
-    pub histogram: HistogramEma,
+    pub histogram: Histogram<f64, 2400>,
     /// The block's own outputs (live, the mempool's) as the oracle's filter judged them.
     pub outputs: OracleOutputs,
 }
@@ -62,18 +61,4 @@ pub struct OracleOutputs {
     pub round_btc: u32,
     /// The rest: the payments it counted.
     pub payments: u32,
-}
-
-impl From<Tally> for OracleOutputs {
-    fn from(t: Tally) -> Self {
-        Self {
-            coinbase: t.coinbase,
-            fan_out: t.fan_out,
-            op_return: t.op_return,
-            taproot: t.taproot,
-            dust: t.dust,
-            round_btc: t.round_btc,
-            payments: t.payments,
-        }
-    }
 }

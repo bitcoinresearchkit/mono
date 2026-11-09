@@ -1137,7 +1137,6 @@ dependencies = [
  "bitcoin",
  "bitview_cohort",
  "bitview_primitives",
- "brk_oracle",
  "brk_types",
  "derive_more",
  "itoa",
@@ -1373,8 +1372,6 @@ name = "brk_oracle"
 version = "0.13.0"
 dependencies = [
  "brk_types",
- "schemars",
- "serde",
 ]
 
 [[package]]

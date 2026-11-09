@@ -24,7 +24,6 @@ use brk_types::Dollars;
 
 mod config;
 mod filter;
-mod histogram;
 mod scale;
 mod seed;
 mod stencil;
@@ -34,7 +33,6 @@ mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::{PaymentFilter, Skip, Tally};
-pub use histogram::Histogram;
 use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, dollars_bin_offset, one_dollar_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
@@ -44,9 +42,9 @@ use stencil::Stencil;
 use window::EmaWindow;
 
 /// One block's raw output counts per log-scale bin.
-pub type HistogramRaw = Histogram<u32, NUM_BINS>;
+pub type HistogramRaw = brk_types::Histogram<u32, NUM_BINS>;
 /// The window's smoothed EMA per log-scale bin.
-pub type HistogramEma = Histogram<f64, NUM_BINS>;
+pub type HistogramEma = brk_types::Histogram<f64, NUM_BINS>;
 
 /// Oracle algorithm version. Bump on any change that alters computed prices
 /// so downstream consumers can invalidate cached results.
