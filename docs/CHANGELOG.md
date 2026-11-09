@@ -10,9 +10,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
-- The server no longer compresses responses: the API answers uncompressed, without `Vary: Accept-Encoding`, for a CDN
-  in front to compress, and an instance reached directly sends them as they are. The website's pre-made brotli copies
-  stay. On the API, a request refusing `identity` gets 406 (was: one refusing every encoding)
+- The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
+  a CDN in front to compress, and an instance reached directly sends them as they are. A request refusing `identity`
+  gets 406 (was: one refusing every encoding)
 - `bitview`, `bitview_server` and `bitview_query` keep two API features: `series`, the generic series routes, and
   `full-api`, every other route too. The `chain`, `price` and `urpd` features are gone: enable `full-api` for them
 - `bitview_query`: `Vecs` is `SeriesRegistry`, and `Query::vecs()` is `Query::registry()`; `QueryPlugins` and the `Supports*` traits are
@@ -89,8 +89,6 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The mining statistics are tagged by the chain's tip: a revalidation answers 304 before building (`/blocks/*/all`'s
   304s took 31-46 ms; now under 1 ms)
 - `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
-- Static files (the showcases) go out in brotli at its best quality once a copy is made, in the background, for
-  each file: Studio's page 903 KB → 562 KB
 - A mempool rebuild linearizes only the components that changed since the last one: idle at 44.6k transactions, 4.5%
   of a core (6.3% before, with the cheaper ancestor-set search for every component, every second)
 - A single-block update reads only the new blocks' frames, not on into Core's preallocated zero tail (33 µs → 1.2 µs

@@ -9,7 +9,7 @@ use axum::{
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
-    Error, Website, brotli_copies,
+    Error, Website,
     website::{File, hash},
 };
 
@@ -110,14 +110,9 @@ fn respond(
         insert_caching(response.headers_mut(), etag);
         return Ok(response);
     }
-    let copy = brotli_copies::copy(&file, &contents, content_type, request_headers);
-    let brotli = copy.is_some();
-    let mut response = Response::new(Body::from(copy.unwrap_or(contents)));
+    let mut response = Response::new(Body::from(contents));
     let headers = response.headers_mut();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-    if brotli {
-        headers.insert(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
-    }
     insert_caching(headers, etag);
 
     Ok(response)
@@ -126,13 +121,12 @@ fn respond(
 /// The validator and cache policy a file's 200 and 304 share: every file revalidates.
 fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
     if let Some(etag) = etag {
-        // Weak: compression serves other bytes under the same validator.
+        // Weak: a CDN compressing the file serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
         // The same hash as the file's version, for an open page to tell a newer one is served
         // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
-    headers.insert(header::VARY, HeaderValue::from_static("accept-encoding"));
     headers.insert(
         header::CACHE_CONTROL,
         HeaderValue::from_static("public, max-age=1, must-revalidate"),

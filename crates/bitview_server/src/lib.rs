@@ -290,8 +290,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     let website_router = WebsiteRouter(state.website.clone());
     let mut router = ApiRouter::new()
         .add_api_routes()
-        .route_layer(from_fn(canonical_url::refuse_respelled))
-        .route_layer(from_fn(unacceptable_encoding::reject));
+        .route_layer(from_fn(canonical_url::refuse_respelled));
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/openapi.json")));
     }
@@ -301,6 +300,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         .layer(from_fn(request_deadline::apply))
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
+        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
                 .downcast_ref::<String>()

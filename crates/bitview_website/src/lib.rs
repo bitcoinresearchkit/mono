@@ -4,7 +4,6 @@
 //!
 //! See the `website` example for how to run a standalone server.
 
-mod brotli_copies;
 mod error;
 mod handlers;
 mod router;

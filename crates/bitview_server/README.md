@@ -2,8 +2,8 @@
 
 HTTP API server for Bitcoin on-chain analytics.
 
-Responses are sent uncompressed, for a CDN in front to compress; a request to the API refusing
-`identity` gets 406 before any handler runs. The server can also serve a folder of pages (the showcases by default), brotli copies of them included.
+Responses are sent uncompressed, for a CDN in front to compress; a request refusing `identity`
+gets 406 before any handler runs. The server can also serve a folder of pages (the showcases by default).
 
 `series` serves the generic series routes and `full-api`, the default, adds every other route.
 Custom compositions can disable default features and enable `series` alone, which needs only the
