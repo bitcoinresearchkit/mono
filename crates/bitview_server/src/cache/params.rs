@@ -70,12 +70,6 @@ impl CacheParams {
         Self::live(format!("l{hash:x}"))
     }
 
-    /// Data fixed for the release (the empty search): `i{version}`, bumped when the response
-    /// format changes.
-    pub fn immutable(version: Version, cdn_cache_mode: CdnCacheMode) -> Self {
-        Self::live(format!("i{version}")).stable_if(true, cdn_cache_mode)
-    }
-
     /// Mutable state whose current representation is anchored to its latest relevant block
     /// (address state, UTXO set points): `a{version}-{block_hash_prefix:x}`. The CDN
     /// revalidates so later activity can replace it without waiting for a purge; a point its

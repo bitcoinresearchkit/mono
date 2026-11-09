@@ -46,7 +46,6 @@ Validators are selected with their source data before conditional matching:
 
 - **Live**: exact, versioned representation tag
 - **LiveHash**: mutable data, etag = a representation-specific content hash
-- **Immutable**: data fixed for the release (the empty search), etag = format version
 - **ActivityBound**: mutable state anchored to its latest relevant block
 - **Deploy**: the release prefix alone, for responses only a release changes
 - **Revalidate**: exact tags a second's reuse cannot mislead (blocks by hash, the tip, catalogs)

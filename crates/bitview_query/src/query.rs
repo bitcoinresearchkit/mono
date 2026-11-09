@@ -9,8 +9,6 @@ use arc_swap::ArcSwap;
 #[cfg(feature = "series")]
 use arc_swap::ArcSwapOption;
 use bitview_plugin_indexer::Indexer;
-#[cfg(feature = "full-api")]
-use bitview_types::OraclePayments;
 use bitview_types::SyncStatus;
 use brk_mempool::ReadOnlyMempool;
 #[cfg(feature = "full-api")]
@@ -43,7 +41,7 @@ pub(crate) struct QueryInner<'a> {
     #[cfg(feature = "full-api")]
     pub(crate) live_oracle: PublicationCache<brk_oracle::Oracle>,
     #[cfg(feature = "full-api")]
-    pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
+    pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks>,
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
     /// Read bounds cached for the newest publication a pin asked for.

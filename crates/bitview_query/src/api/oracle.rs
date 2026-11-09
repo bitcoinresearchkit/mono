@@ -338,26 +338,18 @@ struct LiveOracle {
 
 /// Payment chunks already replayed: a settled one kept for good (it never changes), the others for
 /// the publication they were read at; past [`Self::MAX`], the least recently used go first.
-pub struct OracleChunks<T> {
+#[derive(Default)]
+pub struct OracleChunks {
     /// Each chunk by its start: the revision it was read at (none once settled), when it was last
     /// used, and the chunk.
-    chunks: HashMap<usize, (Option<u64>, u64, Arc<T>)>,
+    chunks: HashMap<usize, (Option<u64>, u64, Arc<OraclePayments>)>,
     uses: u64,
 }
 
-impl<T> Default for OracleChunks<T> {
-    fn default() -> Self {
-        Self {
-            chunks: HashMap::new(),
-            uses: 0,
-        }
-    }
-}
-
-impl<T> OracleChunks<T> {
+impl OracleChunks {
     const MAX: usize = 64;
 
-    fn get(&mut self, start: usize, revision: u64) -> Option<(Arc<T>, bool)> {
+    fn get(&mut self, start: usize, revision: u64) -> Option<(Arc<OraclePayments>, bool)> {
         self.uses += 1;
         let (read_at, used, chunk) = self.chunks.get_mut(&start)?;
         let settled = match read_at {
@@ -369,7 +361,7 @@ impl<T> OracleChunks<T> {
         Some((Arc::clone(chunk), settled))
     }
 
-    fn put(&mut self, start: usize, revision: u64, settled: bool, chunk: Arc<T>) {
+    fn put(&mut self, start: usize, revision: u64, settled: bool, chunk: Arc<OraclePayments>) {
         self.uses += 1;
         if self.chunks.len() >= Self::MAX
             && !self.chunks.contains_key(&start)

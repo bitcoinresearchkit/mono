@@ -306,23 +306,14 @@ impl AppState {
         T: Serialize + Send + 'static,
         F: FnOnce(&Query) -> Result<T> + Send + 'static,
     {
-        self.respond_json_settled(headers, move |query| Ok((f(query)?, false)))
-            .await
+        self.respond_json_settled_on(&self.chain_query, headers, move |query| {
+            Ok((f(query)?, false))
+        })
+        .await
     }
 
-    /// [`Self::respond_json_content`] for a value its URL pins: settled below the reorg
-    /// window, it takes the stable CDN tier.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_settled<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
-    where
-        T: Serialize + Send + 'static,
-        F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
-    {
-        self.respond_json_settled_on(&self.chain_query, headers, f)
-            .await
-    }
-
-    /// [`Self::respond_json_settled`] under its own admission: work heavy enough to wait apart.
+    /// [`Self::respond_json_content`] for a value its URL pins, under its own admission (work
+    /// heavy enough to wait apart): settled below the reorg window, it takes the stable CDN tier.
     #[cfg(feature = "full-api")]
     pub async fn respond_json_settled_on<T, F>(
         &self,
