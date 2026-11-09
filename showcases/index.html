@@ -199,18 +199,18 @@
 
       /* (Dark in either scheme: the bar, the billboard, every cover; their tokens resolve dark.) */
       /* (Over paper the bar is paper: past the stage, in light, its glass and pill turn to the page's ground.) */
-      @media (prefers-color-scheme: light) {
-        body:has(.billboard[data-off]) .top {
+      body:has(.billboard[data-off]) .top {
+        > .glass {
+          bottom: -30px;
+
+          &::after {
+            background: linear-gradient(rgb(var(--glass-rgb)) calc(100% - 30px), rgb(var(--glass-rgb) / 0));
+          }
+        }
+
+        @media (prefers-color-scheme: light) {
           --glass-rgb: 243 241 236;
           color-scheme: light;
-
-          > .glass {
-            bottom: -30px;
-
-            &::after {
-              background: linear-gradient(rgb(var(--glass-rgb)) calc(100% - 30px), rgb(var(--glass-rgb) / 0));
-            }
-          }
         }
       }
 
@@ -2380,15 +2380,11 @@
 
         /* (On a phone under it, over its fade's last stretch: the picture shown, not covered.) */
         .over {
-          position: absolute;
-          left: 32px;
-          right: 32px;
-          bottom: 4px;
+          position: relative;
+          margin-top: -44px;
+          padding: 0 32px;
 
           @media (max-width: 599px) {
-            position: relative;
-            inset: auto;
-            margin-top: -44px;
             padding: 0 20px;
           }
         }
@@ -3427,7 +3423,7 @@
       }
       /** As many whole, equal blocks as the row has room for, the forming one kept: the newest are shown, the rest hidden. */
       function fitGuide() {
-        const shown = Math.max(1, Math.floor((guide.clientWidth - 200) / 150));
+        const shown = guide.clientWidth < 520 ? 0 : Math.floor((guide.clientWidth - 200) / 150);
         /** @type {HTMLElement[]} */ ([...guide.children]).forEach((li, i, all) => (li.hidden = li !== forming && all.length - 1 - i > shown));
       }
       new ResizeObserver(fitGuide).observe(guide);
