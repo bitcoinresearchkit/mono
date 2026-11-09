@@ -1,40 +1,41 @@
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter, Ty, TypeSchemas,
+    TypeSchemas,
     generators::{
         javascript::{keep::keep_expr, types::js_type},
-        jsdoc_continued, normalize_return_type, write_description,
+        jsdoc_continued, normalize_return_type,
+        operation::{Decode, Operation, PathPart, Series},
+        write_description,
     },
     to_camel_case,
 };
 
-pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint], schemas: &TypeSchemas) {
-    for endpoint in endpoints
-        .iter()
-        .filter(|endpoint| endpoint.should_generate())
-    {
-        generate_method(output, endpoint, schemas);
+pub fn generate_api_methods(output: &mut String, operations: &[Operation<'_>], schemas: &TypeSchemas) {
+    for operation in operations {
+        generate_method(output, operation, schemas);
     }
 }
 
-fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchemas) {
-    let post = endpoint.method == "POST";
-    let body = endpoint.request_body.as_ref().filter(|_| post);
-    let return_type = build_return_type(endpoint);
+fn generate_method(output: &mut String, operation: &Operation<'_>, schemas: &TypeSchemas) {
+    let endpoint = operation.endpoint;
+    let post = operation.post;
+    let body = operation.post_body();
+    let return_type = build_return_type(operation);
 
-    write_method_doc(output, endpoint);
-    for param in &endpoint.path_params {
+    write_method_doc(output, operation);
+    for param in &operation.path_params {
         let desc = format_param_desc(param.description.as_deref());
         let ty = js_type(&param.ty);
         writeln!(output, "   * @param {{{}}} {}{}", ty, param.arg, desc).unwrap();
     }
-    for param in &endpoint.query_params {
-        let optional = if param.required { "" } else { "=" };
+    for argument in &operation.query_params {
+        let param = argument.parameter;
+        let optional = if argument.rule.required() { "" } else { "=" };
         let desc = format_param_desc(param.description.as_deref());
         let ty = js_type(&param.ty);
         let ident = param.arg.clone();
-        let name_decl = if param.required {
+        let name_decl = if argument.rule.required() {
             ident
         } else {
             format!("[{}]", ident)
@@ -47,8 +48,8 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
         .unwrap();
     }
     if let Some(body) = body {
-        let optional = if body.required { "" } else { "=" };
-        let ty = js_type(&body.ty);
+        let optional = if body.declaration.required { "" } else { "=" };
+        let ty = js_type(&body.declaration.ty);
         writeln!(output, "   * @param {{{ty}{optional}}} body").unwrap();
     }
     if post {
@@ -68,7 +69,7 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     writeln!(output, "   * @returns {{Promise<{}>}}", return_type).unwrap();
     writeln!(output, "   */").unwrap();
 
-    let mut params = build_method_params(endpoint);
+    let mut params = build_method_params(operation);
     if body.is_some() {
         if !params.is_empty() {
             params.push_str(", ");
@@ -91,10 +92,14 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
         // A body goes as its declared media type, a JSON one serialized.
         let args = match body {
             Some(body) => {
-                let value = if body.is_json() { "JSON.stringify(body)" } else { "body" };
+                let value = if body.json {
+                    "JSON.stringify(body)"
+                } else {
+                    "body"
+                };
                 format!(
                     "path, {value}, {{ signal, contentType: '{}' }}",
-                    body.content_type
+                    body.declaration.content_type
                 )
             }
             None => format!("path, '', {options}"),
@@ -104,14 +109,14 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
         ("get", format!("path, {options}"))
     };
     // Series data gets the same helpers however it is fetched.
-    let response = endpoint.response_kind.ty();
-    let fetch_call = if endpoint.returns_binary() {
+    let response = operation.response.ty;
+    let fetch_call = if operation.response.decode == Decode::Binary {
         format!("this.{verb}Bytes({args})")
-    } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
+    } else if operation.response.series == Series::One {
         "_wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
-    } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
+    } else if operation.response.series == Series::Many {
         "(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
-    } else if endpoint.returns_json() {
+    } else if operation.response.decode == Decode::Json {
         // Map keys are data: they stay as sent while field names are camelCased. A GET reads
         // through the cache as `getJson` does, typed by the method (its `Frozen` return).
         let keep = response.and_then(|ty| keep_expr(ty, schemas));
@@ -123,18 +128,18 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
             (true, Some(keep)) => format!("this.postJson({args}, {keep})"),
             (true, None) => format!("this.postJson({args})"),
         }
-    } else if endpoint.response_kind.text_is_numeric() && post {
+    } else if operation.response.decode == Decode::NumericText && post {
         format!("Number(await this.postText({args}))")
-    } else if endpoint.response_kind.text_is_numeric() {
+    } else if operation.response.decode == Decode::NumericText {
         "Number(await this.getText(path, { signal, cache, memCache, onValue: onValue ? (v) => onValue(Number(v)) : undefined }))".to_string()
     } else {
         format!("this.{verb}Text({args})")
     };
 
-    let path = build_path_template(&endpoint.path, &endpoint.path_params);
-    write_path_assignment(output, endpoint, &path);
+    let path = build_path_template(operation);
+    write_path_assignment(output, operation, &path);
 
-    if endpoint.supports_csv {
+    if operation.csv {
         writeln!(
             output,
             "    if (format === 'csv') return this.getText(path, {{ signal, onValue, cache, memCache }});"
@@ -145,29 +150,32 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     writeln!(output, "  }}\n").unwrap();
 }
 
-fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = endpoint.response_kind.ty().map_or_else(
+fn build_return_type(operation: &Operation<'_>) -> String {
+    let base = operation.response.ty.map_or_else(
         || "Uint8Array".to_owned(),
         |ty| normalize_return_type(&js_type(ty)),
     );
     // A JSON answer to a GET may be the memory cache's, shared and frozen (`_deepFreeze`); a
     // series, wrapped with its methods, types its own data so.
-    let series = endpoint.response_kind.ty().is_some_and(|ty| {
-        ty.is_ref("SeriesData") || matches!(ty, Ty::List(item) if item.is_ref("SeriesData"))
-    });
-    let base = if endpoint.method == "GET" && endpoint.returns_json() && base != "*" && !series {
+    let series = operation.response.series != Series::None;
+    let base = if !operation.post
+        && operation.response.decode == Decode::Json
+        && base != "*"
+        && !series
+    {
         format!("Frozen<{base}>")
     } else {
         base
     };
-    if endpoint.supports_csv {
+    if operation.csv {
         format!("{} | string", base)
     } else {
         base
     }
 }
 
-fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
+fn write_method_doc(output: &mut String, operation: &Operation<'_>) {
+    let endpoint = operation.endpoint;
     writeln!(output, "  /**").unwrap();
     if let Some(summary) = &endpoint.summary {
         writeln!(output, "   * {}", summary).unwrap();
@@ -186,21 +194,22 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     )
     .unwrap();
 
-    let has_body_param = endpoint.method == "POST" && endpoint.request_body.is_some();
-    if !endpoint.path_params.is_empty() || !endpoint.query_params.is_empty() || has_body_param {
+    let has_body_param = operation.post_body().is_some();
+    if !operation.path_params.is_empty() || !operation.query_params.is_empty() || has_body_param {
         writeln!(output, "   *").unwrap();
     }
 }
 
-fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
-    if endpoint.query_params.is_empty() {
+fn write_path_assignment(output: &mut String, operation: &Operation<'_>, path: &str) {
+    if operation.query_params.is_empty() {
         writeln!(output, "    const path = `{}`;", path).unwrap();
     } else {
         writeln!(output, "    const params = new URLSearchParams();").unwrap();
-        for param in &endpoint.query_params {
+        for argument in &operation.query_params {
+            let param = argument.parameter;
             let ident = &param.arg;
-            if matches!(param.ty, Ty::List(_)) {
-                if param.required {
+            if argument.rule.repeated() {
+                if argument.rule.required() {
                     writeln!(
                         output,
                         "    for (const _v of {}) params.append('{}', String(_v));",
@@ -215,7 +224,7 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
                     )
                     .unwrap();
                 }
-            } else if param.required {
+            } else if argument.rule.required() {
                 writeln!(
                     output,
                     "    params.set('{}', String({}));",
@@ -241,29 +250,28 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
     }
 }
 
-fn build_method_params(endpoint: &Endpoint) -> String {
+fn build_method_params(operation: &Operation<'_>) -> String {
     let mut params = String::new();
-    for (index, param) in endpoint
-        .path_params
-        .iter()
-        .chain(&endpoint.query_params)
-        .enumerate()
-    {
+    let query = operation.query_params.iter().map(|argument| argument.parameter);
+    for (index, parameter) in operation.path_params.iter().copied().chain(query).enumerate() {
         if index != 0 {
             params.push_str(", ");
         }
-        params.push_str(&param.arg);
+        params.push_str(&parameter.arg);
     }
     params
 }
 
 /// The path as a template literal, each parameter percent-encoded as one segment.
-fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
-    let mut result = path.to_string();
-    for param in path_params {
-        let placeholder = format!("{{{}}}", param.name);
-        let interpolation = format!("${{encodeURIComponent({})}}", param.arg);
-        result = result.replace(&placeholder, &interpolation);
+fn build_path_template(operation: &Operation<'_>) -> String {
+    let mut result = String::new();
+    for part in &operation.path {
+        match part {
+            PathPart::Literal(text) => result.push_str(text),
+            PathPart::Parameter { parameter, .. } => {
+                write!(result, "${{encodeURIComponent({})}}", parameter.arg).unwrap();
+            }
+        }
     }
     result
 }

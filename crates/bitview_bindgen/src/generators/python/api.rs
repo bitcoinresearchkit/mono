@@ -1,8 +1,12 @@
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter, Ty, escape_python_keyword,
-    generators::{normalize_return_type, write_description},
+    Ty, escape_python_keyword,
+    generators::{
+        normalize_return_type,
+        operation::{Decode, Operation, PathPart, Series},
+        write_description,
+    },
     to_snake_case,
 };
 
@@ -14,7 +18,7 @@ fn api_type(ty: &Ty) -> String {
     python_type(ty, &|_| false)
 }
 
-pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
+pub(crate) fn generate_main_client(output: &mut String, operations: &[Operation<'_>]) {
     writeln!(output, "class BitviewClient(BitviewClientBase):").unwrap();
     writeln!(
         output,
@@ -92,29 +96,27 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
         return self.get_address_hash_prefix_matches(address_type, address_payload_hash_prefix(payload, nibbles))
 
 "#);
-    generate_api_methods(output, endpoints);
+    generate_api_methods(output, operations);
 }
 
-fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
-    for endpoint in endpoints {
-        if !endpoint.should_generate() {
-            continue;
-        }
+fn generate_api_methods(output: &mut String, operations: &[Operation<'_>]) {
+    for operation in operations {
+        let endpoint = operation.endpoint;
 
         let method_name = to_snake_case(&endpoint.operation_id);
-        let response = endpoint.response_kind.ty();
+        let response = operation.response.ty;
         let base_return_type = response.map_or_else(
             || "bytes".to_owned(),
             |ty| normalize_return_type(&api_type(ty)),
         );
 
-        let return_type = if endpoint.supports_csv {
+        let return_type = if operation.csv {
             format!("Union[{}, str]", base_return_type)
         } else {
             base_return_type
         };
 
-        let params = build_method_params(endpoint);
+        let params = build_method_params(operation);
         writeln!(
             output,
             "    def {}(self{}) -> {}:",
@@ -156,38 +158,39 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
         )
         .unwrap();
 
-        let path = build_path_template(&endpoint.path, &endpoint.path_params);
+        let path = build_path_template(operation);
 
-        let is_post = endpoint.method == "POST";
-        let fetch_method = match (is_post, &endpoint.response_kind) {
-            (false, _) if endpoint.returns_binary() => "get",
-            (false, _) if endpoint.returns_json() => "get_json",
+        let fetch_method = match (operation.post, operation.response.decode) {
+            (false, Decode::Binary) => "get",
+            (false, Decode::Json) => "get_json",
             (false, _) => "get_text",
-            (true, _) if endpoint.returns_binary() => "post",
-            (true, _) if endpoint.returns_json() => "post_json",
+            (true, Decode::Binary) => "post",
+            (true, Decode::Json) => "post_json",
             (true, _) => "post_text",
         };
 
         // A body goes as its declared media type, a JSON one serialized.
-        let body_arg = match endpoint.request_body.as_ref().filter(|_| is_post) {
-            Some(body) if body.is_json() => format!(", json.dumps(body), '{}'", body.content_type),
-            Some(body) => format!(", body, '{}'", body.content_type),
+        let body_arg = match operation.post_body() {
+            Some(body) if body.json => {
+                format!(", json.dumps(body), '{}'", body.declaration.content_type)
+            }
+            Some(body) => format!(", body, '{}'", body.declaration.content_type),
             None => String::new(),
         };
 
         // Series data gets the same helpers however it is fetched.
-        let (wrap_prefix, wrap_suffix) = if endpoint.response_kind.text_is_numeric() {
+        let (wrap_prefix, wrap_suffix) = if operation.response.decode == Decode::NumericText {
             ("int(", ")")
-        } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
+        } else if operation.response.series == Series::One {
             ("_series_data(", ")")
-        } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
+        } else if operation.response.series == Series::Many {
             ("[_series_data(raw) for raw in ", "]")
         } else {
             ("", "")
         };
 
-        if endpoint.query_params.is_empty() {
-            if endpoint.path_params.is_empty() {
+        if operation.query_params.is_empty() {
+            if operation.path_params.is_empty() {
                 writeln!(
                     output,
                     "        return {}self.{}('{}'{}){}",
@@ -204,11 +207,12 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             }
         } else {
             writeln!(output, "        params: List[Tuple[str, Any]] = []").unwrap();
-            for param in &endpoint.query_params {
+            for argument in &operation.query_params {
+                let param = argument.parameter;
                 // Use safe name for Python variable, original name for API query parameter
                 let safe_name = escape_python_keyword(&param.arg);
-                if matches!(param.ty, Ty::List(_)) {
-                    let values = if param.required {
+                if argument.rule.repeated() {
+                    let values = if argument.rule.required() {
                         safe_name.to_string()
                     } else {
                         format!("({safe_name} or [])")
@@ -219,7 +223,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
                         param.name
                     )
                     .unwrap();
-                } else if param.required {
+                } else if argument.rule.required() {
                     writeln!(
                         output,
                         "        params.append(('{}', {}))",
@@ -243,7 +247,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             )
             .unwrap();
 
-            if endpoint.supports_csv {
+            if operation.csv {
                 writeln!(output, "        if format == 'csv':").unwrap();
                 writeln!(output, "            return self.get_text(path)").unwrap();
             }
@@ -259,32 +263,34 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     }
 }
 
-fn build_method_params(endpoint: &Endpoint) -> String {
+fn build_method_params(operation: &Operation<'_>) -> String {
     let mut params = String::new();
     // Path params are always required
-    for param in &endpoint.path_params {
+    for param in &operation.path_params {
         let safe_name = escape_python_keyword(&param.arg);
         let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
     // Required query params must come before optional ones (Python syntax requirement)
-    for param in &endpoint.query_params {
-        if param.required {
+    for argument in &operation.query_params {
+        let param = argument.parameter;
+        if argument.rule.required() {
             let safe_name = escape_python_keyword(&param.arg);
             let py_type = api_type(&param.ty);
             write!(params, ", {}: {}", safe_name, py_type).unwrap();
         }
     }
-    for param in &endpoint.query_params {
-        if !param.required {
+    for argument in &operation.query_params {
+        let param = argument.parameter;
+        if !argument.rule.required() {
             let safe_name = escape_python_keyword(&param.arg);
             let py_type = api_type(&param.ty);
             write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
     }
-    if let Some(body) = &endpoint.request_body {
-        let py_type = api_type(&body.ty);
-        if body.required {
+    if let Some(body) = &operation.body {
+        let py_type = api_type(&body.declaration.ty);
+        if body.declaration.required {
             write!(params, ", body: {}", py_type).unwrap();
         } else {
             write!(params, ", body: Optional[{}] = None", py_type).unwrap();
@@ -294,13 +300,16 @@ fn build_method_params(endpoint: &Endpoint) -> String {
 }
 
 /// The path as an f-string body, each parameter percent-encoded as one segment.
-fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
-    let mut result = path.to_string();
-    for param in path_params {
-        let placeholder = format!("{{{}}}", param.name);
-        let safe_name = escape_python_keyword(&param.arg);
-        let interpolation = format!("{{_segment({})}}", safe_name);
-        result = result.replace(&placeholder, &interpolation);
+fn build_path_template(operation: &Operation<'_>) -> String {
+    let mut result = String::new();
+    for part in &operation.path {
+        match part {
+            PathPart::Literal(text) => result.push_str(text),
+            PathPart::Parameter { parameter, .. } => {
+                let safe_name = escape_python_keyword(&parameter.arg);
+                write!(result, "{{_segment({})}}", safe_name).unwrap();
+            }
+        }
     }
     result
 }

@@ -1,10 +1,17 @@
 use std::fmt::Write;
 
-use crate::{Endpoint, ResponseKind, Ty, VERSION, generators::write_description, to_snake_case};
+use crate::{
+    Endpoint, VERSION,
+    generators::{
+        operation::{Decode, Operation, PathPart},
+        write_description,
+    },
+    to_snake_case,
+};
 
 use super::types::{rust_param_type, rust_type};
 
-pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
+pub(crate) fn generate_main_client(output: &mut String, operations: &[Operation<'_>]) {
     writeln!(
         output,
         r#"/// A method per API endpoint, and the typed series tree.
@@ -72,33 +79,31 @@ impl BitviewClient {{
 
 "#);
 
-    generate_api_methods(output, endpoints);
+    generate_api_methods(output, operations);
 
     writeln!(output, "}}").unwrap();
 }
 
-fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
-    for endpoint in endpoints
-        .iter()
-        .filter(|endpoint| endpoint.should_generate())
-    {
-        generate_method(output, endpoint);
+fn generate_api_methods(output: &mut String, operations: &[Operation<'_>]) {
+    for operation in operations {
+        generate_method(output, operation);
     }
 }
 
-fn generate_method(output: &mut String, endpoint: &Endpoint) {
-    let post = endpoint.method == "POST";
-    let (fetch_method, decode) = fetch(if post { "post" } else { "get" }, endpoint);
+fn generate_method(output: &mut String, operation: &Operation<'_>) {
+    let endpoint = operation.endpoint;
+    let post = operation.post;
+    let (fetch_method, decode) = fetch(if post { "post" } else { "get" }, operation.response.decode);
 
     write_method_doc(output, endpoint);
 
-    let mut params = build_method_params(endpoint);
+    let mut params = build_method_params(operation);
     // A body goes as its declared media type; a JSON one is passed as its JSON text.
-    let body_arg = match (post, endpoint.request_body.as_ref()) {
+    let body_arg = match (post, operation.post_body()) {
         (false, _) => String::new(),
         (true, Some(body)) => {
             params.push_str(", body: &str");
-            format!(", body, \"{}\"", body.content_type)
+            format!(", body, \"{}\"", body.declaration.content_type)
         }
         (true, None) => ", \"\", \"text/plain\"".to_string(),
     };
@@ -106,20 +111,20 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
         output,
         "    pub fn {}(&self{params}) -> Result<{}> {{",
         to_snake_case(&endpoint.operation_id),
-        build_return_type(endpoint)
+        build_return_type(operation)
     )
     .unwrap();
 
-    let (path, path_args) = build_path_template(endpoint);
-    if endpoint.query_params.is_empty() {
+    let (path, path_args) = build_path_template(operation);
+    if operation.query_params.is_empty() {
         writeln!(
             output,
             "        self.base.{fetch_method}(&format!(\"{path}\"{path_args}){body_arg}){decode}"
         )
         .unwrap();
     } else {
-        write_query_assembly(output, endpoint, &path, &path_args);
-        if endpoint.supports_csv && !post {
+        write_query_assembly(output, operation, &path, &path_args);
+        if operation.csv && !post {
             writeln!(
                 output,
                 "        if format == Some(Format::CSV) {{
@@ -143,28 +148,20 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
 
 /// The base client method reading the response, and how its body is decoded: named text is
 /// numeric JSON (`Height`) or a string type (`BlockHash`, `Txid`, `Hex`); opaque text stays `String`.
-fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
-    let (kind, decode) = if endpoint.returns_binary() {
-        ("bytes", "")
-    } else if endpoint.returns_json() || endpoint.response_kind.text_is_numeric() {
-        ("json", "")
-    } else if matches!(
-        endpoint.response_kind,
-        ResponseKind::Text { ty: Ty::Ref(_), .. }
-    ) {
-        ("text", ".and_then(parse_text)")
-    } else {
-        ("text", "")
+fn fetch(verb: &str, decode: Decode) -> (String, &'static str) {
+    let (kind, decode) = match decode {
+        Decode::Binary => ("bytes", ""),
+        Decode::Json | Decode::NumericText => ("json", ""),
+        Decode::NamedText => ("text", ".and_then(parse_text)"),
+        Decode::Text => ("text", ""),
     };
     (format!("{verb}_{kind}"), decode)
 }
 
-fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = endpoint
-        .response_kind
-        .ty()
+fn build_return_type(operation: &Operation<'_>) -> String {
+    let base = operation.response.ty
         .map_or_else(|| "Vec<u8>".to_owned(), rust_type);
-    if endpoint.supports_csv {
+    if operation.csv {
         format!("FormatResponse<{}>", base)
     } else {
         base
@@ -191,26 +188,23 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
     .unwrap();
 }
 
-fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, path_args: &str) {
+fn write_query_assembly(output: &mut String, operation: &Operation<'_>, path: &str, path_args: &str) {
     writeln!(output, "        let mut query = Vec::new();").unwrap();
-    for param in &endpoint.query_params {
+    for argument in &operation.query_params {
+        let param = argument.parameter;
         let ident = &param.arg;
         let name = &param.name;
-        let (list, item) = match &param.ty {
-            Ty::List(item) => (true, &**item),
-            ty => (false, ty),
-        };
         // `Index` displays its variant (`TxIndex`); the server parses its name (`tx_index`).
         let value = |v: &str| {
-            if item.is_ref("Index") {
+            if argument.index_name {
                 format!("{v}.name()")
             } else {
                 v.to_string()
             }
         };
-        if list {
+        if argument.rule.repeated() {
             let v = value("v");
-            let values = if param.required {
+            let values = if argument.rule.required() {
                 ident.to_string()
             } else {
                 format!("{ident}.into_iter().flatten()")
@@ -220,7 +214,7 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
                 "        for v in {values} {{ query.push(query_pair(\"{name}\", {v})); }}"
             )
             .unwrap();
-        } else if param.required {
+        } else if argument.rule.required() {
             let v = value(ident);
             writeln!(output, "        query.push(query_pair(\"{name}\", {v}));").unwrap();
         } else {
@@ -241,16 +235,17 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
     .unwrap();
 }
 
-fn build_method_params(endpoint: &Endpoint) -> String {
+fn build_method_params(operation: &Operation<'_>) -> String {
     let mut params = String::new();
-    for param in &endpoint.path_params {
+    for param in &operation.path_params {
         let rust_type = rust_param_type(&param.ty);
         write!(params, ", {}: {}", param.arg, rust_type).unwrap();
     }
-    for param in &endpoint.query_params {
+    for argument in &operation.query_params {
+        let param = argument.parameter;
         let rust_type = rust_param_type(&param.ty);
         let name = &param.arg;
-        if param.required {
+        if argument.rule.required() {
             write!(params, ", {}: {}", name, rust_type).unwrap();
         } else {
             write!(params, ", {}: Option<{}>", name, rust_type).unwrap();
@@ -261,28 +256,22 @@ fn build_method_params(endpoint: &Endpoint) -> String {
 
 /// The path as a format template (`{}` per path parameter) and its format args, in path order:
 /// `Index` by name, every other value percent-encoded as one segment.
-fn build_path_template(endpoint: &Endpoint) -> (String, String) {
+fn build_path_template(operation: &Operation<'_>) -> (String, String) {
     let mut template = String::new();
     let mut args = String::new();
-    let mut rest = endpoint.path.as_str();
-    while let Some(open) = rest.find('{') {
-        let close = open + rest[open..].find('}').expect("unclosed path parameter");
-        let name = &rest[open + 1..close];
-        let param = endpoint
-            .path_params
-            .iter()
-            .find(|param| param.name == name)
-            .expect("undeclared path parameter");
-        let ident = &param.arg;
-        if param.ty.is_ref("Index") {
-            write!(args, ", {ident}.name()").unwrap();
-        } else {
-            write!(args, ", path_segment({ident})").unwrap();
+    for part in &operation.path {
+        match part {
+            PathPart::Literal(text) => template.push_str(text),
+            PathPart::Parameter { parameter, index_name } => {
+                let ident = &parameter.arg;
+                if *index_name {
+                    write!(args, ", {ident}.name()").unwrap();
+                } else {
+                    write!(args, ", path_segment({ident})").unwrap();
+                }
+                template.push_str("{}");
+            }
         }
-        template.push_str(&rest[..open]);
-        template.push_str("{}");
-        rest = &rest[close + 1..];
     }
-    template.push_str(rest);
     (template, args)
 }

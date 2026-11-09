@@ -2,8 +2,8 @@ use std::{collections::BTreeSet, fmt::Write, fs, io, path::Path};
 
 use serde_json::{Value, from_str, json, to_string_pretty};
 
-use super::write_if_changed;
-use crate::{Endpoint, IndexSetPattern, TypeSchemas, VERSION, model::Model};
+use super::{operation::Operation, write_if_changed};
+use crate::{IndexSetPattern, TypeSchemas, VERSION, model::Model};
 
 pub(crate) mod api;
 pub(crate) mod client;
@@ -16,7 +16,7 @@ pub(crate) fn generate_javascript_client(
     shape_names: &[String],
     accessors: &[IndexSetPattern],
     undefined_types: &BTreeSet<String>,
-    endpoints: &[Endpoint],
+    operations: &[Operation<'_>],
     schemas: &TypeSchemas,
     output_path: &Path,
 ) -> io::Result<()> {
@@ -29,7 +29,7 @@ pub(crate) fn generate_javascript_client(
     client::generate_base_client(&mut output, schemas);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
-    tree::generate_main_client(&mut output, endpoints, schemas);
+    tree::generate_main_client(&mut output, operations, schemas);
 
     write_if_changed(output_path, &output)?;
 

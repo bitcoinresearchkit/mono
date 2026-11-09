@@ -13,15 +13,15 @@ use std::{
 
 use tempfile::Builder;
 
-use super::write_if_changed;
-use crate::{Endpoint, IndexSetPattern, ValueTypes, model::Model};
+use super::{operation::Operation, write_if_changed};
+use crate::{IndexSetPattern, ValueTypes, model::Model};
 
 pub(crate) fn generate_rust_client(
     model: &Model,
     shape_names: &[String],
     accessors: &[IndexSetPattern],
     value_types: &ValueTypes,
-    endpoints: &[Endpoint],
+    operations: &[Operation<'_>],
     output_path: &Path,
 ) -> io::Result<()> {
     let mut output = String::new();
@@ -35,7 +35,7 @@ pub(crate) fn generate_rust_client(
     client::generate_imports(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, value_types);
-    api::generate_main_client(&mut output, endpoints);
+    api::generate_main_client(&mut output, operations);
 
     let output = format_rust(output)?;
     write_if_changed(output_path, &output)

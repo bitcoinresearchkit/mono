@@ -5,15 +5,15 @@ pub(crate) mod types;
 
 use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 
-use super::write_if_changed;
-use crate::{Endpoint, IndexSetPattern, TypeSchemas, model::Model};
+use super::{operation::Operation, write_if_changed};
+use crate::{IndexSetPattern, TypeSchemas, model::Model};
 
 pub(crate) fn generate_python_client(
     model: &Model,
     shape_names: &[String],
     accessors: &[IndexSetPattern],
     undefined_types: &BTreeSet<String>,
-    endpoints: &[Endpoint],
+    operations: &[Operation<'_>],
     schemas: &TypeSchemas,
     output_path: &Path,
 ) -> io::Result<()> {
@@ -63,7 +63,7 @@ pub(crate) fn generate_python_client(
     client::generate_runtime(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
-    api::generate_main_client(&mut output, endpoints);
+    api::generate_main_client(&mut output, operations);
 
     output.truncate(output.trim_end().len());
     output.push('\n');

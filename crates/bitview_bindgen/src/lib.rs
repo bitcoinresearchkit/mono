@@ -186,6 +186,7 @@ pub fn generate_clients(
 ) -> io::Result<()> {
     let (spec, mut schemas) = parse_openapi_json(openapi_json)?;
     let endpoints = extract_endpoints(&spec, &schemas)?;
+    let operations = generators::operation::Operation::lower_all(&endpoints);
     collect_leaf_type_schemas(catalog, &mut schemas);
     let schema_values: Vec<_> = schemas.values().cloned().collect();
     for schema in &schema_values {
@@ -212,7 +213,7 @@ pub fn generate_clients(
             &shape_names,
             &accessors,
             &value_types,
-            &endpoints,
+            &operations,
             rust_path,
         )?;
     }
@@ -227,7 +228,7 @@ pub fn generate_clients(
             &shape_names,
             &accessors,
             &value_types.undefined,
-            &endpoints,
+            &operations,
             &schemas,
             js_path,
         )?;
@@ -239,7 +240,7 @@ pub fn generate_clients(
             &shape_names,
             &accessors,
             &value_types.undefined,
-            &endpoints,
+            &operations,
             &schemas,
             python_path,
         )?;

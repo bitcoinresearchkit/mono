@@ -79,7 +79,8 @@ fn javascript_methods_forward_their_keep_rules() {
     let endpoints = extract_endpoints(&spec, &schemas).unwrap();
     let mut output = String::new();
     generate_base_client(&mut output, &schemas);
-    generate_api_methods(&mut output, &endpoints, &schemas);
+    let operations = crate::generators::operation::Operation::lower_all(&endpoints);
+    generate_api_methods(&mut output, &operations, &schemas);
     let method = |name: &str| {
         let start = output.find(&format!("async {name}(")).expect(name);
         output[start..].split("\n  }\n").next().unwrap().to_owned()

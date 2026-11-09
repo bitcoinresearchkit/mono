@@ -4,7 +4,8 @@ use std::{collections::BTreeSet, fmt::Write};
 
 use super::{api::generate_api_methods, client::generate_constants};
 use crate::{
-    Endpoint, IndexSetPattern, TypeSchemas, accessor_of, client_value_type, js_field_name,
+    IndexSetPattern, TypeSchemas, accessor_of, client_value_type, js_field_name,
+    generators::operation::Operation,
     model::{ChildKind, Model, TyExpr, param_name},
 };
 
@@ -184,7 +185,7 @@ impl Tree<'_> {
 
 pub(crate) fn generate_main_client(
     output: &mut String,
-    endpoints: &[Endpoint],
+    operations: &[Operation<'_>],
     schemas: &TypeSchemas,
 ) {
     writeln!(output, "/**").unwrap();
@@ -260,7 +261,7 @@ pub(crate) fn generate_main_client(
     .unwrap();
     writeln!(output, "  }}\n").unwrap();
 
-    generate_api_methods(output, endpoints, schemas);
+    generate_api_methods(output, operations, schemas);
 
     writeln!(output, "}}\n").unwrap();
 
