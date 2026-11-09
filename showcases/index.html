@@ -666,7 +666,7 @@
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: #fff;
+          background: #1a1206;
         }
       }
 
@@ -3809,7 +3809,7 @@
           const line = down ? Math.min(...beyond.map(([, r]) => r.top)) : Math.max(...beyond.map(([, r]) => r.bottom));
           target = /** @type {HTMLElement | undefined} */ (beyond.filter(([, r]) => Math.abs((down ? r.top : r.bottom) - line) < 8).sort(([, a], [, b]) => Math.abs(a.left - at.left) - Math.abs(b.left - at.left))[0]?.[0]);
         }
-        if (!target) return;
+        if (!target || target.closest("li")?.hidden) return;
         event.preventDefault();
         target.focus({ preventScroll: true });
         if (target.closest("main")) target.scrollIntoView({ block: "center", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
