@@ -654,8 +654,8 @@
         gap: 6px;
         border-radius: 4px;
         padding: 2px 7px;
-        color: #fff;
-        background: var(--red);
+        color: #1a1206;
+        background: var(--brand);
         font-size: 11px;
         font-weight: 750;
         letter-spacing: 0.06em;
@@ -668,6 +668,18 @@
           border-radius: 50%;
           background: #fff;
         }
+      }
+
+      /* (A live channel's kind says so.) */
+      .kind[data-live]::after {
+        content: "Live";
+        margin-left: 10px;
+        border-radius: 3px;
+        padding: 1px 6px;
+        color: #1a1206;
+        background: var(--brand);
+        font-size: 11px;
+        letter-spacing: 0.06em;
       }
 
       .blurb {
@@ -800,8 +812,18 @@
           white-space: nowrap;
         }
 
+        /* (A phone's: its label and figure on one line, under the words.) */
         @media (max-width: 719px) {
-          display: none;
+          flex-direction: row;
+          align-items: baseline;
+          gap: 8px;
+          margin-top: 10px;
+
+          .reading-value {
+            font-size: 17px;
+            letter-spacing: -0.02em;
+            font-weight: 600;
+          }
         }
 
         @media (min-width: 720px) {
@@ -1326,7 +1348,7 @@
         }
 
         .moved {
-          font: 600 12px var(--mono);
+          font: 600 13px var(--mono);
           font-variant-numeric: tabular-nums;
 
 
@@ -1563,6 +1585,15 @@
       .bone {
         pointer-events: none;
         background: var(--card);
+      }
+
+      @media (prefers-color-scheme: light) {
+        .logo:not(.initials) {
+          border-radius: 6px;
+          padding: 2px;
+          background-color: #1a1815;
+          background-origin: content-box;
+        }
       }
 
       .logo {
@@ -1805,9 +1836,18 @@
         padding-top: 8px;
         padding-bottom: 12px;
         scroll-snap-type: none;
+        overflow-x: hidden;
 
         > li {
-          flex: 0 0 max(156px, var(--m, 10) * var(--minute));
+          flex: 1 0 max(172px, var(--m, 10) * var(--minute));
+
+          &:last-child {
+            flex-basis: max(216px, var(--m, 10) * var(--minute));
+          }
+
+          &[hidden] {
+            display: none;
+          }
         }
 
         .p {
@@ -2695,7 +2735,6 @@
           <div>
             <p class="kind"><span id="bb-kind">Charts</span></p>
             <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
-            <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
           </div>
         </div>
@@ -2878,9 +2917,9 @@
       function fill(/** @type {Element} */ words, /** @type {Title} */ t) {
         const title = /** @type {HTMLElement} */ (words.querySelector(".title"));
         /** @type {Element} */ (words.querySelector(".kind span")).textContent = t.kind ?? "";
+        words.querySelector(".kind")?.toggleAttribute("data-live", !!t.live);
         title.textContent = t.name;
         title.dataset.face = t.id;
-        /** @type {Element} */ (words.querySelector(".meta")).innerHTML = t.live ? `<span class="live">Live</span>` : "";
         /** @type {Element} */ (words.querySelector(".blurb")).textContent = t.line;
       }
       // (The words' room: every title's words, hidden, where the shown ones are.)
@@ -3336,7 +3375,6 @@
       guide.append(...bones(9, () => el("span", { className: "tile bone p" })));
       /** Each block's programme, by its hash, while it's shown. @type {Map<string, HTMLElement>} */
       const blockTiles = new Map();
-      const clock = new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
       /** How long a programme ran, in minutes, as the guide draws it (a very long one cut short). */
       const ran = (/** @type {number} */ seconds) => Math.min(60, Math.max(1, seconds / 60));
       /** The same in words: the guide's widths, said. */
@@ -3345,7 +3383,7 @@
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
         const fee = feeRate(b.extras?.medianFee ?? 0);
         const tile = el("a", { className: "tile p", href: `/explorer/block/${b.height}`, ariaLabel: `Block ${grouped(b.height)}, mined by ${pool.name}` },
-          el("div", {}, el("div", { className: "t" }, clock.format(b.timestamp * 1000), el("span", { className: "dur" }, ` · ${took(b.timestamp - before)}`)), el("div", { className: "h" }, grouped(b.height))),
+          el("div", {}, el("div", { className: "t" }, took(b.timestamp - before)), el("div", { className: "h" }, grouped(b.height))),
           el("div", {}, el("div", { className: "by" }, logo(pool.slug, pool.name), el("span", {}, pool.name)), el("div", { className: "m" }, `${grouped(b.tx_count)} txs · ${fee} sat/vB`)));
         const li = el("li", {}, tile);
         li.style.setProperty("--m", String(ran(b.timestamp - before)));
@@ -3393,12 +3431,23 @@
         forming.style.setProperty("--m", String(ran(seconds)));
         formingWhen.textContent = seconds < 60 ? "under a minute" : `${Math.floor(seconds / 60)} min so far`;
       }
+      /** As many whole programmes as the row has room for, newest last, the rest hidden: nothing cut at either edge; a wider screen shows more. */
+      function fitGuide() {
+        const style = getComputedStyle(guide), pad = parseFloat(style.paddingLeft), room = guide.clientWidth - 2 * pad, gap = parseFloat(style.columnGap) || 0, minute = Math.min(22, Math.max(12, innerWidth * 0.0125));
+        let used = 0;
+        const shown = /** @type {HTMLElement[]} */ ([...guide.children]).reverse();
+        for (const li of shown) {
+          const least = li === forming ? 216 : 172, wide = Math.max(least, Number(li.style.getPropertyValue("--m") || 10) * minute);
+          li.hidden = used + wide > room;
+          if (!li.hidden) used += wide + gap;
+        }
+      }
+      new ResizeObserver(fitGuide).observe(guide);
       function drawGuide(/** @type {any[]} */ list) {
         if (!list.length) return guide.replaceChildren(el("li", { className: "none" }, "No blocks yet. They appear here as this node reads them."));
         // (A new block at the top of the list, once the first answer's in: said on the screen.)
         if (guideFilled && list[0]?.id !== blockTop && list[0]) announceBlock(list[0]);
         blockTop = list[0]?.id ?? "";
-        const pinned = !guideFilled || guide.scrollLeft + guide.clientWidth >= guide.scrollWidth - 8;
         // (Oldest first; the oldest has nothing before it, so it's the line's start and left out.)
         const ordered = list.slice(0, 14).reverse();
         const keep = new Set(ordered.map((b) => b.id));
@@ -3413,11 +3462,11 @@
           return li;
         });
         reconcile(guide, [...items, forming]);
+        fitGuide();
         lastAt = list[0].timestamp;
         formingHeight.textContent = grouped(list[0].height + 1);
         timeForming();
         guideFilled = true;
-        if (pinned) guide.scrollLeft = guide.scrollWidth;
       }
 
       const pools = row("pools-title");
@@ -3572,7 +3621,7 @@
         charts.append(el("li", {}, tile));
         return { c, canvas, value, moved };
       });
-      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-372`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => { lastDay.set(id, replies[i].data.findLast((/** @type {any} */ v) => v != null) ?? null); lastYear.set(id, weekly(replies[i].data)); }))]).then(() => {
+      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-372`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => { lastDay.set(id, id === "price" && data.price ? data.price.USD : replies[i].data.findLast((/** @type {any} */ v) => v != null) ?? null); lastYear.set(id, weekly(replies[i].data)); }))]).then(() => {
         for (const { c, canvas, value, moved } of chartTiles) {
           const list = lastYear.get(c.series[0]) ?? [], now = lastDay.get(c.series[0]) ?? null;
           const weekNow = list.findLast((v) => v != null) ?? null, then = list.find((v) => v != null) ?? null;
