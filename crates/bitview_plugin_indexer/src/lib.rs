@@ -405,7 +405,7 @@ impl Indexer {
     /// Where dependents recompute from in this update: the indexer's resume point, lowered to
     /// the rollback floor, fixed from the index run until the next one. Publication only guards
     /// readers: a plugin lowering it (to rewrite its own rows) never moves the others' start.
-    /// The composition sets it on the dependents' context; dependents read [`UpdateContext::start`].
+    /// The composition sets it on the dependents' context; dependents read [`bitview_plugin::DependentContext::start`].
     pub fn compute_start(&self) -> Lengths {
         self.compute_start
     }
@@ -771,6 +771,7 @@ where
 
 impl ComputePlugin for Indexer {
     type Dependencies<'a> = ();
+    type Context<'a> = UpdateContext<'a>;
 
     fn database(&self) -> Option<&Database> {
         Some(self.vecs.db())

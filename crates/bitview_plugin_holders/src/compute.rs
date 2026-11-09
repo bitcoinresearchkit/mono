@@ -1,7 +1,7 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::{Inputs, save_point, write_chunks};
 use bitview_distribution::state::cost_basis::{DensityBand, PRICE_INDEX_VERSION, age_index};
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_traversable::Traversable;
 use bitview_vecs::Density;
 use brk_error::Result;
@@ -17,7 +17,7 @@ use crate::{
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: DependentContext<'_>) -> Result<()> {
         let live = self.live.take();
         let exit = context.exit();
         let sources = Sources::new(deps.age);
@@ -31,7 +31,7 @@ impl ComputePlugin for Vecs {
         );
         inputs.len = inputs.len.min(deps.history.len());
         let version = inputs.version;
-        let range = inputs.prepare(self.state_vecs_mut(), usize::from(deps.from), exit)?;
+        let range = inputs.prepare(self.state_vecs_mut(), usize::from(context.start().height), exit)?;
         let (start, end) = (range.start, range.end);
         if end == 0 {
             return Ok(());

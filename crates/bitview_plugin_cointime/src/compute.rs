@@ -1,5 +1,5 @@
 use bitview_distribution::urpd_metrics::compute_cost_basis;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_primitives::Lengths;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -110,7 +110,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let starting_lengths = context.start();
         self.compute_primary(dependencies, starting_lengths, context.exit())?;

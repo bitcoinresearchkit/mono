@@ -18,7 +18,7 @@ pub use plugin_data::PluginData;
 pub use plugin_id::PluginId;
 pub use plugin_set::{BootstrapAction, ComputePluginSet, PluginSet};
 pub use storage::PluginStorage;
-pub use update_context::UpdateContext;
+pub use update_context::{DependentContext, UpdateContext};
 
 /// The [`ComputePlugin`] items every database-backed plugin repeats: its `Dependencies` type and
 /// the database its computation syncs and compacts (`self.$db`).
@@ -26,6 +26,7 @@ pub use update_context::UpdateContext;
 macro_rules! compute_items {
     ($dependencies:ident, $db:ident) => {
         type Dependencies<'a> = $dependencies<'a>;
+        type Context<'a> = $crate::DependentContext<'a>;
 
         fn database(&self) -> Option<&::vecdb::Database> {
             Some(&self.$db)

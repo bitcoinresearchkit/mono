@@ -8,6 +8,10 @@ pub trait ComputePlugin: Plugin {
     /// Read-only borrowed inputs required for one complete computation.
     type Dependencies<'a>;
 
+    /// The control state it computes under: [`crate::DependentContext`] for every dependent,
+    /// [`UpdateContext`] for the indexer, which runs before the recompute point exists.
+    type Context<'a>: Copy + Into<UpdateContext<'a>>;
+
     /// The database [`Self::compute`] syncs before and compacts after a successful
     /// computation, or `None` when the plugin manages its own storage lifecycle.
     fn database(&self) -> Option<&Database>;
@@ -19,7 +23,7 @@ pub trait ComputePlugin: Plugin {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: Self::Context<'_>,
     ) -> Result<()>;
 
     /// Runs one computation inside the storage lifecycle: waits for the previous
@@ -31,14 +35,15 @@ pub trait ComputePlugin: Plugin {
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: Self::Context<'_>,
     ) -> Result<()> {
         if let Some(db) = self.database() {
             db.sync_bg_tasks()?;
         }
         self.compute_state(dependencies, context)?;
         if let Some(db) = self.database() {
-            context.compact_database(db);
+            let update: UpdateContext<'_> = context.into();
+            update.compact_database(db);
         }
         Ok(())
     }

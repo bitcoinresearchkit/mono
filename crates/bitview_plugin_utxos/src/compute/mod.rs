@@ -4,7 +4,7 @@ pub use block_loop::process_chunk;
 
 use bitview_compute::undo_chunks;
 use bitview_distribution::{readers::ColumnReaders, replay};
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use brk_error::Result;
 
 use crate::{Dependencies, Vecs};
@@ -12,7 +12,7 @@ use crate::{Dependencies, Vecs};
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: DependentContext<'_>) -> Result<()> {
         let start = context.start().height;
         let version = deps.version();
         let Dependencies {

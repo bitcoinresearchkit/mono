@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use bitview_compute::write_locked;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{Height, TweakX, Version};
@@ -22,7 +22,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let start = context.start();
         let Dependencies { indexer } = dependencies;

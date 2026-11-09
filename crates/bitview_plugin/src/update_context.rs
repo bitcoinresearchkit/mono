@@ -12,31 +12,43 @@ const COMPACTION_DELAY: Duration = Duration::from_secs(5);
 #[derive(Clone, Copy)]
 pub struct UpdateContext<'a> {
     exit: &'a Exit,
-    start: Option<Lengths>,
+}
+
+/// What a dependent plugin computes under: the update's control state and its recompute point,
+/// fixed once the indexer's pass has run.
+#[derive(Clone, Copy)]
+pub struct DependentContext<'a> {
+    update: UpdateContext<'a>,
+    start: Lengths,
+}
+
+impl<'a> DependentContext<'a> {
+    pub const fn start(self) -> Lengths {
+        self.start
+    }
+
+    pub const fn exit(self) -> &'a Exit {
+        self.update.exit
+    }
+}
+
+impl<'a> From<DependentContext<'a>> for UpdateContext<'a> {
+    fn from(context: DependentContext<'a>) -> Self {
+        context.update
+    }
 }
 
 impl<'a> UpdateContext<'a> {
     pub const fn new(exit: &'a Exit) -> Self {
-        Self {
-            exit,
-            start: None,
-        }
+        Self { exit }
     }
 
-    /// Sets the fixed recompute point for the dependents after the indexer's pass.
-    pub const fn with_start(self, start: Lengths) -> Self {
-        Self {
-            start: Some(start),
-            ..self
+    /// The dependents' context, recomputing from `start`.
+    pub const fn dependents(self, start: Lengths) -> DependentContext<'a> {
+        DependentContext {
+            update: self,
+            start,
         }
-    }
-
-    /// The fixed recompute point for this update's dependents.
-    ///
-    /// Panics when the composition forgot to set it after the indexer's pass: a pipeline bug.
-    pub fn start(self) -> Lengths {
-        self.start
-            .expect("Pipeline bug: dependent computed without a recompute start")
     }
 
     pub const fn exit(self) -> &'a Exit {

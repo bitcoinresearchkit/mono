@@ -1,6 +1,6 @@
 use std::{borrow::Cow, time::Instant};
 
-use bitview_plugin::{ComputePlugin, PluginId, UpdateContext};
+use bitview_plugin::{ComputePlugin, PluginId};
 use brk_error::Result;
 use tracing::info;
 
@@ -58,7 +58,7 @@ pub fn timed_import<T>(plugin: PluginId, import: impl FnOnce() -> Result<T>) -> 
 pub fn timed_compute<P: ComputePlugin>(
     plugin: &mut P,
     dependencies: P::Dependencies<'_>,
-    context: UpdateContext<'_>,
+    context: P::Context<'_>,
 ) -> Result<()> {
     timed(Phase::Compute, plugin.id(), || {
         plugin.compute(dependencies, context)

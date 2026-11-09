@@ -1,4 +1,4 @@
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_primitives::Count;
 use brk_error::Result;
 use vecdb::{ComputeVec, ReadableVec, VecIndex};
@@ -13,7 +13,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let exit = context.exit();
         // Seeded from the stored previous value on the first row, once the vec is validated
@@ -21,7 +21,7 @@ impl ComputePlugin for Vecs {
         let mut current = None;
 
         self.streak.compute_transform(
-            dependencies.from,
+            context.start().height,
             dependencies.block_weights,
             |(height, weight, streak)| {
                 let current =

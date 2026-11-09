@@ -1,5 +1,5 @@
 use bitview_compute::prepare_computed;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_primitives::Count;
 use brk_error::Result;
 use brk_types::{Sats, Version};
@@ -13,12 +13,11 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let Dependencies {
             spends,
             creations,
-            from,
             end,
         } = dependencies;
         let end = end.min(creations.end()).min(spends.end());
@@ -31,7 +30,7 @@ impl ComputePlugin for Vecs {
                 &mut self.count.height,
             ],
             version,
-            usize::from(from).min(end),
+            usize::from(context.start().height).min(end),
             context.exit(),
         )?;
         let _lock = context.exit().lock();

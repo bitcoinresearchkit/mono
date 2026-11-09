@@ -44,14 +44,15 @@ To add a plugin:
    the plugin's database with `compute_items!(Dependencies, db)` and compute in
    `compute_state`; the
    provided `compute` syncs that database before and compacts it after a
-   successful computation. Use `UpdateContext` only for shared update control
-   such as `Exit`.
+   successful computation. Its `DependentContext` carries shared update control
+   such as `Exit` and the update's recompute point (`start`), set once the
+   indexer's pass has run (`UpdateContext::dependents`).
 4. Put the plugin in a derived `PluginSet`, call it in the composition's typed
    compute schedule, and expose a read-only accessor for consumers that need
    it. Delegate `ComputePluginSet::commit` to the default composition so the
    built-in and custom stages publish together.
 
-`ImportContext` and `UpdateContext` are copyable borrowed handles. They do not
+`ImportContext`, `UpdateContext` and `DependentContext` are copyable borrowed handles. They do not
 contain plugin dependencies, so adding a metric cannot silently change its
 inputs.
 

@@ -1,4 +1,4 @@
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use brk_error::Result;
 use brk_types::SigOps;
 use rayon::join;
@@ -12,7 +12,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let starting_height = context.start().height;
         let Dependencies { indexer, mappings } = dependencies;

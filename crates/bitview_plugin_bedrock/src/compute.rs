@@ -5,7 +5,7 @@ use std::{
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_traversable::Traversable;
 use bitview_urpd::{COMPUTE_VERSION as URPD_COMPUTE_VERSION, StoredReplayInputs};
 use brk_error::Result;
@@ -21,7 +21,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let start = context.start();
         let Dependencies {
@@ -186,7 +186,7 @@ impl Vecs {
         &mut self,
         max_from: usize,
         urpd: StoredReplayInputs<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let floors = Inputs::new(
             Version::ZERO,

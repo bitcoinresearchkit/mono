@@ -1,7 +1,7 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
 use bitview_compute::{Inputs, save_stamped, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -30,11 +30,10 @@ fn classify(price: Cents, previous: Cents) -> EntryPrice {
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: DependentContext<'_>) -> Result<()> {
         let live = self.live.take();
         let Dependencies {
             history,
-            from,
             prices,
             timestamps,
             capitalized_price,
@@ -51,7 +50,7 @@ impl ComputePlugin for Vecs {
         let version = inputs.version;
         let range = inputs.prepare(
             self.cohorts.iter_any_stored_mut().collect::<Vec<_>>(),
-            usize::from(from),
+            usize::from(context.start().height),
             context.exit(),
         )?;
         let (start, end) = (range.start, range.end);

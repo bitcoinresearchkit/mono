@@ -8,7 +8,7 @@ pub use price_range_max::PriceRangeMax;
 
 use bitview_compute::{Inputs, save_point, write_chunks};
 use bitview_distribution::state::cost_basis::age_index;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -26,13 +26,12 @@ const OUTPUT_CAPACITY: usize = 2_048;
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: DependentContext<'_>) -> Result<()> {
         // A version reset must invalidate the resident state even if validation fails.
         let live = self.live.take();
         let exit = context.exit();
         let Dependencies {
             history,
-            from,
             mappings,
             price: prices,
         } = deps;
@@ -44,7 +43,7 @@ impl ComputePlugin for Vecs {
         );
         inputs.len = inputs.len.min(history.len());
         let version = inputs.version;
-        let range = inputs.prepare(self.outputs_mut(), usize::from(from), exit)?;
+        let range = inputs.prepare(self.outputs_mut(), usize::from(context.start().height), exit)?;
         let (start, end) = (range.start, range.end);
         if end == 0 {
             return Ok(());

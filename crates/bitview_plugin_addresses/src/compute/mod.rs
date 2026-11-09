@@ -7,7 +7,7 @@ pub(crate) use write::UnpublishedState;
 
 use bitview_compute::{WRITE_INTERVAL, undo_tail_start};
 use bitview_distribution::replay;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use brk_error::Result;
 
 use crate::{Dependencies, Vecs};
@@ -15,7 +15,7 @@ use crate::{Dependencies, Vecs};
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
 
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+    fn compute_state(&mut self, deps: Dependencies<'_>, context: DependentContext<'_>) -> Result<()> {
         let start = context.start().height;
         self.discard_unpublished_state();
         let version = deps.version();

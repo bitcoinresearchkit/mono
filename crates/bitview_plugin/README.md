@@ -20,7 +20,9 @@ syncs the database returned by `database()` before computing and, when it has
 space to reclaim, compacts it after success (`None` opts out for plugins that
 manage their own storage); `compute_items!(Dependencies, db)` declares both the
 `Dependencies` type and that database. Its copyable
-`UpdateContext` provides shared update control such as cancellation. Plugin
+`DependentContext` provides shared update control such as cancellation and the
+update's recompute point, set by `UpdateContext::dependents` once the indexer's
+pass has run. Plugin
 dependencies stay explicit and typed instead of being hidden in either
 context.
 

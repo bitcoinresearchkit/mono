@@ -90,9 +90,8 @@ impl DefaultPlugins {
             bedrock,
             rarity_meter,
         } = self;
-        let context = context.with_start(indexer.compute_start());
+        let context = context.dependents(indexer.compute_start());
         let indexer = indexer.as_ref();
-        let from = indexer.compute_start().height;
 
         // Price reads only the indexer.
         let (mappings_result, price_result) = join(
@@ -261,7 +260,6 @@ impl DefaultPlugins {
                 UtxoSetDependencies {
                     spends: &inputs.spends,
                     creations,
-                    from,
                     end: creations.end(),
                 },
                 context,
@@ -282,7 +280,6 @@ impl DefaultPlugins {
                         &mut **profitability,
                         ProfitabilityDependencies {
                             history,
-                            from,
                             prices,
                             timestamps,
                         },
@@ -293,7 +290,6 @@ impl DefaultPlugins {
                     &mut **age,
                     AgeDependencies {
                         history,
-                        from,
                         mappings,
                         price,
                     },
@@ -319,7 +315,6 @@ impl DefaultPlugins {
                     &mut **holders,
                     HoldersDependencies {
                         history,
-                        from,
                         age,
                         mappings,
                         price,
@@ -335,7 +330,6 @@ impl DefaultPlugins {
                         entry,
                         EntryDependencies {
                             history,
-                            from,
                             prices,
                             timestamps,
                             capitalized_price: &capitalized_price,

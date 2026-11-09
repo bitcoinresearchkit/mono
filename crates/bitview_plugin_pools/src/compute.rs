@@ -1,5 +1,5 @@
 use bitview_compute::{prepare_computed, write_chunks};
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
@@ -19,7 +19,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let start = context.start().height;
         let Dependencies {

@@ -35,10 +35,9 @@ impl Plugins {
 
     fn compute_near_full_blocks(&mut self, context: UpdateContext<'_>) -> Result<()> {
         let indexer = self.defaults.indexer();
-        let context = context.with_start(indexer.compute_start());
+        let context = context.dependents(indexer.compute_start());
         self.near_full_blocks.compute(
             Dependencies {
-                from: context.start().height,
                 block_weights: &indexer.vecs().blocks.weight,
             },
             context,

@@ -1,5 +1,5 @@
 use bitview_compute::{prepare_computed, write_chunks, write_locked};
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin::{ComputePlugin, DependentContext, compute_items};
 use brk_error::Result;
 use vecdb::{AnyVec, VecIndex};
 
@@ -11,7 +11,7 @@ impl ComputePlugin for Vecs {
     fn compute_state(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
+        context: DependentContext<'_>,
     ) -> Result<()> {
         let starting_lengths = context.start();
         let Dependencies {
