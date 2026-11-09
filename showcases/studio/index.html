@@ -13401,7 +13401,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
        *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
-       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], made?: string, drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
        * @typedef {"trend" | "path" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
        *   opacity?: number, start?: End, end?: End, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
@@ -13870,6 +13870,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A preset's, which one it is: the library's too.)
         if (typeof stored.preset === "string" && stored.preset.length <= 2000) doc.preset = stored.preset;
         if (typeof stored.base === "string" && /^[a-z0-9]{1,24}$/.test(stored.base)) doc.base = stored.base;
+        if (typeof stored.made === "string") doc.made = stored.made;
         if (stored.blank === true) doc.blank = true;
         doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
         return doc;
@@ -26449,10 +26450,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (A preset's step, as its address says: where it was when left, whatever it's shown since.)
         const at = doc.preset === undefined ? -1 : presetIndex(doc);
-        if (at >= 0 && !presetEdited(doc) && !(doc === chart && !home && `${location.pathname}${location.hash}` === `${BASE}${presetLink(doc)}`)) {
+        if (at >= 0 && !presetEdited(doc) && !(doc === chart && `${location.pathname}${location.hash}` === `${BASE}${presetLink(doc)}`)) {
           takeLinkLook(doc, linkLookOf(new URLSearchParams(location.hash.slice(1))), presetLook(at));
+          // (Its chunks at hand are for the view it's left: those for this one fetched anew.)
+          forgetSpans(doc.id);
           linkWindow = doc.id;
-          if (doc === chart) return void leaveHome(() => { drawnChart = ""; refresh(true, true); });
+          if (doc === chart) drawnChart = "";
+          if (doc === chart && !home) return void (refresh(true, true), showAddress());
         }
         go(doc, false);
         showAddress();
@@ -29211,7 +29215,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (link.href !== canonical) link.href = canonical;
         // (Where the page's Studio's own: a link still being read, a picture's, or broken, left as it is till it's dealt with.)
         // (An address waiting for the presets to be read, kept.)
-        const bar = ROUTED && !pendingRoute && !/^#(?:.*&)?(?:chart|image|c)=/.test(location.hash) ? (home || (chart.preset === undefined && !asMade.has(chart)) ? address : presets ? presetLink(chart) ?? "/" : null) : null;
+        const bar = ROUTED && !pendingRoute && !/^#(?:.*&)?(?:chart|image|c)=/.test(location.hash) ? (home || (chart.preset === undefined && !isMade(chart)) ? address : presets ? presetLink(chart) ?? "/" : null) : null;
         if (bar === null) return;
         const [where, look = ""] = bar.split("#"), url = `${BASE}${where}${location.search}${look && `#${look}`}`;
         if (`${location.pathname}${location.search}${location.hash}` !== url) history.replaceState(history.state, "", url);
@@ -29291,15 +29295,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
-      /** The previews that are a preset as made (opened at its address, one's own edits of it apart): each its preset. @type {WeakMap<Chart, number>} */
-      const asMade = new WeakMap();
+      /** Whether a chart's a preview that is a preset as made (opened at its address, one's own edits of it apart: `made`, its place). @param {Chart} doc */
+      const isMade = (doc) => doc.made !== undefined && isPreview(doc);
       /**
        * A preset's address, with how it's looked at where that isn't how it opens (see linkLookOf): the chart of a preset as
        * made but for its view and its interval; else, or the presets unread, null. @param {Chart} doc
        */
       function presetLink(doc) {
-        const i = asMade.get(doc) ?? presetIndex(doc);
-        if (i < 0 || (asMade.has(doc) ? contentHash(doc) !== templateHash(i) : presetEdited(doc))) return null;
+        const i = presetIndex(isMade(doc) ? { ...doc, preset: doc.made } : doc);
+        if (i < 0 || (isMade(doc) ? contentHash(doc) !== templateHash(i) : presetEdited(doc))) return null;
         const look = lookFields(doc, presetLook(i));
         return `${/** @type {NonNullable<ReturnType<typeof addresses>>} */ (addresses()).presets[i]}${look && `#${look}`}`;
       }
@@ -29315,7 +29319,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           takeLinkLook(made, look, presetLook(i));
           const like = previewLike(made), doc = like ?? made;
           if (like) (like.range = made.range), takeView(made.id, like.id);
-          asMade.set(doc, i);
+          doc.made = presetKey(i);
           addPreview(doc);
           keepAsideOpened(doc);
           linkWindow = doc.id;
@@ -37882,7 +37886,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function linksOf(doc = chart) {
         // (A preset as it's made but for how it's looked at, once the presets are read (one reloaded on shows before them):
         // its address, and that. Edited, gone from them, or none: the chart.)
-        const address = doc.preset !== undefined || asMade.has(doc) ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
+        const address = doc.preset !== undefined || isMade(doc) ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
         const links = address.then((at) => {
           if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
           const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
@@ -39148,7 +39152,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // page without JavaScript left out.)
         const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
         const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. A preset you haven't edited shares its own address instead, which opens it as made. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. A preset you haven't edited shares its own address instead, with what you changed about how it's looked at. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
         showDialog($("guide"));
         $("guide").focus();
