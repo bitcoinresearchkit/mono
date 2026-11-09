@@ -51,7 +51,10 @@ view is complete: the template holds no transactions absent from the raw listing
 listed transaction is loaded (the per-cycle fetch cap can defer some). One loaded publication
 can therefore pair a newer projection with older membership. In builds that unwind (the
 workspace's release profile aborts on panic instead), a panic mid-cycle restores the private
-state from the last publication before the next one.
+state from the last publication before the next one. Each publication privately retains the
+exact fee-rate histogram for this recovery; `MempoolInfo` carries only the public Esplora bins,
+built at publication, and cannot restore writer accounting. Address funding and spend updates
+live beside the address tracker; `AddressMempoolStats` is their wire record.
 
 ## Read API
 

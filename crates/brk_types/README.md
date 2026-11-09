@@ -6,7 +6,8 @@ Bitcoin primitives shared across BRK and Bitview.
 
 Types for heights, amounts, hashes, addresses, transactions, block
 templates and mempool state, including responses shared with `brk_mempool` such
-as `MempoolInfo`. Bitview's
+as `MempoolInfo` and `AddressMempoolStats`. These are wire records; exact fee-histogram
+accounting and address-stat updates belong to `brk_mempool`. Bitview's
 index, value and state types (calendar indexes, protocol epochs, per-type address
 indexes, unit-typed scalars) live in `bitview_primitives`; query-protocol types and
 REST response DTOs live in `bitview_types`; `TreeNode` lives in `bitview_catalog`; CPFP

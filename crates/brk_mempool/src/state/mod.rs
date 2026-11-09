@@ -1,5 +1,6 @@
 //! Private state owned exclusively by the update loop.
 
+mod accounting;
 mod ancestry;
 mod pool;
 mod read_only;
@@ -7,11 +8,13 @@ pub mod tx_entry;
 
 use std::sync::Arc;
 
-use brk_types::{MempoolInfo, Transaction, Txid};
+use brk_types::{Transaction, Txid};
 pub(crate) use ancestry::{Ancestry, Block};
 pub(crate) use pool::{BehindSlot, Pool};
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
+
+use accounting::MempoolAccounting;
 
 use crate::{
     key::TxKey,
@@ -20,7 +23,7 @@ use crate::{
 
 #[derive(Default)]
 pub struct State {
-    pub info: MempoolInfo,
+    pub info: MempoolAccounting,
     pub txs: TxStore,
     pub addrs: AddrTracker,
     pub outpoint_spends: OutpointSpends,

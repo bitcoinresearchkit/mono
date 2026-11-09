@@ -6,6 +6,7 @@ use rapidhash::fast::RandomState;
 use crate::stores::{cow::CowMap, tx_store::TxRecord};
 
 pub mod addr_entry;
+pub(crate) mod stats;
 
 pub use addr_entry::{AddrEntry, AddrTx};
 
@@ -32,7 +33,7 @@ impl AddrTracker {
         let at = AddrTx::from(record);
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {
-                self.apply_add(bytes, at, |stats| stats.add_funding(txout));
+                self.apply_add(bytes, at, |stats| stats::add_funding(stats, txout));
             }
         }
     }
@@ -42,7 +43,7 @@ impl AddrTracker {
         let at = AddrTx::from(record);
         for prevout in prevouts {
             if let Some(bytes) = prevout.addr_bytes() {
-                self.apply_add(bytes, at, |stats| stats.add_spend(prevout));
+                self.apply_add(bytes, at, |stats| stats::add_spend(stats, prevout));
             }
         }
     }
@@ -53,12 +54,12 @@ impl AddrTracker {
         let at = AddrTx::from(record);
         for prevout in tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
             if let Some(bytes) = prevout.addr_bytes() {
-                self.apply_remove(bytes, &at, |stats| stats.remove_spend(prevout));
+                self.apply_remove(bytes, &at, |stats| stats::remove_spend(stats, prevout));
             }
         }
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {
-                self.apply_remove(bytes, &at, |stats| stats.remove_funding(txout));
+                self.apply_remove(bytes, &at, |stats| stats::remove_funding(stats, txout));
             }
         }
     }

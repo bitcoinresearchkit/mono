@@ -1,4 +1,4 @@
-use crate::{Sats, SatsSigned, TxOut};
+use crate::{Sats, SatsSigned};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -29,30 +29,4 @@ pub struct AddressMempoolStats {
     /// Number of unconfirmed transactions involving this address
     #[cfg_attr(feature = "schemars", schemars(example = 0))]
     pub tx_count: u32,
-}
-
-impl AddressMempoolStats {
-    pub fn add_funding(&mut self, txout: &TxOut) {
-        self.balance_delta += SatsSigned::from(txout.value);
-        self.funded_txo_count += 1;
-        self.funded_txo_sum += txout.value;
-    }
-
-    pub fn remove_funding(&mut self, txout: &TxOut) {
-        self.balance_delta -= SatsSigned::from(txout.value);
-        self.funded_txo_count -= 1;
-        self.funded_txo_sum -= txout.value;
-    }
-
-    pub fn add_spend(&mut self, txout: &TxOut) {
-        self.balance_delta -= SatsSigned::from(txout.value);
-        self.spent_txo_count += 1;
-        self.spent_txo_sum += txout.value;
-    }
-
-    pub fn remove_spend(&mut self, txout: &TxOut) {
-        self.balance_delta += SatsSigned::from(txout.value);
-        self.spent_txo_count -= 1;
-        self.spent_txo_sum -= txout.value;
-    }
 }

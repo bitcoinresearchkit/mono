@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-use super::{Ancestry, State};
+use super::{Ancestry, State, accounting::MempoolAccounting};
 
 /// One reader tip's view past the pool's, once built: its readers wait for the first build.
 pub type BehindSlot = Arc<Mutex<Option<Arc<PendingView>>>>;
@@ -25,6 +25,8 @@ pub(crate) struct Pool {
     /// `tip` and its newest ancestors.
     pub ancestry: Ancestry,
     pub info: MempoolInfo,
+    /// Exact writer state matching this publication; never reconstructed from wire bins.
+    accounting: MempoolAccounting,
     pub txs: Arc<ReadOnlyTxStore>,
     pub addrs: Arc<AddrTracker>,
     pub outpoint_spends: Arc<OutpointSpends>,
@@ -59,15 +61,25 @@ impl Pool {
     ) -> Self {
         debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, info_json) = match previous
+        let (txs, addrs, info, info_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
-            Some(pool) => (pool.txs.clone(), pool.addrs.clone(), pool.info_json.clone()),
-            None => (
-                Arc::new(state.txs.read_only_clone()),
-                Arc::new(state.addrs.clone()),
-                json::body(&state.info),
+            Some(pool) => (
+                pool.txs.clone(),
+                pool.addrs.clone(),
+                pool.info.clone(),
+                pool.info_json.clone(),
             ),
+            None => {
+                let info = state.info.wire();
+                let info_json = json::body(&info);
+                (
+                    Arc::new(state.txs.read_only_clone()),
+                    Arc::new(state.addrs.clone()),
+                    info,
+                    info_json,
+                )
+            }
         };
         let txids_json = previous
             .filter(|pool| pool.txs.membership_revision() == state.txs.membership_revision())
@@ -97,7 +109,8 @@ impl Pool {
         Self {
             tip,
             ancestry,
-            info: state.info.clone(),
+            info,
+            accounting: state.info.clone(),
             txs,
             addrs,
             outpoint_spends,
@@ -153,7 +166,7 @@ impl Pool {
     /// Restart private work from a known complete publication after a panic.
     pub fn restore(&self) -> State {
         State {
-            info: self.info.clone(),
+            info: self.accounting.clone(),
             txs: TxStore::from_read_only(self.txs.as_ref().clone()),
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),

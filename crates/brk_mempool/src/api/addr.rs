@@ -8,7 +8,13 @@ use crate::{
     PendingView, PublishedTx, ReadOnlyState, json,
     key::{OutpointKey, TxKey},
     state::Pool,
-    stores::{addr_tracker::AddrTx, tx_store::TxRecord},
+    stores::{
+        addr_tracker::{
+            AddrTx,
+            stats::{remove_funding, remove_spend},
+        },
+        tx_store::TxRecord,
+    },
 };
 
 /// An address's pending UTXO changes in one completed publication.
@@ -137,11 +143,11 @@ impl ReadOnlyState {
         let mut take_out = |record: &TxRecord| {
             for prevout in record.tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
                 if pays(prevout) {
-                    stats.remove_spend(prevout);
+                    remove_spend(&mut stats, prevout);
                 }
             }
             for txout in record.tx.output.iter().filter(|txout| pays(txout)) {
-                stats.remove_funding(txout);
+                remove_funding(&mut stats, txout);
             }
             stats.tx_count -= 1;
         };
