@@ -27,7 +27,7 @@ use crate::{
 
 #[derive(Default)]
 pub struct State {
-    pub info: MempoolAccounting,
+    pub accounting: MempoolAccounting,
     pub txs: TxStore,
     pub addrs: AddrTracker,
     pub outpoint_spends: OutpointSpends,
@@ -68,22 +68,22 @@ impl State {
     pub fn insert(&mut self, tx: Arc<Transaction>, entry: TxEntry) {
         self.graveyard.exhume(&entry.txid, &mut self.upkeep);
         let key = entry.key();
-        self.info.add(entry.vsize, entry.fee);
+        self.accounting.add(entry.vsize, entry.fee);
         self.outpoint_spends.insert_spends(&tx, key);
         self.txs.insert(tx, entry);
         let record = self.txs.record_by_key(&key).expect("just inserted");
         self.addrs.add(record);
-        debug_assert_eq!(self.info.count, self.txs.len());
+        debug_assert_eq!(self.accounting.count, self.txs.len());
     }
 
     /// [`Self::insert`]'s stores undone: the transaction out of every store derived from it, its
     /// record left to the caller (its tombstone).
     pub fn remove(&mut self, key: &TxKey) -> TxRecord {
         let record = self.txs.remove_by_key(key).expect("removed tx is pooled");
-        self.info.remove(record.entry.vsize, record.entry.fee);
+        self.accounting.remove(record.entry.vsize, record.entry.fee);
         self.addrs.remove(&record);
         self.outpoint_spends.remove_spends(&record.tx, *key);
-        debug_assert_eq!(self.info.count, self.txs.len());
+        debug_assert_eq!(self.accounting.count, self.txs.len());
         record
     }
 

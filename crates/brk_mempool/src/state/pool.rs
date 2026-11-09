@@ -4,7 +4,7 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
+use brk_types::{BlockHash, FeeRate, Timestamp, Txid};
 
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
@@ -24,7 +24,6 @@ pub(crate) struct Pool {
     pub tip: BlockHash,
     /// `tip` and its newest ancestors.
     pub ancestry: Ancestry,
-    pub info: MempoolInfo,
     /// Exact writer state matching this publication; never reconstructed from wire bins.
     accounting: MempoolAccounting,
     pub txs: Arc<ReadOnlyTxStore>,
@@ -32,7 +31,8 @@ pub(crate) struct Pool {
     pub outpoint_spends: Arc<OutpointSpends>,
     pub graveyard: Arc<TxGraveyard>,
     pub graph: Arc<Snapshot>,
-    /// `info` as JSON and its hash, built by the writer: readers only clone the `Arc`.
+    /// The wire record of `accounting` as JSON and its hash, built by the writer: readers only
+    /// clone the `Arc`.
     pub info_json: JsonBody,
     /// The txid array as JSON, built by the first request (a publication with the same members
     /// shares it too).
@@ -61,25 +61,15 @@ impl Pool {
     ) -> Self {
         debug_assert_eq!(graph.content_revision(), state.txs.content_revision());
         // A new projection or chain tip does not change membership containers.
-        let (txs, addrs, info, info_json) = match previous
+        let (txs, addrs, info_json) = match previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
         {
-            Some(pool) => (
-                pool.txs.clone(),
-                pool.addrs.clone(),
-                pool.info.clone(),
-                pool.info_json.clone(),
+            Some(pool) => (pool.txs.clone(), pool.addrs.clone(), pool.info_json.clone()),
+            None => (
+                Arc::new(state.txs.read_only_clone()),
+                Arc::new(state.addrs.clone()),
+                json::body(&state.accounting.wire()),
             ),
-            None => {
-                let info = state.info.wire();
-                let info_json = json::body(&info);
-                (
-                    Arc::new(state.txs.read_only_clone()),
-                    Arc::new(state.addrs.clone()),
-                    info,
-                    info_json,
-                )
-            }
         };
         let txids_json = previous
             .filter(|pool| pool.txs.membership_revision() == state.txs.membership_revision())
@@ -109,8 +99,7 @@ impl Pool {
         Self {
             tip,
             ancestry,
-            info,
-            accounting: state.info.clone(),
+            accounting: state.accounting.clone(),
             txs,
             addrs,
             outpoint_spends,
@@ -166,7 +155,7 @@ impl Pool {
     /// Restart private work from a known complete publication after a panic.
     pub fn restore(&self) -> State {
         State {
-            info: self.accounting.clone(),
+            accounting: self.accounting.clone(),
             txs: TxStore::from_read_only(self.txs.as_ref().clone()),
             addrs: self.addrs.as_ref().clone(),
             outpoint_spends: self.outpoint_spends.as_ref().clone(),

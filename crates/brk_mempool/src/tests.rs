@@ -806,7 +806,7 @@ fn graveyard_outlives_a_restart() {
     let state = State::restored(loaded, pool);
     assert!(state.txs.contains(&head.entry.txid));
     assert!(state.graveyard.get(&head.entry.txid).is_none(), "exhumed");
-    assert_eq!(state.info.count, 1);
+    assert_eq!(state.accounting.count, 1);
     // No periodic save goes over the shutdown's, even of a later publication.
     file.save(&graveyard, pending, None, taken + std::time::Duration::from_secs(1))
         .unwrap();

@@ -73,7 +73,7 @@ impl Mempool {
             if !loaded && let Some(pool) = &self.read_only.load().pool {
                 info!(
                     "Loaded mempool ({} transactions) in {:?}",
-                    pool.info.count,
+                    pool.txs.len(),
                     loading.elapsed()
                 );
             }
