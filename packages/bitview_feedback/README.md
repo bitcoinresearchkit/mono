@@ -8,7 +8,7 @@ The inbox behind every Bitview page's Feedback button: a Cloudflare Worker on it
 
 **What passes through without being kept.** The sender's IP goes to Cloudflare, as for any site behind it, and the rate limiter counts it in the edge's memory for a minute. The browser's `Origin` header arrives and is ignored. Rows are deleted once read, though Cloudflare's point-in-time recovery for D1 keeps them restorable for 7 days on the free plan (30 on paid), and a restore can show roughly when a row appeared. What the project keeps after reading is deleted after 30 days, except the short title of a note a person chose to act on, which stays in its task list.
 
-**Who reads it.** The maintainer's job reads the inbox through Cloudflare's API. An AI model with no tools classifies each note (it goes to the model provider), and a person decides what becomes work. Anyone wanting a reply can leave a way to reach them in the note itself. The public hostname has no way to read the inbox.
+**Who reads it.** The maintainer's job (`triage.mjs`, here) reads the inbox through Cloudflare's API. An AI model with no tools classifies each note (it goes to the model provider), and a person decides what becomes work. Anyone wanting a reply can leave a way to reach them in the note itself. The public hostname has no way to read the inbox.
 
 **Limits.** 32 KB a body, 4,000 characters a note, 5 notes a minute per address (/64 on IPv6, approximate, per Cloudflare location), 500 unread at once. On Cloudflare's free plan a flood stops the inbox at the daily quota instead of billing. Notes wait here unread until the maintainer's job reads them, at most 50 a day.
 
