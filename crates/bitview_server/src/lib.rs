@@ -24,7 +24,10 @@ use bitview_query::SharedSeries;
 use bitview_query::{AsyncQuery, Result};
 use bitview_website::router as WebsiteRouter;
 use jiff::Timestamp;
-use tokio::{net::TcpListener, sync::Semaphore};
+use tokio::{
+    net::{TcpListener, TcpSocket},
+    sync::Semaphore,
+};
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::CorsLayer,
@@ -175,6 +178,10 @@ const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long browsers may reuse a CORS preflight.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
+/// Connections that may wait to be accepted, past which a burst's are reset. The kernel caps it
+/// without saying (`kern.ipc.somaxconn`, `net.core.somaxconn`).
+const ACCEPT_QUEUE: u32 = 4096;
+
 pub struct Server {
     app: Router,
     listener: TcpListener,
@@ -185,7 +192,15 @@ impl Server {
     /// caller launches the long-running server task.
     pub async fn bind(query: &AsyncQuery, config: ServerConfig) -> Result<Self> {
         let address = SocketAddr::new(config.bind, config.port.into());
-        let listener = TcpListener::bind(address).await?;
+        let socket = match address {
+            SocketAddr::V4(_) => TcpSocket::new_v4()?,
+            SocketAddr::V6(_) => TcpSocket::new_v6()?,
+        };
+        // As `TcpListener::bind`: on Windows this would let another process take the port.
+        #[cfg(not(windows))]
+        socket.set_reuseaddr(true)?;
+        socket.bind(address)?;
+        let listener = socket.listen(ACCEPT_QUEUE)?;
 
         config.website.log();
         #[cfg(feature = "series")]
