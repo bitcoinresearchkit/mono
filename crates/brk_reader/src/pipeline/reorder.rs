@@ -1,5 +1,5 @@
 use brk_error::{Error, Result};
-use brk_types::ReadBlock;
+use crate::ReadBlock;
 use crossbeam_channel::Sender;
 use rustc_hash::FxHashMap;
 

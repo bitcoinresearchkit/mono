@@ -2,7 +2,7 @@ use bitcoin::{Block, Txid, hashes::Hash};
 use derive_more::Deref;
 use sha2::{Digest, Sha256};
 
-use crate::{BlkPosition, BlockHash, CoinbaseTag, Height};
+use brk_types::{BlkPosition, BlockHash, CoinbaseTag, Height};
 
 /// A block parsed from Core's blk files, beside its raw bytes (txids hash from them without
 /// re-serializing) and where it sits in those files.

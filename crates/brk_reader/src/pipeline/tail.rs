@@ -2,7 +2,9 @@ use std::{fs::File, io, os::unix::fs::FileExt, sync::Arc};
 
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, Height, ReadBlock};
+use brk_types::{BlkPosition, Height};
+
+use crate::ReadBlock;
 use crossbeam_channel::Sender;
 
 use crate::{

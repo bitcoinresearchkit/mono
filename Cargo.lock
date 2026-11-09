@@ -1399,6 +1399,7 @@ dependencies = [
  "libc",
  "parking_lot",
  "rustc-hash",
+ "sha2",
  "tracing",
 ]
 
@@ -1445,7 +1446,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "sha2",
  "vecdb",
 ]
 

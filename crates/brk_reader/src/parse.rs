@@ -2,7 +2,9 @@ use std::io::Cursor;
 
 use bitcoin::{Block as BitcoinBlock, Transaction, VarInt, block::Header, consensus::Decodable};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
+use brk_types::{BlkPosition, BlockHash, Height};
+
+use crate::ReadBlock;
 
 use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
 

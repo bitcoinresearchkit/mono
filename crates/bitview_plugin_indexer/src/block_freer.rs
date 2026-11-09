@@ -1,6 +1,6 @@
 use std::{sync::LazyLock, thread};
 
-use brk_types::ReadBlock;
+use brk_reader::ReadBlock;
 use crossbeam_channel::{Sender, bounded};
 
 // Freeing an indexed block's transactions, which the reader's threads allocated, took ~7% of the

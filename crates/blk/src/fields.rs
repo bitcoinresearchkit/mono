@@ -5,7 +5,8 @@ use bitcoin::{
     hex::DisplayHex,
 };
 use brk_error::{Error, Result};
-use brk_types::{OutputType, ReadBlock};
+use brk_reader::ReadBlock;
+use brk_types::OutputType;
 use serde_json::{Map, Value, json};
 
 use crate::path::{Path, Step};

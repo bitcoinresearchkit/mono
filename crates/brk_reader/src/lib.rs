@@ -9,7 +9,7 @@ use std::{
 use bitcoin::Network;
 use brk_error::{Error, Result};
 use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
+use brk_types::{BlkPosition, BlockHash, Height};
 use canonical::CanonicalRange;
 use crossbeam_channel::IntoIter;
 use reader_inner::ReaderInner;
@@ -21,6 +21,7 @@ mod blk_read;
 mod canonical;
 mod parse;
 mod pipeline;
+mod read_block;
 mod reader_inner;
 mod scan;
 #[cfg(test)]
@@ -30,6 +31,7 @@ mod xor_index;
 
 pub(crate) use blk_index_to_blk_path::BlkIndexToBlkPath;
 pub use blk_read::BlkRead;
+pub use read_block::ReadBlock;
 
 pub use xor_bytes::*;
 

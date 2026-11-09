@@ -6,7 +6,8 @@ pub mod txout;
 
 pub use buffer::BlockBuffers;
 
-use brk_types::{Height, ReadBlock};
+use brk_reader::ReadBlock;
+use brk_types::Height;
 
 use crate::{Lengths, Readers, Stores, Vecs};
 
