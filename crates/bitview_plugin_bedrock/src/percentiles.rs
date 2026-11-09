@@ -26,3 +26,15 @@ collection!(LossPercentileId for Percentiles {
     P99_5 => p99_5,
     P99_9 => p99_9,
 });
+
+impl LossPercentileId {
+    pub(crate) const fn probability(self) -> f64 {
+        match self {
+            Self::P95 => 0.95,
+            Self::P98 => 0.98,
+            Self::P99 => 0.99,
+            Self::P99_5 => 0.995,
+            Self::P99_9 => 0.999,
+        }
+    }
+}

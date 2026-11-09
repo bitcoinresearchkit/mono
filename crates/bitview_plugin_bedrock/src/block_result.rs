@@ -1,11 +1,10 @@
-use bitview_cohort::{AgeAggregateId, AgeRange};
 use bitview_primitives::BoundedRatio;
 use bitview_urpd::OriginUrpd;
 use brk_types::Cents;
 
 use super::{
-    CumulativeBucket, Levels, LossPercentileId, MODE_COUNT, ModeResult, Modes, Percentiles,
-    PriceBands, Thresholds,
+    CumulativeBucket, Levels, LossPercentileId, ModeId, ModeResult, ModeWeights, Modes,
+    Percentiles, PriceBands, Thresholds,
 };
 
 const LEVEL_PERCENTILES: Levels<f64> = Levels {
@@ -35,34 +34,31 @@ impl BlockResult {
         })
     }
 
-    /// `weights` are the awake and mobile modes' age-range weights.
+    /// Each mode's age-range weights; unweighted supply is always raw.
     pub(crate) fn evaluate(
         &mut self,
         source: &OriginUrpd,
-        weights: &[Option<&AgeRange<f64>>; MODE_COUNT - 1],
+        weights: &ModeWeights<'_>,
         scratch: &mut Vec<CumulativeBucket>,
     ) {
         scratch.clear();
-        let mut totals = [0_u64; MODE_COUNT];
-        // The weighted modes first, in `weights`' order, then the unweighted one.
-        for bucket in source.project(weights, [AgeAggregateId::All.age_range_ids()]) {
-            let (weighted, unweighted) = totals.split_at_mut(MODE_COUNT - 1);
-            unweighted[0] += u64::from(bucket.raw[0]);
-            for (total, sats) in weighted.iter_mut().zip(bucket.weighted[0]) {
-                *total += u64::from(sats);
+        let mut totals = Modes::<u64>::default();
+        for (price, supplies) in weights.project(source) {
+            for &mode in ModeId::ALL {
+                *totals.select_mut(mode) += *supplies.select(mode);
             }
             scratch.push(CumulativeBucket {
-                price: bucket.price,
+                price,
                 supplies: totals,
             });
         }
-        for (mode, result) in self.iter_mut().enumerate() {
-            Self::evaluate_mode(result, scratch, mode);
+        for &mode in ModeId::ALL {
+            Self::evaluate_mode(self.select_mut(mode), scratch, mode);
         }
     }
 
     /// `result`'s thresholds are all defined or all undefined (NaN).
-    fn evaluate_mode(result: &mut ModeResult, buckets: &[CumulativeBucket], mode: usize) {
+    fn evaluate_mode(result: &mut ModeResult, buckets: &[CumulativeBucket], mode: ModeId) {
         let thresholds = &result.supply_in_loss_threshold;
         if thresholds.iter().all(|threshold| threshold.is_nan()) {
             return;
@@ -70,11 +66,11 @@ impl BlockResult {
         let Some(last) = buckets.last() else {
             return;
         };
-        let denominator = last.supplies[mode];
+        let denominator = *last.supplies.select(mode);
         let zero_cost = buckets
             .first()
             .filter(|b| b.price.inner() == 0)
-            .map_or(0, |b| b.supplies[mode]);
+            .map_or(0, |b| *b.supplies.select(mode));
         if denominator == zero_cost {
             return;
         }
@@ -85,7 +81,7 @@ impl BlockResult {
         result.prices.floor = Percentiles::from_fn(|percentile| {
             let threshold = f64::from(*thresholds.select(percentile));
             let floor = buckets.partition_point(|bucket| {
-                let supply = bucket.supplies[mode];
+                let supply = *bucket.supplies.select(mode);
                 // The bounded threshold as published, and this division order: both decide
                 // rounding at the boundary.
                 supply == 0 || (denominator - supply) as f64 / denominator as f64 > threshold
@@ -98,13 +94,14 @@ impl BlockResult {
         // Exclude only buckets preceding the floor; the floor itself belongs to the tail.
         let before = p95_floor
             .checked_sub(1)
-            .map_or(0, |i| buckets[i].supplies[mode]);
+            .map_or(0, |i| *buckets[i].supplies.select(mode));
         let total = denominator - before;
         let tail = &buckets[p95_floor..];
         result.prices.cost_basis_above_p95_floor = Levels::from_fn(|percentile| {
             let target = total as f64 * *LEVEL_PERCENTILES.select(percentile);
-            let index =
-                tail.partition_point(|bucket| ((bucket.supplies[mode] - before) as f64) < target);
+            let index = tail.partition_point(|bucket| {
+                ((*bucket.supplies.select(mode) - before) as f64) < target
+            });
             Cents::from(tail[index].price)
         });
     }

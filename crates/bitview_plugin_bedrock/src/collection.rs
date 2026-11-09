@@ -14,6 +14,11 @@ macro_rules! collection {
         impl $id {
             pub const ALL: &'static [Self] = &[$(Self::$variant),+];
 
+            /// Its position in `ALL`.
+            pub const fn index(self) -> usize {
+                self as usize
+            }
+
             pub const fn name(self) -> &'static str {
                 match self {
                     $(Self::$variant => stringify!($field)),+

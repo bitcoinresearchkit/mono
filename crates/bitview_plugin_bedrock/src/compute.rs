@@ -13,7 +13,7 @@ use brk_types::Version;
 use log::info;
 use vecdb::{AnyVec, ReadableVec};
 
-use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, Vecs};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, ModeWeights, Vecs};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -139,7 +139,10 @@ impl ComputePlugin for Vecs {
                         collect_cohort_weights(height, &mut worker.coinflow, &supplies);
                     result.evaluate(
                         source,
-                        &[ct_weights.as_ref(), cf_weights.as_ref()],
+                        &ModeWeights {
+                            awake: ct_weights.as_ref(),
+                            mobile: cf_weights.as_ref(),
+                        },
                         &mut worker.scratch,
                     );
                 }

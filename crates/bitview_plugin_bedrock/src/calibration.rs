@@ -1,11 +1,10 @@
-use super::{Modes, Percentiles, Thresholds};
+use super::{LossPercentileId, Modes, Percentiles, Thresholds};
 use bitview_compute::ExactOrderStats;
 use brk_types::{Height, Version};
 use vecdb::{ReadableVec, VecValue};
 
 // One nominal year of block observations. The represented block is excluded.
 const MINIMUM_BLOCKS: usize = 365 * 144;
-const PERCENTILES: [f64; 5] = [0.95, 0.98, 0.99, 0.995, 0.999];
 
 pub struct Calibration {
     pub(crate) end: usize,
@@ -52,14 +51,10 @@ impl Calibration {
         Thresholds::from_fn(|mode| {
             let history = self.histories.select(mode);
             (current.select(mode).is_some() && history.count() >= MINIMUM_BLOCKS).then(|| {
-                let [p95, p98, p99, p99_5, p99_9] = history.percentiles(PERCENTILES);
-                Percentiles {
-                    p95,
-                    p98,
-                    p99,
-                    p99_5,
-                    p99_9,
-                }
+                let probabilities: [f64; LossPercentileId::ALL.len()] =
+                    std::array::from_fn(|i| LossPercentileId::ALL[i].probability());
+                let values = history.percentiles(probabilities);
+                Percentiles::from_fn(|id| values[id.index()])
             })
         })
     }

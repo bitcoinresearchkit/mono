@@ -35,7 +35,7 @@ use floor_bands::{FloorBandId, FloorBands};
 use levels::{LevelId, Levels};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
-use modes::{MODE_COUNT, ModeId, Modes, Thresholds};
+use modes::{ModeId, ModeWeights, Modes, Thresholds};
 use percentiles::{LossPercentileId, Percentiles};
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;
