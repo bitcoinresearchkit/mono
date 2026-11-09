@@ -20222,8 +20222,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitCandles();
         fitDots();
         valuesSoon();
-        // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
-        const shown = engine.time.width !== laidWidth ? presetShown : showsPreset();
+        // (Mid-resize, a preset showing still is: the new width's layout, on its way, puts it back, see relayout. A width
+        // changed with nothing coming (an axis grown with its labels), the view as it is.)
+        const shown = engine.time.width !== laidWidth && layoutFrame ? presetShown : showsPreset();
         if (shown !== presetShown) setPresetShown(shown);
         prefetch();
         keepView();
@@ -26409,6 +26410,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A step whose address holds a link, one put in or a picture's: its hashchange reads it; one that couldn't be
         // read, as it is.)
         if (location.hash !== brokenLink && /^#(?:.*&)?(?:chart|image|c)=/.test(location.hash)) return;
+        // (An address's fields changed by hand, a new step with nothing kept: read afresh, as a visit to it.)
+        if (event.state === null && ROUTED && Object.keys(linkLookOf(new URLSearchParams(location.hash.slice(1)))).length) return void location.reload();
         closeDialogs();
         if (event.state?.home) {
           const to = asPlace(event.state.at), place = leftPlaces.get(event.state.key) ?? event.state.place ?? null;
@@ -40219,8 +40222,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let linkRun = 0;
       addEventListener("hashchange", () => {
         const params = new URLSearchParams(location.hash.slice(1));
-        // (Its fields changed by hand, a new step of the history's: read afresh, as a visit to it. Written by the page, no step.)
-        if (history.state === null && ROUTED && !params.has("chart") && !params.has("image") && !params.has("c") && Object.keys(linkLookOf(params)).length) return location.reload();
         // (Cleared, or another kind: a link still being read is dropped.)
         if (!params.has("chart") && !params.has("image") && !params.has("c")) return void (++linkRun, (picturing = picturing && document.body.hasAttribute("data-picture")), document.body.hasAttribute("data-picture") && leavePicture());
         readLink();
