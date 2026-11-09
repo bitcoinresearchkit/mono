@@ -20273,7 +20273,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Only where the view is taken (not while a preset shows).
        */
       function prefetch() {
-        const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
+        // (The library frames from the page's start, an empty one included; the chart is the one the page opens, made as it starts: none yet, nothing to reach for.)
+        const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = shownSpan();
         if (!span || presetShown || !range || n < 2 || drawnChart !== chart.id || drawnIndex !== chart.index) return;
         const side = nearEnd(span, range, n);
@@ -20291,7 +20292,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * held), from memory once prefetched. Only where the view is taken (not while a preset shows, or a glide runs).
        */
       function reachOut() {
-        const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
+        // (As prefetch: its first frames, and the rest it asks for, come before the chart does when a link is read first.)
+        const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = shownSpan();
         if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
         const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
@@ -26118,6 +26120,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {boolean} opening @param {() => HTMLElement | null} update
        */
       let morphing = /** @type {Animation[]} */ ([]);
+      /**
+       * The library laid out at its element's own size. The library measures its element as it is drawn (its box scaled by
+       * the card's motion), and lays out at every pane, price axis or share it changes: the first build of a page that
+       * started on the grid (its data at hand, or arriving as the card grows) lies in that, a card's width or so, its
+       * canvases at that size in the card's corner. The card's own size never changed (a motion moves it, nothing resizes
+       * it), so nothing measures the chart again: once the motion's over, it's laid out against its box.
+       */
+      function unscaled() {
+        const { offsetWidth: width, offsetHeight: height } = engine.element;
+        if (Math.abs(engine.width - width) >= 1 || Math.abs(engine.height - height) >= 1) engine.layout();
+      }
       function morph(opening, update) {
         for (const animation of morphing) animation.cancel();
         if (reduced.matches) return (update(), Promise.resolve());
@@ -26136,8 +26149,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else animations.push(card.animate(ends([{ opacity: 0 }, { opacity: 1 }]), timing));
         morphing = animations;
         // (Over, the chart laid out as it shows, at its own size, and anything asked meanwhile (see relayout): measured
-        // while it moved, it'd be measured scaled.)
-        return Promise.all(animations.map((animation) => animation.finished)).then(() => {}, () => {}).finally(() => morphing === animations && ((morphing = []), delete document.body.dataset.morph, (opening || layoutOwed) && relayout()));
+        // while it moved, it'd be measured scaled. The library's too: see unscaled.)
+        return Promise.all(animations.map((animation) => animation.finished)).then(() => {}, () => {}).finally(() => morphing === animations && ((morphing = []), delete document.body.dataset.morph, unscaled(), (opening || layoutOwed) && relayout()));
       }
       /**
        * The Charts page, where `homeAt` is; the open one shrinks into its card (one of yours that's never had anything in

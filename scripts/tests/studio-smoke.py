@@ -34,6 +34,7 @@ SERVED = {
     "/studio/palette.js": "palette.js",
 }
 STORE = "bitview-studio:v2"
+PREFS = "bitview-studio:prefs"
 VIEWPORT = {"width": 1400, "height": 900}
 SYSTEM_CHROMES = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -78,9 +79,9 @@ def need(condition, message):
 # served with one edit, or a script runs before the page does. Each source edit must match exactly once, else it says so.
 
 
-def edit(old, new):
+def edit(old, new, times=1):
     def apply(html):
-        need(html.count(old) == 1, f"--break: the page no longer has exactly one {old!r} to edit")
+        need(html.count(old) == times, f"--break: the page no longer has exactly {times} of {old!r} to edit")
         return html.replace(old, new)
 
     return apply
@@ -105,6 +106,12 @@ BREAKS = {
     "move-wrong-chart": ("saved charts", {"fixture": True, "source": edit("function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {", "function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {\n        keys = [`c:${library.charts.find((doc) => `c:${doc.id}` !== keys[0])?.id ?? ''}`];")}),
     # A first-party GET fails in the network (net::ERR_FAILED), which the page may well catch and go on from.
     "request-failed": ("page draws", {"fail": "/api/oracle/price"}),
+    # The chart library's first (empty) frame reaches for the chart before a shared link has given the page one: the page
+    # error every link opened used to throw, twice.
+    "early-frame": ("shared link", {"source": edit("const span = chart && FINE.has(chart.index) ?", "const span = FINE.has(chart.index) ?", times=2)}),
+    # The chart opened from the Charts page is laid out while its card is still growing out of its tile, and never again:
+    # drawn at its tile's size in the card's corner, its canvases a tile wide.
+    "tile-sized": ("saved charts", {"source": edit("delete document.body.dataset.morph, unscaled(), (opening", "delete document.body.dataset.morph, (opening")}),
     # A link opened replaces the library it opens over.
     "link-wipes-library": ("shared link", {"source": edit("        if (shared) {\n          const like =", "        if (shared) {\n          localStorage.removeItem(STORE); library.charts = []; library.folders = []; library.order = [];\n          const like =")}),
 }
@@ -326,13 +333,45 @@ def library_count(page):
     return page.evaluate("() => document.querySelector('#chart-list .list-head-name[aria-label^=\"Library\"]')?.getAttribute('aria-label')")
 
 
-def open_each(page, want, what):
+def open_each(run, page, want, what):
     """Every saved chart opens from the Library's page (its folders' charts too), with its title and layers."""
     for chart in want["charts"]:
         open_saved(page, chart["title"])
         page.wait_for_function("title => document.getElementById('title')?.value === title && !document.body.hasAttribute('data-home')", arg=chart["title"], timeout=15_000)
         got = page.evaluate("() => studio.chart().layers.map(l => l.series ?? l.formula ?? '?')")
         need(got == chart["layers"], f"{what}: '{chart['title']}' opened with layers {got}, expected {chart['layers']}")
+        run.drawn(page)
+        fills_card(page, f"{what}: '{chart['title']}'")
+
+
+# What a chart opened from the Charts page is drawn at: its canvases' far edges against its card's size (laid out, not as
+# a motion scales it), and the biggest canvas's drawn pixels against its box.
+FILLS = """() => {
+  const card = document.getElementById('chart');
+  const box = card.getBoundingClientRect(), scale = box.width / card.clientWidth || 1;
+  let right = 0, bottom = 0, biggest = null;
+  for (const canvas of card.querySelectorAll('canvas')) {
+    const at = canvas.getBoundingClientRect();
+    right = Math.max(right, (at.right - box.left) / scale);
+    bottom = Math.max(bottom, (at.bottom - box.top) / scale);
+    if (!biggest || canvas.width * canvas.height > biggest.width * biggest.height) biggest = canvas;
+  }
+  const at = biggest?.getBoundingClientRect();
+  return { card: [card.clientWidth, card.clientHeight], reach: [right, bottom], drawn: biggest ? [biggest.width / devicePixelRatio, biggest.height / devicePixelRatio] : [0, 0], shown: at ? [at.width / scale, at.height / scale] : [0, 0] };
+}"""
+
+
+def fills_card(page, what):
+    """The chart fills its card: it is drawn across the card's size (an axis and a time scale beside the plot), not at its
+    tile's, whatever the chart (a tile's 184 by 198 in the card's corner passes `studio.ready()` and the picture's pixels)."""
+    page.wait_for_function("() => !document.body.hasAttribute('data-morph')", timeout=15_000)
+    got = page.evaluate(FILLS)
+    (width, height), (reach_x, reach_y), (drawn_x, drawn_y), (shown_x, shown_y) = got["card"], got["reach"], got["drawn"], got["shown"]
+    need(width > 400 and height > 300, f"{what}: the card is {width}x{height}: too small to tell a tile from it")
+    need(abs(reach_x - width) <= 2 and abs(reach_y - height) <= 2, f"{what}: the chart is drawn {reach_x:.0f}x{reach_y:.0f} in a card of {width}x{height} (a tile's size, left in the card's corner)")
+    # (Its pixels as it shows them: a canvas drawn at one size and shown at another is a blur.)
+    need(abs(drawn_x - shown_x) <= 1.5 and abs(drawn_y - shown_y) <= 1.5, f"{what}: the biggest canvas is drawn {drawn_x:.0f}x{drawn_y:.0f} and shown {shown_x:.0f}x{shown_y:.0f}")
+    need(drawn_x >= width * 0.7 and drawn_y >= height * 0.9, f"{what}: the biggest canvas is drawn {drawn_x:.0f}x{drawn_y:.0f}, for a card of {width}x{height}")
 
 
 def open_saved(page, title):
@@ -412,34 +451,35 @@ def check_saved_charts(run):
         run.ready(page)
     settle(page)
     say(want, snapshot(page), "the last reload")
-    open_each(page, want, "after reloads")
+    open_each(run, page, want, "after reloads")
     settle(page)
     say(want, snapshot(page), "after opening each")
     ctx.close()
-    # The same library in a browser that never saw it: storage populated before the page's first load, then reloaded.
+    # The same library in a browser that never saw it: storage populated before the page's first load, then reloaded. (Its
+    # preferences left out: nothing says to open on the chart, so the page opens on the Charts page, and each chart is opened from it.)
     ctx = run.context()
-    run.seed(ctx, stored)
+    run.seed(ctx, {key: value for key, value in stored.items() if key != PREFS})
     page = run.studio(ctx)
     for n in (1, 2):
         settle(page)
         say(want, snapshot(page), f"fresh browser, load {n}")
         page.reload(wait_until="load")
         run.ready(page)
-    open_each(page, want, "fresh browser")
+    need(page.evaluate("() => document.body.hasAttribute('data-home')"), "fresh browser, no preferences: the page didn't open on the Charts page")
+    open_each(run, page, want, "fresh browser")
     ctx.close()
     # A library saved by an older Studio: read, kept (not set aside as unreadable), saved again whole, and it opens.
     # What it must come out as, worked out from OLD alone (not from what the page made of it): the same title, layers, no folder.
     older = {"charts": [{"title": c["title"], "layers": layers_of(c), "folder": ""} for c in OLD["charts"]]}
     ctx = run.context()
-    # (Its preferences say it opens on the chart, as every library the page itself wrote does: from the Home page, a chart
-    # opened from the Library page can stay at its tile's size, whatever its age.)
-    run.seed(ctx, {STORE: json.dumps(OLD), "bitview-studio:prefs": json.dumps({"home": False})})
+    # (No preferences saved, as in a browser that has only ever held this library: the page opens on the Charts page.)
+    run.seed(ctx, {STORE: json.dumps(OLD)})
     page = run.studio(ctx)
     settle(page)
     got = snapshot(page)
     need(got is not None and fixture_of(got) == older["charts"], f"older library: stored {got and fixture_of(got)}, expected {older['charts']}")
     need(page.evaluate("() => localStorage.getItem('bitview-studio:unread')") is None, "older library: its chart was set aside as unreadable")
-    open_each(page, older, "older library")
+    open_each(run, page, older, "older library")
     run.drawn(page)
     drew(page, "the older library's chart")
     ctx.close()
@@ -468,6 +508,7 @@ def check_page_draws(run):
     run.drawn(page)
     need(page.evaluate("studio.errors()") == [], f"Smoke ratio has layers that show nothing: {page.evaluate('studio.errors()')}")
     second = drew(page, "Smoke ratio")
+    fills_card(page, "Smoke ratio, opened from the Charts page")
     time.sleep(1.0)
     no_problems(ctx, "with a chart open")
     ctx.close()
@@ -485,7 +526,7 @@ def shape(chart):
 
 
 def check_shared_link(run):
-    """A link built the way the page builds it opens as that chart in an empty browser, and leaves a library alone."""
+    """A link built the way the page builds it opens as that chart in an empty browser, with no page error or failed request, and leaves a library alone."""
     shared = {"title": "Smoke shared", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price"}, {"formula": "A / B"}]}
     # The sharer's side: Share, in the page, copies the link.
     ctx = run.context(clipboard=True, clean=True)
@@ -506,7 +547,6 @@ def check_shared_link(run):
         "written link": f"{run.base}/studio/#chart=" + quote(json.dumps(sketch), safe=""),
     }
     want = shape(sketch)
-    noted = []
     for name, link in links.items():
         # An empty browser: the shared chart is what shows, as a preview, and nothing is saved by opening it.
         ctx = run.context()
@@ -524,7 +564,7 @@ def check_shared_link(run):
         settle(page)
         saved = page.evaluate(SNAPSHOT)
         need(not (saved and saved["charts"]), f"{name}: opening it saved a chart: {saved['charts'] if saved else None}")
-        noted += [problem for problem in dict.fromkeys(ctx.problems) if problem not in noted]
+        no_problems(ctx, name)
         ctx.close()
     # A browser with a library: the link opens over it, and the library is as it was, after the open and a reload.
     stored, library = run.library()
@@ -542,12 +582,10 @@ def check_shared_link(run):
     settle(page)
     say(library, snapshot(page), "a library, reloaded after a link")
     need(library_count(page) == f"Library, {len(CHARTS)}", f"after the link the sidebar says {library_count(page)!r}")
-    open_each(page, library, "after a link")
-    noted += [problem for problem in dict.fromkeys(ctx.problems) if problem not in noted]
+    open_each(run, page, library, "after a link")
+    no_problems(ctx, "a link over a library")
     ctx.close()
-    detail = f"3 links (Share's, QR's, written) open as '{want['title']}' in an empty browser, nothing saved; a library of {len(library['charts'])} charts is untouched"
-    # (Errors the page throws while a link is read are shown as notes, not failed on: it throws two on every link, as it is.)
-    return detail + "".join(f"\n      note: {problem}" for problem in noted)
+    return f"3 links (Share's, QR's, written) open as '{want['title']}' in an empty browser, nothing saved; a library of {len(library['charts'])} charts is untouched; no page errors"
 
 
 CHECKS = [
