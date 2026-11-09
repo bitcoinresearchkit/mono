@@ -1,6 +1,6 @@
+use bitview_distribution::urpd_metrics::compute_cost_basis;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::Lengths;
-use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
 use rayon::join;

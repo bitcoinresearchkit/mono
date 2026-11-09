@@ -1,4 +1,4 @@
-use bitview_primitives::{CostBasisByPercentile, PartsPerMillion32};
+use bitview_primitives::{PERCENTILES_LEN, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CostBasisMeans, CostBasisByCoin, CostBasisByDollar, Density, DensityVecs, IndexSources,
@@ -8,6 +8,22 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) struct CostBasisByPercentile {
+    /// Price percentiles weighted by satoshis.
+    pub by_coin: [Cents; PERCENTILES_LEN],
+    /// Price percentiles weighted by acquisition value.
+    pub by_dollar: [Cents; PERCENTILES_LEN],
+}
+
+impl CostBasisByPercentile {
+    /// Percentiles of nothing: undefined.
+    pub const NAN: Self = Self {
+        by_coin: [Cents::NAN; PERCENTILES_LEN],
+        by_dollar: [Cents::NAN; PERCENTILES_LEN],
+    };
+}
 
 /// A weighted cohort's cost basis: its mean creation prices from raw cost-basis moments, its
 /// percentiles and densities from its URPD.

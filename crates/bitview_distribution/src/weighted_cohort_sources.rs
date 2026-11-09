@@ -2,7 +2,6 @@ use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::WeightedCohortState;
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
-use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{
     CachedSeries, IndexSources, LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock,
     import_cached, ops::FixedToPercent,
@@ -10,6 +9,8 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+
+use crate::urpd_metrics::CostBasisVecs;
 
 /// The names of a weighted model's two sides: `awake` gives `sth_awake_supply_sats`.
 #[derive(Clone, Copy)]

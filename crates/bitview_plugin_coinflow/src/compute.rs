@@ -2,10 +2,10 @@ use std::iter;
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, write_chunks, write_locked};
+use bitview_distribution::urpd_metrics::compute_cost_basis;
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
-use bitview_urpd::compute_cost_basis;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;

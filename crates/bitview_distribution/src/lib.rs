@@ -1,6 +1,7 @@
 pub mod families;
 pub mod metrics;
 pub mod state;
+pub mod urpd_metrics;
 
 pub mod readers;
 mod realized_caps;

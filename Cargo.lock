@@ -1143,12 +1143,8 @@ name = "bitview_urpd"
 version = "0.13.0"
 dependencies = [
  "bitview_cohort",
- "bitview_compute",
  "bitview_primitives",
- "bitview_traversable",
- "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "rayon",
  "statedb",

@@ -1,14 +1,12 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
-use bitview_primitives::{
-    CentsCompact, CostBasisByPercentile, PERCENTILES, PERCENTILES_LEN, PartsPerMillion32,
-};
+use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN, PartsPerMillion32};
+use bitview_urpd::{COST_BASIS_PRICE_DIGITS, DensityBand, ProjectedBucket};
+use bitview_vecs::Density;
 use brk_types::Cents;
 
-use bitview_vecs::Density;
+use super::cost_basis::CostBasisByPercentile;
 
-use crate::{COST_BASIS_PRICE_DIGITS, DensityBand, ProjectedBucket};
-
-const COHORTS: usize = AgeAggregateId::ALL.len();
+pub(super) const COHORTS: usize = AgeAggregateId::ALL.len();
 
 /// One block's statistics and densities for one cohort.
 pub(super) struct CohortBlock {

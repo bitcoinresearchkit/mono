@@ -2,7 +2,7 @@ use std::{array, iter};
 
 use bitview_cohort::{AgeAggregate, AgeAggregateId, AgeRange};
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
-use bitview_primitives::CostBasisByPercentile;
+use bitview_urpd::{COMPUTE_VERSION, Replay, ReplayInputs};
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -11,11 +11,9 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecValue};
 
 use super::{
     CostBasisVecs,
-    metric_buckets::{CohortBlock, MetricBuckets},
+    cost_basis::CostBasisByPercentile,
+    metric_buckets::{COHORTS, CohortBlock, MetricBuckets},
 };
-use crate::{COMPUTE_VERSION, Replay, ReplayInputs};
-
-const COHORTS: usize = AgeAggregateId::ALL.len();
 
 /// Replays the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
 /// `cohorts` in `AgeAggregateId::ALL` order, then stores `spot` divided by each mean price.

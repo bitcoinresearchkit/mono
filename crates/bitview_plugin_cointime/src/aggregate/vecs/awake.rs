@@ -1,6 +1,6 @@
+use bitview_distribution::urpd_metrics::CostBasisVecs;
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
-use bitview_urpd::CostBasisVecs;
 use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock};
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
