@@ -75,7 +75,7 @@ impl Vecs {
                 mappings,
             );
 
-            let this = Self {
+            Ok(Self {
                 db,
                 circulating,
                 burned,
@@ -83,8 +83,7 @@ impl Vecs {
                 velocity,
                 market_cap,
                 market_cap_delta,
-            };
-            Ok(this)
+            })
         })
     }
 }

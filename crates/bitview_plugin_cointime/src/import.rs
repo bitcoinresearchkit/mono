@@ -54,7 +54,7 @@ impl Vecs {
             let reserve_risk =
                 reserve_risk::Vecs::import(&db, v1, mappings, window_starts, &spot_price)?;
 
-            let this = Self {
+            Ok(Self {
                 db,
                 urpd_replay: Default::default(),
                 activity,
@@ -66,8 +66,7 @@ impl Vecs {
                 prices,
                 adjusted,
                 reserve_risk,
-            };
-            Ok(this)
+            })
         })
     }
 }

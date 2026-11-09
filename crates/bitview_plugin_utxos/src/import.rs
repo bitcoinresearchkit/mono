@@ -25,13 +25,12 @@ impl Vecs {
                 &prices.spot.cents.height.read_only_boxed_clone(),
                 totals,
             )?;
-            let this = Self {
+            Ok(Self {
                 db,
                 caps,
                 cohorts,
                 live: None,
-            };
-            Ok(this)
+            })
         })
     }
 }

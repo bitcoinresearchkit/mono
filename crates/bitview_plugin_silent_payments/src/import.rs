@@ -7,7 +7,7 @@ use crate::{STORAGE, Vecs};
 impl Vecs {
     pub fn import(context: ImportContext<'_>) -> Result<Self> {
         STORAGE.import(context, 10_000_000, |db, version| {
-            let this = Self {
+            Ok(Self {
                 end_tweak_index: PcoVec::import(&db, "end_tweak_index", version)?,
                 tx_index: PcoVec::import(&db, "tweak_tx_index", version)?,
                 tweak_parity: PcoVec::import(&db, "tweak_parity", version)?,
@@ -26,8 +26,7 @@ impl Vecs {
                 )?,
                 spent_outputs_filter: BytesVec::import(&db, "spent_outputs_filter", version)?,
                 db,
-            };
-            Ok(this)
+            })
         })
     }
 }

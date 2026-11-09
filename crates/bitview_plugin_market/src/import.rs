@@ -18,14 +18,13 @@ impl Vecs {
             let range = range::Vecs::import(&db, version, mappings)?;
             let moving_average = moving_average::Vecs::import(&db, version, mappings)?;
 
-            let this = Self {
+            Ok(Self {
                 db,
                 ath,
                 returns,
                 range,
                 moving_average,
-            };
-            Ok(this)
+            })
         })
     }
 }

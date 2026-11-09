@@ -50,14 +50,13 @@ impl Vecs {
 
             let flag = indexer.vecs().transactions.features.op_return.flag_view();
 
-            let this = Self {
+            Ok(Self {
                 db,
                 flag,
                 total,
                 protocols,
                 policies,
-            };
-            Ok(this)
+            })
         })
     }
 }

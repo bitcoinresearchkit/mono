@@ -16,7 +16,7 @@ impl Vecs {
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
         STORAGE.import(context, 100_000, |db, version| {
-            let this = Self {
+            Ok(Self {
                 components: components::Components::import(
                     &db, version, mappings, holders, cointime, coinflow,
                 )?,
@@ -25,8 +25,7 @@ impl Vecs {
                 local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
                 cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
                 db,
-            };
-            Ok(this)
+            })
         })
     }
 }

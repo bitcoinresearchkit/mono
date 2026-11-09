@@ -25,7 +25,7 @@ impl Vecs {
                 &supply,
                 mappings,
             );
-            let this = Self {
+            Ok(Self {
                 supply,
                 circulating_supply,
                 count: PerBlock::import(&db, "utxo_count", version + Version::ONE, mappings)?,
@@ -33,8 +33,7 @@ impl Vecs {
                 spends_path,
                 creations_path,
                 db,
-            };
-            Ok(this)
+            })
         })
     }
 }

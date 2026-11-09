@@ -47,14 +47,13 @@ impl Vecs {
                 &count.cumulative.height,
             )?;
 
-            let this = Self {
+            Ok(Self {
                 spends: Spends::open(db.path())?,
                 db,
                 count,
                 per_second,
                 types,
-            };
-            Ok(this)
+            })
         })
     }
 }

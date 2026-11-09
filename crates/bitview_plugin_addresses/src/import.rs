@@ -58,7 +58,7 @@ impl Vecs {
                 windows,
             );
             let state = AddrStateVecs::import(&db, version)?;
-            let this = Self {
+            Ok(Self {
                 db,
                 live: None,
                 unpublished_state: None,
@@ -69,8 +69,7 @@ impl Vecs {
                 types,
                 balances,
                 state,
-            };
-            Ok(this)
+            })
         })
     }
 }

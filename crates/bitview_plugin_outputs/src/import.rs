@@ -44,7 +44,7 @@ impl Vecs {
             )?;
 
             let creations = Creations::open(db.path())?;
-            let this = Self {
+            Ok(Self {
                 creations,
                 db,
                 spent,
@@ -53,8 +53,7 @@ impl Vecs {
                 spendable_count,
                 types,
                 op_return_value,
-            };
-            Ok(this)
+            })
         })
     }
 }

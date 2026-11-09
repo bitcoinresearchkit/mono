@@ -31,7 +31,7 @@ impl Vecs {
                 weight.distribution(),
                 mappings,
             );
-            let this = Self {
+            Ok(Self {
                 count: count::block_count(version, indexer, mappings, &window_starts),
                 interval: IntervalVecs::import(&db, version, mappings, &window_starts)?,
                 size: BlockRolling::import(
@@ -54,8 +54,7 @@ impl Vecs {
                 difficulty: DifficultyVecs::new(version, indexer, mappings),
                 halving: HalvingVecs::new(version, mappings),
                 db,
-            };
-            Ok(this)
+            })
         })
     }
 }

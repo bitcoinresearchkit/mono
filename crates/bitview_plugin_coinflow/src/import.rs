@@ -21,13 +21,12 @@ impl Vecs {
 
             let age_ranges = AgeRangeVecs::import(&db, version, mappings, &spot_price, age)?;
             let aggregate = AggregateVecs::import(&db, version, mappings, &spot_price)?;
-            let this = Self {
+            Ok(Self {
                 db,
                 urpd_replay: Default::default(),
                 age_ranges,
                 aggregate,
-            };
-            Ok(this)
+            })
         })
     }
 }

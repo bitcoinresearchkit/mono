@@ -72,14 +72,13 @@ impl Vecs {
                     spot_price,
                 )
             })?;
-            let this = Self {
+            Ok(Self {
                 db,
                 modes,
                 calibration: None,
                 replay: Default::default(),
                 entry_supply: Default::default(),
-            };
-            Ok(this)
+            })
         })
     }
 }

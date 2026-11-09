@@ -65,7 +65,7 @@ impl Vecs {
             let per_second =
                 LazyPerSecondWindows::new("tx_per_second", version + Version::TWO, &count.rolling.sum);
 
-            let this = Self {
+            Ok(Self {
                 db,
                 count,
                 features,
@@ -77,8 +77,7 @@ impl Vecs {
                 versions,
                 transfer_volume,
                 per_second,
-            };
-            Ok(this)
+            })
         })
     }
 }

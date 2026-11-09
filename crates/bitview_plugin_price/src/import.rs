@@ -20,7 +20,7 @@ impl Vecs {
             );
             let oracle_bin = PcoVec::import(&db, "oracle_bin", version)?;
 
-            let this = Self {
+            Ok(Self {
                 db,
                 split,
                 ohlc,
@@ -28,8 +28,7 @@ impl Vecs {
                 sats_per_dollar,
                 oracle_bin,
                 oracle: None,
-            };
-            Ok(this)
+            })
         })
     }
 }

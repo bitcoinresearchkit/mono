@@ -15,12 +15,11 @@ impl Vecs {
             let rewards = rewards::Vecs::import(&db, version, mappings, window_starts)?;
             let hash = hash::Vecs::import(&db, version, mappings)?;
 
-            let this = Self {
+            Ok(Self {
                 db,
                 rewards,
                 hash,
-            };
-            Ok(this)
+            })
         })
     }
 }
