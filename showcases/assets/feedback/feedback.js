@@ -160,16 +160,19 @@
       ready();
     });
 
-    // (Focus goes back on its own: a popover closed by Esc returns it, one closed by a tap elsewhere leaves it there.)
+    /** What had the focus, given back as the card goes, unless a tap elsewhere has already put it somewhere. */
+    let opener = /** @type {HTMLElement | null} */ (null);
     card.addEventListener("toggle", (/** @type {ToggleEvent} */ event) => {
       if (event.newState !== "closed") return;
       clearTimeout(closing);
       card.classList.remove("is-done");
       $("#sent").textContent = "";
+      if (document.activeElement === document.body || document.activeElement === host) opener?.focus({ preventScroll: true });
     });
 
     function show() {
       if (card.matches(":popover-open")) return;
+      opener = /** @type {HTMLElement | null} */ (document.activeElement);
       say(INCLUDED);
       ready();
       card.showPopover();
