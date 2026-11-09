@@ -2,7 +2,7 @@ use std::ops::{AddAssign, Range, SubAssign};
 
 use bitview_compute::{WRITE_INTERVAL, write_chunks, write_locked};
 use bitview_traversable::Traversable;
-use bitview_urpd::ReplayInputs;
+use bitview_urpd::StoredReplayInputs;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{BLOCKS_PER_HALVING, Cents, CentsSats, Sats};
@@ -93,7 +93,7 @@ impl EntrySupply {
         &mut self,
         range: &Range<usize>,
         modes: &Modes<ModeVecs>,
-        inputs: ReplayInputs<'_>,
+        inputs: StoredReplayInputs<'_>,
     ) -> Result<()> {
         let index = |height: usize| height.max(FLOOR_SUPPLY_START) - FLOOR_SUPPLY_START;
         self.prices.truncate(index(range.start));
@@ -104,7 +104,7 @@ impl EntrySupply {
             range.end.max(FLOOR_SUPPLY_START),
         );
         self.prices
-            .extend(inputs.prices.collect_range_dyn(from, end));
+            .extend(inputs.prices.collect_range_at(from, end));
         self.bands.resize(index(end), Modes::default());
         // One mode's floors at a time bounds the memory a long rebuild takes.
         for &mode in ModeId::ALL {

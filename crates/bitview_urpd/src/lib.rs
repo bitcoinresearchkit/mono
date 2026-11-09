@@ -22,4 +22,4 @@ mod replay;
 mod replay_inputs;
 mod replay_state;
 pub use replay::Replay;
-pub use replay_inputs::ReplayInputs;
+pub use replay_inputs::{ReplayInputs, StoredReplayInputs};

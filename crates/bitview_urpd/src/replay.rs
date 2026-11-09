@@ -4,6 +4,7 @@ use brk_error::{Error, Result};
 use brk_types::{Cents, Height, Timestamp, Version};
 use rayon::{current_num_threads, prelude::*};
 use statedb::{Reader, SNAPSHOT_INTERVAL, State};
+use vecdb::ReadableVec;
 
 use crate::{OriginUrpd, ReplayInputs, replay_state::ReplayState};
 
@@ -25,7 +26,11 @@ impl Replay {
     fn for_each(
         &mut self,
         range: Range<usize>,
-        inputs: ReplayInputs<'_>,
+        inputs: ReplayInputs<
+            '_,
+            impl ReadableVec<Height, Cents>,
+            impl ReadableVec<Height, Timestamp>,
+        >,
         mut consume: impl FnMut(Height, Cents, &OriginUrpd) -> Result<()>,
     ) -> Result<()> {
         if range.is_empty() {
@@ -47,14 +52,14 @@ impl Replay {
             _ => None,
         };
         let price_start = if cached.is_some() { range.start } else { 0 };
-        let prices = prices.collect_range_dyn(price_start, range.end);
+        let prices = prices.collect_range_at(price_start, range.end);
         let mut state = if let Some(mut state) = cached {
             state
                 .timestamps
-                .extend(timestamps.collect_range_dyn(range.start, range.end));
+                .extend(timestamps.collect_range_at(range.start, range.end));
             state
         } else {
-            let timestamps = timestamps.collect_range_dyn(0, range.end);
+            let timestamps = timestamps.collect_range_at(0, range.end);
             let (origins, source) = restore(history, &prices, &timestamps, range.start)?;
             ReplayState {
                 origins,
@@ -83,7 +88,11 @@ impl Replay {
     pub fn map<W, R: Send>(
         &mut self,
         range: Range<usize>,
-        inputs: ReplayInputs<'_>,
+        inputs: ReplayInputs<
+            '_,
+            impl ReadableVec<Height, Cents>,
+            impl ReadableVec<Height, Timestamp>,
+        >,
         worker: impl Fn(Range<usize>) -> W + Sync,
         compute: impl Fn(&mut W, Height, Cents, &OriginUrpd) -> Result<R> + Sync,
         mut consume: impl FnMut(Height, R) -> Result<()>,
@@ -101,8 +110,8 @@ impl Replay {
             prices,
             timestamps,
         } = inputs;
-        let prices = prices.collect_range_dyn(0, range.end);
-        let timestamps = timestamps.collect_range_dyn(0, range.end);
+        let prices = prices.collect_range_at(0, range.end);
+        let timestamps = timestamps.collect_range_at(0, range.end);
         let mut segments = Vec::new();
         let mut start = range.start;
         while start < range.end {
@@ -173,7 +182,7 @@ fn replay_segment<W, R>(
 /// The sources' versions, once they cover `range`.
 fn check_sources(
     range: &Range<usize>,
-    inputs: ReplayInputs<'_>,
+    inputs: ReplayInputs<'_, impl ReadableVec<Height, Cents>, impl ReadableVec<Height, Timestamp>>,
 ) -> Result<(Version, Version, (u64, u64))> {
     let ReplayInputs {
         history,

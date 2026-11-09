@@ -14,4 +14,4 @@ bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["vecdb"] }
 brk_types = { workspace = true, features = ["storage"] }
 rayon = { workspace = true }
-vecdb = { workspace = true }
+vecdb = { workspace = true, features = ["pco"] }

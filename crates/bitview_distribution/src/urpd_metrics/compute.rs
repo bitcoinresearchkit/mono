@@ -2,7 +2,7 @@ use std::{array, iter};
 
 use bitview_cohort::{AgeAggregate, AgeAggregateId, AgeRange};
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
-use bitview_urpd::{COMPUTE_VERSION, Replay, ReplayInputs};
+use bitview_urpd::{COMPUTE_VERSION, Replay, StoredReplayInputs};
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -23,7 +23,7 @@ pub fn compute_cost_basis<W: VecValue>(
     mut cohorts: [&mut CostBasisVecs; COHORTS],
     version: Version,
     recompute_from: usize,
-    inputs: ReplayInputs<'_>,
+    inputs: StoredReplayInputs<'_>,
     weights: &AgeRange<&(impl ReadableVec<Height, W> + Sync)>,
     supplies: &AgeRange<&(impl ReadableVec<Height, Sats> + Sync)>,
     spot: &impl ReadableVec<Height, Cents>,

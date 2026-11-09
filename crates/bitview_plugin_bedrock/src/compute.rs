@@ -7,7 +7,7 @@ use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
-use bitview_urpd::{COMPUTE_VERSION as URPD_COMPUTE_VERSION, ReplayInputs};
+use bitview_urpd::{COMPUTE_VERSION as URPD_COMPUTE_VERSION, StoredReplayInputs};
 use brk_error::Result;
 use brk_types::Version;
 use log::info;
@@ -185,7 +185,7 @@ impl Vecs {
     fn compute_entry_supply(
         &mut self,
         max_from: usize,
-        urpd: ReplayInputs<'_>,
+        urpd: StoredReplayInputs<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let floors = Inputs::new(
