@@ -1,13 +1,31 @@
 use std::array;
 
-use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AGE_BOUNDARIES, AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Timestamp};
-use rustc_hash::FxHashMap;
 use statedb::{Cursor, State};
 
 use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket, projection::Projection};
+
+/// Prices below this many cents aren't rounded.
+const EXACT_PRICES: u32 = 10u32.pow(COST_BASIS_PRICE_DIGITS);
+/// The rounded prices a decade above those holds.
+const PRICES_PER_DECADE: u32 = EXACT_PRICES - EXACT_PRICES / 10;
+/// Every price rounding can produce, a place each.
+const PRICE_PLACES: usize = (EXACT_PRICES + PRICES_PER_DECADE * (u32::MAX.ilog10() + 1 - COST_BASIS_PRICE_DIGITS)) as usize;
+
+/// A rounded price's place among all the prices rounding can produce, in ascending price order.
+#[inline]
+fn price_place(rounded: CentsCompact) -> usize {
+    let cents = rounded.inner();
+    if cents < EXACT_PRICES {
+        return cents as usize;
+    }
+    let decade = cents.ilog10() - COST_BASIS_PRICE_DIGITS;
+    let leading = cents / 10u32.pow(decade + 1);
+    (EXACT_PRICES + PRICES_PER_DECADE * decade + leading - EXACT_PRICES / 10) as usize
+}
 
 /// A price/age view of reconstructed history. Queries build it for one block;
 /// sequential consumers retain it and apply diffs without rebuilding it. Origin
@@ -31,26 +49,50 @@ impl OriginUrpd {
         {
             return Err(Error::Internal("invalid origin price/timestamp coverage"));
         }
-        let rounded =
-            |p: Cents| CentsCompact::from(p).round_to_significant(COST_BASIS_PRICE_DIGITS);
-        let mut slots = FxHashMap::default();
-        let origin_buckets: Vec<_> = prices
+        debug_assert!(timestamps.is_sorted(), "origin timestamps must be monotonic");
+        // Each place's price, found once: walking the places then gives the prices in order.
+        let mut at_place = vec![CentsCompact::NAN; PRICE_PLACES];
+        let mut origin_buckets: Vec<u32> = prices
             .iter()
             .map(|&price| {
-                let next = slots.len() as u32;
-                *slots.entry(rounded(price)).or_insert(next)
+                let rounded =
+                    CentsCompact::from(price).round_to_significant(COST_BASIS_PRICE_DIGITS);
+                let place = price_place(rounded);
+                at_place[place] = rounded;
+                place as u32
             })
             .collect();
-        let mut sorted: Vec<_> = slots.into_iter().collect();
-        sorted.sort_unstable_by_key(|&(price, _)| price);
-        let mut amounts: [Vec<u64>; AGE_RANGE_COUNT] = array::from_fn(|_| vec![0; sorted.len()]);
-        if let Some(&current) = timestamps.get(state.len().wrapping_sub(1)) {
-            for (h, amount) in state.amounts().iter().enumerate() {
-                if amount.sats == 0 {
-                    continue;
+        let mut sorted = Vec::new();
+        let slots: Vec<u32> = at_place
+            .iter()
+            .map(|&price| {
+                let slot = sorted.len() as u32;
+                if !price.is_nan() {
+                    sorted.push((price, slot));
                 }
-                let age = AgeRangeId::from(Age::new(current, timestamps[h]));
-                amounts[age.index()][origin_buckets[h] as usize] += amount.sats;
+                slot
+            })
+            .collect();
+        for bucket in &mut origin_buckets {
+            *bucket = slots[*bucket as usize];
+        }
+        let mut amounts: [Vec<u64>; AGE_RANGE_COUNT] = array::from_fn(|_| vec![0; sorted.len()]);
+        let len = state.len();
+        if let Some(&current) = timestamps.get(len.wrapping_sub(1)) {
+            // Older blocks first: an age range is a run of blocks, as timestamps never go down.
+            let mut start = 0;
+            for (age, column) in amounts.iter_mut().enumerate().rev() {
+                let end = age.checked_sub(1).map_or(len, |younger| {
+                    timestamps[..len]
+                        .partition_point(|&t| current.hours_since(t) >= AGE_BOUNDARIES[younger])
+                });
+                for (amount, &slot) in state.amounts()[start..end]
+                    .iter()
+                    .zip(&origin_buckets[start..end])
+                {
+                    column[slot as usize] += amount.sats;
+                }
+                start = end;
             }
         }
         let occupied = (0..sorted.len())
@@ -60,16 +102,14 @@ impl OriginUrpd {
                 })
             })
             .collect();
-        let mut source = Self {
+        Ok(Self {
+            reorder_at: sorted.len().max(1) * 2,
             prices: sorted,
             amounts,
             occupied,
             origin_buckets,
             crossings: [0; AGE_RANGE_COUNT - 1],
-            reorder_at: 0,
-        };
-        source.reorder_slots();
-        Ok(source)
+        })
     }
     /// Adds the next block's creation price without rebuilding the occupied histogram.
     pub(crate) fn push_price(&mut self, price: Cents) -> Result<()> {

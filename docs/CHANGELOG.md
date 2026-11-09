@@ -89,6 +89,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The mining statistics are tagged by the chain's tip: a revalidation answers 304 before building (`/blocks/*/all`'s
   304s took 31-46 ms; now under 1 ms)
 - `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
+- A URPD's price distribution is built without hashing, sorting or reordering its prices, and each age range as one run
+  of blocks: 15-22 ms → 5-6 ms for a recent block, and one dependency fewer (`rustc-hash` in `bitview_urpd`)
 - A mempool rebuild linearizes only the components that changed since the last one: idle at 44.6k transactions, 4.5%
   of a core (6.3% before, with the cheaper ancestor-set search for every component, every second)
 - A single-block update reads only the new blocks' frames, not on into Core's preallocated zero tail (33 µs → 1.2 µs
