@@ -1,16 +1,15 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
-use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::PartsPerMillionSigned64;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazyWindowStartVec, ValuePerBlockCumulativeRolling, shapes::Windows,
+    LazySpotValuePerBlock, LazyWindowStartVec, ValuePerBlockCumulativeRolling, shapes::Windows,
 };
 use brk_error::Result;
-use brk_types::{Height, Sats, Version};
-use vecdb::{Ident, LazyVec, ReadableCloneableVec};
+use brk_types::{Cents, Height, Sats, Version};
+use vecdb::{Ident, LazyVec, ReadableBoxedVec, ReadableCloneableVec};
 
 use crate::{STORAGE, Vecs, velocity};
 
@@ -19,13 +18,13 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        holders: &HoldersVecs,
+        supply_metrics: &LazySpotValuePerBlock,
+        market_cap_source: &ReadableBoxedVec<Height, Cents>,
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 1_000_000)?;
         let version = STORAGE.schema_version();
-        let supply_metrics = &holders.cohorts.all.supply.total;
 
         let circulating = LazyPerBlock::from_lazy::<Ident, Sats>(
             "circulating_supply",
@@ -66,7 +65,7 @@ impl Vecs {
         let market_cap = LazyFiatPerBlock::from_cents_source(
             "market_cap",
             version,
-            holders.all_market_cap(),
+            market_cap_source,
             mappings,
         );
 

@@ -16,8 +16,8 @@ impl ComputePlugin for Vecs {
         let starting_lengths = context.start();
         let Dependencies {
             indexer,
-            fees,
-            price,
+            fee,
+            spot_cents,
         } = dependencies;
         let exit = context.exit();
 
@@ -30,7 +30,7 @@ impl ComputePlugin for Vecs {
             + raw.post_op_return_bytes.version()
             + txs.first_tx_index.version()
             + txs.weight.version()
-            + fees.fee.tx.version();
+            + fee.version();
 
         let skip = prepare_computed(
             self.stored_mut().collect::<Vec<_>>(),
@@ -40,16 +40,15 @@ impl ComputePlugin for Vecs {
         )?;
         let end = raw.first_index.len();
         for chunk in write_chunks(skip..end) {
-            Batch::collect(indexer, fees, chunk).push_into(self);
+            Batch::collect(indexer, fee, chunk).push_into(self);
             write_locked(self.stored_mut(), exit)?;
         }
 
-        let prices = &price.spot.cents.height;
         for bucket in self.buckets_mut() {
             bucket
                 .fees
                 .fees
-                .compute_cents(starting_lengths.height, prices, exit)?;
+                .compute_cents(starting_lengths.height, spot_cents, exit)?;
         }
         Ok(())
     }

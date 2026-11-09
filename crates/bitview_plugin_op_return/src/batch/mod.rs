@@ -3,7 +3,6 @@ mod carrier;
 use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_transactions::FeesVecs;
 use bitview_primitives::{Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnKind, OpReturnOutputIndex};
 use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
@@ -23,7 +22,11 @@ pub struct Batch {
 }
 
 impl Batch {
-    pub fn collect(indexer: &Indexer, fee_vecs: &FeesVecs, heights: Range<usize>) -> Self {
+    pub fn collect(
+        indexer: &Indexer,
+        fee: &impl ReadableVec<TxIndex, Sats>,
+        heights: Range<usize>,
+    ) -> Self {
         let vecs = indexer.vecs();
         let raw = &vecs.op_return;
         let mut first_indexes = raw
@@ -61,7 +64,7 @@ impl Batch {
                     .weight
                     .read_sorted_at(&carrier_tx_positions)
             },
-            || fee_vecs.fee.tx.read_sorted_at(&carrier_tx_positions),
+            || fee.read_sorted_at(&carrier_tx_positions),
         );
 
         Self {

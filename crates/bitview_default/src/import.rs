@@ -237,7 +237,8 @@ impl DefaultPlugins {
                         context,
                         &mappings,
                         &window_starts,
-                        &holders,
+                        &holders.cohorts.all.supply.total,
+                        holders.all_market_cap(),
                         &all_chain,
                         &transactions,
                     )

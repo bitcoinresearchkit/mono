@@ -22,7 +22,7 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             mappings,
-            price,
+            spot_cents,
         } = dependencies;
         let Vecs {
             count,
@@ -38,7 +38,6 @@ impl ComputePlugin for Vecs {
         } = self;
         let exit = context.exit();
         let start = starting_lengths.height;
-        let price = &price.spot.cents.height;
 
         // The counts, from the indexer's, apart from the values the fee pass gives the same kinds.
         let (feature_counts, feature_values) = features.split_mut();
@@ -54,7 +53,7 @@ impl ComputePlugin for Vecs {
                             || {
                                 patterns.compute(indexer, mappings, starting_lengths, exit)?;
                                 patterns.kinds_mut().into_iter().try_for_each(|kind| {
-                                    kind.value.compute_cents(start, price, exit)
+                                    kind.value.compute_cents(start, spot_cents, exit)
                                 })
                             },
                         )
@@ -122,12 +121,12 @@ impl ComputePlugin for Vecs {
                     || {
                         values
                             .par_iter_mut()
-                            .try_for_each(|value| value.compute_cents(start, price, exit))
+                            .try_for_each(|value| value.compute_cents(start, spot_cents, exit))
                     },
-                    || transfer_volume.compute_cents(start, price, exit),
+                    || transfer_volume.compute_cents(start, spot_cents, exit),
                 );
                 kinds.and(volume)?;
-                inscription.fees.compute_cents(start, price, exit)
+                inscription.fees.compute_cents(start, spot_cents, exit)
             },
         );
         independent.and(fee_based)

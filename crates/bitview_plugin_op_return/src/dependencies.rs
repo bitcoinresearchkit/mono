@@ -1,9 +1,10 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_plugin_transactions::FeesVecs;
+use bitview_vecs::CachedSeries;
+use brk_types::{Cents, Height, Sats, TxIndex};
+use vecdb::PcoVec;
 
 pub struct Dependencies<'a> {
     pub indexer: &'a Indexer,
-    pub fees: &'a FeesVecs,
-    pub price: &'a PriceVecs,
+    pub fee: &'a PcoVec<TxIndex, Sats>,
+    pub spot_cents: &'a CachedSeries<Height, Cents>,
 }

@@ -1,11 +1,10 @@
 use bitview_compute::{prepare_computed, write_chunks};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Height;
+use brk_types::{Cents, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
 
@@ -20,13 +19,25 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let start = context.start().height;
-        let Dependencies { indexer, mining } = dependencies;
+        let Dependencies {
+            indexer,
+            coinbase_sats,
+            coinbase_cents,
+            fee_sats,
+            fee_cents,
+        } = dependencies;
         let exit = context.exit();
 
         // Blocks and their totals publish together, once both are complete.
         let mut snapshot = self.heights.stage();
         self.compute_pool(indexer, start, exit, &mut snapshot)?;
-        self.fill_rewards(mining, &mut snapshot);
+        self.fill_rewards(
+            coinbase_sats,
+            coinbase_cents,
+            fee_sats,
+            fee_cents,
+            &mut snapshot,
+        );
         self.heights.publish(snapshot);
         Ok(())
     }
@@ -34,46 +45,51 @@ impl ComputePlugin for Vecs {
 
 impl Vecs {
     /// Folds every new block's coinbase and fees into its pool's running totals.
-    fn fill_rewards(&self, mining: &MiningVecs, snapshot: &mut PoolSnapshot) {
-        let rewards = &mining.rewards;
-        let coinbase = &rewards.coinbase.block;
-        let fees = &rewards.fees.block;
-        let version = coinbase.sats.version()
-            + coinbase.cents.version()
-            + fees.sats.version()
-            + fees.cents.version();
+    fn fill_rewards(
+        &self,
+        coinbase_sats: &impl ReadableVec<Height, Sats>,
+        coinbase_cents: &impl ReadableVec<Height, Cents>,
+        fee_sats: &impl ReadableVec<Height, Sats>,
+        fee_cents: &impl ReadableVec<Height, Cents>,
+        snapshot: &mut PoolSnapshot,
+    ) {
+        let version = coinbase_sats.version()
+            + coinbase_cents.version()
+            + fee_sats.version()
+            + fee_cents.version();
         let to = self
             .block_pool
             .len()
-            .min(coinbase.sats.len())
-            .min(coinbase.cents.len())
-            .min(fees.sats.len())
-            .min(fees.cents.len());
+            .min(coinbase_sats.len())
+            .min(coinbase_cents.len())
+            .min(fee_sats.len())
+            .min(fee_cents.len());
         // A shorter source re-fills from its end, so no stale total survives.
         let from = snapshot.resume_totals(version, to);
-        let (mut slugs, mut coinbase_sats, mut coinbase_cents, mut fee_sats, mut fee_cents) =
-            Default::default();
+        let (
+            mut slugs,
+            mut coinbase_sats_values,
+            mut coinbase_cents_values,
+            mut fee_sats_values,
+            mut fee_cents_values,
+        ) = Default::default();
         // Bounded chunks: long refills keep little scratch.
         for chunk in write_chunks(from..to) {
             let (start, end) = (chunk.start, chunk.end);
             self.block_pool
                 .collect_range_into_at(start, end, &mut slugs);
-            coinbase
-                .sats
-                .collect_range_into_at(start, end, &mut coinbase_sats);
-            coinbase
-                .cents
-                .collect_range_into_at(start, end, &mut coinbase_cents);
-            fees.sats.collect_range_into_at(start, end, &mut fee_sats);
-            fees.cents.collect_range_into_at(start, end, &mut fee_cents);
+            coinbase_sats.collect_range_into_at(start, end, &mut coinbase_sats_values);
+            coinbase_cents.collect_range_into_at(start, end, &mut coinbase_cents_values);
+            fee_sats.collect_range_into_at(start, end, &mut fee_sats_values);
+            fee_cents.collect_range_into_at(start, end, &mut fee_cents_values);
             let blocks = (0..end - start).map(|i| {
                 (
                     slugs[i],
                     [
-                        u64::from(coinbase_sats[i]),
-                        u64::from(coinbase_cents[i]),
-                        u64::from(fee_sats[i]),
-                        u64::from(fee_cents[i]),
+                        u64::from(coinbase_sats_values[i]),
+                        u64::from(coinbase_cents_values[i]),
+                        u64::from(fee_sats_values[i]),
+                        u64::from(fee_cents_values[i]),
                     ],
                 )
             });

@@ -1,11 +1,10 @@
 use bitview_compute::ComputeRollingStats;
-use bitview_plugin_blocks::DifficultyVecs;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Dollars, Height, Sats, TARGET_BLOCKS_PER_DAY_F64};
-use vecdb::{AnyVec, ComputeVec, LazyVec, ReadableCloneableVec, ReadableVec};
+use vecdb::{ComputeVec, LazyVec, ReadableCloneableVec, ReadableVec};
 
 use super::Vecs;
 
@@ -21,7 +20,7 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         lookback: &LookbackVecs,
-        difficulty_vecs: &DifficultyVecs,
+        difficulty_hashrate: &impl ReadableCloneableVec<Height, Hashrate>,
         coinbase_sats_24h_sum: &impl ReadableVec<Height, Sats>,
         coinbase_usd_24h_sum: &impl ReadableVec<Height, Dollars>,
         starting_height: Height,
@@ -30,8 +29,8 @@ impl Vecs {
         // Each block's share of a day's work at the ten-minute target, summed over 24 hours.
         let daily_share = LazyVec::new(
             "difficulty_hashrate_daily_share",
-            difficulty_vecs.hashrate.height.version(),
-            difficulty_vecs.hashrate.height.read_only_boxed_clone(),
+            difficulty_hashrate.version(),
+            difficulty_hashrate.read_only_boxed_clone(),
             |_, hashrate: Hashrate| Hashrate::from(f64::from(hashrate) / TARGET_BLOCKS_PER_DAY_F64),
         );
         self.hashrate.value.height.compute_rolling_sum(

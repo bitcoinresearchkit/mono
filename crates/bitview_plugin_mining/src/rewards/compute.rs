@@ -1,10 +1,9 @@
 use bitview_plugin_mappings::LookbackVecs;
-use bitview_plugin_price::Vecs as PriceVecs;
-use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CheckedSub, Height, Sats};
+use brk_types::{Cents, CheckedSub, Height, Sats};
 use rayon::join;
+use vecdb::ReadableVec;
 
 use super::Vecs;
 
@@ -22,8 +21,9 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         lookback: &LookbackVecs,
-        transactions: &TransactionsVecs,
-        prices: &PriceVecs,
+        coinbase_value: &impl ReadableVec<Height, Sats>,
+        total_fees: &impl ReadableVec<Height, Sats>,
+        spot_cents: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
         exit: &Exit,
     ) -> Result<()> {
@@ -33,8 +33,8 @@ impl Vecs {
             || {
                 self.coinbase.compute_from(
                     starting_height,
-                    &prices.spot.cents.height,
-                    &transactions.fees.coinbase_value,
+                    spot_cents,
+                    coinbase_value,
                     |_, value| value,
                     exit,
                 )
@@ -43,8 +43,8 @@ impl Vecs {
                 self.fees.compute_from(
                     starting_height,
                     &window_starts,
-                    &prices.spot.cents.height,
-                    &transactions.fees.total,
+                    spot_cents,
+                    total_fees,
                     exit,
                 )
             },
@@ -54,7 +54,7 @@ impl Vecs {
 
         self.subsidy.compute_from_pair(
             starting_height,
-            &prices.spot.cents.height,
+            spot_cents,
             &self.coinbase.block.sats,
             &self.fees.block.sats,
             claimed_subsidy,
@@ -63,7 +63,7 @@ impl Vecs {
 
         self.unclaimed.compute_from_pair(
             starting_height,
-            &prices.spot.cents.height,
+            spot_cents,
             &self.coinbase.block.sats,
             &self.fees.block.sats,
             unclaimed_rewards,

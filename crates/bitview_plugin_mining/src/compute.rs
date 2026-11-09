@@ -15,23 +15,25 @@ impl ComputePlugin for Vecs {
         let starting_height = context.start().height;
         let Dependencies {
             mappings,
-            blocks,
-            transactions,
+            difficulty_hashrate,
+            coinbase_value,
+            total_fees,
             price: prices,
         } = dependencies;
         let exit = context.exit();
 
         self.rewards.compute(
             &mappings.lookback,
-            transactions,
-            prices,
+            coinbase_value,
+            total_fees,
+            &prices.spot.cents.height,
             starting_height,
             exit,
         )?;
 
         self.hash.compute(
             &mappings.lookback,
-            &blocks.difficulty,
+            &difficulty_hashrate.height,
             &self.rewards.coinbase.sum._24h.sats.height,
             &self.rewards.coinbase.sum._24h.usd.height,
             starting_height,

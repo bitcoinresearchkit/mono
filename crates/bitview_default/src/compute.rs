@@ -153,7 +153,7 @@ impl DefaultPlugins {
                             TransactionsDependencies {
                                 indexer,
                                 mappings,
-                                price,
+                                spot_cents: &price.spot.cents.height,
                             },
                             context,
                         )
@@ -167,8 +167,8 @@ impl DefaultPlugins {
                         op_return,
                         OpReturnDependencies {
                             indexer,
-                            fees: &transactions.fees,
-                            price,
+                            fee: &transactions.fees.fee.tx,
+                            spot_cents: &price.spot.cents.height,
                         },
                         context,
                     )
@@ -177,15 +177,26 @@ impl DefaultPlugins {
                     &mut *self.mining,
                     MiningDependencies {
                         mappings,
-                        blocks: self.blocks.as_ref(),
-                        transactions,
+                        difficulty_hashrate: &self.blocks.difficulty.hashrate,
+                        coinbase_value: &transactions.fees.coinbase_value,
+                        total_fees: &transactions.fees.total,
                         price,
                     },
                     context,
                 )?;
                 let mining = self.mining.as_ref();
                 let pools = scope.spawn(move || {
-                    timed_compute(pools, PoolsDependencies { indexer, mining }, context)
+                    timed_compute(
+                        pools,
+                        PoolsDependencies {
+                            indexer,
+                            coinbase_sats: &mining.rewards.coinbase.block.sats,
+                            coinbase_cents: &mining.rewards.coinbase.block.cents,
+                            fee_sats: &mining.rewards.fees.block.sats,
+                            fee_cents: &mining.rewards.fees.block.cents,
+                        },
+                        context,
+                    )
                 });
                 Ok((mining, transactions, [op_return, pools]))
             });
@@ -353,7 +364,7 @@ impl DefaultPlugins {
                                 holders,
                                 cointime,
                                 coinflow,
-                                price,
+                                spot_cents: &price.spot.cents.height,
                             },
                             context,
                         )

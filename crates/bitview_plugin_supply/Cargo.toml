@@ -12,7 +12,6 @@ bitview_distribution = { workspace = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_holders = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_plugin_outputs = { workspace = true }

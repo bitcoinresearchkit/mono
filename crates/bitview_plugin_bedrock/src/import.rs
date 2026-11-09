@@ -1,5 +1,4 @@
 use bitview_plugin::ImportContext;
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::FixedToPercent};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
@@ -59,7 +58,7 @@ impl ModeVecs {
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
-        mappings: &MappingsVecs,
+        mappings: &IndexSources,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;

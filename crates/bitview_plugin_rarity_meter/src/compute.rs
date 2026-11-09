@@ -18,14 +18,19 @@ impl ComputePlugin for Vecs {
             holders,
             cointime,
             coinflow,
-            price: prices,
+            spot_cents,
         } = dependencies;
 
-        let spot = &prices.spot.cents.height;
         let (components_result, extremes_result) = join(
             || {
-                self.components
-                    .compute(holders, cointime, coinflow, spot, starting_lengths, exit)
+                self.components.compute(
+                    holders,
+                    cointime,
+                    coinflow,
+                    spot_cents,
+                    starting_lengths,
+                    exit,
+                )
             },
             || self.extremes.compute(starting_lengths.height, exit),
         );
@@ -43,11 +48,11 @@ impl ComputePlugin for Vecs {
             (&mut self.cycle, &cycle),
             (&mut self.full, &full),
         ];
-        let has_work = jobs
-            .iter()
-            .any(|(inner, components)| inner.needs_compute(components, spot, starting_height));
+        let has_work = jobs.iter().any(|(inner, components)| {
+            inner.needs_compute(components, spot_cents, starting_height)
+        });
         let compute = |(inner, components): (&mut RarityMeterInner, &[&Component])| {
-            inner.compute(components, spot, starting_height, exit)
+            inner.compute(components, spot_cents, starting_height, exit)
         };
         if has_work {
             jobs.into_par_iter().try_for_each(compute)
