@@ -26,6 +26,13 @@
   // (A way to send a note: its own file. A page's button is a plain one to style, from before the page is drawn: nothing moves.)
   document.head.append(Object.assign(document.createElement("script"), { src: "/assets/feedback/feedback.js", fetchPriority: "low" }));
   document.head.append(Object.assign(document.createElement("style"), { textContent: ":where(button[data-feedback]) { position: relative; appearance: none; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; &::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) -8px; } }" }));
+  // (The page's recent errors, for a note to carry if one is ever sent: in memory, this page's, the last five, from its
+  // very start, which is why here. Failed files too: a script that didn't load explains a lot.)
+  const errors = /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors = []);
+  const noted = (/** @type {string} */ text) => { if (errors.at(-1) !== text && (errors.push(text.slice(0, 300)), errors.length > 5)) errors.shift(); };
+  const place = (/** @type {string} */ address) => { try { const url = new URL(address, location.href); return url.origin === location.origin ? url.pathname : "another site"; } catch { return "somewhere"; } };
+  addEventListener("error", (event) => noted(event.message ? `${event.message} (${place(event.filename)}:${event.lineno})` : `Couldn't load ${place(/** @type {any} */ (event.target)?.src ?? /** @type {any} */ (event.target)?.href ?? "")}`), true);
+  addEventListener("unhandledrejection", (event) => noted(String(event.reason?.message ?? event.reason)));
   // (Answered here, so a press before that file has come isn't lost: it opens as soon as it has.)
   document.addEventListener("click", (event) => {
     if (!/** @type {Element} */ (event.target).closest?.("[data-feedback]")) return;

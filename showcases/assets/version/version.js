@@ -16,6 +16,8 @@
   /** The page's version as loaded: read as it loads (a deploy in the moment between the page and this read is
    * missed), else on the next look (the read failed, or a CDN's copy from before the header). */
   let was = served().catch(() => null);
+  // (What was read as the page loaded, for a feedback note: the page's own version, not whatever's served by then.)
+  /** @type {any} */ (window).bitviewPageVersion = () => was;
   /** Shown, not yet dismissed: nothing more's looked at meanwhile. */
   let showing = false;
 

@@ -7,7 +7,7 @@
 // reads it through Cloudflare's own API, so this hostname has no read or admin route to attack.
 
 /** The most a body may weigh, read as it arrives (a chunked request states no length). */
-const MAX_BODY = 16_384;
+const MAX_BODY = 32_768;
 const MAX_MESSAGE = 4_000;
 const MAX_CONTACT = 200;
 /** Unread messages the inbox holds before it refuses more: the job empties it. */
@@ -15,10 +15,22 @@ const MAX_UNREAD = 2_000;
 
 /** The app's folder alone: `/explorer/address/bc1...` would name an address. */
 const PAGE = /^\/(?:[a-z0-9_-]{1,40}\/)?$/;
-/** The exact address the sender chose to attach: same-site only, printable ASCII. */
+/** The exact address, masked by the page, unless the sender unticked it: same-site only, printable ASCII. */
 const LINK = /^(?:\/[\x21-\x7e]{0,5999})?$/;
 const VERSION = /^[\w-]{0,64}$/;
 const BROWSER = /^(?:chromium|firefox|safari|other)-(?:phone|desk)$/;
+/** What's sent so a report can be reproduced, each by its exact shape: none of it can carry words. */
+const CONTEXT = {
+  build: /^[\w.+-]{0,40}$/,
+  os: /^(?:ios|android|macos|windows|linux|other)$/,
+  major: /^\d{0,4}$/,
+  viewport: /^\d{1,5}x\d{1,5}$/,
+  scale: /^\d(?:\.\d)?$/,
+  theme: /^(?:light|dark)$/,
+  mode: /^(?:app|browser)$/,
+};
+const MAX_ERRORS = 5;
+const MAX_ERROR = 300;
 
 /** Everything invisible goes: controls, formats (bidi overrides, zero-widths, Unicode tags), private and unassigned
  * code points, line and paragraph separators and variation selectors, the carriers of text meant for a model and not
@@ -53,10 +65,18 @@ async function read(request) {
   }
 }
 
-/** @param {string} text */
-async function digest(text) {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+/** The context kept: only the known fields, each checked, the errors one line each. Null if anything's off. @param {any} raw */
+function context(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.errors) || raw.errors.length > MAX_ERRORS) return null;
+  /** @type {Record<string, unknown>} */
+  const kept = {};
+  for (const [name, shape] of Object.entries(CONTEXT)) {
+    if (typeof raw[name] !== "string" || !shape.test(raw[name])) return null;
+    kept[name] = raw[name];
+  }
+  const errors = raw.errors.map((/** @type {unknown} */ error) => clean(error).replaceAll(/\s+/g, " "));
+  if (errors.some((error) => !error || error.length > MAX_ERROR)) return null;
+  return JSON.stringify({ ...kept, errors });
 }
 
 /** @param {string} text @returns {any} */
@@ -85,18 +105,19 @@ export default {
     if (typeof link !== "string" || !LINK.test(link)) return answer(400);
     if (typeof version !== "string" || !VERSION.test(version)) return answer(400);
     if (typeof browser !== "string" || !BROWSER.test(browser)) return answer(400);
+    const kept = context(body?.context);
+    if (!kept) return answer(400);
 
-    const hash = await digest(`${page}\n${message}`);
-    // (A repeat is looked for first, as an insert that's ignored still uses up an id. The cap from the ids' two ends, two
-    // rows read, not a count of every row on each request: ids are never reused and only ever deleted oldest first, so
-    // the span is the rows there are.)
+    // (A repeat is looked for first, as an insert that fails still uses up an id. The cap from the ids' two ends, two rows
+    // read, not a count of every row on each request: ids are never reused and only ever deleted oldest first, so the
+    // span is the rows there are.)
     const { meta } = await env.DB.prepare(
-      `INSERT OR IGNORE INTO feedback (day, page, link, version, browser, message, contact, hash)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE hash = ?)
-       AND COALESCE((SELECT id FROM feedback ORDER BY id DESC LIMIT 1) - (SELECT id FROM feedback ORDER BY id LIMIT 1), 0) < ?`,
-    ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, message, contact, hash, hash, MAX_UNREAD).run();
+      `INSERT INTO feedback (day, page, link, version, browser, context, message, contact)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE page = ? AND message = ?)
+       AND COALESCE((SELECT id FROM feedback ORDER BY id DESC LIMIT 1) - (SELECT id FROM feedback ORDER BY id LIMIT 1) + 1, 0) < ?`,
+    ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, kept, message, contact, page, message, MAX_UNREAD).run();
     if (meta.changes) return answer(204);
     // (An exact repeat of something unread is simply already here; else the inbox is full, and that's said.)
-    return answer((await env.DB.prepare("SELECT 1 FROM feedback WHERE hash = ?").bind(hash).first()) ? 204 : 503);
+    return answer((await env.DB.prepare("SELECT 1 FROM feedback WHERE page = ? AND message = ?").bind(page, message).first()) ? 204 : 503);
   },
 };

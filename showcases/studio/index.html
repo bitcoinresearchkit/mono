@@ -37780,16 +37780,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return Uint8Array.from(bytes);
       }
+      /** A preset as it's made, shown as it opens (its range, the view at it, its own drawing there: one still loading
+       * may come back to a view of its own): its address, which opens it, itself, wherever. Moved, zoomed, at another
+       * range: none, the link holds it, with the view. @param {any} doc */
+      function presetAddress(doc) {
+        const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
+        return i >= 0 && settled() && presetShown && doc.range === freshPreset(i).range ? addresses()?.presets[i] ?? null : null;
+      }
+      /** What a feedback note attaches: the chart's address, in its readable form, so what's sent is what the sender sees. */
+      /** @type {any} */ (window).bitviewFeedbackLink = () => (home || !chart.layers.length ? null : (presetAddress(chart) ?? `${linkBase()}${linkText(chart)}`));
       /**
        * The open chart's links, from one compressing of it (the same chart in both): the one to copy, and the one for a QR
        * code (base32: the fewest modules; compressing failed, the copy's, written out).
        */
       function linksOf(doc = chart) {
-        // (A preset as it's made, shown as it opens (its range, the view at it, its own drawing there: one still loading
-        // may come back to a view of its own): its address, which opens it, itself, wherever. Moved, zoomed, at another
-        // range: the link, with the view.)
-        const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
-        const at = i >= 0 && settled() && presetShown && doc.range === freshPreset(i).range ? addresses()?.presets[i] : null;
+        const at = presetAddress(doc);
         if (at) return { copy: Promise.resolve(`${ORIGIN}${at}`), short: Promise.resolve(`${ORIGIN}${at}`) };
         const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
         return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };

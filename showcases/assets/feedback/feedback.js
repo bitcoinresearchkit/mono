@@ -7,21 +7,69 @@
 //   Send in its top row, so the keyboard comes up under it and never covers Send; in the bottom corner on a desk.
 //   Opened from the press itself, or iOS won't raise the keyboard.
 // - Nothing leaves until Send: nothing is asked of the inbox's host as a page loads, on Bitview or on a node of someone's
-//   own. What goes with the note is written out in the card, as it'll be sent.
+//   own. What goes with the note is what makes it reproducible, each value written out in the card as it'll be sent:
+//   the exact address with what can name someone masked (a page whose address holds their own figures starts unticked),
+//   the build, browser, screen and theme, and the page's recent errors. Nothing that identifies a person.
 (() => {
   const INBOX = "https://feedback.bitview.space/";
   const compact = matchMedia("(max-width: 760px), (max-height: 520px)");
 
-  /** The app's folder alone: a whole path can name an address someone is looking at. */
-  const page = `/${location.pathname.split("/")[1] ? `${location.pathname.split("/")[1]}/` : ""}`;
-  /** All of where this is, offered to attach (a chart's state is in Studio's), when there's more to it than the folder. */
-  const here = () => location.pathname + location.search + location.hash;
+  /** The app's folder alone, always sent: "/" for anything that isn't one (`/index.html`). */
+  const folder = location.pathname.split("/")[1], page = /^[a-z0-9_-]{1,40}$/.test(folder) ? `/${folder}/` : "/";
+
+  /** Where a token can start: an address written inside encoded JSON comes right after an escape like `%22`. */
+  const START = "(?<=^|[^0-9A-Za-z]|%[0-9A-Fa-f]{2})", END = "(?![0-9A-Za-z])";
+  /** By shape, wherever it appears: what can name someone's coins, or the node they're on. */
+  const MASKS = /** @type {const} */ ([
+    [new RegExp(`${START}(?:bc1|tb1|bcrt1)[02-9ac-hj-np-z]{6,}${END}`, "gi"), ":address"],
+    [new RegExp(`${START}[13][1-9A-HJ-NP-Za-km-z]{25,34}${END}`, "g"), ":address"],
+    [new RegExp(`${START}[xyztuvYZUV](?:pub|prv)[1-9A-HJ-NP-Za-km-z]{70,}${END}`, "g"), ":key"],
+    [new RegExp(`${START}[0-9a-fA-F]{64}${END}`, "g"), ":hash"],
+    [/https?:\/\/[^\s/"']+/g, ""],
+    [new RegExp(`${START}\\d{1,3}(?:\\.\\d{1,3}){3}${END}`, "g"), ":ip"],
+  ]);
+  const mask = (/** @type {string} */ text) => MASKS.reduce((masked, [shape, name]) => masked.replace(shape, name), location.hostname ? text.replaceAll(location.hostname, ":host") : text);
+
+  /** All of where this is, masked, when there's more to it than the folder. A page whose state isn't in its address (a
+   * Studio chart) says what address would open it. */
+  const here = () => {
+    const own = /** @type {any} */ (window).bitviewFeedbackLink?.();
+    const place = own ? new URL(own, location.href) : location;
+    return mask(place.pathname + place.search + place.hash);
+  };
   const attachable = () => here().replace(/\/$/, "") !== page.replace(/\/$/, "") && here().length <= 6000;
+  /** A page whose address holds someone's own figures says so: its box starts unticked. */
+  const startsUnticked = () => Boolean(document.querySelector('meta[name="bitview-feedback"][content="address-unticked"]'));
+  /** As it'll read to the sender, its escapes undone. @param {string} link */
+  const readable = (link) => {
+    try {
+      return decodeURIComponent(link);
+    } catch {
+      return link;
+    }
+  };
 
   const agent = navigator.userAgent;
   const engine = /Firefox\//.test(agent) ? "firefox" : /Chrome\/|Chromium\//.test(agent) ? "chromium" : /Safari\//.test(agent) ? "safari" : "other";
-  const browser = () => `${engine}-${compact.matches ? "phone" : "desk"}`;
-  const NAMES = { firefox: "Firefox", chromium: "Chromium", safari: "Safari", other: "another browser" };
+  /** Its major version alone. */
+  const major = /(?:Firefox|Chrome|Chromium|Version)\/(\d+)/.exec(agent)?.[1] ?? "";
+  const NAMES = { firefox: "Firefox", chromium: "Chromium", safari: "Safari", other: "Another browser" };
+  const os = /iPhone|iPad|iPod/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1) ? "ios" : /Android/.test(agent) ? "android" : /Macintosh/.test(agent) ? "macos" : /Windows/.test(agent) ? "windows" : /Linux|X11/.test(agent) ? "linux" : "other";
+  const SYSTEMS = { ios: "iOS", android: "Android", macos: "macOS", windows: "Windows", linux: "Linux", other: "another system" };
+
+  /** The page's own recent errors, kept from its start by launch.js, masked. */
+  const errors = () => /** @type {string[]} */ (/** @type {any} */ (window).bitviewFeedbackErrors ?? []).map((text) => mask(text).slice(0, 300));
+  /** Everything that says how to see what the sender saw, and nothing of who they are: sizes to the nearest 10 px, as a
+   * window's exact size is close to a fingerprint and no layout turns on the last digit. @param {HTMLElement} card */
+  const context = (card) => ({
+    os, major,
+    viewport: `${Math.round(innerWidth / 10) * 10}x${Math.round(innerHeight / 10) * 10}`,
+    scale: String(Math.round(devicePixelRatio * 2) / 2),
+    // (What the page is really showing, whichever way it decided: the card's own background, light or dark as it is.)
+    theme: Number(/\d+/.exec(getComputedStyle(card).backgroundColor)?.[0]) > 127 ? "light" : "dark",
+    mode: /** @type {any} */ (navigator).standalone === true || matchMedia("(display-mode: standalone)").matches ? "app" : "browser",
+    errors: errors(),
+  });
 
   /** @type {{ host: HTMLElement, show: () => void } | undefined} */
   let made;
@@ -30,7 +78,7 @@
     const host = document.createElement("bitview-feedback");
     const root = host.attachShadow({ mode: "open" });
     root.innerHTML = `<style>
-      :host { all: initial; }
+      :host { all: initial; color-scheme: inherit; }
       .card {
         --orange: #c24e00;
         --orange-hover: #a94400;
@@ -49,11 +97,6 @@
       .card:popover-open { opacity: 1; transform: none; }
       @starting-style { .card:popover-open { opacity: 0; transform: translateY(10px) scale(0.97); } }
       @media (prefers-reduced-motion: reduce) { .card { transition: opacity 0.15s, display 0.15s allow-discrete, overlay 0.15s allow-discrete; transform: none; } @starting-style { .card:popover-open { transform: none; } } }
-      @media (max-width: 760px), (max-height: 520px) {
-        .card { inset: calc(10px + env(safe-area-inset-top)) 12px auto; width: auto; max-width: 520px; margin-inline: auto; transform: translateY(-10px) scale(0.97); }
-        @starting-style { .card:popover-open { transform: translateY(-10px) scale(0.97); } }
-        textarea, input[type="text"] { font-size: 16px; }
-      }
       header { display: flex; align-items: center; gap: 8px; margin: -4px -6px 10px -4px; }
       h2 { flex: 1; margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
       button { border: 0; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color 0.15s, scale 0.15s; }
@@ -67,6 +110,15 @@
       ::placeholder { color: var(--faint); }
       textarea:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
       .attach { display: flex; align-items: center; gap: 8px; min-height: 36px; margin-top: 4px; color: var(--soft); font-size: 13px; cursor: pointer; }
+      .exact { margin: 0 2px 2px 24px; color: var(--soft); font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+      .exact:empty { display: none; }
+      details { margin-top: 6px; color: var(--soft); font-size: 12.5px; }
+      summary { cursor: pointer; padding: 4px 2px; }
+      summary:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; border-radius: 4px; }
+      dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 4px 2px; }
+      dt { color: var(--faint); }
+      dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+      dd.mono { font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
       .attach[hidden] { display: none; }
       .attach input { width: 16px; height: 16px; margin: 0; accent-color: var(--orange); }
       .sent-with { margin: 8px 2px 0; color: var(--soft); font-size: 12.5px; }
@@ -79,6 +131,13 @@
       .send:disabled { opacity: 0.45; cursor: default; }
       .done { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; font-size: 15px; font-weight: 600; visibility: hidden; pointer-events: none; }
       .done svg { width: 30px; height: 30px; color: var(--orange); }
+      @media (max-width: 760px), (max-height: 520px) {
+        .card { inset: calc(10px + env(safe-area-inset-top)) 12px auto; width: auto; max-width: 520px; margin-inline: auto; transform: translateY(-10px) scale(0.97); }
+        @starting-style { .card:popover-open { transform: translateY(-10px) scale(0.97); } }
+        textarea, input[type="text"] { font-size: 16px; }
+        .close { width: 44px; height: 44px; }
+        .send { height: 44px; padding: 0 18px; }
+      }
       .card.is-done form { visibility: hidden; }
       .card.is-done .done { visibility: visible; }
     </style><div class="card" popover="auto" role="dialog" aria-labelledby="title">
@@ -88,23 +147,36 @@
         <textarea id="message" maxlength="4000" placeholder="What's wrong, confusing, or missing?" aria-label="Your feedback"></textarea>
         <input id="contact" type="text" maxlength="200" autocomplete="off" placeholder="Contact, if you'd like a reply (optional)" aria-label="Contact, optional" />
         <label class="attach" hidden><input id="attach" type="checkbox" /><span>Include this page's exact address</span></label>
-        <p class="sent-with" id="with"></p>
-        <p class="sent-with">Goes to the Bitview project, through Cloudflare, and an AI helps read it. IP addresses aren't stored.</p>
+        <p class="exact" id="exact"></p>
+        <details><summary>Also sent: page version, build, browser, screen, theme, recent errors</summary><dl id="included"></dl></details>
+        <p class="sent-with">Goes to the Bitview project, through Cloudflare, and an AI helps read it. Bitview doesn't store IP addresses and deletes notes after 30 days.</p>
       </form>
       <div class="done" role="status"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="sent"></span></div>
     </div>`;
 
     const $ = (/** @type {string} */ selector) => /** @type {any} */ (root.querySelector(selector));
     const card = $(".card"), form = $("form"), message = $("#message"), contact = $("#contact"), attach = $("#attach"), attachRow = $(".attach"), said = $("#said"), send = $(".send");
-    /** The page's version as served, read when the card opens and sent if it's come by Send; never waited for. */
-    let version = "";
+    /** The page's version (as it loaded) and the server's build, read as the card opens and sent if they've come by
+     * Send; never waited for. */
+    let version = "", build = "";
     let sending = false;
 
+    /** What will go, written out as it will go. */
     const describe = () => {
-      const where = attach.checked ? here() : page;
-      const also = $("#with");
-      also.textContent = "";
-      also.append("Also sent: ", Object.assign(document.createElement("b"), { textContent: where }), `, its version, ${NAMES[/** @type {keyof typeof NAMES} */ (engine)]}, ${compact.matches ? "small screen" : "large screen"}.`);
+      $("#exact").textContent = attach.checked ? readable(here()) : "";
+      const { viewport, scale, theme, mode, errors: recent } = context(card);
+      const rows = [
+        ["Page", attach.checked ? "The exact address, above" : page],
+        ["Version", version || "Not known"],
+        ["Build", build || "Not known"],
+        ["Browser", `${NAMES[/** @type {keyof typeof NAMES} */ (engine)]}${major ? ` ${major}` : ""}, ${SYSTEMS[os]}, ${mode === "app" ? "installed app" : "in the browser"}`],
+        ["Screen", `About ${viewport.replace("x", " × ")}, ${scale}×, ${theme}`],
+        ["Errors", recent.length ? recent.join("\n") : "None"],
+      ];
+      $("#included").replaceChildren(...rows.flatMap(([name, value]) => [
+        Object.assign(document.createElement("dt"), { textContent: name }),
+        Object.assign(document.createElement("dd"), { textContent: value, className: name === "Errors" && recent.length ? "mono" : "" }),
+      ]));
     };
     const ready = () => { send.disabled = sending || !message.value.trim(); };
 
@@ -118,21 +190,21 @@
     form.addEventListener("submit", async (/** @type {SubmitEvent} */ event) => {
       event.preventDefault();
       if (send.disabled) return;
-      sending = true;
+      sending = message.readOnly = contact.readOnly = true;
       ready();
       said.textContent = "";
       try {
-        const body = JSON.stringify({ message: message.value, contact: contact.value, page, link: attach.checked ? here() : "", version, browser: browser() });
+        const body = JSON.stringify({ message: message.value, contact: contact.value, page, link: attach.checked ? here() : "", version, browser: `${engine}-${compact.matches ? "phone" : "desk"}`, context: { build, ...context(card) } });
         const response = await fetch(INBOX, { method: "POST", body, credentials: "omit", referrerPolicy: "no-referrer", keepalive: true, signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw response.status;
         message.value = contact.value = "";
-        attach.checked = false;
-        $("#sent").textContent = "Sent. Thank you.";
         card.classList.add("is-done");
+        // (Written once it's shown: a status already full as it's shown may go unannounced.)
+        setTimeout(() => ($("#sent").textContent = "Sent. Thank you."));
       } catch (status) {
-        said.textContent = `${status === 503 ? "The inbox is full for now." : status === 429 ? "Too many sent just now." : "Couldn't send it."} Your note is still here; try again later.`;
+        said.textContent = status === 400 || status === 413 ? "This note can't be sent as it is; try shortening it." : `${status === 503 ? "The inbox is full for now." : status === 429 ? "Too many sent just now." : "Couldn't send it."} Your note is still here; try again later.`;
       }
-      sending = false;
+      sending = message.readOnly = contact.readOnly = false;
       ready();
     });
 
@@ -141,6 +213,7 @@
     card.addEventListener("toggle", (/** @type {ToggleEvent} */ event) => {
       if (event.newState !== "closed") return;
       card.classList.remove("is-done");
+      $("#sent").textContent = "";
       opener?.focus({ preventScroll: true });
     });
 
@@ -148,14 +221,15 @@
       if (card.matches(":popover-open")) return;
       opener = /** @type {HTMLElement | null} */ (document.activeElement);
       attachRow.hidden = !attachable();
-      if (attachRow.hidden) attach.checked = false;
+      attach.checked = !attachRow.hidden && !startsUnticked();
       describe();
       said.textContent = "";
       ready();
       card.showPopover();
       message.focus();
-      version = "";
-      fetch(location.href.split("#")[0], { method: "HEAD", cache: "no-store" }).then((response) => (version = response.headers.get("bitview-version") ?? ""), () => {});
+      version = build = "";
+      Promise.resolve(/** @type {any} */ (window).bitviewPageVersion?.()).then((said) => ((version = said ?? ""), describe()), () => {});
+      fetch("/health", { cache: "no-store" }).then((response) => response.json()).then((health) => ((build = typeof health.version === "string" ? health.version : ""), describe()), () => {});
     }
 
     document.body.append(host);

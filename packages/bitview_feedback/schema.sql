@@ -3,10 +3,11 @@ CREATE TABLE feedback (
   id      INTEGER PRIMARY KEY AUTOINCREMENT, -- never reused: the job keeps a message under its id
   day     TEXT NOT NULL,        -- UTC date, no time of day
   page    TEXT NOT NULL,        -- the app's folder, as /compass/
-  link    TEXT NOT NULL,        -- '' unless the sender ticked to attach the exact address
+  link    TEXT NOT NULL,        -- the exact address, masked, '' if the sender unticked it
   version TEXT NOT NULL,        -- the page's content hash (Bitview-Version), or ''
   browser TEXT NOT NULL,        -- chromium|firefox|safari|other, -, phone|desk
+  context TEXT NOT NULL,        -- JSON: build, os, browser major, viewport (10 px), scale, theme, mode, recent errors
   message TEXT NOT NULL,
   contact TEXT NOT NULL,        -- '' or what the sender chose to give
-  hash    TEXT NOT NULL UNIQUE  -- SHA-256 of page and message: an exact repeat while unread is one row
+  UNIQUE (page, message)        -- an exact repeat while unread is one row
 );
