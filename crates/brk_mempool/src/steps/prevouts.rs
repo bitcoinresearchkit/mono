@@ -71,11 +71,7 @@ where
     let external = resolve_external(holes, resolver);
     for (into, fills) in in_mempool.into_iter().chain(external) {
         match into {
-            FillTo::Pool(key) => {
-                let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
-                state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
-                state.txs.apply_fills(&key, fills);
-            }
+            FillTo::Pool(key) => state.apply_fills(&key, fills),
             FillTo::TemplateOnly(i) => state.template_only[i].fill(fills),
         }
     }

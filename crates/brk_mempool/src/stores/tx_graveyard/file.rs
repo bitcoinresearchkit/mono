@@ -24,17 +24,14 @@ use bitcoin::{
     hashes::Hash,
 };
 use brk_error::{Error, Result};
-use brk_types::{
-    BlockHash, FeeRate, Sats, SigOps, Timestamp, Transaction, TxIn, TxOut, TxStatus, Txid, VSize,
-    Vout, Weight,
-};
+use brk_types::{BlockHash, FeeRate, Sats, Timestamp, TxOut, Txid, VSize, Weight};
 use rapidhash::RapidHashSet;
 use tracing::{info, warn};
 
 use super::{Moment, TxGraveyard, TxTombstone};
 use crate::{
     TxRemoval,
-    state::TxEntry,
+    state::{TxEntry, pending_body},
     stores::{ReadOnlyTxStore, tx_store::TxRecord},
 };
 
@@ -280,33 +277,10 @@ fn read_record(input: &mut Reader) -> Result<TxRecord> {
     let size = raw.total_size();
     let weight = Weight::from(raw.weight());
     let rbf = inherited || raw.input.iter().any(|txin| txin.sequence.is_rbf());
-    let mut tx = Transaction {
-        index: None,
-        txid,
-        version: raw.version.into(),
-        total_sigop_cost: SigOps::ZERO,
-        weight,
-        lock_time: raw.lock_time.into(),
-        total_size: size,
-        fee,
-        input: raw
-            .input
-            .into_iter()
-            .zip(prevouts)
-            .map(|(txin, prevout)| TxIn {
-                is_coinbase: false,
-                prevout,
-                txid: txin.previous_output.txid.into(),
-                vout: Vout::from(txin.previous_output.vout),
-                script_sig: txin.script_sig,
-                witness: txin.witness,
-                sequence: txin.sequence.into(),
-            })
-            .collect(),
-        output: raw.output.into_iter().map(TxOut::from).collect(),
-        status: TxStatus::UNCONFIRMED,
-    };
-    tx.refresh_sigops();
+    let mut prevouts = prevouts.into_iter();
+    let tx = pending_body(raw, txid, fee, weight, size, |_, _| {
+        prevouts.next().expect("one saved prevout per input")
+    });
     // Never below what its weight and the sigops its body shows make it.
     let least = tx.total_sigop_cost.adjust_vsize(VSize::from(weight));
     if vsize < u64::from(least) {

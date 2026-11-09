@@ -39,7 +39,11 @@ impl AddrTracker {
     }
 
     /// Prevouts of `record`'s inputs, resolved: what they spend folds in.
-    pub fn resolve<'a>(&mut self, record: &TxRecord, prevouts: impl Iterator<Item = &'a TxOut>) {
+    pub(super) fn resolve<'a>(
+        &mut self,
+        record: &TxRecord,
+        prevouts: impl Iterator<Item = &'a TxOut>,
+    ) {
         let at = AddrTx::from(record);
         for prevout in prevouts {
             if let Some(bytes) = prevout.addr_bytes() {

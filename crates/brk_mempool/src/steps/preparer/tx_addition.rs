@@ -6,11 +6,11 @@
 //! can come back with a different witness, so the tomb's body is never
 //! reused; only its first sighting is kept.
 
-use bitcoin::{Transaction as BitcoinTransaction, TxIn as BitcoinTxIn};
-use brk_types::{MempoolEntryInfo, SigOps, Transaction, TxIn, TxOut, TxStatus, Txid, Vout};
+use bitcoin::Transaction as BitcoinTransaction;
+use brk_types::{MempoolEntryInfo, Transaction, TxOut, Txid, Vout};
 
 use crate::{
-    state::TxEntry,
+    state::{TxEntry, pending_body},
     stores::{TxGraveyard, TxStore},
 };
 
@@ -31,7 +31,14 @@ impl TxAddition {
     ) -> Self {
         let total_size = tx.total_size();
         let rbf = tx.input.iter().any(|i| i.sequence.is_rbf());
-        let built = Self::build_tx(info, tx, total_size, mempool_txs);
+        let built = pending_body(
+            tx,
+            info.txid,
+            info.fee,
+            info.weight,
+            total_size,
+            |txid, vout| Self::resolve_prevout(&txid, vout, mempool_txs),
+        );
         let mut entry = TxEntry::new(info, total_size as u64, rbf);
         if let Some(record) = mempool_txs.record(&info.txid) {
             entry.first_seen = record.entry.first_seen;
@@ -39,52 +46,6 @@ impl TxAddition {
             entry.first_seen = tomb.record.entry.first_seen;
         }
         Self { tx: built, entry }
-    }
-
-    fn build_tx(
-        info: &MempoolEntryInfo,
-        tx: BitcoinTransaction,
-        total_size: usize,
-        mempool_txs: &TxStore,
-    ) -> Transaction {
-        let input = tx
-            .input
-            .into_iter()
-            .map(|txin| Self::build_txin(txin, mempool_txs))
-            .collect();
-        let mut built = Transaction {
-            index: None,
-            txid: info.txid,
-            version: tx.version.into(),
-            total_sigop_cost: SigOps::ZERO,
-            weight: info.weight,
-            lock_time: tx.lock_time.into(),
-            total_size,
-            fee: info.fee,
-            input,
-            output: tx.output.into_iter().map(TxOut::from).collect(),
-            status: TxStatus::UNCONFIRMED,
-        };
-        built.refresh_sigops();
-        built
-    }
-
-    fn build_txin(txin: BitcoinTxIn, mempool_txs: &TxStore) -> TxIn {
-        let prev_txid: Txid = txin.previous_output.txid.into();
-        let prev_vout = Vout::from(txin.previous_output.vout);
-        let prevout = Self::resolve_prevout(&prev_txid, prev_vout, mempool_txs);
-
-        TxIn {
-            // Mempool txs are never coinbase (Core rejects them
-            // from the pool entirely).
-            is_coinbase: false,
-            prevout,
-            txid: prev_txid,
-            vout: prev_vout,
-            script_sig: txin.script_sig,
-            witness: txin.witness,
-            sequence: txin.sequence.into(),
-        }
     }
 
     fn resolve_prevout(prev_txid: &Txid, prev_vout: Vout, mempool_txs: &TxStore) -> Option<TxOut> {

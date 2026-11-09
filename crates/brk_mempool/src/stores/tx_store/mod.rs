@@ -103,7 +103,7 @@ impl TxStore {
     /// `total_sigop_cost` (P2SH and witness components depend on prevouts). `entry.vsize` is
     /// Core's value from `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
-    pub fn apply_fills(
+    pub(super) fn apply_fills(
         &mut self,
         key: &TxKey,
         fills: Vec<(Vin, TxOut)>,

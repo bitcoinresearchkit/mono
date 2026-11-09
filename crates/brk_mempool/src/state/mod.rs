@@ -2,14 +2,16 @@
 
 mod accounting;
 mod ancestry;
+mod pending_body;
 mod pool;
 mod read_only;
 pub mod tx_entry;
 
 use std::sync::Arc;
 
-use brk_types::{Transaction, Txid};
+use brk_types::{Transaction, TxOut, Txid, Vin};
 pub(crate) use ancestry::{Ancestry, Block};
+pub(crate) use pending_body::pending_body;
 pub(crate) use pool::{BehindSlot, Pool};
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
@@ -18,7 +20,9 @@ use accounting::MempoolAccounting;
 
 use crate::{
     key::TxKey,
-    stores::{AddrTracker, OutpointSpends, TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
+    stores::{
+        self, AddrTracker, OutpointSpends, TxGraveyard, TxStore, Upkeep, tx_store::TxRecord,
+    },
 };
 
 #[derive(Default)]
@@ -81,6 +85,11 @@ impl State {
         self.outpoint_spends.remove_spends(&record.tx, *key);
         debug_assert_eq!(self.info.count, self.txs.len());
         record
+    }
+
+    /// Newly resolved pooled inputs, into their transaction and its addresses.
+    pub(crate) fn apply_fills(&mut self, key: &TxKey, fills: Vec<(Vin, TxOut)>) {
+        stores::apply_fills(&mut self.txs, &mut self.addrs, key, fills);
     }
 
     pub fn contains_all(&self, live_txids: &[Txid]) -> bool {
