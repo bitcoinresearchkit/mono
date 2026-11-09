@@ -18,8 +18,7 @@ const PAGE = /^\/(?:[a-z0-9_-]{1,40}\/)?$/;
 const LINK = /^(?:\/(?![/\\])[\x21-\x7e]{0,5999})?$/;
 const VERSION = /^[\w-]{0,64}$/;
 const BROWSER = /^(?:chromium|firefox|safari|other)-(?:phone|desk)$/;
-/** What's sent so a report can be reproduced, each by its exact shape. One that doesn't fit is kept empty, never a reason
- * to lose the note. */
+/** What's sent so a report can be reproduced, each by its exact shape. */
 const CONTEXT = {
   build: /^[\w.+-]{0,40}$/,
   os: /^(?:ios|android|macos|windows|linux|other)$/,
@@ -48,6 +47,10 @@ function sender(ip) {
   return [...left, ...Array(Math.max(0, 8 - left.length - right.length)).fill("0"), ...right].slice(0, 4).join(":");
 }
 
+/** The value if it has this shape, else empty: only the note itself can be refused, as a page that's broken is the one
+ * worth hearing from. @param {unknown} value @param {RegExp} shape */
+const fit = (value, shape) => (typeof value === "string" && shape.test(value) ? value : "");
+
 /** @param {number} status */
 const answer = (status) => new Response(null, { status, headers: { "access-control-allow-origin": "*" } });
 
@@ -67,7 +70,7 @@ async function read(request) {
 
 /** The context kept: only the known fields, each checked, the errors one line each, at most a few. @param {any} raw */
 function context(raw) {
-  const kept = Object.fromEntries(Object.entries(CONTEXT).map(([name, shape]) => [name, typeof raw?.[name] === "string" && shape.test(raw[name]) ? raw[name] : ""]));
+  const kept = Object.fromEntries(Object.entries(CONTEXT).map(([name, shape]) => [name, fit(raw?.[name], shape)]));
   const errors = (Array.isArray(raw?.errors) ? raw.errors : []).map((/** @type {unknown} */ error) => clean(error).replaceAll(/\s+/g, " ").slice(0, MAX_ERROR)).filter(Boolean).slice(0, MAX_ERRORS);
   return JSON.stringify({ ...kept, errors });
 }
@@ -92,24 +95,25 @@ export default {
     if (text === null) return answer(413);
     const body = parse(text);
     const message = clean(body?.message);
-    const { page, link, version, browser } = body ?? {};
     if (!message || message.length > MAX_MESSAGE) return answer(400);
-    if (typeof page !== "string" || !PAGE.test(page)) return answer(400);
-    if (typeof link !== "string" || !LINK.test(link)) return answer(400);
-    if (typeof version !== "string" || !VERSION.test(version)) return answer(400);
-    if (typeof browser !== "string" || !BROWSER.test(browser)) return answer(400);
-    const kept = context(body?.context);
+    const page = fit(body.page, PAGE), link = fit(body.link, LINK), version = fit(body.version, VERSION), browser = fit(body.browser, BROWSER);
+    const kept = context(body.context);
 
     // (A repeat is looked for first, as an insert that fails still uses up an id. The cap from the ids' two ends, two rows
     // read, not a count of every row on each request: ids are never reused and only ever deleted oldest first, so the
     // span is the rows there are.)
-    const { meta } = await env.DB.prepare(
-      `INSERT INTO feedback (day, page, link, version, browser, context, message)
-       SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE page = ? AND message = ?)
-       AND COALESCE((SELECT id FROM feedback ORDER BY id DESC LIMIT 1) - (SELECT id FROM feedback ORDER BY id LIMIT 1) + 1, 0) < ?`,
-    ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, kept, message, page, message, MAX_UNREAD).run();
-    if (meta.changes) return answer(204);
-    // (An exact repeat of something unread is simply already here; else the inbox is full, and that's said.)
-    return answer((await env.DB.prepare("SELECT 1 FROM feedback WHERE page = ? AND message = ?").bind(page, message).first()) ? 204 : 503);
+    try {
+      const { meta } = await env.DB.prepare(
+        `INSERT INTO feedback (day, page, link, version, browser, context, message)
+         SELECT ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM feedback WHERE page = ? AND message = ?)
+         AND COALESCE((SELECT id FROM feedback ORDER BY id DESC LIMIT 1) - (SELECT id FROM feedback ORDER BY id LIMIT 1) + 1, 0) < ?`,
+      ).bind(new Date().toISOString().slice(0, 10), page, link, version, browser, kept, message, page, message, MAX_UNREAD).run();
+      if (meta.changes) return answer(204);
+      // (An exact repeat of something unread is simply already here; else the inbox is full, and that's said.)
+      return answer((await env.DB.prepare("SELECT 1 FROM feedback WHERE page = ? AND message = ?").bind(page, message).first()) ? 204 : 503);
+    } catch {
+      // (Still an answer the page can read: an exception would come back without the header that lets it.)
+      return answer(503);
+    }
   },
 };

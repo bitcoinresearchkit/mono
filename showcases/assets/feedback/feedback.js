@@ -12,7 +12,7 @@
 (() => {
   const INBOX = "https://feedback.bitview.space/";
   const PRIVACY = "https://github.com/bitcoinresearchkit/mono/tree/next/packages/bitview_feedback#readme";
-  const INCLUDED = "Includes this page, browser and recent errors.";
+  const INCLUDED = "Includes page, browser, screen and recent errors.";
   const compact = matchMedia("(max-width: 760px), (max-height: 520px)");
 
   /** The app's folder alone, always sent: "/" for anything that isn't one (`/index.html`). */
@@ -23,10 +23,10 @@
   /** By shape, wherever it appears: what can name someone's coins, or the node they're on. */
   const MASKS = /** @type {const} */ ([
     [new RegExp(`${START}(?:bc1|tb1|bcrt1)[02-9ac-hj-np-z]{6,}${END}`, "gi"), ":address"],
-    [new RegExp(`${START}[13][1-9A-HJ-NP-Za-km-z]{25,34}${END}`, "g"), ":address"],
+    [new RegExp(`${START}[123mn][1-9A-HJ-NP-Za-km-z]{25,34}${END}`, "g"), ":address"],
     [new RegExp(`${START}[xyztuvYZUV](?:pub|prv)[1-9A-HJ-NP-Za-km-z]{70,}${END}`, "g"), ":key"],
-    [new RegExp(`${START}[0-9a-fA-F]{64}${END}`, "g"), ":hash"],
-    [/(?:https?|wss?):\/\/[^\s/"']+/g, ""],
+    [new RegExp(`${START}[0-9a-fA-F]{40,}${END}`, "g"), ":hash"],
+    [/[a-z][a-z0-9+.-]*:\/\/[^\s/"']+/gi, ""],
     [new RegExp(`${START}[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{0,4}){3,7}${END}`, "g"), ":ip"],
     [new RegExp(`${START}\\d{1,3}(?:\\.\\d{1,3}){3}${END}`, "g"), ":ip"],
   ]);
@@ -35,13 +35,18 @@
   /** A page whose address holds someone's own figures says so. */
   const addressPrivate = () => Boolean(document.querySelector('meta[name="bitview-feedback"][content="address-private"]'));
   /** Where this is, masked, or nothing when that's only the folder, or a page whose address holds someone's own figures.
-   * A page whose state isn't in its address (a Studio chart) says what address would open it. */
+   * A page whose state isn't in its address (a Studio chart) says what address would open it; if it can't, the bug may be
+   * why, and the note still goes. */
   function link() {
     if (addressPrivate()) return "";
-    const own = /** @type {any} */ (window).bitviewFeedbackLink?.();
-    const place = own ? new URL(own, location.href) : location;
-    const exact = mask(place.pathname + place.search + place.hash);
-    return exact.replace(/\/$/, "") === page.replace(/\/$/, "") || exact.length > 6000 ? "" : exact;
+    try {
+      const own = /** @type {any} */ (window).bitviewFeedbackLink?.();
+      const place = own ? new URL(own, location.href) : location;
+      const exact = mask(place.pathname + place.search + place.hash);
+      return exact.replace(/\/$/, "") === page.replace(/\/$/, "") || exact.length > 6000 ? "" : exact;
+    } catch {
+      return "";
+    }
   }
 
   const agent = navigator.userAgent;
@@ -149,12 +154,15 @@
         const response = await fetch(INBOX, { method: "POST", body, credentials: "omit", referrerPolicy: "no-referrer", keepalive: true, signal: AbortSignal.timeout(15_000) });
         if (!response.ok) throw response.status;
         message.value = "";
-        card.classList.add("is-done");
-        // (Written once it's shown: a status already full as it's shown may go unannounced.)
-        setTimeout(() => ($("#sent").textContent = "Sent. Thank you."));
-        closing = setTimeout(() => card.hidePopover(), 2000);
+        // (Closed while it was sending, there's no one to tell.)
+        if (card.matches(":popover-open")) {
+          card.classList.add("is-done");
+          // (Written once it's shown: a status already full as it's shown may go unannounced.)
+          setTimeout(() => ($("#sent").textContent = "Sent. Thank you."));
+          closing = setTimeout(() => card.hidePopover(), 2000);
+        }
       } catch (status) {
-        say(status === 400 || status === 413 ? "This note can't be sent as it is." : status === 503 ? "The inbox is full for now. Your note is still here." : status === 429 ? "Too many just now. Your note is still here." : "Couldn't send. Your note is still here.", true);
+        say(status === 400 || status === 413 ? "This note can't be sent as it is." : status === 503 ? "The inbox can't take notes just now. Your note is still here." : status === 429 ? "Too many just now. Your note is still here." : "Couldn't send. Your note is still here.", true);
       }
       sending = message.readOnly = false;
       ready();
