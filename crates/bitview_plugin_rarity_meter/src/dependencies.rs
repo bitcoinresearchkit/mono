@@ -4,9 +4,10 @@ use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_vecs::CachedSeries;
 use brk_types::{Cents, Height};
 
-/// Spot price, read here. The three plugins are borrowed only to force them to finish first:
-/// the reference prices are read-only handles bound at import, and only see this block once
-/// their producers have computed it.
+/// Spot price, read here. The three plugins are borrowed only so the composition runs the meter
+/// after them: the reference prices and ratios are read-only handles bound at import (the bands
+/// are lazy views over them), and `Component::compute` checks in dev that they hold this
+/// update's rows.
 pub struct Dependencies<'a> {
     pub holders: &'a HoldersVecs,
     pub cointime: &'a CointimeVecs,

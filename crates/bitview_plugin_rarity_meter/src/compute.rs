@@ -14,24 +14,10 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let starting_lengths = context.start();
         let exit = context.exit();
-        let Dependencies {
-            holders,
-            cointime,
-            coinflow,
-            spot_cents,
-        } = dependencies;
+        let Dependencies { spot_cents, .. } = dependencies;
 
         let (components_result, extremes_result) = join(
-            || {
-                self.components.compute(
-                    holders,
-                    cointime,
-                    coinflow,
-                    spot_cents,
-                    starting_lengths,
-                    exit,
-                )
-            },
+            || self.components.compute(spot_cents, starting_lengths, exit),
             || self.extremes.compute(starting_lengths.height, exit),
         );
         components_result?;

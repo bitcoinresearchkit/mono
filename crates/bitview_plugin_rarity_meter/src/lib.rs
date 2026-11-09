@@ -1,7 +1,7 @@
 mod band;
 mod block_decay_percentiles;
 mod component;
-mod component_price;
+mod reference_input;
 mod components;
 mod compute;
 mod dependencies;

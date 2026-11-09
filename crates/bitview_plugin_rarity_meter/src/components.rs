@@ -10,7 +10,7 @@ use brk_types::{Cents, Height, Version};
 use rayon::prelude::*;
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use super::{Component, median_component::MedianComponent};
+use super::{Component, median_component::MedianComponent, reference_input::ReferenceInput};
 
 /// The reference prices whose spot ratios the meter ranks, by the cohort they come from. Each
 /// component's series follow its price's id: its bands `<price>_rarity_<percentile>`
@@ -113,15 +113,19 @@ impl Components {
         // A mean's bands over its reference price; a median's price, spot ratio and bands over its
         // cost basis' median. Each named by its price's id.
         macro_rules! mean {
-            ($price:literal, $reference:expr) => {
+            ($price:literal, $reference:expr) => {{
+                let reference = &$reference;
                 Component::import(
                     db,
                     $price,
                     version,
                     mappings,
-                    &$reference.cents.height,
+                    ReferenceInput::new(
+                        &reference.cents.height,
+                        &reference.relative.fixed.height,
+                    ),
                 )?
-            };
+            }};
         }
         macro_rules! median {
             ($price:literal, $cost_basis:expr) => {
@@ -201,9 +205,6 @@ impl Components {
 
     pub(crate) fn compute(
         &mut self,
-        holders: &HoldersVecs,
-        cointime: &CointimeVecs,
-        coinflow: &CoinflowVecs,
         spot: &impl ReadableVec<Height, Cents>,
         starting_lengths: Lengths,
         exit: &Exit,
@@ -232,70 +233,25 @@ impl Components {
         .into_par_iter()
         .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
 
-        let cohorts = &holders.cohorts;
-        let awake_cohort = &cointime.aggregate.cohorts.all.awake;
-        let mobile_cohort = &coinflow.aggregate.cohorts.all.mobile;
+        // Every reference ratio covers the rows spot covers once its producer has written them.
+        let end = spot.len();
+
         let jobs = [
-            (
-                &mut all.realized_price,
-                &cohorts.all.cost_basis.by_coin.avg.relative.fixed.height,
-            ),
-            (
-                &mut all.capitalized_price,
-                &cohorts.all.cost_basis.by_dollar.avg.relative.fixed.height,
-            ),
-            (
-                &mut sth.realized_price,
-                &cohorts.sth.cost_basis.by_coin.avg.relative.fixed.height,
-            ),
-            (
-                &mut sth.capitalized_price,
-                &cohorts.sth.cost_basis.by_dollar.avg.relative.fixed.height,
-            ),
-            (
-                &mut under_6m.realized_price,
-                &cohorts
-                    .under_6m
-                    .cost_basis
-                    .by_coin
-                    .avg
-                    .relative
-                    .fixed
-                    .height,
-            ),
-            (
-                &mut under_6m.capitalized_price,
-                &cohorts
-                    .under_6m
-                    .cost_basis
-                    .by_dollar
-                    .avg
-                    .relative
-                    .fixed
-                    .height,
-            ),
-            (
-                &mut awake.realized_price,
-                &awake_cohort.cost_basis.by_coin.avg.relative.fixed.height,
-            ),
-            (
-                &mut mobile.realized_price,
-                &mobile_cohort.cost_basis.by_coin.avg.relative.fixed.height,
-            ),
-            (
-                vaulted_price,
-                &cointime.prices.vaulted.relative.fixed.height,
-            ),
-            (
-                true_market_mean,
-                &cointime.prices.true_market_mean.relative.fixed.height,
-            ),
+            &mut all.realized_price,
+            &mut all.capitalized_price,
+            &mut sth.realized_price,
+            &mut sth.capitalized_price,
+            &mut under_6m.realized_price,
+            &mut under_6m.capitalized_price,
+            &mut awake.realized_price,
+            &mut mobile.realized_price,
+            vaulted_price,
+            true_market_mean,
         ];
         let has_work = jobs
             .iter()
-            .any(|(component, source)| component.needs_compute(starting_lengths.height, *source));
-        let compute =
-            |(component, source)| Component::compute(component, &starting_lengths, source, exit);
+            .any(|component| component.needs_compute(starting_lengths.height));
+        let compute = |component: &mut Component| component.compute(&starting_lengths, end, exit);
 
         if has_work {
             jobs.into_par_iter().try_for_each(compute)

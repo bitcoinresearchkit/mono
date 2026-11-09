@@ -1,7 +1,5 @@
 use bitview_compute::{prepare_computed, write_chunks, write_locked};
-use bitview_primitives::{
-    Lengths, PartsPerMillion32, PriceRatio, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
-};
+use bitview_primitives::{Lengths, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, IndexSources, LazyRatioPerBlock, import_cached, shapes::RarityPercentiles,
@@ -9,11 +7,9 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
-};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use super::{Band, BlockDecayPercentiles, START_HEIGHT, component_price::ComponentPrice};
+use super::{Band, BlockDecayPercentiles, START_HEIGHT, reference_input::ReferenceInput};
 
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
@@ -36,7 +32,7 @@ pub struct Component<M: StorageMode = Rw> {
     #[traversable(hidden)]
     ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
 
-    price: M::WriteOnly<ComponentPrice>,
+    price: M::WriteOnly<ReferenceInput>,
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
@@ -50,10 +46,9 @@ impl Component {
         price: &str,
         version: Version,
         mappings: &IndexSources,
-        price_source: &impl ReadableCloneableVec<Height, Cents>,
+        reference: ReferenceInput,
     ) -> Result<Self> {
         let version = version + VERSION;
-        let component_price = ComponentPrice::new(price_source);
         let ratios = RarityPercentiles::try_from_fn(|id| {
             import_cached(db, &format!("{price}_ratio_rarity_{}_ppm", id.suffix()), version)
         })?;
@@ -65,7 +60,7 @@ impl Component {
                 ratios.get(id),
                 mappings,
             );
-            let band = component_price.price_for_ratio(
+            let band = reference.price_for_ratio(
                 &format!("{price}_rarity_{suffix}"),
                 version,
                 &ratio.fixed.height,
@@ -77,18 +72,22 @@ impl Component {
         Ok(Component {
             bands,
             ratios,
-            price: component_price,
+            price: reference,
             block_decay_pct: BlockDecayPercentiles::default(),
         })
     }
 
+    /// `end` is the update's height count: the ratio source is a read-only handle bound at import,
+    /// so it must already hold the rows its producer computed this update.
     pub(crate) fn compute(
         &mut self,
         starting_lengths: &Lengths,
-        ratio_source: &impl ReadableVec<Height, PriceRatio>,
+        end: usize,
         exit: &Exit,
     ) -> Result<()> {
+        let ratio_source = &self.price.spot_ratio;
         let source_end = ratio_source.len();
+        debug_assert_eq!(source_end, end, "a reference ratio's producer has not written this update");
         let start = prepare_computed(
             self.ratios.iter_any_stored_mut().collect::<Vec<_>>(),
             ratio_source.version(),
@@ -135,11 +134,8 @@ impl Component {
         Ok(())
     }
 
-    pub fn needs_compute(
-        &self,
-        starting_height: Height,
-        ratio_source: &impl ReadableVec<Height, PriceRatio>,
-    ) -> bool {
+    pub fn needs_compute(&self, starting_height: Height) -> bool {
+        let ratio_source = &self.price.spot_ratio;
         self.ratios.iter().any(|v| {
             v.len() != ratio_source.len()
                 || v.version() != v.header().vec_version() + ratio_source.version()

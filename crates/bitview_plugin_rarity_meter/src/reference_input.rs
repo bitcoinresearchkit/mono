@@ -1,17 +1,22 @@
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{PartsPerMillion32, PriceRatio};
 use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price, ops::PriceTimesRatio};
 use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec};
 
-/// A component's reference price, which its ratio percentiles multiply into price bands.
-pub struct ComponentPrice {
-    price: ReadableBoxedVec<Height, Cents>,
+/// A reference price and its matching spot ratio, bound once at import.
+pub(crate) struct ReferenceInput {
+    cents: ReadableBoxedVec<Height, Cents>,
+    pub(crate) spot_ratio: ReadableBoxedVec<Height, PriceRatio>,
 }
 
-impl ComponentPrice {
-    pub fn new(source: &impl ReadableCloneableVec<Height, Cents>) -> Self {
+impl ReferenceInput {
+    pub(crate) fn new(
+        cents: &impl ReadableCloneableVec<Height, Cents>,
+        spot_ratio: &impl ReadableCloneableVec<Height, PriceRatio>,
+    ) -> Self {
         Self {
-            price: source.read_only_boxed_clone(),
+            cents: cents.read_only_boxed_clone(),
+            spot_ratio: spot_ratio.read_only_boxed_clone(),
         }
     }
 
@@ -26,7 +31,7 @@ impl ComponentPrice {
             &format!("{name}_cents_source"),
             version,
             ratio,
-            &self.price,
+            &self.cents,
             |_, ratio, price| PriceTimesRatio::apply(price, ratio),
         );
 
@@ -39,7 +44,7 @@ impl ComponentPrice {
         start: usize,
         end: usize,
     ) -> [Vec<Cents>; 10] {
-        let prices = self.price.collect_range_at(start, end);
+        let prices = self.cents.collect_range_at(start, end);
         ratios.map(|ratio| {
             let mut out = Vec::with_capacity(prices.len());
             ratio.for_each_chunk_at(start, start + prices.len(), &mut |at, values| {

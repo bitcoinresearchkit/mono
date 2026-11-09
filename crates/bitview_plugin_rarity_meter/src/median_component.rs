@@ -6,7 +6,7 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
-use crate::Component;
+use crate::{Component, reference_input::ReferenceInput};
 
 #[derive(Traversable)]
 pub struct MedianComponent<M: StorageMode = Rw> {
@@ -25,9 +25,17 @@ impl MedianComponent {
         indexes: &IndexSources,
         source: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
+        let price_vecs = PriceWithRatio::import(db, price, version, source, indexes)?;
+        let component = Component::import(
+            db,
+            price,
+            version,
+            indexes,
+            ReferenceInput::new(source, &price_vecs.relative.fixed.height),
+        )?;
         Ok(Self {
-            price: PriceWithRatio::import(db, price, version, source, indexes)?,
-            component: Component::import(db, price, version, indexes, source)?,
+            price: price_vecs,
+            component,
         })
     }
 
@@ -39,7 +47,6 @@ impl MedianComponent {
     ) -> Result<()> {
         self.price
             .compute_ratio(starting_lengths.height, spot, exit)?;
-        self.component
-            .compute(starting_lengths, &self.price.relative.fixed.height, exit)
+        self.component.compute(starting_lengths, spot.len(), exit)
     }
 }
