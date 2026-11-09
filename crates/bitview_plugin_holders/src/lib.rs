@@ -25,7 +25,7 @@ use bitview_cohort::AgeAggregate;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
+use vecdb::{Database, ReadableBoxedVec, ReadableCloneableVec, Rw, StorageMode};
 
 use columns::Columns;
 use cost_basis::CostBasisVecs;
@@ -51,4 +51,18 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     all_market_cap: ReadableBoxedVec<Height, Cents>,
     live: M::WriteOnly<Option<LiveState>>,
+}
+
+impl<M: StorageMode> Vecs<M> {
+    /// All-chain creation price weighted by each output's dollar value at creation, in cents.
+    pub fn all_capitalized_price(&self) -> ReadableBoxedVec<Height, Cents> {
+        self.cohorts
+            .all
+            .cost_basis
+            .by_dollar
+            .avg
+            .cents
+            .height
+            .read_only_boxed_clone()
+    }
 }

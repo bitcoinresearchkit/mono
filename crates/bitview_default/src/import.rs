@@ -26,7 +26,6 @@ use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
 use bitview_plugin_utxo_set::{ID as UTXO_SET_ID, Vecs as UtxoSet};
 use bitview_plugin_utxos::{ID as UTXOS_ID, Vecs as Utxos};
-use bitview_vecs::shapes::Windows;
 use brk_error::Result;
 use brk_reader::Reader;
 use tracing::info;
@@ -101,13 +100,7 @@ impl DefaultPlugins {
                 let mining = mining_handle.join().unwrap()?;
                 // Pool hash rates read mining's network estimates; the import itself is light.
                 let pools = timed_import(POOLS_ID, || {
-                    let rate = &mining.hash.hashrate;
-                    let network = Windows {
-                        _24h: &rate.value.height,
-                        _1w: &rate.sma._1w.height,
-                        _1m: &rate.sma._1m.height,
-                        _1y: &rate.sma._1y.height,
-                    };
+                    let network = mining.network_hashrate_windows();
                     Pools::import(context, &mappings, &window_starts, &network)
                 })?;
                 let inputs = inputs_handle.join().unwrap()?;
