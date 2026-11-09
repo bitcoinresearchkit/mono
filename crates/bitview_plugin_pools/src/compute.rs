@@ -8,7 +8,10 @@ use brk_types::{Cents, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
 
-use crate::{Dependencies, Vecs, pool_heights::PoolSnapshot};
+use crate::{
+    Dependencies, Vecs,
+    pool_heights::{PoolSnapshot, Rewards},
+};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -85,12 +88,12 @@ impl Vecs {
             let blocks = (0..end - start).map(|i| {
                 (
                     slugs[i],
-                    [
-                        u64::from(coinbase_sats_values[i]),
-                        u64::from(coinbase_cents_values[i]),
-                        u64::from(fee_sats_values[i]),
-                        u64::from(fee_cents_values[i]),
-                    ],
+                    Rewards {
+                        coinbase_sats: u64::from(coinbase_sats_values[i]),
+                        coinbase_cents: u64::from(coinbase_cents_values[i]),
+                        fee_sats: u64::from(fee_sats_values[i]),
+                        fee_cents: u64::from(fee_cents_values[i]),
+                    },
                 )
             });
             snapshot.append_totals(blocks);

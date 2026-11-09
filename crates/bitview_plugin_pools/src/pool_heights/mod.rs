@@ -1,24 +1,37 @@
 use std::{convert::Infallible, marker::PhantomData, sync::Arc};
 
 use arc_swap::ArcSwap;
-use bitview_primitives::PoolSlug;
-use brk_types::Height;
+use bitview_primitives::{Count, PoolSlug};
+use brk_types::{Cents, Height, Sats};
 use rangeindex::Pages;
 use rustc_hash::FxHashMap;
 use vecdb::{AnyVec, BytesVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
 /// Per-block reward values of one block: coinbase and fees, in sats and in cents at the
-/// block's spot price.
-pub type Rewards = [u64; 4];
+/// block's spot price. Keep the raw integer accumulation and its overflow behavior;
+/// the lazy columns' typed constructors own the Sats/Cents result mapping.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct Rewards {
+    pub coinbase_sats: u64,
+    pub coinbase_cents: u64,
+    pub fee_sats: u64,
+    pub fee_cents: u64,
+}
 
-/// Which running total a lazy vec reads.
+impl Rewards {
+    fn accumulate(&mut self, block: Self) {
+        self.coinbase_sats += block.coinbase_sats;
+        self.coinbase_cents += block.coinbase_cents;
+        self.fee_sats += block.fee_sats;
+        self.fee_cents += block.fee_cents;
+    }
+}
+
+/// Which running total a lazy vec reads: the pool's block count, or one reward quantity.
 #[derive(Clone, Copy)]
-pub enum Column {
+enum Column {
     Blocks,
-    CoinbaseSats,
-    CoinbaseCents,
-    FeeSats,
-    FeeCents,
+    Reward(fn(&Rewards) -> u64),
 }
 
 #[derive(Clone, Default)]
@@ -186,9 +199,7 @@ impl PoolSnapshot {
                 "rewards fold in block order"
             );
             let mut running = record.totals.last().copied().unwrap_or_default();
-            for (total, value) in running.iter_mut().zip(block) {
-                *total += value;
-            }
+            running.accumulate(block);
             record.totals.push(running);
             height += 1;
         }
@@ -207,8 +218,34 @@ pub(crate) struct PoolCumulativeVec<T> {
     value: PhantomData<fn() -> T>,
 }
 
+impl PoolCumulativeVec<Count> {
+    pub(crate) fn blocks(name: &str, slug: PoolSlug, pool_heights: PoolHeights) -> Self {
+        Self::new(name, slug, Column::Blocks, pool_heights)
+    }
+}
+
+impl PoolCumulativeVec<Sats> {
+    pub(crate) fn coinbase_sats(name: &str, slug: PoolSlug, pool_heights: PoolHeights) -> Self {
+        Self::new(name, slug, Column::Reward(|r| r.coinbase_sats), pool_heights)
+    }
+
+    pub(crate) fn fee_sats(name: &str, slug: PoolSlug, pool_heights: PoolHeights) -> Self {
+        Self::new(name, slug, Column::Reward(|r| r.fee_sats), pool_heights)
+    }
+}
+
+impl PoolCumulativeVec<Cents> {
+    pub(crate) fn coinbase_cents(name: &str, slug: PoolSlug, pool_heights: PoolHeights) -> Self {
+        Self::new(name, slug, Column::Reward(|r| r.coinbase_cents), pool_heights)
+    }
+
+    pub(crate) fn fee_cents(name: &str, slug: PoolSlug, pool_heights: PoolHeights) -> Self {
+        Self::new(name, slug, Column::Reward(|r| r.fee_cents), pool_heights)
+    }
+}
+
 impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
-    pub(crate) fn new(
+    fn new(
         name: &str,
         slug: PoolSlug,
         column: Column,
@@ -226,7 +263,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
     fn len_of(&self, snapshot: &PoolSnapshot) -> usize {
         match self.column {
             Column::Blocks => snapshot.len,
-            _ => snapshot.totals_len,
+            Column::Reward(_) => snapshot.totals_len,
         }
     }
 
@@ -234,12 +271,12 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
     fn total(&self, record: Option<&Record>, position: usize) -> T {
         let value = match (self.column, record) {
             (Column::Blocks, _) => position as u64,
-            (_, None) => 0,
-            (column, Some(record)) => {
+            (Column::Reward(_), None) => 0,
+            (Column::Reward(read), Some(record)) => {
                 debug_assert!(position <= record.totals.len(), "reward totals behind len");
                 position
                     .checked_sub(1)
-                    .map_or(0, |last| record.totals[last][column as usize - 1])
+                    .map_or(0, |last| read(&record.totals[last]))
             }
         };
         T::from(value)

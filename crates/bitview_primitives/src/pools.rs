@@ -15,6 +15,10 @@ use vecdb::Version;
 pub const POOL_ATTRIBUTION_VERSION: Version = Version::new(4);
 
 const JSON_DATA: &str = include_str!("../pools-v2.json");
+// A refresh changing pools-v2.json must update this constant and reconsider
+// POOL_ATTRIBUTION_VERSION.
+#[cfg(debug_assertions)]
+const POOLS_JSON_HASH: u64 = 0x0c13bea1fea7eed4;
 const TESTNET_IDS: &[u16] = &[145, 146, 149, 150, 156, 163];
 
 #[derive(Deserialize)]
@@ -93,6 +97,21 @@ pub fn pools() -> &'static Pools {
         let entries: Vec<JsonPoolEntry> =
             from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
 
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                rapidhash::v3::rapidhash_v3(JSON_DATA.as_bytes()),
+                POOLS_JSON_HASH
+            );
+            let mut seen = [false; 256];
+            for entry in &entries {
+                let id = usize::from(entry.id);
+                debug_assert!(id < seen.len(), "pool ID {} is out of range", entry.id);
+                debug_assert!(!seen[id], "duplicate pool ID {}", entry.id);
+                seen[id] = true;
+            }
+        }
+
         // Every PoolSlug has an entry, so `get` can't miss: the reserved ones stay empty.
         let mut pools: Vec<Pool> = (0..=usize::from(u8::MAX)).map(empty_pool).collect();
 
@@ -134,6 +153,21 @@ pub fn pools() -> &'static Pools {
                     .into_boxed_slice(),
                 tags_lowercase,
             };
+        }
+
+        #[cfg(debug_assertions)]
+        for (id, pool) in pools
+            .iter()
+            .enumerate()
+            .filter(|(_, pool)| !pool.name.is_empty())
+        {
+            debug_assert_eq!(usize::from(u8::from(pool.slug)), id);
+            // Reserved/dummy slugs cannot be serialized: every populated ID needs a
+            // public slug that round-trips to the same stored numeric ID.
+            let json =
+                serde_json::to_string(&pool.slug).expect("populated pool needs a public slug");
+            let slug: PoolSlug = from_str(&json).expect("pool slug round-trips");
+            debug_assert_eq!(usize::from(u8::from(slug)), id);
         }
 
         let mut by_addr = FxHashMap::default();

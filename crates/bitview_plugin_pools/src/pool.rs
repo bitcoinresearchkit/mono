@@ -11,7 +11,7 @@ use vecdb::{
     BinaryTransform, DeltaSub, Ident, LazyDeltaVec, LazyVec, ReadableCloneableVec, Version,
 };
 
-use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
+use crate::pool_heights::{PoolCumulativeVec, PoolHeights};
 
 #[derive(Clone, Traversable)]
 pub struct PoolVecs {
@@ -80,34 +80,29 @@ impl PoolVecs {
         network: &Windows<&impl ReadableCloneableVec<Height, Hashrate>>,
     ) -> Self {
         let name = |suffix: &str| format!("pool_{slug}_{suffix}");
-        let blocks = PoolCumulativeVec::<Count>::new(
+        let blocks = PoolCumulativeVec::blocks(
             &name("block_count_cumulative_source"),
             slug,
-            Column::Blocks,
             pool_heights.clone(),
         );
-        let coinbase_sats = PoolCumulativeVec::<Sats>::new(
+        let coinbase_sats = PoolCumulativeVec::coinbase_sats(
             &name("coinbase_cumulative_sats_source"),
             slug,
-            Column::CoinbaseSats,
             pool_heights.clone(),
         );
-        let coinbase_cents = PoolCumulativeVec::<Cents>::new(
+        let coinbase_cents = PoolCumulativeVec::coinbase_cents(
             &name("coinbase_cumulative_cents_source"),
             slug,
-            Column::CoinbaseCents,
             pool_heights.clone(),
         );
-        let fee_sats = PoolCumulativeVec::<Sats>::new(
+        let fee_sats = PoolCumulativeVec::fee_sats(
             &name("fees_cumulative_sats_source"),
             slug,
-            Column::FeeSats,
             pool_heights.clone(),
         );
-        let fee_cents = PoolCumulativeVec::<Cents>::new(
+        let fee_cents = PoolCumulativeVec::fee_cents(
             &name("fees_cumulative_cents_source"),
             slug,
-            Column::FeeCents,
             pool_heights.clone(),
         );
 
