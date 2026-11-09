@@ -11,8 +11,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 ### Breaking Changes
 
 - The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
-  a CDN in front to compress, and an instance reached directly sends them as they are. A request refusing `identity`
-  gets 406 (was: one refusing every encoding)
+  a CDN in front to compress, and an instance reached directly sends them as they are. `Accept-Encoding` is no longer
+  read, so a request refusing `identity` gets the response as it is (was: 406 when it refused every encoding)
 - `bitview`, `bitview_server` and `bitview_query` keep two API features: `series`, the generic series routes, and
   `full-api`, every other route too. The `chain`, `price` and `urpd` features are gone: enable `full-api` for them
 - `bitview_query`: `Vecs` is `SeriesRegistry`, and `Query::vecs()` is `Query::registry()`; `QueryPlugins` and the `Supports*` traits are

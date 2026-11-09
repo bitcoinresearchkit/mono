@@ -62,7 +62,6 @@ mod response_time;
 mod series_bodies;
 mod stall_limit;
 mod state;
-mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
 
@@ -300,7 +299,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         .layer(from_fn(request_deadline::apply))
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
-        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
                 .downcast_ref::<String>()
