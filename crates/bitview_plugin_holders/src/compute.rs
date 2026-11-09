@@ -10,7 +10,7 @@ use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec};
 
 use crate::{
-    Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, section::Rest,
+    Dependencies, Vecs, age_aggregate, cost_basis::CostBasisBlockData, live::LiveState, section::Rest,
     sources::Sources,
 };
 
@@ -107,14 +107,17 @@ impl ComputePlugin for Vecs {
         }
         drop(cursor);
         let all_capital = self.columns.all.cap.read_only_boxed_clone();
-        self.cohorts.par_try_update(&Rest {
-            from: Height::from(start),
-            columns: &self.columns,
-            all_supply: &self.all_supply,
-            all_capital: &all_capital,
-            spot,
-            exit,
-        })?;
+        age_aggregate::par_try_update(
+            &mut self.cohorts,
+            &Rest {
+                from: Height::from(start),
+                columns: &self.columns,
+                all_supply: &self.all_supply,
+                all_capital: &all_capital,
+                spot,
+                exit,
+            },
+        )?;
         self.save(end, true, exit)?;
         self.db.flush();
         self.live = Some(live);

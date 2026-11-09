@@ -9,7 +9,9 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use crate::{STORAGE, Vecs, columns::Columns, cost_basis::CostBasisVecs, section::Imports};
+use crate::{
+    STORAGE, Vecs, age_aggregate, columns::Columns, cost_basis::CostBasisVecs, section::Imports,
+};
 
 impl Vecs {
     pub fn import(
@@ -26,7 +28,7 @@ impl Vecs {
         let spot = price.spot.cents.height.read_only_boxed_clone();
         let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
         let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version))?;
-        let cohorts = AgeAggregate::try_build(&Imports {
+        let cohorts = age_aggregate::try_build(&Imports {
             db: &db,
             v: version,
             columns: &columns,

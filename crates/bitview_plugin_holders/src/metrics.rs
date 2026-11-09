@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeAggregateId, BuildMember, UpdateMember};
+use bitview_cohort::AgeAggregateId;
 use bitview_distribution::metrics::UtxoViews;
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
@@ -8,6 +8,7 @@ use vecdb::{ReadableVec, Rw, StorageMode};
 use crate::{
     activity::Activity,
     adjusted_sopr::AdjustedRealized,
+    age_aggregate::{BuildMember, UpdateMember},
     capital::{Capital, SharedCapital},
     cost_basis::CostBasis,
     realized::Realized,

@@ -3,6 +3,7 @@
 mod accounting;
 mod activity;
 mod adjusted_sopr;
+mod age_aggregate;
 mod capital;
 mod columns;
 mod compute;
