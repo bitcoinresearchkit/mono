@@ -11,15 +11,15 @@ import { BROWSER, CONTEXT, LINK, PAGE, VERSION } from "./shapes.js";
 /** The most a body may weigh, read as it arrives (a chunked request states no length). */
 const MAX_BODY = 32_768;
 const MAX_MESSAGE = 4_000;
-/** Unread messages the inbox holds before it refuses more: two days of the job's reading, so a flood clears in two. */
+/** Unread messages the inbox holds before it refuses more: the job empties it at each run, so a flood clears at the next. */
 const MAX_UNREAD = 100;
 
 const MAX_ERRORS = 5;
 const MAX_ERROR = 300;
 
 /** Everything invisible goes: controls, formats (bidi overrides, zero-widths, Unicode tags), private and unassigned
- * code points, line and paragraph separators and variation selectors, the carriers of text meant for a model and not
- * for the eye. A joined emoji comes apart, harmlessly. */
+ * code points, line and paragraph separators and variation selectors, the carriers of text not meant for the eye.
+ * A joined emoji comes apart, harmlessly. */
 const INVISIBLE = /[^\P{C}\n\t]|[\p{Zl}\p{Zp}\p{Variation_Selector}]/gu;
 
 /** @param {unknown} text */
