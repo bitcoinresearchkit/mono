@@ -226,9 +226,9 @@
         z-index: 30;
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 12px;
         height: calc(64px + var(--bar-top));
+        color: var(--ink);
         padding: var(--bar-top) var(--gutter) 0;
         /* (One look, at rest and scrolled alike: nothing changes as the page moves, so nothing jumps. The glass: a
            progressive blur. Five layers behind its contents (each costs Mullvad's CPU drawing ~2ms a frame: ten
@@ -276,7 +276,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        color: var(--ink);
+        margin-right: auto;
         font-size: 16px;
         font-weight: 650;
         letter-spacing: -0.01em;
@@ -2524,15 +2524,6 @@
               flex-wrap: wrap;
               gap: 4px 16px;
 
-              button[data-feedback] {
-                color: var(--soft);
-                font-size: 12.5px;
-
-                &:hover {
-                  color: var(--ink);
-                }
-              }
-
               a {
                 position: relative;
                 font-size: 12.5px;
@@ -2617,6 +2608,7 @@
         <span id="price-panel" hidden title="Bitcoin's price, read from the chain by this node"><b class="num" id="price"></b><span class="vh" data-said></span></span>
         <span class="fee" id="fees-panel" hidden title="The fee rate to get into the next block"><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
+      <button type="button" data-feedback aria-label="Report a bug" title="Report a bug"></button>
     </header>
 
     <h1 class="vh">Bitview</h1>
@@ -2657,7 +2649,7 @@
       <div class="columns">
         <div class="home">
           <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-          <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span><button type="button" data-feedback>Feedback</button></p>
+          <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span></p>
         </div>
         <div id="footer-apps">
           <h3>Apps</h3>
