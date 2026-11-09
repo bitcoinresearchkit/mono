@@ -54,12 +54,7 @@ impl Replay for Vecs {
 
     fn restore(&self, states: &mut UTXOStates, height: Height) -> Option<()> {
         states.restore(&self.cohorts, height)?;
-        for (state, cap) in states
-            .amount_range
-            .iter_mut()
-            .chain(states.type_.iter_mut())
-            .zip(self.caps.load()?)
-        {
+        for (state, cap) in states.capped_mut().zip(self.caps.load()?) {
             state.realized = MinimalRealizedState::from_cap(cap);
         }
         Some(())
@@ -86,11 +81,7 @@ impl Vecs {
         with_changes: bool,
     ) -> Result<()> {
         self.caps.save(
-            states
-                .amount_range
-                .iter()
-                .chain(states.type_.iter())
-                .map(|s| s.realized.cap_raw()),
+            states.capped().map(|s| s.realized.cap_raw()),
             stamp,
             with_changes,
         )
