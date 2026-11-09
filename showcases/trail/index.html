@@ -938,6 +938,7 @@
           byId("dimension-2d"),
           byId("dimension-3d"),
         ];
+        const dimensionToggle = byId("dimension-toggle");
         const metricSelect = byId("metric");
         const modeSelect = byId("mode");
         const weightSelect = byId("weight");
@@ -2399,6 +2400,8 @@
             height === state.height &&
             dpr === state.dpr
           ) {
+            // (The canvas is as it was, but the screen around it isn't: a turned phone moves the toggle the 2D readout keeps clear of.)
+            scheduleRender();
             return;
           }
 
@@ -3876,6 +3879,48 @@
           context.restore();
         }
 
+        /** Where a turned (portrait touch) 2D stage puts the screen's fixed 2D/3D toggle, in the stage's own coordinates; null elsewhere. */
+        function toggleBoxInStage() {
+          if (state.dimension !== "2d" || !portraitStageQuery.matches) {
+            return null;
+          }
+          const toggle = dimensionToggle.getBoundingClientRect();
+          const stage = app.getBoundingClientRect();
+          if (!toggle.width || !toggle.height) return null;
+          // (The stage is turned a quarter clockwise about its centre: the screen's down is the stage's right, its right the stage's up.)
+          const scale =
+            Number(app.style.getPropertyValue("--stage-scale")) || 1;
+          const gap = 4;
+          const centerX = stage.left + stage.width / 2;
+          const centerY = stage.top + stage.height / 2;
+          return {
+            left: app.clientWidth / 2 + (toggle.top - gap - centerY) / scale,
+            right: app.clientWidth / 2 + (toggle.bottom + gap - centerY) / scale,
+            top: app.clientHeight / 2 - (toggle.right + gap - centerX) / scale,
+            bottom: app.clientHeight / 2 - (toggle.left - gap - centerX) / scale,
+          };
+        }
+
+        /** The y a left-attached value pill at this point is drawn at: along the value axis, to end short of the toggle's edge. */
+        function clearOfToggle(text, point) {
+          const toggle = toggleBoxInStage();
+          if (!toggle) return point.y;
+          const pill = pillLayout(context, text, "left", "left");
+          const halfBorder = PILL_BORDER_WIDTH * 0.5;
+          const left = point.x + pill.offsetX + pill.boxX - halfBorder;
+          const right = left + pill.boxWidth + PILL_BORDER_WIDTH;
+          const half = pill.boxHeight * 0.5 + halfBorder;
+          if (
+            right <= toggle.left ||
+            left >= toggle.right ||
+            point.y + half <= toggle.top ||
+            point.y - half >= toggle.bottom
+          ) {
+            return point.y;
+          }
+          return toggle.top - half;
+        }
+
         function drawHoverCursor(
           layout,
           dateIndex,
@@ -3962,11 +4007,12 @@
             priceOut,
             { attachEdge: "top" },
           );
+          const valueText = formatAxisValue(value);
           drawPill(
             context,
-            formatAxisValue(value),
+            valueText,
             valuePoint.x,
-            valuePoint.y,
+            clearOfToggle(valueText, valuePoint),
             valueLabelAxis,
             valueLabelDown,
             {
