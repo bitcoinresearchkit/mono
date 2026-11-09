@@ -26415,7 +26415,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // read, as it is.)
         if (location.hash !== brokenLink && /^#(?:.*&)?(?:chart|image|c)=/.test(location.hash)) return;
         // (An address's fields changed by hand, a new step with nothing kept: read afresh, as a visit to it.)
-        if (event.state === null && ROUTED && Object.keys(linkLookOf(new URLSearchParams(location.hash.slice(1)))).length) return void location.reload();
+        if (event.state === null && ROUTED && location.pathname !== `${BASE}/` && (!location.hash || Object.keys(linkLookOf(new URLSearchParams(location.hash.slice(1)))).length)) return void location.reload();
         closeDialogs();
         if (event.state?.home) {
           const to = asPlace(event.state.at), place = leftPlaces.get(event.state.key) ?? event.state.place ?? null;
@@ -26447,8 +26447,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (closed) notice(`“${closed}” was closed${libraryEdits.past.at(-1)?.text === `Closed the preview “${closed}”` ? `. Press ${keyText("⌘Z")} on Home to bring it back` : ""}`);
           return void history.replaceState(home ? homeState() : { chart: chart.id }, "");
         }
+        // (A preset's step, as its address says: where it was when left, whatever it's shown since.)
+        const at = doc.preset === undefined ? -1 : presetIndex(doc);
+        if (at >= 0 && !presetEdited(doc) && !(doc === chart && !home && `${location.pathname}${location.hash}` === `${BASE}${presetLink(doc)}`)) {
+          takeLinkLook(doc, linkLookOf(new URLSearchParams(location.hash.slice(1))), presetLook(at));
+          linkWindow = doc.id;
+          if (doc === chart) return void leaveHome(() => { drawnChart = ""; refresh(true, true); });
+        }
         go(doc, false);
-        // (A step of the same chart, nothing to draw: the bar says what shows.)
         showAddress();
       });
       /**
@@ -29204,7 +29210,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const canonical = `${ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
         if (link.href !== canonical) link.href = canonical;
         // (Where the page's Studio's own: a link still being read, a picture's, or broken, left as it is till it's dealt with.)
-        const bar = ROUTED && !/^#(?:.*&)?(?:chart|image|c)=/.test(location.hash) ? (home || chart.preset === undefined ? address : presets ? presetLink(chart) ?? "/" : null) : null;
+        // (An address waiting for the presets to be read, kept.)
+        const bar = ROUTED && !pendingRoute && !/^#(?:.*&)?(?:chart|image|c)=/.test(location.hash) ? (home || (chart.preset === undefined && !asMade.has(chart)) ? address : presets ? presetLink(chart) ?? "/" : null) : null;
         if (bar === null) return;
         const [where, look = ""] = bar.split("#"), url = `${BASE}${where}${location.search}${look && `#${look}`}`;
         if (`${location.pathname}${location.search}${location.hash}` !== url) history.replaceState(history.state, "", url);
@@ -29284,14 +29291,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
+      /** The previews that are a preset as made (opened at its address, one's own edits of it apart): each its preset. @type {WeakMap<Chart, number>} */
+      const asMade = new WeakMap();
       /**
        * A preset's address, with how it's looked at where that isn't how it opens (see linkLookOf): the chart of a preset as
        * made but for its view and its interval; else, or the presets unread, null. @param {Chart} doc
        */
       function presetLink(doc) {
-        const i = presetIndex(doc);
-        if (i < 0) return null;
-        if (presetEdited(doc)) return null;
+        const i = asMade.get(doc) ?? presetIndex(doc);
+        if (i < 0 || (asMade.has(doc) ? contentHash(doc) !== templateHash(i) : presetEdited(doc))) return null;
         const look = lookFields(doc, presetLook(i));
         return `${/** @type {NonNullable<ReturnType<typeof addresses>>} */ (addresses()).presets[i]}${look && `#${look}`}`;
       }
@@ -29303,8 +29311,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetByAddress(i) {
         const look = linkLookOf(new URLSearchParams(location.hash.slice(1))), had = editedPreset(i);
         if (had && presetEdited(had)) {
-          const made = freshPreset(i), doc = previewLike(made) ?? made;
-          takeLinkLook(doc, look, presetLook(i));
+          const made = freshPreset(i);
+          takeLinkLook(made, look, presetLook(i));
+          const like = previewLike(made), doc = like ?? made;
+          if (like) (like.range = made.range), takeView(made.id, like.id);
+          asMade.set(doc, i);
           addPreview(doc);
           keepAsideOpened(doc);
           linkWindow = doc.id;
@@ -37805,13 +37816,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const kept = carriedView(doc);
         return kept ? Object.fromEntries((/** @type {const} */ (["from", "to"])).map((edge) => [edge, dateText(timeAt(kept.index, indexAt(kept.index, kept[edge][0]) + Math.round(kept[edge][1])))])) : null;
       }
+      /** Whether a view ends on the latest data, with the room a chart leaves after it (dragged past that, it ends where it ends). @param {any} view */
+      const endsAtLatest = (view) => Boolean(view?.latest) && (view.latest[1] * engine.time.width) / (view.latest[1] - view.latest[0]) <= rightGap() * 1.5;
       /** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out. @param {Chart} doc @param {{ index: string, range: string }} made */
       function lookFields(doc, made) {
         const dates = linkDates(doc);
         // (A time in a date's field to the minute: "2026-11-08T14:30". A view at the latest, up to it, as it comes: no end.
         // Values as the buttons show them: "1W", "Max".)
         const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
-        const look = dates ? [`from=${field(dates.from)}`, ...(carriedView(doc)?.latest ? [] : [`to=${field(dates.to)}`])] : doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : [];
+        const look = dates ? [`from=${field(dates.from)}`, ...(endsAtLatest(carriedView(doc)) ? [] : [`to=${field(dates.to)}`])] : doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : [];
         return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : [])].join("&");
       }
       /**
@@ -37869,7 +37882,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function linksOf(doc = chart) {
         // (A preset as it's made but for how it's looked at, once the presets are read (one reloaded on shows before them):
         // its address, and that. Edited, gone from them, or none: the chart.)
-        const address = doc.preset !== undefined ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
+        const address = doc.preset !== undefined || asMade.has(doc) ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
         const links = address.then((at) => {
           if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
           const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
