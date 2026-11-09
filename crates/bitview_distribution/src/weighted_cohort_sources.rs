@@ -1,11 +1,22 @@
 use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_compute::WeightedCohortState;
-use bitview_primitives::BoundedRatio;
+use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, import_cached};
+use bitview_urpd::CostBasisVecs;
+use bitview_vecs::{
+    CachedSeries, IndexSources, LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock,
+    import_cached, ops::FixedToPercent,
+};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{Database, PcoVecValue, Rw, StorageMode, WritableVec};
+use vecdb::{Database, PcoVecValue, ReadableBoxedVec, Rw, StorageMode, WritableVec};
+
+/// The names of a weighted model's two sides: `awake` gives `sth_awake_supply_sats`.
+#[derive(Clone, Copy)]
+pub struct WeightedCohortSides {
+    pub weighted: &'static str,
+    pub complement: &'static str,
+}
 
 /// Height-indexed sources of every aggregate cohort split by a weighted model: its weighted side
 /// (awake, mobile) and the complement (dormant, immobile). The model owns the weights and the
@@ -21,13 +32,11 @@ pub struct WeightedCohortSources<M: StorageMode = Rw> {
 }
 
 impl WeightedCohortSources {
-    /// `weighted` and `complement` name the sides: `awake` gives `sth_awake_supply_sats`.
-    pub fn import(
-        db: &Database,
-        weighted: &str,
-        complement: &str,
-        version: Version,
-    ) -> Result<Self> {
+    pub fn import(db: &Database, sides: WeightedCohortSides, version: Version) -> Result<Self> {
+        let WeightedCohortSides {
+            weighted,
+            complement,
+        } = sides;
         let weighted = |metric: &str| format!("{weighted}_{metric}");
         Ok(Self {
             weighted_supply: import_aggregate(db, &weighted("supply_sats"), version)?,
@@ -67,6 +76,78 @@ impl WeightedCohortSources {
             id.select_mut(&mut self.weighted_supply_in_loss_share)
                 .push(state.supply_in_loss_share());
         }
+    }
+}
+
+/// One aggregate cohort's views over its [`WeightedCohortSources`]. The model moves them into its
+/// own public structs, which carry the series' docs and tree shape.
+pub struct WeightedCohortViews {
+    pub supply: LazySpotValuePerBlock,
+    pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
+    pub capital: LazyFiatPerBlock<Cents>,
+    pub realized_cap: LazyFiatPerBlock<Cents>,
+    pub cost_basis: CostBasisVecs,
+    pub complement_supply: LazySpotValuePerBlock,
+}
+
+impl WeightedCohortViews {
+    /// `capital` and `realized_cap` are two published names of the same weighted realized cap.
+    pub fn new(
+        db: &Database,
+        id: AgeAggregateId,
+        sides: WeightedCohortSides,
+        version: Version,
+        sources: &WeightedCohortSources,
+        indexes: &IndexSources,
+        spot_price: &ReadableBoxedVec<Height, Cents>,
+    ) -> Result<Self> {
+        let WeightedCohortSides {
+            weighted,
+            complement,
+        } = sides;
+        let name = |metric: &str| id.metric_name(&format!("{weighted}_{metric}"));
+        Ok(Self {
+            supply: LazySpotValuePerBlock::from_sats_source(
+                &name("supply"),
+                version,
+                id.select(&sources.weighted_supply),
+                indexes,
+                spot_price,
+            ),
+            supply_in_loss_share: LazyPerBlock::from_height_source::<FixedToPercent>(
+                &name("supply_in_loss_share"),
+                version,
+                id.select(&sources.weighted_supply_in_loss_share),
+                indexes,
+            ),
+            capital: LazyFiatPerBlock::from_cents_source(
+                &name("capital"),
+                version,
+                id.select(&sources.weighted_realized_cap),
+                indexes,
+            ),
+            realized_cap: LazyFiatPerBlock::from_cents_source(
+                &name("realized_cap"),
+                version,
+                id.select(&sources.weighted_realized_cap),
+                indexes,
+            ),
+            cost_basis: CostBasisVecs::import(
+                db,
+                &id.metric_name(weighted),
+                version,
+                indexes,
+                id.select(&sources.weighted_realized_price),
+                id.select(&sources.weighted_capitalized_price),
+            )?,
+            complement_supply: LazySpotValuePerBlock::from_sats_source(
+                &id.metric_name(&format!("{complement}_supply")),
+                version,
+                id.select(&sources.complement_supply),
+                indexes,
+                spot_price,
+            ),
+        })
     }
 }
 
