@@ -23,6 +23,16 @@
   const standalone = /** @type {any} */ (navigator).standalone;
   // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
+  // (A way to send a note: its own file. A page's button is a plain one to style, from before the page is drawn: nothing moves.)
+  document.head.append(Object.assign(document.createElement("script"), { src: "/assets/feedback/feedback.js", fetchPriority: "low" }));
+  document.head.append(Object.assign(document.createElement("style"), { textContent: ":where(button[data-feedback]) { position: relative; appearance: none; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; &::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) -8px; } }" }));
+  // (Answered here, so a press before that file has come isn't lost: it opens as soon as it has.)
+  document.addEventListener("click", (event) => {
+    if (!/** @type {Element} */ (event.target).closest?.("[data-feedback]")) return;
+    const feedback = /** @type {any} */ (window).bitviewFeedback;
+    if (feedback) feedback.open();
+    else /** @type {any} */ (window).bitviewFeedbackAsked = true;
+  });
   // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
   const app = script?.dataset.app, name = app ? `Bitview ${app}` : "Bitview", short = app ?? name;
   const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;

@@ -76,6 +76,22 @@
       }
 
       /* The way back to Bitview, as every showcase has it: in the screen's corner, over the scene (not turned with it). */
+      button[data-feedback] {
+        position: fixed;
+        z-index: 10;
+        top: calc(env(safe-area-inset-top) + 16px);
+        right: calc(env(safe-area-inset-right) + 18px);
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        opacity: 0.7;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+
       .brand {
         position: fixed;
         z-index: 10;
@@ -552,6 +568,7 @@
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+    <button type="button" data-feedback>Feedback</button>
     <!-- (In the screen's corner, as the brand: upright on a phone too, where the scene is turned.) -->
     <fieldset
       id="dimension-toggle"

@@ -680,6 +680,10 @@
           color: var(--ink);
         }
       }
+          footer button[data-feedback] {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
     </style>
   </head>
   <body>
@@ -734,7 +738,7 @@
         </section>
       </div>
 
-      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span></footer>
+      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span> <button type="button" data-feedback>Feedback</button></footer>
     </main>
 
     <script>

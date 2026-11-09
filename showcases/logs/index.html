@@ -1066,6 +1066,10 @@
           inset: min(0px, calc((100% - 44px) / 2)) 0;
         }
       }
+          footer button[data-feedback] {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
     </style>
   </head>
   <body>
@@ -1096,7 +1100,7 @@
       <aside class="detail" id="detail" aria-label="The line's details"></aside>
     </div>
 
-    <footer>Everything this server logs, every request with its status, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
+    <footer>Everything this server logs, every request with its status, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a> <button type="button" data-feedback>Feedback</button></footer>
 
     <script>
       // ── The shapes of the log's own lines ──

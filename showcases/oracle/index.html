@@ -1211,6 +1211,10 @@
           }
         }
       }
+          footer button[data-feedback] {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
     </style>
   </head>
   <body>
@@ -1326,7 +1330,7 @@
     </main>
 
     <footer class="shell">
-      <p>Read live from this server: <a href="/api/oracle/price">its price</a>, its blocks' payments and its mempool's, by <a href="https://crates.io/crates/brk_oracle">brk_oracle</a>. Inspired by <a href="https://utxo.live/oracle/">UTXOracle</a>.</p>
+      <p>Read live from this server: <a href="/api/oracle/price">its price</a>, its blocks' payments and its mempool's, by <a href="https://crates.io/crates/brk_oracle">brk_oracle</a>. Inspired by <a href="https://utxo.live/oracle/">UTXOracle</a>. <button type="button" data-feedback>Feedback</button></p>
     </footer>
 
     <script type="module">

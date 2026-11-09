@@ -10898,7 +10898,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
         </div>
         <!-- (Its bottom corner after what's on the page, as it's read: Tab reaches it last.) -->
-        <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
+        <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-feedback>Feedback</button><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
         <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
           <span class="pick-count"><span id="home-picked" aria-live="polite"></span><button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
           <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
@@ -34015,6 +34015,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
+          { title: "Send feedback", text: "A note to the Bitview project: a bug, something confusing, an idea.", icon: "recent", run: () => /** @type {any} */ (window).bitviewFeedback?.open(), anywhere: true },
           canTravel(true) ? { title: "Undo", text: placingPath() ? "The path's last point taken back." : libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [

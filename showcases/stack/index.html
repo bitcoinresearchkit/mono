@@ -1436,13 +1436,25 @@
           }
         }
       }
+          .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .actions [data-feedback] {
+        opacity: 0.7;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <button type="button" class="pill action" id="share" disabled>Share</button>
+        <span class="actions"><button type="button" data-feedback>Feedback</button><button type="button" class="pill action" id="share" disabled>Share</button></span>
       </header>
 
       <main>

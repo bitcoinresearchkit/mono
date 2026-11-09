@@ -1341,6 +1341,14 @@
           animation: none;
         }
       }
+          .feedback-foot {
+        padding: 28px 16px 40px;
+        text-align: center;
+        opacity: 0.7;
+      }
+      main {
+        min-height: 100dvh;
+      }
     </style>
   </head>
   <body>
@@ -1365,6 +1373,7 @@
     </header>
     <h1 class="vh">Explorer</h1>
     <main class="page" id="view"><div class="wait">Loading</div></main>
+    <footer class="feedback-foot"><button type="button" data-feedback>Feedback</button></footer>
     <div class="card" id="card" hidden></div>
     <script type="module">
       // ---------------------------------------------------------------- Reads, all from the server serving the page.

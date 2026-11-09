@@ -1300,6 +1300,10 @@
           }
         }
       }
+          footer button[data-feedback] {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
     </style>
   </head>
   <body>
@@ -1413,6 +1417,7 @@
     <footer class="shell">
       <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a id="in-studio" href="/studio/presets/valuation/compass/percentiles-and-average">Compass in Studio</a>.</p>
       <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles-and-average" aria-pressed="true">40th–60th percentiles and averages</button>, <button type="button" data-basis="percentiles" aria-pressed="false">40th–60th percentiles</button>, <button type="button" data-basis="medians" aria-pressed="false">medians</button>, <button type="button" data-basis="averages" aria-pressed="false">averages</button> or <button type="button" data-basis="medians-and-averages" aria-pressed="false">medians and averages</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins cost.<span id="coins-said" aria-live="polite"></span></p>
+      <p><button type="button" data-feedback>Feedback</button></p>
     </footer>
 
     <script type="module">

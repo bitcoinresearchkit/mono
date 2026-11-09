@@ -1,0 +1,22 @@
+name = "bitview-feedback"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+# Its own hostname only: a *.workers.dev address can show the account's name.
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "feedback.bitview.space", custom_domain = true }]
+
+# Cloudflare keeps no per-request logs of this Worker (they're on by default for a new one).
+[observability]
+enabled = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bitview-feedback"
+database_id = "SET-AT-DEPLOY"
+
+[[ratelimits]]
+name = "LIMIT"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
