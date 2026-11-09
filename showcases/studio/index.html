@@ -10666,7 +10666,7 @@
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3m, 1y, 4y, 8y or max) or "from" and "to" (dates: "from" alone runs up to now), and "index", its interval, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1y&amp;index=week1. A chart's link takes the same after its chart.</p>
+          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3m, 1y, 4y, 8y or max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), and "interval" (10m, 30m, 1h, 4h, 12h, 1d, 3d, 1w, 1m, 3m, 6m, 1y or 10y, where 1m, 3m and 6m are months), as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1y&amp;interval=1w. A chart's link takes the same after its chart.</p>
           <h2>A chart</h2>
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
@@ -11598,6 +11598,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ];
       const INTERVAL_ORDER = INTERVALS.flatMap(([, items]) => items.map(([id]) => id));
       const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
+      /** Each interval by its label as a link writes it, lowercase ("1w"), the picker's own (no two alike: minutes are 10m and 30m alone). */
+      const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(([id, label]) => [String(label).toLowerCase(), id]));
       /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
       const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
       /** A fine interval's step, in seconds. */
@@ -37713,13 +37715,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
       const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
       /**
-       * How a link says to look at its chart, each a field of its own after its address or its chart: `range` or the
-       * dates `from` and `to`, and `index`, its interval. What it doesn't know, as if it weren't there.
+       * How a link says to look at its chart, each a field of its own after its address or its chart, in the words of
+       * Studio's own controls: `range` or the dates `from` and `to`, and `interval`, in any case. What it doesn't know,
+       * as if it weren't there.
        * @param {URLSearchParams} params
        */
       function linkLookOf(params) {
-        const range = params.get("range"), index = params.get("index") ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) };
-        return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_LABEL, index) ? { index } : {}), ...(datedView("day1", view) ? { view } : {}) };
+        const range = params.get("range")?.toLowerCase(), interval = params.get("interval")?.toLowerCase() ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) };
+        return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_OF_FIELD, interval) ? { index: INTERVAL_OF_FIELD[interval] } : {}), ...(datedView("day1", view) ? { view } : {}) };
       }
       /** A view by its dates, as Studio keeps one, at an interval (`from` alone, up to now); dates it can't read or in the wrong order, null. @param {string} index @param {any} view */
       function datedView(index, view) {
@@ -37794,7 +37797,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out. @param {Chart} doc @param {{ index: string, range: string }} made */
       function lookFields(doc, made) {
         const dates = linkDates(doc);
-        return [...(doc.index !== made.index ? [`index=${doc.index}`] : []), ...(dates ? [`from=${dates.from}`, `to=${dates.to}`] : doc.range !== made.range ? [`range=${doc.range}`] : [])].join("&");
+        // (A time in a date's field to the minute: "2026-11-08T14:30".)
+        const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
+        return [...(dates ? [`from=${field(dates.from)}`, `to=${field(dates.to)}`] : doc.range !== made.range ? [`range=${doc.range}`] : []), ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index].toLowerCase()}`] : [])].join("&");
       }
       /**
        * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
