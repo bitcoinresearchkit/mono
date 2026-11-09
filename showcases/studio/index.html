@@ -37784,14 +37784,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * code (base32: the fewest modules; compressing failed, the copy's, written out).
        */
       function linksOf(doc = chart) {
-        // (A preset as it's made, shown as it opens (its range, the view at it, its own drawing there: one still loading
-        // may come back to a view of its own): its address, which opens it, itself, wherever. Moved, zoomed, at another
-        // range: the link, with the view.)
-        const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
-        const at = i >= 0 && settled() && presetShown && doc.range === freshPreset(i).range ? addresses()?.presets[i] : null;
-        if (at) return { copy: Promise.resolve(`${ORIGIN}${at}`), short: Promise.resolve(`${ORIGIN}${at}`) };
-        const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
-        return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
+        // (A preset not edited, however its view's been moved (a view's no edit, see contentHash): its address, which opens
+        // it, itself, wherever, once the presets are read (one reloaded on shows before them). Edited, or gone from them:
+        // the chart, with its view.)
+        const address = doc.preset !== undefined && !presetEdited(doc) ? loadPresets().then(() => addresses()?.presets[presetIndex(doc)], () => undefined) : Promise.resolve(undefined);
+        const links = address.then((at) => {
+          if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
+          const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
+          return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
+        });
+        return { copy: links.then((all) => all.copy), short: links.then((all) => all.short) };
       }
       /**
        * A link's base64 as bytes, in either alphabet (its URL-safe one, or one with "+" and "/", as links always opened:
@@ -39051,7 +39053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // page without JavaScript left out.)
         const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
         const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone exactly as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. A preset you haven't edited shares its own address instead, which opens it as made. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
         showDialog($("guide"));
         $("guide").focus();
