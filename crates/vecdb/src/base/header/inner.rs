@@ -104,6 +104,7 @@ impl HeaderInner {
         pos += s.len();
         let f = self.format.to_bytes();
         buf[pos..pos + f.len()].copy_from_slice(&f);
+        debug_assert!(pos + f.len() <= 22, "header fields run into value_size");
         buf[22..24].copy_from_slice(&self.value_size.to_le_bytes());
         // remaining bytes are already zero (padding)
         buf

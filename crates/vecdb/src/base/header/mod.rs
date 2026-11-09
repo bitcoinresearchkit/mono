@@ -15,9 +15,9 @@ pub mod inner;
 mod write_guard;
 
 const HEADER_VERSION: Version = Version::new(3);
-pub const HEADER_OFFSET: usize = size_of::<HeaderInner>();
-// The serialized header writes `value_size` at bytes 22..24.
-const _: () = assert!(HEADER_OFFSET >= 24);
+/// Length of the encoded header, a constant of the on-disk format (never derived from
+/// `HeaderInner`, whose in-memory layout is free to change). Row data starts at this offset.
+pub const HEADER_OFFSET: usize = 32;
 
 #[derive(Debug, Clone)]
 pub struct Header {
