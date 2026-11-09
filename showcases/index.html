@@ -779,6 +779,39 @@
         }
       }
 
+      /* (What's on, right now, large: the channel's own reading, labelled.) */
+      .reading {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        color: var(--ink);
+
+        .reading-label {
+          color: var(--text);
+          font: 500 clamp(11.5px, 0.85vw, 14px) var(--sans);
+          white-space: nowrap;
+        }
+
+        .reading-value {
+          min-height: 1.1em;
+          font: 500 clamp(26px, 3vw, 52px) / 1.1 var(--sans);
+          letter-spacing: -0.04em;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 719px) {
+          display: none;
+        }
+
+        @media (min-width: 720px) {
+          grid-column: 2;
+          grid-row: 2;
+          justify-self: end;
+          align-items: flex-end;
+        }
+      }
+
       .paging {
         position: absolute;
         right: var(--gutter);
@@ -1276,7 +1309,7 @@
 
         .value {
           color: var(--ink);
-          font: 600 clamp(18px, 8.5cqw, 28px) var(--mono);
+          font: 600 clamp(16px, 7.8cqw, 28px) var(--mono);
           letter-spacing: -0.03em;
 
           &:empty::before {
@@ -1296,11 +1329,6 @@
           font: 600 12px var(--mono);
           font-variant-numeric: tabular-nums;
 
-          @container (max-width: 199px) {
-            small {
-              display: none;
-            }
-          }
 
           &.up {
             color: #3ccf7c;
@@ -1560,11 +1588,11 @@
 
         .n {
           position: absolute;
-          left: 2%;
-          bottom: -8%;
+          left: 3%;
+          bottom: -4%;
           color: var(--app);
           /* (As tall as the row, whatever its width.) */
-          font: 900 calc(var(--tile-h) * 0.82) / 1 var(--sans);
+          font: 900 calc(var(--tile-h) * 0.62) / 1 var(--sans);
           letter-spacing: -0.08em;
           -webkit-text-stroke: 3px light-dark(rgb(22 19 15 / 0.5), rgb(246 243 238 / 0.55));
           paint-order: stroke fill;
@@ -1578,7 +1606,7 @@
           align-items: center;
           justify-content: center;
           gap: min(10px, var(--tile-h) * 0.05);
-          width: 68%;
+          width: 66%;
           height: 100%;
           margin-left: auto;
           overflow: hidden;
@@ -1683,7 +1711,7 @@
           transition: scale 0.32s var(--lift), box-shadow 0.32s, opacity 0.32s;
 
           &.named::after {
-            inset: 30% 0 0;
+            inset: 18% 0 0;
           }
 
           /* (One caption, one size and baseline: the names' own faces are the stage's and the sheets', too small to read here.) */
@@ -1698,6 +1726,13 @@
 
             @media (min-width: 1100px) {
               font-size: clamp(13px, 0.95vw, 15.5px);
+            }
+
+            small {
+              display: block;
+              color: var(--soft);
+              font-size: 0.82em;
+              font-weight: 500;
             }
           }
         }
@@ -1763,6 +1798,7 @@
 
       .row.guide {
         --minute: clamp(12px, 1.25vw, 22px);
+        mask-image: linear-gradient(to right, transparent 0, #000 72px);
         padding-top: 8px;
         padding-bottom: 12px;
         scroll-snap-type: none;
@@ -1781,7 +1817,7 @@
 
           .t {
             color: var(--soft);
-            font-size: 12px;
+            font-size: 12.5px;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
 
@@ -1823,7 +1859,7 @@
           .m {
             overflow: hidden;
             color: var(--soft);
-            font-size: 12px;
+            font-size: 12.5px;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -1974,7 +2010,7 @@
           }
 
           .kind b {
-            color: #f4eede;
+            color: #1f1a12;
           }
         }
       }
@@ -1982,24 +2018,6 @@
       body:has(.billboard[data-channel="calendar"]:not([data-off])) .top {
         --glass-rgb: 216 207 185;
         color-scheme: light;
-      }
-
-      .kind {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-
-        b {
-          display: inline-grid;
-          place-items: center;
-          min-width: 34px;
-          height: 22px;
-          border-radius: 3px;
-          color: #0c0b09;
-          background: var(--accent);
-          font: 700 12.5px var(--mono);
-          letter-spacing: 0;
-        }
       }
 
       .billboard .title {
@@ -2033,15 +2051,6 @@
       }
 
       .row.dock {
-        .tile-n {
-          position: absolute;
-          top: 8px;
-          left: 10px;
-          z-index: 1;
-          color: var(--accent);
-          font: 600 11px var(--mono);
-        }
-
         li[aria-current="true"] .tile {
           box-shadow: 0 0 0 1.5px var(--accent), 0 18px 40px -12px rgb(0 0 0 / 0.75);
         }
@@ -2665,7 +2674,7 @@
       <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <p class="status" id="status-bar" hidden>
-        <span class="tip" id="tip" title="The latest block this node has read"><span class="vh" id="tip-state"></span><small aria-hidden="true">Block</small><b id="tip-height"></b></span>
+        <span class="tip" id="tip" title="The latest block this node has read"><span class="vh" id="tip-state"></span><small aria-hidden="true" id="tip-word"></small><b id="tip-height"></b></span>
         <span id="price-panel" hidden title="Bitcoin's price, read from the chain by this node"><b class="num" id="price"></b><span class="vh" data-said></span></span>
         <span class="fee" id="fees-panel" hidden title="The fee rate to get into the next block"><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
@@ -2681,16 +2690,17 @@
         <p class="syncing" id="syncing" hidden><span id="syncing-words"></span><i></i></p>
         <div class="words" id="words" aria-live="off">
           <div>
-            <p class="kind"><b id="bb-channel">01</b><span id="bb-kind">Charts</span></p>
+            <p class="kind"><span id="bb-kind">Charts</span></p>
             <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
             <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
           </div>
         </div>
         <div class="buttons">
-          <a class="primary" id="bb-open" href="/studio/" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-out" /></svg>Open</a>
+          <a class="primary" id="bb-open" href="/studio/" aria-label="Open Studio">Open<svg aria-hidden="true"><use href="#i-go" /></svg></a>
           <button class="secondary" type="button" id="bb-about"><svg aria-hidden="true"><use href="#i-info" /></svg>More info</button>
         </div>
+        <div class="reading" aria-live="off"><span id="reading-label" class="reading-label"></span><span id="reading-value" class="reading-value"></span></div>
         <div class="paging"><button class="pause" type="button" id="pause" aria-label="Pause" hidden><svg aria-hidden="true"><use href="#i-pause" /></svg></button></div>
       </div>
       <ul class="row dock" id="dock" aria-label="Apps"></ul>
@@ -2845,15 +2855,15 @@
 
       const billboard = $("billboard"), art = /** @type {HTMLElement} */ (document.querySelector(".art")), studioArt = /** @type {HTMLImageElement} */ (art.querySelector("img")), scene = /** @type {HTMLCanvasElement} */ ($("scene")), sceneCtx = /** @type {CanvasRenderingContext2D} */ (scene.getContext("2d"));
       /** Each channel's own colour. */
-      const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#8c6a3f" });
+      const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#c29a63" });
       const dock = $("dock");
       /** What the scenes read, kept here so a scene drawn at any size sees the same picture. */
-      const data = { blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
+      const data = { count: /** @type {number | null} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
       const tiles = FEATURED.map((t, i) => {
-        const name = el("span", { className: "name" }, t.name);
+        const name = el("span", { className: "name" }, t.name, el("small", {}, t.kind ?? ""));
         name.dataset.face = t.id;
         const pic = el("canvas", { className: "thumb" });
-        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, el("span", { className: "tile-n", ariaHidden: "true" }, String(i + 1).padStart(2, "0")), name, el("i", { className: "bar", ariaHidden: "true" }));
+        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, name, el("i", { className: "bar", ariaHidden: "true" }));
         a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && show(i));
         a.addEventListener("focus", () => show(i, false, lastInputKey));
         const li = el("li", {}, a);
@@ -2880,6 +2890,26 @@
       }));
       $("words").append(room);
       let at = -1, current = 0, tunedAt = 0;
+      /** A channel's reading as this node has it now: its label and figure, or nothing yet. */
+      function reading(/** @type {string} */ id) {
+        const block = data.blocks[0], num = (/** @type {number} */ i) => latestSeries(i);
+        switch (id) {
+          case "studio": return data.count ? ["Series to chart", grouped(data.count)] : null;
+          case "oracle": return data.price ? ["Read from the chain", dollars(data.price.USD)] : null;
+          case "explorer": return block ? ["Forming now", grouped(block.height + 1)] : null;
+          case "globe": { const p = data.pools?.pools?.[0]; return p ? ["Leading pool this week", p.name] : null; }
+          case "trail": { const v = num(3); return valid(v) ? ["Realized price", dollars(/** @type {number} */ (v))] : null; }
+          case "stack": { const v = num(4); return valid(v) ? ["Sats per dollar", grouped(/** @type {number} */ (v))] : null; }
+          case "compass": { const v = num(2); return valid(v) ? ["Net unrealized profit", `${(/** @type {number} */ (v) * 100).toFixed(1)}%`] : null; }
+          case "calendar": return block ? ["Latest block's day", new Date(block.timestamp * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })] : null;
+        }
+        return null;
+      }
+      function showReading() {
+        const r = reading(FEATURED[at].id);
+        $("reading-label").textContent = r?.[0] ?? "";
+        $("reading-value").textContent = r?.[1] ?? "";
+      }
       /** Tunes to a channel. `turned`: the stage's own turning, its tile brought into view (nothing moves a row in use). `rolled`: by a remote's press, the picture rolls. */
       function show(/** @type {number} */ i, /** @type {boolean} */ turned = false, /** @type {boolean} */ rolled = false) {
         if (i === at) return;
@@ -2891,7 +2921,7 @@
         billboard.style.setProperty("--accent", CHANNEL_COLOR[t.id]);
         if (turned && dock.scrollWidth > dock.clientWidth) dock.scrollTo({ left: tiles[i].offsetLeft - parseFloat(getComputedStyle(dock).paddingLeft), behavior: reduced ? "auto" : "smooth" });
         fill(shown, t);
-        $("bb-channel").textContent = String(i + 1).padStart(2, "0");
+        showReading();
         const open = /** @type {HTMLAnchorElement} */ ($("bb-open"));
         open.href = t.href;
         open.setAttribute("aria-label", `Open ${t.name}`);
@@ -3136,6 +3166,7 @@
         drawn = false;
         wakeScene();
         drawTiles();
+        showReading();
       }
       new ResizeObserver(sizeScene).observe(art);
       show(0);
@@ -3197,7 +3228,7 @@
       document.body.append(sheet);
       function about(/** @type {Title} */ t, /** @type {HTMLElement} */ source) {
         const kind = t.kind ?? "For developers";
-        const go = el("a", { className: "primary", href: t.href }, icon("i-out"), "Open");
+        const go = el("a", { className: "primary", href: t.href }, "Open", icon("i-go"));
         const shut = el("button", { className: "close", type: "button", ariaLabel: "Close" }, icon("i-close"));
         shut.addEventListener("click", () => sheet.hidePopover());
         const heading = el("h3", {}, t.name);
@@ -3618,6 +3649,7 @@
         $("tip-height").classList.toggle("num", !!sync);
         $("tip").classList.toggle("behind", state !== "synced");
         $("status-bar").hidden = false;
+        $("tip-word").textContent = behind ? "Syncing" : sync ? "Synced" : "";
         const pct = sync?.tip_height ? Math.min(100, (sync.indexed_height / sync.tip_height) * 100) : 0;
         statusState.textContent = !sync ? "Not answering" : behind ? `Syncing ${pct.toFixed(0)}%` : "Synced";
         statusState.className = `state ${!sync ? "behind" : behind ? "behind" : "ok"}`;
@@ -3671,6 +3703,8 @@
             refresh("trail");
           }, () => forget("trail")),
           counted ? null : read("/api/series/count").then((c) => {
+            data.count = c.distinct;
+            showReading();
             facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
             refresh("studio");
             document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
