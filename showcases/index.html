@@ -333,7 +333,7 @@
 
         small {
           color: var(--text);
-          font-size: 12px;
+          font-size: 12.5px;
 
           @media (max-width: 519px) {
             display: none;
@@ -1731,7 +1731,7 @@
         position: relative;
         z-index: 2;
         gap: var(--dock-gap);
-        min-height: calc(var(--dock-w) * 11 / 16 + 34px);
+        min-height: calc(var(--dock-w) * 12 / 16 + 34px);
         margin: clamp(14px, 3svh, 34px) 0 0;
         padding: 16px var(--gutter) 18px;
         scroll-snap-type: x proximity;
@@ -1744,7 +1744,7 @@
           display: flex;
           flex-direction: column;
           justify-content: flex-end;
-          aspect-ratio: 16 / 11;
+          aspect-ratio: 16 / 12;
           background: #0c0b09;
           transform-origin: 50% 100%;
           transition: scale 0.32s var(--lift), box-shadow 0.32s, opacity 0.32s;
@@ -1839,7 +1839,6 @@
       /* ── On now: the chain as one strip of time. Each block a segment, as wide as it ran, touching the next; the block forming at the end of the line. ── */
 
       .row.guide {
-        --minute: clamp(12px, 1.25vw, 22px);
         gap: 0;
         margin: 0 var(--gutter) 18px;
         padding: 0;
@@ -1850,10 +1849,11 @@
         scroll-snap-type: none;
 
         > li {
-          flex: 1 0 max(136px, var(--m, 10) * var(--minute));
+          flex: 1 1 0;
+          min-width: 0;
 
           &:last-child {
-            flex-basis: max(190px, var(--m, 10) * var(--minute));
+            flex: 1.5 1 0;
           }
 
           &[hidden] {
@@ -1890,8 +1890,9 @@
 
             small {
               color: var(--text);
-              font: 500 12.5px var(--sans);
+              font: 500 13px var(--sans);
               letter-spacing: 0;
+              white-space: nowrap;
             }
           }
 
@@ -2071,8 +2072,8 @@
         margin-top: 10px;
 
         @media (min-width: 720px) {
-          font-size: clamp(72px, 8.2vw, 170px);
-          min-height: clamp(82px, 9.4vw, 180px);
+          font-size: clamp(64px, 6.8vw, 150px);
+          min-height: clamp(72px, 7.8vw, 160px);
         }
       }
 
@@ -2080,7 +2081,7 @@
         font-size: clamp(62px, 15vw, 200px);
 
         @media (min-width: 720px) {
-          font-size: clamp(84px, 9.6vw, 200px);
+          font-size: clamp(74px, 8vw, 176px);
         }
       }
 
@@ -2088,7 +2089,7 @@
         font-size: clamp(48px, 11.6vw, 140px);
 
         @media (min-width: 720px) {
-          font-size: clamp(64px, 7.2vw, 140px);
+          font-size: clamp(60px, 6.2vw, 124px);
         }
       }
 
@@ -2934,7 +2935,7 @@
       function channelReading(/** @type {string} */ id) {
         const block = data.blocks[0], num = (/** @type {number} */ i) => latestSeries(i);
         switch (id) {
-          case "studio": return block ? ["Forming now", grouped(block.height + 1)] : null;
+          case "studio": { const v = num(1); return valid(v) ? ["MVRV, this month", `${/** @type {number} */ (v).toFixed(2)}×`] : null; }
           case "oracle": return data.price ? ["Read from the chain", dollars(data.price.USD)] : null;
           case "explorer": return data.next ? ["In the next block", `${grouped(data.next.nTx)} txs`] : null;
           case "globe": { const p = data.pools?.pools?.[0]; return p ? ["Leading pool this week", p.name] : null; }
@@ -3373,19 +3374,15 @@
       guide.append(...bones(9, () => el("span", { className: "tile bone p" })));
       /** Each block's programme, by its hash, while it's shown. @type {Map<string, HTMLElement>} */
       const blockTiles = new Map();
-      /** How long a programme ran, in minutes, as the guide draws it (a very long one cut short). */
-      const ran = (/** @type {number} */ seconds) => Math.min(60, Math.max(1, seconds / 60));
-      /** The same in words: the guide's widths, said. */
-      const took = (/** @type {number} */ seconds) => (seconds < 60 ? "under a min" : `${Math.round(seconds / 60)} min`);
+      /** How long a block took, in words. */
+      const took = (/** @type {number} */ seconds) => (seconds < 60 ? "<1 min" : `${Math.round(seconds / 60)} min`);
       function programme(/** @type {any} */ b, /** @type {number} */ before) {
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
         const fee = feeRate(b.extras?.medianFee ?? 0);
         const tile = el("a", { className: "tile p", href: `/explorer/block/${b.height}`, title: `${grouped(b.tx_count)} transactions · ${fee} sat/vB`, ariaLabel: `Block ${grouped(b.height)}, mined by ${pool.name}, ${took(b.timestamp - before)}` },
           el("div", { className: "h" }, grouped(b.height), el("small", {}, took(b.timestamp - before))),
           el("div", { className: "by" }, logo(pool.slug, pool.name), el("span", {}, pool.name)));
-        const li = el("li", {}, tile);
-        li.style.setProperty("--m", String(ran(b.timestamp - before)));
-        return li;
+        return el("li", {}, tile);
       }
       const formingWhen = el("small", {}, ""), formingFacts = el("span", {}, "");
       const formingHeight = el("span", {}, "–");
@@ -3426,19 +3423,12 @@
       function timeForming() {
         if (!lastAt) return;
         const seconds = Math.max(0, Date.now() / 1000 - lastAt);
-        forming.style.setProperty("--m", String(ran(seconds)));
         formingWhen.textContent = seconds < 60 ? "just now" : `${Math.floor(seconds / 60)} min so far`;
       }
-      /** As many whole programmes as the row has room for, newest last, the rest hidden: nothing cut at either edge; a wider screen shows more. */
+      /** As many whole, equal blocks as the row has room for, the forming one kept: the newest are shown, the rest hidden. */
       function fitGuide() {
-        const style = getComputedStyle(guide), pad = parseFloat(style.paddingLeft), room = guide.clientWidth - 2 * pad, gap = parseFloat(style.columnGap) || 0, minute = Math.min(22, Math.max(12, innerWidth * 0.0125));
-        let used = 0;
-        const shown = /** @type {HTMLElement[]} */ ([...guide.children]).reverse();
-        for (const li of shown) {
-          const least = li === forming ? 190 : 136, wide = Math.max(least, Number(li.style.getPropertyValue("--m") || 10) * minute);
-          li.hidden = used + wide > room;
-          if (!li.hidden) used += wide + gap;
-        }
+        const shown = Math.max(1, Math.floor((guide.clientWidth - 200) / 150));
+        /** @type {HTMLElement[]} */ ([...guide.children]).forEach((li, i, all) => (li.hidden = li !== forming && all.length - 1 - i > shown));
       }
       new ResizeObserver(fitGuide).observe(guide);
       function drawGuide(/** @type {any[]} */ list) {
@@ -3481,9 +3471,9 @@
         poolsDrawn = drawn;
         pools.replaceChildren(...d.pools.slice(0, 10).map((/** @type {any} */ p, /** @type {number} */ i) => {
           const share = `${((p.blockCount / total) * 100).toFixed(1)}%`;
-          // (Its share against the leader's, a bar along its foot: the ranking seen at once.)
+          // (Its share of the week's blocks, a bar along its foot.)
           const bar = el("span", { className: "bar", ariaHidden: "true" });
-          bar.style.setProperty("--of", String(p.blockCount / d.pools[0].blockCount));
+          bar.style.setProperty("--of", String(p.blockCount / total));
           const tile = el("a", { className: "rank", href: "/globe/" }, el("span", { className: "n", ariaHidden: "true" }, String(i + 1)), el("span", { className: "portrait" }, logo(p.slug, p.name), el("b", {}, p.name), el("small", {}, share, el("span", { className: "blocks" }, ` · ${grouped(p.blockCount)} blocks`)), bar));
           tile.setAttribute("aria-label", `${i + 1}: ${p.name}, ${share} of this week's blocks`);
           return el("li", {}, tile);
