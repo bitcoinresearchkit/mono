@@ -17,7 +17,7 @@
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
 //                                                page's share card too if it's its picture
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,6 +49,8 @@ const attributes = (/** @type {string} */ tag) => Object.fromEntries([...tag.mat
 /** The page's tags of a name, each its attributes. */
 const tags = (/** @type {string} */ page, /** @type {string} */ name) => [...page.matchAll(new RegExp(`<${name}\\b([^>]*)>`, "gi"))].map(([, inside]) => attributes(inside));
 /** An app's own page, by its address on the front page ("/oracle/"): its name and its words. */
+/** A page's meta tags by name. */
+const metaOf = (/** @type {string} */ page) => Object.fromEntries(tags(page.slice(0, page.indexOf("</head>")), "meta").map((tag) => [tag.property ?? tag.name, tag.content]));
 function own(/** @type {string} */ href) {
   const file = join(HERE, href, "index.html");
   if (!existsSync(file)) return problems.push(`${href}: no such app (no ${file})`), null;
@@ -169,7 +171,7 @@ for (const href of [...apps, ...dev]) {
   const file = join(HERE, href, "index.html");
   if (!existsSync(file)) continue;
   const page = readFileSync(file, "utf8"), head = page.slice(0, page.indexOf("</head>")), url = `${ORIGIN}${href}`;
-  const meta = Object.fromEntries(tags(head, "meta").map((tag) => [tag.property ?? tag.name, tag.content]));
+  const meta = metaOf(page);
   const wrong = (/** @type {string} */ what) => problems.push(`${href}: ${what}`);
   if (href !== "/studio/") {
     if (tags(head, "link").find((tag) => tag.rel === "canonical")?.href !== url) wrong(`its canonical link isn't ${url}`);
@@ -212,14 +214,14 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its banner is cut, in its
  * screen's points: [x, y, width, height]. A banner 1,900 wide, the first title's also 2,880 (@2x). */
 const PICTURES = {
-  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, banner: [265, 120, 1900, 930] },
-  oracle: { url: "/oracle/", settle: 9000, banner: [0, 244, 1440, 628] },
-  explorer: { url: "/explorer/", settle: 9000, banner: [560, 470, 720, 450] },
-  globe: { url: "/globe/", settle: 9000, hide: "text", banner: [43, 64, 966, 450] },
-  trail: { url: "/trail/", settle: 12000, hide: "scene", banner: [60, 80, 1360, 640] },
-  stack: { url: "/stack/", settle: 8000, banner: [192, 341, 648, 300] },
-  compass: { url: "/compass/", settle: 6000, banner: [130, 60, 1088, 680] },
-  calendar: { url: "/calendar/", settle: 9000, banner: [105, 100, 863, 400] },
+  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2400, 1150], settle: 16000, focus: "#frame, #chart canvas", margin: 1, banner: true, run: `{ const P = CanvasRenderingContext2D.prototype, stroke = P.stroke; P.stroke = function (...a) { if (!this.getLineDash().length) stroke.apply(this, a); }; const b = document.querySelector("#chart").getBoundingClientRect(); document.body.prepend(Object.assign(document.createElement("div"), { id: "frame" })); document.head.append(Object.assign(document.createElement("style"), { textContent: "#frame { position: fixed; left: 265px; top: 80px; width: 1721px; height: 968px } #chart { position: fixed !important; left: " + b.x + "px !important; top: " + b.y + "px !important; width: " + b.width + "px !important; height: " + b.height + "px !important }" })); document.querySelector("#chart canvas").dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 0, clientX: 1986, clientY: 500 })); }`, clip: { bitrate: 400_000, run: `{ const c = document.querySelector("#chart canvas"); Element.prototype.setPointerCapture = () => {}; window.ev = (type, x) => c.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 500, pointerId: 4, pointerType: "pen", isPrimary: true, button: 0, buttons: 1 })); ev("pointerdown", 1000); }`, each: `(p) => ev("pointermove", 1000 + 240 * (p - Math.sin(2 * Math.PI * p) / (2 * Math.PI) * 0.5))` } },
+  oracle: {"url": "/oracle/", "screen": [1800, 1100], "settle": 9000, "focus": "#frame, #plate", "margin": 1, "ground": "#0e1110", "banner": true, "run": "document.body.prepend(Object.assign(document.createElement('div'), {id:'frame'})); document.head.append(Object.assign(document.createElement('style'), {textContent: '#frame {position:fixed;left:0;top:0;width:1800px;height:1012px} #plate {position:fixed;left:420px;top:51px;width:1380px;height:600px} #spectrum {filter:brightness(1.8)} #spectrum text, #spectrum .rule, #spectrum .fit-area, #spectrum .fit-line, #spectrum .window, #spectrum .here {display:none!important}'}));", "clip": {"seconds": 7, "bitrate": 470000, "each": "(p) => { const step=Math.floor(p*80); if(window.__toothStep!==step){document.querySelector('#plate').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight'}));window.__toothStep=step;} }", "run": "for(let i=0;i<40;i++) document.querySelector('#plate').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft'}));"}},
+  explorer: { url: "/explorer/", screen: [1920, 1080], settle: 9000, focus: "#frame, #map", margin: 1, banner: true, ran: 6000, run: `document.body.prepend(Object.assign(document.createElement("div"), { id: "frame" })); document.head.append(Object.assign(document.createElement("style"), { textContent: "#frame { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px } #map { position: fixed !important; left: 120px; top: -620px; width: 1800px !important; border-radius: 0 !important }" }));`, clip: { bitrate: 200_000, run: `{ const f = window.fetch; window.held = []; window.fetch = (u, o) => f(u, o).then((r) => String(u).includes("/diff/") ? new Promise((ok) => held.push(() => ok(r))) : r); new Promise((ok) => setTimeout(ok, 5000)); }`, each: `(p) => { if ((window.step = (window.step ?? -1) + 1) === 60) held.splice(0).forEach((go) => go()); }` } },
+  globe: { url: "/globe/", screen: [1920, 1080], settle: 9000, hide: "text", focus: "#frame, #globe", margin: 1, banner: true, run: `document.body.prepend(Object.assign(document.createElement("div"), { id: "frame" })); document.head.append(Object.assign(document.createElement("style"), { textContent: "#frame { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px } #globe { position: fixed !important; left: 488px; top: -222px; width: 1724px !important; height: 1724px !important; max-width: none !important; max-height: none !important; mask: none !important; -webkit-mask: none !important }" }));`, clip: { bitrate: 470_000, run: `window.drag = (type, x, y) => document.querySelector("#globe").dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 1, isPrimary: true, pointerType: "mouse", button: 0, buttons: 1 })); drag("pointerdown", 900, 500);`, each: `(p) => { const e = p - Math.sin(2 * Math.PI * p) / (2 * Math.PI) * 0.6; drag("pointermove", 900 + e * 180, 500 + e * 24); }` } },
+  trail: { url: "/trail/", settle: 12000, hide: "scene", focus: "#frame, #terrain", margin: 1, banner: true, ran: 7000, run: `{ for (const P of [CanvasRenderingContext2D.prototype, OffscreenCanvasRenderingContext2D.prototype]) { const stroke = P.stroke; P.stroke = function (...a) { if (!/0\\.22\\)$/.test(String(this.strokeStyle)) && Math.abs(this.lineWidth - 0.45) > 0.01) stroke.apply(this, a); }; } document.body.prepend(Object.assign(document.createElement("div"), { id: "frame" })); document.head.append(Object.assign(document.createElement("style"), { textContent: "#frame { position: fixed; left: 0; top: 95px; width: 1330px; height: 748px }" })); document.querySelector("#dimension-2d").click(); document.querySelector("#dimension-3d").click(); const c = document.querySelector("#terrain"); c.setPointerCapture = () => {}; window.ev = (type, f) => c.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, composed: true, clientX: 140 + 400 * f, clientY: 560 + 240 * f, pointerId: 9, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1 })); }`, clip: { bitrate: 490_000, run: `ev("pointerdown", 1); ev("pointermove", 1); new Promise((ok) => setTimeout(ok, 2000))`, each: `(p) => ev("pointermove", 1 - 0.18 * (1 - Math.cos(2 * Math.PI * p)))` } },
+  stack: {"url": "/stack/?from=2020-01-01&to=2025-12-31", "screen": [1800, 1100], "settle": 10000, "focus": "#chart", "margin": 1.1, "banner": true, "run": "document.head.append(Object.assign(document.createElement('style'), {textContent: '#plots {position:fixed;left:260px;top:260px;width:1300px} #chart {height:540px!important} #chart .cross > line {display:none} #chart .cross, #chart .ends[visibility=hidden] {display:none} #chart .cross[visibility=visible] {display:block}'}));", "clip": {"seconds": 7, "bitrate": 650000, "each": "(p) => { const el=document.querySelector('#plots'),r=el.getBoundingClientRect(); el.dispatchEvent(new PointerEvent('pointermove',{pointerType:'mouse',clientX:r.left+r.width*(0.12+0.8*p),clientY:r.top+r.height/2})); }"}},
+  compass: {"url": "/compass/", "screen": [2000, 1200], "settle": 8000, "focus": "#frame, #compass", "margin": 1, "banner": true, "run": "document.body.prepend(Object.assign(document.createElement('div'), {id:'frame'})); document.head.append(Object.assign(document.createElement('style'), {textContent: '#frame {position:fixed;left:382px;top:380px;width:1077px;height:606px} #compass {position:fixed;left:560px;top:180px;width:1000px;height:800px;filter:brightness(2.1) saturate(1.35)} #compass text, #compass .icon, #compass [data-t] {display:none!important}'})); document.querySelector('#compass').setAttribute('viewBox','-240 -60 940 720'); const slider=document.querySelector('#slider'); slider.value=String(Number(slider.max)-1450); slider.dispatchEvent(new Event('input'));", "clip": {"seconds": 7, "bitrate": 470000, "run": "document.querySelector('[data-replay=atlas]').click();"}},
+  calendar: {"url": "/calendar/?view=day&date=2025-06-15", "screen": [1800, 1100], "settle": 9000, "focus": ".dial", "margin": 1, "ground": "#f3ede2", "banner": true, "run": "document.documentElement.style.colorScheme='light'; document.head.append(Object.assign(document.createElement('style'), {textContent: '.dial {position:fixed;left:660px;top:170px;width:800px;height:720px;max-width:none;margin:0} .dial text, .dial .hour {display:none!important}'})); document.querySelector('.dial svg').setAttribute('viewBox','-90 -10 500 420');", "clip": {"seconds": 7, "bitrate": 900000, "each": "(p) => { const phase=Math.floor(p*4); if(window.__poolPhase!==phase){const buttons=[...document.querySelectorAll('#leaders button')]; buttons[Math.min(phase,buttons.length-1)]?.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));window.__poolPhase=phase;} }"}},
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY) || Object.hasOwn(CARDS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS), ...Object.keys(CARDS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
@@ -254,7 +256,7 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
   .brand { display: flex; align-items: center; gap: 22px; font-size: 76px; font-weight: 750; letter-spacing: -0.04em; }
   .brand img { width: 68px; height: 79px; }
   p { margin: 22px 0 0; color: #d6cfc4; font-size: 28px; line-height: 1.35; letter-spacing: -0.01em; }
-</style><img class="art" src="/assets/home/banners/${id}@2x.jpg"><div class="shade"></div>
+</style><img class="art" src="/assets/home/banners/${id}.jpg"><div class="shade"></div>
 <div class="words"><div class="brand"><img src="/assets/logo/logo.svg">Bitview</div><p>Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data.</p></div>`;
 
 // ── Its share card, named in its head ──
@@ -262,7 +264,67 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
 if (!/<meta property="og:image" content="https:\/\/bitview\.space\/assets\/home\/og\.jpg"/.test(html)) problems.push("The page's og:image isn't its share card, /assets/home/og.jpg");
 if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
 
+/** How sharp a screen is shot: a poster's width from a recipe's 960-odd points. */
+const DENSITY = 2;
+/** The most a clip may weigh: each ships inside the binary and the published crate, and crates.io caps a crate at 10 MB. */
+const VIDEO_BYTES = 450_000;
+/** Each clip: its frames a second, its picture's size, the bitrate it's encoded at. */
+const CLIP = { fps: 30, width: 1280, height: 720, bitrate: 650_000 };
+
+/** Runs in every page, doing nothing until a clip starts: then the page's animation clock is ours, a frame stepped when
+ * we ask, so a clip is smooth however long a screenshot takes. */
+const CLOCK = `(() => {
+  const real = { raf: requestAnimationFrame.bind(window), caf: cancelAnimationFrame.bind(window), now: performance.now.bind(performance), date: Date.now };
+  let on = false, t = 0, start = 0, wall = 0, id = 0; const queue = new Map();
+  window.requestAnimationFrame = (cb) => on ? (queue.set(++id, cb), id) : real.raf(cb);
+  window.cancelAnimationFrame = (i) => on ? void queue.delete(i) : real.caf(i);
+  performance.now = () => on ? t : real.now();
+  Date.now = () => on ? wall + t - start : real.date();
+  window.__clock = {
+    freeze() { start = t = real.now(); wall = real.date(); on = true; for (const a of document.getAnimations()) a.pause(); },
+    step(ms) { t += ms; const due = [...queue.values()]; queue.clear(); for (const cb of due) cb(t); for (const a of document.getAnimations()) { a.pause(); a.currentTime = (a.currentTime ?? 0) + ms; } },
+  };
+})();`;
+
+/** The clip's encoder, in a tab of its own: a browser's H.264, frames in, length-prefixed samples and their avcC out. */
+const ENCODER = `<!doctype html><script>
+window.enc = {
+  start(width, height, bitrate, fps) {
+    this.fps = fps; this.n = 0; this.samples = []; this.config = null; this.error = null;
+    this.encoder = new VideoEncoder({ output: (chunk, meta) => { const bytes = new Uint8Array(chunk.byteLength); chunk.copyTo(bytes); this.samples.push([chunk.type === "key", bytes]); if (meta?.decoderConfig?.description) this.config = new Uint8Array(meta.decoderConfig.description); }, error: (e) => (this.error = String(e)) });
+    this.encoder.configure({ codec: "avc1.640028", width, height, bitrate, framerate: fps, bitrateMode: "variable", latencyMode: "quality", avc: { format: "avc" } });
+  },
+  async add(data) {
+    const image = await createImageBitmap(new Blob([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], { type: "image/jpeg" }));
+    const frame = new VideoFrame(image, { timestamp: Math.round((this.n * 1e6) / this.fps) });
+    this.encoder.encode(frame, { keyFrame: this.n % (this.fps * 3) === 0 });
+    frame.close(); image.close(); this.n++;
+    while (this.encoder.encodeQueueSize > 4) await new Promise((ok) => setTimeout(ok, 4));
+  },
+  async finish() {
+    await this.encoder.flush();
+    if (this.error) throw new Error(this.error);
+    const b64 = (u) => { let s = ""; for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode(...u.subarray(i, i + 32768)); return btoa(s); };
+    return JSON.stringify({ config: b64(this.config), samples: this.samples.map(([key, bytes]) => [key, b64(bytes)]) });
+  },
+};
+</script>`;
+
 if (pictures || icons) await makePictures();
+// (Every featured app's poster, its tile's cover and its clip there, and no clip over what it may weigh.)
+for (const id of Object.keys(PICTURES)) for (const file of [`banners/${id}.jpg`, `covers/${id}.jpg`, `videos/${id}.mp4`]) {
+  const path = join(HERE, "assets", "home", file);
+  if (!existsSync(path)) problems.push(`${id}: no assets/home/${file}: run with --pictures`);
+  else if (file.endsWith(".mp4") && statSync(path).size > VIDEO_BYTES) problems.push(`${id}: its clip is ${statSync(path).size} bytes, over ${VIDEO_BYTES}`);
+}
+// (Each of those pages, and the front page with Studio's, says its clip as a link previews it: Discord plays it, on og:type
+// video.other; everywhere else shows the og:image.)
+for (const [href, page, id] of [["/", html, "studio"], ...Object.keys(PICTURES).map((id) => [`/${id}/`, readFileSync(join(HERE, id, "index.html"), "utf8"), id])]) {
+  const meta = metaOf(page), src = `${ORIGIN}/assets/home/videos/${id}.mp4`;
+  if (meta["og:type"] !== "video.other") problems.push(`${href}: its og:type isn't video.other`);
+  if (meta["og:video"] !== src) problems.push(`${href}: its og:video isn't ${src}`);
+  if (meta["og:video:type"] !== "video/mp4" || meta["og:video:width"] !== "1280" || meta["og:video:height"] !== "720") problems.push(`${href}: its og:video isn't said video/mp4, 1280×720`);
+}
 // (Every app's icon there, the favicon, and every card, once any were made.)
 for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
 if (!existsSync(join(HERE, "favicon.ico"))) problems.push("No favicon.ico: run with --icons");
@@ -283,7 +345,7 @@ async function makePictures() {
   /** @type {ReturnType<typeof Bun.spawn> | null} */
   let browser = null;
   try {
-    browser = Bun.spawn([binary, "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", "about:blank"], { stderr: "ignore", stdout: "ignore" });
+    browser = Bun.spawn([binary, "--headless=new", "--use-mock-keychain", "--password-store=basic", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", "about:blank"], { stderr: "ignore", stdout: "ignore" });
     let port = "";
     for (let tries = 0; !port && tries < 100; tries++) {
       await Bun.sleep(100);
@@ -291,24 +353,20 @@ async function makePictures() {
     }
     if (!port) return void problems.push("The Chromium for --pictures didn't start");
     const out = join(HERE, "assets", "home");
+    for (const folder of ["videos", "covers"]) mkdirSync(join(out, folder), { recursive: true });
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
-      if (ONLY && id !== ONLY) continue;
-      const wanted = /** @type {[string, number[], number, number][]} */ ([
-        // (The first title's picture is on the first screen, at the screen's own density; the others only in sheets.)
-        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], ...(id === featured[0] ? [[`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : [])] : []),
-      ]);
-      if (!wanted.length) continue;
-      // (One screen at the density the largest cut needs.)
-      const density = Math.max(...wanted.map(([, box, width]) => Math.ceil((width / box[2]) * 10) / 10), 1);
-      // (An app that fails: said, its pictures kept as they were, the others made.)
-      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, recipe.settle, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
+      if ((ONLY && id !== ONLY) || !featured.includes(id)) continue;
+      // (An app that fails: said, its files kept as they were, the others made.)
+      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], DENSITY, recipe.settle, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
       if (!tab) continue;
       try {
-        for (const [file, [x, y, w, h], width, quality] of wanted) {
-          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
+        const box = await isolate(tab, recipe);
+        for (const [file, width, quality] of /** @type {[string, number, number][]} */ ([[`banners/${id}.jpg`, 1920, 78], [`covers/${id}.jpg`, 640, 76]])) {
+          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality, captureBeyondViewport: true, clip: { ...box, scale: width / (box.width * DENSITY) } });
           writeFileSync(join(out, file), Buffer.from(shot.data, "base64"));
           console.log(`made ${file}`);
         }
+        await record(port, tab, box, `videos/${id}.mp4`, recipe.clip);
       } catch (error) {
         problems.push(`${id}'s pictures: ${/** @type {Error} */ (error).message}`);
       } finally {
@@ -400,6 +458,76 @@ function ico(/** @type {number[]} */ sizes, /** @type {Buffer[]} */ pngs) {
   return Buffer.concat([head, ...pngs]);
 }
 
+/** The app's own drawing and nothing else: the page hidden but for it, on the ground it sits on. The area to shoot: 16:9 around it. */
+async function isolate(/** @type {any} */ tab, /** @type {any} */ recipe) {
+  const ground = recipe.ground ?? "#0d0c0b", focus = recipe.focus;
+  if (recipe.run) (await tab.send("Runtime.evaluate", { expression: recipe.run, awaitPromise: true }), await Bun.sleep(recipe.ran ?? 1500));
+  const { result } = await tab.send("Runtime.evaluate", { returnByValue: true, expression: `(() => {
+    const style = document.createElement("style");
+    style.textContent = \`html, body { background: ${ground} !important } body * { visibility: hidden !important; transition: none !important } ${focus}, ${focus} * { visibility: visible !important }\`;
+    document.head.append(style);
+    const r = document.querySelector(${JSON.stringify(focus)}).getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height, W: innerWidth, H: innerHeight };
+  })()` });
+  const r = result.value, tall = 16 / 9, width = Math.ceil(Math.max(r.width * (recipe.margin ?? 1.1), r.height * (recipe.margin ?? 1.1) * tall)), height = Math.ceil(width / tall);
+  return { x: Math.round(r.x + r.width / 2 - width / 2), y: Math.round(r.y + r.height / 2 - height / 2), width, height };
+}
+
+/** A clip of the isolated drawing: the page's clock frozen, stepped a frame at a time, each screenshot encoded, written as an MP4. */
+async function record(/** @type {string} */ port, /** @type {any} */ tab, /** @type {any} */ box, /** @type {string} */ file, /** @type {any} */ clip = {}) {
+  const seconds = clip.seconds ?? 7, frames = Math.round(seconds * CLIP.fps), bitrate = clip.bitrate ?? CLIP.bitrate;
+  const encoder = await screen(port, `${SERVER}/llms.txt`, [64, 64], 1, 200, undefined, ENCODER);
+  try {
+    const call = async (/** @type {string} */ expression) => {
+      const { result, exceptionDetails } = await encoder.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
+      if (exceptionDetails) throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
+      return result.value;
+    };
+    await call(`enc.start(${CLIP.width}, ${CLIP.height}, ${bitrate}, ${CLIP.fps})`);
+    if (clip.run) await tab.send("Runtime.evaluate", { expression: clip.run, awaitPromise: true });
+    await tab.send("Runtime.evaluate", { expression: "__clock.freeze()" });
+    for (let n = 0; n < frames; n++) {
+      await tab.send("Runtime.evaluate", { expression: `__clock.step(${1000 / CLIP.fps});${clip.each ? `(${clip.each})(${n / frames});` : ""}`, awaitPromise: true });
+      const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: 90, captureBeyondViewport: true, clip: { ...box, scale: CLIP.width / (box.width * DENSITY) } });
+      await call(`enc.add(${JSON.stringify(shot.data)})`);
+    }
+    const { config, samples } = JSON.parse(await call("enc.finish()"));
+    writeFileSync(join(HERE, "assets", "home", file), mp4(Buffer.from(config, "base64"), samples.map((/** @type {[boolean, string]} */ [key, data]) => /** @type {[boolean, Buffer]} */ ([key, Buffer.from(data, "base64")]))));
+    console.log(`made ${file}`);
+  } finally {
+    await encoder.close();
+  }
+}
+
+/** An MP4 of H.264 samples, its index first so it can play as it arrives. */
+function mp4(/** @type {Buffer} */ avcC, /** @type {[boolean, Buffer][]} */ samples) {
+  const u32 = (/** @type {number} */ n) => { const b = Buffer.alloc(4); b.writeUInt32BE(n >>> 0); return b; }, u16 = (/** @type {number} */ n) => { const b = Buffer.alloc(2); b.writeUInt16BE(n); return b; };
+  const box = (/** @type {string} */ type, /** @type {Buffer[]} */ ...body) => Buffer.concat([u32(8 + body.reduce((n, b) => n + b.length, 0)), Buffer.from(type), ...body]);
+  const full = (/** @type {string} */ type, /** @type {number} */ flags, /** @type {Buffer[]} */ ...body) => box(type, u32(flags), ...body);
+  const zero = (/** @type {number} */ n) => Buffer.alloc(n), timescale = CLIP.fps * 512, duration = samples.length * 512;
+  const matrix = Buffer.concat([u32(0x10000), zero(12), u32(0x10000), zero(12), u32(0x40000000)]);
+  const ftyp = box("ftyp", Buffer.from("isom"), u32(512), Buffer.from("isomiso2avc1mp41"));
+  const moov = (/** @type {number} */ dataAt) => box("moov",
+    full("mvhd", 0, zero(8), u32(timescale), u32(duration), u32(0x10000), u16(0x100), zero(10), matrix, zero(24), u32(2)),
+    box("trak",
+      full("tkhd", 3, zero(8), u32(1), zero(4), u32(duration), zero(16), matrix, u32(CLIP.width << 16), u32(CLIP.height << 16)),
+      box("mdia",
+        full("mdhd", 0, zero(8), u32(timescale), u32(duration), u16(0x55c4), zero(2)),
+        full("hdlr", 0, zero(4), Buffer.from("vide"), zero(12), Buffer.from("Bitview\0")),
+        box("minf",
+          full("vmhd", 1, zero(8)),
+          box("dinf", full("dref", 0, u32(1), full("url ", 1))),
+          box("stbl",
+            full("stsd", 0, u32(1), box("avc1", zero(6), u16(1), zero(16), u16(CLIP.width), u16(CLIP.height), u32(0x480000), u32(0x480000), zero(4), u16(1), zero(32), u16(0x18), u16(0xffff), box("avcC", avcC))),
+            full("stts", 0, u32(1), u32(samples.length), u32(512)),
+            full("stss", 0, u32(samples.filter(([key]) => key).length), ...samples.flatMap(([key], i) => (key ? [u32(i + 1)] : []))),
+            full("stsc", 0, u32(1), u32(1), u32(samples.length), u32(1)),
+            full("stsz", 0, u32(0), u32(samples.length), ...samples.map(([, data]) => u32(data.length))),
+            full("stco", 0, u32(1), u32(dataAt)))))));
+  const dataAt = ftyp.length + moov(0).length + 8;
+  return Buffer.concat([ftyp, moov(dataAt), box("mdat", ...samples.map(([, data]) => data))]);
+}
+
 /** A page in a new tab, as a phone-free desk sees it, dark, less motion; settled; its words or all but its scene hidden;
  * or, given its HTML, that page in its place (its address's origin kept, for its files). */
 async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html) {
@@ -428,6 +556,7 @@ async function screen(/** @type {string} */ port, /** @type {string} */ url, /**
   await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: density, mobile: false });
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }] });
   await send("Page.enable");
+  await send("Page.addScriptToEvaluateOnNewDocument", { source: CLOCK });
   // (A canvas's words: not drawn; a scene's tags, its rounded boxes, too.)
   if (hide) await send("Page.addScriptToEvaluateOnNewDocument", { source: `const P = CanvasRenderingContext2D.prototype; P.fillText = P.strokeText = ${hide === "scene" ? "P.roundRect = " : ""}function () {};` });
   const went = await send("Page.navigate", { url });

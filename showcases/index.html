@@ -10,7 +10,7 @@
     <title>Bitview</title>
     <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
     <!-- (Its share card, the billboard's first picture with Bitview's name: made by showcases/home.mjs --pictures.) -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content="video.other" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bitview" />
     <meta property="og:description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
@@ -20,6 +20,10 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Bitview: Bitcoin's price through the layers of its holders' cost basis, as Studio draws it" />
+    <meta property="og:video" content="https://bitview.space/assets/home/videos/studio.mp4" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="1280" />
+    <meta property="og:video:height" content="720" />
     <meta name="twitter:card" content="summary_large_image" />
     <!-- (What it is, for search engines: the site, and Bitview with its logo.) -->
     <script type="application/ld+json">
@@ -424,8 +428,8 @@
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 84%, transparent) 24%, color-mix(in srgb, var(--app) 30%, transparent) 42%, transparent 62%),
-            linear-gradient(to right, var(--app) 0, color-mix(in srgb, var(--app) 94%, transparent) 26%, color-mix(in srgb, var(--app) 58%, transparent) 42%, transparent 66%),
+            linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 84%, transparent) 20%, color-mix(in srgb, var(--app) 24%, transparent) 36%, transparent 52%),
+            linear-gradient(to right, var(--app) 0, color-mix(in srgb, var(--app) 90%, transparent) 22%, color-mix(in srgb, var(--app) 50%, transparent) 38%, transparent 58%),
             linear-gradient(to bottom, rgb(13 12 11 / 0.75), rgb(13 12 11 / 0.25) 14%, transparent 26%);
         }
 
@@ -767,6 +771,8 @@
         flex-direction: column;
         gap: 2px;
         color: var(--ink);
+        /* (Over real footage, whatever it shows: a soft edge of the page's own ground around its words.) */
+        text-shadow: 0 0 3px color-mix(in srgb, var(--app) 70%, transparent), 0 0 18px color-mix(in srgb, var(--app) 85%, transparent);
 
         .reading-label {
           color: var(--text);
