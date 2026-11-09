@@ -332,8 +332,8 @@
         }
 
         small {
-          color: var(--soft);
-          font-size: 11.5px;
+          color: var(--text);
+          font-size: 12px;
 
           @media (max-width: 519px) {
             display: none;
@@ -1649,8 +1649,8 @@
           }
 
           small {
-            color: var(--soft);
-            font-size: 11.5px;
+            color: var(--text);
+            font-size: 12.5px;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
 
@@ -1802,7 +1802,6 @@
 
       .row.guide {
         --minute: clamp(12px, 1.25vw, 22px);
-        mask-image: linear-gradient(to right, transparent 0, #000 72px);
         padding-top: 8px;
         padding-bottom: 12px;
         scroll-snap-type: none;
@@ -1820,8 +1819,8 @@
           background: var(--card);
 
           .t {
-            color: var(--soft);
-            font-size: 12.5px;
+            color: var(--text);
+            font-size: 13px;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
 
@@ -1862,8 +1861,8 @@
 
           .m {
             overflow: hidden;
-            color: var(--soft);
-            font-size: 12.5px;
+            color: var(--text);
+            font-size: 13px;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -2881,7 +2880,7 @@
         /** @type {Element} */ (words.querySelector(".kind span")).textContent = t.kind ?? "";
         title.textContent = t.name;
         title.dataset.face = t.id;
-        /** @type {Element} */ (words.querySelector(".meta")).innerHTML = meta(t);
+        /** @type {Element} */ (words.querySelector(".meta")).innerHTML = t.live ? `<span class="live">Live</span>` : "";
         /** @type {Element} */ (words.querySelector(".blurb")).textContent = t.line;
       }
       // (The words' room: every title's words, hidden, where the shown ones are.)
@@ -3428,7 +3427,7 @@
         const total = d.blockCount || 1, top = d.pools[0];
         if (top) facts.globe = `<b>${top.name}</b> leads this week, ${((top.blockCount / total) * 100).toFixed(0)}% of blocks`;
         else delete facts.globe;
-        refresh("globe");
+        showReading();
         // (Redrawn only when the ranking changed, and never under a focus: a key on a pool keeps it.)
         const drawn = d.pools.slice(0, 10).map((/** @type {any} */ p) => `${p.slug}:${p.blockCount}`).join() + `/${total}`;
         if (drawn === poolsDrawn || pools.contains(document.activeElement)) return;
@@ -3445,7 +3444,7 @@
       }
 
       /** The charts: each a Studio chart, drawn here from the same series, a month a point, its last ten years. */
-      /** @typedef {{ name: string, href: string, series: string[], colors: string[], log?: boolean, unit: (v: number) => string }} Chart */
+      /** @typedef {{ name: string, href: string, series: string[], colors: string[], log?: boolean, daily?: boolean, unit: (v: number) => string }} Chart */
       /** @type {Chart[]} */
       const CHARTS = [
         { name: "MVRV", href: "/studio/presets/valuation/mvrv", series: ["mvrv"], colors: ["#ff8a3d"], unit: (v) => `${v.toFixed(2)}×` },
@@ -3461,6 +3460,8 @@
       ];
       /** Each series' history, a month a point. @type {Map<string, number[]>} */
       const histories = new Map();
+      /** The featured charts' last year, a day a point: their line and their change the same window. @type {Map<string, number[]>} */
+      const lastYear = new Map();
       /** Each watched canvas's size, and what draws it, from one observer: drawn again when it's resized, once its data's in. */
       const sizes = /** @type {WeakMap<Element, { width: number, height: number }>} */ (new WeakMap());
       const draws = /** @type {WeakMap<Element, () => void>} */ (new WeakMap());
@@ -3478,7 +3479,7 @@
         const rgb = color.match(/rgb\((\d+) (\d+) (\d+)/);
         return rgb ? `rgba(${rgb[1]},${rgb[2]},${rgb[3]},${a})` : color;
       };
-      /** Draws a chart's last ten years into a canvas at its size: lines, the last filled under, its last point lit. */
+      /** Draws a chart into a canvas at its size (a featured chart its last year, a topic its months): lines, the last filled under, its last point lit. */
       function paint(/** @type {HTMLCanvasElement} */ canvas, /** @type {Chart} */ c) {
         // (Its size as last observed (asked of the layout only for one not yet watched): a row's many, read so,
         // each resized after another read, would each lay the page out again.)
@@ -3490,7 +3491,7 @@
         ctx.scale(dpr, dpr);
         // ("ink": the page's own, whichever scheme it's in.)
         const hue = (/** @type {number} */ k) => (c.colors[k] === "ink" ? (darkScheme.matches ? "#f6f3ee" : "#16130f") : c.colors[k]);
-        const lists = c.series.map((s) => (histories.get(s) ?? []).slice(-120));
+        const lists = c.series.map((s) => (c.daily ? lastYear.get(s) ?? [] : (histories.get(s) ?? []).slice(-120)));
         const all = lists.flat().filter((v) => v != null && (!c.log || v > 0));
         if (!all.length) return;
         const f = (/** @type {number} */ v) => (c.log ? Math.log(v) : v);
@@ -3560,20 +3561,21 @@
 
       const charts = row("charts-title");
       const chartTiles = CHARTS.map((c) => {
+        c.daily = true;
         const canvas = el("canvas"), value = el("span", { className: "value" }), moved = el("span", { className: "moved" });
         const tile = el("a", { className: "tile chart", href: c.href }, canvas, el("span", { className: "label" }, c.name), el("span", { className: "now" }, value, moved));
         watch(canvas, () => paint(canvas, c));
         charts.append(el("li", {}, tile));
         return { c, canvas, value, moved };
       });
-      near("charts-title", charts, () => readHistories().then(() => {
+      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-365`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => lastYear.set(id, replies[i].data)))]).then(() => {
         for (const { c, canvas, value, moved } of chartTiles) {
-          const list = histories.get(c.series[0]) ?? [], last = list.findLastIndex((v) => v != null);
-          const now = last < 0 ? null : list[last], then = last < 12 ? null : list[last - 12];
+          const list = lastYear.get(c.series[0]) ?? [], last = list.findLastIndex((v) => v != null);
+          const now = last < 0 ? null : list[last], then = list.find((v) => v != null) ?? null;
           // (Its unit, after a thin space, small and in words' face: a monospace's space is a whole figure wide.)
           const [figure, unit] = now == null ? [""] : c.unit(now).split("\u2009");
           value.replaceChildren(figure, ...(unit ? [el("small", {}, unit)] : []));
-          // (How it moved in a year: its last month against the same a year before.)
+          // (How it moved over the year its line shows: the latest day against the first.)
           if (now != null && then) {
             const pct = (now / then - 1) * 100;
             moved.className = `moved ${pct >= 0 ? "up" : "down"}`;
@@ -3638,18 +3640,10 @@
           said(id, ", not answering: the last reading");
           return false;
         });
-      /** A title's fact changed: its billboard line anew, in the words' room and, if it's the one showing, shown. */
-      function refresh(/** @type {string} */ id) {
-        const k = FEATURED.findIndex((t) => t.id === id);
-        if (k < 0) return;
-        const line = meta(FEATURED[k]);
-        /** @type {Element} */ (room.children[k].querySelector(".meta")).innerHTML = line;
-        if (k === current) /** @type {Element} */ (shown.querySelector(".meta")).innerHTML = line;
-      }
-      const forget = (/** @type {string[]} */ ...ids) => ids.forEach((id) => (delete facts[id], refresh(id)));
+      const forget = (/** @type {string[]} */ ...ids) => (ids.forEach((id) => delete facts[id]), showReading());
       let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateSaid = "synced", rounds = 0, reading = false, counted = false;
       const statusState = el("span", { className: "state" }, "–"), statusMore = el("span", { className: "small" }, "");
-      dev.prepend(el("li", {}, el("a", { className: "tile status-card", href: "/logs/" }, el("span", { className: "label" }, "This node"), el("div", {}, statusState, statusMore))));
+      dev.prepend(el("li", {}, el("a", { className: "tile status-card", href: "/logs/" }, el("span", { className: "label" }, `This node · ${location.hostname}`), el("div", {}, statusState, statusMore))));
       function showServer() {
         const behind = sync && sync.blocks_behind > 0, state = sync ? (behind ? "syncing" : "synced") : "unread";
         $("tip-state").textContent = sync ? (behind ? "Syncing, at block" : "Synced to block") : "This server's state is unavailable";
@@ -3680,8 +3674,8 @@
             data.price = p;
             facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
             facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
-            refresh("oracle");
-            refresh("stack");
+            showReading();
+            showReading();
           }).then((ok) => ok || forget("oracle", "stack")),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
@@ -3694,7 +3688,7 @@
             answered("blocks-title", guide, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
-            refresh("calendar");
+            showReading();
           }, () => (answered("blocks-title", guide, false), forget("calendar"))),
           // (The next block, as the mempool has it now: the guide's forming programme, the Explorer's title on the stage.)
           read("/api/v1/fees/mempool-blocks").then((next) => {
@@ -3702,19 +3696,19 @@
             formingFacts.textContent = b ? `${grouped(b.nTx)} txs · ${feeRate(b.medianFee)} sat/vB` : "";
             if (b) facts.explorer = `<b>${grouped(b.nTx)}</b> transactions forming the next block, ${feeRate(b.medianFee)} sat/vB`;
             else delete facts.explorer;
-            refresh("explorer");
+            showReading();
           }, () => ((formingFacts.textContent = ""), forget("explorer"))),
           rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (data.pools = d, drawPools(d), chainChanged(), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
           rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
             if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
-            refresh("trail");
+            showReading();
           }, () => forget("trail")),
           counted ? null : read("/api/series/count").then((c) => {
             data.count = c.distinct;
             showReading();
             facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
-            refresh("studio");
+            showReading();
             document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
             counted = true;
           }, () => {}),
