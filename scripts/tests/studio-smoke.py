@@ -517,9 +517,13 @@ def check_page_draws(run):
 
 
 def read_link(link):
-    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed."""
-    hash = link.split("#chart=", 1)[1]
-    return json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed, with the fields after it."""
+    hash, *rest = link.split("#chart=", 1)[1].split("&")
+    chart = json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    fields = dict(field.split("=", 1) for field in rest)
+    if "from" in fields:
+        chart["view"] = {"from": fields.pop("from"), "to": fields.pop("to")}
+    return {**chart, **fields}
 
 
 def shape(chart):
