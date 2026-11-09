@@ -61,27 +61,25 @@ impl Vecs {
         mappings: &IndexSources,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let version = STORAGE.schema_version();
-
-        let modes = Modes::try_from_fn(|mode| {
-            let name = mode.name();
-            ModeVecs::import(
-                &db,
-                &format!("bedrock_{name}"),
-                version,
-                mappings,
-                spot_price,
-            )
-        })?;
-        let this = Self {
-            db,
-            modes,
-            calibration: None,
-            replay: Default::default(),
-            entry_supply: Default::default(),
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+        STORAGE.import(context, 100_000, |db, version| {
+            let modes = Modes::try_from_fn(|mode| {
+                let name = mode.name();
+                ModeVecs::import(
+                    &db,
+                    &format!("bedrock_{name}"),
+                    version,
+                    mappings,
+                    spot_price,
+                )
+            })?;
+            let this = Self {
+                db,
+                modes,
+                calibration: None,
+                replay: Default::default(),
+                entry_supply: Default::default(),
+            };
+            Ok(this)
+        })
     }
 }

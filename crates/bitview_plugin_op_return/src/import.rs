@@ -21,44 +21,43 @@ impl Vecs {
         block_size: &impl ReadableCloneableVec<Height, Bytes>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 1_000_000)?;
-        let version = STORAGE.schema_version();
-        let total = BucketVecs::import(
-            &db,
-            "op_return",
-            version,
-            mappings,
-            window_starts,
-            block_size,
-            chain_fees,
-        )?;
-        let protocols = KindBreakdownVecs::import(
-            &db,
-            version,
-            mappings,
-            window_starts,
-            block_size,
-            chain_fees,
-        )?;
-        let policies = PolicyBreakdownVecs::import(
-            &db,
-            version,
-            mappings,
-            window_starts,
-            block_size,
-            chain_fees,
-        )?;
+        STORAGE.import(context, 1_000_000, |db, version| {
+            let total = BucketVecs::import(
+                &db,
+                "op_return",
+                version,
+                mappings,
+                window_starts,
+                block_size,
+                chain_fees,
+            )?;
+            let protocols = KindBreakdownVecs::import(
+                &db,
+                version,
+                mappings,
+                window_starts,
+                block_size,
+                chain_fees,
+            )?;
+            let policies = PolicyBreakdownVecs::import(
+                &db,
+                version,
+                mappings,
+                window_starts,
+                block_size,
+                chain_fees,
+            )?;
 
-        let flag = indexer.vecs().transactions.features.op_return.flag_view();
+            let flag = indexer.vecs().transactions.features.op_return.flag_view();
 
-        let this = Self {
-            db,
-            flag,
-            total,
-            protocols,
-            policies,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            let this = Self {
+                db,
+                flag,
+                total,
+                protocols,
+                policies,
+            };
+            Ok(this)
+        })
     }
 }

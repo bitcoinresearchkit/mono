@@ -23,39 +23,38 @@ impl Vecs {
         age: &Age,
     ) -> Result<Self> {
         let under_1h = &age.ranges.under_1h;
-        let db = STORAGE.open_database(context, 20_000_000)?;
-        let version = STORAGE.schema_version();
-        let spot = price.spot.cents.height.read_only_boxed_clone();
-        let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
-        let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version))?;
-        let cohorts = age_aggregate::try_build(&Imports {
-            db: &db,
-            v: version,
-            columns: &columns,
-            mappings,
-            windows,
-            spot: &spot,
-            cost_basis: &cost_basis,
-            under_1h_volume: under_1h.activity.transfer_volume.cents.cumulative_source(),
-            under_1h_value_destroyed: under_1h.realized.value_destroyed.stored.cumulative_source(),
-        })?;
-        let all_market_cap = LazyIndexedVec::new(
-            "aggregate_market_cap_source",
-            version,
-            supply,
-            &spot,
-            |_, sats: Sats, price| sats.value_at(price),
-        )
-        .read_only_boxed_clone();
-        STORAGE.finalize_database(&db)?;
-        Ok(Self {
-            db,
-            cohorts,
-            columns,
-            cost_basis,
-            all_supply: supply.read_only_boxed_clone(),
-            all_market_cap,
-            live: None,
+        STORAGE.import(context, 20_000_000, |db, version| {
+            let spot = price.spot.cents.height.read_only_boxed_clone();
+            let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
+            let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version))?;
+            let cohorts = age_aggregate::try_build(&Imports {
+                db: &db,
+                v: version,
+                columns: &columns,
+                mappings,
+                windows,
+                spot: &spot,
+                cost_basis: &cost_basis,
+                under_1h_volume: under_1h.activity.transfer_volume.cents.cumulative_source(),
+                under_1h_value_destroyed: under_1h.realized.value_destroyed.stored.cumulative_source(),
+            })?;
+            let all_market_cap = LazyIndexedVec::new(
+                "aggregate_market_cap_source",
+                version,
+                supply,
+                &spot,
+                |_, sats: Sats, price| sats.value_at(price),
+            )
+            .read_only_boxed_clone();
+            Ok(Self {
+                db,
+                cohorts,
+                columns,
+                cost_basis,
+                all_supply: supply.read_only_boxed_clone(),
+                all_market_cap,
+                live: None,
+            })
         })
     }
     pub fn all_chain_sources(&self) -> AllChainSources {

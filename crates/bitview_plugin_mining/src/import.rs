@@ -11,18 +11,16 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 1_000_000)?;
-        let version = STORAGE.schema_version();
+        STORAGE.import(context, 1_000_000, |db, version| {
+            let rewards = rewards::Vecs::import(&db, version, mappings, window_starts)?;
+            let hash = hash::Vecs::import(&db, version, mappings)?;
 
-        let rewards = rewards::Vecs::import(&db, version, mappings, window_starts)?;
-        let hash = hash::Vecs::import(&db, version, mappings)?;
-
-        let this = Self {
-            db,
-            rewards,
-            hash,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            let this = Self {
+                db,
+                rewards,
+                hash,
+            };
+            Ok(this)
+        })
     }
 }

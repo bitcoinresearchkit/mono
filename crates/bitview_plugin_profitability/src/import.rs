@@ -12,13 +12,13 @@ impl Vecs {
         mappings: &Mappings,
         prices: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let metrics = Metrics::import(&db, STORAGE.schema_version(), mappings, prices)?;
-        STORAGE.finalize_database(&db)?;
-        Ok(Self {
-            db,
-            live: None,
-            metrics,
+        STORAGE.import(context, 100_000, |db, version| {
+            let metrics = Metrics::import(&db, version, mappings, prices)?;
+            Ok(Self {
+                db,
+                live: None,
+                metrics,
+            })
         })
     }
 }

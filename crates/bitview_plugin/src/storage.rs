@@ -33,7 +33,21 @@ impl PluginStorage {
         Self::plugins_path(context).join(self.id.as_str())
     }
 
-    pub fn open_database(
+    /// Builds plugin data with an owned database handle and its root schema version.
+    /// Retains accessed regions and compacts only after a successful build.
+    pub fn import<T>(
+        self,
+        context: ImportContext<'_>,
+        page_multiplier: usize,
+        build: impl FnOnce(Database, Version) -> Result<T>,
+    ) -> Result<T> {
+        let db = self.open_database(context, page_multiplier)?;
+        let data = build(db.clone(), self.schema_version())?;
+        self.finalize_database(&db)?;
+        Ok(data)
+    }
+
+    fn open_database(
         self,
         context: ImportContext<'_>,
         page_multiplier: usize,
@@ -43,7 +57,7 @@ impl PluginStorage {
         Ok(db)
     }
 
-    pub fn finalize_database(self, db: &Database) -> Result<()> {
+    fn finalize_database(self, db: &Database) -> Result<()> {
         db.retain_accessed_regions()?;
         db.compact()?;
         Ok(())

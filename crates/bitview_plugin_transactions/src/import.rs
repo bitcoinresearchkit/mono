@@ -18,69 +18,67 @@ impl Vecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 10_000_000)?;
-        let version = STORAGE.schema_version();
+        STORAGE.import(context, 10_000_000, |db, version| {
+            let count = PerBlockFullFromCumulative::import(
+                &db,
+                "tx_count",
+                version,
+                &mappings.transaction_count_source(),
+                mappings,
+                window_starts,
+            )?;
+            let transfer_volume = ValuePerBlockCumulativeRolling::import(
+                &db,
+                "transfer_volume",
+                version,
+                mappings,
+                window_starts,
+            )?;
+            let totals = Totals {
+                txs: &mappings.transaction_count_source(),
+                volume: transfer_volume.cumulative.sats.resolutions.height_source(),
+            };
+            let features =
+                features::Vecs::import(&db, version, indexer, mappings, window_starts, totals)?;
+            let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
+            let fees = fees::Vecs::import(&db, version, mappings, window_starts, totals)?;
+            let inscription = inscription::Vecs::import(
+                &db,
+                version,
+                indexer,
+                mappings,
+                window_starts,
+                &fees.total_cumulative,
+                totals,
+            )?;
+            let patterns = patterns::Vecs::import(&db, version, mappings, window_starts, totals)?;
+            let nonstandard = Classified::import(
+                &db,
+                "is_nonstandard",
+                "nonstandard_tx",
+                version + Version::ONE,
+                mappings,
+                window_starts,
+                totals,
+            )?;
+            let versions = versions::Vecs::import(&db, version, mappings, window_starts, totals)?;
+            let per_second =
+                LazyPerSecondWindows::new("tx_per_second", version + Version::TWO, &count.rolling.sum);
 
-        let count = PerBlockFullFromCumulative::import(
-            &db,
-            "tx_count",
-            version,
-            &mappings.transaction_count_source(),
-            mappings,
-            window_starts,
-        )?;
-        let transfer_volume = ValuePerBlockCumulativeRolling::import(
-            &db,
-            "transfer_volume",
-            version,
-            mappings,
-            window_starts,
-        )?;
-        let totals = Totals {
-            txs: &mappings.transaction_count_source(),
-            volume: transfer_volume.cumulative.sats.resolutions.height_source(),
-        };
-        let features =
-            features::Vecs::import(&db, version, indexer, mappings, window_starts, totals)?;
-        let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
-        let fees = fees::Vecs::import(&db, version, mappings, window_starts, totals)?;
-        let inscription = inscription::Vecs::import(
-            &db,
-            version,
-            indexer,
-            mappings,
-            window_starts,
-            &fees.total_cumulative,
-            totals,
-        )?;
-        let patterns = patterns::Vecs::import(&db, version, mappings, window_starts, totals)?;
-        let nonstandard = Classified::import(
-            &db,
-            "is_nonstandard",
-            "nonstandard_tx",
-            version + Version::ONE,
-            mappings,
-            window_starts,
-            totals,
-        )?;
-        let versions = versions::Vecs::import(&db, version, mappings, window_starts, totals)?;
-        let per_second =
-            LazyPerSecondWindows::new("tx_per_second", version + Version::TWO, &count.rolling.sum);
-
-        let this = Self {
-            db,
-            count,
-            features,
-            vsize,
-            fees,
-            inscription,
-            patterns,
-            nonstandard,
-            versions,
-            transfer_volume,
-            per_second,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            let this = Self {
+                db,
+                count,
+                features,
+                vsize,
+                fees,
+                inscription,
+                patterns,
+                nonstandard,
+                versions,
+                transfer_volume,
+                per_second,
+            };
+            Ok(this)
+        })
     }
 }

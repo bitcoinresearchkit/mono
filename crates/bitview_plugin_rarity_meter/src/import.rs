@@ -15,19 +15,18 @@ impl Vecs {
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let version = STORAGE.schema_version();
-        let this = Self {
-            components: components::Components::import(
-                &db, version, mappings, holders, cointime, coinflow,
-            )?,
-            extremes: extremes::Extremes::import(&db, version, mappings, holders)?,
-            full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,
-            local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
-            cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
-            db,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+        STORAGE.import(context, 100_000, |db, version| {
+            let this = Self {
+                components: components::Components::import(
+                    &db, version, mappings, holders, cointime, coinflow,
+                )?,
+                extremes: extremes::Extremes::import(&db, version, mappings, holders)?,
+                full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,
+                local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
+                cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
+                db,
+            };
+            Ok(this)
+        })
     }
 }

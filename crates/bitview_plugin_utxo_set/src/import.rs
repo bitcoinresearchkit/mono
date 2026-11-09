@@ -17,25 +17,24 @@ impl Vecs {
         spends_path: PathBuf,
         creations_path: PathBuf,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 20_000_000)?;
-        let version = STORAGE.schema_version();
-        let supply = import_cached(&db, "unspent_sats", version)?;
-        let circulating_supply = LazyPerBlock::from_height_source::<Convert>(
-            "circulating_supply",
-            version,
-            &supply,
-            mappings,
-        );
-        let this = Self {
-            supply,
-            circulating_supply,
-            count: PerBlock::import(&db, "utxo_count", version + Version::ONE, mappings)?,
-            history: History::open(db.path())?,
-            spends_path,
-            creations_path,
-            db,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+        STORAGE.import(context, 20_000_000, |db, version| {
+            let supply = import_cached(&db, "unspent_sats", version)?;
+            let circulating_supply = LazyPerBlock::from_height_source::<Convert>(
+                "circulating_supply",
+                version,
+                &supply,
+                mappings,
+            );
+            let this = Self {
+                supply,
+                circulating_supply,
+                count: PerBlock::import(&db, "utxo_count", version + Version::ONE, mappings)?,
+                history: History::open(db.path())?,
+                spends_path,
+                creations_path,
+                db,
+            };
+            Ok(this)
+        })
     }
 }

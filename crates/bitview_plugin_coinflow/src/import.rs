@@ -15,19 +15,19 @@ impl Vecs {
         prices: &PriceVecs,
         age: &AgeVecs,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 250_000)?;
-        let version = STORAGE.schema_version() + Version::ONE;
-        let spot_price = prices.spot.cents.height.read_only_boxed_clone();
+        STORAGE.import(context, 250_000, |db, version| {
+            let version = version + Version::ONE;
+            let spot_price = prices.spot.cents.height.read_only_boxed_clone();
 
-        let age_ranges = AgeRangeVecs::import(&db, version, mappings, &spot_price, age)?;
-        let aggregate = AggregateVecs::import(&db, version, mappings, &spot_price)?;
-        let this = Self {
-            db,
-            urpd_replay: Default::default(),
-            age_ranges,
-            aggregate,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            let age_ranges = AgeRangeVecs::import(&db, version, mappings, &spot_price, age)?;
+            let aggregate = AggregateVecs::import(&db, version, mappings, &spot_price)?;
+            let this = Self {
+                db,
+                urpd_replay: Default::default(),
+                age_ranges,
+                aggregate,
+            };
+            Ok(this)
+        })
     }
 }

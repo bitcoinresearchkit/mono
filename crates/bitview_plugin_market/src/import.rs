@@ -11,23 +11,21 @@ impl Vecs {
         mappings: &MappingsVecs,
         prices: &PriceVecs,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 250_000)?;
-        let version = STORAGE.schema_version();
+        STORAGE.import(context, 250_000, |db, version| {
+            let spot_price = prices.spot.cents.resolutions.height_source();
+            let ath = ath::Vecs::import(&db, version, mappings, spot_price)?;
+            let returns = returns::import(version, mappings, prices);
+            let range = range::Vecs::import(&db, version, mappings)?;
+            let moving_average = moving_average::Vecs::import(&db, version, mappings)?;
 
-        let spot_price = prices.spot.cents.resolutions.height_source();
-        let ath = ath::Vecs::import(&db, version, mappings, spot_price)?;
-        let returns = returns::import(version, mappings, prices);
-        let range = range::Vecs::import(&db, version, mappings)?;
-        let moving_average = moving_average::Vecs::import(&db, version, mappings)?;
-
-        let this = Self {
-            db,
-            ath,
-            returns,
-            range,
-            moving_average,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            let this = Self {
+                db,
+                ath,
+                returns,
+                range,
+                moving_average,
+            };
+            Ok(this)
+        })
     }
 }

@@ -15,23 +15,23 @@ impl Vecs {
         prices: &PriceVecs,
         totals: ShareTotals<'_>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 20_000_000)?;
-        let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
-        let cohorts = CohortMetrics::import(
-            &db,
-            STORAGE.schema_version(),
-            mappings,
-            windows,
-            &prices.spot.cents.height.read_only_boxed_clone(),
-            totals,
-        )?;
-        let this = Self {
-            db,
-            caps,
-            cohorts,
-            live: None,
-        };
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+        STORAGE.import(context, 20_000_000, |db, version| {
+            let caps = RealizedCaps::import(&db, SAVED_CHECKPOINTS)?;
+            let cohorts = CohortMetrics::import(
+                &db,
+                version,
+                mappings,
+                windows,
+                &prices.spot.cents.height.read_only_boxed_clone(),
+                totals,
+            )?;
+            let this = Self {
+                db,
+                caps,
+                cohorts,
+                live: None,
+            };
+            Ok(this)
+        })
     }
 }

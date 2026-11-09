@@ -17,23 +17,23 @@ impl Vecs {
         prices: &ReadableBoxedVec<Height, Cents>,
         totals: ShareTotals<'_>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let cohorts = ByEntry::try_from_fn(|id| {
-            CreationCohort::import(
-                &db,
-                CohortId::Entry(id),
-                STORAGE.schema_version(),
-                mappings,
-                windows,
-                prices,
-                totals,
-            )
-        })?;
-        STORAGE.finalize_database(&db)?;
-        Ok(Self {
-            db,
-            live: None,
-            cohorts,
+        STORAGE.import(context, 100_000, |db, version| {
+            let cohorts = ByEntry::try_from_fn(|id| {
+                CreationCohort::import(
+                    &db,
+                    CohortId::Entry(id),
+                    version,
+                    mappings,
+                    windows,
+                    prices,
+                    totals,
+                )
+            })?;
+            Ok(Self {
+                db,
+                live: None,
+                cohorts,
+            })
         })
     }
 }

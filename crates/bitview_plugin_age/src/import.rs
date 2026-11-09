@@ -22,49 +22,48 @@ impl Vecs {
         prices: &PriceVecs,
         all_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 20_000_000)?;
-        let version = STORAGE.schema_version();
-        let spot = prices.spot.cents.height.read_only_boxed_clone();
-        let all_capital = import_cached(&db, "capital_cents", version + Version::TWO)?;
-        let capital = all_capital.read_only_boxed_clone();
-        let totals = ShareTotals {
-            supply: all_supply,
-            capital: &capital,
-        };
-        let cohort =
-            |id| CreationCohort::import(&db, id, version, mappings, windows, &spot, totals);
-        // Age ranges and the other families import independently.
-        let (ranges, (halving_epochs, vintages)) = thread::scope(|scope| -> Result<_> {
-            let others = thread::Builder::new()
-                .stack_size(IMPORT_STACK_SIZE)
-                .spawn_scoped(scope, || -> Result<_> {
-                    Ok((
-                        Box::new(ByHalvingEpoch::try_from_fn(|id| cohort(id.cohort()))?),
-                        Box::new(Vintage::try_from_fn(|id| cohort(id.cohort()))?),
-                    ))
-                })?;
-            let ranges = Box::new(AgeRange::try_from_fn(|id| {
-                RangeVecs::import(&db, id.cohort(), version, mappings, windows, &spot, totals)
-            })?);
-            Ok((ranges, others.join().unwrap()?))
-        })?;
-        let coinblocks_destroyed = PerBlockCumulativeRolling::import(
-            &db,
-            "coinblocks_destroyed",
-            version + Version::TWO,
-            mappings,
-            windows,
-        )?;
-        STORAGE.finalize_database(&db)?;
-        Ok(Self {
-            db,
-            live: None,
-            all_supply: all_supply.read_only_boxed_clone(),
-            all_capital,
-            ranges,
-            halving_epochs,
-            vintages,
-            coinblocks_destroyed,
+        STORAGE.import(context, 20_000_000, |db, version| {
+            let spot = prices.spot.cents.height.read_only_boxed_clone();
+            let all_capital = import_cached(&db, "capital_cents", version + Version::TWO)?;
+            let capital = all_capital.read_only_boxed_clone();
+            let totals = ShareTotals {
+                supply: all_supply,
+                capital: &capital,
+            };
+            let cohort =
+                |id| CreationCohort::import(&db, id, version, mappings, windows, &spot, totals);
+            // Age ranges and the other families import independently.
+            let (ranges, (halving_epochs, vintages)) = thread::scope(|scope| -> Result<_> {
+                let others = thread::Builder::new()
+                    .stack_size(IMPORT_STACK_SIZE)
+                    .spawn_scoped(scope, || -> Result<_> {
+                        Ok((
+                            Box::new(ByHalvingEpoch::try_from_fn(|id| cohort(id.cohort()))?),
+                            Box::new(Vintage::try_from_fn(|id| cohort(id.cohort()))?),
+                        ))
+                    })?;
+                let ranges = Box::new(AgeRange::try_from_fn(|id| {
+                    RangeVecs::import(&db, id.cohort(), version, mappings, windows, &spot, totals)
+                })?);
+                Ok((ranges, others.join().unwrap()?))
+            })?;
+            let coinblocks_destroyed = PerBlockCumulativeRolling::import(
+                &db,
+                "coinblocks_destroyed",
+                version + Version::TWO,
+                mappings,
+                windows,
+            )?;
+            Ok(Self {
+                db,
+                live: None,
+                all_supply: all_supply.read_only_boxed_clone(),
+                all_capital,
+                ranges,
+                halving_epochs,
+                vintages,
+                coinblocks_destroyed,
+            })
         })
     }
 }

@@ -19,39 +19,39 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
         network: &Windows<&impl ReadableCloneableVec<Height, Hashrate>>,
     ) -> Result<Self> {
-        let db = STORAGE.open_database(context, 100_000)?;
-        let pools = pools();
+        STORAGE.import(context, 100_000, |db, version| {
+            let pools = pools();
 
-        let version =
-            STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
+            let version =
+                version + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
 
-        let block_pool = BytesVec::import(&db, "block_pool", version)?;
-        let heights = PoolHeights::build(&block_pool);
-        let by_slug = pools
-            .iter()
-            .map(|pool| {
-                let vecs = PoolVecs::new(
-                    pool.slug,
-                    &heights,
-                    version,
-                    mappings,
-                    window_starts,
-                    network,
-                );
-                (pool.slug, vecs)
-            })
-            .collect::<BTreeMap<_, _>>();
-        let by_slug = crate::BySlug(by_slug);
+            let block_pool = BytesVec::import(&db, "block_pool", version)?;
+            let heights = PoolHeights::build(&block_pool);
+            let by_slug = pools
+                .iter()
+                .map(|pool| {
+                    let vecs = PoolVecs::new(
+                        pool.slug,
+                        &heights,
+                        version,
+                        mappings,
+                        window_starts,
+                        network,
+                    );
+                    (pool.slug, vecs)
+                })
+                .collect::<BTreeMap<_, _>>();
+            let by_slug = crate::BySlug(by_slug);
 
-        let this = Self {
-            block_pool,
-            heights,
-            by_slug,
-            pools,
-            db,
-        };
+            let this = Self {
+                block_pool,
+                heights,
+                by_slug,
+                pools,
+                db,
+            };
 
-        STORAGE.finalize_database(&this.db)?;
-        Ok(this)
+            Ok(this)
+        })
     }
 }
