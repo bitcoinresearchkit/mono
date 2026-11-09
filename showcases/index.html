@@ -331,6 +331,15 @@
           font-weight: 500;
         }
 
+        small {
+          color: var(--soft);
+          font-size: 11.5px;
+
+          @media (max-width: 519px) {
+            display: none;
+          }
+        }
+
         .tip::before {
           content: "";
           width: 6px;
@@ -628,7 +637,7 @@
         align-items: center;
         gap: 6px 12px;
         min-height: 24px;
-        margin: 16px 0 0;
+        margin: 20px 0 0;
         color: var(--text);
         font-size: 14px;
 
@@ -1260,9 +1269,9 @@
           z-index: 1;
           display: flex;
           align-items: baseline;
-          flex-wrap: wrap;
-          gap: 2px 10px;
+          gap: 2px 8px;
           margin-top: 2px;
+          white-space: nowrap;
         }
 
         .value {
@@ -1286,6 +1295,12 @@
         .moved {
           font: 600 12px var(--mono);
           font-variant-numeric: tabular-nums;
+
+          @container (max-width: 199px) {
+            small {
+              display: none;
+            }
+          }
 
           &.up {
             color: #3ccf7c;
@@ -1545,7 +1560,7 @@
 
         .n {
           position: absolute;
-          left: -4%;
+          left: 2%;
           bottom: -8%;
           color: var(--app);
           /* (As tall as the row, whatever its width.) */
@@ -1563,7 +1578,7 @@
           align-items: center;
           justify-content: center;
           gap: min(10px, var(--tile-h) * 0.05);
-          width: 62%;
+          width: 68%;
           height: 100%;
           margin-left: auto;
           overflow: hidden;
@@ -1753,7 +1768,7 @@
         scroll-snap-type: none;
 
         > li {
-          flex: 0 0 max(128px, var(--m, 10) * var(--minute));
+          flex: 0 0 max(156px, var(--m, 10) * var(--minute));
         }
 
         .p {
@@ -1770,7 +1785,7 @@
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
 
-            @container (max-width: 139px) {
+            @container (max-width: 150px) {
               .dur {
                 display: none;
               }
@@ -1813,9 +1828,6 @@
             white-space: nowrap;
             text-overflow: ellipsis;
 
-            @container (max-width: 139px) {
-              display: none;
-            }
           }
 
           &.now {
@@ -1991,36 +2003,45 @@
       }
 
       .billboard .title {
-        font-size: clamp(60px, 13.5vw, 200px);
-        font-weight: 760;
-        line-height: 0.92;
-        letter-spacing: -0.07em;
+        font-size: clamp(54px, 13vw, 170px);
+        font-weight: 680;
+        line-height: 1.02;
+        letter-spacing: -0.052em;
         min-height: clamp(70px, 14.4vw, 204px);
-        margin-top: 12px;
+        margin-top: 10px;
 
         @media (min-width: 720px) {
-          font-size: clamp(80px, 10.2vw, 200px);
-          min-height: clamp(86px, 10.9vw, 204px);
+          font-size: clamp(72px, 8.2vw, 170px);
+          min-height: clamp(82px, 9.4vw, 180px);
         }
       }
 
       .billboard .title:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
-        font-size: clamp(70px, 15.5vw, 230px);
+        font-size: clamp(62px, 15vw, 200px);
 
         @media (min-width: 720px) {
-          font-size: clamp(90px, 11.7vw, 230px);
+          font-size: clamp(84px, 9.6vw, 200px);
         }
       }
 
       .billboard .title[data-face="trail"] {
-        font-size: clamp(50px, 12vw, 150px);
+        font-size: clamp(48px, 11.6vw, 140px);
 
         @media (min-width: 720px) {
-          font-size: clamp(70px, 8.4vw, 150px);
+          font-size: clamp(64px, 7.2vw, 140px);
         }
       }
 
       .row.dock {
+        .tile-n {
+          position: absolute;
+          top: 8px;
+          left: 10px;
+          z-index: 1;
+          color: var(--accent);
+          font: 600 11px var(--mono);
+        }
+
         li[aria-current="true"] .tile {
           box-shadow: 0 0 0 1.5px var(--accent), 0 18px 40px -12px rgb(0 0 0 / 0.75);
         }
@@ -2644,7 +2665,7 @@
       <div class="glass" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <p class="status" id="status-bar" hidden>
-        <span class="tip" id="tip" title="The latest block this node has read"><span class="vh" id="tip-state"></span><b id="tip-height"></b></span>
+        <span class="tip" id="tip" title="The latest block this node has read"><span class="vh" id="tip-state"></span><small aria-hidden="true">Block</small><b id="tip-height"></b></span>
         <span id="price-panel" hidden title="Bitcoin's price, read from the chain by this node"><b class="num" id="price"></b><span class="vh" data-said></span></span>
         <span class="fee" id="fees-panel" hidden title="The fee rate to get into the next block"><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
       </p>
@@ -2667,7 +2688,7 @@
           </div>
         </div>
         <div class="buttons">
-          <a class="primary" id="bb-open" href="/studio/" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-play" /></svg>Open</a>
+          <a class="primary" id="bb-open" href="/studio/" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-out" /></svg>Open</a>
           <button class="secondary" type="button" id="bb-about"><svg aria-hidden="true"><use href="#i-info" /></svg>More info</button>
         </div>
         <div class="paging"><button class="pause" type="button" id="pause" aria-label="Pause" hidden><svg aria-hidden="true"><use href="#i-pause" /></svg></button></div>
@@ -2784,7 +2805,7 @@
         { id: "logs", name: "Logs", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
         { id: "benchmarks", name: "Benchmarks", line: "Every full sync, measured, run by run.", href: "/benchmarks/", made: "bitviewd's recorded syncs, on GitHub" },
         { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
-        { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
+        { id: "mcp", name: "For assistants", line: "Bitview for assistants, over MCP 2026-07-28.", about: "Add Bitview's MCP server to a client that supports stateless MCP 2026-07-28, or hand an assistant this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
       ]);
       /* from the apps */
       const FROM_APPS = {
@@ -2831,8 +2852,8 @@
       const tiles = FEATURED.map((t, i) => {
         const name = el("span", { className: "name" }, t.name);
         name.dataset.face = t.id;
-        const pic = t.id === "studio" ? el("img", { alt: "", decoding: "async", src: poster(t.id) }) : el("canvas", { className: "thumb" });
-        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, name, el("i", { className: "bar", ariaHidden: "true" }));
+        const pic = el("canvas", { className: "thumb" });
+        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, el("span", { className: "tile-n", ariaHidden: "true" }, String(i + 1).padStart(2, "0")), name, el("i", { className: "bar", ariaHidden: "true" }));
         a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && show(i));
         a.addEventListener("focus", () => show(i, false, lastInputKey));
         const li = el("li", {}, a);
@@ -3000,7 +3021,7 @@
       const phone=W<650,r=phone?W*.45:Math.min(H*.31,W*.25),cx=phone?W*.5:W*.66,cy=phone?H*.38:H*.39,v=latestSeries(2);
       for(let ring=0;ring<7;ring++)for(let i=0;i<90;i++){if(i%10===9)continue;const a=(i/90)*Math.PI*1.6+Math.PI*.7,rs=r*(.72+ring*.04);ctx.beginPath();ctx.arc(cx,cy,rs,a,a+.035);ctx.strokeStyle=`hsla(${325-(i/90)*225} 47% 64% / ${.2+ring*.1})`;ctx.lineWidth=phone?3:5;ctx.stroke()}
       if(valid(v)){const a=Math.PI*.7+Math.max(0,Math.min(1,(v+1)/2))*Math.PI*1.6;ctx.save();ctx.translate(cx,cy);ctx.rotate(a+Math.sin(t*.4)*.005);ctx.fillStyle='#e9e8d9';ctx.beginPath();ctx.moveTo(r*.67,0);ctx.lineTo(-r*.14,-5);ctx.lineTo(-r*.1,0);ctx.lineTo(-r*.14,5);ctx.closePath();ctx.fill();ctx.restore()}
-      ctx.fillStyle='#bdafa5';ctx.font='9px Lilex';ctx.textAlign='center';ctx.fillText('FEAR',cx-r*.63,cy+r*.72);ctx.fillText('OPTIMISM',cx+r*.64,cy+r*.72);ctx.textAlign='left';
+      if(!drawingTile){ctx.fillStyle='#bdafa5';ctx.font='9px Lilex';ctx.textAlign='center';ctx.fillText('FEAR',cx-r*.63,cy+r*.72);ctx.fillText('OPTIMISM',cx+r*.64,cy+r*.72);ctx.textAlign='left';}
       }
       function renderCalendar(ctx,W,H,t){
       const phone=W<650,y=phone?(H<650?140:H*.24):H*.19,available=H*.42,sz=phone?Math.min(W*.78,Math.max(90,available*1.35)):Math.min(W*.43,H*.58),x=phone?(W-sz)/2:W*.46,block=data.blocks[0];
@@ -3041,11 +3062,51 @@
       function wakeScene() {
         if (!frame && !(reduced && drawn)) frame = requestAnimationFrame(drawScene);
       }
+      /** Where each scene's focus sits, and how much of it a tile shows: every tile one composition, the art centred, the same size. */
+      const TILE_FIT = /** @type {Record<string, [number, number, number]>} */ ({ oracle: [0.54, 0.37, 1.35], explorer: [0.5, 0.5, 1.5], globe: [0.51, 0.38, 0.52], trail: [0.5, 0.4, 1.5], stack: [0.52, 0.36, 1.4], compass: [0.5, 0.38, 0.56] });
+      let drawingTile = false;
+      function tileStudio(/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ W, /** @type {number} */ H) {
+        const price = normalized(0), realized = normalized(3);
+        if (price.length < 2) return;
+        const y = (/** @type {number} */ v) => H * 0.86 - v * H * 0.62, x = (/** @type {number} */ i) => (i / (price.length - 1)) * W;
+        for (const [list, fill] of /** @type {[number[], string][]} */ ([[price, "#1e6a6a"], [realized, "#c8913f"]])) {
+          g.beginPath();
+          g.moveTo(0, H);
+          list.forEach((v, i) => g.lineTo(x(i), y(v)));
+          g.lineTo(W, H);
+          g.closePath();
+          g.fillStyle = fill;
+          g.fill();
+        }
+        g.beginPath();
+        price.forEach((v, i) => (i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v))));
+        g.strokeStyle = "#f1eee4";
+        g.lineWidth = 1.2;
+        g.stroke();
+      }
+      function tileCalendar(/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ W, /** @type {number} */ H) {
+        const block = data.blocks[0];
+        if (!block) return;
+        const date = new Date(block.timestamp * 1000), day = date.getUTCDate();
+        g.textAlign = "center";
+        g.fillStyle = "#d8cfb9";
+        g.font = `${H * 0.56}px Instrument, serif`;
+        g.fillText(String(day), W / 2, H * 0.58);
+        // (This month's days under it, each a dot, today lit.)
+        const days = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate(), cols = 16, gap = Math.min(W * 0.042, 5.5), left = W / 2 - ((Math.min(days, cols) - 1) * gap) / 2;
+        for (let i = 0; i < days; i++) {
+          g.fillStyle = i + 1 === day ? "#d8cfb9" : "rgba(216,207,185,.28)";
+          g.beginPath();
+          g.arc(left + (i % cols) * gap, H * 0.72 + Math.floor(i / cols) * gap, 1.2, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.textAlign = "left";
+      }
       /** Every channel's tile, drawn once from what's known now: the dock is the whole set at a glance, nothing per frame. */
       function drawTiles() {
+        drawingTile = true;
         FEATURED.forEach((t, i) => {
-          const c = tiles[i].querySelector("canvas");
-          if (!c) return;
+          const c = /** @type {HTMLCanvasElement} */ (tiles[i].querySelector("canvas"));
           const box = c.getBoundingClientRect();
           if (!box.width) return;
           const dpr = Math.min(devicePixelRatio || 1, 2), W = box.width, H = box.height;
@@ -3053,14 +3114,21 @@
           c.height = Math.round(H * dpr);
           const g = /** @type {CanvasRenderingContext2D} */ (c.getContext("2d"));
           g.setTransform(dpr, 0, 0, dpr, 0, 0);
-          g.fillStyle = paper(t.id);
+          g.fillStyle = "#0c0b09";
           g.fillRect(0, 0, W, H);
-          // (Drawn as if twice as tall, the picture's middle in view: a tile shows the art, not the room around it.)
           g.save();
-          g.translate(0, -H * 0.36);
-          renderers[t.id](g, W, H * 2, 1);
+          if (t.id === "studio") tileStudio(g, W, H);
+          else if (t.id === "calendar") tileCalendar(g, W, H);
+          else {
+            const [fx, fy, scale] = TILE_FIT[t.id];
+            g.translate(W / 2, H * 0.44);
+            g.scale(scale, scale);
+            g.translate(-fx * W, -fy * H);
+            renderers[t.id](g, W, H, 1);
+          }
           g.restore();
         });
+        drawingTile = false;
       }
       /** Anything the scenes read changed: redrawn from it. */
       function chainChanged() {
@@ -3113,7 +3181,7 @@
         logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         benchmarks: () => el("span", { className: "say" }, el("code", { className: "big" }, "block 0", el("b", {}, " → "), "tip"), el("span", { className: "small" }, "Time · memory · disk · CPU")),
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
-        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · ChatGPT · any MCP client")),
+        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Needs a client on MCP 2026-07-28")),
       };
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {
@@ -3129,7 +3197,7 @@
       document.body.append(sheet);
       function about(/** @type {Title} */ t, /** @type {HTMLElement} */ source) {
         const kind = t.kind ?? "For developers";
-        const go = el("a", { className: "primary", href: t.href }, icon("i-play"), "Open");
+        const go = el("a", { className: "primary", href: t.href }, icon("i-out"), "Open");
         const shut = el("button", { className: "close", type: "button", ariaLabel: "Close" }, icon("i-close"));
         shut.addEventListener("click", () => sheet.hidePopover());
         const heading = el("h3", {}, t.name);
