@@ -67,6 +67,8 @@
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f1ec, #0d0c0b);
+        --card: light-dark(#fffefa, #151311);
+        --sheet: light-dark(#fffefa, #181613);
         --ink: light-dark(#16130f, #f6f3ee);
         --text: light-dark(#3a342d, #d6cfc4);
         --soft: light-dark(#625a50, #a1988a);
@@ -213,9 +215,7 @@
       }
 
       .top,
-      .billboard,
-      .tile,
-      .rank {
+      .billboard {
         color-scheme: dark;
       }
 
@@ -1155,7 +1155,7 @@
         }
         border-radius: var(--radius);
         color: var(--text);
-        background: #151311;
+        background: var(--card);
         box-shadow: 0 0 0 1px var(--line);
         outline: none;
         transition: scale 0.3s var(--lift), box-shadow 0.3s;
@@ -1208,7 +1208,7 @@
         /* (Pointed at: its edge lit.) */
         @media (pointer: fine) {
           &:hover {
-            box-shadow: 0 0 0 1px rgb(246 243 238 / 0.32);
+            box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink), transparent 68%);
           }
         }
 
@@ -1331,11 +1331,11 @@
 
 
           &.up {
-            color: #3ccf7c;
+            color: light-dark(#0c7642, #3ccf7c);
           }
 
           &.down {
-            color: #ff6b6b;
+            color: light-dark(#c2262e, #ff6b6b);
           }
 
           small {
@@ -1353,7 +1353,7 @@
         flex-direction: column;
         justify-content: space-between;
         padding: 14px 16px;
-        background: radial-gradient(130% 130% at 100% 0%, color-mix(in srgb, var(--hue) 34%, transparent), transparent 64%), #151311;
+        background: radial-gradient(130% 130% at 100% 0%, color-mix(in srgb, var(--hue) 34%, transparent), transparent 64%), var(--card);
 
         /* (Its line between its count and its name: a texture, not a chart, clear of the words.) */
         > canvas {
@@ -1361,12 +1361,16 @@
           height: 34%;
           opacity: 0.32;
           mix-blend-mode: screen;
+
+          @media (prefers-color-scheme: light) {
+            mix-blend-mode: multiply;
+          }
         }
 
         .count {
           position: relative;
           z-index: 1;
-          color: rgb(246 243 238 / 0.7);
+          color: var(--text);
           font-size: 12.5px;
           font-weight: 600;
           font-variant-numeric: tabular-nums;
@@ -1379,7 +1383,7 @@
         .topic-name {
           position: relative;
           z-index: 1;
-          color: #fff;
+          color: var(--ink);
           font-size: clamp(18px, 9.5cqw, 30px);
           font-weight: 800;
           line-height: 1;
@@ -1447,7 +1451,7 @@
         }
 
         &.dev-brk {
-          background: #0d1016;
+          background: light-dark(#eef1f7, #0d1016);
 
           .crates {
             display: grid;
@@ -1458,7 +1462,7 @@
           }
 
           code {
-            color: #7a9bff;
+            color: light-dark(#3048a8, #7a9bff);
             font-size: clamp(12px, 4.7cqw, 15px);
             font-weight: 600;
           }
@@ -1475,7 +1479,7 @@
           }
 
           i {
-            color: #8d93a1;
+            color: light-dark(#5a6070, #8d93a1);
             font-style: normal;
             font-weight: 500;
           }
@@ -1558,7 +1562,7 @@
       /* (A row's places held while it's read: tiles of its shape, still.) */
       .bone {
         pointer-events: none;
-        background: #151311;
+        background: var(--card);
       }
 
       .logo {
@@ -1572,7 +1576,7 @@
           place-items: center;
           border-radius: 50%;
           color: var(--ink);
-          background: rgb(246 243 238 / 0.12);
+          background: color-mix(in oklab, var(--ink), transparent 88%);
           font-size: 9px;
           font-weight: 700;
         }
@@ -1615,8 +1619,8 @@
           padding: 12px 8px 30px;
           color: var(--ink);
           background:
-            radial-gradient(90% 70% at 50% 30%, rgb(246 243 238 / 0.08), transparent 70%),
-            #151311;
+            radial-gradient(90% 70% at 50% 30%, color-mix(in oklab, var(--ink), transparent 92%), transparent 70%),
+            var(--card);
           box-shadow: 0 0 0 1px var(--line);
           text-align: center;
           transition: scale 0.3s var(--lift);
@@ -1665,7 +1669,7 @@
             bottom: 14px;
             height: 3px;
             border-radius: 2px;
-            background: rgb(246 243 238 / 0.1);
+            background: color-mix(in oklab, var(--ink), transparent 90%);
 
             &::after {
               content: "";
@@ -1673,7 +1677,7 @@
               inset: 0 auto 0 0;
               width: calc(var(--of, 0) * 100%);
               border-radius: inherit;
-              background: rgb(246 243 238 / 0.75);
+              background: color-mix(in oklab, var(--ink), transparent 25%);
             }
           }
         }
@@ -1684,7 +1688,7 @@
 
         @media (pointer: fine) {
           &:hover .portrait {
-            box-shadow: 0 0 0 1px rgb(246 243 238 / 0.32);
+            box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink), transparent 68%);
           }
         }
       }
@@ -1730,7 +1734,7 @@
 
             small {
               display: block;
-              color: var(--soft);
+              color: var(--text);
               font-size: 0.82em;
               font-weight: 500;
             }
@@ -1813,7 +1817,7 @@
           justify-content: space-between;
           height: 112px;
           padding: 10px 12px;
-          background: #151311;
+          background: var(--card);
 
           .t {
             color: var(--soft);
@@ -1867,7 +1871,7 @@
           }
 
           &.now {
-            background: linear-gradient(120deg, color-mix(in oklab, var(--brand), #151311 74%), #151311 70%);
+            background: linear-gradient(120deg, color-mix(in oklab, var(--brand), var(--card) 74%), var(--card) 70%);
             box-shadow: 0 0 0 1px color-mix(in oklab, var(--brand), transparent 42%);
 
             .t {
@@ -1896,7 +1900,7 @@
       @keyframes arrive {
         from {
           translate: 24px 0;
-          background: color-mix(in oklab, var(--brand), #151311 50%);
+          background: color-mix(in oklab, var(--brand), var(--card) 50%);
         }
       }
 
@@ -2007,6 +2011,7 @@
 
           .tile {
             --ink: #f6f3ee;
+            --text: #d6cfc4;
           }
 
           .kind b {
@@ -2255,9 +2260,8 @@
         border-radius: 16px;
         padding: 0;
         color: var(--text);
-        background: #181613;
-        box-shadow: 0 0 0 1px rgb(246 243 238 / 0.1), 0 40px 100px -30px rgb(0 0 0 / 0.7);
-        color-scheme: dark;
+        background: var(--sheet);
+        box-shadow: 0 0 0 1px var(--line), 0 40px 100px -30px rgb(0 0 0 / 0.7);
 
         &::backdrop {
           background: rgb(0 0 0 / 0.55);
@@ -2285,7 +2289,7 @@
           border: 0;
           border-radius: 50%;
           padding: 0;
-          color: var(--ink);
+          color: #f6f3ee;
           background: rgb(13 12 11 / 0.7);
           cursor: pointer;
 
@@ -2332,7 +2336,7 @@
             content: "";
             position: absolute;
             inset: 30% 0 0;
-            background: linear-gradient(to top, #181613, rgb(24 22 19 / 0.75) 40%, transparent);
+            background: linear-gradient(to top, var(--sheet), color-mix(in srgb, var(--sheet) 75%, transparent) 40%, transparent);
           }
         }
 
@@ -2356,7 +2360,7 @@
         .hero:has(.card) {
           .shot {
             aspect-ratio: 3 / 1;
-            border-bottom: 1px solid rgb(246 243 238 / 0.08);
+            border-bottom: 1px solid var(--line);
 
             /* (Taller on a phone: its statement's room at 320 px.) */
             @media (max-width: 599px) {
@@ -2460,7 +2464,7 @@
 
           @media (max-width: 599px) {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            border-top: 1px solid rgb(246 243 238 / 0.08);
+            border-top: 1px solid var(--line);
             padding-top: 18px;
           }
         }
@@ -2498,7 +2502,7 @@
         margin-top: 14px;
         border-radius: 10px;
         padding: 10px 12px;
-        background: #0d0c0b;
+        background: var(--app);
         box-shadow: inset 0 0 0 1px var(--line);
         font-size: 13px;
 
@@ -2520,7 +2524,7 @@
           border-radius: 7px;
           padding: 5px 10px;
           color: var(--soft);
-          background: #181613;
+          background: var(--sheet);
           box-shadow: inset 0 0 0 1px var(--line-strong);
           font-size: 12.5px;
           font-weight: 550;
@@ -3445,9 +3449,9 @@
       /** @type {Chart[]} */
       const CHARTS = [
         { name: "MVRV", href: "/studio/presets/valuation/mvrv", series: ["mvrv"], colors: ["#ff8a3d"], unit: (v) => `${v.toFixed(2)}×` },
-        { name: "Price", href: "/studio/presets/price/in-dollars", series: ["price"], colors: ["#f6f3ee"], log: true, unit: (v) => dollars(v) },
+        { name: "Price", href: "/studio/presets/price/in-dollars", series: ["price"], colors: ["ink"], log: true, unit: (v) => dollars(v) },
         { name: "Hashrate", href: "/studio/presets/mining/hashing/hash-rate", series: ["hashrate"], colors: ["#3ccf7c"], log: true, unit: (v) => `${short(v).replace(/([A-Z])$/, "\u2009$1")}H/s` },
-        { name: "Market and realized cap", href: "/studio/presets/valuation/market-and-realized-cap", series: ["market_cap", "realized_cap"], colors: ["#f6f3ee", "#4cc9f0"], log: true, unit: (v) => dollars(v) },
+        { name: "Market and realized cap", href: "/studio/presets/valuation/market-and-realized-cap", series: ["market_cap", "realized_cap"], colors: ["ink", "#4cc9f0"], log: true, unit: (v) => dollars(v) },
         { name: "Supply in profit", href: "/studio/presets/holders/all-coins/supply/in-profit-and-loss", series: ["supply_in_profit"], colors: ["#3ccf7c"], unit: (v) => `${short(v)}\u2009₿` },
         { name: "NUPL", href: "/studio/presets/valuation/nupl", series: ["nupl"], colors: ["#c77dff"], unit: (v) => v.toFixed(2) },
         { name: "Difficulty", href: "/studio/presets/mining/difficulty/history", series: ["difficulty"], colors: ["#ffd166"], log: true, unit: (v) => short(v) },
@@ -3465,6 +3469,8 @@
         if (histories.size) for (const e of entries) draws.get(e.target)?.();
       });
       const watch = (/** @type {HTMLCanvasElement} */ canvas, /** @type {() => void} */ draw) => (draws.set(canvas, draw), sized.observe(canvas));
+      const darkScheme = matchMedia("(prefers-color-scheme: dark)");
+      darkScheme.addEventListener("change", () => document.querySelectorAll("#shelves canvas").forEach((canvas) => draws.get(canvas)?.()));
       /** A colour (#rrggbb or rgb(r g b / a)) at an opacity, as a canvas reads it. */
       const alpha = (/** @type {string} */ color, /** @type {number} */ a) => {
         const hex = color.match(/^#(..)(..)(..)$/);
@@ -3482,6 +3488,8 @@
         canvas.height = Math.round(box.height * dpr);
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         ctx.scale(dpr, dpr);
+        // ("ink": the page's own, whichever scheme it's in.)
+        const hue = (/** @type {number} */ k) => (c.colors[k] === "ink" ? (darkScheme.matches ? "#f6f3ee" : "#16130f") : c.colors[k]);
         const lists = c.series.map((s) => (histories.get(s) ?? []).slice(-120));
         const all = lists.flat().filter((v) => v != null && (!c.log || v > 0));
         if (!all.length) return;
@@ -3498,7 +3506,7 @@
             else ctx.lineTo(x(i), y(v));
             lastX = x(i);
           });
-          ctx.strokeStyle = c.colors[k];
+          ctx.strokeStyle = hue(k);
           ctx.lineWidth = 2;
           ctx.lineJoin = "round";
           ctx.stroke();
@@ -3506,8 +3514,8 @@
             ctx.lineTo(lastX, box.height);
             ctx.lineTo(firstX, box.height);
             const fill = ctx.createLinearGradient(0, top, 0, box.height);
-            fill.addColorStop(0, alpha(c.colors[k], 0.28));
-            fill.addColorStop(1, alpha(c.colors[k], 0));
+            fill.addColorStop(0, alpha(hue(k), 0.28));
+            fill.addColorStop(1, alpha(hue(k), 0));
             ctx.fillStyle = fill;
             ctx.fill();
           }
@@ -3515,11 +3523,11 @@
         const lastList = lists[lists.length - 1], li = lastList.findLastIndex((v) => v != null);
         if (li >= 0) {
           const px = x(li), py = y(lastList[li]);
-          ctx.fillStyle = alpha(c.colors[lists.length - 1], 0.25);
+          ctx.fillStyle = alpha(hue(lists.length - 1), 0.25);
           ctx.beginPath();
           ctx.arc(px - 3, py, 7, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = c.colors[lists.length - 1];
+          ctx.fillStyle = hue(lists.length - 1);
           ctx.beginPath();
           ctx.arc(px - 3, py, 3, 0, Math.PI * 2);
           ctx.fill();
@@ -3597,7 +3605,7 @@
       const topicTiles = TOPICS.map(([slug, name, hue, series]) => {
         const href = `/studio/presets/${slug}/`, count = el("span", { className: "count" }), canvas = el("canvas");
         /** @type {Chart | null} */
-        const chart = series ? { name, href, series: [series], colors: ["#ffffff"], log: true, unit: String } : null;
+        const chart = series ? { name, href, series: [series], colors: ["ink"], log: true, unit: String } : null;
         const tile = el("a", { className: "tile topic", href, style: `--hue:${hue}` }, canvas, count, el("span", { className: "topic-name" }, name));
         if (chart) watch(canvas, () => paint(canvas, chart));
         topics.append(el("li", {}, tile));
