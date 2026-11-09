@@ -90,12 +90,10 @@ impl Snapshot {
         };
         let n = txs.len() + template_only.len();
         let mut key_to_idx = KeyIndex::with_capacity_and_hasher(n, FxBuildHasher);
-        let mut keys: Vec<TxKey> = Vec::with_capacity(n);
         for (i, (key, _)) in records().enumerate() {
             // A pooled key keeps its index: a template-only body sharing it (a hash collision)
             // finds no index of its own and leaves block 0 short.
             key_to_idx.entry(key).or_insert(TxIndex::from(i));
-            keys.push(key);
         }
         let delta_of = |txid: &Txid| {
             fee_deltas
