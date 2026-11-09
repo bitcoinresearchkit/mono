@@ -12,7 +12,6 @@ pub trait HeaderMapExtended {
     #[cfg(feature = "series")]
     fn insert_content_type_text_csv(&mut self);
 
-    fn insert_vary_accept_encoding(&mut self);
 }
 
 impl HeaderMapExtended for HeaderMap {
@@ -60,10 +59,6 @@ impl HeaderMapExtended for HeaderMap {
     #[cfg(feature = "series")]
     fn insert_content_type_text_csv(&mut self) {
         self.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/csv"));
-    }
-
-    fn insert_vary_accept_encoding(&mut self) {
-        self.insert(header::VARY, HeaderValue::from_static("Accept-Encoding"));
     }
 }
 

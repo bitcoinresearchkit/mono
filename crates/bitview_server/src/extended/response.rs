@@ -5,7 +5,6 @@ use axum::{
 use serde::Serialize;
 use serde_json::to_vec;
 
-use super::header_map::HeaderMapExtended;
 use crate::cache::CacheParams;
 
 pub trait ResponseExtended
@@ -37,9 +36,7 @@ where
 impl ResponseExtended for Response<Body> {
     fn new_not_modified(params: &CacheParams) -> Response<Body> {
         let mut response = bitview_http::not_modified();
-        let headers = response.headers_mut();
-        headers.insert_vary_accept_encoding();
-        params.apply_to(headers);
+        params.apply_to(response.headers_mut());
         response
     }
 

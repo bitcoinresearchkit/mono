@@ -36,7 +36,7 @@ let app = your_api_router.merge(website_router);
 
 ## Standalone Server
 
-See the `website` example for a complete standalone server with compression, tracing, and other middleware.
+See the `website` example for a complete standalone server with tracing, and other middleware.
 
 ```sh
 cargo run -p bitview_website --example website

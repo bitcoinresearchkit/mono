@@ -1,9 +1,8 @@
-//! Best-quality brotli copies of the files served, each made once, in the background. The
-//! response layer compresses at its fastest level, right for the API's bodies, which change;
-//! a file doesn't, and brotli's best makes a page as big as Studio's (2.6 MB) about a third
-//! smaller to download, made once instead of at every response. Until a copy is made, the file
-//! goes out as before. A file has one copy, of its current content (an edit replaces it), and at
-//! most two are made at once.
+//! Best-quality brotli copies of the files served, each made once, in the background. Nothing
+//! else the server sends is compressed, a CDN in front does that; a file doesn't change, so
+//! brotli's best makes a page as big as Studio's (2.6 MB) about a fifth of its size, made once
+//! instead of at every response. Until a copy is made, the file goes out as it is. A file has one
+//! copy, of its current content (an edit replaces it), and at most two are made at once.
 
 use std::{
     collections::HashMap,
@@ -13,10 +12,7 @@ use std::{
     thread,
 };
 
-use axum::{
-    body::Bytes,
-    http::{HeaderMap, header},
-};
+use axum::{body::Bytes, http::HeaderMap};
 use brotli::enc::{BrotliCompress, BrotliEncoderParams};
 use rapidhash::v3::rapidhash_v3;
 
@@ -97,27 +93,7 @@ fn compressible(content_type: &str) -> bool {
         )
 }
 
-/// Whether `br` is acceptable: named with a nonzero weight, or `*` without `br;q=0`
-/// (parameter names case-insensitive, RFC 9110 12.4.2).
+/// Whether `br` is acceptable: named with a nonzero weight, or `*` without `br;q=0`.
 fn accepts_brotli(request: &HeaderMap) -> bool {
-    let (mut named, mut any) = (None, false);
-    for value in request.get_all(header::ACCEPT_ENCODING) {
-        for coding in value.to_str().unwrap_or_default().split(',') {
-            let mut parts = coding.split(';').map(str::trim);
-            let name = parts.next().unwrap_or_default();
-            let zero = parts.any(|param| {
-                param
-                    .split_once('=')
-                    .filter(|(key, _)| key.trim().eq_ignore_ascii_case("q"))
-                    .and_then(|(_, q)| q.trim().parse::<f32>().ok())
-                    .is_some_and(|q| q == 0.0)
-            });
-            if name.eq_ignore_ascii_case("br") {
-                named = Some(!zero);
-            } else if name == "*" {
-                any = !zero;
-            }
-        }
-    }
-    named.unwrap_or(any)
+    bitview_http::accepts_encoding(request, "br") == Some(true)
 }

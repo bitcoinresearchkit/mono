@@ -12,5 +12,5 @@ mempool.space's `currency` parameter accepts `USD` only; any other value is a 40
 Indexer, mappings and price guards cover source capture. Missing/invalid
 published data fails rather than yielding a partial result or validating a 304.
 Content identity is computed after reading the selected prices. Bodies of at
-least 256 KiB keep one of two response permits through compression and the final
+least 256 KiB keep one of two response permits through the final
 frame; matching 304s take none.

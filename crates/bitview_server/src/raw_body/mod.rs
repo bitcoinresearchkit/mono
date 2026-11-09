@@ -15,7 +15,7 @@ use bytes::RetainedBytes;
 mod body;
 mod bytes;
 
-/// One admitted encoded response, from allocation through the final body/frame owner.
+/// One admitted response, from allocation until its body is sent.
 #[derive(Clone)]
 pub struct RawBodyPermit {
     _permit: Arc<OwnedSemaphorePermit>,
@@ -60,18 +60,15 @@ impl RawBodyPermit {
         })
     }
 
-    /// Retain admission (when large) through both the raw bytes and any outer encoder.
+    /// Retain admission (when large) until the bytes are sent.
     pub fn response(
         self,
         params: CacheParams,
         bytes: Bytes,
         content_headers: impl FnOnce(&mut HeaderMap),
     ) -> Response {
-        if !Self::retains(bytes.len()) {
-            return AppState::assemble_response(params, bytes, content_headers);
-        }
-        let response = AppState::assemble_response(params, self.bytes(bytes), content_headers);
-        self.attach(response)
+        let bytes = if Self::retains(bytes.len()) { self.bytes(bytes) } else { bytes };
+        AppState::assemble_response(params, bytes, content_headers)
     }
 
     /// A body already built, on a budget small bodies share with large ones. A small one needs no
@@ -103,10 +100,9 @@ impl RawBodyPermit {
         Some(permit.or_else(|| Self::try_acquire(budget))?.attach(response))
     }
 
-    /// Retain admission through a large response's body and any outer encoder.
-    fn attach(self, mut response: Response) -> Response {
-        response.extensions_mut().insert(self);
-        response
+    /// Retain admission through a large response's body.
+    fn attach(self, response: Response) -> Response {
+        response.map(|body| Body::new(RetainedBody { body, permit: self }))
     }
 
     fn is_small(response: &Response) -> bool {
@@ -115,14 +111,5 @@ impl RawBodyPermit {
             .size_hint()
             .exact()
             .is_some_and(|len| !Self::retains(len as usize))
-    }
-
-    /// Called outside compression so encoder state and emitted frames retain
-    /// admission too, even after the encoder consumes its original raw input.
-    pub fn retain(mut response: Response) -> Response {
-        let Some(permit) = response.extensions_mut().remove::<Self>() else {
-            return response;
-        };
-        response.map(|body| Body::new(RetainedBody { body, permit }))
     }
 }

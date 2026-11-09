@@ -16,7 +16,7 @@ use brk_logger::init;
 use tokio::net::TcpListener;
 use tower_http::{
     catch_panic::CatchPanicLayer, classify::ServerErrorsFailureClass,
-    compression::CompressionLayer, cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
+    cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
 use tracing::{Span, error, info};
 
@@ -39,8 +39,6 @@ async fn main() -> Result<()> {
     };
 
     website.log();
-
-    let compression_layer = CompressionLayer::new().br(true).gzip(true).zstd(true);
 
     let response_uri_layer = middleware::from_fn(
         async |request: Request<Body>, next: Next| -> Response<Body> {
@@ -76,7 +74,6 @@ async fn main() -> Result<()> {
 
     let app = router(website)
         .layer(CatchPanicLayer::new())
-        .layer(compression_layer)
         .layer(response_uri_layer)
         .layer(trace_layer)
         .layer(TimeoutLayer::with_status_code(

@@ -9,9 +9,37 @@ use std::{
 
 use axum::{
     body::{Body, Bytes, HttpBody},
-    http::{HeaderMap, Response, StatusCode, header::IF_NONE_MATCH},
+    http::{
+        HeaderMap, Response, StatusCode,
+        header::{ACCEPT_ENCODING, IF_NONE_MATCH},
+    },
 };
 use http_body::Frame;
+
+/// What `Accept-Encoding` says of `coding`: by its own name, else by `*`, `None` if it lists neither
+/// (parameter names case-insensitive, RFC 9110 12.4.2).
+pub fn accepts_encoding(headers: &HeaderMap, coding: &str) -> Option<bool> {
+    let (mut named, mut any) = (None, None);
+    for value in headers.get_all(ACCEPT_ENCODING) {
+        for member in value.to_str().unwrap_or_default().split(',') {
+            let mut parts = member.split(';').map(str::trim);
+            let name = parts.next().unwrap_or_default();
+            let zero = parts.any(|param| {
+                param
+                    .split_once('=')
+                    .filter(|(key, _)| key.trim().eq_ignore_ascii_case("q"))
+                    .and_then(|(_, q)| q.trim().parse::<f32>().ok())
+                    .is_some_and(|q| q == 0.0)
+            });
+            if name.eq_ignore_ascii_case(coding) {
+                named = Some(!zero);
+            } else if name == "*" {
+                any = Some(!zero);
+            }
+        }
+    }
+    named.or(any)
+}
 
 /// Whether `If-None-Match` matches the current representation: `*` always does, and `etag` (its
 /// opaque tag without quotes, `None` for an untagged one) compares weakly with every listed tag,

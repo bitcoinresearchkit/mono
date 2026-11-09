@@ -27,10 +27,6 @@ use jiff::Timestamp;
 use tokio::{net::TcpListener, sync::Semaphore};
 use tower_http::{
     catch_panic::CatchPanicLayer,
-    compression::{
-        CompressionLayer, CompressionLevel,
-        predicate::{NotForContentType, Predicate},
-    },
     cors::CorsLayer,
     timeout::RequestBodyTimeoutLayer,
 };
@@ -38,7 +34,6 @@ use tracing::info;
 
 use api::*;
 use cache::CacheParams;
-use response_size_above::ResponseSizeAbove;
 use stall_limit::StallLimitListener;
 use state::*;
 
@@ -59,7 +54,6 @@ mod prepared_json;
 mod raw_body;
 mod request_deadline;
 mod request_state;
-mod response_size_above;
 mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
@@ -181,23 +175,6 @@ const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long browsers may reuse a CORS preflight.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// Avoid spending compression work on responses too small to benefit materially.
-const MIN_COMPRESSED_RESPONSE_BYTES: u64 = 1024;
-
-fn compression_layer() -> CompressionLayer<impl Predicate> {
-    CompressionLayer::new()
-        .br(true)
-        .gzip(true)
-        .zstd(true)
-        .quality(CompressionLevel::Fastest)
-        .compress_when(
-            ResponseSizeAbove(MIN_COMPRESSED_RESPONSE_BYTES)
-                .and(NotForContentType::GRPC)
-                .and(NotForContentType::IMAGES)
-                .and(NotForContentType::SSE),
-        )
-}
-
 pub struct Server {
     app: Router,
     listener: TcpListener,
@@ -298,7 +275,8 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     let website_router = WebsiteRouter(state.website.clone());
     let mut router = ApiRouter::new()
         .add_api_routes()
-        .route_layer(from_fn(canonical_url::refuse_respelled));
+        .route_layer(from_fn(canonical_url::refuse_respelled))
+        .route_layer(from_fn(unacceptable_encoding::reject));
     if !state.website.is_enabled() {
         router = router.route("/", get(Redirect::temporary("/openapi.json")));
     }
@@ -308,8 +286,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         .layer(from_fn(request_deadline::apply))
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
-        .layer(compression_layer())
-        .layer(from_fn(unacceptable_encoding::reject))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
                 .downcast_ref::<String>()

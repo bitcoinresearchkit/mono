@@ -8,8 +8,6 @@ use axum::{
 use tracing::{error, info};
 
 use crate::cache::{CacheParams, ErrorCachePolicy};
-#[cfg(feature = "full-api")]
-use crate::raw_body::RawBodyPermit;
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
     let uri = request.uri().clone();
@@ -34,7 +32,5 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         CacheParams::apply_error_cache_control(response.headers_mut(), ErrorCachePolicy::NoStore);
         response.headers_mut().remove(ETAG);
     }
-    #[cfg(feature = "full-api")]
-    let response = RawBodyPermit::retain(response);
     response
 }

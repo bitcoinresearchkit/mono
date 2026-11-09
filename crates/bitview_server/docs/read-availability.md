@@ -18,7 +18,7 @@ the state published when it started, or fails fast with a status the client can 
   the deadline; series data is further bounded by its weight limit.
 - **Response bodies.** Potentially large responses (transactions, blocks and their pages,
   address histories, raw blocks, block templates, mempool txids, UTXO sets, URPDs) also take a
-  body permit before building; bodies of at least 256 KiB hold it through compression to the
+  body permit before building; bodies of at least 256 KiB hold it to the
   last frame sent, so slow clients bound memory, and smaller ones release it once built. A
   request first tries one without waiting; if none is free it releases its query permit, waits
   for a body permit within the deadline, and builds again. Responses whose validator comes
