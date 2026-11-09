@@ -209,22 +209,22 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 // ── Its pictures, made again from the apps ──
 
 /** Each picture's making: its app's address (its screen's size, if not 1440×900), how long it's let settle, what's hidden
- * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
- * cut, in its screen's points: [x, y, width, height]. A cover 960×600; a banner 1,900 wide and 2,880 (@2x). */
+ * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its banner is cut, in its
+ * screen's points: [x, y, width, height]. A banner 1,900 wide, the first title's also 2,880 (@2x). */
 const PICTURES = {
-  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
-  oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
-  explorer: { url: "/explorer/", settle: 9000, cover: [8, 60, 1344, 840], banner: [560, 470, 720, 450] },
-  globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
-  trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
-  stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
-  compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680], banner: [130, 60, 1088, 680] },
-  calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
+  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, banner: [265, 120, 1900, 930] },
+  oracle: { url: "/oracle/", settle: 9000, banner: [0, 244, 1440, 628] },
+  explorer: { url: "/explorer/", settle: 9000, banner: [560, 470, 720, 450] },
+  globe: { url: "/globe/", settle: 9000, hide: "text", banner: [43, 64, 966, 450] },
+  trail: { url: "/trail/", settle: 12000, hide: "scene", banner: [60, 80, 1360, 640] },
+  stack: { url: "/stack/", settle: 8000, banner: [192, 341, 648, 300] },
+  compass: { url: "/compass/", settle: 6000, banner: [130, 60, 1088, 680] },
+  calendar: { url: "/calendar/", settle: 9000, banner: [105, 100, 863, 400] },
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY) || Object.hasOwn(CARDS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS), ...Object.keys(CARDS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
 const appIds = [...(/const APPS = [^\[]*\[([\s\S]*?)\n      \]/.exec(html)?.[1] ?? "").matchAll(/id: "([a-z]+)"/g)].map(([, id]) => id);
-for (const id of appIds) if (!(id in PICTURES)) problems.push(`${id}: no cover's making in PICTURES`);
+for (const id of appIds) if (!(id in PICTURES)) problems.push(`${id}: no picture's making in PICTURES`);
 for (const id of featured) if (!(/** @type {any} */ (PICTURES)[id]?.banner)) problems.push(`${id}: featured, but no banner's making in PICTURES`);
 
 // ── The first title, in the page itself: FEATURED's first, as its own page names it and as APPS says it ──
@@ -294,8 +294,8 @@ async function makePictures() {
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
-        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80]] : []),
-        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], [`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : []),
+        // (The first title's picture is on the first screen, at the screen's own density; the others only in sheets.)
+        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], ...(id === featured[0] ? [[`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : [])] : []),
       ]);
       if (!wanted.length) continue;
       // (One screen at the density the largest cut needs.)

@@ -8,12 +8,12 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
     <title>Bitview</title>
-    <meta name="description" content="Bitcoin's chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API, on this server or your own." />
+    <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
     <!-- (Its share card, the billboard's first picture with Bitview's name: made by showcases/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data." />
+    <meta property="og:description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
     <link rel="canonical" href="https://bitview.space/" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/home/og.jpg" />
@@ -27,7 +27,7 @@
         "@context": "https://schema.org",
         "@graph": [
           { "@type": "WebSite", "name": "Bitview", "url": "https://bitview.space/" },
-          { "@type": "Organization", "name": "Bitview", "url": "https://bitview.space/", "logo": "https://bitview.space/assets/favicon/web-app-manifest-512x512.png", "sameAs": ["https://github.com/bitcoinresearchkit/mono"] }
+          { "@type": "Organization", "name": "Bitview", "description": "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.", "url": "https://bitview.space/", "logo": "https://bitview.space/assets/favicon/web-app-manifest-512x512.png", "sameAs": ["https://github.com/bitcoinresearchkit/mono"] }
         ]
       }
     </script>
@@ -78,8 +78,6 @@
         --glass: light-dark(rgb(251 250 247 / 0.72), rgb(30 27 23 / 0.66));
         --focus: light-dark(rgb(22 19 15 / 0.6), rgb(246 243 238 / 0.85));
         --live: light-dark(#0c7642, #3ccf7c);
-        /* (Live's red: white words on it at 4.7:1.) */
-        --red: #d93036;
         --brand: oklch(64.34% 0.191 44.41);
         --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -420,10 +418,6 @@
             --art-y: 10%;
             --art-top: 0.57;
           }
-
-          &[src$="/oracle.jpg"] {
-            --art-drop: 0px;
-          }
         }
 
         /* (The picture showing, drifting slowly back to rest: a screen's, never a still.) */
@@ -586,9 +580,6 @@
           grid-area: 1 / 1;
         }
 
-        &.out {
-          opacity: 0;
-        }
       }
 
       .room {
@@ -613,21 +604,11 @@
         /* (As tall as the serif titles' line, whichever title shows: nothing above it moves as the script adds the others.) */
         display: flex;
         align-items: flex-end;
-        min-height: 46px;
         max-width: none;
         margin: 10px 0 0;
         padding: 0;
         color: var(--ink);
-        font-size: 40px;
-        font-weight: 800;
-        line-height: 0.95;
-        letter-spacing: -0.045em;
         text-wrap: balance;
-
-        @media (min-width: 720px) {
-          min-height: clamp(46px, 7.73vw, 153px);
-          font-size: clamp(40px, 6.4vw, 128px);
-        }
       }
 
       /* (What it is now: Live, and its fact, as a streaming title's year and length.) */
@@ -877,15 +858,6 @@
           font-family: Instrument, Georgia, serif;
           font-weight: 400;
           letter-spacing: -0.01em;
-        }
-      }
-
-      .billboard .title:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
-        font-size: 50px;
-        line-height: 0.92;
-
-        @media (min-width: 720px) {
-          font-size: clamp(50px, 8.4vw, 166px);
         }
       }
 
@@ -1508,79 +1480,6 @@
         }
       }
 
-      /* A block: its height, its pool, its size; the newest first. */
-      .block {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 12px 14px;
-
-        .height {
-          color: var(--ink);
-          font: 600 clamp(16px, 8cqw, 26px) var(--mono);
-          letter-spacing: -0.02em;
-        }
-
-        .ago {
-          margin-top: 2px;
-          color: var(--soft);
-          font-size: 12.5px;
-        }
-
-        .head {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 8px;
-
-          /* (Its pool's mark as large as the card's height allows beside its words: the card's picture.) */
-          .logo {
-            width: calc(var(--tile-h) * 0.3);
-            height: calc(var(--tile-h) * 0.3);
-
-            &.initials {
-              font-size: calc(var(--tile-h) * 0.09);
-            }
-          }
-        }
-
-        .by {
-          overflow: hidden;
-          color: var(--ink);
-          font-size: 14px;
-          font-weight: 650;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-
-        .facts {
-          margin-top: 3px;
-          overflow: hidden;
-          color: var(--soft);
-          font-size: 12px;
-          font-variant-numeric: tabular-nums;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-
-          /* (A narrow card: the count and the rate; the fees past its room. A phone's: those two a line each.) */
-          @container (max-width: 269px) {
-            .fees {
-              display: none;
-            }
-          }
-
-          @container (max-width: 199px) {
-            > span:not(.sep, .fees) {
-              display: block;
-            }
-
-            .sep {
-              display: none;
-            }
-          }
-        }
-      }
-
       /* (A row's places held while it's read: tiles of its shape, still.) */
       .bone {
         pointer-events: none;
@@ -1790,13 +1689,6 @@
           li:hover .tile {
             opacity: 1;
           }
-        }
-
-        /* (Shown, lifted and lit; keys on it too, a ring clear of the tile as well: two states, two looks.) */
-        li[aria-current="true"] .tile {
-          scale: 1.05;
-          opacity: 1;
-          box-shadow: 0 0 0 1.5px rgb(246 243 238 / 0.62), 0 18px 40px -12px rgb(0 0 0 / 0.75);
         }
 
         &.row > li:has(> a:focus-visible) .tile {
@@ -2095,6 +1987,8 @@
 
       .row.dock {
         li[aria-current="true"] .tile {
+          scale: 1.05;
+          opacity: 1;
           box-shadow: 0 0 0 1.5px var(--accent), 0 18px 40px -12px rgb(0 0 0 / 0.75);
         }
 
@@ -2782,7 +2676,7 @@
     <script type="module">
       // @ts-check
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const banner = (/** @type {string} */ id) => `/assets/home/banners/${id}.jpg`, poster = (/** @type {string} */ id) => `/assets/home/covers/${id}.jpg`;
+      const banner = (/** @type {string} */ id) => `/assets/home/banners/${id}.jpg`;
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const mouse = matchMedia("(pointer: fine)");
       /** An element: its tag, its properties, its children. @template {keyof HTMLElementTagNameMap} K */
@@ -2852,7 +2746,7 @@
         { id: "logs", name: "Logs", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
         { id: "benchmarks", name: "Benchmarks", line: "Every full sync, measured, run by run.", href: "/benchmarks/", made: "bitviewd's recorded syncs, on GitHub" },
         { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
-        { id: "mcp", name: "For assistants", line: "Bitview for assistants, over MCP 2026-07-28.", about: "Add Bitview's MCP server to a client that supports stateless MCP 2026-07-28, or hand an assistant this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
+        { id: "mcp", name: "For assistants", line: "Bitview for Claude, Codex, Cursor, Gemini CLI and other MCP clients.", about: "Add Bitview's MCP server to Claude, Codex, Cursor, Gemini CLI or another MCP client, or hand one this server's llms.txt.", href: "https://mcp.bitview.space/", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
       ]);
       /* from the apps */
       const FROM_APPS = {
@@ -2867,7 +2761,7 @@
         "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
         "/catalog/": { "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/changes/": { "about": "What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." },
-        "/dev/": { "about": "Bitview is an open-source Bitcoin data server that runs beside Bitcoin Core: about 1½ hours to a full index on a 16 GB Mac mini, 21,154 series, Studio, an HTTP API, generated clients and MCP." },
+        "/dev/": { "about": "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." },
         "/logs/": { "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
         "/benchmarks/": { "about": "bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." },
         "/brk/": { "about": "Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." },
@@ -2895,7 +2789,7 @@
       const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#c29a63" });
       const dock = $("dock");
       /** What the scenes read, kept here so a scene drawn at any size sees the same picture. */
-      const data = { count: /** @type {number | null} */ (null), next: /** @type {any} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
+      const data = { next: /** @type {any} */ (null), blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
       const tiles = FEATURED.map((t, i) => {
         const name = el("span", { className: "name" }, t.name, el("small", {}, t.kind ?? ""));
         name.dataset.face = t.id;
@@ -3015,6 +2909,7 @@
         if (!sliding) return;
         show(Math.round((dock.scrollLeft / Math.max(1, dock.scrollWidth - dock.clientWidth)) * (FEATURED.length - 1)));
       }, { passive: true });
+      dock.addEventListener("scrollend", () => (sliding = false));
       billboard.addEventListener("touchstart", (e) => { touchAt = e.touches.length === 1 && !(/** @type {Element} */ (e.target).closest("a,button,.row")) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
       billboard.addEventListener("touchend", (e) => {
         if (!touchAt) return;
@@ -3026,7 +2921,6 @@
 
       // ── The scenes: each channel's art, drawn from what this node reads, full screen and small, by one set of drawings ──
 
-      const SCENE_SERIES = ["price", "mvrv", "nupl", "realized_price", "sats_per_dollar"];
       let geoDots = /** @type {[number, number][]} */ ([]), blockDigits = /** @type {number[]} */ ([]), stackWindow = /** @type {number[]} */ ([]), emberArt = /** @type {HTMLCanvasElement | null} */ (null), emberStale = true;
       const valid = (/** @type {any} */ n) => typeof n === "number" && Number.isFinite(n);
       const normalizedCache = new WeakMap();
@@ -3059,7 +2953,7 @@
       }
       function renderEmber(ctx,W,H,t){if(emberStale){emberArt=createEmber();emberStale=false}const phone=W<650,sz=phone?Math.min(W*1.4,H*.72):Math.min(H*1.02,W*.72),x=phone?W*.54:W*.66,y=phone?H*.37:H*.415;ctx.save();ctx.translate(x,y);ctx.rotate(-.32+Math.sin(t*.11)*.02);const breath=1+Math.sin(t*.35)*.009;ctx.scale(breath,breath);ctx.drawImage(emberArt,-sz/2,-sz*.455,sz,sz*.91);ctx.restore();if(data.price){ctx.strokeStyle='#d9824a55';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+sz*.12,y+sz*.07);ctx.lineTo(x+sz*.27,y+sz*.12);ctx.lineTo(x+sz*.34,y+sz*.12);ctx.stroke();if(!phone){ctx.fillStyle='#ba9d83';ctx.font='9px Lilex';ctx.fillText('CHAIN-DERIVED / USD',x+sz*.275,y+sz*.105)}}}
       function renderExplorer(ctx,W,H,t){
-      const phone=W<650,side=phone?Math.min(W*.62,H*.3):Math.min(W*.36,H*.43),cx=phone?W*.5:W*.65,cy=H*.40+side*.335,fill=data.blocks[0]?Math.min(data.blocks[0].weight/4000000,1)*(reduced?1:Math.max(0,Math.min(1,(t-tunedAt)/1.15))):0,n=18;
+      const phone=W<650,side=phone?Math.min(W*.62,H*.3):Math.min(W*.36,H*.43),cx=phone?W*.5:W*.65,cy=H*.40+side*.335,fill=data.blocks[0]?Math.min(data.blocks[0].weight/4000000,1)*(reduced||drawingTile?1:Math.max(0,Math.min(1,(t-tunedAt)/1.15))):0,n=18;
       ctx.save();ctx.translate(cx,cy);ctx.rotate(Math.sin(t*.18)*.018);const p=(x,y,z=0)=>[(x-y)*side*.56,(x+y)*side*.3-z*side*.67];
       function face(a,b,c,d,color){ctx.beginPath();ctx.moveTo(...p(...a));ctx.lineTo(...p(...b));ctx.lineTo(...p(...c));ctx.lineTo(...p(...d));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#bf8cff20';ctx.stroke()}
       face([-.5,.5,0],[.5,.5,0],[.5,.5,1],[-.5,.5,1],'#23112d');face([.5,-.5,0],[.5,.5,0],[.5,.5,1],[.5,-.5,1],'#3b1c56');
@@ -3102,6 +2996,8 @@
       const renderers = /** @type {Record<string, (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void>} */ ({ oracle: renderEmber, explorer: renderExplorer, globe: renderGlobe, trail: renderTrail, stack: renderStack, compass: renderCompass, calendar: renderCalendar, studio: renderStudio });
       const paper = (/** @type {string} */ id) => (id === "calendar" ? "#d8cfb9" : "#0c0b09");
       let drawn = false, frame = 0, lastFrame = 0, sceneW = 0, sceneH = 0;
+      /** Whether the channel on air has no motion: a page asking for less, and Calendar, drawn once per change. */
+      const still = () => reduced || FEATURED[at]?.id === "calendar";
       function sizeScene() {
         const dpr = Math.min(devicePixelRatio || 1, 2);
         sceneW = art.clientWidth;
@@ -3116,7 +3012,7 @@
         frame = 0;
         const t = FEATURED[at];
         if (!t || t.id === "studio" || !onScreen || document.hidden) return;
-        if (!reduced && now - lastFrame < 33) return void (frame = requestAnimationFrame(drawScene));
+        if (!still() && now - lastFrame < 33) return void (frame = requestAnimationFrame(drawScene));
         lastFrame = now;
         sceneCtx.fillStyle = paper(t.id);
         sceneCtx.fillRect(0, 0, sceneW, sceneH);
@@ -3124,10 +3020,10 @@
         renderers[t.id](sceneCtx, sceneW, sceneH, reduced ? 0 : now / 1000);
         sceneCtx.restore();
         drawn = true;
-        if (!reduced) frame = requestAnimationFrame(drawScene);
+        if (!still()) frame = requestAnimationFrame(drawScene);
       }
       function wakeScene() {
-        if (!frame && !(reduced && drawn)) frame = requestAnimationFrame(drawScene);
+        if (!frame && !(still() && drawn)) frame = requestAnimationFrame(drawScene);
       }
       /** Where each scene's focus sits, and how much of it a tile shows: every tile one composition, the art centred, the same size. */
       const TILE_FIT = /** @type {Record<string, [number, number, number]>} */ ({ oracle: [0.54, 0.37, 1.35], explorer: [0.5, 0.5, 1.5], globe: [0.51, 0.38, 0.36], trail: [0.5, 0.4, 1.5], stack: [0.52, 0.36, 1.4], compass: [0.5, 0.38, 0.38] });
@@ -3198,8 +3094,8 @@
         drawingTile = false;
       }
       /** Anything the scenes read changed: redrawn from it. */
-      function chainChanged() {
-        emberStale = true;
+      function chainChanged(/** @type {boolean} */ ember) {
+        if (ember) emberStale = true;
         drawn = false;
         wakeScene();
         drawTiles();
@@ -3249,7 +3145,7 @@
         logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         benchmarks: () => el("span", { className: "say" }, el("code", { className: "big" }, "block 0", el("b", {}, " → "), "tip"), el("span", { className: "small" }, "Time · memory · disk · CPU")),
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
-        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Needs a client on MCP 2026-07-28")),
+        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · Codex · Cursor · Gemini CLI")),
       };
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {
@@ -3273,7 +3169,7 @@
         // (Its picture: a featured app's banner, the widest; another's cover; a developer's, its card as the row draws it.)
         const card = /** @type {HTMLElement | null} */ (document.querySelector(`#shelves a.dev-${t.id}`)?.cloneNode(true) ?? null);
         if (card) card.tabIndex = -1;
-        const picture = card ?? el("img", { alt: "", src: FEATURED.includes(t) ? banner(t.id) : poster(t.id) });
+        const picture = card ?? el("img", { alt: "", src: banner(t.id) });
         // (What it shows now, if it shows anything.)
         const now = meta(t), m = el("p", { className: "meta" });
         m.innerHTML = now;
@@ -3504,7 +3400,7 @@
       const draws = /** @type {WeakMap<Element, () => void>} */ (new WeakMap());
       const sized = new ResizeObserver((entries) => {
         for (const e of entries) sizes.set(e.target, { width: e.contentRect.width, height: e.contentRect.height });
-        if (histories.size) for (const e of entries) draws.get(e.target)?.();
+        for (const e of entries) draws.get(e.target)?.();
       });
       const watch = (/** @type {HTMLCanvasElement} */ canvas, /** @type {() => void} */ draw) => (draws.set(canvas, draw), sized.observe(canvas));
       const darkScheme = matchMedia("(prefers-color-scheme: dark)");
@@ -3605,7 +3501,7 @@
         charts.append(el("li", {}, tile));
         return { c, canvas, value, moved };
       });
-      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-372`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => { lastDay.set(id, id === "price" && data.price ? data.price.USD : replies[i].data.findLast((/** @type {any} */ v) => v != null) ?? null); lastYear.set(id, weekly(replies[i].data)); }))]).then(() => {
+      near("charts-title", charts, () => read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-372`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => { lastDay.set(id, id === "price" && data.price ? data.price.USD : replies[i].data.findLast((/** @type {any} */ v) => v != null) ?? null); lastYear.set(id, weekly(replies[i].data)); })).then(() => {
         for (const { c, canvas, value, moved } of chartTiles) {
           const list = lastYear.get(c.series[0]) ?? [], now = lastDay.get(c.series[0]) ?? null;
           const weekNow = list.findLast((v) => v != null) ?? null, then = list.find((v) => v != null) ?? null;
@@ -3705,6 +3601,7 @@
       async function round() {
         if (reading || document.hidden) return;
         reading = true;
+        loadScenes();
         const parts = [
           part("price-panel", read("/api/v1/prices"), (p) => {
             $("price").textContent = dollars(p.USD);
@@ -3713,15 +3610,16 @@
             facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
             showReading();
             showReading();
-          }).then((ok) => ok || forget("oracle", "stack")),
+          }).then((ok) => ok || ((data.price = null), forget("oracle", "stack"))),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read("/api/blocks/tip/height", "text").then((h) => ((tipSeen = h), document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h))))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {
+            const changed = list[0]?.id !== data.blocks[0]?.id;
             data.blocks = list;
-            blockDigits = list.flatMap((/** @type {any} */ b) => Array.from(/** @type {string} */ (b.id), (h) => parseInt(h, 16) / 15));
+            if (changed) blockDigits = list.flatMap((/** @type {any} */ b) => Array.from(/** @type {string} */ (b.id), (h) => parseInt(h, 16) / 15));
             drawGuide(list);
-            chainChanged();
+            if (changed) chainChanged(true);
             answered("blocks-title", guide, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
@@ -3736,16 +3634,14 @@
             if (b) facts.explorer = `<b>${grouped(b.nTx)}</b> transactions forming the next block, ${feeRate(b.medianFee)} sat/vB`;
             else delete facts.explorer;
             showReading();
-          }, () => ((formingFacts.textContent = ""), forget("explorer"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (data.pools = d, drawPools(d), chainChanged(), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
+          }, () => ((formingFacts.textContent = ""), (data.next = null), forget("explorer"))),
+          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => { const changed = d.blockCount !== data.pools?.blockCount || d.pools[0]?.slug !== data.pools?.pools[0]?.slug; data.pools = d; drawPools(d); if (changed) chainChanged(false); return d; }).then((d) => ( answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
           rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
             if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
             showReading();
           }, () => forget("trail")),
           counted ? null : read("/api/series/count").then((c) => {
-            data.count = c.distinct;
-            showReading();
             facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
             showReading();
             document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
@@ -3790,7 +3686,7 @@
           target = /** @type {HTMLElement | null | undefined} */ (li ? (next ? li.nextElementSibling : li.previousElementSibling)?.querySelector("a") : next ? from.nextElementSibling : from.previousElementSibling);
         } else {
           const at = from.getBoundingClientRect(), down = key === "ArrowDown";
-          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(STOPS)]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
+          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(STOPS)]).filter((a) => !a.closest("li")?.hidden).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
           const beyond = ways.filter(([, r]) => (down ? r.top > at.bottom - 4 : r.bottom < at.top + 4));
           const line = down ? Math.min(...beyond.map(([, r]) => r.top)) : Math.max(...beyond.map(([, r]) => r.bottom));
           target = /** @type {HTMLElement | undefined} */ (beyond.filter(([, r]) => Math.abs((down ? r.top : r.bottom) - line) < 8).sort(([, a], [, b]) => Math.abs(a.left - at.left) - Math.abs(b.left - at.left))[0]?.[0]);
@@ -3811,9 +3707,9 @@
         timeForming();
         read("/api/blocks/tip/height", "text").then((h) => h !== tipSeen && round(), () => {});
       }
-      /** The scenes' readings, once: the map's dots and the months of history they draw. */
+      /** The scenes' readings: the map's dots once, the months of history until they've answered and while this node is still syncing (called each round). */
       function loadScenes() {
-      read("/modules/world-atlas/2.0.2/countries-110m.json").then((atlas) => {
+      if (!geoDots.length) read("/modules/world-atlas/2.0.2/countries-110m.json").then((atlas) => {
         const { scale, translate } = atlas.transform;
         const arcs = atlas.arcs.map((/** @type {number[][]} */ arc) => { let x = 0, y = 0; return arc.map((p) => { x += p[0]; y += p[1]; return [x * scale[0] + translate[0], y * scale[1] + translate[1]]; }); });
         const [, m] = offscreen(720, 360);
@@ -3826,15 +3722,14 @@
         atlas.objects.countries.geometries.forEach((/** @type {any} */ g) => { if (g.type === "Polygon") polygon(g.arcs); else if (g.type === "MultiPolygon") g.arcs.forEach(polygon); });
         const pixels = m.getImageData(0, 0, 720, 360).data;
         for (let lat = -58; lat < 82; lat += 2.1) for (let lon = -180; lon < 180; lon += 2.1 / Math.max(0.3, Math.cos((lat * Math.PI) / 180))) { const x = Math.floor((lon + 180) * 2), y = Math.floor((90 - lat) * 2); if (pixels[(y * 720 + x) * 4 + 3] > 128) geoDots.push([(lon * Math.PI) / 180, (lat * Math.PI) / 180]); }
-        chainChanged();
+        chainChanged(false);
       }, () => {});
-      read(`/api/series/bulk?series=price,mvrv,nupl,realized_price,sats_per_dollar&index=month1&start=-160`).then((list) => {
+      if (!data.series.length || sync?.blocks_behind > 0) read(`/api/series/bulk?series=price,mvrv,nupl,realized_price,sats_per_dollar&index=month1&start=-160`).then((list) => {
         data.series = list;
         stackWindow = list[4]?.data.slice(-30) ?? [];
-        chainChanged();
+        chainChanged(true);
       }, () => {});
       }
-      loadScenes();
       round();
       setInterval(round, 30_000);
       setInterval(pulse, 10_000);
