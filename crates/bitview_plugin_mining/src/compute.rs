@@ -18,7 +18,7 @@ impl ComputePlugin for Vecs {
             difficulty_hashrate,
             coinbase_value,
             total_fees,
-            price: prices,
+            spot_cents,
         } = dependencies;
         let exit = context.exit();
 
@@ -26,7 +26,7 @@ impl ComputePlugin for Vecs {
             &mappings.lookback,
             coinbase_value,
             total_fees,
-            &prices.spot.cents.height,
+            spot_cents,
             starting_height,
             exit,
         )?;

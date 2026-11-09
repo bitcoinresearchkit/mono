@@ -761,7 +761,6 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_mappings",
- "bitview_plugin_price",
  "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",

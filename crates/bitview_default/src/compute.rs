@@ -108,6 +108,7 @@ impl DefaultPlugins {
         price_result?;
         let mappings = mappings.as_ref();
         let price = price.as_ref();
+        let spot_cents = &price.spot.cents.height;
 
         thread::scope(|scope| -> Result<()> {
             // Only the UTXO set reads inputs' spends.
@@ -178,7 +179,7 @@ impl DefaultPlugins {
                             TransactionsDependencies {
                                 indexer,
                                 mappings,
-                                spot_cents: &price.spot.cents.height,
+                                spot_cents,
                             },
                             context,
                         )
@@ -193,7 +194,7 @@ impl DefaultPlugins {
                         OpReturnDependencies {
                             indexer,
                             fee: &transactions.fees.fee.tx,
-                            spot_cents: &price.spot.cents.height,
+                            spot_cents,
                         },
                         context,
                     )
@@ -205,7 +206,7 @@ impl DefaultPlugins {
                         difficulty_hashrate: &blocks.difficulty.hashrate,
                         coinbase_value: &transactions.fees.coinbase_value,
                         total_fees: &transactions.fees.total,
-                        price,
+                        spot_cents,
                     },
                     context,
                 )?;
@@ -268,10 +269,10 @@ impl DefaultPlugins {
             let history = &utxo_set.reader(&inputs.spends, creations)?;
             let urpd = ReplayInputs {
                 history,
-                prices: &price.spot.cents.height,
+                prices: spot_cents,
                 timestamps: &mappings.timestamp.monotonic,
             };
-            let prices = &price.spot.cents.height.read_only_boxed_clone();
+            let prices = &spot_cents.read_only_boxed_clone();
             let timestamps = &mappings.timestamp.monotonic.read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
                 // Profitability reads only the history, prices and timestamps.
@@ -376,7 +377,7 @@ impl DefaultPlugins {
                                 holders,
                                 cointime,
                                 coinflow,
-                                spot_cents: &price.spot.cents.height,
+                                spot_cents,
                             },
                             context,
                         )
