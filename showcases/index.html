@@ -2526,6 +2526,15 @@
               flex-wrap: wrap;
               gap: 4px 16px;
 
+              button[data-feedback] {
+                color: var(--soft);
+                font-size: 12.5px;
+
+                &:hover {
+                  color: var(--ink);
+                }
+              }
+
               a {
                 position: relative;
                 font-size: 12.5px;
@@ -2650,7 +2659,7 @@
       <div class="columns">
         <div class="home">
           <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-          <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span></p>
+          <p class="fine"><a href="https://bitview.space/" id="public">bitview.space<svg class="glyph" aria-hidden="true"><use href="#i-out" /></svg></a><span>Open source, MIT license</span><button type="button" data-feedback>Feedback</button></p>
         </div>
         <div id="footer-apps">
           <h3>Apps</h3>
