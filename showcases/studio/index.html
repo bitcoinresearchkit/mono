@@ -10666,6 +10666,7 @@
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
+          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3m, 1y, 4y, 8y or max) or "from" and "to" (dates: "from" alone runs up to now), and "index", its interval, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1y&amp;index=week1. A chart's link takes the same after its chart.</p>
           <h2>A chart</h2>
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
@@ -15033,6 +15034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The view kept, as it shows: the chart on screen, at the interval it's drawn at (see storeView). */
       function saveView() {
         storeView(false);
+        showAddress();
       }
       /**
        * The view kept, as it shows. Mid-switch, it still shows the interval before (the new one's data on its way): kept
@@ -29010,10 +29012,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // missed one only said.)
             const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
             pendingRoute = "";
-            // (Its step let go of the address first: the step it leads to, after it, has none either.)
             const { route: _, ...state } = history.state ?? {};
-            if (here) history.replaceState(state, "", `${BASE}/${location.search}`);
-            if (here && route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
+            if (here) history.replaceState(state, "");
+            if (here && route) "preset" in route ? go(presetByAddress(route.preset)) : goTo({ path: route.path });
             else if (here) missedRoute(asked);
             else if (!route) notice(missedSaid(asked));
           }
@@ -29160,8 +29161,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
-       * the studio's. (The address bar isn't: an address of theirs is a way in, read and let go of as the page starts, as
-       * a chart's link is.)
+       * the studio's. The address bar shows the same: a preset's address, with how it's looked at where that's not as it
+       * opens (see linkLookOf), Share's link; a chart of yours (edited, a preview), the Studio's own, its link alone Share's.
        */
       function showAddress() {
         // (Once what's being done is done: a step of the history pushed after the page's drawn has the address, not the
@@ -29193,6 +29194,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!link) document.head.append((link = Object.assign(document.createElement("link"), { rel: "canonical" })));
         const canonical = `${ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
         if (link.href !== canonical) link.href = canonical;
+        // (Where the page's Studio's own: a link still being read, a picture's, or broken, left as it is till it's dealt with.)
+        const bar = ROUTED && !/^#(?:.*&)?(?:chart|image|c)=/.test(location.hash) ? (home || chart.preset === undefined ? address : presets ? presetLink(chart) ?? "/" : null) : null;
+        if (bar === null) return;
+        const [where, look = ""] = bar.split("#"), url = `${BASE}${where}${location.search}${look && `#${look}`}`;
+        if (`${location.pathname}${location.search}${location.hash}` !== url) history.replaceState(history.state, "", url);
       }
       /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
       let started = false;
@@ -29267,6 +29273,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
+      /**
+       * A preset's address, with how it's looked at where that isn't how it opens (see linkLookOf): the chart of a preset as
+       * made but for its view and its interval; else, or the presets unread, null. @param {Chart} doc
+       */
+      function presetLink(doc) {
+        const i = presetIndex(doc);
+        if (i < 0) return null;
+        const { c } = /** @type {Preset[]} */ (presets)[i], made = { index: "day1", range: c.range ?? DEFAULT_RANGE };
+        if (presetEdited(doc) && contentHash({ ...doc, index: made.index }) !== doc.base) return null;
+        const look = lookFields(doc, made);
+        return `${/** @type {NonNullable<ReturnType<typeof addresses>>} */ (addresses()).presets[i]}${look && `#${look}`}`;
+      }
+      /**
+       * A preset opened at its address (a visit, not a step back): what the address says of how to look at it, else as it
+       * opens, whatever view was left on it here (whoever follows a link sees what it says). Its interval, on one as made
+       * (its stamp along: no edit of theirs); edited here, as it is. @param {number} i
+       */
+      function presetByAddress(i) {
+        const doc = presetChart(i), look = linkLookOf(new URLSearchParams(location.hash.slice(1))), all = viewsNow();
+        doc.range = look.range ?? /** @type {Preset[]} */ (presets)[i].c.range ?? DEFAULT_RANGE;
+        if (look.index && pristine(doc)) (doc.index = look.index), (doc.base = contentHash(doc));
+        delete all[doc.id];
+        putViews(all);
+        if (look.view) keepCarriedView(doc, { view: datedView(doc.index, look.view) });
+        linkWindow = doc.id;
+        return doc;
+      }
       /**
        * A preset's copy kept here that still stands: edited, or left as it was of the preset as made now (`had`: its copy,
        * found already; null, none).
@@ -37674,6 +37707,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
       const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
+      /**
+       * How a link says to look at its chart, each a field of its own after its address or its chart: `range` or the
+       * dates `from` and `to`, and `index`, its interval. What it doesn't know, as if it weren't there.
+       * @param {URLSearchParams} params
+       */
+      function linkLookOf(params) {
+        const range = params.get("range"), index = params.get("index") ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) };
+        return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_LABEL, index) ? { index } : {}), ...(datedView("day1", view) ? { view } : {}) };
+      }
+      /** A view by its dates, as Studio keeps one, at an interval (`from` alone, up to now); dates it can't read or in the wrong order, null. @param {string} index @param {any} view */
+      function datedView(index, view) {
+        const from = timeOfText(view?.from), to = view?.to === undefined && from !== null ? Date.now() / 1000 : timeOfText(view?.to);
+        return from !== null && to !== null && from < to ? { index, from: [from, 0], to: [to, 0] } : null;
+      }
       /** A time as a link has it: a date (as dateText writes it, or any ISO date), or seconds since 1970; else null. */
       const timeOfText = (/** @type {any} */ value) => {
         // (Without a zone, UTC, as every date here: "2021-01-01T10:00" or "2021-01-01 10:00" is 10:00 UTC.)
@@ -37692,7 +37739,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && pane.size === undefined);
         const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
         if (doc === chart) saveView();
-        const kept = doc === chart ? shownView() : openView(doc);
+        const dates = linkDates(doc);
         return {
           ...(doc.title ? { title: doc.title } : {}),
           // (Its interval, but 1D, a link's default.)
@@ -37731,8 +37778,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(dash ? { dash } : {}),
           })) } : {}),
           // (Its view at its interval: the dates of its first bar and its last, past the data too.)
-          ...(kept ? { view: Object.fromEntries((/** @type {const} */ (["from", "to"])).map((edge) => [edge, dateText(timeAt(kept.index, indexAt(kept.index, kept[edge][0]) + Math.round(kept[edge][1])))])) } : {}),
+          ...(dates ? { view: dates } : {}),
         };
+      }
+      /** The dates a chart shows, where they aren't its range's: the first bar's and the last's, past the data too; else null. @param {Chart} doc */
+      function linkDates(doc) {
+        const kept = doc === chart ? shownView() : openView(doc);
+        return kept ? Object.fromEntries((/** @type {const} */ (["from", "to"])).map((edge) => [edge, dateText(timeAt(kept.index, indexAt(kept.index, kept[edge][0]) + Math.round(kept[edge][1])))])) : null;
+      }
+      /** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out. @param {Chart} doc @param {{ index: string, range: string }} made */
+      function lookFields(doc, made) {
+        const dates = linkDates(doc);
+        return [...(doc.index !== made.index ? [`index=${doc.index}`] : []), ...(dates ? [`from=${dates.from}`, `to=${dates.to}`] : doc.range !== made.range ? [`range=${doc.range}`] : [])].join("&");
       }
       /**
        * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
@@ -37745,12 +37802,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * can't compress it); compressing failed, written out. @param {Chart} doc @param {Promise<Uint8Array>} [bytes] its
        * compressed bytes, made already
        */
-      const shareLink = (doc, bytes = packedBytes(doc)) => bytes.then((packed) => `${linkBase()}${toBase64url(packed)}`, () => `${linkBase()}${linkText(doc)}`);
-      /** The page's own address, its query and hash left out (from a file, its origin is "null": the address it is). */
-      const linkBase = () => `${location.href.replace(/[?#].*$/, "")}#chart=`;
-      /** A chart as a link holds it (its sketch: what a written link writes), compressed. @param {Chart} doc */
+      const shareLink = (doc, bytes = packedBytes(doc)) => bytes.then((packed) => `${pageBase()}#chart=${toBase64url(packed)}${chartLook(doc)}`, () => `${pageBase()}#chart=${linkText(doc)}`);
+      /** Where a chart's link opens: the Studio's own page (from a file or another server, the page's address). */
+      const pageBase = () => (ROUTED ? `${ORIGIN}/` : location.href.replace(/[?#].*$/, ""));
+      /** How to look at a chart, as what comes after its link: what a chart opens with anyway, left out. @param {Chart} doc */
+      const chartLook = (doc) => ((fields) => (fields ? `&${fields}` : ""))(lookFields(doc, { index: "day1", range: DEFAULT_RANGE }));
+      /** A chart as a link holds it, compressed: its sketch (what a written link writes), but how it's looked at, in fields of their own. @param {Chart} doc */
       async function packedBytes(doc) {
-        const stream = new Blob([JSON.stringify(toSketch(doc))]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+        const { index: _i, range: _r, view: _v, ...sketch } = /** @type {any} */ (toSketch(doc));
+        const stream = new Blob([JSON.stringify(sketch)]).stream().pipeThrough(new CompressionStream("deflate-raw"));
         return new Uint8Array(await new Response(stream).arrayBuffer());
       }
       const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -37784,14 +37844,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * code (base32: the fewest modules; compressing failed, the copy's, written out).
        */
       function linksOf(doc = chart) {
-        // (A preset not edited, however its view's been moved (a view's no edit, see contentHash): its address, which opens
-        // it, itself, wherever, once the presets are read (one reloaded on shows before them). Edited, or gone from them:
-        // the chart, with its view.)
-        const address = doc.preset !== undefined && !presetEdited(doc) ? loadPresets().then(() => addresses()?.presets[presetIndex(doc)], () => undefined) : Promise.resolve(undefined);
+        // (A preset as it's made but for how it's looked at, once the presets are read (one reloaded on shows before them):
+        // its address, and that. Edited, gone from them, or none: the chart.)
+        const address = doc.preset !== undefined ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
         const links = address.then((at) => {
           if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
           const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
-          return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
+          return { copy, short: bytes.then((packed) => `${pageBase()}#c=${toBase32(packed)}${chartLook(doc)}`, () => copy) };
         });
         return { copy: links.then((all) => all.copy), short: links.then((all) => all.short) };
       }
@@ -37908,7 +37967,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return color;
         });
         const letterId = (/** @type {any} */ ref) => (typeof ref === "string" && ids.includes(ref) ? ref : ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref));
-        const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", from = timeOfText(input.view?.from), to = input.view?.to === undefined && from !== null ? Date.now() / 1000 : timeOfText(input.view?.to);
+        const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", dated = datedView(index, input.view);
         return { ...input,
           ...(Array.isArray(input.drawings) ? { drawings: input.drawings.slice(0, MAX_DRAWINGS).filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({
             ...drawing,
@@ -37916,7 +37975,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             points: Array.isArray(drawing.points) ? drawing.points.slice(0, MAX_STROKE).map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
           })) } : {}),
           // (A view by dates, at the chart's interval; one as Studio keeps it, as it is.)
-          ...(from !== null && to !== null && from < to ? { view: { index, from: [from, 0], to: [to, 0] } } : {}),
+          ...(dated ? { view: dated } : {}),
           panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
           const kind = Array.isArray(layer.trend) ? "trend" : Array.isArray(layer.cloud) ? "cloud" : null, members = kind ? layer[kind].map(letterId) : null;
           return {
@@ -40078,8 +40137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return linked(new RegExp(`(?:^|&)${key}=(.*)$`, "s").exec(hash)?.[1] ?? "", shared, run, at, key === "c");
       }
       /**
-       * The address bar, a link let go: nothing's ever written into it (a preset opened, a chart changed, it's as it
-       * was), and a link opened there goes once read, its chart open (a picture's link stays its own; one that couldn't
+       * A link opened in the address bar goes once read, its chart open (a picture's link stays its own; one that couldn't
        * be read, as it is, to be put right, until another chart's opened).
        */
       function clearLink() {
@@ -40093,6 +40151,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const reading = { hash: "", run: 0, at: 0 };
       /** Whether a link's read (`run`, the navigation it is: `at`) is still the one: no other link read, nor chart opened, since. */
       const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run === linkRun && !(at && navigations > at);
+      /** A chart from a link, as its fields say to look at it (over what its own chart holds). @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look */
+      function takeLinkLook(doc, look) {
+        if (look.range) doc.range = look.range;
+        if (look.index) doc.index = look.index;
+        if (look.view) keepCarriedView(doc, { view: datedView(doc.index, look.view) });
+      }
       /** Why the last chart written couldn't be read (for studio.open). */
       let linkError = "";
       /**
@@ -40119,6 +40183,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           })() : await fromLink(/** @type {string} */ (shared), base32);
           if (!doc.layers.length) throw new Error("it lists no layers");
           if (!currentRead(run, at)) return null;
+          if (shared !== null) takeLinkLook(doc, linkLookOf(new URLSearchParams(location.hash.slice(1))));
           const twin = twinOf(doc);
           const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
           // (From the address bar: read, it goes, its step in the history this chart's (on the grid, the grid's: opening
@@ -40154,6 +40219,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let linkRun = 0;
       addEventListener("hashchange", () => {
         const params = new URLSearchParams(location.hash.slice(1));
+        // (Its fields changed by hand, a new step of the history's: read afresh, as a visit to it. Written by the page, no step.)
+        if (history.state === null && ROUTED && !params.has("chart") && !params.has("image") && !params.has("c") && Object.keys(linkLookOf(params)).length) return location.reload();
         // (Cleared, or another kind: a link still being read is dropped.)
         if (!params.has("chart") && !params.has("image") && !params.has("c")) return void (++linkRun, (picturing = picturing && document.body.hasAttribute("data-picture")), document.body.hasAttribute("data-picture") && leavePicture());
         readLink();
@@ -40617,7 +40684,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         presetsWaited(Boolean(asked));
         if (asked) await loadPresets().catch(() => {});
         const routed = asked ? routeOf(asked) : null;
-        chart = resumed || (routed && "preset" in routed ? presetChart(routed.preset) : chart);
+        chart = resumed || (routed && "preset" in routed ? presetByAddress(routed.preset) : chart);
         // (The empty chart a first visit makes in place of none, not wanted under a preset: let go of.)
         if (first && routed && "preset" in routed) {
           const draft = previewCharts.findIndex((doc) => drafts.has(doc));
@@ -40635,8 +40702,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("home").inert = !home;
         // (Asked by an address, its step is where it led (one waiting for the presets says so: a reload waits again).)
         if (!there || asked) history.replaceState({ ...(home ? homeState() : { chart: chart.id }), ...(pendingRoute ? { route: true } : {}) }, "");
-        // (The address it was opened at, read: let go of, as a chart's link is (one waiting for the presets, once read).)
-        if (asked && !pendingRoute) history.replaceState(history.state, "", `${BASE}/${location.search}`);
         library.active = chart.id;
         rememberViewed(chart.id);
         normalize(chart);
