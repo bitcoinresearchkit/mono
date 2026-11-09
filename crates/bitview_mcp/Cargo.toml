@@ -1,6 +1,6 @@
 [package]
 name = "bitview_mcp"
-description = "Stateless MCP bridge to the Bitview REST API"
+description = "Stateless MCP bridge to Bitview. Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

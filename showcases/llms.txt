@@ -1,6 +1,6 @@
 # Bitview
 
-> Free, open-source Bitcoin analytics API and block explorer. 21781 on-chain time-series and 107 API operations.
+> Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node. 21781 on-chain time-series and 107 API operations.
 
 ## API
 
@@ -30,6 +30,19 @@ Never invent a series identifier.
 - Endpoint: https://mcp.bitview.space/
 - Transport: Streamable HTTP
 - Authentication: None
+- Protocol: MCP 2025-06-18 to 2026-07-28
+- [Setup](https://mcp.bitview.space/)
+
+Add it to an assistant with that one URL:
+
+- Claude: Customize > Connectors > Add custom connector, paste the URL, choose No sign-in.
+- ChatGPT: chatgpt.com/plugins > plus button > Add custom MCP server, paste the URL, choose no authentication.
+- Claude Code: `claude mcp add --transport http bitview https://mcp.bitview.space/`
+- Codex: `codex mcp add bitview --url https://mcp.bitview.space/`
+- Gemini CLI: `gemini mcp add --scope user --transport http bitview https://mcp.bitview.space/`
+- Qwen Code: `qwen mcp add --transport http bitview https://mcp.bitview.space/`
+
+Tested with Claude Code, Codex, Cursor's CLI, Gemini CLI, OpenCode and Qwen Code. Claude on the web, ChatGPT and other clients on MCP 2025-06-18 or newer should work but haven't been tested. Problems: support@bitview.space.
 
 The MCP server is stateless and read-only. Its tools are generated from these OpenAPI operations.
 

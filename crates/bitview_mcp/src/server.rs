@@ -1,12 +1,12 @@
 use std::{borrow::Cow, future::ready, sync::Arc, time::Duration};
 
 use axum::{
-    Router,
+    Json, Router,
     body::{Body, Bytes},
     extract::State,
     http::{
-        Method, Request, StatusCode,
-        header::{ORIGIN, RETRY_AFTER},
+        HeaderValue, Method, Request, StatusCode,
+        header::{ACCEPT, ORIGIN, RETRY_AFTER},
         request::Parts,
     },
     middleware::{self, Next},
@@ -19,15 +19,19 @@ use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
-        DiscoverResult, Icon, Implementation, ListToolsResult, MetaObject, PaginatedRequestParams,
-        ProtocolVersion, ResourceContents, ServerCapabilities, ServerConfig, Tool,
+        DiscoverResult, ErrorCode, Icon, Implementation, InitializeRequestParams, InitializeResult,
+        ListToolsResult, MetaObject, PaginatedRequestParams, ProtocolVersion, ResourceContents,
+        ServerCapabilities, ServerConfig, Tool,
     },
     service::RequestContext,
-    transport::streamable_http_server::{
-        StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
+    transport::{
+        common::http_header::HEADER_MCP_PROTOCOL_VERSION,
+        streamable_http_server::{
+            StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
+        },
     },
 };
-use serde_json::{Number, Value, from_slice, from_str, json};
+use serde_json::{Value, from_slice, json};
 use tower_http::timeout::RequestBodyTimeoutLayer;
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
@@ -37,7 +41,7 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    logo, manifest::Catalog, page, page::Pages, upstream::Upstream,
+    discovery, logo, manifest::Catalog, page, page::Pages, upstream::Upstream,
     upstream_response::UpstreamResponse,
 };
 
@@ -47,13 +51,20 @@ const MAX_CONCURRENCY: usize = 16;
 const CONCURRENCY_WAIT: Duration = Duration::from_secs(5);
 const CATALOG_TTL_MS: u64 = 3_600_000;
 const MAX_UPSTREAM_ERROR_BYTES: usize = 2_048;
-static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 1] = [ProtocolVersion::V_2026_07_28];
+/// The newest revision, back to the oldest one a real client still opens with: Codex and Gemini CLI
+/// at 2025-06-18. Every revision is served without sessions: `initialize` is one more request.
+pub(crate) static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 3] = [
+    ProtocolVersion::V_2026_07_28,
+    ProtocolVersion::V_2025_11_25,
+    ProtocolVersion::V_2025_06_18,
+];
 
 struct AppState {
     catalog: Catalog,
     upstream: Upstream,
     display_name: String,
     public_url: String,
+    server_name: String,
 }
 
 #[derive(Clone)]
@@ -74,14 +85,16 @@ pub fn router(
         .with_sse_retry(None)
         .with_legacy_session_mode(false)
         .with_json_response(true)
-        .with_max_request_body_bytes(MAX_REQUEST_BYTES)
-        .with_stateless_protocol_metadata_required(true);
+        .with_max_request_body_bytes(MAX_REQUEST_BYTES);
 
+    let discovery_routes = discovery::router(&display_name, &public_url);
+    let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
         catalog,
         upstream: Upstream::new(api_url),
         display_name,
         public_url,
+        server_name,
     });
     let handler = BitviewMcp {
         state: state.clone(),
@@ -103,6 +116,7 @@ pub fn router(
         .route("/privacy", page::route(pages.privacy))
         .route("/terms", page::route(pages.terms))
         .route("/support", page::route(pages.support))
+        .merge(discovery_routes)
         .layer(middleware::from_fn(gateway_guard))
         // A POST's body may not stall: it would hold its admission permit.
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
@@ -116,7 +130,7 @@ impl BitviewMcp {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
             .with_server_info(
-                Implementation::new("bitview_mcp", env!("CARGO_PKG_VERSION"))
+                Implementation::new(&self.state.server_name, env!("CARGO_PKG_VERSION"))
                     .with_title(&self.state.display_name)
                     .with_icons(vec![
                         Icon::new(format!("{}{}", self.state.public_url, logo::PATH))
@@ -126,9 +140,13 @@ impl BitviewMcp {
                     .with_website_url(&self.state.public_url),
             )
             .with_instructions(
-                "Read-only Bitcoin analytics tools backed by the Bitview REST API's GET endpoints; \
-                 calls never mutate upstream state. Use the list, search, and info tools to discover \
-                 identifiers before querying dynamic datasets. Binary responses are returned as \
+                "Live and historical Bitcoin data from Bitview, read from a full node: on-chain \
+                 metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, \
+                 transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD \
+                 price computed from the chain. Free and read-only, with no API key.\n\n\
+                 For a metric, `search_series` with plain words returns series ids, which \
+                 `get_series_latest` and `get_series` read; only ids it returned exist. Source of \
+                 this data: Bitview (https://bitview.space). Binary responses are returned as \
                  embedded MCP resources.",
             )
     }
@@ -151,6 +169,21 @@ impl ServerHandler for BitviewMcp {
         .with_cache_scope(CacheScope::Public)))
     }
 
+    async fn initialize(
+        &self,
+        request: InitializeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<InitializeResult, McpError> {
+        if !SUPPORTED_PROTOCOL_VERSIONS.contains(&request.protocol_version) {
+            return Err(McpError::unsupported_protocol_version(
+                request.protocol_version,
+                &SUPPORTED_PROTOCOL_VERSIONS,
+            ));
+        }
+        context.peer.set_peer_info(request.clone());
+        self.negotiate_initialize(&request)
+    }
+
     fn list_tools(
         &self,
         request: Option<PaginatedRequestParams>,
@@ -165,7 +198,7 @@ impl ServerHandler for BitviewMcp {
             let mut result = ListToolsResult::with_all_items(self.state.catalog.tools().to_vec())
                 .with_ttl_ms(CATALOG_TTL_MS)
                 .with_cache_scope(CacheScope::Public);
-            result.meta = Some(server_meta());
+            result.meta = Some(server_meta(&self.state.server_name));
             Ok(result)
         };
         ready(result)
@@ -194,7 +227,6 @@ impl ServerHandler for BitviewMcp {
             .validate_arguments(&arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
         let has_output_schema = operation.tool.output_schema.is_some();
-        let text_is_number = operation.text_is_number();
         let url = self
             .state
             .upstream
@@ -213,13 +245,13 @@ impl ServerHandler for BitviewMcp {
             match state.upstream.fetch(url) {
                 Ok(response) => {
                     log_cache_status(&name, &response);
-                    render(response, has_output_schema, text_is_number)
+                    render(response, has_output_schema, &state.server_name)
                 }
-                Err(error) => tool_error(error),
+                Err(error) => tool_error(error, &state.server_name),
             }
         })
         .await
-        .unwrap_or_else(|_| tool_error("Bitview API request task failed")))
+        .unwrap_or_else(|_| tool_error("Bitview API request task failed", &self.state.server_name)))
     }
 
     fn get_info(&self) -> ServerConfig {
@@ -270,9 +302,9 @@ impl AsRef<[u8]> for PermitBytes {
     }
 }
 
-fn tool_error(message: impl Into<String>) -> CallToolResponse {
+fn tool_error(message: impl Into<String>, server_name: &str) -> CallToolResponse {
     CallToolResult::error(vec![ContentBlock::text(message)])
-        .with_meta(Some(server_meta()))
+        .with_meta(Some(server_meta(server_name)))
         .into()
 }
 
@@ -290,7 +322,7 @@ fn log_cache_status(tool: &str, response: &UpstreamResponse) {
 fn render(
     response: UpstreamResponse,
     has_output_schema: bool,
-    text_is_number: bool,
+    server_name: &str,
 ) -> CallToolResponse {
     if !(200..300).contains(&response.status) {
         let detail = String::from_utf8_lossy(
@@ -302,7 +334,7 @@ fn render(
         } else {
             format!("Bitview API returned HTTP {}: {detail}", response.status)
         };
-        return tool_error(message);
+        return tool_error(message, server_name);
     }
 
     let content_type = response
@@ -312,7 +344,7 @@ fn render(
         .unwrap()
         .trim()
         .to_ascii_lowercase();
-    let meta = Some(upstream_meta(&response));
+    let meta = Some(upstream_meta(&response, server_name));
 
     if content_type == "application/json" || content_type.ends_with("+json") {
         // The text content is the upstream body itself, so integers beyond u64 (u128 hashrates) stay
@@ -324,26 +356,19 @@ fn render(
         ) {
             (Ok(value), Ok(text)) => {
                 let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
-                result.structured_content = Some(value);
+                result.structured_content = has_output_schema.then_some(value);
                 result.with_meta(meta).into()
             }
-            _ => tool_error("Bitview API returned invalid JSON"),
+            _ => tool_error("Bitview API returned invalid JSON", server_name),
         };
     }
 
     if content_type.starts_with("text/") {
         return match String::from_utf8(response.body) {
-            Ok(text) => {
-                // The structured result is the text's value: a number (`Height`) or the string.
-                let structured = has_output_schema.then(|| match from_str::<Number>(text.trim()) {
-                    Ok(number) if text_is_number => Value::Number(number),
-                    _ => Value::String(text.clone()),
-                });
-                let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
-                result.structured_content = structured;
-                result.with_meta(meta).into()
-            }
-            Err(_) => tool_error("Bitview API returned invalid UTF-8 text"),
+            Ok(text) => CallToolResult::success(vec![ContentBlock::text(text)])
+                .with_meta(meta)
+                .into(),
+            Err(_) => tool_error("Bitview API returned invalid UTF-8 text", server_name),
         };
     }
 
@@ -359,23 +384,65 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
         return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
     }
 
+    // rmcp checks only a version named in `_meta`, and drops notifications unread.
+    if request.method() == Method::POST
+        && let Some(version) = request.headers().get(HEADER_MCP_PROTOCOL_VERSION)
+        && !is_supported(version)
+    {
+        return unsupported_version(version);
+    }
+
+    // `GET /` is the page. Asked for as an event stream it's the MCP endpoint, which has no stream.
+    if request.method() == Method::GET
+        && request.uri().path() == "/"
+        && request
+            .headers()
+            .get(ACCEPT)
+            .and_then(|accept| accept.to_str().ok())
+            .is_some_and(|accept| accept.contains("text/event-stream"))
+    {
+        return StatusCode::METHOD_NOT_ALLOWED.into_response();
+    }
+
     next.run(request).await
 }
 
-fn server_meta() -> MetaObject {
+fn is_supported(version: &HeaderValue) -> bool {
+    SUPPORTED_PROTOCOL_VERSIONS
+        .iter()
+        .any(|supported| supported.as_str().as_bytes() == version.as_bytes())
+}
+
+fn unsupported_version(version: &HeaderValue) -> Response {
+    let error = McpError::new(
+        ErrorCode::UNSUPPORTED_PROTOCOL_VERSION,
+        "Unsupported protocol version",
+        Some(json!({
+            "requested": String::from_utf8_lossy(version.as_bytes()),
+            "supported": SUPPORTED_PROTOCOL_VERSIONS,
+        })),
+    );
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({ "jsonrpc": "2.0", "id": null, "error": error })),
+    )
+        .into_response()
+}
+
+fn server_meta(server_name: &str) -> MetaObject {
     let mut meta = MetaObject::new();
     meta.insert(
         "io.modelcontextprotocol/serverInfo".to_string(),
         json!({
-            "name": "bitview_mcp",
+            "name": server_name,
             "version": env!("CARGO_PKG_VERSION"),
         }),
     );
     meta
 }
 
-fn upstream_meta(response: &UpstreamResponse) -> MetaObject {
-    let mut meta = server_meta();
+fn upstream_meta(response: &UpstreamResponse, server_name: &str) -> MetaObject {
+    let mut meta = server_meta(server_name);
     meta.insert(
         CACHE_META_KEY.to_string(),
         json!({

@@ -1,7 +1,7 @@
 [project]
 name = "bitview-client"
 version = "0.13.0"
-description = "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index"
+description = "Python client for Bitview. Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"

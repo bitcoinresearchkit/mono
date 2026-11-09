@@ -4,12 +4,15 @@
 exposes the MCP-visible OpenAPI operations as generated tools and forwards
 every tool call to the configured public REST origin as a `GET` request.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 The official public endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/); it requires no authentication.
 
 The server also serves an instance landing page, `/privacy`, `/terms`,
-`/support`, and `/logo.png`. The icon is embedded in the binary and advertised
-in MCP discovery metadata.
+`/support`, `/logo.png`, and its discovery documents, an MCP Server Card at
+`/server-card` and an AI Catalog at `/.well-known/ai-catalog.json`. The icon is
+embedded in the binary and advertised in MCP discovery metadata.
 
 ## Caching model
 
@@ -56,7 +59,8 @@ bitview_mcp \
 
 The Streamable HTTP endpoint is `http://127.0.0.1:3111/` by default. If that
 port is unavailable, the server tries each port through `3211`. The server
-supports MCP protocol version `2026-07-28`.
+supports MCP protocol versions `2025-06-18` through `2026-07-28`, without
+sessions at any of them. A request naming no version is served as `2025-06-18`.
 
 Both URLs must be absolute HTTP(S) origins without a path, query, or
 credentials. The public URL is normalized with a trailing slash.

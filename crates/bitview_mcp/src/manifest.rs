@@ -69,24 +69,6 @@ impl Catalog {
 }
 
 impl Operation {
-    /// Whether a text body is a number (`Height`): its output schema, or the one it references,
-    /// is an integer or number.
-    pub fn text_is_number(&self) -> bool {
-        let Some(root) = self.tool.output_schema.as_deref() else {
-            return false;
-        };
-        let schema = root
-            .get("$ref")
-            .and_then(Value::as_str)
-            .and_then(|reference| reference.strip_prefix("#/$defs/"))
-            .and_then(|name| root.get("$defs")?.get(name)?.as_object())
-            .unwrap_or(root);
-        matches!(
-            schema.get("type").and_then(Value::as_str),
-            Some("integer" | "number")
-        )
-    }
-
     pub fn validate_arguments(&self, arguments: &Value) -> Result<(), String> {
         let root = self.tool.input_schema.as_ref();
         validate_schema(root, root, arguments, 0)

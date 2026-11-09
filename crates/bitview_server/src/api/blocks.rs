@@ -407,7 +407,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::BLOCKS)
                         .summary("Block information")
                         .description(
-                            "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+                            "Details of a block by hash: height, time, transaction count, size, weight, and difficulty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
                         )
                         .json_response::<BlockInfo>()
                         .not_modified()
@@ -555,7 +555,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     op.id("get_block_tip_height")
                         .tag(tags::BLOCKS)
                         .summary("Block tip height")
-                        .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
+                        .description("Height of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*")
                         .text_response::<Height>()
                         .not_modified()
                 },
@@ -571,7 +571,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     op.id("get_block_tip_hash")
                         .tag(tags::BLOCKS)
                         .summary("Block tip hash")
-                        .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
+                        .description("Hash of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*")
                         .text_response::<BlockHash>()
                         .not_modified()
                 },

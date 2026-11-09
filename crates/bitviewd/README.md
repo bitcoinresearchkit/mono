@@ -1,6 +1,6 @@
 # Bitview
 
-Bitview is a composable, self-hostable Bitcoin data platform built on the
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node. It is built on the
 [Bitcoin Research Kit](https://bitcoinresearchkit.org). Learn more at
 [bitview.dev](https://bitview.dev).
 

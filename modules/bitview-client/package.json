@@ -2,7 +2,7 @@
   "bugs": {
     "url": "https://github.com/bitcoinresearchkit/mono/issues"
   },
-  "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
+  "description": "JavaScript and TypeScript client for Bitview. Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.",
   "engines": {
     "node": ">=20.3"
   },

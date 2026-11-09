@@ -2,9 +2,7 @@
 
 [![Bitview](https://img.shields.io/crates/v/bitviewd.svg?label=bitviewd)](https://crates.io/crates/bitviewd)
 
-Bitview turns a Bitcoin Core node into a local Bitcoin data platform for chain
-exploration, mempool data, and on-chain research. The official free hosted
-instance is [bitview.space](https://bitview.space).
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
 
 - **Bitcoin Research Kit (BRK):** reusable Rust primitives for reading Bitcoin
   Core data, RPC, mempool tracking, storage, domain types, and the on-chain

@@ -5882,7 +5882,7 @@ class BitviewClient(BitviewClientBase):
     def search_series(self, q: str, limit: Optional[int] = None) -> List[SeriesName]:
         """Search series.
 
-        Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+        Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/search`"""
         params: List[Tuple[str, Any]] = []
@@ -5903,7 +5903,7 @@ class BitviewClient(BitviewClientBase):
     def get_series(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
         """Get series data.
 
-        Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
+        History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 
         Endpoint: `GET /api/series/{series}/{index}`"""
         params: List[Tuple[str, Any]] = []
@@ -5937,7 +5937,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_latest(self, series: SeriesName, index: Index) -> Any:
         """Get latest series value.
 
-        Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).
+        Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.
 
         Endpoint: `GET /api/series/{series}/{index}/latest`"""
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/latest')
@@ -5986,7 +5986,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd_latest(self, cohort: UrpdCohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
-        URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+        URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
         Endpoint: `GET /api/urpd/{cohort}`"""
         params: List[Tuple[str, Any]] = []
@@ -5999,7 +5999,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
-        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+        URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
         Endpoint: `GET /api/urpd/{cohort}/{point}`"""
         params: List[Tuple[str, Any]] = []
@@ -6142,6 +6142,8 @@ class BitviewClient(BitviewClientBase):
     def get_block(self, hash: BlockHash) -> BlockInfo:
         """Block information.
 
+        Details of a block by hash: height, time, transaction count, size, weight, and difficulty.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
 
         Endpoint: `GET /api/block/{hash}`"""
@@ -6210,6 +6212,8 @@ class BitviewClient(BitviewClientBase):
     def get_block_tip_height(self) -> Height:
         """Block tip height.
 
+        Height of the latest block.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
 
         Endpoint: `GET /api/blocks/tip/height`"""
@@ -6217,6 +6221,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_block_tip_hash(self) -> BlockHash:
         """Block tip hash.
+
+        Hash of the latest block.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
 
@@ -6305,6 +6311,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
+
+        Every known mining pool.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
@@ -6403,6 +6411,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_difficulty_adjustments(self) -> List[DifficultyAdjustmentEntry]:
         """Difficulty adjustments (all time).
+
+        Every difficulty adjustment in the chain's history.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
@@ -6512,6 +6522,8 @@ class BitviewClient(BitviewClientBase):
     def get_mempool(self) -> MempoolInfo:
         """Mempool statistics.
 
+        Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
 
         Endpoint: `GET /api/mempool`"""
@@ -6604,6 +6616,8 @@ class BitviewClient(BitviewClientBase):
     def get_tx(self, txid: Txid) -> Transaction:
         """Transaction information.
 
+        Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
 
         Endpoint: `GET /api/tx/{txid}`"""
@@ -6631,6 +6645,8 @@ class BitviewClient(BitviewClientBase):
 
     def get_tx_merkle_proof(self, txid: Txid) -> MerkleProof:
         """Transaction merkle proof.
+
+        Merkle inclusion proof of a confirmed transaction in its block.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
 

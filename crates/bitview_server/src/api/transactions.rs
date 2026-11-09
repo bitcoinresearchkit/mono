@@ -108,7 +108,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::TRANSACTIONS)
                 .summary("Transaction information")
                 .description(
-                    "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
+                    "Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
                 )
                 .json_response::<Transaction>()
                 .not_modified()
@@ -182,7 +182,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .id("get_tx_merkle_proof")
                 .tag(tags::TRANSACTIONS)
                 .summary("Transaction merkle proof")
-                .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*")
+                .description("Merkle inclusion proof of a confirmed transaction in its block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*")
                 .json_response::<MerkleProof>()
                 .not_modified()
                 .not_found(),

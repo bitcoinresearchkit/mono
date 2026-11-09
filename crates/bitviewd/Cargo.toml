@@ -1,6 +1,6 @@
 [package]
 name = "bitviewd"
-description = "The self-hostable Bitview Bitcoin data daemon"
+description = "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

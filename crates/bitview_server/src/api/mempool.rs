@@ -28,7 +28,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_mempool")
                     .tag(tags::MEMPOOL)
                     .summary("Mempool statistics")
-                    .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
+                    .description("Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
                     .json_response::<MempoolInfo>()
                     .not_modified()
             },

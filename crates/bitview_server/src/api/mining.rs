@@ -61,7 +61,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_pools")
                     .tag(tags::MINING)
                     .summary("List all mining pools")
-                    .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*")
+                    .description("Every known mining pool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*")
                     .json_response::<Vec<PoolInfo>>()
                     .not_modified()
             },
@@ -234,7 +234,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_difficulty_adjustments")
                     .tag(tags::MINING)
                     .summary("Difficulty adjustments (all time)")
-                    .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*")
+                    .description("Every difficulty adjustment in the chain's history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*")
                     .json_response::<Vec<DifficultyAdjustmentEntry>>()
                     .not_modified()
             },

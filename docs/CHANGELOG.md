@@ -10,6 +10,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- MCP: a tool that can answer with anything but a JSON object no longer declares an output schema or returns
+  `structuredContent`; it answers as text. Before protocol `2026-07-28` an output schema must be an object, and strict
+  clients rejected the whole tool list
 - The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
   a CDN in front to compress, and an instance reached directly sends them as they are. `Accept-Encoding` is no longer
   read, so a request refusing `identity` gets the response as it is (was: 406 when it refused every encoding)
@@ -57,6 +60,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- MCP: serves protocol versions `2025-06-18` and `2025-11-25` as well as `2026-07-28`, statelessly at each. Other
+  versions are refused, and a request naming none is served as `2025-06-18`
+- MCP: an MCP Server Card at `/server-card`, an AI Catalog at `/.well-known/ai-catalog.json`, and per-client setup on the
+  MCP page
+- MCP: tool descriptions written for a model choosing one; the server name is now its reverse-DNS name
+- Search engines are told which pages a deploy changed (IndexNow)
 - `GET /api/mempool-blocks/{index}` and its diffs serve every projected block with its transactions, not only
   block 0: blocks 1+ are packed as Core's block assembler packs, from base fees within its default budgets. The
   last one answers 404 while it holds more than a block (what's left of a busy mempool, mempool.space's catch-all),

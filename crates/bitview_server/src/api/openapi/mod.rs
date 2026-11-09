@@ -152,7 +152,9 @@ pub fn create_openapi() -> OpenApi {
     let info = Info {
         title: "Bitview".to_string(),
         description: Some(
-            r#"API for querying Bitcoin blockchain data, mempool state, and on-chain series.
+            r#"Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.
+
+API for querying Bitcoin blockchain data, mempool state, and on-chain series.
 
 ### Features
 

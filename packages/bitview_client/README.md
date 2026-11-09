@@ -2,6 +2,8 @@
 
 Zero-dependency Python client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 Requires Python 3.9+.
 
 [PyPI](https://pypi.org/project/bitview-client/) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/packages/bitview_client/DOCS.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/packages/bitview_client)

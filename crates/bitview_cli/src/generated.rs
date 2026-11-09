@@ -224,7 +224,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}",
         summary: "Block information",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+        description: "Details of a block by hash: height, time, transaction count, size, weight, and difficulty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -367,7 +367,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/tip/hash",
         summary: "Block tip hash",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
+        description: "Hash of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -379,7 +379,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/blocks/tip/height",
         summary: "Block tip height",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
+        description: "Height of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -533,7 +533,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/difficulty-adjustments",
         summary: "Difficulty adjustments (all time)",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
+        description: "Every difficulty adjustment in the chain's history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -658,7 +658,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/mempool",
         summary: "Mempool statistics",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
+        description: "Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -849,7 +849,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/pools",
         summary: "List all mining pools",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
+        description: "Every known mining pool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -947,7 +947,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}",
         summary: "Get series data",
-        description: "Rows selected by a range of positions, dates or timestamps, as JSON or CSV.",
+        description: "History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
@@ -1026,7 +1026,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/{series}/{index}/latest",
         summary: "Get latest series value",
-        description: "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).",
+        description: "Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.",
         path_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesName", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
@@ -1105,7 +1105,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}",
         summary: "Transaction information",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
+        description: "Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1131,7 +1131,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/merkle-proof",
         summary: "Transaction merkle proof",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
+        description: "Merkle inclusion proof of a confirmed transaction in its block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1236,7 +1236,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
@@ -1252,7 +1252,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}",
         summary: "Latest URPD",
-        description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
+        description: "URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
         ],
@@ -1379,7 +1379,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/search",
         summary: "Search series",
-        description: "Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
+        description: "Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.",
         path_parameters: &[
         ],
         query_parameters: &[

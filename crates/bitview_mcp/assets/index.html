@@ -23,6 +23,18 @@
     <meta name="twitter:card" content="summary" />
     <link rel="icon" href="{{PUBLIC_URL}}{{LOGO_PATH}}" type="image/png" sizes="512x512" />
     <title>{{PAGE_TITLE}}</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebAPI",
+        "name": "{{DISPLAY_NAME}} MCP",
+        "url": "{{PUBLIC_URL}}",
+        "description": "Free, read-only MCP server for live and historical Bitcoin on-chain, mempool, mining and price data. No API key.",
+        "documentation": "{{API_URL}}/api",
+        "isAccessibleForFree": true,
+        "provider": { "@type": "Organization", "name": "{{DISPLAY_NAME}}", "url": "https://bitview.space/" }
+      }
+    </script>
     <style>
       @font-face {
         font-family: Lilex;
@@ -265,46 +277,13 @@
         color: var(--gray);
       }
 
-      .steps,
+      .clients,
       .capabilities,
       .prompts,
       .resources {
         margin-top: 4rem;
         padding: 0;
         list-style: none;
-      }
-
-      .steps {
-        counter-reset: step;
-      }
-
-      .steps li {
-        display: grid;
-        grid-template-columns: 3rem minmax(10rem, 0.8fr) minmax(0, 1.2fr);
-        gap: 1rem;
-        padding-block: 1.25rem;
-        border-top: 1px solid var(--line);
-        counter-increment: step;
-      }
-
-      .steps li:last-child {
-        border-bottom: 1px solid var(--line);
-      }
-
-      .steps li::before {
-        color: var(--orange);
-        content: "0" counter(step);
-        font-size: 0.75rem;
-      }
-
-      .steps strong {
-        font-size: 0.875rem;
-        font-weight: 500;
-      }
-
-      .steps span {
-        color: var(--gray);
-        font-size: 0.875rem;
       }
 
       .specs {
@@ -330,10 +309,40 @@
         font-size: 0.875rem;
       }
 
-      .compatibility {
+      .clients li {
+        display: grid;
+        grid-template-columns: minmax(8rem, 0.5fr) minmax(0, 1.5fr);
+        gap: 1rem;
+        padding-block: 1.25rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .clients-note {
         margin-top: 2rem;
         color: var(--gray);
         font-size: 0.75rem;
+      }
+
+      .clients li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .clients strong {
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .clients span {
+        color: var(--gray);
+        font-size: 0.875rem;
+      }
+
+      .clients code {
+        min-width: 0;
+        color: var(--white);
+        font: 450 0.8125rem / 1.5 var(--mono);
+        overflow-wrap: anywhere;
+        user-select: all;
       }
 
       .capabilities {
@@ -517,12 +526,9 @@
           grid-template-columns: 1fr;
         }
 
-        .steps li {
-          grid-template-columns: 2.5rem minmax(0, 1fr);
-        }
-
-        .steps span {
-          grid-column: 2;
+        .clients li {
+          grid-template-columns: 1fr;
+          gap: 0.35rem;
         }
 
         .boundary {
@@ -611,22 +617,48 @@
         <div class="section-body">
           <h2 id="connect-title">Give your AI one URL.</h2>
           <p class="section-intro">
-            Add {{DISPLAY_NAME}} as a remote MCP server in any compatible client.
+            Paste it into your assistant's connector settings. No account, no
+            key, no plugin to install.
           </p>
-          <ol class="steps">
+          <ul class="clients">
             <li>
-              <strong>Add a remote server</strong>
-              <span>Open the MCP or connector settings in your client.</span>
+              <strong>Claude</strong>
+              <span>Customize, Connectors, Add custom connector. Paste the URL and choose No sign-in.</span>
             </li>
             <li>
-              <strong>Use the root endpoint</strong>
-              <span><code>{{PUBLIC_URL}}</code></span>
+              <strong>ChatGPT</strong>
+              <span><a href="https://chatgpt.com/plugins">chatgpt.com/plugins</a>, the plus button, Add custom MCP server. Paste the URL and choose no authentication. Your plan or workspace has to allow custom servers.</span>
             </li>
             <li>
-              <strong>Select no authentication</strong>
-              <span>The public instance requires no credentials.</span>
+              <strong>Claude Code</strong>
+              <code>claude mcp add --transport http bitview {{PUBLIC_URL}}</code>
             </li>
-          </ol>
+            <li>
+              <strong>Codex</strong>
+              <code>codex mcp add bitview --url {{PUBLIC_URL}}</code>
+            </li>
+            <li>
+              <strong>Gemini CLI</strong>
+              <code>gemini mcp add --scope user --transport http bitview {{PUBLIC_URL}}</code>
+            </li>
+            <li>
+              <strong>Cursor</strong>
+              <span><a href="cursor://anysphere.cursor-deeplink/mcp/install?name=bitview&amp;config={{CURSOR_CONFIG}}">Add to Cursor</a></span>
+            </li>
+            <li>
+              <strong>Qwen Code</strong>
+              <code>qwen mcp add --transport http bitview {{PUBLIC_URL}}</code>
+            </li>
+            <li>
+              <strong>Anything else</strong>
+              <span>Add a remote MCP server with this URL, transport Streamable HTTP, and no authentication.</span>
+            </li>
+          </ul>
+          <p class="clients-note">
+            Tested with Claude Code, Codex, Cursor's CLI, Gemini CLI, OpenCode and Qwen Code. Claude on the web, ChatGPT and other clients on MCP 2025-06-18 or
+            newer should work but haven't been tested. If one doesn't, write to
+            <a href="mailto:support@bitview.space">support@bitview.space</a>.
+          </p>
           <dl class="specs">
             <div>
               <dt>Transport</dt>
@@ -634,17 +666,13 @@
             </div>
             <div>
               <dt>Protocol</dt>
-              <dd>MCP 2026-07-28</dd>
+              <dd>MCP 2025-06-18 to 2026-07-28</dd>
             </div>
             <div>
               <dt>Sessions</dt>
               <dd>None</dd>
             </div>
           </dl>
-          <p class="compatibility">
-            Requires modern stateless request metadata. Legacy MCP handshakes
-            are not supported.
-          </p>
         </div>
         </section>
 
@@ -761,8 +789,8 @@
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
-            Bitview can be self-hosted and provides generated Rust, JavaScript,
-            and Python clients.
+            Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.
+            Bitview provides generated Rust, JavaScript, and Python clients.
           </p>
           <nav class="resources" aria-label="Developer resources">
             <a href="{{API_URL}}/api">API documentation</a>

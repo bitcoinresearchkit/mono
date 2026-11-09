@@ -2499,7 +2499,7 @@ impl BitviewClient {
 
     /// Search series
     ///
-    /// Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+    /// Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
     ///
     /// Endpoint: `GET /api/series/search`
     pub fn search_series(&self, q: &str, limit: Option<usize>) -> Result<Vec<SeriesName>> {
@@ -2529,7 +2529,7 @@ impl BitviewClient {
 
     /// Get series data
     ///
-    /// Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
+    /// History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
     ///
     /// Endpoint: `GET /api/series/{series}/{index}`
     pub fn get_series(
@@ -2619,7 +2619,7 @@ impl BitviewClient {
 
     /// Get latest series value
     ///
-    /// Returns the single most recent value for a series, unwrapped (not inside a SeriesData object).
+    /// Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object.
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/latest`
     pub fn get_series_latest(&self, series: SeriesName, index: Index) -> Result<serde_json::Value> {
@@ -2707,7 +2707,7 @@ impl BitviewClient {
 
     /// Latest URPD
     ///
-    /// URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+    /// URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}`
     pub fn get_urpd_latest(
@@ -2734,7 +2734,7 @@ impl BitviewClient {
 
     /// URPD at block height or date
     ///
-    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+    /// URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd(
@@ -2991,6 +2991,8 @@ impl BitviewClient {
 
     /// Block information
     ///
+    /// Details of a block by hash: height, time, transaction count, size, weight, and difficulty.
+    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
     ///
     /// Endpoint: `GET /api/block/{hash}`
@@ -3077,6 +3079,8 @@ impl BitviewClient {
 
     /// Block tip height
     ///
+    /// Height of the latest block.
+    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
     ///
     /// Endpoint: `GET /api/blocks/tip/height`
@@ -3085,6 +3089,8 @@ impl BitviewClient {
     }
 
     /// Block tip hash
+    ///
+    /// Hash of the latest block.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
     ///
@@ -3202,6 +3208,8 @@ impl BitviewClient {
     }
 
     /// List all mining pools
+    ///
+    /// Every known mining pool.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
     ///
@@ -3338,6 +3346,8 @@ impl BitviewClient {
     }
 
     /// Difficulty adjustments (all time)
+    ///
+    /// Every difficulty adjustment in the chain's history.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
     ///
@@ -3486,6 +3496,8 @@ impl BitviewClient {
 
     /// Mempool statistics
     ///
+    /// Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram.
+    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
     ///
     /// Endpoint: `GET /api/mempool`
@@ -3601,6 +3613,8 @@ impl BitviewClient {
 
     /// Transaction information
     ///
+    /// Full details of a transaction by txid: inputs, outputs, fee, size, and confirmation status.
+    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
     ///
     /// Endpoint: `GET /api/tx/{txid}`
@@ -3636,6 +3650,8 @@ impl BitviewClient {
     }
 
     /// Transaction merkle proof
+    ///
+    /// Merkle inclusion proof of a confirmed transaction in its block.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
     ///

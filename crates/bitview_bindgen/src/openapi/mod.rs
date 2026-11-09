@@ -155,15 +155,6 @@ fn extract_endpoint(
     let json_response_schema = content
         .and_then(|content| content.get("application/json")?.get("schema"))
         .cloned();
-    // A text body's schema (`BlockHash`, `Height`), for the MCP output schemas of text tools.
-    let text_response_schema = content
-        .and_then(|content| {
-            content
-                .get("text/plain; charset=utf-8")
-                .or_else(|| content.get("text/plain"))?
-                .get("schema")
-        })
-        .cloned();
     let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
 
@@ -178,7 +169,6 @@ fn extract_endpoint(
         request_body,
         response_kind,
         json_response_schema,
-        text_response_schema,
         deprecated: flag(operation, "deprecated"),
         mcp_ignored: operation.get("x-mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,

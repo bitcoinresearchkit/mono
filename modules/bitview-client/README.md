@@ -2,6 +2,8 @@
 
 Zero-dependency JavaScript/TypeScript client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 [npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client)
 
 AI clients can use the same API through the official stateless, read-only MCP

@@ -289,7 +289,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .id("search_series")
                 .tag(tags::SERIES)
                 .summary("Search series")
-                .description(&format!("Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
+                .description(&format!("Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                 .json_response::<Vec<SeriesName>>()
                 .not_modified(),
         ),
@@ -333,7 +333,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::SERIES)
                 .summary("Get series data")
                 .description(
-                    "Rows selected by a range of positions, dates or timestamps, as JSON or CSV."
+                    "History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV."
                 )
                 .json_response::<SeriesData>()
                 .csv_response()
@@ -384,7 +384,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::SERIES)
                 .summary("Get latest series value")
                 .description(
-                    "Returns the single most recent value for a series, unwrapped (not inside a SeriesData object)."
+                    "Current value of an on-chain metric, by the series id from `search_series`. Returns the value alone, not inside a SeriesData object."
                 )
                 .json_response::<Value>()
                 .not_modified()

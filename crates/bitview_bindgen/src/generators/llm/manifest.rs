@@ -152,51 +152,68 @@ fn operation_from_endpoint<'a>(
     })
 }
 
+/// What a model reads to choose a tool: the domain first, since a tool list can mix servers, then
+/// the operation's own description. A paragraph that is only a link to another API's docs stays in
+/// the OpenAPI document and out of here.
 fn tool_description(endpoint: &Endpoint) -> Option<String> {
     let description = endpoint
         .description
         .as_deref()
-        .or(endpoint.summary.as_deref())?;
-    Some(format!(
-        "{description}\n\nREST operation: `{} {}`.",
-        endpoint.method, endpoint.path
-    ))
+        .map(without_link_paragraphs)
+        .filter(|description| !description.is_empty())
+        .or_else(|| endpoint.summary.clone())?;
+    Some(format!("Bitcoin: {description}"))
 }
 
-fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Option<Value>> {
-    let Some(json_schema) = endpoint.json_response_schema.clone() else {
-        // A text body is the value of its schema's type: a string (`BlockHash`), or a number
-        // (`Height`) the bridge parses.
-        return endpoint
-            .text_response_schema
-            .clone()
-            .map(|schema| {
-                let mut schema = standalone_schema(schema, schemas)?;
-                strip_output_annotations(&mut schema);
-                Ok(schema)
-            })
-            .transpose();
-    };
-
-    // Series endpoints can return either JSON or CSV depending on `format`.
-    // Both successful representations must satisfy the advertised contract.
-    let root = if endpoint.supports_csv {
-        json!({
-            "anyOf": [
-                json_schema,
-                {
-                    "type": "string",
-                    "contentMediaType": "text/csv"
-                }
-            ]
+fn without_link_paragraphs(description: &str) -> String {
+    description
+        .split("\n\n")
+        .filter(|paragraph| {
+            let paragraph = paragraph.trim();
+            !(paragraph.starts_with("*[") && paragraph.ends_with(")*"))
         })
-    } else {
-        json_schema
-    };
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
 
-    let mut schema = standalone_schema(root, schemas)?;
+/// MCP before 2026-07-28 requires an output schema's root to be `type: "object"`, and strict clients
+/// reject the whole tool list over one that isn't. So only a tool that always answers with a JSON
+/// object declares one; the others answer as text.
+fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Option<Value>> {
+    let json_schema = endpoint
+        .json_response_schema
+        .clone()
+        .filter(|_| !endpoint.supports_csv);
+    let Some(json_schema) = json_schema else {
+        return Ok(None);
+    };
+    let mut schema = standalone_schema(json_schema, schemas)?;
+    inline_root_reference(&mut schema);
+    if schema.get("type").and_then(Value::as_str) != Some("object") {
+        return Ok(None);
+    }
     strip_output_annotations(&mut schema);
     Ok(Some(schema))
+}
+
+/// Replaces a root `$ref` with the definition it names, so the root states its own type.
+fn inline_root_reference(schema: &mut Value) {
+    let Some(root) = schema.as_object_mut() else {
+        return;
+    };
+    let target = root
+        .get("$ref")
+        .and_then(Value::as_str)
+        .and_then(|reference| reference.strip_prefix("#/$defs/"))
+        .and_then(|name| root.get("$defs")?.get(name)?.as_object())
+        .cloned();
+    let Some(target) = target else {
+        return;
+    };
+    root.remove("$ref");
+    for (key, value) in target {
+        root.entry(key).or_insert(value);
+    }
 }
 
 /// Output schemas are validation contracts, not a second documentation

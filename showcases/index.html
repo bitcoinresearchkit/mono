@@ -8,12 +8,12 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
     <title>Bitview</title>
-    <meta name="description" content="Bitcoin's chain, read and measured: live apps, thousands of ready-made charts, and every series as data through an open API, on this server or your own." />
+    <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
     <!-- (Its share card, the billboard's first picture with Bitview's name: made by showcases/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data." />
+    <meta property="og:description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
     <link rel="canonical" href="https://bitview.space/" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/home/og.jpg" />
@@ -27,7 +27,7 @@
         "@context": "https://schema.org",
         "@graph": [
           { "@type": "WebSite", "name": "Bitview", "url": "https://bitview.space/" },
-          { "@type": "Organization", "name": "Bitview", "url": "https://bitview.space/", "logo": "https://bitview.space/assets/favicon/web-app-manifest-512x512.png", "sameAs": ["https://github.com/bitcoinresearchkit/mono"] }
+          { "@type": "Organization", "name": "Bitview", "description": "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.", "url": "https://bitview.space/", "logo": "https://bitview.space/assets/favicon/web-app-manifest-512x512.png", "sameAs": ["https://github.com/bitcoinresearchkit/mono"] }
         ]
       }
     </script>
@@ -2342,7 +2342,7 @@
         { id: "logs", name: "Logs", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
         { id: "benchmarks", name: "Benchmarks", line: "Every full sync, measured, run by run.", href: "/benchmarks/", made: "bitviewd's recorded syncs, on GitHub" },
         { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
-        { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
+        { id: "mcp", name: "For assistants", line: "Bitview for Claude, Codex, Cursor, Gemini CLI and other MCP clients.", about: "Add Bitview's MCP server to Claude, Codex, Cursor, Gemini CLI or another MCP client, or hand one this server's llms.txt.", href: "https://mcp.bitview.space/", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
       ]);
       /* from the apps */
       const FROM_APPS = {
@@ -2357,7 +2357,7 @@
         "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
         "/catalog/": { "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/changes/": { "about": "What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." },
-        "/dev/": { "about": "Bitview is an open-source Bitcoin data server that runs beside Bitcoin Core: about 1½ hours to a full index on a 16 GB Mac mini, 21,154 series, Studio, an HTTP API, generated clients and MCP." },
+        "/dev/": { "about": "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." },
         "/logs/": { "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
         "/benchmarks/": { "about": "bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." },
         "/brk/": { "about": "Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data: RPC, block files, mempool, prices, types and storage." },
@@ -2574,7 +2574,7 @@
         logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         benchmarks: () => el("span", { className: "say" }, el("code", { className: "big" }, "block 0", el("b", {}, " → "), "tip"), el("span", { className: "small" }, "Time · memory · disk · CPU")),
         brk: () => el("span", { className: "say crates" }, ...["rpc", "reader", "mempool", "oracle", "types", "store"].map((n) => el("code", {}, el("i", {}, "brk_"), n))),
-        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · ChatGPT · any MCP client")),
+        mcp: () => el("span", { className: "say" }, el("code", { className: "big" }, "mcp.bitview.space"), el("span", { className: "small" }, "Claude · Codex · Cursor · Gemini CLI")),
       };
       /** A developer's card: its name, its statement; as its row draws it, wherever it's shown. */
       function card(/** @type {Title} */ t) {

@@ -4,6 +4,8 @@ Generated command-line client for the [Bitview](https://bitview.space) API.
 Every non-deprecated OpenAPI operation becomes a command derived from the
 server specification by `bitview_bindgen`.
 
+Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at [bitview.space](https://bitview.space) or beside your own Bitcoin Core node.
+
 ## Run
 
 Install it from the BRK workspace:

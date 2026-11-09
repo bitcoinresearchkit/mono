@@ -1,0 +1,10 @@
+{
+  "specVersion": "1.0",
+  "entries": [
+    {
+      "identifier": "urn:air:bitview.space:mcp:bitview",
+      "type": "application/mcp-server-card+json",
+      "url": "https://mcp.bitview.space/server-card"
+    }
+  ]
+}

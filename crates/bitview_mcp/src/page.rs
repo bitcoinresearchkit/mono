@@ -7,11 +7,12 @@ use axum::{
     body::Bytes,
     http::{
         HeaderMap, HeaderValue,
-        header::{CACHE_CONTROL, ETAG},
+        header::{CACHE_CONTROL, CONTENT_TYPE, ETAG},
     },
-    response::{Html, IntoResponse, Response},
+    response::IntoResponse,
     routing::{MethodRouter, get},
 };
+use base64::{Engine as _, prelude::BASE64_STANDARD};
 
 const HTML: &str = include_str!("../assets/index.html");
 
@@ -24,6 +25,7 @@ pub struct Pages {
 
 impl Pages {
     pub fn render(display_name: &str, public_url: &str, api_url: &str) -> Self {
+        let cursor_config = BASE64_STANDARD.encode(format!(r#"{{"url":"{public_url}"}}"#));
         let render = |page: &str, title: &str, description: &str| {
             let canonical_url = match page {
                 "home" => public_url.to_owned(),
@@ -38,6 +40,7 @@ impl Pages {
                 ("API_URL", &escape_html(api_url)),
                 ("DISPLAY_NAME", &escape_html(display_name)),
                 ("LOGO_PATH", &escape_html(crate::logo::PATH)),
+                ("CURSOR_CONFIG", &escape_html(&cursor_config)),
             ]))
         };
         Self {
@@ -67,38 +70,49 @@ impl Pages {
     }
 }
 
-/// Serves a rendered page under a content ETag: a second of reuse, then a cheap `304`.
+/// Serves a rendered page: a second of reuse, then a cheap `304`.
 pub fn route(html: Bytes) -> MethodRouter {
+    document(
+        html,
+        "text/html; charset=utf-8",
+        "public, max-age=1, must-revalidate",
+        &[(
+            "content-security-policy",
+            "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        )],
+    )
+}
+
+/// Serves a static document under a content ETag, with the given caching and extra headers.
+pub fn document(
+    body: Bytes,
+    content_type: &'static str,
+    cache_control: &'static str,
+    extra_headers: &'static [(&'static str, &'static str)],
+) -> MethodRouter {
     let mut hasher = DefaultHasher::new();
-    html.hash(&mut hasher);
+    body.hash(&mut hasher);
     let tag = format!("{:x}", hasher.finish());
     let etag =
         HeaderValue::try_from(format!("\"{tag}\"")).expect("a hex ETag is a valid header value");
-    get(move |headers: HeaderMap| future::ready(response(html.clone(), &tag, &etag, &headers)))
-}
-
-fn response(html: Bytes, tag: &str, etag: &HeaderValue, request: &HeaderMap) -> Response {
-    let mut response = if bitview_http::if_none_match(request, Some(tag.as_bytes())) {
-        bitview_http::not_modified()
-    } else {
-        Html(html).into_response()
-    };
-    response.headers_mut().insert(ETAG, etag.clone());
-    response.headers_mut().insert(
-        CACHE_CONTROL,
-        HeaderValue::from_static("public, max-age=1, must-revalidate"),
-    );
-    response.headers_mut().insert(
-        "content-security-policy",
-        HeaderValue::from_static(
-            "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-        ),
-    );
-    response.headers_mut().insert(
-        "x-content-type-options",
-        HeaderValue::from_static("nosniff"),
-    );
-    response
+    get(move |request: HeaderMap| {
+        let mut response = if bitview_http::if_none_match(&request, Some(tag.as_bytes())) {
+            bitview_http::not_modified()
+        } else {
+            ([(CONTENT_TYPE, content_type)], body.clone()).into_response()
+        };
+        let headers = response.headers_mut();
+        headers.insert(ETAG, etag.clone());
+        headers.insert(CACHE_CONTROL, HeaderValue::from_static(cache_control));
+        headers.insert(
+            "x-content-type-options",
+            HeaderValue::from_static("nosniff"),
+        );
+        for &(name, value) in extra_headers {
+            headers.insert(name, HeaderValue::from_static(value));
+        }
+        future::ready(response)
+    })
 }
 
 fn escape_html(input: &str) -> String {

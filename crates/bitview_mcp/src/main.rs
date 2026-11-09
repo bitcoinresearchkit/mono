@@ -16,6 +16,7 @@ use tracing::info;
 
 mod arguments;
 mod config;
+mod discovery;
 mod logo;
 mod manifest;
 mod page;
