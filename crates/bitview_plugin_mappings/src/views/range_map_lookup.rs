@@ -5,7 +5,7 @@ use rangeindex::SharedRangeMap;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, Formattable, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
+    AnyExportableVec, AnyStoredVec, AnyVec, Formattable, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
     TypedVec, VecIndex, VecValue, Version,
 };
 
@@ -132,6 +132,14 @@ where
 {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        iter::empty()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        iter::empty()
     }
 
     fn to_tree_node(&self) -> TreeNode {

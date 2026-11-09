@@ -1,7 +1,7 @@
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::features::{CountVecs, TransactionCounts};
 
@@ -42,15 +42,5 @@ impl VersionCountVecs {
         ] {
             vec.block.debug_checked_push(height, count.into());
         }
-    }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &*self.v1.block as &dyn AnyStoredVec,
-            &*self.v2.block,
-            &*self.v3.block,
-            &*self.other.block,
-        ]
-        .into_iter()
     }
 }

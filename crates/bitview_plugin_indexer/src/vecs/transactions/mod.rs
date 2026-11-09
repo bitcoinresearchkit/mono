@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
-use vecdb::{AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 pub mod features;
 pub mod metadata;
@@ -136,23 +136,5 @@ impl TransactionsVecs {
             versions,
             position,
         })
-    }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &self.first_tx_index as &dyn AnyStoredVec,
-            &self.txid,
-            &self.tx_version,
-            &self.raw_locktime,
-            &*self.weight,
-            &*self.total_size,
-            &*self.total_sigop_cost,
-            &self.first_txin_index,
-            &*self.first_txout_index,
-            &self.position,
-        ]
-        .into_iter()
-        .chain(self.features.iter_any())
-        .chain(self.versions.iter_any())
     }
 }

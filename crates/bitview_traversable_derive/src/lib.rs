@@ -529,6 +529,10 @@ fn gen_traversable(
                     self.0.iter_any_visible()
                 }
 
+                fn iter_any_stored(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyStoredVec> {
+                    self.0.iter_any_stored()
+                }
+
                 fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
                     self.0.iter_any_stored_mut()
                 }
@@ -556,6 +560,11 @@ fn gen_traversable(
     let visible_iter = collect_iters(&visible, "iter_any_visible", &exportable_vec);
     let stored = collect_iters(
         &traversed,
+        "iter_any_stored",
+        &quote! { &dyn ::bitview_traversable::AnyStoredVec },
+    );
+    let stored_mut = collect_iters(
+        &traversed,
         "iter_any_stored_mut",
         &quote! { &mut dyn ::bitview_traversable::AnyStoredVec },
     );
@@ -575,8 +584,12 @@ fn gen_traversable(
                 #visible_iter
             }
 
-            fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
+            fn iter_any_stored(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyStoredVec> {
                 #stored
+            }
+
+            fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
+                #stored_mut
             }
 
             #description_impl

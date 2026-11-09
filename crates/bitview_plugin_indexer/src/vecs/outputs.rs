@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats, Version};
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, StorageMode,
+    Budgeted, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, StorageMode,
 };
 
 #[derive(Traversable)]
@@ -41,15 +41,5 @@ impl OutputsVecs {
             output_type,
             type_index,
         })
-    }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &self.first_txout_index as &dyn AnyStoredVec,
-            &self.value,
-            &self.output_type,
-            &self.type_index,
-        ]
-        .into_iter()
     }
 }

@@ -4,7 +4,7 @@ use bitview_primitives::{
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{OutputType, SigOps32, Version};
-use vecdb::{AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 use crate::readers::ScriptReaders;
 
@@ -60,21 +60,6 @@ impl ScriptsVecs {
             },
         })
     }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &self.empty_script.first_index as &dyn AnyStoredVec,
-            &self.p2ms.first_index,
-            &self.unknown_script.first_index,
-            &self.empty_script.to_tx_index,
-            &self.p2ms.to_tx_index,
-            &*self.p2ms.legacy_sigop_cost,
-            &self.unknown_script.to_tx_index,
-            &*self.unknown_script.legacy_sigop_cost,
-        ]
-        .into_iter()
-    }
-
     pub fn legacy_sigop_cost(
         &self,
         output_type: OutputType,

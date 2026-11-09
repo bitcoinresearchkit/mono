@@ -66,6 +66,10 @@ impl Traversable for BySlug {
         self.0.iter_any_visible()
     }
 
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        self.0.iter_any_stored()
+    }
+
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.0.iter_any_stored_mut()
     }

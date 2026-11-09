@@ -13,7 +13,7 @@ use bitview_primitives::Boolean;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, StorageMode, WritableVec};
+use vecdb::{Database, ImportableVec, PcoVec, Rw, StorageMode, WritableVec};
 
 macro_rules! define_vecs {
     (
@@ -69,17 +69,6 @@ macro_rules! define_vecs {
                 $(self.$feature.block.debug_checked_push(height, counts.$feature.into());)+
                 self.one_input.block.debug_checked_push(height, counts.one_input.into());
                 self.one_output.block.debug_checked_push(height, counts.one_output.into());
-            }
-
-            pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-                [$(&self.$feature,)+]
-                    .into_iter()
-                    .flat_map(|feature| [&feature.flag as &dyn AnyStoredVec, &*feature.block])
-                    .chain([
-                        $(&self.$flag_vector as &dyn AnyStoredVec,)+
-                        &*self.one_input.block,
-                        &*self.one_output.block,
-                    ])
             }
         }
     };

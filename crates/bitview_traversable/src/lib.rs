@@ -99,11 +99,12 @@ pub trait Traversable {
         self.iter_any_exportable()
     }
 
-    /// Every writable stored vec of derived and leaf impls, hidden ones included; lazy views yield
-    /// nothing. Skipped and write-only fields are left out; manual impls must forward it.
-    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        iter::empty()
-    }
+    /// Every stored vec, hidden ones included; lazy views yield nothing. Skipped and write-only
+    /// fields are left out. Required: a manual impl says what it stores, forwarding or empty.
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec>;
+
+    /// [`Self::iter_any_stored`], for writes.
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec>;
 
     /// Collects public series description fragments from documented field paths.
     fn collect_series_descriptions<'a>(
@@ -167,7 +168,7 @@ where
     TreeNode::Leaf(leaf)
 }
 
-/// A vec published as one series leaf. `stored` vecs also yield themselves for writes.
+/// A vec published as one series leaf. `stored` vecs also yield themselves from the stored walks.
 #[macro_export]
 macro_rules! leaf {
     (@ {$($stored:tt)*} [$($g:tt)*] $ty:ty $(where $($bounds:tt)+)?) => {
@@ -190,6 +191,10 @@ macro_rules! leaf {
     };
     (stored $($rest:tt)+) => {
         $crate::leaf!(@ {
+            fn iter_any_stored(&self) -> impl Iterator<Item = &dyn $crate::AnyStoredVec> {
+                ::std::iter::once(self as &dyn $crate::AnyStoredVec)
+            }
+
             fn iter_any_stored_mut(
                 &mut self,
             ) -> impl Iterator<Item = &mut dyn $crate::AnyStoredVec> {
@@ -198,7 +203,17 @@ macro_rules! leaf {
         } $($rest)+);
     };
     ($($rest:tt)+) => {
-        $crate::leaf!(@ {} $($rest)+);
+        $crate::leaf!(@ {
+            fn iter_any_stored(&self) -> impl Iterator<Item = &dyn $crate::AnyStoredVec> {
+                ::std::iter::empty()
+            }
+
+            fn iter_any_stored_mut(
+                &mut self,
+            ) -> impl Iterator<Item = &mut dyn $crate::AnyStoredVec> {
+                ::std::iter::empty()
+            }
+        } $($rest)+);
     };
 }
 
@@ -305,6 +320,10 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
         (**self).iter_any_visible()
     }
 
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        (**self).iter_any_stored()
+    }
+
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         (**self).iter_any_stored_mut()
     }
@@ -335,6 +354,10 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
         self.values().flat_map(|value| value.iter_any_visible())
     }
 
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        self.values().flat_map(|value| value.iter_any_stored())
+    }
+
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.values_mut()
             .flat_map(|value| value.iter_any_stored_mut())
@@ -358,6 +381,14 @@ impl Traversable for () {
     }
 
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        iter::empty()
+    }
+
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        iter::empty()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         iter::empty()
     }
 }

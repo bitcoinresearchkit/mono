@@ -304,6 +304,14 @@ impl<M: StorageMode> Traversable for AddrStateVecs<M> {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         std::iter::empty()
     }
+
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        std::iter::empty()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        std::iter::empty()
+    }
 }
 
 impl<M: StorageMode> AddrStateVecs<M> {

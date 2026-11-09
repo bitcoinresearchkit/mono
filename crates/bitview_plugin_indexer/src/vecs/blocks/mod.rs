@@ -116,21 +116,4 @@ impl BlocksVecs {
     pub fn reset_median_window(&mut self) {
         self.median_window = MedianTimeWindow::default();
     }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &self.blockhash as &dyn AnyStoredVec,
-            &self.coinbase_tag,
-            &self.difficulty,
-            &self.timestamp,
-            &self.median_time,
-            &*self.size,
-            &*self.weight,
-            &self.position,
-            &*self.segwit_tx_count,
-            &*self.segwit_tx_size,
-            &*self.segwit_tx_weight,
-        ]
-        .into_iter()
-    }
 }

@@ -5,7 +5,7 @@ use brk_types::{AddressBytes, Height, Version};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, BytesVecValue, Database, Formattable, ImportableVec, PcoVec,
+    AnyVec, BytesVec, BytesVecValue, Database, Formattable, ImportableVec, PcoVec,
     PcoVecValue, ReadableVec, Rw, StorageMode, VecIndex,
 };
 
@@ -36,10 +36,6 @@ where
             bytes = BytesVec::import(db, &format!("{name}_bytes"), version),
         };
         Ok(Self { first_index, bytes })
-    }
-
-    pub fn stored_vecs(&self) -> [&dyn AnyStoredVec; 2] {
-        [&self.first_index, &self.bytes]
     }
 
     /// Calls `f` with the hash of every address first seen at or after `height` (for rollback).

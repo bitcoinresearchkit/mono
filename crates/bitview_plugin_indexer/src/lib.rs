@@ -191,6 +191,10 @@ where
         self.vecs.iter_any_exportable()
     }
 
+    fn iter_any_stored(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
+        self.vecs.iter_any_stored()
+    }
+
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.vecs.iter_any_stored_mut()
     }

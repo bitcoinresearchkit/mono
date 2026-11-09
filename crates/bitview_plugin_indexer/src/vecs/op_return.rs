@@ -2,7 +2,7 @@ use bitview_primitives::{Bytes, Bytes32, OpReturnKind, OpReturnOutputIndex};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{Height, TxIndex, Version};
-use vecdb::{AnyStoredVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{Database, ImportableVec, PcoVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct OpReturnVecs<M: StorageMode = Rw> {
@@ -40,15 +40,5 @@ impl OpReturnVecs {
             kind,
             post_op_return_bytes,
         })
-    }
-
-    pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        [
-            &self.first_index as &dyn AnyStoredVec,
-            &self.to_tx_index,
-            &self.kind,
-            &*self.post_op_return_bytes,
-        ]
-        .into_iter()
     }
 }

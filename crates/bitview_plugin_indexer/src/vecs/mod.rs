@@ -5,7 +5,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, Rw, Stamp, StorageMode};
+use vecdb::{AnyVec, Database, Rw, Stamp, StorageMode};
 
 use crate::Lengths;
 
@@ -99,15 +99,10 @@ impl Vecs {
     pub fn stamped_write(&mut self, height: Height) -> Result<()> {
         self.blocks.compute_median_times();
         let stamp = Stamp::from(height);
-        let vecs = self.iter_any_stored_mut().collect::<Vec<_>>();
-        let count = vecs.len();
-        vecs.into_par_iter()
+        self.iter_any_stored_mut()
+            .collect::<Vec<_>>()
+            .into_par_iter()
             .try_for_each(|vec| vec.stamped_write(stamp))?;
-        debug_assert_eq!(
-            self.iter_any_stored_vec().count(),
-            count,
-            "the stored vecs listed by reference differ from the struct's"
-        );
         Ok(())
     }
 
@@ -120,7 +115,7 @@ impl Vecs {
             return Height::ZERO;
         }
         let min_stamp = self
-            .iter_any_stored_vec()
+            .iter_any_stored()
             .map(|vec| vec.stamp())
             .min()
             .unwrap();
@@ -128,23 +123,12 @@ impl Vecs {
     }
 
     pub fn all_empty(&self) -> bool {
-        self.iter_any_stored_vec().all(|vec| vec.len() == 0)
+        self.iter_any_stored().all(|vec| vec.len() == 0)
     }
 
     pub fn checkpoints_match(&self) -> bool {
-        let mut stamps = self.iter_any_stored_vec().map(|vec| vec.stamp());
+        let mut stamps = self.iter_any_stored().map(|vec| vec.stamp());
         let first = stamps.next();
         stamps.all(|stamp| Some(stamp) == first)
-    }
-
-    fn iter_any_stored_vec(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-        self.blocks
-            .iter_any()
-            .chain(self.transactions.iter_any())
-            .chain(self.inputs.iter_any())
-            .chain(self.outputs.iter_any())
-            .chain(self.addrs.iter_any())
-            .chain(self.scripts.iter_any())
-            .chain(self.op_return.iter_any())
     }
 }

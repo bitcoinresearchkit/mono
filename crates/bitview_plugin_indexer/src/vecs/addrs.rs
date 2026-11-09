@@ -8,7 +8,7 @@ use brk_types::{
     AddressBytes, Height, OutputType, P2ABytes, P2PK33Bytes, P2PK65Bytes, P2PKHBytes, P2SHBytes,
     P2TRBytes, P2WPKHBytes, P2WSHBytes, Version,
 };
-use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use crate::readers::AddrReaders;
 
@@ -47,11 +47,6 @@ macro_rules! addrs_vecs {
                 };
                 Ok(Self { $($field),+ })
             }
-
-            pub fn iter_any(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
-                [$(self.$field.stored_vecs()),+].into_iter().flatten()
-            }
-
             /// Address bytes by output type, through that type's cached reader; `None` past the
             /// stored addresses.
             pub fn bytes(
