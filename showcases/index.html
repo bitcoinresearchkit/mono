@@ -1931,6 +1931,288 @@
         }
       }
 
+      /* ── Channels: the live picture, its number, the roll between channels, a block's interruption ── */
+
+      .billboard {
+        --accent: #64cfbc;
+
+        .art canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;
+          transition: opacity 0.45s ease;
+
+          &.on {
+            opacity: 1;
+          }
+        }
+
+        /* (Calendar's channel is the one on paper: the whole screen turns parchment, the page's one change of ground.) */
+        &[data-channel="calendar"] {
+          --app: #d8cfb9;
+          --ink: #302b22;
+          --text: #443d30;
+          --soft: #5a5244;
+          color-scheme: light;
+
+          .tile {
+            --ink: #f6f3ee;
+          }
+
+          .kind b {
+            color: #f4eede;
+          }
+        }
+      }
+
+      body:has(.billboard[data-channel="calendar"]:not([data-off])) .top {
+        --glass-rgb: 216 207 185;
+        color-scheme: light;
+      }
+
+      .kind {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        b {
+          display: inline-grid;
+          place-items: center;
+          min-width: 34px;
+          height: 22px;
+          border-radius: 3px;
+          color: #0c0b09;
+          background: var(--accent);
+          font: 700 12.5px var(--mono);
+          letter-spacing: 0;
+        }
+      }
+
+      .billboard .title {
+        font-size: clamp(60px, 13.5vw, 200px);
+        font-weight: 760;
+        line-height: 0.92;
+        letter-spacing: -0.07em;
+        min-height: clamp(70px, 14.4vw, 204px);
+        margin-top: 12px;
+
+        @media (min-width: 720px) {
+          font-size: clamp(80px, 10.2vw, 200px);
+          min-height: clamp(86px, 10.9vw, 204px);
+        }
+      }
+
+      .billboard .title:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
+        font-size: clamp(70px, 15.5vw, 230px);
+
+        @media (min-width: 720px) {
+          font-size: clamp(90px, 11.7vw, 230px);
+        }
+      }
+
+      .billboard .title[data-face="trail"] {
+        font-size: clamp(50px, 12vw, 150px);
+
+        @media (min-width: 720px) {
+          font-size: clamp(70px, 8.4vw, 150px);
+        }
+      }
+
+      .row.dock {
+        li[aria-current="true"] .tile {
+          box-shadow: 0 0 0 1.5px var(--accent), 0 18px 40px -12px rgb(0 0 0 / 0.75);
+        }
+
+        .bar {
+          background: var(--accent);
+        }
+      }
+
+      /* (Between channels by a remote: a roll of the channel's colour, its number, a band of the latest block's hash.) */
+      .tuning {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+        overflow: hidden;
+        background: var(--tune-accent, #ff702e);
+        mix-blend-mode: screen;
+        pointer-events: none;
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: repeating-linear-gradient(0deg, transparent 0, transparent 11px, #050505 11px, #050505 14px);
+          opacity: 0.6;
+        }
+
+        &.running {
+          display: block;
+          animation: tune 0.62s both;
+        }
+
+        .tune-number {
+          position: absolute;
+          right: 7%;
+          top: 16%;
+          color: #fff7d8;
+          font: 800 clamp(200px, 36vw, 650px) / 0.8 var(--sans);
+          letter-spacing: -0.1em;
+          opacity: 0.8;
+        }
+
+        .tune-data {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 59%;
+          overflow: hidden;
+          color: var(--tune-accent, #ff702e);
+          background: #080807;
+          font: 10px/13px var(--mono);
+          letter-spacing: 0.4em;
+          white-space: nowrap;
+          transform: skewX(-14deg);
+        }
+      }
+
+      @keyframes tune {
+        0% {
+          opacity: 0;
+          transform: translateY(80%);
+        }
+
+        12% {
+          opacity: 0.9;
+          transform: translateY(-12%);
+        }
+
+        25% {
+          opacity: 0.6;
+          transform: translateY(8%) scaleX(1.04);
+        }
+
+        39% {
+          opacity: 0.9;
+          transform: translateY(-4%);
+        }
+
+        52% {
+          opacity: 0.25;
+          transform: translateY(0);
+        }
+
+        75% {
+          opacity: 0.12;
+        }
+
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* (A new block: nobody using the page, the whole screen; somebody is, a bar along the foot.) */
+      .flash {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        padding: 6vw;
+        color: #15110b;
+        background: var(--accent, #ff702e);
+
+        &[hidden] {
+          display: none;
+        }
+
+        .label {
+          font: 600 clamp(11px, 1.1vw, 15px) var(--mono);
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+
+        .flash-height {
+          margin: 0.12em 0 0.1em;
+          font: 760 clamp(90px, 20vw, 380px) / 0.9 var(--sans);
+          letter-spacing: -0.07em;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .flash-facts {
+          font: 500 clamp(15px, 1.7vw, 26px) var(--sans);
+          letter-spacing: -0.015em;
+        }
+
+        .flash-band {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 11%;
+          overflow: hidden;
+          border-block: 1px solid currentColor;
+          padding: 10px 6vw;
+          font: 10px var(--mono);
+          letter-spacing: 0.25em;
+          white-space: nowrap;
+          opacity: 0.7;
+        }
+
+        button {
+          position: absolute;
+          top: calc(40px + var(--bar-top));
+          right: 6vw;
+          border: 0;
+          background: none;
+          font-size: 14px;
+          font-weight: 650;
+          cursor: pointer;
+        }
+      }
+
+      .bulletin {
+        position: fixed;
+        left: 50%;
+        bottom: calc(18px + env(safe-area-inset-bottom));
+        z-index: 45;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        max-width: calc(100vw - 32px);
+        border-radius: 12px;
+        padding: 12px 18px;
+        color: #15110b;
+        background: var(--accent, #ff702e);
+        box-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.55);
+        font-size: 14px;
+        translate: -50% 0;
+
+        &[hidden] {
+          display: none;
+        }
+
+        b {
+          font-family: var(--mono);
+          font-weight: 700;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+          animation: bulletin 0.5s var(--lift);
+        }
+      }
+
+      @keyframes bulletin {
+        from {
+          opacity: 0;
+          translate: -50% 24px;
+        }
+      }
+
       /* ── About a title: a sheet (a card on a desk), as a streaming title's More info: its picture, and over its foot its
          kind, its name and its ways in; what it shows now, its line and its words, beside what's known of it ── */
 
@@ -2373,12 +2655,12 @@
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
            others. showcases/home.mjs checks it's FEATURED's first, as its own page names it.) -->
-      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
+      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /><canvas id="scene"></canvas></div>
       <div class="feature">
         <p class="syncing" id="syncing" hidden><span id="syncing-words"></span><i></i></p>
         <div class="words" id="words" aria-live="off">
           <div>
-            <p class="kind"><span id="bb-kind">Charts</span></p>
+            <p class="kind"><b id="bb-channel">01</b><span id="bb-kind">Charts</span></p>
             <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
             <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
@@ -2421,6 +2703,10 @@
         </div>
       </div>
     </footer>
+
+    <div class="tuning" id="tuning" aria-hidden="true"><span class="tune-number" id="tune-number">01</span><div class="tune-data" id="tune-data"></div></div>
+    <section class="flash" id="flash" hidden aria-label="New block"><span class="label">We interrupt this signal</span><div class="flash-height" id="flash-height"></div><span class="flash-facts" id="flash-facts"></span><div class="flash-band" id="flash-band"></div><button type="button" id="flash-close">Back to the signal</button></section>
+    <aside class="bulletin" id="bulletin" hidden><span class="label">New block</span><b id="bulletin-height"></b><span id="bulletin-facts"></span></aside>
 
     <p class="vh" id="status" role="status"></p>
     <p class="vh" id="copied" role="status"></p>
@@ -2531,27 +2817,26 @@
         return `${t.live ? `<span class="live">Live</span>` : ""}${facts[t.id] ? `<span>${facts[t.id]}</span>` : ""}`;
       }
 
-      // ── The stage: a title at a time, the dock's tile for it lifted. Pointing at or focusing a tile, or sliding the dock
-      // under a thumb, shows that title at once; left alone, it turns by itself every nine seconds, by its tile's foot
-      // filling (a CSS animation, so nothing runs per frame), held while pointed at, focused by keys, a sheet's open, it's
-      // off screen, or stopped ──
+      // ── The stage: a television that's already on. Each app is a channel, full bleed, drawn live from this node's data; the
+      // dock along its foot is every channel at once, each tile its live picture. Pointing, focusing, a thumb sliding the dock
+      // or swiping the screen tunes to it; left alone it turns by itself (its tile's foot filling, a CSS animation, nothing per
+      // frame). Tuning by remote (arrows, numbers, a swipe) rolls the picture through a burst of the latest block's hash. ──
 
-      const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
-      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", sizes: first.sizes })) : first));
-      /** A title's picture, its file asked for the first time it's wanted. */
-      const armed = (/** @type {number} */ i) => {
-        const p = pictures[i];
-        if (!p.src) ((p.srcset = `${banner(FEATURED[i].id)} 1900w, ${banner(FEATURED[i].id).replace(".jpg", "@2x.jpg")} 2880w`), (p.src = banner(FEATURED[i].id)));
-        return p;
-      };
+      const billboard = $("billboard"), art = /** @type {HTMLElement} */ (document.querySelector(".art")), studioArt = /** @type {HTMLImageElement} */ (art.querySelector("img")), scene = /** @type {HTMLCanvasElement} */ ($("scene")), sceneCtx = /** @type {CanvasRenderingContext2D} */ (scene.getContext("2d"));
+      /** Each channel's own colour. */
+      const CHANNEL_COLOR = /** @type {Record<string, string>} */ ({ studio: "#64cfbc", oracle: "#ff702e", explorer: "#ba8bfa", globe: "#f78a40", trail: "#b6d488", stack: "#9bda85", compass: "#ee87be", calendar: "#8c6a3f" });
       const dock = $("dock");
+      /** What the scenes read, kept here so a scene drawn at any size sees the same picture. */
+      const data = { blocks: /** @type {any[]} */ ([]), series: /** @type {{ data: number[] }[]} */ ([]), pools: /** @type {any} */ (null), price: /** @type {any} */ (null) };
       const tiles = FEATURED.map((t, i) => {
         const name = el("span", { className: "name" }, t.name);
         name.dataset.face = t.id;
-        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, el("img", { alt: "", decoding: "async", src: poster(t.id) }), name, el("i", { className: "bar", ariaHidden: "true" }));
+        const pic = t.id === "studio" ? el("img", { alt: "", decoding: "async", src: poster(t.id) }) : el("canvas", { className: "thumb" });
+        const a = el("a", { className: "tile named", href: t.href, ariaLabel: `${t.name}: ${t.line}` }, pic, name, el("i", { className: "bar", ariaHidden: "true" }));
         a.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && show(i));
-        a.addEventListener("focus", () => show(i));
+        a.addEventListener("focus", () => show(i, false, lastInputKey));
         const li = el("li", {}, a);
+        li.style.setProperty("--accent", CHANNEL_COLOR[t.id]);
         dock.append(li);
         return li;
       });
@@ -2573,34 +2858,44 @@
         return copy;
       }));
       $("words").append(room);
-      /** The title asked for (at), the one its words and buttons show (current: the same once its picture is ready); `asked`, so a later ask wins. */
-      let at = -1, current = 0, asked = 0;
-      /** Shows a title. `turned`: by the stage's own turning, its tile brought into view (nothing moves a row someone's using). */
-      function show(/** @type {number} */ i, /** @type {boolean} */ turned = false) {
+      let at = -1, current = 0, tunedAt = 0;
+      /** Tunes to a channel. `turned`: the stage's own turning, its tile brought into view (nothing moves a row in use). `rolled`: by a remote's press, the picture rolls. */
+      function show(/** @type {number} */ i, /** @type {boolean} */ turned = false, /** @type {boolean} */ rolled = false) {
         if (i === at) return;
-        const t = FEATURED[i], firstOne = at < 0, stamp = ++asked;
-        at = i;
+        const t = FEATURED[i];
+        at = current = i;
+        tunedAt = performance.now() / 1000;
         tiles.forEach((li, k) => li.setAttribute("aria-current", String(k === i)));
+        billboard.dataset.channel = t.id;
+        billboard.style.setProperty("--accent", CHANNEL_COLOR[t.id]);
         if (turned && dock.scrollWidth > dock.clientWidth) dock.scrollTo({ left: tiles[i].offsetLeft - parseFloat(getComputedStyle(dock).paddingLeft), behavior: reduced ? "auto" : "smooth" });
-        const put = () => {
-          if (stamp !== asked) return;
-          current = i;
-          fill(shown, t);
-          pictures.forEach((p, k) => p.classList.toggle("on", k === i));
-          const open = /** @type {HTMLAnchorElement} */ ($("bb-open"));
-          open.href = t.href;
-          open.setAttribute("aria-label", `Open ${t.name}`);
-          $("bb-about").setAttribute("aria-label", `More about ${t.name}`);
-          $("words").classList.remove("out");
-        };
-        if (firstOne) return put();
-        // (The picture decoded before it's shown: a crossfade, never a flash of nothing.)
-        $("words").classList.add("out");
-        armed(i).decode().then(put, put);
+        fill(shown, t);
+        $("bb-channel").textContent = String(i + 1).padStart(2, "0");
+        const open = /** @type {HTMLAnchorElement} */ ($("bb-open"));
+        open.href = t.href;
+        open.setAttribute("aria-label", `Open ${t.name}`);
+        $("bb-about").setAttribute("aria-label", `More about ${t.name}`);
+        studioArt.classList.toggle("on", t.id === "studio");
+        scene.classList.toggle("on", t.id !== "studio");
+        if (rolled && !reduced) roll(i);
+        drawn = false;
+        wakeScene();
       }
-      const billboard = $("billboard");
-      let stopped = false, hovered = false, sheetOpen = false, onScreen = true;
-      /** Whether keys are on it. */
+
+      // ── The roll between channels: the number, a band of the latest block's hash, phosphor over the picture ──
+      function roll(/** @type {number} */ i) {
+        const el_ = $("tuning");
+        el_.style.setProperty("--tune-accent", CHANNEL_COLOR[FEATURED[i].id]);
+        el_.classList.remove("running");
+        void el_.offsetWidth;
+        $("tune-number").textContent = String(i + 1).padStart(2, "0");
+        $("tune-data").textContent = data.blocks[0] ? Array(8).fill(data.blocks[0].id.toUpperCase()).join("  /  ") : "ACQUIRING SIGNAL";
+        el_.classList.add("running");
+      }
+
+      let stopped = false, hovered = false, sheetOpen = false, onScreen = true, lastInputKey = false;
+      document.addEventListener("keydown", () => (lastInputKey = true), true);
+      document.addEventListener("pointerdown", () => (lastInputKey = false), true);
       const keyed = () => billboard.contains(document.activeElement) && /** @type {Element} */ (document.activeElement).matches(":focus-visible");
       function hold() {
         billboard.toggleAttribute("data-held", stopped || hovered || keyed() || sheetOpen || !onScreen || document.hidden);
@@ -2610,14 +2905,13 @@
       billboard.addEventListener("pointerleave", () => ((hovered = false), hold()));
       billboard.addEventListener("focusin", hold);
       billboard.addEventListener("focusout", () => setTimeout(hold));
-      // (Its toggle caught on its way down: it doesn't bubble.)
       document.addEventListener("toggle", (e) => {
         if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
         sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
         hold();
       }, true);
-      document.addEventListener("visibilitychange", () => (hold(), document.hidden || round()));
-      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), billboard.toggleAttribute("data-off", !onScreen), hold())).observe(billboard);
+      document.addEventListener("visibilitychange", () => (hold(), document.hidden || (round(), wakeScene())));
+      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), billboard.toggleAttribute("data-off", !onScreen), hold(), wakeScene())).observe(billboard);
       function stop(/** @type {boolean} */ value) {
         stopped = value;
         $("pause").setAttribute("aria-label", stopped ? "Play" : "Pause");
@@ -2626,45 +2920,158 @@
       }
       $("pause").hidden = reduced;
       $("pause").addEventListener("click", () => stop(!stopped));
-      // (A thumb on the dock: the tile for how far it's slid shows, first to last; the stage stays where it's put.)
-      let sliding = false;
+      // (A thumb on the dock: the tile for how far it's slid shows, first to last; the screen swiped sideways tunes, as a remote does.)
+      let sliding = false, touchAt = /** @type {{ x: number, y: number } | null} */ (null);
       dock.addEventListener("pointerdown", (e) => e.pointerType === "touch" && ((sliding = true), stop(true)), { passive: true });
       dock.addEventListener("scroll", () => {
         if (!sliding) return;
         show(Math.round((dock.scrollLeft / Math.max(1, dock.scrollWidth - dock.clientWidth)) * (FEATURED.length - 1)));
       }, { passive: true });
+      billboard.addEventListener("touchstart", (e) => { touchAt = e.touches.length === 1 && !(/** @type {Element} */ (e.target).closest("a,button,.row")) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+      billboard.addEventListener("touchend", (e) => {
+        if (!touchAt) return;
+        const dx = e.changedTouches[0].clientX - touchAt.x, dy = e.changedTouches[0].clientY - touchAt.y;
+        touchAt = null;
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) (stop(true), show((at + (dx < 0 ? 1 : FEATURED.length - 1)) % FEATURED.length, true, true));
+      }, { passive: true });
+      $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
+
+      // ── The scenes: each channel's art, drawn from what this node reads, full screen and small, by one set of drawings ──
+
+      const SCENE_SERIES = ["price", "mvrv", "nupl", "realized_price", "sats_per_dollar"];
+      let geoDots = /** @type {[number, number][]} */ ([]), blockDigits = /** @type {number[]} */ ([]), stackWindow = /** @type {number[]} */ ([]), emberArt = /** @type {HTMLCanvasElement | null} */ (null), emberStale = true;
+      const valid = (/** @type {any} */ n) => typeof n === "number" && Number.isFinite(n);
+      const normalizedCache = new WeakMap();
+      const normalizedSource = (/** @type {number[] | undefined} */ source) => {
+        if (!source) return [];
+        if (normalizedCache.has(source)) return normalizedCache.get(source);
+        const s = source.filter(valid), min = Math.min(...s), span = Math.max(...s) - min || 1, result = s.map((v) => (v - min) / span);
+        normalizedCache.set(source, result);
+        return result;
+      };
+      const normalized = (/** @type {number} */ i) => normalizedSource(data.series[i]?.data);
+      const latestSeries = (/** @type {number} */ i) => data.series[i]?.data.findLast(valid);
+      const hashValue = (/** @type {number} */ i) => (blockDigits.length ? blockDigits[i % blockDigits.length] : 0);
+      const offscreen = (/** @type {number} */ w, /** @type {number} */ h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return /** @type {[HTMLCanvasElement, CanvasRenderingContext2D]} */ ([c, c.getContext("2d")]); };
+      function createEmber(){
+      const [c,g]=offscreen(1100,1000),s=normalized(0),hasData=s.length>0||data.blocks.length>0;
+      const cx=550,cy=500;g.translate(cx,cy);
+      const halo=g.createRadialGradient(0,0,180,0,0,510);halo.addColorStop(0,'#ff480000');halo.addColorStop(.25,'#fe490008');halo.addColorStop(.55,'#fa410017');halo.addColorStop(1,'#fb3c0000');g.fillStyle=halo;g.fillRect(-550,-500,1100,1000);
+      if(!hasData){g.strokeStyle='#ff702e33';g.lineWidth=1;g.beginPath();g.ellipse(0,0,310,270,-.3,0,Math.PI*2);g.stroke();g.strokeStyle='#ff702e18';g.beginPath();g.ellipse(0,0,370,325,-.3,0,Math.PI*2);g.stroke();return c}
+      let seed=(data.blocks[0]?.height||1)>>>0;const rnd=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return(seed>>>0)/4294967296};
+      // A point's radial position follows a historical monthly price; its variation follows the block hash.
+      for(let i=0;i<31500;i++){
+      const a=rnd()*Math.PI*2,history=s.length?s[Math.floor(a/(Math.PI*2)*s.length)]:hashValue(i),r=250+Math.pow(rnd(),1.9)*126+history*19;
+      const warp=17*Math.sin(a*3)+9*Math.cos(a*7),x=Math.cos(a)*(r+warp),y=Math.sin(a)*(r+warp)*.88;
+      const light=rnd(),alpha=(.12+light*.68)*(r<310?1:.64);g.strokeStyle=light>.94?`rgba(255,212,134,${alpha})`:light>.55?`rgba(255,112,42,${alpha})`:`rgba(211,57,15,${alpha})`;
+      const len=1+rnd()*9*(r<285?2:1);g.lineWidth=.5+rnd()*1.05;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a+.6)*len,y+Math.sin(a+.6)*len*.88);g.stroke();
+      }
+      g.globalCompositeOperation='screen';for(let j=0;j<4;j++){g.strokeStyle=`rgba(255,137,63,${.18-j*.03})`;g.lineWidth=1;g.beginPath();for(let i=0;i<=720;i++){const a=i/720*Math.PI*2,v=s.length?s[Math.floor((i%720)/720*s.length)]:0,r=246+j*7+v*22+Math.sin(a*3)*16;const x=Math.cos(a)*r,y=Math.sin(a)*r*.88;if(i===0)g.moveTo(x,y);else g.lineTo(x,y)}g.stroke()}
+      return c;
+      }
+      function renderEmber(ctx,W,H,t){if(emberStale){emberArt=createEmber();emberStale=false}const phone=W<650,sz=phone?Math.min(W*1.4,H*.72):Math.min(H*1.02,W*.72),x=phone?W*.54:W*.66,y=phone?H*.37:H*.415;ctx.save();ctx.translate(x,y);ctx.rotate(-.32+Math.sin(t*.11)*.02);const breath=1+Math.sin(t*.35)*.009;ctx.scale(breath,breath);ctx.drawImage(emberArt,-sz/2,-sz*.455,sz,sz*.91);ctx.restore();if(data.price){ctx.strokeStyle='#d9824a55';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+sz*.12,y+sz*.07);ctx.lineTo(x+sz*.27,y+sz*.12);ctx.lineTo(x+sz*.34,y+sz*.12);ctx.stroke();if(!phone){ctx.fillStyle='#ba9d83';ctx.font='9px Lilex';ctx.fillText('CHAIN-DERIVED / USD',x+sz*.275,y+sz*.105)}}}
+      function renderExplorer(ctx,W,H,t){
+      const phone=W<650,side=phone?Math.min(W*.62,H*.3):Math.min(W*.36,H*.43),cx=phone?W*.5:W*.65,cy=H*.40+side*.335,fill=data.blocks[0]?Math.min(data.blocks[0].weight/4000000,1)*(reduced?1:Math.max(0,Math.min(1,(t-tunedAt)/1.15))):0,n=18;
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(Math.sin(t*.18)*.018);const p=(x,y,z=0)=>[(x-y)*side*.56,(x+y)*side*.3-z*side*.67];
+      function face(a,b,c,d,color){ctx.beginPath();ctx.moveTo(...p(...a));ctx.lineTo(...p(...b));ctx.lineTo(...p(...c));ctx.lineTo(...p(...d));ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#bf8cff20';ctx.stroke()}
+      face([-.5,.5,0],[.5,.5,0],[.5,.5,1],[-.5,.5,1],'#23112d');face([.5,-.5,0],[.5,.5,0],[.5,.5,1],[.5,-.5,1],'#3b1c56');
+      for(let y=0;y<n;y++)for(let x=0;x<n;x++){const a=x/n-.5,b=y/n-.5;const on=(y*n+x)/(n*n)<fill,h=hashValue(x+y*n);face([a,b,1],[a+.94/n,b,1],[a+.94/n,b+.94/n,1],[a,b+.94/n,1],on?`hsl(${268+h*30} 65% ${30+h*35}%)`:'#291d35')}
+      for(let y=0;y<n;y++)for(let x=0;x<n;x++){const a=x/n-.5,z=y/n;const h=hashValue(y*n+x+14);face([.5,a,z],[.5,a+.93/n,z],[.5,a+.93/n,z+.93/n],[.5,a,z+.93/n],z<fill?`hsl(${267+h*20} 48% ${16+h*25}%)`:'#151019');face([a,.5,z],[a+.93/n,.5,z],[a+.93/n,.5,z+.93/n],[a,.5,z+.93/n],z<fill?`hsl(${267+h*20} 48% ${10+h*15}%)`:'#100b14')}
+      ctx.restore();
+      }
+      function renderGlobe(ctx,W,H,t){
+      const phone=W<650,r=phone?W*.48:Math.min(H*.31,W*.25),cx=phone?W*.51:W*.66,cy=phone?H*.38:H*.40,rotation=-.8+t*.055;
+      const glow=ctx.createRadialGradient(cx,cy,r*.65,cx,cy,r*1.15);glow.addColorStop(0,'#d3691010');glow.addColorStop(.8,'#ee852a0b');glow.addColorStop(1,'#ef882000');ctx.fillStyle=glow;ctx.fillRect(cx-r*1.2,cy-r*1.2,r*2.4,r*2.4);
+      ctx.strokeStyle='#bd824328';ctx.lineWidth=.7;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.ellipse(cx,cy,r,Math.max(1,r*Math.abs(i/3)),0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(cx,cy,Math.max(1,r*Math.abs(i/3)),r,0,0,Math.PI*2);ctx.stroke()}
+      for(const [lon,lat] of geoDots){const z=Math.cos(lat)*Math.cos(lon+rotation),x=Math.cos(lat)*Math.sin(lon+rotation),y=Math.sin(lat);if(z<-.05)continue;ctx.fillStyle=`rgba(255,${140+Math.floor(z*35)},${55+Math.floor(z*40)},${.2+Math.max(z,0)*.75})`;const dot=(phone?1.2:1.5)*(1+z*.2);ctx.beginPath();ctx.arc(cx+x*r,cy-y*r,dot,0,Math.PI*2);ctx.fill()}
+      ctx.strokeStyle='#df9b5860';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      if(data.pools?.blockCount){let a=-Math.PI/2+t*.02;data.pools.pools.forEach((pool,i)=>{const span=pool.blockCount/data.pools.blockCount*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r*1.075,a+.009,a+Math.max(.01,span-.009));ctx.strokeStyle=`rgba(255,168,87,${Math.max(.2,.9-i*.08)})`;ctx.lineWidth=i===0?3:1.5;ctx.stroke();a+=span})}
+      }
+      function renderTrail(ctx,W,H,t){
+      const s=normalized(0),base=normalized(3);if(!s.length)return;const phone=W<650,width=phone?W*1.8:W*.9,ox=phone?-W*.4:W*.25,oy=phone?H*.26:H*.19,h=phone?H*.29:H*.44;
+      for(let row=26;row>=0;row--){ctx.beginPath();s.forEach((v,i)=>{const x=ox+i/(s.length-1)*width-row*5,y=oy+(1-v)*h*.6+row*6+(base[i]||0)*row*1.4+Math.sin(t*.2+i*.08+row*.1)*2;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.strokeStyle=row%6===0?'#c9ad6e99':`rgba(141,189,106,${.12+(26-row)/26*.55})`;ctx.lineWidth=row%6===0?1.3:.8;ctx.stroke()}
+      }
+      function renderStack(ctx,W,H,t){
+      const s=normalizedSource(stackWindow);if(!s.length)return;const phone=W<650,width=phone?W*.95:W*.62,ox=phone?W*.08:W*.37,base=phone?H*.49:H*.57,bar=width/s.length;
+      s.forEach((v,i)=>{const h=25+v*H*.29;const y=base-h;const g=ctx.createLinearGradient(0,y,0,base);g.addColorStop(0,i===s.length-1?'#d8f4b2':'#9bda85');g.addColorStop(1,'#345d2a08');ctx.fillStyle=g;ctx.globalAlpha=.3+i/s.length*.7;ctx.fillRect(ox+i*bar,y,bar*.6,h);ctx.fillStyle='#b9e598';ctx.fillRect(ox+i*bar,y,bar*.6,2);ctx.globalAlpha=1});
+      const x=ox+(Math.sin(t*.3)*.5+.5)*width;ctx.strokeStyle='#b7e59844';ctx.beginPath();ctx.moveTo(x,base-H*.33);ctx.lineTo(x,base+20);ctx.stroke();
+      }
+      function renderCompass(ctx,W,H,t){
+      const phone=W<650,r=phone?W*.45:Math.min(H*.31,W*.25),cx=phone?W*.5:W*.66,cy=phone?H*.38:H*.39,v=latestSeries(2);
+      for(let ring=0;ring<7;ring++)for(let i=0;i<90;i++){if(i%10===9)continue;const a=(i/90)*Math.PI*1.6+Math.PI*.7,rs=r*(.72+ring*.04);ctx.beginPath();ctx.arc(cx,cy,rs,a,a+.035);ctx.strokeStyle=`hsla(${325-(i/90)*225} 47% 64% / ${.2+ring*.1})`;ctx.lineWidth=phone?3:5;ctx.stroke()}
+      if(valid(v)){const a=Math.PI*.7+Math.max(0,Math.min(1,(v+1)/2))*Math.PI*1.6;ctx.save();ctx.translate(cx,cy);ctx.rotate(a+Math.sin(t*.4)*.005);ctx.fillStyle='#e9e8d9';ctx.beginPath();ctx.moveTo(r*.67,0);ctx.lineTo(-r*.14,-5);ctx.lineTo(-r*.1,0);ctx.lineTo(-r*.14,5);ctx.closePath();ctx.fill();ctx.restore()}
+      ctx.fillStyle='#bdafa5';ctx.font='9px Lilex';ctx.textAlign='center';ctx.fillText('FEAR',cx-r*.63,cy+r*.72);ctx.fillText('OPTIMISM',cx+r*.64,cy+r*.72);ctx.textAlign='left';
+      }
+      function renderCalendar(ctx,W,H,t){
+      const phone=W<650,y=phone?(H<650?140:H*.24):H*.19,available=H*.42,sz=phone?Math.min(W*.78,Math.max(90,available*1.35)):Math.min(W*.43,H*.58),x=phone?(W-sz)/2:W*.46,block=data.blocks[0];
+      const date=block?new Date(block.timestamp*1000):null,days=date?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate():31,start=date?new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),1)).getUTCDay():0;
+      ctx.fillStyle='#453b28';ctx.font=`${phone?(H<650?14:18):27}px Instrument`;ctx.fillText(date?date.toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'}):'A little history, every day.',x,y);const top=y+(phone&&H<650?21:35),cell=sz/7;ctx.font=`${phone?(H<650?6:9):11}px Lilex`;
+      'SMTWTFS'.split('').forEach((d,i)=>ctx.fillText(d,x+i*cell+4,top));
+      for(let i=0;i<days;i++){const col=(i+start)%7,row=Math.floor((i+start)/7),px=x+col*cell,py=top+20+row*cell*.8;ctx.strokeStyle='#5d513a2c';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+cell-5,py);ctx.stroke();ctx.fillStyle='#7e735f';ctx.font=`${phone?(H<650?7:11):17}px Instrument`;ctx.fillText(String(i+1),px+4,py+cell*.45);const matching=data.blocks.filter(b=>{const d=new Date(b.timestamp*1000);return date&&d.getUTCDate()===i+1&&d.getUTCMonth()===date.getUTCMonth()&&d.getUTCFullYear()===date.getUTCFullYear()});if(matching.length){ctx.fillStyle='#74532f';ctx.fillRect(px+3,py+cell*.58,Math.min(matching.length*3,cell-9),3)}}
+      if(date&&!(phone&&H<650)){ctx.fillStyle='#7a6b50';ctx.font='8px Lilex';ctx.fillText('MARKS / LATEST 15 BLOCKS',x,top+cell*5.2+18)}
+      }
+      function renderStudio() {}
+      const renderers = /** @type {Record<string, (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => void>} */ ({ oracle: renderEmber, explorer: renderExplorer, globe: renderGlobe, trail: renderTrail, stack: renderStack, compass: renderCompass, calendar: renderCalendar, studio: renderStudio });
+      const paper = (/** @type {string} */ id) => (id === "calendar" ? "#d8cfb9" : "#0c0b09");
+      let drawn = false, frame = 0, lastFrame = 0, sceneW = 0, sceneH = 0;
+      function sizeScene() {
+        const dpr = Math.min(devicePixelRatio || 1, 2);
+        sceneW = art.clientWidth;
+        sceneH = art.clientHeight;
+        scene.width = Math.round(sceneW * dpr);
+        scene.height = Math.round(sceneH * dpr);
+        sceneCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawn = false;
+        wakeScene();
+      }
+      function drawScene(/** @type {number} */ now) {
+        frame = 0;
+        const t = FEATURED[at];
+        if (!t || t.id === "studio" || !onScreen || document.hidden) return;
+        if (!reduced && now - lastFrame < 33) return void (frame = requestAnimationFrame(drawScene));
+        lastFrame = now;
+        sceneCtx.fillStyle = paper(t.id);
+        sceneCtx.fillRect(0, 0, sceneW, sceneH);
+        sceneCtx.save();
+        renderers[t.id](sceneCtx, sceneW, sceneH, reduced ? 0 : now / 1000);
+        sceneCtx.restore();
+        drawn = true;
+        if (!reduced) frame = requestAnimationFrame(drawScene);
+      }
+      function wakeScene() {
+        if (!frame && !(reduced && drawn)) frame = requestAnimationFrame(drawScene);
+      }
+      /** Every channel's tile, drawn once from what's known now: the dock is the whole set at a glance, nothing per frame. */
+      function drawTiles() {
+        FEATURED.forEach((t, i) => {
+          const c = tiles[i].querySelector("canvas");
+          if (!c) return;
+          const box = c.getBoundingClientRect();
+          if (!box.width) return;
+          const dpr = Math.min(devicePixelRatio || 1, 2), W = box.width, H = box.height;
+          c.width = Math.round(W * dpr);
+          c.height = Math.round(H * dpr);
+          const g = /** @type {CanvasRenderingContext2D} */ (c.getContext("2d"));
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.fillStyle = paper(t.id);
+          g.fillRect(0, 0, W, H);
+          // (Drawn as if twice as tall, the picture's middle in view: a tile shows the art, not the room around it.)
+          g.save();
+          g.translate(0, -H * 0.36);
+          renderers[t.id](g, W, H * 2, 1);
+          g.restore();
+        });
+      }
+      /** Anything the scenes read changed: redrawn from it. */
+      function chainChanged() {
+        emberStale = true;
+        drawn = false;
+        wakeScene();
+        drawTiles();
+      }
+      new ResizeObserver(sizeScene).observe(art);
       show(0);
       hold();
-      $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
-      // (The other pictures fetched once the page has loaded, one after another, so moving along the dock is instant.)
-      addEventListener("load", () => FEATURED.slice(1).reduce((chain, t, i) => chain.then(() => armed(i + 1).decode().catch(() => {})), Promise.resolve()));
-
-      // (The tile under the pointer tilts; one element's custom properties a frame.)
-      if (mouse.matches && !reduced) {
-        let aimed = /** @type {HTMLElement | null} */ (null), box = /** @type {DOMRect | null} */ (null), px = 0, py = 0, framed = false;
-        const release = () => {
-          if (aimed) for (const prop of ["--rx", "--ry", "--gx", "--gy"]) aimed.style.removeProperty(prop);
-          aimed = box = null;
-        };
-        document.addEventListener("pointermove", (e) => {
-          const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (e.target).closest?.(".tile"));
-          if (tile !== aimed) (release(), (aimed = tile), (box = tile?.getBoundingClientRect() ?? null));
-          px = e.clientX;
-          py = e.clientY;
-          if (framed || !aimed) return;
-          framed = true;
-          requestAnimationFrame(() => {
-            framed = false;
-            if (!aimed || !box) return;
-            const x = (px - box.left) / box.width, y = (py - box.top) / box.height;
-            aimed.style.setProperty("--rx", ((x - 0.5) * 7).toFixed(2));
-            aimed.style.setProperty("--ry", ((0.5 - y) * 7).toFixed(2));
-            aimed.style.setProperty("--gx", `${(x * 100).toFixed(1)}%`);
-            aimed.style.setProperty("--gy", `${(y * 100).toFixed(1)}%`);
-          });
-        }, { passive: true });
-        document.addEventListener("pointerleave", release);
-      }
 
       // ── Shelves ──
 
@@ -2847,8 +3254,36 @@
       const forming = el("li", {}, el("a", { className: "tile p now", href: "/explorer/" },
         el("div", {}, el("div", { className: "t" }, el("span", { className: "live" }, "Now"), formingWhen), formingHeight),
         el("div", {}, el("div", { className: "by" }, el("span", {}, "Next block, forming")), formingFacts)));
-      /** When the last block was found (s); the height it'd make the next one. */
-      let lastAt = 0, guideFilled = false;
+      /** When the last block was found (s); the newest block drawn. */
+      let lastAt = 0, guideFilled = false, blockTop = "";
+      /** The last time someone used the page: a block arriving interrupts an idle screen, and only says so to someone using it. */
+      let usedAt = 0;
+      for (const kind of ["pointermove", "pointerdown", "keydown", "scroll", "touchstart"]) addEventListener(kind, () => (usedAt = performance.now()), { passive: true, capture: true });
+      let flashTimer = 0;
+      function closeFlash() {
+        clearTimeout(flashTimer);
+        $("flash").hidden = true;
+        $("bulletin").hidden = true;
+      }
+      $("flash-close").addEventListener("click", closeFlash);
+      function announceBlock(/** @type {any} */ b) {
+        const pool = b.extras?.pool?.name ?? "an unknown pool";
+        const facts = `${pool} · ${grouped(b.tx_count)} transactions · ${(b.size / 1e6).toFixed(2)} MB`;
+        const idle = performance.now() - usedAt > 15_000, atStage = onScreen && !document.hidden && !sheet.matches(":popover-open");
+        clearTimeout(flashTimer);
+        if (idle && atStage && !reduced) {
+          $("flash-height").textContent = grouped(b.height);
+          $("flash-facts").textContent = facts;
+          $("flash-band").textContent = `${b.id} / BITCOIN / BLOCK ${grouped(b.height)}`;
+          $("flash").hidden = false;
+          flashTimer = setTimeout(closeFlash, 3200);
+        } else {
+          $("bulletin-height").textContent = grouped(b.height);
+          $("bulletin-facts").textContent = facts;
+          $("bulletin").hidden = false;
+          flashTimer = setTimeout(closeFlash, 6000);
+        }
+      }
       /** The forming programme's length and words, from the clock. */
       function timeForming() {
         if (!lastAt) return;
@@ -2858,6 +3293,9 @@
       }
       function drawGuide(/** @type {any[]} */ list) {
         if (!list.length) return guide.replaceChildren(el("li", { className: "none" }, "No blocks yet. They appear here as this node reads them."));
+        // (A new block at the top of the list, once the first answer's in: said on the screen.)
+        if (guideFilled && list[0]?.id !== blockTop && list[0]) announceBlock(list[0]);
+        blockTop = list[0]?.id ?? "";
         const pinned = !guideFilled || guide.scrollLeft + guide.clientWidth >= guide.scrollWidth - 8;
         // (Oldest first; the oldest has nothing before it, so it's the line's start and left out.)
         const ordered = list.slice(0, 14).reverse();
@@ -3131,6 +3569,7 @@
         const parts = [
           part("price-panel", read("/api/v1/prices"), (p) => {
             $("price").textContent = dollars(p.USD);
+            data.price = p;
             facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
             facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
             refresh("oracle");
@@ -3140,7 +3579,10 @@
           part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read("/api/blocks/tip/height", "text").then((h) => ((tipSeen = h), document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h))))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {
+            data.blocks = list;
+            blockDigits = list.flatMap((/** @type {any} */ b) => Array.from(/** @type {string} */ (b.id), (h) => parseInt(h, 16) / 15));
             drawGuide(list);
+            chainChanged();
             answered("blocks-title", guide, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
@@ -3154,7 +3596,7 @@
             else delete facts.explorer;
             refresh("explorer");
           }, () => ((formingFacts.textContent = ""), forget("explorer"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
+          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (data.pools = d, drawPools(d), chainChanged(), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
           rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
             if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
@@ -3185,6 +3627,12 @@
       const STOPS = "#billboard .buttons > :not([hidden]), .row > li > a";
       document.addEventListener("keydown", (event) => {
         const key = event.key;
+        // (Digits as a remote's: straight to that channel, the page's first screen brought back.)
+        if (/^[1-8]$/.test(key) && !event.metaKey && !event.ctrlKey && !event.altKey && !sheet.matches(":popover-open")) {
+          event.preventDefault();
+          /** @type {HTMLElement} */ (tiles[Number(key) - 1].firstElementChild).focus({ preventScroll: true });
+          return void scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+        }
         if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key) || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || sheet.matches(":popover-open")) return;
         const from = /** @type {HTMLElement | null} */ (document.activeElement);
         if (!from || from === document.body) {
@@ -3220,6 +3668,30 @@
         timeForming();
         read("/api/blocks/tip/height", "text").then((h) => h !== tipSeen && round(), () => {});
       }
+      /** The scenes' readings, once: the map's dots and the months of history they draw. */
+      function loadScenes() {
+      read("/modules/world-atlas/2.0.2/countries-110m.json").then((atlas) => {
+        const { scale, translate } = atlas.transform;
+        const arcs = atlas.arcs.map((/** @type {number[][]} */ arc) => { let x = 0, y = 0; return arc.map((p) => { x += p[0]; y += p[1]; return [x * scale[0] + translate[0], y * scale[1] + translate[1]]; }); });
+        const [, m] = offscreen(720, 360);
+        m.fillStyle = "#fff";
+        const polygon = (/** @type {number[][]} */ rings) => {
+          m.beginPath();
+          for (const ring of rings) { let first = true; for (const ai of ring) { const points = ai < 0 ? [...arcs[~ai]].reverse() : arcs[ai]; for (const [lon, lat] of points) { const x = (lon + 180) * 2, y = (90 - lat) * 2; if (first) (m.moveTo(x, y), (first = false)); else m.lineTo(x, y); } } m.closePath(); }
+          m.fill("evenodd");
+        };
+        atlas.objects.countries.geometries.forEach((/** @type {any} */ g) => { if (g.type === "Polygon") polygon(g.arcs); else if (g.type === "MultiPolygon") g.arcs.forEach(polygon); });
+        const pixels = m.getImageData(0, 0, 720, 360).data;
+        for (let lat = -58; lat < 82; lat += 2.1) for (let lon = -180; lon < 180; lon += 2.1 / Math.max(0.3, Math.cos((lat * Math.PI) / 180))) { const x = Math.floor((lon + 180) * 2), y = Math.floor((90 - lat) * 2); if (pixels[(y * 720 + x) * 4 + 3] > 128) geoDots.push([(lon * Math.PI) / 180, (lat * Math.PI) / 180]); }
+        chainChanged();
+      }, () => {});
+      read(`/api/series/bulk?series=price,mvrv,nupl,realized_price,sats_per_dollar&index=month1&start=-160`).then((list) => {
+        data.series = list;
+        stackWindow = list[4]?.data.slice(-30) ?? [];
+        chainChanged();
+      }, () => {});
+      }
+      loadScenes();
       round();
       setInterval(round, 30_000);
       setInterval(pulse, 10_000);
