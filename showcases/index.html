@@ -1425,7 +1425,7 @@
         }
 
         b {
-          color: var(--brand);
+          color: var(--brand-text);
           font-weight: 700;
         }
 
@@ -3460,8 +3460,12 @@
       ];
       /** Each series' history, a month a point. @type {Map<string, number[]>} */
       const histories = new Map();
-      /** The featured charts' last year, a day a point: their line and their change the same window. @type {Map<string, number[]>} */
+      /** The featured charts' last year, a day a point, each its week's average so a noisy series (hashrate) reads as a line: their line and their change the same window. @type {Map<string, number[]>} */
       const lastYear = new Map();
+      /** Each featured series' latest day, unaveraged: the figure shown. @type {Map<string, number | null>} */
+      const lastDay = new Map();
+      /** A week's trailing average at each point, from the eighth on. */
+      const weekly = (/** @type {(number | null)[]} */ list) => list.slice(7).map((_, i) => { const week = /** @type {number[]} */ (list.slice(i + 1, i + 8).filter((v) => v != null)); return week.length ? week.reduce((a, b) => a + b, 0) / week.length : /** @type {any} */ (null); });
       /** Each watched canvas's size, and what draws it, from one observer: drawn again when it's resized, once its data's in. */
       const sizes = /** @type {WeakMap<Element, { width: number, height: number }>} */ (new WeakMap());
       const draws = /** @type {WeakMap<Element, () => void>} */ (new WeakMap());
@@ -3568,16 +3572,16 @@
         charts.append(el("li", {}, tile));
         return { c, canvas, value, moved };
       });
-      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-365`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => lastYear.set(id, replies[i].data)))]).then(() => {
+      near("charts-title", charts, () => Promise.all([readHistories(), read(`/api/series/bulk?series=${[...new Set(CHARTS.flatMap((c) => c.series))].join(",")}&index=day1&start=-372`).then((/** @type {any[]} */ replies) => [...new Set(CHARTS.flatMap((c) => c.series))].forEach((id, i) => { lastDay.set(id, replies[i].data.findLast((/** @type {any} */ v) => v != null) ?? null); lastYear.set(id, weekly(replies[i].data)); }))]).then(() => {
         for (const { c, canvas, value, moved } of chartTiles) {
-          const list = lastYear.get(c.series[0]) ?? [], last = list.findLastIndex((v) => v != null);
-          const now = last < 0 ? null : list[last], then = list.find((v) => v != null) ?? null;
+          const list = lastYear.get(c.series[0]) ?? [], now = lastDay.get(c.series[0]) ?? null;
+          const weekNow = list.findLast((v) => v != null) ?? null, then = list.find((v) => v != null) ?? null;
           // (Its unit, after a thin space, small and in words' face: a monospace's space is a whole figure wide.)
           const [figure, unit] = now == null ? [""] : c.unit(now).split("\u2009");
           value.replaceChildren(figure, ...(unit ? [el("small", {}, unit)] : []));
           // (How it moved over the year its line shows: the latest day against the first.)
-          if (now != null && then) {
-            const pct = (now / then - 1) * 100;
+          if (now != null && then && weekNow != null) {
+            const pct = (/** @type {number} */ (weekNow) / then - 1) * 100;
             moved.className = `moved ${pct >= 0 ? "up" : "down"}`;
             moved.innerHTML = `${pct >= 0 ? "+" : "−"}${Math.abs(pct) >= 100 ? grouped(Math.abs(pct)) : Math.abs(pct).toFixed(1)}%<small>1y</small>`;
           }
