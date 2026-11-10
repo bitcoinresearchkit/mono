@@ -10,16 +10,6 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
@@ -28,7 +18,12 @@
                 "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "address"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -272,6 +267,7 @@
           }
         },
         "annotations": {
+          "title": "Address information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -299,7 +295,13 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
             },
             "max_txs": {
               "description": "Transactions to return, at most 25 (the default); larger values return 25.",
@@ -311,20 +313,10 @@
           "required": [
             "address"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
-              "description": "Bitcoin address, or the hex public key of a P2PK output.",
-              "type": "string",
-              "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-              ]
-            }
-          }
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Address confirmed transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -357,11 +349,23 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
             },
             "after_txid": {
               "description": "Last txid from the previous page (return transactions strictly older than this)",
-              "$ref": "#/$defs/Txid"
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             },
             "max_txs": {
               "description": "Transactions to return, at most 25 (the default); larger values return 25.",
@@ -374,30 +378,10 @@
             "address",
             "after_txid"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
-              "description": "Bitcoin address, or the hex public key of a P2PK output.",
-              "type": "string",
-              "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-              ]
-            },
-            "Txid": {
-              "description": "A transaction ID: its hash.",
-              "type": "string",
-              "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ],
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          }
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Address confirmed transactions (paginated)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -435,22 +419,6 @@
           "type": "object",
           "properties": {
             "address_type": {
-              "$ref": "#/$defs/AddressOutputType"
-            },
-            "prefix": {
-              "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.",
-              "type": "string",
-              "pattern": "^[0-9a-f]{1,16}$"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "address_type",
-            "prefix"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "AddressOutputType": {
               "description": "The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.",
               "type": "string",
               "enum": [
@@ -463,8 +431,19 @@
                 "p2tr",
                 "p2a"
               ]
+            },
+            "prefix": {
+              "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.",
+              "type": "string",
+              "pattern": "^[0-9a-f]{1,16}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "address_type",
+            "prefix"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -540,6 +519,7 @@
           ]
         },
         "annotations": {
+          "title": "Address hash-prefix matches",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -572,7 +552,13 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
             },
             "max_txs": {
               "description": "Transactions to return, at most 50 (the default); larger values return 50.",
@@ -584,20 +570,10 @@
           "required": [
             "address"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
-              "description": "Bitcoin address, or the hex public key of a P2PK output.",
-              "type": "string",
-              "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-              ]
-            }
-          }
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Address mempool transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -630,11 +606,23 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
             },
             "after_txid": {
               "description": "Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed\ncursor skips the mempool). One that is neither answers 422.",
-              "$ref": "#/$defs/Txid"
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             },
             "max_txs": {
               "description": "Transactions to return, at most 50 (the default); larger values return 50.",
@@ -646,30 +634,10 @@
           "required": [
             "address"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
-              "description": "Bitcoin address, or the hex public key of a P2PK output.",
-              "type": "string",
-              "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
-              ]
-            },
-            "Txid": {
-              "description": "A transaction ID: its hash.",
-              "type": "string",
-              "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ],
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          }
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Address transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -707,16 +675,6 @@
           "type": "object",
           "properties": {
             "address": {
-              "$ref": "#/$defs/Address"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Address": {
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
@@ -725,9 +683,15 @@
                 "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "address"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Address UTXOs",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -755,16 +719,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -773,7 +727,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -971,6 +930,7 @@
           }
         },
         "annotations": {
+          "title": "Block information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -998,16 +958,6 @@
           "type": "object",
           "properties": {
             "timestamp": {
-              "$ref": "#/$defs/Timestamp"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "timestamp"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Timestamp": {
               "description": "A Unix timestamp, in seconds.",
               "type": "integer",
               "examples": [
@@ -1019,7 +969,12 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "timestamp"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -1073,6 +1028,7 @@
           }
         },
         "annotations": {
+          "title": "Block by timestamp",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1101,20 +1057,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -1130,9 +1075,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block fee rates",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1161,20 +1112,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -1190,9 +1130,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block fee rates (precise)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1221,20 +1167,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -1250,9 +1185,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block fees",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1280,16 +1221,6 @@
           "type": "object",
           "properties": {
             "height": {
-              "$ref": "#/$defs/Height"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Height": {
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
@@ -1300,9 +1231,15 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "height"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block hash by height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1330,16 +1267,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -1348,9 +1275,15 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block header",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1379,20 +1312,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -1408,9 +1330,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block rewards",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1439,20 +1367,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -1468,7 +1385,12 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -1587,6 +1509,7 @@
           ]
         },
         "annotations": {
+          "title": "Block sizes and weights",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1614,16 +1537,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -1632,7 +1545,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -1708,6 +1626,7 @@
           ]
         },
         "annotations": {
+          "title": "Block status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1738,6 +1657,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block tip hash",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1762,6 +1682,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block tip height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1783,24 +1704,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            },
-            "index": {
-              "description": "Transaction index within the block (0-based)",
-              "$ref": "#/$defs/BlockTxIndex",
-              "examples": [
-                0
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -1809,17 +1712,24 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
-            "BlockTxIndex": {
-              "description": "Position of a transaction within a single block (0 = coinbase).\nDistinct from `TxIndex`, which is the chain-wide global tx index.",
-              "type": "integer",
+            "index": {
+              "description": "Transaction index within the block (0-based)",
               "examples": [
                 0
               ],
+              "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Transaction ID at index",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1852,24 +1762,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            },
-            "start_index": {
-              "description": "Starting transaction index within the block (0-based)",
-              "$ref": "#/$defs/BlockTxIndex",
-              "examples": [
-                0
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash",
-            "start_index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -1878,17 +1770,24 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
-            "BlockTxIndex": {
-              "description": "Position of a transaction within a single block (0 = coinbase).\nDistinct from `TxIndex`, which is the chain-wide global tx index.",
-              "type": "integer",
+            "start_index": {
+              "description": "Starting transaction index within the block (0-based)",
               "examples": [
                 0
               ],
+              "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "start_index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Block transactions (paginated)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1921,16 +1820,6 @@
           "type": "object",
           "properties": {
             "hash": {
-              "$ref": "#/$defs/BlockHash"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "BlockHash": {
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
@@ -1939,7 +1828,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -2655,6 +2549,7 @@
           }
         },
         "annotations": {
+          "title": "Block (v1)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2685,6 +2580,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Recent blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2706,16 +2602,6 @@
           "type": "object",
           "properties": {
             "height": {
-              "$ref": "#/$defs/Height"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Height": {
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
@@ -2726,9 +2612,15 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "height"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Blocks from height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2759,6 +2651,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Recent blocks with extras",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2780,16 +2673,6 @@
           "type": "object",
           "properties": {
             "height": {
-              "$ref": "#/$defs/Height"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Height": {
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
@@ -2800,9 +2683,15 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "height"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Blocks from height with extras",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2830,16 +2719,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -2849,9 +2728,15 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "CPFP info",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3029,6 +2914,7 @@
           ]
         },
         "annotations": {
+          "title": "Difficulty adjustment",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3053,6 +2939,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Difficulty adjustments (all time)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3075,20 +2962,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -3104,9 +2980,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Difficulty adjustments",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3137,6 +3019,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Recent full-RBF replacements",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3279,6 +3162,7 @@
           ]
         },
         "annotations": {
+          "title": "Network hashrate (all time)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3301,20 +3185,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -3330,7 +3203,12 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -3451,6 +3329,7 @@
           ]
         },
         "annotations": {
+          "title": "Network hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3479,25 +3358,6 @@
           "properties": {
             "timestamp": {
               "description": "UNIX timestamp: the latest close at or before it",
-              "$ref": "#/$defs/Timestamp"
-            },
-            "currency": {
-              "description": "Quote currency: USD, the only one served",
-              "$ref": "#/$defs/Currency"
-            }
-          },
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Currency": {
-              "description": "A quote currency prices are served in: USD only.",
-              "type": "string",
-              "enum": [
-                "USD"
-              ]
-            },
-            "Timestamp": {
-              "description": "A Unix timestamp, in seconds.",
               "type": "integer",
               "examples": [
                 1231006505,
@@ -3507,8 +3367,17 @@
                 1759000868
               ],
               "minimum": 0
+            },
+            "currency": {
+              "description": "Quote currency: USD, the only one served",
+              "type": "string",
+              "enum": [
+                "USD"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -3592,6 +3461,7 @@
           ]
         },
         "annotations": {
+          "title": "Historical price",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3718,6 +3588,7 @@
           }
         },
         "annotations": {
+          "title": "Mempool statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3742,6 +3613,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Projected mempool blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3766,6 +3638,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Recent mempool transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3787,16 +3660,6 @@
           "type": "object",
           "properties": {
             "slug": {
-              "$ref": "#/$defs/PoolSlug"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "PoolSlug": {
               "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
@@ -3969,7 +3832,12 @@
                 "trustpool"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "slug"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -4324,6 +4192,7 @@
           ]
         },
         "annotations": {
+          "title": "Mining pool details",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4351,16 +4220,6 @@
           "type": "object",
           "properties": {
             "slug": {
-              "$ref": "#/$defs/PoolSlug"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "PoolSlug": {
               "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
@@ -4533,9 +4392,15 @@
                 "trustpool"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "slug"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Mining pool blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4563,31 +4428,6 @@
           "type": "object",
           "properties": {
             "slug": {
-              "$ref": "#/$defs/PoolSlug"
-            },
-            "height": {
-              "$ref": "#/$defs/Height"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "slug",
-            "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Height": {
-              "description": "A block height: how many blocks came before it.",
-              "type": "integer",
-              "examples": [
-                0,
-                210000,
-                420000,
-                840000
-              ],
-              "minimum": 0
-            },
-            "PoolSlug": {
               "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
@@ -4759,10 +4599,28 @@
                 "dmnd",
                 "trustpool"
               ]
+            },
+            "height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ],
+              "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "slug",
+            "height"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Mining pool blocks before height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4795,16 +4653,6 @@
           "type": "object",
           "properties": {
             "slug": {
-              "$ref": "#/$defs/PoolSlug"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "PoolSlug": {
               "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
@@ -4977,9 +4825,15 @@
                 "trustpool"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "slug"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Mining pool hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5008,20 +4862,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -5037,7 +4880,12 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -5349,6 +5197,7 @@
           ]
         },
         "annotations": {
+          "title": "Mining pool statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5379,6 +5228,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "List all mining pools",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5403,6 +5253,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "All pools hashrate (all time)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5425,20 +5276,9 @@
           "properties": {
             "time_period": {
               "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "$ref": "#/$defs/TimePeriod",
               "examples": [
                 "24h"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TimePeriod": {
-              "description": "Lookback window for mining statistics.",
+              ],
               "type": "string",
               "enum": [
                 "24h",
@@ -5454,9 +5294,15 @@
                 "all"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "All pools hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5587,6 +5433,7 @@
           }
         },
         "annotations": {
+          "title": "Recommended fee rates (precise)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5667,6 +5514,7 @@
           }
         },
         "annotations": {
+          "title": "Current BTC price",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5691,6 +5539,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Recent RBF replacements",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5810,6 +5659,7 @@
           }
         },
         "annotations": {
+          "title": "Mining reward statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5837,42 +5687,15 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName"
+              "type": "string",
+              "examples": [
+                "price_close",
+                "market_cap",
+                "realized_price"
+              ],
+              "pattern": "^[a-z0-9_]+$"
             },
             "index": {
-              "$ref": "#/$defs/Index"
-            },
-            "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
-              "$ref": "#/$defs/RangeIndex"
-            },
-            "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
-              "$ref": "#/$defs/RangeIndex"
-            },
-            "limit": {
-              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
-              "$ref": "#/$defs/Limit"
-            },
-            "format": {
-              "$ref": "#/$defs/Format"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Format": {
-              "type": "string",
-              "enum": [
-                "json",
-                "csv"
-              ]
-            },
-            "Index": {
               "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
@@ -5912,18 +5735,8 @@
                 "day1"
               ]
             },
-            "Limit": {
-              "description": "Maximum number of results to return; each parameter states what omitting it means.",
-              "type": "integer",
-              "examples": [
-                1,
-                10,
-                100
-              ],
-              "minimum": 0
-            },
-            "RangeIndex": {
-              "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
+            "start": {
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -5947,20 +5760,70 @@
                     "2025-08-15T00:00:00Z"
                   ]
                 }
+              ],
+              "type": [
+                "integer",
+                "string"
               ]
             },
-            "SeriesName": {
-              "type": "string",
-              "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+            "end": {
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "examples": [
+                    0,
+                    -366
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "examples": [
+                    "2025-08-15"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "examples": [
+                    "2025-08-15T00:00:00Z"
+                  ]
+                }
               ],
-              "pattern": "^[a-z0-9_]+$"
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "limit": {
+              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
+              "type": "integer",
+              "examples": [
+                1,
+                10,
+                100
+              ],
+              "minimum": 0
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Get series data",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6013,42 +5876,17 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesList"
+              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. For arrays, the byte budget is shared by their string values.",
+              "type": "string",
+              "examples": [
+                "date,price_close",
+                "price_close",
+                "price_close,market_cap",
+                "realized_price,market_cap,mvrv"
+              ],
+              "maxLength": 2048
             },
             "index": {
-              "$ref": "#/$defs/Index"
-            },
-            "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
-              "$ref": "#/$defs/RangeIndex"
-            },
-            "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
-              "$ref": "#/$defs/RangeIndex"
-            },
-            "limit": {
-              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
-              "$ref": "#/$defs/Limit"
-            },
-            "format": {
-              "$ref": "#/$defs/Format"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Format": {
-              "type": "string",
-              "enum": [
-                "json",
-                "csv"
-              ]
-            },
-            "Index": {
               "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
@@ -6088,18 +5926,8 @@
                 "day1"
               ]
             },
-            "Limit": {
-              "description": "Maximum number of results to return; each parameter states what omitting it means.",
-              "type": "integer",
-              "examples": [
-                1,
-                10,
-                100
-              ],
-              "minimum": 0
-            },
-            "RangeIndex": {
-              "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
+            "start": {
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -6123,22 +5951,70 @@
                     "2025-08-15T00:00:00Z"
                   ]
                 }
+              ],
+              "type": [
+                "integer",
+                "string"
               ]
             },
-            "SeriesList": {
-              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. For arrays, the byte budget is shared by their string values.",
-              "type": "string",
-              "examples": [
-                "date,price_close",
-                "price_close",
-                "price_close,market_cap",
-                "realized_price,market_cap,mvrv"
+            "end": {
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "examples": [
+                    0,
+                    -366
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "examples": [
+                    "2025-08-15"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "examples": [
+                    "2025-08-15T00:00:00Z"
+                  ]
+                }
               ],
-              "maxLength": 2048
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "limit": {
+              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
+              "type": "integer",
+              "examples": [
+                1,
+                10,
+                100
+              ],
+              "minimum": 0
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Bulk series data",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6292,6 +6168,7 @@
           }
         },
         "annotations": {
+          "title": "Series count",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6313,16 +6190,6 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "SeriesName": {
               "type": "string",
               "examples": [
                 "price_close",
@@ -6331,7 +6198,12 @@
               ],
               "pattern": "^[a-z0-9_]+$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -6447,6 +6319,7 @@
           ]
         },
         "annotations": {
+          "title": "Get series info",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6474,20 +6347,15 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName"
+              "type": "string",
+              "examples": [
+                "price_close",
+                "market_cap",
+                "realized_price"
+              ],
+              "pattern": "^[a-z0-9_]+$"
             },
             "index": {
-              "$ref": "#/$defs/Index"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Index": {
               "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
@@ -6526,19 +6394,17 @@
               "examples": [
                 "day1"
               ]
-            },
-            "SeriesName": {
-              "type": "string",
-              "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
-              ],
-              "pattern": "^[a-z0-9_]+$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Get latest series value",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6571,20 +6437,15 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName"
+              "type": "string",
+              "examples": [
+                "price_close",
+                "market_cap",
+                "realized_price"
+              ],
+              "pattern": "^[a-z0-9_]+$"
             },
             "index": {
-              "$ref": "#/$defs/Index"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Index": {
               "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
@@ -6623,19 +6484,17 @@
               "examples": [
                 "day1"
               ]
-            },
-            "SeriesName": {
-              "type": "string",
-              "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
-              ],
-              "pattern": "^[a-z0-9_]+$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Get series data length",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6668,20 +6527,15 @@
           "type": "object",
           "properties": {
             "series": {
-              "$ref": "#/$defs/SeriesName"
+              "type": "string",
+              "examples": [
+                "price_close",
+                "market_cap",
+                "realized_price"
+              ],
+              "pattern": "^[a-z0-9_]+$"
             },
             "index": {
-              "$ref": "#/$defs/Index"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "series",
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Index": {
               "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
@@ -6720,19 +6574,17 @@
               "examples": [
                 "day1"
               ]
-            },
-            "SeriesName": {
-              "type": "string",
-              "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
-              ],
-              "pattern": "^[a-z0-9_]+$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "series",
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Get series version",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6883,6 +6735,7 @@
           ]
         },
         "annotations": {
+          "title": "Sync status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6932,6 +6785,7 @@
           }
         },
         "annotations": {
+          "title": "Transaction first-seen times",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6959,16 +6813,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -6978,7 +6822,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -7377,6 +7226,7 @@
           }
         },
         "annotations": {
+          "title": "Transaction information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7404,16 +7254,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7423,9 +7263,15 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Transaction hex",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7453,16 +7299,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7472,7 +7308,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -7532,6 +7373,7 @@
           }
         },
         "annotations": {
+          "title": "Transaction merkle proof",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7559,16 +7401,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7578,9 +7410,15 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Transaction merkleblock proof",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7608,21 +7446,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            },
-            "vout": {
-              "description": "Output index",
-              "$ref": "#/$defs/Vout"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid",
-            "vout"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7632,8 +7455,8 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
-            "Vout": {
-              "description": "Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)",
+            "vout": {
+              "description": "Output index",
               "type": "integer",
               "examples": [
                 0,
@@ -7644,7 +7467,13 @@
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid",
+            "vout"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -7794,6 +7623,7 @@
           ]
         },
         "annotations": {
+          "title": "Output spend status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7826,16 +7656,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7845,9 +7665,15 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "All output spend statuses",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7875,16 +7701,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -7894,7 +7710,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -8067,6 +7888,7 @@
           "type": "object"
         },
         "annotations": {
+          "title": "RBF replacement history",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8094,16 +7916,6 @@
           "type": "object",
           "properties": {
             "txid": {
-              "$ref": "#/$defs/Txid"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
@@ -8113,7 +7925,12 @@
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -8213,6 +8030,7 @@
           ]
         },
         "annotations": {
+          "title": "Transaction status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8241,26 +8059,21 @@
           "properties": {
             "index": {
               "description": "Global transaction index across the chain",
-              "$ref": "#/$defs/TxIndex"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "TxIndex": {
-              "description": "Chain-wide transaction index (0 = the genesis coinbase). For an\nin-block position, use `BlockTxIndex` instead.",
               "type": "integer",
               "examples": [
                 0
               ],
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "index"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Txid by index",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8288,80 +8101,6 @@
           "type": "object",
           "properties": {
             "cohort": {
-              "$ref": "#/$defs/UrpdCohort"
-            },
-            "point": {
-              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
-              "$ref": "#/$defs/HeightOrDate"
-            },
-            "agg": {
-              "description": "Aggregation strategy. Default: raw (no aggregation).",
-              "$ref": "#/$defs/UrpdAggregation",
-              "default": "raw"
-            },
-            "weight": {
-              "description": "Supply weighting. Default: none (unweighted).",
-              "$ref": "#/$defs/UrpdWeight",
-              "default": "none"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "cohort",
-            "point"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Date": {
-              "description": "Calendar date in YYYY-MM-DD format.",
-              "type": "string",
-              "format": "date",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "examples": [
-                "2009-01-03",
-                "2024-04-20"
-              ]
-            },
-            "Height": {
-              "description": "A block height: how many blocks came before it.",
-              "type": "integer",
-              "examples": [
-                0,
-                210000,
-                420000,
-                840000
-              ],
-              "minimum": 0
-            },
-            "HeightOrDate": {
-              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                },
-                {
-                  "$ref": "#/$defs/Date"
-                }
-              ]
-            },
-            "UrpdAggregation": {
-              "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic, that many buckets per decade).",
-              "type": "string",
-              "enum": [
-                "raw",
-                "lin200",
-                "lin500",
-                "lin1000",
-                "log10",
-                "log50",
-                "log100",
-                "log200",
-                "log500",
-                "log1000",
-                "log2000"
-              ]
-            },
-            "UrpdCohort": {
               "description": "A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).",
               "type": "string",
               "enum": [
@@ -8397,14 +8136,77 @@
                 "age_over_15y"
               ]
             },
-            "UrpdWeight": {
-              "description": "The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band\nweighted by the share of its coin days already consumed, Cointime's; the distribution behind the\n`*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever\nspent, Coinflow's; behind `*_mobile_*`).",
+            "point": {
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ],
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "agg": {
+              "description": "Aggregation strategy. Default: raw (no aggregation).",
+              "default": "raw",
+              "type": "string",
+              "enum": [
+                "raw",
+                "lin200",
+                "lin500",
+                "lin1000",
+                "log10",
+                "log50",
+                "log100",
+                "log200",
+                "log500",
+                "log1000",
+                "log2000"
+              ]
+            },
+            "weight": {
+              "description": "Supply weighting. Default: none (unweighted).",
+              "default": "none",
               "type": "string",
               "enum": [
                 "none",
                 "wakefulness",
                 "mobility"
               ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "cohort",
+            "point"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Date": {
+              "description": "Calendar date in YYYY-MM-DD format.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "examples": [
+                "2009-01-03",
+                "2024-04-20"
+              ]
+            },
+            "Height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ],
+              "minimum": 0
             }
           }
         },
@@ -8651,6 +8453,7 @@
           }
         },
         "annotations": {
+          "title": "URPD at block height or date",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8693,43 +8496,6 @@
           "type": "object",
           "properties": {
             "cohort": {
-              "$ref": "#/$defs/UrpdCohort"
-            },
-            "agg": {
-              "description": "Aggregation strategy. Default: raw (no aggregation).",
-              "$ref": "#/$defs/UrpdAggregation",
-              "default": "raw"
-            },
-            "weight": {
-              "description": "Supply weighting. Default: none (unweighted).",
-              "$ref": "#/$defs/UrpdWeight",
-              "default": "none"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "cohort"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "UrpdAggregation": {
-              "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic, that many buckets per decade).",
-              "type": "string",
-              "enum": [
-                "raw",
-                "lin200",
-                "lin500",
-                "lin1000",
-                "log10",
-                "log50",
-                "log100",
-                "log200",
-                "log500",
-                "log1000",
-                "log2000"
-              ]
-            },
-            "UrpdCohort": {
               "description": "A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).",
               "type": "string",
               "enum": [
@@ -8765,8 +8531,27 @@
                 "age_over_15y"
               ]
             },
-            "UrpdWeight": {
-              "description": "The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band\nweighted by the share of its coin days already consumed, Cointime's; the distribution behind the\n`*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever\nspent, Coinflow's; behind `*_mobile_*`).",
+            "agg": {
+              "description": "Aggregation strategy. Default: raw (no aggregation).",
+              "default": "raw",
+              "type": "string",
+              "enum": [
+                "raw",
+                "lin200",
+                "lin500",
+                "lin1000",
+                "log10",
+                "log50",
+                "log100",
+                "log200",
+                "log500",
+                "log1000",
+                "log2000"
+              ]
+            },
+            "weight": {
+              "description": "Supply weighting. Default: none (unweighted).",
+              "default": "none",
               "type": "string",
               "enum": [
                 "none",
@@ -8774,7 +8559,12 @@
                 "mobility"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "cohort"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "$defs": {
@@ -9019,6 +8809,7 @@
           }
         },
         "annotations": {
+          "title": "Latest URPD",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9057,7 +8848,18 @@
           "properties": {
             "point": {
               "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
-              "$ref": "#/$defs/HeightOrDate"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ],
+              "type": [
+                "integer",
+                "string"
+              ]
             }
           },
           "additionalProperties": false,
@@ -9086,17 +8888,6 @@
                 840000
               ],
               "minimum": 0
-            },
-            "HeightOrDate": {
-              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                },
-                {
-                  "$ref": "#/$defs/Date"
-                }
-              ]
             }
           }
         },
@@ -9259,6 +9050,7 @@
           }
         },
         "annotations": {
+          "title": "UTXO set changes of a block or date",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9289,6 +9081,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "List available indexes",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9419,6 +9212,7 @@
           }
         },
         "annotations": {
+          "title": "Series list",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9454,6 +9248,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Available URPD cohorts",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9500,6 +9295,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
+          "title": "Search series",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9713,6 +9509,7 @@
           ]
         },
         "annotations": {
+          "title": "Validate address",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,

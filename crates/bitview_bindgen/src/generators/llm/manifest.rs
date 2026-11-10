@@ -43,6 +43,8 @@ struct ManifestTool {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ManifestToolAnnotations {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
     read_only_hint: bool,
     destructive_hint: bool,
     idempotent_hint: bool,
@@ -138,6 +140,7 @@ fn operation_from_endpoint<'a>(
             input_schema,
             output_schema,
             annotations: ManifestToolAnnotations {
+                title: endpoint.summary.clone(),
                 read_only_hint: true,
                 destructive_hint: false,
                 idempotent_hint: true,
@@ -188,7 +191,10 @@ fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result
         return Ok(None);
     };
     let mut schema = standalone_schema(json_schema, schemas)?;
-    inline_root_reference(&mut schema);
+    let definitions = schema.get("$defs").cloned().unwrap_or_default();
+    inline_root_reference(&mut schema, "#/$defs/", |name| {
+        definitions.get(name).cloned()
+    });
     if schema.get("type").and_then(Value::as_str) != Some("object") {
         return Ok(None);
     }
@@ -197,16 +203,20 @@ fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result
 }
 
 /// Replaces a root `$ref` with the definition it names, so the root states its own type.
-fn inline_root_reference(schema: &mut Value) {
+fn inline_root_reference(
+    schema: &mut Value,
+    prefix: &str,
+    definition: impl Fn(&str) -> Option<Value>,
+) {
     let Some(root) = schema.as_object_mut() else {
         return;
     };
     let target = root
         .get("$ref")
         .and_then(Value::as_str)
-        .and_then(|reference| reference.strip_prefix("#/$defs/"))
-        .and_then(|name| root.get("$defs")?.get(name)?.as_object())
-        .cloned();
+        .and_then(|reference| reference.strip_prefix(prefix))
+        .and_then(|name| definition(&unescape_json_pointer(name)))
+        .and_then(|target| target.as_object().cloned());
     let Some(target) = target else {
         return;
     };
@@ -294,6 +304,37 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         .chain(endpoint.query_params.iter())
     {
         let mut schema = parameter.schema.clone();
+        inline_root_reference(&mut schema, COMPONENT_REF_PREFIX, |name| {
+            schemas.get(name).cloned()
+        });
+        // A union also states its accepted primitive types for clients that inspect only `type`.
+        if schema.get("type").is_none()
+            && let Some(branches) = schema.get("anyOf").and_then(Value::as_array)
+        {
+            let types = branches
+                .iter()
+                .map(|branch| {
+                    let mut branch = branch.clone();
+                    inline_root_reference(&mut branch, COMPONENT_REF_PREFIX, |name| {
+                        schemas.get(name).cloned()
+                    });
+                    branch
+                        .get("type")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned)
+                })
+                .collect::<Option<BTreeSet<_>>>();
+            if let Some(types) = types {
+                let types = types
+                    .into_iter()
+                    .map(|kind| Value::String(kind.to_string()))
+                    .collect();
+                schema
+                    .as_object_mut()
+                    .expect("parameter schema object")
+                    .insert("type".into(), Value::Array(types));
+            }
+        }
         if let Some(description) = &parameter.description
             && let Some(object) = schema.as_object_mut()
         {
