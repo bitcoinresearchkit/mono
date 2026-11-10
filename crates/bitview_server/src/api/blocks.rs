@@ -97,6 +97,28 @@ fn block_json_response(params: CacheParams, value: &impl Serialize) -> QueryResu
     }))
 }
 
+#[derive(Clone, Copy)]
+enum BlockTxSelection {
+    Index(BlockTxIndex),
+    Page(BlockTxIndex),
+}
+
+impl BlockTxSelection {
+    fn validate(self, q: &Query, snapshot: &ResolvedBlocks) -> QueryResult<()> {
+        let index = match self {
+            Self::Index(index) | Self::Page(index) => index,
+        };
+        snapshot.validate_tx_index(q, index)?;
+        // Keep range errors first, as on the ordinary Esplora response.
+        if matches!(self, Self::Page(_)) && u32::from(index) % BLOCK_TXS_PAGE_SIZE != 0 {
+            return Err(QueryError::InvalidParam(format!(
+                "start index must be a multiple of {BLOCK_TXS_PAGE_SIZE}"
+            )));
+        }
+        Ok(())
+    }
+}
+
 impl AppState {
     async fn respond_block_tip(&self, headers: HeaderMap, hash: bool) -> Result<Response, Error> {
         Ok(self
@@ -264,7 +286,7 @@ impl AppState {
         headers: HeaderMap,
         hash: BlockHash,
         schema: &'static str,
-        tx_index: Option<BlockTxIndex>,
+        tx_selection: Option<BlockTxSelection>,
         build: impl FnOnce(&Query, ResolvedBlocks, CacheParams) -> QueryResult<Response>
         + Clone
         + Send
@@ -275,8 +297,8 @@ impl AppState {
             && let Some(snapshot) =
                 self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
         {
-            if let Some(index) = tx_index {
-                self.query.sync(|q| snapshot.validate_tx_index(q, index))?;
+            if let Some(selection) = tx_selection {
+                self.query.sync(|q| selection.validate(q, &snapshot))?;
             }
             let params = block_params(&snapshot, schema, cdn_cache_mode)?;
             if params.etag.matches(&headers) {
@@ -288,8 +310,8 @@ impl AppState {
         Ok(self
             .read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
                 let snapshot = q.resolve_block_snapshot(&hash)?;
-                if let Some(index) = tx_index {
-                    snapshot.validate_tx_index(q, index)?;
+                if let Some(selection) = tx_selection {
+                    selection.validate(q, &snapshot)?;
                 }
                 let params = block_params(&snapshot, schema, cdn_cache_mode)?;
                 if params.etag.matches(&headers) {
@@ -585,7 +607,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txid-v2", Some(path.index), move |q, snapshot, params| {
+                    state.respond_exact_block(headers, path.hash, "txid-v2", Some(BlockTxSelection::Index(path.index)), move |q, snapshot, params| {
                         let bytes = Bytes::from(snapshot.anchor_txid(q, path.index)?.to_string());
                         Ok(AppState::assemble_response(params, bytes, |headers| {
                             headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
@@ -639,7 +661,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxIndex::default()), |q, snapshot, params| {
+                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(BlockTxIndex::default())), |q, snapshot, params| {
                         block_json_response(params, &snapshot.anchor_txs(q, BlockTxIndex::default(), BLOCK_TXS_PAGE_SIZE)?)
                     }).await
                 },
@@ -666,13 +688,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(path.start_index), move |q, snapshot, params| {
-                        // After the range check (404), as Esplora: pages start on page boundaries.
-                        if u32::from(path.start_index) % BLOCK_TXS_PAGE_SIZE != 0 {
-                            return Err(QueryError::InvalidParam(format!(
-                                "start index must be a multiple of {BLOCK_TXS_PAGE_SIZE}"
-                            )));
-                        }
+                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(path.start_index)), move |q, snapshot, params| {
                         block_json_response(params, &snapshot.anchor_txs(q, path.start_index, BLOCK_TXS_PAGE_SIZE)?)
                     }).await
                 },
