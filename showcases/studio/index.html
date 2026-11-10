@@ -12613,18 +12613,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       }
-      /** Wilder's moving average, seeded with the first n finite values' arithmetic mean. @param {Vector} x */
-      function rmaOf(x, n) {
-        const out = new Float64Array(x.length).fill(NaN);
-        let value = 0, seen = 0;
-        for (let i = 0; i < x.length; i++) {
-          if (!Number.isFinite(x[i])) continue;
-          if (++seen <= n) value += x[i] / n;
-          else value += (x[i] - value) / n;
-          if (seen >= n) out[i] = value;
-        }
-        return out;
-      }
       /** A rolling standard deviation (two values at least). @param {Vector} x */
       const deviationOf = (x, n, partial = false) => ((stats) => stats.variance.map((value, i) => (stats.count[i] >= 2 ? Math.sqrt(value) : NaN)))(rolling(x, n, partial));
       /** Wilder's RSI over `n` points: its average gain against its average loss, each smoothed by 1/n. @param {Vector} x */
@@ -12892,7 +12880,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FUNCTIONS = {
         sma: [2, "sma(x, span?)", "moving average (no span: of all so far)", (x, n, _p, partial) => rolling(x, n, partial).mean, true],
         ema: [2, "ema(x, span)", "exponential moving average", (x, n, _p, partial) => emaOf(x, n, partial)],
-        rma: [2, "rma(x, span)", "Wilder's moving average, seeded with the span's mean", (x, n) => rmaOf(x, n)],
         sum: [2, "sum(x, span?)", "rolling sum (no span: of all so far)", (x, n, _p, partial) => {
           // All so far: a running total, exact.
           if (n === Infinity) {
@@ -13164,7 +13151,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
       const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "rma", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
       /** Functions whose result is a percent, whatever their input's unit. */
       const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
