@@ -354,6 +354,19 @@ fn signed_rate_comparison_handles_products_beyond_i128() {
         let scale = 1i128 << 100;
         assert_eq!(compare_feerates(a, b), compare_feerates((a.0 * scale, a.1), (b.0 * scale, b.1)));
     }
+    // Crossing the signed-64 boundary must preserve the same ratio order, including
+    // products near the signed-128 limit and cancellation across signs.
+    for fa in [i64::MIN, i64::MIN + 1, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+        for fb in [i64::MIN, i64::MIN + 1, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+            for wa in [1, u64::MAX / 2, u64::MAX] {
+                for wb in [1, u64::MAX / 2, u64::MAX] {
+                    let a = (i128::from(fa), Weight::from(wa));
+                    let b = (i128::from(fb), Weight::from(wb));
+                    assert_eq!(compare_feerates(a, b), compare_feerates((a.0 * 2, a.1), (b.0 * 2, b.1)));
+                }
+            }
+        }
+    }
     for fee in [i128::MIN, i128::MIN + 1, -1, 0, 1, i128::MAX - 1, i128::MAX] {
         assert!(compare_feerates((fee, Weight::from(u64::MAX)), (fee, Weight::from(u64::MAX))).is_eq());
         if fee > 0 {
