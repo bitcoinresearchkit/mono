@@ -1695,7 +1695,7 @@ const _SERIES_KEEP = { "data": true };
  * @property {string} baseUrl
  * @property {number} [timeout] - Request timeout in milliseconds, the download included. Default: 30000
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
- * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled. Every caller of a URL shares the value it holds, frozen deeply (bytes, a Uint8Array, can't be frozen: don't change them): copy it before changing it, or disable the cache to own every value
+ * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled. Callers of a URL with the same body reader and JSON key-preservation schema share the value it holds, frozen deeply (bytes, a Uint8Array, can't be frozen: don't change them): copy it before changing it, or disable the cache to own every value
  */
 
 const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
@@ -1738,7 +1738,7 @@ const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(aw
 
 /**
  * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
- * caller of its URL gets the same object, so none may change it. Typed arrays (byte bodies) can't
+ * caller with the same body reader and schema gets the same object. Typed arrays (byte bodies) can't
  * be frozen and stay as they are; strings already can't change.
  * @template T
  * @param {T} value
@@ -2210,7 +2210,7 @@ class BitviewClientBase {
    * - Responses marked `Cache-Control: no-store` are never cached.
    *
    * Layers:
-   * - L1 (memCache): in-memory parsed values keyed by body kind + URL, with their ETag. Lets 304s
+   * - L1 (memCache): parsed values keyed by body kind, JSON key-preservation schema and URL. Lets 304s
    *   skip the parse entirely. A value it holds is shared by every caller, so it's frozen deeply.
    * - L2 (browserCache): Cache API, survives reload and feeds onValue fast on cold start.
    *
@@ -2219,9 +2219,10 @@ class BitviewClientBase {
    * @param {'json' | 'text' | 'bytes'} kind - The body reader, part of the memCache key
    * @param {(res: Response) => Promise<T>} parse - Response body reader
    * @param {ClientFetchOptions<T>} [options]
+   * @param {*} [schema] - JSON key-preservation schema used by the body reader
    * @returns {Promise<T>}
    */
-  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}) {
+  async _getCached(path, kind, parse, { onValue, signal, cache = true, memCache = true } = {}, schema) {
     if (!cache) {
       const res = await this.get(path, { signal, cache });
       const value = await parse(res);
@@ -2230,7 +2231,7 @@ class BitviewClientBase {
     }
 
     const url = `${this.baseUrl}${path}`;
-    const key = `${kind} ${url}`;
+    const key = `${kind} ${JSON.stringify(schema) ?? ''} ${url}`;
     const useMemCache = memCache !== false;
     /** @type {_MemEntry<T> | undefined} */
     const memHit = useMemCache ? this._memGet(key) : undefined;
@@ -2319,7 +2320,7 @@ class BitviewClientBase {
    * @returns {Promise<Frozen<T>>}
    */
   getJson(path, options, keep) {
-    return this._getCached(path, 'json', _readJson(keep), options);
+    return this._getCached(path, 'json', _readJson(keep), options, keep);
   }
 
   /**
@@ -2408,7 +2409,7 @@ class BitviewClientBase {
     const onValue = requestOptions.onValue;
     const wrappedOnValue = onValue ? (/** @type {SeriesData<T>} */ raw) => onValue(_wrapSeriesData(raw)) : undefined;
     // `getJson`'s reader, typed as the series it is (its data already frozen).
-    const raw = await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { ...requestOptions, onValue: wrappedOnValue });
+    const raw = await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { ...requestOptions, onValue: wrappedOnValue }, _SERIES_KEEP);
     return _wrapSeriesData(raw);
   }
 }
