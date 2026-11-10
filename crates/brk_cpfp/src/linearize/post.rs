@@ -2,7 +2,9 @@
 //! worse. One pass each way makes its chunks connected, and the linearization optimal for trees
 //! (every transaction with at most one parent, or at most one child).
 
-use brk_types::CpfpClusterTxIndex;
+use brk_types::{CpfpClusterTxIndex, Weight};
+
+use super::compare_feerates;
 
 use crate::cluster::Node;
 
@@ -16,7 +18,7 @@ pub(super) struct Post {
     previous_tx: Vec<usize>,
     first_tx: Vec<usize>,
     previous_group: Vec<usize>,
-    fee: Vec<i64>,
+    fee: Vec<i128>,
     weight: Vec<u64>,
     /// Each group's members and what it depends on (rows of `words`).
     members: Vec<u64>,
@@ -54,15 +56,15 @@ impl Post {
         self.members.resize((n + 1) * words, 0);
         self.deps.clear();
         self.deps.resize((n + 1) * words, 0);
-        let above = |a: (i64, u64), b: (i64, u64)| {
-            i128::from(a.0) * i128::from(b.1) > i128::from(b.0) * i128::from(a.1)
+        let above = |a: (i128, u64), b: (i128, u64)| {
+            b.1 != 0 && compare_feerates((a.0, Weight::from(a.1)), (b.0, Weight::from(b.1))).is_gt()
         };
         for i in 0..n {
             let tx = u32::from(order[if rev { n - 1 - i } else { i }]) as usize;
             let current = tx + 1;
             self.members[current * words + tx / 64] |= 1u64 << (tx % 64);
             self.deps[current * words..][..words].copy_from_slice(&deps[tx * words..][..words]);
-            let modified = nodes[tx].modified;
+            let modified = i128::from(nodes[tx].modified);
             self.fee[current] = if rev { -modified } else { modified };
             self.weight[current] = u64::from(nodes[tx].weight);
             self.first_tx[current] = current;

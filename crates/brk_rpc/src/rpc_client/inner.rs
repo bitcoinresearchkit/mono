@@ -102,8 +102,11 @@ impl ClientInner {
                 sleep(RETRY_DELAY);
             }
             match self.client.send_batch(&requests) {
-                // A warming-up node answers a batch item by item, each with its warm-up error.
-                Ok(responses) if responses.iter().flatten().any(in_warmup) => {
+                // A warming-up node answers every item with its warm-up error. Preserve
+                // independently valid items when just one method is unavailable; the caller
+                // owns each item's retry/fallback policy (notably stale priority metadata).
+                Ok(responses) if !responses.is_empty()
+                    && responses.iter().all(|response| response.as_ref().is_some_and(in_warmup)) => {
                     if attempt == 0 {
                         warn!("Bitcoin Core RPC batch {label}: the node is warming up; retrying");
                     }

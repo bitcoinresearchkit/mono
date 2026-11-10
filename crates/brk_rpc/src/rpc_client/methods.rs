@@ -14,7 +14,7 @@ use tracing::{debug, info, warn};
 use super::{
     BlockSpends, Client, ClientInner,
     mempool_entry::MempoolEntry,
-    mempool_state::MempoolState,
+    mempool_state::{MempoolObservation, MempoolState},
     responses::{
         GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetChainTip,
         GetMempoolInfo,
@@ -110,6 +110,16 @@ impl Client {
     /// and `getrawmempool` calls; no follow-up entry fetch can race it. No template when Core
     /// refuses one (in initial sync, or with no peers): the tip is then `getbestblockhash`'s.
     pub fn fetch_mempool_state(&self) -> Result<(MempoolState, Option<Vec<BlockTemplateTx>>)> {
+        let observation = self.fetch_mempool_state_ranked(&[])?;
+        Ok((observation.state, observation.block_template))
+    }
+
+    /// The same observation with authoritative modified fees for projection. A failed priority
+    /// read retains `previous` with a warning; membership and the returned template still update.
+    pub fn fetch_mempool_state_ranked(
+        &self,
+        previous: &[(Txid, i64)],
+    ) -> Result<MempoolObservation> {
         let template_args = (json!({ "rules": ["segwit"] }),);
         let calls = [
             RpcCall::new("getbestblockhash", &NO_ARGS)?,
@@ -155,10 +165,11 @@ impl Client {
         };
         let info: GetMempoolInfo = from_str(info_raw.get())?;
         let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
-        let fee_deltas = Self::build_fee_deltas(deltas_raw);
+        let PriorityFees { deltas: fee_deltas, modified: modified_fees } =
+            Self::priority_fees(deltas_raw, previous);
 
-        Ok((
-            MempoolState {
+        Ok(MempoolObservation {
+            state: MempoolState {
                 live_txids,
                 min_fee,
                 tip_hash,
@@ -166,32 +177,53 @@ impl Client {
                 loaded: info.loaded,
             },
             block_template,
-        ))
+            modified_fees,
+        })
     }
 
-    /// The nonzero deltas of transactions in the mempool, in txid byte order. A node without the
-    /// call (before Core 27) has none to report: an error reads as none.
-    fn build_fee_deltas(raw: Result<Box<RawValue>>) -> Box<[(Txid, i64)]> {
+    fn priority_fees(raw: Result<Box<RawValue>>, previous: &[(Txid, i64)]) -> PriorityFees {
+        match Self::build_fee_deltas(raw) {
+            Ok(fees) => fees,
+            Err(error) => {
+                warn!(%error, "getprioritisedtransactions: stale ranking metadata, retaining previous modified fees");
+                PriorityFees { deltas: Box::default(), modified: previous.into() }
+            }
+        }
+    }
+
+    /// Unsupported (-32601) alone permits base-fee compatibility. An empty successful map,
+    /// a transient RPC error and malformed metadata are different observations.
+    fn build_fee_deltas(raw: Result<Box<RawValue>>) -> Result<PriorityFees> {
         #[derive(serde::Deserialize)]
         struct Prioritised {
             fee_delta: i64,
             in_mempool: bool,
+            modified_fee: Option<i64>,
         }
-        let parsed =
-            raw.and_then(|raw| Ok(from_str::<RapidHashMap<Txid, Prioritised>>(raw.get())?));
-        let mut deltas: Vec<(Txid, i64)> = match parsed {
-            Ok(map) => map
-                .into_iter()
-                .filter(|(_, p)| p.in_mempool && p.fee_delta != 0)
-                .map(|(txid, p)| (txid, p.fee_delta))
-                .collect(),
-            Err(error) => {
-                debug!(%error, "getprioritisedtransactions: no fee deltas");
-                Vec::new()
+        let raw = match raw {
+            Ok(raw) => raw,
+            Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == -32601 => {
+                debug!("getprioritisedtransactions unsupported: local projection uses base fees");
+                return Ok(PriorityFees { deltas: Box::default(), modified: Box::default() });
             }
+            Err(error) => return Err(error),
         };
+        let map: RapidHashMap<Txid, Prioritised> = from_str(raw.get())?;
+        let mut deltas = Vec::new();
+        let mut modified = Vec::new();
+        for (txid, priority) in map {
+            if !priority.in_mempool {
+                continue;
+            }
+            let fee = priority.modified_fee.ok_or_else(|| Error::Parse("live priority entry lacks modified_fee".into()))?;
+            modified.push((txid, fee));
+            if priority.fee_delta != 0 {
+                deltas.push((txid, priority.fee_delta));
+            }
+        }
         deltas.sort_unstable_by_key(|(txid, _)| **txid);
-        deltas.into()
+        modified.sort_unstable_by_key(|(txid, _)| **txid);
+        Ok(PriorityFees { deltas: deltas.into(), modified: modified.into() })
     }
 
     /// The outputs at `outpoints` from the node's UTXO set (`gettxout`, the mempool's spends not
@@ -412,5 +444,43 @@ impl Client {
         s.parse::<BitcoinBlockHash>()
             .map(BlockHash::from)
             .map_err(|e| Error::Parse(format!("{label}: {e}")))
+    }
+}
+
+struct PriorityFees {
+    deltas: Box<[(Txid, i64)]>,
+    modified: Box<[(Txid, i64)]>,
+}
+
+#[cfg(test)]
+mod priority_tests {
+    use super::*;
+
+    fn rpc_error(code: i32) -> Error {
+        Error::CorepcRPC(JsonRpcError::Rpc(serde_json::from_value(json!({"code": code, "message": "fixture"})).unwrap()))
+    }
+
+    #[test]
+    fn priority_metadata_distinguishes_unsupported_empty_and_failed() {
+        assert!(Client::build_fee_deltas(Err(rpc_error(-32601))).unwrap().modified.is_empty());
+        assert!(Client::build_fee_deltas(Ok(RawValue::from_string("{}".into()).unwrap())).unwrap().modified.is_empty());
+        assert!(Client::build_fee_deltas(Err(rpc_error(-28))).is_err());
+        let previous = [("00".repeat(32).parse::<Txid>().unwrap(), i64::MIN)];
+        assert_eq!(&*Client::priority_fees(Err(rpc_error(-1)), &previous).modified, &previous);
+        assert_eq!(&*Client::priority_fees(Err(Error::Parse("fixture".into())), &previous).modified, &previous);
+        assert!(Client::priority_fees(Err(rpc_error(-32601)), &previous).modified.is_empty());
+        assert!(Client::priority_fees(Ok(RawValue::from_string("{}".into()).unwrap()), &previous).modified.is_empty());
+        assert!(Client::build_fee_deltas(Err(Error::Parse("fixture".into()))).is_err());
+        let txid = "00".repeat(32);
+        for (delta, modified) in [(i64::MAX, i64::MIN), (0, 4_200_000_000_000_000)] {
+            let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":{delta},"in_mempool":true,"modified_fee":{modified}}}}}"#)).unwrap();
+            let PriorityFees { deltas, modified: fees } = Client::build_fee_deltas(Ok(raw)).unwrap();
+            assert_eq!(fees[0].1, modified); // Authoritative amount, never base+delta.
+            assert_eq!(deltas.len(), usize::from(delta != 0));
+        }
+        let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":1,"in_mempool":true}}}}"#)).unwrap();
+        assert!(Client::build_fee_deltas(Ok(raw)).is_err());
+        let raw = RawValue::from_string(format!(r#"{{"{txid}":{{"fee_delta":1,"in_mempool":false}}}}"#)).unwrap();
+        assert!(Client::build_fee_deltas(Ok(raw)).unwrap().modified.is_empty());
     }
 }

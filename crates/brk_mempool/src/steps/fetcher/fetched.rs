@@ -9,6 +9,8 @@ pub struct Fetched {
     /// Passthrough fields from the batched RPC fetch: the listing (`getrawmempool`), fee floor,
     /// chain tip.
     pub state: MempoolState,
+    /// Authoritative signed mining amounts; distinct from the public RPC delta list.
+    pub modified_fees: Box<[(Txid, i64)]>,
     /// How many of the newest `State::unverified` records this cycle checked.
     pub checked: usize,
     /// `MempoolEntryInfo` for newly-observed txids only (existing ones

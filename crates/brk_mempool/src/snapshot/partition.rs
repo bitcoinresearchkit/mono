@@ -15,7 +15,7 @@
 
 use std::mem;
 
-use brk_cpfp::Cluster;
+use brk_cpfp::{Cluster, compare_feerates};
 use brk_types::{FeeRate, SigOps, Txid, Weight};
 use rustc_hash::FxHashSet;
 
@@ -195,23 +195,18 @@ impl Candidate {
 }
 
 fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
-    let per_weight = |fee: i128, policy: Weight| (fee, i128::from(u64::from(policy)));
-    // `b`'s feerate against `a`'s, exactly (weights positive): the higher first.
-    let by_rate = |(fee_a, weight_a): (i128, i128), (fee_b, weight_b): (i128, i128)| {
-        (fee_b * weight_a).cmp(&(fee_a * weight_b))
-    };
     let mut cands: Vec<Candidate> = Vec::with_capacity(chunks.chunks.len());
     for (component, range) in chunks.components().enumerate() {
-        let mut run: Option<(i128, i128)> = None;
+        let mut run: Option<(i128, Weight)> = None;
         let mut prefix = Weight::default();
         for c in range.0..range.1 {
             let members = || chunks.members(c).iter().map(|m| &txs[m.as_usize()]);
             let fee: i128 = members().map(|t| i128::from(t.modified)).sum();
             let policy: Weight = members().map(|t| t.sigops.adjust_weight(t.weight)).sum();
-            let rate = per_weight(fee, policy);
+            let rate = (fee, policy);
             // A component's chunk feerates never increase: an equal one extends the run.
             prefix = match run {
-                Some(previous) if by_rate(previous, rate).is_eq() => prefix + policy,
+                Some(previous) if compare_feerates(previous, rate).is_eq() => prefix + policy,
                 _ => policy,
             };
             run = Some(rate);
@@ -231,7 +226,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
     // Core's mining order: feerate, then the equal-feerate run, then the greatest txid. A
     // component's chunks keep their order (an equal-feerate later one has the longer run).
     cands.sort_unstable_by(|a, b| {
-        by_rate(per_weight(a.fee, a.policy), per_weight(b.fee, b.policy))
+        compare_feerates((b.fee, b.policy), (a.fee, a.policy))
             .then(a.prefix.cmp(&b.prefix))
             .then_with(|| a.max_txid.cmp(&b.max_txid))
             .then(a.chunk.cmp(&b.chunk))
@@ -242,7 +237,7 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
     // nothing is mined; those go to the catch-all.
     let mineable = cands
         .iter()
-        .position(|cand| cand.fee * 1_000 < i128::from(u64::from(cand.policy).div_ceil(4)))
+        .position(|cand| compare_feerates((cand.fee, Weight::from(u64::from(cand.policy).div_ceil(4))), (1, Weight::from(1_000u64))).is_lt())
         .unwrap_or(cands.len());
 
     let mut blocks: Vec<Vec<(TxIndex, FeeRate)>> = Vec::new();

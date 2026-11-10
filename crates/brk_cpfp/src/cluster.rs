@@ -8,8 +8,8 @@ use crate::linearize::{Scratch, linearize};
 #[cfg(test)]
 use crate::linearize::ancestor_sets;
 
-/// One member: the fee it pays (served), the fee it ranks by (Core's modified fee: what it pays
-/// plus an operator's delta, which can be negative), its weight, its place in the fallback order
+/// One member: the fee it pays (served), the fee it ranks by (Core's authoritative signed
+/// modified fee), its weight, its place in the fallback order
 /// that settles equal feerates (Core's: by txid) and its range in [`Cluster::parents`]' flat
 /// buffer.
 pub(crate) struct Node {
@@ -38,6 +38,7 @@ impl Cluster {
 
     /// `weight` is what feerates are measured over (the mempool's sigop-adjusted, as Core's);
     /// `parents` must be local indices of earlier members. It ranks by what it pays.
+    /// A member weight must be positive and fit u32; a component holds at most u32::MAX members.
     pub fn push(
         &mut self,
         fee: Sats,
@@ -55,8 +56,7 @@ impl Cluster {
     }
 
     /// [`Self::push`], ranked by `modified` instead (Core's modified fee), `fee` still served.
-    /// `modified` is within [`Sats::MAX_MONEY`] either way (the caller clamps an operator's
-    /// delta): a tier's sums then fit, 4,096 members at 21 million bitcoin each. `fallback`: its
+    /// `modified` is the node's full signed 64-bit amount. Sums use 128 bits. `fallback`: its
     /// place among the members in the order settling equal feerates, distinct (Core's: by txid;
     /// [`Self::push`] takes the push order).
     pub fn push_ranked(
@@ -77,10 +77,10 @@ impl Cluster {
                 .all(|&parent| (u32::from(parent) as usize) < self.nodes.len()),
             "CPFP parents must precede their children"
         );
-        debug_assert!(
-            modified.unsigned_abs() <= u64::from(Sats::MAX_MONEY),
-            "a modified fee past MAX_MONEY"
-        );
+        // At most u32 members, each at most u32 weight: sums fit u64, signed fee sums
+        // fit i128. The exact tier's <=64-member flow capacities then stay below 2^114.
+        assert!(self.nodes.len() < u32::MAX as usize, "bounded component membership");
+        assert!(u64::from(weight) > 0 && u32::try_from(u64::from(weight)).is_ok(), "bounded positive member weight");
         self.nodes.push(Node {
             fee,
             modified,

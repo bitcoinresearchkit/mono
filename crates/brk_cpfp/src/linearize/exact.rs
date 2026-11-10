@@ -33,9 +33,9 @@ pub(super) fn set_members(set: Set) -> impl Iterator<Item = usize> {
     })
 }
 
-fn totals(nodes: &[Node], set: Set) -> (i64, Weight) {
+fn totals(nodes: &[Node], set: Set) -> (i128, Weight) {
     set_members(set).fold((0, Weight::default()), |(fee, weight), index| {
-        (fee + nodes[index].modified, weight + nodes[index].weight)
+        (fee + i128::from(nodes[index].modified), weight + nodes[index].weight)
     })
 }
 
@@ -72,7 +72,7 @@ pub(super) fn exact(
         // the smallest closure paying exactly as much is the group.
         loop {
             let (fee, weight) = totals(nodes, best);
-            let (p, q) = (i128::from(fee), i128::from(u64::from(weight)));
+            let (p, q) = (fee, i128::from(u64::from(weight)));
             let weight = |index: usize| {
                 i128::from(nodes[index].modified) * q
                     - i128::from(u64::from(nodes[index].weight)) * p

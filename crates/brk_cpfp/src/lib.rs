@@ -6,3 +6,5 @@ mod linearize;
 mod tests;
 
 pub use cluster::Cluster;
+
+pub use linearize::compare_feerates;
