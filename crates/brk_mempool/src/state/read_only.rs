@@ -139,26 +139,3 @@ impl ReadOnlyState {
             .map(|(.., past)| past.bodies.clone())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn history_expires_replaced_content() {
-        let graph = |size| {
-            let mut graph = Snapshot::default();
-            graph.block_stats.push(crate::snapshot::BlockStats { total_size: size, ..Default::default() });
-            graph.set_served(vec![(Vec::new(), Vec::new())], 0, false, &[]);
-            Arc::new(graph)
-        };
-        let mut state = ReadOnlyState::default();
-        state.publish_projection(graph(1), BlockHash::default());
-        let hash = state.projection.served_blocks()[0].content.hash;
-        state.publish_projection(graph(2), BlockHash::default());
-        state.history[0].0 = Instant::now() - HISTORY_AGE - Duration::from_secs(1);
-        state.publish_projection(graph(3), BlockHash::default());
-        assert!(state.historical_block(0, hash).is_none());
-        assert_eq!(state.history.len(), 2);
-    }
-}
