@@ -260,24 +260,15 @@ Build tools from the full OpenAPI document; the compact summary is a smaller cus
 - Endpoint: {MCP_URL}\n\
 - Transport: Streamable HTTP\n\
 - Authentication: None\n\
-- Protocol: MCP 2025-06-18 to 2026-07-28\n\
-- [Setup]({MCP_URL})\n\n\
-Add it to an assistant with that one URL:\n\n\
-- Claude: Customize > Connectors > Add custom connector, paste the URL, choose No sign-in.\n\
-- ChatGPT: chatgpt.com/plugins > plus button > Add custom MCP server, paste the URL, choose no authentication.\n\
-- Claude Code: `claude mcp add --transport http bitview {MCP_URL}`\n\
-- Codex: `codex mcp add bitview --url {MCP_URL}`\n\
-- Gemini CLI: `gemini mcp add --scope user --transport http bitview {MCP_URL}`\n\
-- Qwen Code: `qwen mcp add --transport http bitview {MCP_URL}`\n\n\
-Tested with Claude Code, Codex, Cursor's CLI, Gemini CLI, OpenCode and Qwen Code. Claude on the web, ChatGPT and other clients on MCP 2025-06-18 or newer should work but haven't been tested. Problems: support@bitview.space.\n\n\
-The MCP server is stateless and read-only. Its tools are generated from these OpenAPI operations.\n\n\
+- [Setup for each assistant]({MCP_URL})\n\n\
+The MCP server is stateless and read-only, with a tool for most of these operations.\n\n\
 ## Clients\n\n\
 - [JavaScript](https://www.npmjs.com/package/bitview-client)\n\
 - [Python](https://pypi.org/project/bitview-client/)\n\
 - [Rust](https://crates.io/crates/bitview_client)\n\n\
 ## Agent Skill\n\n\
 - [SKILL.md]({BASE_URL}/{SKILLS_PATH}/{SKILL}/SKILL.md), listed in the [skill index]({BASE_URL}/{SKILLS_PATH}/index.json)\n\
-- Claude Code plugin with the skill and the MCP server: `claude plugin marketplace add bitcoinresearchkit/mono`, then `claude plugin install {SKILL}@{SKILL}`\n\n\
+- [Claude Code plugin]({MCP_URL}#connect) with the skill and the MCP server\n\n\
 ## Source\n\n\
 - [GitHub]({REPOSITORY})\n\
 - MIT licensed\n",
