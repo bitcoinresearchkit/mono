@@ -29,7 +29,7 @@ chart.show(365);                                 // the last 365 points in view
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
 - `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
-  fractions allowed), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
+  fractions allowed; a changed range stops a flick, as `show` does), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
@@ -40,7 +40,7 @@ chart.show(365);                                 // the last 365 points in view
   draws it anew; `invalidate(true)`, everything drawn whole: after setting a field such as `hidden`), `destroy()`;
   `corner`, a page's own element in the corner beside the time axis, under the price axis (its buttons: it takes the
   pointer).
-- Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse's drag stops where it's
+- Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse or pen's drag stops where it's
   let go), a pinch or the wheel zooms about that point (the point
   there stays there), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
@@ -51,6 +51,12 @@ chart.show(365);                                 // the last 365 points in view
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
+
+Range synchronization should flow from the chart being interacted with to its followers. Avoid reflecting a follower's
+rounded range back to the source: different widths can turn that echo into a real view change and stop its flick.
+For crosshair synchronization, forward `onCrosshair` events whose `input` argument is true, and clears (an index of
+NaN); avoid reflecting programmatic placements. A programmatic
+`setCrosshair` replaces the pointer's crosshair and clears its series hit, even at the same position.
 
 ## Panes
 

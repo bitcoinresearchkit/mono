@@ -225,6 +225,7 @@ export class Chart {
 
   /** The last `span` points in view. @param {number} span */
   show(span) {
+    this.glide.speed = 0;
     this.time.show(span);
     this.placed = true;
     this.invalidate(true);
@@ -236,10 +237,11 @@ export class Chart {
    * @param {number} from @param {number} to
    */
   setRange(from, to) {
-    const time = this.time, span = to - from;
+    const time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
     // (From where it truly is: its kept part of a pixel counted once.)
     if (time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
     else time.setRange(from, to);
+    if (time.from !== wasFrom || time.to !== wasTo) this.glide.speed = 0;
     this.invalidate();
   }
 
