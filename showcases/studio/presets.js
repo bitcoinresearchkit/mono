@@ -42,16 +42,24 @@ const entries = (n) => (n && typeof n === "object" && !isLeaf(n) ? Object.entrie
 
 // ── Words ──────────────────────────────────────────────────────────────────
 
-const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"] };
-/** A window's key as said: `_24h` "24 hours", `_1w` "1 week", `_200d` "200 days". */
-function windowLabel(/** @type {string} */ key) {
-  const match = /^_(\d+)([hdwmy])$/.exec(key);
+/** Units as said, one and more, as keys spell them. */
+const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"], Block: ["block", "blocks"], Blocks: ["block", "blocks"], Bytes: ["byte", "bytes"], SatVb: ["sat/vB", "sat/vB"] };
+/**
+ * A span's key as said: a window's (`_24h` "24 hours", `_1w` "1 week", `_200d` "200 days"), or a size's, a range of
+ * them or a bound (`_70Bytes` "70 bytes", `_2016Blocks` "2,016 blocks", `_0p1To0p25SatVb` "0.1–0.25 sat/vB",
+ * `over74Bytes` "Over 74 bytes", `under0p1SatVb` "Under 0.1 sat/vB", `over1kSatVb` "Over 1,000 sat/vB"); `after` a
+ * noun, as it reads there ("of 70 bytes", "over 74 bytes").
+ */
+function spanLabel(/** @type {string} */ key, after = false) {
+  const match = /^(?:_|(over|under))(\d+(?:p\d+)?k?)(?:To(\d+(?:p\d+)?k?))?([hdwmy]|Blocks?|Bytes|SatVb)$/.exec(key);
   if (!match) return key;
-  const [, n, unit] = match, words = UNIT_WORDS[/** @type {keyof typeof UNIT_WORDS} */ (unit)];
-  return `${n} ${n === "1" ? words[0] : words[1]}`;
+  const [, bound, from, to, unit] = match, words = UNIT_WORDS[/** @type {keyof typeof UNIT_WORDS} */ (unit)];
+  const number = (/** @type {string} */ n) => Number(n.replace("p", ".").replace("k", "")) * (n.endsWith("k") ? 1000 : 1);
+  const said = `${[from, to].filter(Boolean).map((n) => number(n).toLocaleString("en-US")).join("–")} ${number(to ?? from) === 1 ? words[0] : words[1]}`;
+  return bound ? `${after ? bound : `${bound[0].toUpperCase()}${bound.slice(1)}`} ${said}` : after ? `of ${said}` : said;
 }
 /** A window as an adjective: `_200d` "200-day", `_1w` "1-week". */
-const windowAdjective = (/** @type {string} */ key) => windowLabel(key).replace(/^(\d+) (\w+?)s?$/, "$1-$2");
+const windowAdjective = (/** @type {string} */ key) => spanLabel(key).replace(/^(\d+) (\w+?)s?$/, "$1-$2");
 /** A window's key, short (axis-like): `_24h` "24h", `_200d` "200d", `_1m` "1m". */
 const windowShort = (/** @type {string} */ key) => key.replace(/^_/, "");
 /** A percentile's key as a number, its decimal point an underscore: `p5` 5, `p0_1` 0.1, `p99_5` 99.5, `median` 50. */
@@ -93,14 +101,24 @@ function words(/** @type {string} */ key) {
 /** A name as it reads inside a sentence: a plain capitalized word lowercased ("Unknown" "unknown"), a name kept ("P2TR"). */
 const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+$/.test(name) ? name.toLowerCase() : name);
 
-/** Transaction features as said (the client's keys spell them as words). */
+/** Transaction features as said (the client's keys spell them as words), their timelocks and what they spend too. */
 const FEATURES = {
   fakePubkey: "Fake public keys", fakeScripthash: "Fake script hashes", segwit: "SegWit", annex: "Taproot annex", sighashAll: "SIGHASH_ALL",
   sighashNone: "SIGHASH_NONE", sighashSingle: "SIGHASH_SINGLE", sighashDefault: "SIGHASH_DEFAULT", sighashAnyoneCanPay: "SIGHASH_ANYONECANPAY",
   rbfSignaling: "RBF signaling", dustOutput: "Dust outputs", epobc: "EPOBC", oneInput: "One input", oneOutput: "One output", emptyScript: "Empty scripts", unknownScript: "Unknown scripts",
+  oneInputOneOutput: "One input, one output", oneInputTwoOutput: "One input, two outputs", bip69: "BIP-69", bip69ExpectedByChance: "BIP-69, expected by chance",
+  height: "Height-based absolute", time: "Time-based absolute", unenforced: "Unenforced", relativeHeight: "Height-based relative", relativeTime: "Time-based relative",
+  onlySegwit: "Only SegWit", onlyLegacy: "Only legacy", segwitAndLegacy: "SegWit and legacy",
 };
 /** …and inside a sentence, where it reads otherwise ("Transactions with a Taproot annex"). */
-const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", rbfSignaling: "RBF signaling", dustOutput: "dust outputs", epobc: "EPOBC colored-coin tags", oneInput: "one input", oneOutput: "one output" };
+const FEATURE_PHRASES = {
+  emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", rbfSignaling: "RBF signaling", dustOutput: "dust outputs", epobc: "EPOBC colored-coin tags", oneInput: "one input", oneOutput: "one output",
+  oneInputOneOutput: "one input and one output", oneInputTwoOutput: "one input and two outputs", bip69: "BIP-69 ordering", bip69ExpectedByChance: "BIP-69 ordering expected by chance",
+  height: "a height-based absolute locktime", time: "a time-based absolute locktime", unenforced: "an unenforced locktime", relativeHeight: "a height-based relative locktime", relativeTime: "a time-based relative locktime",
+  onlySegwit: "only SegWit inputs", onlyLegacy: "only legacy inputs", segwitAndLegacy: "SegWit and legacy inputs",
+};
+/** An ECDSA signature's sighash type as Bitcoin writes it, by its key: `all` "SIGHASH_ALL", `noneAnyoneCanPay` "SIGHASH_NONE|SIGHASH_ANYONECANPAY". */
+const sighashName = (/** @type {string} */ key) => key.replace(/^(\w+?)(AnyoneCanPay)?$/, (_, type, anyone) => `SIGHASH_${type.toUpperCase()}${anyone ? "|SIGHASH_ANYONECANPAY" : ""}`);
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
@@ -253,7 +271,7 @@ export function studioPresets(client, facts) {
     const list = windowsOf(node), pick = options.pick ?? ((n) => n);
     // (Said, as said, none at all too; else the month, or the longest where there's no month.)
     const shown = options.show ?? (list.some(([key]) => key === "_1m") ? ["_1m"] : [list.at(-1)?.[0]]);
-    return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), {
+    return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowShort(key)}` : spanLabel(key), {
       color: (shown.includes(key) && options.color) || WINDOW_COLORS[i % WINDOW_COLORS.length],
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
@@ -338,15 +356,27 @@ export function studioPresets(client, facts) {
   /** A kind of transaction's charts: its count, then its value. @param {any} node @param {string} title */
   const kindCharts = (node, title) => [...counted(node, "Count", title), ...valued(node.value, title)];
   /**
-   * Kinds of transactions, which overlap: their shares of all transactions and of transaction volume compared, then
-   * each one's folder (`by`: what sorts them, "feature").
-   * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} by
+   * Kinds of a thing (transactions by feature, ECDSA signatures by length, opcodes in revealed scripts…), compared over
+   * the month, then each one: a kind of transaction with its share and value, its folder (see kindCharts); a count alone,
+   * its sums (see flow). Compared by their shares of all transactions and of transaction volume, where they have them
+   * (kinds of transactions, which overlap); else by their counts: kinds that split a whole (`disjoint`), stacked, then as
+   * shares of it; others as lines, on a log scale (one may be thousands of times another).
+   * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title
+   * @param {string} by what sorts them, in the comparisons' titles ("feature"; "" none: what they are says it)
+   * @param {{ what?: string, disjoint?: boolean }} [options] `what`: what they are, as a title says it ("ECDSA signatures")
    */
-  const txKinds = (list, name, title, by) => [
-    chart("Compare", `Share of transactions by ${by}, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: ramp(list.length)[i] }))),
-    chart("Compare value", `Share of transaction volume by ${by}, 1 month`, list.map(([key, node], i) => series(node.value.share._1m, name(key), { color: ramp(list.length)[i] }))),
-    ...list.map(([key, node]) => section(name(key), kindCharts(node, title(key)))),
-  ];
+  const kinds = (list, name, title, by, { what = "transactions", disjoint = false } = {}) => {
+    const lines = (/** @type {[string, any][]} */ some, /** @type {(node: any) => any} */ pick) => some.map(([key, node], i) => series(pick(node), name(key), { color: ramp(some.length)[i] }));
+    const shared = list.filter(([, node]) => node.share), sorted = by ? ` by ${by}` : "", What = `${what[0].toUpperCase()}${what.slice(1)}`;
+    return [
+      ...(shared.length
+        ? [chart("Compare", `Share of ${what}${sorted}, 1 month`, lines(shared, (node) => node.share._1m)), chart("Compare value", `Share of transaction volume${sorted}, 1 month`, lines(shared, (node) => node.value.share._1m))]
+        : disjoint
+          ? [section("Compare", parts([`${What}, 1 month`, `${What}${sorted}, 1 month`], ["Share, 1 month", `Share of ${what}${sorted}, 1 month`], lines(list, (node) => node.sum._1m)))]
+          : [chart("Compare", `${What}${sorted}, 1 month`, lines(list, (node) => node.sum._1m), { log: [1] })]),
+      ...list.flatMap(([key, node]) => /** @type {(ChartNode | SectionNode)[]} */ (node.share ? [section(name(key), kindCharts(node, title(key)))] : flow(node, name(key), title(key)))),
+    ];
+  };
   /**
    * A change over windows (`absolute` and `rate`): the amount (its windows) and, below, the rate.
    * @param {any} delta @param {string} name @param {string} title
@@ -860,7 +890,7 @@ export function studioPresets(client, facts) {
     const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
     return section(kind, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
-      ...list.map(([key, value], i) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
+      ...list.map(([key, value], i) => chart(spanLabel(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
         value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
@@ -879,15 +909,15 @@ export function studioPresets(client, facts) {
         chart("Days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
       ]),
       section("Returns", [
-        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i, all) => series(value, windowLabel(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
+        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i, all) => series(value, spanLabel(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
         // (Over years, returns run from −80% to millions of percent: as growth multiples, on a log scale, 1× no change.)
-        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowLabel(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
+        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: spanLabel(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
         // (Growth a year, compounded: what years of it made, each year alike; 4 years, a halving cycle, shown.)
         chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
         // (Each its own, as in the two above: up to a year as a percent, over years as a growth multiple, on a log scale.)
         ...windowsOf(m.returns).map(([key, value]) => (/y$/.test(key) && key !== "_1y"
-          ? chart(windowLabel(key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
-          : chart(windowLabel(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
+          ? chart(spanLabel(key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
+          : chart(spanLabel(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
@@ -1008,6 +1038,10 @@ export function studioPresets(client, facts) {
       section("Hashing", [
         // (The day's, noisy, under its average: thin and faint, the average the line to read.)
         chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { show: ["_1m"], extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
+        // (The hashes expected to find the blocks, the hash rate's over time: summed over windows, and since the start,
+        // the chain's work, by Bitcoin's own name. Growing as the hash rate has, by decades: on a log scale.)
+        chart("Block work", "Block work: the hashes expected to find the blocks", windows(blocks.work.sum, ""), { log: [1] }),
+        chart("Block work, all time", "Block work, all time (chainwork)", [series(blocks.work.cumulative, "All time", { color: SUM_COLOR })], { log: [1] }),
         // (Its 1- and 2-month averages, the 30- and 60-day of the convention: capitulation while the first is under, shaded;
         // no marks where it crosses back, the averages crossing too often to read.)
         chart("Hash ribbons", "Hash ribbons", [
@@ -1066,6 +1100,12 @@ export function studioPresets(client, facts) {
         ...stats(blocks.weight, "Weight", "Total block weight", "Block weight"),
         ...perBlockFan(blocks.fullness, "Fullness", "Block fullness", false),
         ...flow(blocks.sigopCost, "Signature operations", "Signature operation cost"),
+        ...flow(blocks.emptyCount, "Empty", "Empty blocks"),
+        ...entries(blocks.versionBits).flatMap(([key, node]) => ((bit) => flow(node, `Version ${bit}`, `Blocks signaling version ${bit}`))(words(key).toLowerCase())),
+        section("Coinbase locktime", [
+          ...flow(blocks.coinbaseLocktime.nonzero, "Nonzero", "Blocks with a nonzero coinbase locktime"),
+          ...flow(blocks.coinbaseLocktime.bip54, "BIP-54", "Blocks whose coinbase locktime matches BIP-54's rule"),
+        ]),
       ]),
       section("Transactions", [
         ...stats(tx.count, "Count", "Transactions"),
@@ -1080,15 +1120,29 @@ export function studioPresets(client, facts) {
           { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
           series(blocks.fullness.avg._1m, "Block fullness, 1-month average", { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
         ], { log: [2] }))] : []),
+        // (Each transaction by the fee rate it paid itself, the zero-fee ones apart; the block space they took by the
+        // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest.)
+        section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : spanLabel(key)), (key) => (key === "zeroFee" ? "Zero-fee transactions" : `Transactions paying ${lowered(spanLabel(key))}`), "fee rate", { disjoint: true })),
+        section("Block space by effective fee rate", kinds(entries(tx.fees.vsizeByEffectiveFeeRate), spanLabel, (key) => `Block space (vsize) at effective fee rates ${spanLabel(key, true)}`, "effective fee rate", { what: "block space (vsize)", disjoint: true })),
         ...spread(tx.fees.fee, "Fee", "Transaction fees", "amber"),
         ...spread(tx.vsize, "Size", "Transaction sizes (vsize)", "sky"),
+        ...flow(tx.vsize, "Total size", "Total transaction size (vsize)"),
         ...flow(tx.transferVolume, "Volume", "Transaction volume"),
+        section("Payments", [
+          ...flow(tx.payments.count, "Count", "Payments, estimated from transaction outputs"),
+          ...flow(tx.payments.segwitSpending, "SegWit inputs", "Payments in transactions with SegWit inputs"),
+          ...flow(tx.payments.rbfSignaling, "RBF signaling", "Payments in transactions signaling RBF"),
+        ]),
         section("Nonstandard", kindCharts(tx.nonstandard, "Nonstandard transactions")),
         section("Features", [
-          ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "feature"),
-          section("Scripts", txKinds(entries(tx.features.scripts), featureName, featureTx, "script")),
-          section("Signatures", txKinds(entries(tx.features.signatures), featureName, featureTx, "signature feature")),
+          ...kinds(entries(tx.features).filter(([, node]) => isLeaf(node.cumulative)), featureName, featureTx, "feature"),
+          ...flow(tx.ephemeralDust, "Spending ephemeral dust", "Transactions spending ephemeral dust"),
+          ...flow(tx.sameBlockSpending, "Spending same-block outputs", "Transactions spending outputs from the same block"),
+          section("Scripts", kinds(entries(tx.features.scripts), featureName, featureTx, "script")),
+          section("Signatures", kinds(entries(tx.features.signatures), featureName, featureTx, "signature feature")),
         ]),
+        section("Timelocks", kinds(entries(tx.timelocks), featureName, featureTx, "timelock")),
+        section("Spending", kinds(entries(tx.spending), featureName, featureTx, "inputs spent", { disjoint: true })),
         section("Versions", [
           section("Compare", [
             ...parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] }))),
@@ -1096,7 +1150,7 @@ export function studioPresets(client, facts) {
           ]),
           ...entries(tx.versions).map(([key, node]) => section(versionName(key), kindCharts(node, key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`))),
         ]),
-        section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "pattern")),
+        section("Patterns", kinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "pattern")),
         section("CPFP", [section("Parents", kindCharts(tx.fees.cpfpParent, "CPFP parent transactions")), section("Children", kindCharts(tx.fees.cpfpChild, "CPFP child transactions"))]),
         section("Inscriptions", [...kindCharts(tx.inscription, "Inscription transactions"), ...flow(tx.inscription.fees, "Transaction fees", "Inscription transactions' fees"), chart("Fee share", "Inscription transactions' share of all fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
       ]),
@@ -1104,12 +1158,29 @@ export function studioPresets(client, facts) {
         ...stats(t.inputs.count, "Count", "Inputs"),
         chart("Per second", "Inputs per second", windows(t.inputs.perSecond, "")),
         section("By type", byType(t.inputs.types, "inputs", "spending")),
+        section("Signatures", signatureCharts(t.inputs.signatures)),
+        section("Public keys", publicKeys(t.inputs.pubkeys, "inputs")),
+        section("Opcodes", kinds(entries(t.inputs.opcodes), opcodeName, (key) => `Occurrences of ${opcodeName(key)} in revealed scripts`, "", { what: "opcode occurrences in revealed scripts" })),
+        section("Nested SegWit", kinds(entries(t.inputs.nestedSegwit), (key) => `P2SH-${typeName(key)}`, (key) => `P2SH-${typeName(key)} inputs`, "type", { what: "nested SegWit inputs", disjoint: true })),
+        // (Bare multisig, P2MS, is its own type, in By type: these, the scripts wrapping it, as lines, not parts of all.)
+        section("Multisig", kinds(entries(t.inputs.multisig), typeName, (key) => `Multisig ${typeName(key)} inputs`, "type", { what: "multisig inputs" })),
+        ...flow(t.inputs.p2trScriptPath, "Taproot script path", "Taproot script-path inputs"),
+        ...flow(t.inputs.inscriptions, "Inscriptions", "Inputs revealing an inscription"),
+        ...flow(t.inputs.coinbaseWitness, "Coinbase witness", "Coinbase inputs with a witness"),
+        // (How soon outputs are spent: within the block that made them, and within a few blocks of it, each the ones
+        // before it and more.)
+        section("Spent within", kinds([["sameBlock", t.inputs.sameBlock], ...entries(t.inputs.spentWithin)], (key) => (key === "sameBlock" ? "Same block" : `Within ${spanLabel(key)}`), (key) => (key === "sameBlock" ? "Inputs spending outputs from the same block" : `Inputs spending outputs at most ${spanLabel(key)} old`), "age limit", { what: "inputs spending recent outputs" })),
       ]),
       section("Outputs", [
         ...stats(t.outputs.count, "Count", "Outputs"),
         chart("Per second", "Outputs per second", windows(t.outputs.perSecond, "")),
         ...flow(t.outputs.spendableCount, "Spendable", "Spendable outputs"),
         section("By type", byType(t.outputs.types, "outputs", "creating", ["opReturn"])),
+        section("Coinbase", [
+          ...flow(t.outputs.coinbase.count, "Count", "Coinbase outputs"),
+          section("By type", kinds(entries(t.outputs.coinbase.types), typeName, (key) => `Coinbase ${inSentence(typeName(key))} outputs`, "type", { what: "coinbase outputs", disjoint: true })),
+        ]),
+        section("Public keys", publicKeys(t.outputs.pubkeys, "outputs")),
       ]),
       section("OP_RETURN", [
         ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`, t.outputs.types.opReturn.share, t.outputs.opReturnValue),
@@ -1127,6 +1198,11 @@ export function studioPresets(client, facts) {
             chart("Data, 1 month", "OP_RETURN data by policy, 1 month", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.dataBytes.sum._1m, policyName(key), { color: ramp(all.length)[i] })), { log: [1] }),
           ]),
           ...entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`))),
+        ]),
+        // (Each the larger ones' too: lines.)
+        section("Sizes", [
+          chart("Compare", "OP_RETURN outputs over each data size, 1 month", entries(t.opReturn.sizes).map(([key, node], i, all) => series(node.outputCount.sum._1m, spanLabel(key), { color: ramp(all.length)[i] })), { log: [1] }),
+          ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${lowered(spanLabel(key))}`))),
         ]),
       ]),
       chainStatistics({ t, facts, chart, section, ramp }),
@@ -1258,24 +1334,65 @@ export function studioPresets(client, facts) {
   function policyName(/** @type {string} */ key) {
     return key === "preV30Standard" ? "Standard before v30" : key === "preV30Nonstandard" ? "Nonstandard before v30" : words(key);
   }
+  /** An output type's name ("P2TR", "OP_RETURN"), one nested in another by both ("p2shP2wsh" "P2SH-P2WSH"). @param {string} key */
+  function typeName(key) {
+    return client.SPENDABLE_TYPE_NAMES[key]?.short ?? (key === "opReturn" ? "OP_RETURN" : key.split(/(?=[A-Z])/).map((part) => client.SPENDABLE_TYPE_NAMES[part.toLowerCase()]?.short ?? part).join("-"));
+  }
+  /** An opcode as Bitcoin writes it: `checksig` "OP_CHECKSIG". @param {string} key */
+  function opcodeName(key) {
+    return `OP_${key.toUpperCase()}`;
+  }
   /**
-   * Inputs or outputs by type: each type's count and transactions, each with its share; a type with a home of its own
-   * (`apart`: OP_RETURN's, in Network) compared here, its charts there. @param {any} types @param {string} what
-   * @param {string} doing @param {string[]} [apart]
+   * Inputs or outputs by type: each type's count and transactions, each with its share, and the value sent to it, where
+   * it has one (outputs; OP_RETURN's, apart, in its own home); a type with a home of its own (`apart`: OP_RETURN's, in
+   * Network) compared here, its charts there. @param {any} types @param {string} what @param {string} doing @param {string[]} [apart]
    */
   function byType(types, what, doing, apart = []) {
     const list = entries(types), colors = ramp(list.length), What = `${what[0].toUpperCase()}${what.slice(1)}`;
-    const name = (/** @type {string} */ key) => client.SPENDABLE_TYPE_NAMES[key]?.short ?? (key === "opReturn" ? "OP_RETURN" : key);
+    const values = list.flatMap(([key, node], i) => (node.value ? [series(node.value.sum._1m.btc, typeName(key), { color: colors[i] })] : []));
     return [
       section("Compare", [
-        ...parts([`${What}, 1 month`, `${What} by type, 1 month`], [`${What.slice(0, -1)} share, 1 month`, `Share of ${what} by type, 1 month`], list.map(([key, node], i) => series(node.count.sum._1m, name(key), { color: colors[i] }))),
-        chart("Transaction share, 1 month", `Share of transactions ${doing} each ${what.slice(0, -1)} type, 1 month`, list.map(([key, node], i) => series(node.txShare._1m, name(key), { color: colors[i] }))),
+        ...parts([`${What}, 1 month`, `${What} by type, 1 month`], [`${What.slice(0, -1)} share, 1 month`, `Share of ${what} by type, 1 month`], list.map(([key, node], i) => series(node.count.sum._1m, typeName(key), { color: colors[i] }))),
+        chart("Transaction share, 1 month", `Share of transactions ${doing} each ${what.slice(0, -1)} type, 1 month`, list.map(([key, node], i) => series(node.txShare._1m, typeName(key), { color: colors[i] }))),
+        ...(values.length ? parts(["Value, 1 month", `Value sent to ${what} by type, 1 month`], ["Value share, 1 month", `Share of value sent to ${what} by type, 1 month`], values) : []),
       ]),
-      ...list.filter(([key]) => !apart.includes(key)).map(([key, node]) => section(name(key), [
-        ...counted(node.count, "Count", `${name(key)} ${what}`, node.share),
-        ...counted(node.txCount, "Transactions", `Transactions ${doing} ${inSentence(name(key))} ${what}`, node.txShare),
+      ...list.filter(([key]) => !apart.includes(key)).map(([key, node]) => section(typeName(key), [
+        ...counted(node.count, "Count", `${typeName(key)} ${what}`, node.share),
+        ...counted(node.txCount, "Transactions", `Transactions ${doing} ${inSentence(typeName(key))} ${what}`, node.txShare),
+        ...(node.value ? flow(node.value, "Value", `Value sent to ${inSentence(typeName(key))} ${what}`) : []),
       ])),
     ];
+  }
+  /**
+   * Signatures in inputs: ECDSA's and Schnorr's compared (their counts and their bytes, as parts of all), then each
+   * one's; ECDSA's by encoding, length and sighash type too. @param {any} signatures
+   */
+  function signatureCharts(signatures) {
+    const list = entries(signatures), named = (/** @type {string} */ key) => (key === "ecdsa" ? "ECDSA" : words(key));
+    const each = (/** @type {(node: any) => any} */ pick) => list.map(([key, node], i) => series(pick(node), named(key), { color: ramp(list.length)[i] }));
+    const signed = (/** @type {any} */ node, /** @type {string} */ who) => [...flow(node.count, "Count", `${who} signatures`), ...flow(node.bytes, "Bytes", `${who} signature bytes`)];
+    const { ecdsa, schnorr } = signatures;
+    return [
+      section("Compare", [
+        ...parts(["Signatures, 1 month", "Signatures by type, 1 month"], ["Share, 1 month", "Share of signatures by type, 1 month"], each((node) => node.count.sum._1m)),
+        ...parts(["Bytes, 1 month", "Signature bytes by type, 1 month"], ["Byte share, 1 month", "Share of signature bytes by type, 1 month"], each((node) => node.bytes.sum._1m)),
+      ]),
+      section("ECDSA", [
+        ...signed(ecdsa, "ECDSA"),
+        ...flow(ecdsa.strictDer, "Strict DER", "ECDSA signatures in strict DER"),
+        ...flow(ecdsa.lowR, "Low R", "ECDSA signatures with a low R"),
+        ...flow(ecdsa.lowS, "Low S", "ECDSA signatures with a low S"),
+        ...flow(ecdsa.lowRLowS, "Low R and low S", "ECDSA signatures with a low R and a low S"),
+        // (Their lengths from 70 bytes, those under them uncounted: lines, not parts of all.)
+        section("By length", kinds(entries(ecdsa.length), spanLabel, (key) => `ECDSA signatures ${spanLabel(key, true)}`, "length, sighash byte included", { what: "ECDSA signatures" })),
+        section("By sighash type", kinds(entries(ecdsa.sighash), sighashName, (key) => `ECDSA signatures with ${sighashName(key)}`, "sighash type", { what: "ECDSA signatures" })),
+      ]),
+      section("Schnorr", signed(schnorr, "Schnorr")),
+    ];
+  }
+  /** Public keys inputs reveal or outputs hold (`where`), compressed and uncompressed. @param {any} node @param {string} where */
+  function publicKeys(node, where) {
+    return kinds(entries(node), words, (key) => `${words(key)} public keys in ${where}`, "compression", { what: `public keys in ${where}`, disjoint: true });
   }
   /**
    * Supply last moved over 1, 2, 5 and 10 years ago: the age bands from each on, summed (in bitcoin, and their shares of
@@ -1437,6 +1554,8 @@ export function studioPresets(client, facts) {
         ...heldSupply(a[key].supply, `${label} addresses`),
         ...flow(a[key].events.outputs.count, "Outputs to them", of(`Outputs to ${label.toLowerCase()} addresses`)),
         chart("Output share", of(`Share of outputs to ${label.toLowerCase()} addresses`), sharesOf(a[key].events.outputs.share, "Share")),
+        // (Reuse at its most direct, where counted: an output paying an address its own transaction spends from.)
+        ...(a[key].direct ? flow(a[key].direct.outputCount, "Direct reuse", of("Outputs paying an address the same transaction spends from")) : []),
         ...flow(a[key].events.inputs.count, "Inputs from them", of(`Inputs from ${label.toLowerCase()} addresses`)),
         chart("Input share", of(`Share of inputs from ${label.toLowerCase()} addresses`), sharesOf(a[key].events.inputs.share, "Share")),
         chart("Active per block", of(`${label} addresses active per block`), windows(a[key].events.active.count.avg, "")),
@@ -1459,6 +1578,11 @@ export function studioPresets(client, facts) {
     // (Those mining most of the blocks in recent years: compared, and first; the others after, by name.)
     const MAJOR = ["foundryusa", "antpool", "viabtc", "f2pool", "marapool", "spiderpool", "binancepool", "luxor", "secpool", "braiinspool", "ocean", "poolin", "cloverpool", "unknown"];
     const major = MAJOR.flatMap((key) => list.filter(([k]) => k.replace(/^_/, "") === key)), others = list.filter((pool) => !major.includes(pool)), colors = ramp(major.length);
+    // (Groups of pools, one with those sharing its block templates: "AntPool group".)
+    const groups = entries(t.pools.groups).map(([key, group]) => /** @type {[string, any, string]} */ ([key, group, `${client.POOL_SLUG_TO_NAME[key] ?? key} group`]));
+    const grouped = `${groups.map(([, , name]) => name).join(" and ")} as one`;
+    /** The day's top pools' blocks, each count of them a line. @param {any} node */
+    const tops = (node) => entries(node).map(([key, value], i, all) => series(value, words(key), { color: ramp(all.length)[i] }));
     /** A pool's charts. @param {[string, any, string]} pool */
     const pool = ([key, node, name]) => section(name, [
       ...counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
@@ -1475,6 +1599,14 @@ export function studioPresets(client, facts) {
         ], { stack: { 1: "stack" } }),
         chart("Hash rate, 1 month", "Mining pools' hash rate, 1 month", major.map(([, node, name], i) => series(node.hashrate._1m, name, { color: colors[i] })), { log: [1] }),
       ]),
+      // (The day's largest pools together, by the blocks they found that day, each pool apart and with each group of
+      // pools (those sharing one's block templates) as one: compared, then each count of them, both ways.)
+      section("Top pools", [
+        chart("Compare", "Blocks mined by the day's top pools combined", tops(t.pools.concentration)),
+        chart(`Compare, ${grouped}`, `Blocks mined by the day's top pools combined, ${grouped}`, tops(t.pools.concentrationGrouped)),
+        ...entries(t.pools.concentration).map(([key, node]) => chart(words(key), `Blocks mined by the day's ${words(key).toLowerCase()} pools combined`, [series(node, "Pools counted separately", { color: "orange" }), series(t.pools.concentrationGrouped[key], grouped, { color: "sky" })])),
+      ]),
+      ...groups.map(([, group, name]) => section(name, flow(group.blockCount, "Blocks mined", `Blocks mined: ${name}`))),
       ...major.map(pool),
       section("Other pools", others.map(pool)),
     ];
