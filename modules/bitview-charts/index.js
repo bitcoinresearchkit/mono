@@ -668,7 +668,10 @@ export class Chart {
       }
       if (!at) return;
       // (Gone as far as a click can't, once: a drag back to where it began is no click.)
-      at.moved ||= Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6;
+      if (!at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6) {
+        at.moved = true;
+        if (at.axis) this.setCrosshair(NaN);
+      }
       if (held === event.pointerId) return void ((at.x = event.clientX), (at.y = event.clientY), point(event));
       if (!at.panning) {
         if (Math.hypot(event.clientX - at.startX, event.clientY - at.startY) <= 6) return;
