@@ -14,6 +14,8 @@ use axum::{
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 
+use crate::server::SUPPORTED_PROTOCOL_VERSIONS;
+
 const HTML: &str = include_str!("../assets/index.html");
 
 pub struct Pages {
@@ -23,8 +25,10 @@ pub struct Pages {
 }
 
 impl Pages {
-    pub fn render(display_name: &str, public_url: &str, api_url: &str) -> Self {
+    pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: usize) -> Self {
         let cursor_config = BASE64_STANDARD.encode(format!(r#"{{"url":"{public_url}"}}"#));
+        let [newest, .., oldest] = &SUPPORTED_PROTOCOL_VERSIONS;
+        let tool_count = tool_count.to_string();
         let render = |page: &str, title: &str, description: &str| {
             let canonical_url = match page {
                 "home" => public_url.to_owned(),
@@ -40,6 +44,9 @@ impl Pages {
                 ("DISPLAY_NAME", &escape_html(display_name)),
                 ("LOGO_PATH", &escape_html(crate::logo::PATH)),
                 ("CURSOR_CONFIG", &escape_html(&cursor_config)),
+                ("PROTOCOL_OLDEST", oldest.as_str()),
+                ("PROTOCOL_NEWEST", newest.as_str()),
+                ("TOOL_COUNT", &tool_count),
             ]))
         };
         Self {

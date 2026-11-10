@@ -286,7 +286,7 @@
 
       .specs {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 2rem;
         margin-top: 3rem;
       }
@@ -315,6 +315,10 @@
         border-top: 1px solid var(--line);
       }
 
+      .clients span code {
+        margin-top: 0.35rem;
+      }
+
       .clients-note {
         margin-top: 2rem;
         color: var(--gray);
@@ -336,6 +340,7 @@
       }
 
       .clients code {
+        display: block;
         min-width: 0;
         color: var(--white);
         font: 450 0.8125rem / 1.5 var(--mono);
@@ -366,30 +371,15 @@
         font-size: 0.825rem;
       }
 
-      .prompts {
-        counter-reset: prompt;
-      }
-
       .prompts li {
-        position: relative;
-        padding: 1.5rem 3rem 1.5rem 0;
+        padding-block: 1.5rem;
         border-top: 1px solid var(--line);
         color: var(--white);
-        counter-increment: prompt;
         font-size: clamp(0.95rem, 2vw, 1.125rem);
       }
 
       .prompts li:last-child {
         border-bottom: 1px solid var(--line);
-      }
-
-      .prompts li::after {
-        position: absolute;
-        top: 1.6rem;
-        right: 0;
-        color: var(--orange);
-        content: "↗";
-        font-size: 0.9rem;
       }
 
       .boundary-wrap {
@@ -593,9 +583,11 @@
         <p class="eyebrow">Model Context Protocol</p>
         <h1 id="page-title">Bitcoin data for AI.</h1>
         <p class="hero-copy">
-          One public endpoint for blockchain, mempool, market, mining, and
-          on-chain data—served by Bitview and built on the open-source Bitcoin
-          Research Kit.
+          Live and historical Bitcoin data for your assistant: blocks,
+          transactions, addresses, the mempool and fees, mining, the price, and
+          on-chain metrics like realized price and holder cohorts. Bitview
+          builds it from its own full node, and it is free, MIT open source and
+          yours to run.
         </p>
         <div class="endpoint">
           <span>Remote server</span>
@@ -603,10 +595,10 @@
         </div>
         <div class="facts" aria-label="Server properties">
           <span>Free</span>
-          <span>No authentication</span>
-          <span>No rate limits</span>
+          <span>No sign-in</span>
           <span>Read-only</span>
           <span>Stateless</span>
+          <span>Open source</span>
         </div>
         </section>
 
@@ -615,13 +607,12 @@
         <div class="section-body">
           <h2 id="connect-title">Give your AI one URL.</h2>
           <p class="section-intro">
-            Paste it into your assistant's connector settings. No account, no
-            key, no plugin to install.
+            Add it as a remote MCP server. No account and no key.
           </p>
           <ul class="clients">
             <li>
               <strong>Claude</strong>
-              <span>Customize, Connectors, Add custom connector. Paste the URL and choose No sign-in.</span>
+              <span>Customize, Connectors, Add, Add custom connector. Name it Bitview, paste the URL and choose No sign in. On Team and Enterprise plans an owner adds it in Organization settings, Connectors.</span>
             </li>
             <li>
               <strong>ChatGPT</strong>
@@ -630,6 +621,12 @@
             <li>
               <strong>Claude Code</strong>
               <code>claude mcp add --transport http bitview {{PUBLIC_URL}}</code>
+            </li>
+            <li>
+              <strong>Claude Code plugin</strong>
+              <span>The server and the Bitview skill, which shows Claude how to read the data:
+                <code>claude plugin marketplace add bitcoinresearchkit/mono</code>
+                <code>claude plugin install bitview@bitview</code></span>
             </li>
             <li>
               <strong>Codex</strong>
@@ -653,8 +650,12 @@
             </li>
           </ul>
           <p class="clients-note">
-            Tested with Claude Code, Codex, Cursor's CLI, Gemini CLI, OpenCode and Qwen Code. Claude on the web, ChatGPT and other clients on MCP 2025-06-18 or
-            newer should work but haven't been tested. If one doesn't, write to
+            Tested with Claude, Claude Code, Codex, Cursor's CLI, Gemini CLI,
+            OpenCode and Qwen Code. ChatGPT and other clients on MCP
+            {{PROTOCOL_OLDEST}} or newer should work. If Claude says a tool
+            "did not return structured content" after an update, it kept an
+            old tool list: remove the connector and add it again. For anything
+            else, write to
             <a href="mailto:support@bitview.space">support@bitview.space</a>.
           </p>
           <dl class="specs">
@@ -663,12 +664,16 @@
               <dd>Streamable HTTP</dd>
             </div>
             <div>
-              <dt>Protocol</dt>
-              <dd>MCP 2025-06-18 to 2026-07-28</dd>
+              <dt>Authentication</dt>
+              <dd>None</dd>
             </div>
             <div>
-              <dt>Sessions</dt>
-              <dd>None</dd>
+              <dt>Protocol</dt>
+              <dd>MCP {{PROTOCOL_OLDEST}} to {{PROTOCOL_NEWEST}}</dd>
+            </div>
+            <div>
+              <dt>Tools</dt>
+              <dd>{{TOOL_COUNT}}, all read-only</dd>
             </div>
           </dl>
         </div>
@@ -679,8 +684,8 @@
         <div class="section-body">
           <h2 id="data-title">From blocks to market structure.</h2>
           <p class="section-intro">
-            Tools are generated from Bitview's non-deprecated REST GET
-            operations, keeping the public API and MCP catalog aligned.
+            Each tool asks Bitview's public API one question, across the areas
+            below. Search tools find any metric from plain words.
           </p>
           <ul class="capabilities">
             <li>
@@ -692,12 +697,12 @@
               <p>Unconfirmed transactions, projected blocks, replacements, and fees.</p>
             </li>
             <li>
-              <h3>Market</h3>
-              <p>Current and historical Bitcoin prices in USD.</p>
+              <h3>Price</h3>
+              <p>The BTC/USD price, estimated from the chain's own transactions, with exchange history before 2015.</p>
             </li>
             <li>
               <h3>On-chain</h3>
-              <p>Supply, cohorts, realized metrics, profitability, and distributions.</p>
+              <p>Supply, holder cohorts, realized metrics, profitability, and distributions.</p>
             </li>
             <li>
               <h3>Mining</h3>
@@ -705,7 +710,7 @@
             </li>
             <li>
               <h3>Discovery</h3>
-              <p>Search, list, and metadata tools for finding valid identifiers.</p>
+              <p>Search, list, and describe series, so the assistant uses ids that exist.</p>
             </li>
           </ul>
         </div>
@@ -716,10 +721,10 @@
         <div class="section-body">
           <h2 id="prompts-title">Start with a question.</h2>
           <ul class="prompts">
-            <li>Summarize the latest block and compare its fees with the previous ten.</li>
-            <li>What fee rate is projected to clear in each of the next three blocks?</li>
-            <li>Compare short-term-holder and long-term-holder realized prices.</li>
-            <li>Show daily closing price and realized capitalization since January 1.</li>
+            <li>What happened in block 840,000, and how much did the miner earn in fees?</li>
+            <li>What fee rate do I need to get into the next block right now?</li>
+            <li>How has Bitcoin's realized price compared with its market price since 2020?</li>
+            <li>Compare the short-term and long-term holders' realized prices today.</li>
           </ul>
         </div>
         </section>
@@ -728,42 +733,35 @@
         <p class="section-index">04 / Current</p>
         <div class="section-body">
           <h2 id="freshness-title">Know how current the data is.</h2>
-          <p class="section-intro">
-            Freshness follows the configured Bitcoin node and Bitview API. Use the
-            live status endpoints instead of assuming that the latest response
-            is caught up.
-          </p>
           <ul class="capabilities">
             <li>
               <h3>Confirmed data</h3>
               <p>
-                Blockchain data and derived series are published after Bitview
-                finishes processing each new block.
+                Blocks and every series built on them update as soon as Bitview
+                has processed each new block.
               </p>
             </li>
             <li>
               <h3>Mempool</h3>
               <p>
-                The live mempool is polled from Bitcoin Core approximately once
-                per second, and the projected
-                <a href="{{API_URL}}/api/mempool-blocks/0">next block</a> with it.
+                Read from Bitcoin Core about once a second, with the projected
+                <a href="{{API_URL}}/api/mempool-blocks/0">next block</a>.
               </p>
             </li>
             <li>
               <h3>Status</h3>
               <p>
-                Check <a href="{{API_URL}}/health">health</a> for uptime and
-                local heights, then <a href="{{API_URL}}/api/server/sync">sync
-                status</a> for distance from the Bitcoin node tip. There is no
+                <a href="{{API_URL}}/health">Health</a> shows uptime and the
+                heights served, <a href="{{API_URL}}/api/server/sync">sync
+                status</a> the distance from the node's tip. There is no
                 service-level commitment.
               </p>
             </li>
             <li>
               <h3>Stability</h3>
               <p>
-                Deprecated routes identify their replacements and sunset dates.
                 Series are renamed only in releases, each rename listed in the
-                changelog.
+                <a href="{{API_URL}}/changes/">changelog</a>.
               </p>
             </li>
           </ul>
@@ -774,10 +772,12 @@
           <section class="boundary" aria-labelledby="boundary-title">
           <h2 id="boundary-title">Read-only by design.</h2>
           <p>
-            {{DISPLAY_NAME}} MCP reads changing public Bitcoin and market data.
-            It has <strong>no private keys</strong>, cannot sign or broadcast
-            transactions, cannot control wallets, and cannot trade or transfer
-            bitcoin.
+            {{DISPLAY_NAME}} MCP reads public Bitcoin data. It has <strong>no
+            private keys</strong> and cannot sign or broadcast transactions,
+            control wallets, or trade or move bitcoin. Each tool call becomes
+            one GET request to the Bitview API; the
+            <a href="{{API_URL}}/privacy/">privacy policy</a> says what is
+            logged.
           </p>
           </section>
         </div>
@@ -787,20 +787,23 @@
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
-            Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.
-            Bitview provides generated Rust, JavaScript, and Python clients.
+            Bitview is a free, MIT-licensed Bitcoin data server: on-chain
+            metrics, blocks, mempool and mining data, with charts and an API.
+            Use it at bitview.space or run it beside your own Bitcoin Core
+            node. This MCP server lives in the same repository and runs against
+            any Bitview.
           </p>
           <nav class="resources" aria-label="Developer resources">
             <a href="{{API_URL}}/api">API documentation</a>
-            <a href="{{API_URL}}/api.json">LLM schema</a>
             <a href="{{API_URL}}/llms.txt">llms.txt</a>
+            <a href="{{API_URL}}/.well-known/agent-skills/bitview/SKILL.md">Agent Skill</a>
+            <a href="https://github.com/bitcoinresearchkit/mono/tree/main/plugins/bitview">Claude Code plugin</a>
             <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>
             <a href="https://pypi.org/project/bitview-client/">Python</a>
             <a href="https://crates.io/crates/bitview_client">Rust</a>
-            <a href="https://bitview.dev">Bitview project</a>
+            <a href="https://bitview.space/dev/">Run your own</a>
             <a href="https://github.com/bitcoinresearchkit/mono">Source</a>
             <a href="{{PUBLIC_URL}}support">Support</a>
-            <a href="{{API_URL}}">REST API</a>
             <a href="{{API_URL}}/privacy/">Privacy</a>
             <a href="{{PUBLIC_URL}}terms">Terms</a>
           </nav>
@@ -998,7 +1001,7 @@
 
     <footer class="shell">
       <span>Bitview MCP, published by {{DISPLAY_NAME}}</span>
-      <span>Public · free · open source</span>
+      <span>Free · read-only · MIT open source</span>
     </footer>
   </body>
 </html>

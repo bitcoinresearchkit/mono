@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
     let catalog = Catalog::embedded();
     let tool_count = catalog.tools().len();
-    let pages = Pages::render(&display_name, &public_url, &api_url);
+    let pages = Pages::render(&display_name, &public_url, &api_url, tool_count);
     let app = server::router(api_url, catalog, display_name, public_url, pages);
     let (listener, bind) = bind_available(BIND_START).await?;
 
