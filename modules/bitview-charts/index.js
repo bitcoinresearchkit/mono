@@ -708,7 +708,7 @@ export class Chart {
     }, { signal });
     element.addEventListener("pointerleave", (event) => event.pointerType !== "touch" && !down.size && !this.resizing && ((this.separatorLit = null), this.setCrosshair(NaN)), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
-      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing(event.pointerType !== "touch" ? event.clientY - element.getBoundingClientRect().top : NaN));
+      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing(event.type === "pointerup" && event.pointerType !== "touch" ? event.clientY - element.getBoundingClientRect().top : NaN));
       const at = down.get(event.pointerId);
       if (!at || !down.delete(event.pointerId)) return;
       const pinched = twoFingers;
@@ -732,7 +732,7 @@ export class Chart {
       tapAt = -Infinity;
       // (A pinch's end, a finger at a time: no glide (a zoom has no momentum; the finger left lifts as it stops). A
       // mouse's or a pen's drag: none either, as a desktop's charts (a finger's flick alone glides on).)
-      if (down.size || pinched || event.type === "pointercancel" || event.pointerType !== "touch" || trailSize < 2) return void (trailSize = 0);
+      if (down.size || pinched || event.type !== "pointerup" || event.pointerType !== "touch" || trailSize < 2) return void (trailSize = 0);
       // (Its speed as it was let go: over its last moves alone (a finger slowing to a stop lets go slow), and only if it
       // was still moving then (held still a moment, none); too slow, none.)
       const last = (trailEnd + trail.length - 1) % trail.length;
@@ -747,7 +747,7 @@ export class Chart {
       if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed);
     };
     element.addEventListener("pointerup", up, { signal });
-    element.addEventListener("lostpointercapture", (event) => event.pointerId === sizer && stopSizing(), { signal });
+    element.addEventListener("lostpointercapture", up, { signal });
     element.addEventListener("pointercancel", up, { signal });
     element.addEventListener("wheel", (event) => {
       event.preventDefault();
