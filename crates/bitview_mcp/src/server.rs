@@ -19,7 +19,7 @@ use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
-        DiscoverResult, ErrorCode, Icon, Implementation, InitializeRequestParams, InitializeResult,
+        DiscoverResult, ErrorCode, Icon, Implementation,
         ListToolsResult, MetaObject, PaginatedRequestParams, ProtocolVersion, ResourceContents,
         ServerCapabilities, ServerConfig, Tool,
     },
@@ -167,21 +167,6 @@ impl ServerHandler for BitviewMcp {
         )
         .with_ttl_ms(CATALOG_TTL_MS)
         .with_cache_scope(CacheScope::Public)))
-    }
-
-    async fn initialize(
-        &self,
-        request: InitializeRequestParams,
-        context: RequestContext<RoleServer>,
-    ) -> Result<InitializeResult, McpError> {
-        if !SUPPORTED_PROTOCOL_VERSIONS.contains(&request.protocol_version) {
-            return Err(McpError::unsupported_protocol_version(
-                request.protocol_version,
-                &SUPPORTED_PROTOCOL_VERSIONS,
-            ));
-        }
-        context.peer.set_peer_info(request.clone());
-        self.negotiate_initialize(&request)
     }
 
     fn list_tools(
