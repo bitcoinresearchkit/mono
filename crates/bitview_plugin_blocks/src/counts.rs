@@ -63,21 +63,16 @@ impl CoinbaseLocktime {
     }
 
     pub(crate) fn compute(&mut self, indexer: &Indexer, from: Height, exit: &Exit) -> Result<()> {
-        let vecs = indexer.vecs();
-        let (first_tx, locktime, sequence) = (
-            &vecs.transactions.first_tx_index,
-            &vecs.transactions.raw_locktime,
-            &vecs.blocks.coinbase_sequence,
-        );
+        let blocks = &indexer.vecs().blocks;
+        let (locktime, sequence) = (&blocks.coinbase_locktime, &blocks.coinbase_sequence);
         let Range { start, end } =
-            Inputs::new(Version::ZERO, [first_tx as &dyn AnyVec, locktime, sequence]).prepare(
+            Inputs::new(Version::ZERO, [locktime as &dyn AnyVec, sequence]).prepare(
                 [self.nonzero.stored_mut(), self.bip54.stored_mut()],
                 from.to_usize(),
                 exit,
             )?;
         if start < end {
-            let coinbases = vecs.transactions.coinbases(start, end);
-            let locktimes = locktime.read_sorted_at(&coinbases);
+            let locktimes = locktime.collect_range_at(start, end);
             let sequences = sequence.collect_range_at(start, end);
             for (offset, (locktime, sequence)) in locktimes.iter().zip(&sequences).enumerate() {
                 let (locktime, height) = (u32::from(*locktime), start + offset);
