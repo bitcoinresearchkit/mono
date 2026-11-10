@@ -63,8 +63,8 @@ impl Chunks {
     /// The chunks of the component holding chunk `c`, in linearization order.
     pub fn component_chunks(&self, c: usize) -> std::ops::Range<usize> {
         let i = self.components.partition_point(|&end| end as usize <= c);
-        let start = i.checked_sub(1).map_or(0, |p| self.components[p] as usize);
-        start..self.components[i] as usize
+        let (start, end) = self.component(i);
+        start..end
     }
 
     /// Chunk `c`'s feerate.
@@ -80,12 +80,13 @@ impl Chunks {
 
     /// Each component's chunk range.
     fn components(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        let mut start = 0;
-        self.components.iter().map(move |&end| {
-            let range = (start, end as usize);
-            start = end as usize;
-            range
-        })
+        (0..self.components.len()).map(|index| self.component(index))
+    }
+
+    /// One component's chunk range, by component index.
+    fn component(&self, index: usize) -> (usize, usize) {
+        let start = index.checked_sub(1).map_or(0, |previous| self.components[previous] as usize);
+        (start, self.components[index] as usize)
     }
 
     /// The members of chunks `from..to`.
@@ -247,6 +248,17 @@ fn candidates(txs: &[SnapTx], chunks: &Chunks) -> Vec<Candidate> {
     cands
 }
 
+/// The default mining floor: 1 sat/kvB over rounded-up policy vsize. Whole-component
+/// removal changes neither candidate rates nor this cutoff in their retained order.
+fn mineable_count(cands: &[Candidate]) -> usize {
+    cands.iter().position(|cand| {
+        compare_feerates(
+            (cand.fee, Weight::from(u64::from(cand.policy).div_ceil(4))),
+            (1, Weight::from(1_000u64)),
+        ).is_lt()
+    }).unwrap_or(cands.len())
+}
+
 fn pack(
     txs: &[SnapTx],
     mut chunks: Chunks,
@@ -258,34 +270,44 @@ fn pack(
     let mut blocks = Vec::new();
     let mut overflow = false;
     let mut cands = candidates(txs, &chunks);
-    while !cands.is_empty() {
-        // Core's default mining floor: 1 sat/kvB, over rounded-up policy vsize. Signed fees
-        // and the same exact ratio comparison decide ranking and eligibility.
-        let mineable = cands.iter().position(|cand| {
-            compare_feerates(
-                (cand.fee, Weight::from(u64::from(cand.policy).div_ceil(4))),
-                (1, Weight::from(1_000u64)),
-            ).is_lt()
-        }).unwrap_or(cands.len());
+    let mut mineable = mineable_count(&cands);
+    let mut pending: Vec<usize> = (0..cands.len()).collect();
+    let mut deferred = Vec::new();
+    while !pending.is_empty() {
         let last = blocks.len() + 1 == num_blocks;
         let mut block = Vec::new();
         let mut missed = vec![false; chunks.components.len()];
+        let mut selected = vec![false; chunks.components.len()];
+        let mut selected_components = Vec::new();
         let (mut weight, mut sigops) = (Weight::ZERO, SigOps::ZERO);
         let mut failures = 0;
-        for cand in cands.iter().take(mineable) {
+        for (position, &index) in pending.iter().enumerate() {
+            if index >= mineable {
+                deferred.extend_from_slice(&pending[position..]);
+                break;
+            }
+            let cand = &cands[index];
             if missed[cand.component as usize] {
+                deferred.push(index);
                 continue;
             }
             let fits = cand.fits(weight, sigops);
             if !(last || fits) {
                 missed[cand.component as usize] = true;
+                deferred.push(index);
                 failures += 1;
                 if failures > MAX_CONSECUTIVE_FAILURES && weight > FULL_ENOUGH {
+                    deferred.extend_from_slice(&pending[position + 1..]);
                     break;
                 }
                 continue;
             }
             overflow |= last && !fits;
+            let component = cand.component as usize;
+            if !selected[component] {
+                selected[component] = true;
+                selected_components.push(component);
+            }
             failures = 0;
             weight += cand.weight;
             sigops += cand.sigops;
@@ -297,7 +319,8 @@ fn pack(
         if last || block.is_empty() {
             // The last slot, or a pool no finite block can take: preserve the backlog contract.
             // Withheld members were already excluded before partition and remain omitted.
-            for cand in &cands {
+            for &index in &pending {
+                let cand = &cands[index];
                 for &member in chunks.members(cand.chunk as usize) {
                     if !consumed[member.as_usize()] {
                         consumed[member.as_usize()] = true;
@@ -310,20 +333,21 @@ fn pack(
             break;
         }
         blocks.push(block);
-        let partial = chunks.components().any(|component| {
-            let members = chunks.span(component);
-            let first = consumed[members[0].as_usize()];
-            members.iter().any(|m| consumed[m.as_usize()] != first)
+        let partial = selected_components.into_iter().any(|component| {
+            chunks.span(chunks.component(component)).iter().any(|m| !consumed[m.as_usize()])
         });
         if partial {
             // Split touched components and recompute equal-rate prefixes for the new graph.
             chunks = residual(txs, &chunks, &consumed, cache, kept);
             cands = candidates(txs, &chunks);
+            mineable = mineable_count(&cands);
+            pending = (0..cands.len()).collect();
         } else {
             // Only complete components were consumed. Surviving identities and tie prefixes are
             // unchanged: keep their existing sorted order rather than solving/sorting again.
-            cands.retain(|cand| !consumed[chunks.members(cand.chunk as usize)[0].as_usize()]);
+            std::mem::swap(&mut pending, &mut deferred);
         }
+        deferred.clear();
     }
     Projection { blocks, overflow }
 }

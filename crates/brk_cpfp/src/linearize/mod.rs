@@ -84,9 +84,15 @@ struct Chunk {
 /// Exact signed fee/weight comparison, shared with projection packing. Positive weights only.
 /// Products use the common fast path; unusually large aggregate fractions use Euclid's
 /// algorithm instead of overflowing or changing the ranking through saturation.
+#[inline]
 pub fn compare_feerates(a: (i128, Weight), b: (i128, Weight)) -> Ordering {
     let (wa, wb) = (u64::from(a.1), u64::from(b.1));
     assert!(wa > 0 && wb > 0, "positive ranking weights");
+    // A signed 64-bit numerator times any u64 weight fits i128. Most live chunks
+    // stay in that range; avoid checked 128-bit multiplication for those comparisons.
+    if let (Ok(fa), Ok(fb)) = (i64::try_from(a.0), i64::try_from(b.0)) {
+        return (i128::from(fa) * i128::from(wb)).cmp(&(i128::from(fb) * i128::from(wa)));
+    }
     if let (Some(left), Some(right)) = (
         a.0.checked_mul(i128::from(wb)),
         b.0.checked_mul(i128::from(wa)),
