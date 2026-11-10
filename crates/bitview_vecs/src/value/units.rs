@@ -29,4 +29,8 @@ pub struct SpotValue<S, B, U> {
     /// first exchange price (block 74,641, August 2010).
     #[traversable(lead = "Its market value: valued at the price of the day.")]
     pub usd: U,
+    /// Reported in US dollars: the amount at the spot price (its market cap), zero before the
+    /// first exchange price (block 74,641, August 2010).
+    #[traversable(lead = "Its market value: valued at the price of the day.")]
+    pub market_cap: bitview_traversable::NamedIdentity<U>,
 }

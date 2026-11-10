@@ -32,6 +32,17 @@ collection!(FloorBandId for FloorBands {
 });
 
 impl FloorBandId {
+    /// Public holding series name the floor bounds; stored column names stay unchanged.
+    pub fn series_suffix(self) -> &'static str {
+        match self {
+            Self::P95ToP98 => "between_p95_and_p98_floors",
+            Self::P98ToP99 => "between_p98_and_p99_floors",
+            Self::P99ToP99_5 => "between_p99_and_p99_5_floors",
+            Self::P99_5ToP99_9 => "between_p99_5_and_p99_9_floors",
+            Self::BelowP99_9 => "below_p99_9_floor",
+        }
+    }
+
     /// The band `spot` sits in: under as many floors as the band's index plus one. None at or
     /// above every floor, or without floors (all are missing together).
     pub fn locate(floors: &Percentiles<Cents>, spot: Cents) -> Option<Self> {

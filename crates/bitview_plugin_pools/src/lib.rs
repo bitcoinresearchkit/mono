@@ -62,8 +62,8 @@ impl Traversable for BySlug {
         self.0.iter_any_exportable()
     }
 
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.0.iter_any_visible()
+    fn iter_public_series(&self) -> impl Iterator<Item = bitview_traversable::PublicSeries<'_>> {
+        self.0.iter_public_series()
     }
 
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

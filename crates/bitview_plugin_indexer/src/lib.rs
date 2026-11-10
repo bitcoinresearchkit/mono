@@ -195,8 +195,8 @@ where
         self.vecs.iter_any_stored_mut()
     }
 
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.vecs.iter_any_visible()
+    fn iter_public_series(&self) -> impl Iterator<Item = bitview_traversable::PublicSeries<'_>> {
+        self.vecs.iter_public_series()
     }
 
     fn collect_series_descriptions<'a>(

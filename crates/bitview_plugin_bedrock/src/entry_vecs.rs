@@ -51,7 +51,7 @@ impl EntryVecs {
         Ok(Self {
             entry_supply: FloorBands::from_fn(|id| {
                 LazySpotValuePerBlock::from_sats_source(
-                    &format!("{name}_entry_supply_{}", id.name()),
+                    &format!("{name}_entry_supply_{}", id.series_suffix()),
                     version,
                     supply_stored.select(id),
                     mappings,
@@ -60,7 +60,7 @@ impl EntryVecs {
             }),
             entry_capital: FloorBands::from_fn(|id| {
                 LazyFiatPerBlock::from_cents_source(
-                    &format!("{name}_entry_capital_{}", id.name()),
+                    &format!("{name}_entry_capital_{}", id.series_suffix()),
                     version,
                     capital_stored.select(id),
                     mappings,

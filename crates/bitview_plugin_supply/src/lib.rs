@@ -42,7 +42,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Circulating supply valued at the represented block's Bitcoin spot price.
     #[traversable(wrap = "market_cap", rename = "value")]
     #[traversable(lead = "Market cap: all the bitcoin, at the price of the day.")]
-    market_cap: LazyFiatPerBlock<Cents>,
+    market_cap: bitview_traversable::NamedIdentity<LazyFiatPerBlock<Cents>>,
     /// Absolute and relative change in market capitalization from the last
     /// block before each supported trailing monotonic-time window.
     #[traversable(wrap = "market_cap", rename = "delta")]

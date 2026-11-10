@@ -1,7 +1,8 @@
 use bitview_compute::WeightedCohortState;
 use bitview_primitives::BoundedRatio;
+use bitview_traversable::NamedIdentity;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{Convert, Ident, ReadableCloneableVec};
+use vecdb::{AnyVec, Convert, Ident, ReadableCloneableVec};
 
 use crate::{IndexSources, LazyIndexedVec, LazyPerBlock, SpotValue};
 
@@ -10,6 +11,30 @@ pub type LazySpotValuePerBlock =
     SpotValue<LazyPerBlock<Sats>, LazyPerBlock<Bitcoin, Sats>, LazyPerBlock<Dollars>>;
 
 impl LazySpotValuePerBlock {
+    fn from_parts(
+        name: &str,
+        btc: LazyPerBlock<Bitcoin, Sats>,
+        sats: LazyPerBlock<Sats>,
+        usd: LazyPerBlock<Dollars>,
+    ) -> Self {
+        let usd_name = usd.height.name();
+        let cap_name = if usd_name.ends_with("_usd") {
+            name.split('_')
+                .map(|word| if word == "supply" { "market_cap" } else { word })
+                .collect::<Vec<_>>()
+                .join("_")
+        } else {
+            usd_name.to_owned()
+        };
+        let market_cap = NamedIdentity::new(cap_name, usd.clone());
+        Self {
+            btc,
+            sats,
+            usd,
+            market_cap,
+        }
+    }
+
     /// A lazy weighted stock from shared age-cohort inputs, split as the stored aggregates are
     /// ([`WeightedCohortState::split_supply`]).
     pub fn from_weighted_supply<const COMPLEMENT: bool>(
@@ -40,7 +65,7 @@ impl LazySpotValuePerBlock {
         let usd =
             LazyPerBlock::from_lazy::<Ident, Dollars>(&format!("{name}_usd"), version, &source.usd);
 
-        Self { btc, sats, usd }
+        Self::from_parts(name, btc, sats, usd)
     }
 
     pub fn from_sats_source<V>(
@@ -94,6 +119,6 @@ impl LazySpotValuePerBlock {
         let usd =
             LazyPerBlock::from_height_source::<Ident>(usd_name, version, &usd_source, indexes);
 
-        Self { btc, sats, usd }
+        Self::from_parts(name, btc, sats, usd)
     }
 }

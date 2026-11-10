@@ -78,8 +78,8 @@ where
             .chain(self.view.iter_any_exportable())
     }
 
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.view.iter_any_visible()
+    fn iter_public_series(&self) -> impl Iterator<Item = crate::PublicSeries<'_>> {
+        self.view.iter_public_series()
     }
 
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {

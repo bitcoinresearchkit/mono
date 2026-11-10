@@ -63,11 +63,14 @@ impl Vecs {
 
         let velocity = velocity::Vecs::new(version, mappings, all_chain, transactions);
 
-        let market_cap = LazyFiatPerBlock::from_cents_source(
+        let market_cap = bitview_traversable::NamedIdentity::new(
             "market_cap",
-            version,
-            holders.all_market_cap(),
-            mappings,
+            LazyFiatPerBlock::from_cents_source(
+                "market_cap",
+                version,
+                holders.all_market_cap(),
+                mappings,
+            ),
         );
 
         let market_cap_delta = LazyRollingDeltasFiatFromHeight::new(

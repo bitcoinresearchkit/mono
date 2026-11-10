@@ -244,21 +244,32 @@ fn apart(markdown: &mut String) {
 /// Whether a Markdown line starts a block of its own: a list's item, a quote, a table's row, a
 /// heading.
 fn starts_block(text: &str) -> bool {
-    let ordered = text
-        .split_once(". ")
-        .is_some_and(|(number, _)| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()));
-    ordered || ["- ", "* ", "+ ", "> ", "|", "#"].iter().any(|start| text.starts_with(start))
+    let ordered = text.split_once(". ").is_some_and(|(number, _)| {
+        !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit())
+    });
+    ordered
+        || ["- ", "* ", "+ ", "> ", "|", "#"]
+            .iter()
+            .any(|start| text.starts_with(start))
 }
 
 /// `collect` with the field's description fragments on the path, its lead's and its doc
 /// comment's, as long as it runs.
-fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
+fn with_description_fragment(
+    field: &FieldModel,
+    collect: ProcMacro2TokenStream,
+) -> ProcMacro2TokenStream {
     let fragments = field
         .lead
         .as_deref()
         .map(|lead| quote! { ::bitview_traversable::Fragment::Lead(#lead) })
         .into_iter()
-        .chain(field.description.as_deref().map(|detail| quote! { ::bitview_traversable::Fragment::Detail(#detail) }))
+        .chain(
+            field
+                .description
+                .as_deref()
+                .map(|detail| quote! { ::bitview_traversable::Fragment::Detail(#detail) }),
+        )
         .collect::<Vec<_>>();
     if fragments.is_empty() {
         return collect;
@@ -525,8 +536,8 @@ fn gen_traversable(
                     self.0.iter_any_exportable()
                 }
 
-                fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
-                    self.0.iter_any_visible()
+                fn iter_public_series(&self) -> impl ::std::iter::Iterator<Item = ::bitview_traversable::PublicSeries<'_>> {
+                    self.0.iter_public_series()
                 }
 
                 fn iter_any_stored_mut(&mut self) -> impl ::std::iter::Iterator<Item = &mut dyn ::bitview_traversable::AnyStoredVec> {
@@ -553,7 +564,11 @@ fn gen_traversable(
     let to_tree_node_body = generate_field_traversals(client, &visible, merge);
     let exportable_vec = quote! { &dyn ::bitview_traversable::AnyExportableVec };
     let exportable = collect_iters(&traversed, "iter_any_exportable", &exportable_vec);
-    let visible_iter = collect_iters(&visible, "iter_any_visible", &exportable_vec);
+    let visible_iter = collect_iters(
+        &visible,
+        "iter_public_series",
+        &quote! { ::bitview_traversable::PublicSeries<'_> },
+    );
     let stored = collect_iters(
         &traversed,
         "iter_any_stored_mut",
@@ -571,7 +586,7 @@ fn gen_traversable(
                 #exportable
             }
 
-            fn iter_any_visible(&self) -> impl ::std::iter::Iterator<Item = &dyn ::bitview_traversable::AnyExportableVec> {
+            fn iter_public_series(&self) -> impl ::std::iter::Iterator<Item = ::bitview_traversable::PublicSeries<'_>> {
                 #visible_iter
             }
 

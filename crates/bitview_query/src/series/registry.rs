@@ -7,7 +7,7 @@ use std::{
 use bitview_catalog::TreeNode;
 use bitview_plugin::PluginSet;
 use bitview_primitives::{Index, SeriesName};
-use bitview_traversable::Traversable;
+use bitview_traversable::{PublicSeries, Traversable};
 use bitview_types::{DetailedSeriesCount, PaginatedSeries, Pagination, SeriesCount, SeriesInfo};
 use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -356,17 +356,30 @@ fn value_type(vec: &dyn AnyExportableVec) -> (&'static str, bool) {
 
 #[derive(Clone, Copy)]
 struct Registration<'a> {
+    name: &'a str,
+    identity: bool,
     db: &'a str,
     vec: &'a dyn AnyExportableVec,
     index: Index,
 }
 
 impl<'a> Builder<'a> {
-    fn push(&mut self, vec: &'a dyn AnyExportableVec, db: &'a str) {
+    fn push(&mut self, series: PublicSeries<'a>, db: &'a str) {
+        let PublicSeries {
+            name,
+            vec,
+            identity,
+        } = series;
         let serialized_index = vec.index_type_name();
         let index = Index::try_from(serialized_index)
             .unwrap_or_else(|_| panic!("Unknown index type: {serialized_index}"));
-        self.registrations.push(Registration { db, vec, index });
+        self.registrations.push(Registration {
+            name,
+            identity,
+            db,
+            vec,
+            index,
+        });
     }
 
     /// One id may span plugins through different indexes (a height series and its date
@@ -376,15 +389,41 @@ impl<'a> Builder<'a> {
     /// earlier plugin; with another type, it loses the id entirely. Nullability is part of the
     /// type: short names erase `Option`, and a kept copy's catalog entry must say what is served.
     fn resolve(&mut self) -> Resolution<'a> {
-        let mut seen = FxHashSet::default();
+        let mut seen = FxHashMap::default();
         let mut by_name: FxHashMap<&'a str, Vec<Registration<'a>>> = FxHashMap::default();
         for registration in std::mem::take(&mut self.registrations) {
-            let name = canonical_name(registration.vec.name());
-            debug_assert!(
-                seen.insert((name, registration.index, registration.db)),
-                "Duplicate series: {name} for index {:?}",
-                registration.index
-            );
+            let name = canonical_name(registration.name);
+            let key = (name, registration.index, registration.db);
+            match seen.entry(key) {
+                hash_map::Entry::Vacant(entry) => {
+                    entry.insert((registration, !registration.identity));
+                }
+                hash_map::Entry::Occupied(mut entry) => {
+                    let (previous, ordinary_seen) = entry.get_mut();
+                    debug_assert!(
+                        registration.identity || !*ordinary_seen,
+                        "Duplicate series: {name} for index {:?}",
+                        registration.index
+                    );
+                    debug_assert_eq!(
+                        canonical_name(previous.vec.name()),
+                        canonical_name(registration.vec.name()),
+                        "identity source differs: {name}"
+                    );
+                    debug_assert_eq!(
+                        previous.vec.version(),
+                        registration.vec.version(),
+                        "identity version differs: {name}"
+                    );
+                    debug_assert_eq!(
+                        value_type(previous.vec),
+                        value_type(registration.vec),
+                        "identity type differs: {name}"
+                    );
+                    *ordinary_seen |= !registration.identity;
+                    continue;
+                }
+            }
             by_name.entry(name).or_default().push(registration);
         }
         let mut by_name = by_name.into_iter().collect::<Vec<_>>();
@@ -443,8 +482,14 @@ impl<'a> Builder<'a> {
     }
 
     fn insert(&mut self, registration: Registration<'a>) {
-        let Registration { db, vec, index } = registration;
-        let name = canonical_name(vec.name());
+        let Registration {
+            name,
+            db,
+            vec,
+            index,
+            ..
+        } = registration;
+        let name = canonical_name(name);
         self.by_series.entry(name).or_default().insert(SeriesEntry {
             vec,
             index,

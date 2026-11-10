@@ -28,10 +28,12 @@ use vecdb::ZeroCopyVecValue;
 use vecdb::ZstdVec;
 
 mod compact;
+mod identity;
 
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
 pub use bitview_primitives::Index;
 pub use compact::Compact;
+pub use identity::{NamedIdentity, PublicSeries};
 pub use indexmap::IndexMap;
 pub use vecdb::{AnyExportableVec, AnyStoredVec, ReadOnlyClone, Ro, Rw, StorageMode};
 
@@ -50,10 +52,14 @@ pub enum Fragment {
 /// heading, a fence, indented code), as the derive's doc comments read it.
 fn starts_block(text: &str) -> bool {
     let line = text.trim_start();
-    let ordered = line
-        .split_once(". ")
-        .is_some_and(|(number, _)| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()));
-    ordered || text.starts_with("    ") || ["- ", "* ", "+ ", "> ", "|", "#", "```"].iter().any(|start| line.starts_with(start))
+    let ordered = line.split_once(". ").is_some_and(|(number, _)| {
+        !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit())
+    });
+    ordered
+        || text.starts_with("    ")
+        || ["- ", "* ", "+ ", "> ", "|", "#", "```"]
+            .iter()
+            .any(|start| line.starts_with(start))
 }
 
 /// A series' description, Markdown, from its path's fragments: the leads, one paragraph, then
@@ -82,7 +88,10 @@ pub fn describe(fragments: &[Fragment]) -> String {
         }
         markdown
     };
-    let (leads, details) = (paragraph(&mut leads.into_iter()), paragraph(&mut details.into_iter()));
+    let (leads, details) = (
+        paragraph(&mut leads.into_iter()),
+        paragraph(&mut details.into_iter()),
+    );
     match (leads.is_empty(), details.is_empty()) {
         (false, false) => format!("{leads}\n\n{details}"),
         (true, _) => details,
@@ -94,9 +103,9 @@ pub trait Traversable {
     fn to_tree_node(&self) -> TreeNode;
     /// All vecs including hidden — used for disk writes, flushes, exports.
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec>;
-    /// Only non-hidden vecs — used for building the public series list.
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.iter_any_exportable()
+    /// Public names and their original data vectors; hidden fields are left out.
+    fn iter_public_series(&self) -> impl Iterator<Item = crate::PublicSeries<'_>> {
+        self.iter_any_exportable().map(PublicSeries::new)
     }
 
     /// Every writable stored vec of derived and leaf impls, hidden ones included; lazy views yield
@@ -115,8 +124,8 @@ pub trait Traversable {
             return;
         }
 
-        for vec in self.iter_any_visible() {
-            match descriptions.entry(vec.name()) {
+        for series in self.iter_public_series() {
+            match descriptions.entry(series.name) {
                 Entry::Vacant(entry) => {
                     entry.insert(description_fragments.clone());
                 }
@@ -301,8 +310,8 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
         (**self).iter_any_exportable()
     }
 
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        (**self).iter_any_visible()
+    fn iter_public_series(&self) -> impl Iterator<Item = crate::PublicSeries<'_>> {
+        (**self).iter_public_series()
     }
 
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
@@ -331,8 +340,8 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
         self.values().flat_map(|value| value.iter_any_exportable())
     }
 
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.values().flat_map(|value| value.iter_any_visible())
+    fn iter_public_series(&self) -> impl Iterator<Item = crate::PublicSeries<'_>> {
+        self.values().flat_map(|value| value.iter_public_series())
     }
 
     fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
