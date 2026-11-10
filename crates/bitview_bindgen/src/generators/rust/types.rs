@@ -3,6 +3,7 @@ use crate::Ty;
 pub(crate) fn rust_type(ty: &Ty) -> String {
     match ty {
         Ty::List(item) => format!("Vec<{}>", rust_type(item)),
+        Ty::Nullable(item) => format!("Option<{}>", rust_type(item)),
         Ty::Tuple(items) => {
             let items: Vec<String> = items.iter().map(rust_type).collect();
             format!("({})", items.join(", "))

@@ -183,6 +183,9 @@ fn without_link_paragraphs(description: &str) -> String {
 /// reject the whole tool list over one that isn't. So only a tool that always answers with a JSON
 /// object declares one; the others answer as text.
 fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Option<Value>> {
+    // Object-rooted output contracts cannot describe an empty 204. The bridge returns no
+    // content for that status, and keeps a present JSON body as ordinary tool text.
+    if endpoint.no_content { return Ok(None); }
     let json_schema = endpoint
         .json_response_schema
         .clone()

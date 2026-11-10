@@ -2,7 +2,7 @@ use std::{fmt::Write, fs, io, path::Path};
 
 mod cli;
 pub(crate) mod javascript;
-mod llm;
+pub(crate) mod llm;
 pub(crate) mod python;
 pub(crate) mod rust;
 

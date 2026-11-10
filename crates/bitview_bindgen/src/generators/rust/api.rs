@@ -144,7 +144,9 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
 /// The base client method reading the response, and how its body is decoded: named text is
 /// numeric JSON (`Height`) or a string type (`BlockHash`, `Txid`, `Hex`); opaque text stays `String`.
 fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
-    let (kind, decode) = if endpoint.returns_binary() {
+    let (kind, decode) = if endpoint.no_content {
+        ("optional_json", "")
+    } else if endpoint.returns_binary() {
         ("bytes", "")
     } else if endpoint.returns_json() || endpoint.response_kind.text_is_numeric() {
         ("json", "")
@@ -161,8 +163,8 @@ fn fetch(verb: &str, endpoint: &Endpoint) -> (String, &'static str) {
 
 fn build_return_type(endpoint: &Endpoint) -> String {
     let base = endpoint
-        .response_kind
-        .ty()
+        .response_ty()
+        .as_ref()
         .map_or_else(|| "Vec<u8>".to_owned(), rust_type);
     if endpoint.supports_csv {
         format!("FormatResponse<{}>", base)

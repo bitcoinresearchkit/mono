@@ -105,7 +105,31 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     };
     // Series data gets the same helpers however it is fetched.
     let response = endpoint.response_kind.ty();
-    let fetch_call = if endpoint.returns_binary() {
+    let fetch_call = if endpoint.no_content {
+        // The ordinary JSON reader and key rules, with a status guard before parsing.
+        let keep = response.and_then(|ty| keep_expr(ty, schemas));
+        let keep = keep.as_deref().unwrap_or("undefined");
+        let wrap = if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
+            Some("_wrapSeriesData(value)")
+        } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
+            Some("value.map(_wrapSeriesData)")
+        } else {
+            None
+        };
+        let options = match wrap {
+            Some(wrap) => format!("{{ signal, cache, memCache, onValue: onValue && (value => onValue(value === null ? null : {wrap})) }}"),
+            None => options.to_owned(),
+        };
+        let call = if post {
+            format!("this.postJson({args}, {keep}, true)")
+        } else {
+            format!("this._getCached(path, 'json', _readJson({keep}, true), {options})")
+        };
+        match wrap {
+            Some(wrap) => format!("{call}.then(value => value === null ? null : {wrap})"),
+            None => call,
+        }
+    } else if endpoint.returns_binary() {
         format!("this.{verb}Bytes({args})")
     } else if response.is_some_and(|ty| ty.is_ref("SeriesData")) {
         "_wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }))".to_string()
@@ -146,7 +170,7 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
 }
 
 fn build_return_type(endpoint: &Endpoint) -> String {
-    let base = endpoint.response_kind.ty().map_or_else(
+    let base = endpoint.response_ty().as_ref().map_or_else(
         || "Uint8Array".to_owned(),
         |ty| normalize_return_type(&js_type(ty)),
     );

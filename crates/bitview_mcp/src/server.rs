@@ -46,6 +46,9 @@ use crate::{
 };
 
 const CACHE_META_KEY: &str = "org.bitcoinresearchkit/upstreamCache";
+
+#[cfg(test)]
+mod optional_response_tests;
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_CONCURRENCY: usize = 16;
 const CONCURRENCY_WAIT: Duration = Duration::from_secs(5);
@@ -345,6 +348,11 @@ fn render(
         .trim()
         .to_ascii_lowercase();
     let meta = Some(upstream_meta(&response, server_name));
+
+    // An empty 204 is success regardless of Content-Type; never attempt JSON decoding.
+    if response.status == 204 {
+        return CallToolResult::success(vec![]).with_meta(meta).into();
+    }
 
     if content_type == "application/json" || content_type.ends_with("+json") {
         // The text content is the upstream body itself, so integers beyond u64 (u128 hashrates) stay

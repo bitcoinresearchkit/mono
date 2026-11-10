@@ -11,7 +11,7 @@ use serde_json::Value;
 use super::write_if_changed;
 use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openapi::Spec};
 
-mod manifest;
+pub(crate) mod manifest;
 
 const BASE_URL: &str = "https://bitview.space";
 const MCP_URL: &str = "https://mcp.bitview.space/";
@@ -266,7 +266,9 @@ fn render_endpoint(output: &mut String, endpoint: &Endpoint) {
     writeln!(
         output,
         "Returns: {}\n",
-        response_label(&endpoint.response_kind)
+        if endpoint.no_content {
+            format!("{} (200), or an empty 204 (client result: null)", response_label(&endpoint.response_kind))
+        } else { response_label(&endpoint.response_kind) }
     )
     .unwrap();
 }

@@ -53,7 +53,9 @@ class BitviewClientBase:
         path: str,
         body: Optional[str] = None,
         content_type: Optional[str] = None,
-    ) -> bytes:
+        *,
+        no_content: bool = False,
+    ) -> Optional[bytes]:
         """A failed exchange closes the connection, which `http.client` would otherwise leave
         mid-request for every later call."""
         try:
@@ -67,13 +69,14 @@ class BitviewClientBase:
             raise BitviewError(str(e))
         if res.status >= 400:
             raise _response_error(res.status, data)
-        return data
+        return None if no_content and res.status == 204 else data
 
     def get(self, path: str) -> bytes:
         return self._request("GET", path)
 
-    def get_json(self, path: str) -> Any:
-        return json.loads(self.get(path))
+    def get_json(self, path: str, *, no_content: bool = False) -> Any:
+        data = self._request("GET", path, no_content=no_content)
+        return None if data is None else json.loads(data)
 
     def get_text(self, path: str) -> str:
         return self.get(path).decode()
@@ -81,8 +84,9 @@ class BitviewClientBase:
     def post(self, path: str, body: str = "", content_type: Optional[str] = None) -> bytes:
         return self._request("POST", path, body, content_type)
 
-    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None) -> Any:
-        return json.loads(self.post(path, body, content_type))
+    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None, *, no_content: bool = False) -> Any:
+        data = self._request("POST", path, body, content_type, no_content=no_content)
+        return None if data is None else json.loads(data)
 
     def post_text(self, path: str, body: str = "", content_type: Optional[str] = None) -> str:
         return self.post(path, body, content_type).decode()

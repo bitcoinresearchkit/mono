@@ -83,19 +83,24 @@ impl BitviewClientBase {
     }
 
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+        Self::read(self.agent.get(&self.url(path)).call(), |_, body| {
             body.read_json()
         })
     }
 
+    /// JSON 200 or a declared empty 204; an empty 200 is still invalid JSON.
+    pub fn get_optional_json<T: DeserializeOwned>(&self, path: &str) -> Result<Option<T>> {
+        Self::read_optional_json(self.agent.get(&self.url(path)).call())
+    }
+
     pub fn get_text(&self, path: &str) -> Result<String> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+        Self::read(self.agent.get(&self.url(path)).call(), |_, body| {
             body.read_to_string()
         })
     }
 
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
+        Self::read(self.agent.get(&self.url(path)).call(), |_, body| {
             body.read_to_vec()
         })
     }
@@ -107,19 +112,29 @@ impl BitviewClientBase {
         body: &str,
         content_type: &str,
     ) -> Result<T> {
-        Self::read(self.post(path, body, content_type), |body| body.read_json())
+        Self::read(self.post(path, body, content_type), |_, body| body.read_json())
+    }
+
+    /// JSON 200 or a declared empty 204, with the same error handling as other requests.
+    pub fn post_optional_json<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: &str,
+        content_type: &str,
+    ) -> Result<Option<T>> {
+        Self::read_optional_json(self.post(path, body, content_type))
     }
 
     /// POSTs `body` as `content_type`, reading the text answer.
     pub fn post_text(&self, path: &str, body: &str, content_type: &str) -> Result<String> {
-        Self::read(self.post(path, body, content_type), |body| {
+        Self::read(self.post(path, body, content_type), |_, body| {
             body.read_to_string()
         })
     }
 
     /// POSTs `body` as `content_type`, reading the binary answer.
     pub fn post_bytes(&self, path: &str, body: &str, content_type: &str) -> Result<Vec<u8>> {
-        Self::read(self.post(path, body, content_type), |body| body.read_to_vec())
+        Self::read(self.post(path, body, content_type), |_, body| body.read_to_vec())
     }
 
     fn post(
@@ -134,14 +149,22 @@ impl BitviewClientBase {
             .send(body)
     }
 
+    fn read_optional_json<T: DeserializeOwned>(
+        response: std::result::Result<Response<Body>, ureq::Error>,
+    ) -> Result<Option<T>> {
+        Self::read(response, |status, body| {
+            if status == 204 { Ok(None) } else { body.read_json() }
+        })
+    }
+
     /// Reads a successful response's whole body: the server bounds its responses, so the
     /// client adds no cap (ureq's default stops at 10 MiB, below the full UTXO set).
     fn read<T>(
         response: std::result::Result<Response<Body>, ureq::Error>,
-        read: impl FnOnce(BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
+        read: impl FnOnce(u16, BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
     ) -> Result<T> {
         let mut response = Self::check(response)?;
-        read(response.body_mut().with_config().limit(u64::MAX))
+        read(response.status().as_u16(), response.body_mut().with_config().limit(u64::MAX))
             .map_err(|e| BitviewError::new(e.to_string()))
     }
 }

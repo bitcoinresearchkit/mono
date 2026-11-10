@@ -18,3 +18,6 @@ pub use error::*;
 pub use format_response::*;
 pub use generated::*;
 pub use node::{AnySeriesPattern, LazyNode, Node, SeriesPattern, SeriesValue};
+
+#[cfg(test)]
+mod tests;

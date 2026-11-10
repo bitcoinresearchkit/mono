@@ -1,4 +1,4 @@
-mod api;
+pub(crate) mod api;
 pub(crate) mod client;
 mod tree;
 pub(crate) mod types;

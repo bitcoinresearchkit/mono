@@ -41,8 +41,10 @@ const _camelName = (key) => {
 /**
  * `getJson`'s body reader: the JSON, its field names camelCased (map keys as `keep` says).
  * @param {*} keep
+ * @param {boolean} [noContent] - This operation declares an empty 204.
  */
-const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(await res.json(), keep);
+const _readJson = (keep, noContent = false) => async (/** @type {Response} */ res) =>
+  noContent && res.status === 204 ? null : _camelKeys(await res.json(), keep);
 
 /**
  * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
@@ -673,11 +675,12 @@ class BitviewClientBase {
    * @param {string} body
    * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
+   * @param {boolean} [noContent] - This operation declares an empty 204.
    * @returns {Promise<T>}
    */
-  async postJson(path, body, options, keep) {
+  async postJson(path, body, options, keep, noContent = false) {
     const res = await this.post(path, body, options);
-    return _camelKeys(await res.json(), keep);
+    return _readJson(keep, noContent)(res);
   }
 
   /**

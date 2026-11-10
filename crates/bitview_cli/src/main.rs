@@ -118,6 +118,9 @@ fn execute(args: Args) -> Result<(), Box<dyn Error>> {
         return Err(format!("HTTP {status}: {}", detail.trim()).into());
     }
 
+    // No JSON or pretty-printer work for a response HTTP defines as bodyless.
+    if status.as_u16() == 204 { return Ok(()); }
+
     let stdout = io::stdout();
     let mut output = BufWriter::new(stdout.lock());
     if args.pretty && json {

@@ -133,6 +133,14 @@ impl Ty {
         }
     }
 
+    /// Add absence without nesting an already nullable result.
+    pub(crate) fn nullable(self) -> Self {
+        match self {
+            Self::Nullable(_) => self,
+            _ => Self::Nullable(Box::new(self)),
+        }
+    }
+
     pub(crate) fn is_ref(&self, name: &str) -> bool {
         matches!(self, Self::Ref(this) if this == name)
     }

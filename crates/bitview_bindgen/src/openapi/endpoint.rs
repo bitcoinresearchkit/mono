@@ -1,4 +1,4 @@
-use crate::openapi::{Parameter, RequestBody, ResponseKind};
+use crate::{Ty, openapi::{Parameter, RequestBody, ResponseKind}};
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
@@ -17,7 +17,9 @@ pub struct Endpoint {
     pub(crate) request_body: Option<RequestBody>,
     /// Body kind for the 200 response.
     pub(crate) response_kind: ResponseKind,
-    /// Raw JSON schema for the application/json 200 response, when present.
+    /// An explicitly declared empty 204, in addition to the JSON 200 response.
+    pub(crate) no_content: bool,
+    /// Client result schema, including null for a declared 204, when present.
     pub(crate) json_response_schema: Option<Value>,
     pub(crate) deprecated: bool,
     /// `x-mcp-ignore: true`: no MCP tool.
@@ -30,6 +32,13 @@ impl Endpoint {
     /// Non-deprecated `GET` and `POST` operations get client methods.
     pub(crate) fn should_generate(&self) -> bool {
         !self.deprecated && (self.method == "GET" || self.method == "POST")
+    }
+
+    /// The client result, distinct from the body type used to decode a present answer.
+    pub(crate) fn response_ty(&self) -> Option<Ty> {
+        self.response_kind.ty().cloned().map(|ty| {
+            if self.no_content { ty.nullable() } else { ty }
+        })
     }
 
     pub(crate) fn returns_json(&self) -> bool {

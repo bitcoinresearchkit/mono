@@ -151,10 +151,21 @@ fn extract_endpoint(
         .map(media_types);
     let content = content.as_ref();
     let response_kind = extract_response_kind(content, schemas);
-    // The complete JSON response schema, for MCP output schemas.
+    // Status metadata is separate from body nullability: an empty 200 must still fail.
+    let no_content = operation.get("responses").is_some_and(|responses| responses.get("204").is_some());
+    // This decoder supports the JSON 200 + empty 204 contract. Reject other shapes rather than
+    // silently generating a client that reads 204 as text, bytes or CSV.
+    if no_content && (!matches!(response_kind, ResponseKind::Json(_))
+        || content.is_some_and(|content| content.contains_key("text/csv")))
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData,
+            format!("{method} {path}: 204 requires a JSON 200 response without CSV")));
+    }
+    // The complete client result schema, for MCP output schemas and LLM references.
     let json_response_schema = content
         .and_then(|content| content.get("application/json")?.get("schema"))
-        .cloned();
+        .cloned()
+        .map(|schema| if no_content { json!({"anyOf": [schema, {"type": "null"}]}) } else { schema });
     let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
 
@@ -168,6 +179,7 @@ fn extract_endpoint(
         query_params,
         request_body,
         response_kind,
+        no_content,
         json_response_schema,
         deprecated: flag(operation, "deprecated"),
         mcp_ignored: operation.get("x-mcp-ignore") == Some(&Value::Bool(true)),

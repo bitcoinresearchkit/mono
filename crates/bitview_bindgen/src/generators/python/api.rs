@@ -95,7 +95,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
     generate_api_methods(output, endpoints);
 }
 
-fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
+pub(crate) fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints {
         if !endpoint.should_generate() {
             continue;
@@ -103,7 +103,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
 
         let method_name = to_snake_case(&endpoint.operation_id);
         let response = endpoint.response_kind.ty();
-        let base_return_type = response.map_or_else(
+        let base_return_type = endpoint.response_ty().as_ref().map_or_else(
             || "bytes".to_owned(),
             |ty| normalize_return_type(&api_type(ty)),
         );
@@ -186,19 +186,25 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             ("", "")
         };
 
+        let body_arg = if endpoint.no_content { format!("{body_arg}, no_content=True") } else { body_arg };
+        // Wrap only present values, including optional series data and bulk series lists.
+        let optional_wrap = endpoint.no_content && !wrap_prefix.is_empty();
+        let (prefix, suffix) = if optional_wrap { ("", "") } else { (wrap_prefix, wrap_suffix) };
+        let assignment = if optional_wrap { "raw =" } else { "return" };
+
         if endpoint.query_params.is_empty() {
             if endpoint.path_params.is_empty() {
                 writeln!(
                     output,
-                    "        return {}self.{}('{}'{}){}",
-                    wrap_prefix, fetch_method, path, body_arg, wrap_suffix
+                    "        {assignment} {}self.{}('{}'{}){}",
+                    prefix, fetch_method, path, body_arg, suffix
                 )
                 .unwrap();
             } else {
                 writeln!(
                     output,
-                    "        return {}self.{}(f'{}'{}){}",
-                    wrap_prefix, fetch_method, path, body_arg, wrap_suffix
+                    "        {assignment} {}self.{}(f'{}'{}){}",
+                    prefix, fetch_method, path, body_arg, suffix
                 )
                 .unwrap();
             }
@@ -249,12 +255,15 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             }
             writeln!(
                 output,
-                "        return {}self.{}(path{}){}",
-                wrap_prefix, fetch_method, body_arg, wrap_suffix
+                "        {assignment} {}self.{}(path{}){}",
+                prefix, fetch_method, body_arg, suffix
             )
             .unwrap();
         }
 
+        if optional_wrap {
+            writeln!(output, "        return None if raw is None else {wrap_prefix}raw{wrap_suffix}").unwrap();
+        }
         writeln!(output).unwrap();
     }
 }
