@@ -29,9 +29,12 @@ chart.show(365);                                 // the last 365 points in view
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
-  a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly), `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
-  fractions allowed; a changed range stops a flick, as `show` does), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
-  things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
+  a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
+  `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick), `setRange(from, to)` (logical indices,
+  fractions allowed; stops a flick when the effective range changes), `range`, `onRange(listener)`,
+  `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
+  `setCrosshair(index, y, input = false, x = NaN)` (`input`: pointer input, `x`: its CSS pixels into the plot),
+  `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
