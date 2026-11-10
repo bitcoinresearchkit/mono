@@ -437,7 +437,7 @@ export function studioPresets(client, facts) {
           { heatmap: urpd, measure: "pnl" },
         ]),
         ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss"), color, true),
-        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Realized profit share", titled("Realized profit share"), [
+        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Profit share", titled("Realized profit share"), [
           { formula: `100 * ${realized.profit.sum._24h.name} / (${realized.profit.sum._24h.name} + ${realized.loss.sum._24h.name})`, label: "Daily", format: "percent", color: color ?? "violet", width: 1, opacity: 0.25 },
           { formula: `100 * rma(${realized.profit.sum._24h.name}, 14d) / (rma(${realized.profit.sum._24h.name}, 14d) + rma(${realized.loss.sum._24h.name}, 14d))`, label: "14-day smoothed", format: "percent", color: color ?? "violet", width: 2, levels: [{ value: 50, color: "gray", dash: 3 }] },
         ]),
