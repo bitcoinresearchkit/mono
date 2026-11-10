@@ -433,11 +433,13 @@
         gap: 10px 16px;
 
         label {
+          max-width: 100%;
           color: var(--soft);
           font-size: 13px;
         }
 
         select {
+          max-width: calc(100% - 6px);
           margin-left: 6px;
           border: 0;
           border-radius: 8px;
@@ -694,7 +696,7 @@
     <main class="page">
       <header>
         <h1>bitviewd <span>benchmarks</span></h1>
-        <p>Full syncs from block 0, each at one commit, sampled every few seconds: how long they take and the memory, disk and CPU they use. Runs on different machines don't compare.</p>
+        <p>Full syncs from block 0, each at one commit, sampled every few seconds: how long they take and the memory, disk and CPU they use. Comparisons use a common indexed height; machine differences still matter.</p>
         <div class="tabs" id="tabs" role="group" aria-label="Machine"></div>
       </header>
 
@@ -719,12 +721,14 @@
             <h2 id="run-title"></h2>
             <label>Compare with<select id="compare"></select></label>
           </div>
+          <p id="comparison-note" hidden></p>
           <div class="phases" id="phases"></div>
           <div class="charts" id="charts"></div>
         </section>
 
         <section aria-labelledby="plugins-title">
           <h2 id="plugins-title">Compute time per plugin</h2>
+          <p id="totals-note" hidden></p>
           <div class="bars" id="compute"></div>
         </section>
 
@@ -924,7 +928,20 @@
         const end = ms != null ? ms / 1000 : memory.times.at(-1);
         const peak = [["peak_physical_bytes", "peak footprint"], ["peak_resident_bytes", "peak resident"]].map(([column, name]) => [name, memory.max(column)]).find(([, bytes]) => bytes != null);
         const growth = (counters, column, scale = 1) => (counters.growth(column) == null ? null : round(counters.growth(column) / scale, 1));
+        const samples = {
+          height: heights, memory: memory.column("physical_bytes"),
+          cpu_user_ms: cpu.column("user_ms"), cpu_system_ms: cpu.column("system_ms"),
+          read_bytes: io.column("read_bytes"), written_bytes: io.column("written_bytes"),
+          disk_bytes: disk.column("physical_bytes"),
+        };
+        const bootstrap = cycles(timed, end);
+        const bands = bootstrap.map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) }));
+        const firstCompute = bootstrap.find((c) => c.name !== "indexing")?.start ?? end;
+        const indexingHeights = bootstrap[0]?.name === "indexing" ? heights.filter(([t]) => t < firstCompute) : [];
         return {
+          machine,
+          samples,
+          indexingHeights,
           label: folder.slice(machine.length + 1) || "run",
           started_at: startedAt(info),
           status: statusOf(run),
@@ -941,16 +958,8 @@
           disk_bytes: disk.last("physical_bytes"),
           // Resumed when the data directory already held plugin data: its time isn't a full sync's.
           resumed: info.get("start") === "resumed",
-          cycles: cycles(timed, end).map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) })),
-          curves: {
-            height: thin(heights),
-            memory: thin(memory.column("physical_bytes")),
-            cpu_user_ms: thin(cpu.column("user_ms")),
-            cpu_system_ms: thin(cpu.column("system_ms")),
-            read_bytes: thin(io.column("read_bytes")),
-            written_bytes: thin(io.column("written_bytes")),
-            disk_bytes: thin(disk.column("physical_bytes")),
-          },
+          cycles: bands,
+          curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
           compute: pluginSeconds(timed, "compute").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
           import: pluginSeconds(timed, "import").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
           breakdown: parts,
@@ -1132,7 +1141,7 @@
       // ── Every run ──
       function table() {
         const list = [...runs()].reverse();
-        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status</th><th>Time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
+        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status / tip</th><th>Full run time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""} · ${grouped(r.chain_height)}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
       }
       $("runs").addEventListener("click", (e) => {
         const label = e.target.closest("tr[data-label]")?.dataset.label;
@@ -1160,10 +1169,56 @@
       ];
       const COLORS = ["var(--accent)", "light-dark(#2b6ce6, #6ea0ff)"];
       let cross = null;
+      /** Linear estimates between recorded samples; never extrapolate. */
+      function boundary(points, value, axis) {
+        let lo = 0, hi = points.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >>> 1;
+          if (points[mid][axis] < value) lo = mid + 1;
+          else hi = mid;
+        }
+        if (lo === points.length || (lo === 0 && points[lo][axis] !== value)) return null;
+        if (points[lo][axis] === value) return points[lo][1 - axis];
+        const a = points[lo - 1], b = points[lo];
+        return a[1 - axis] + (b[1 - axis] - a[1 - axis]) * (value - a[axis]) / (b[axis] - a[axis]);
+      }
+      const comparisons = new WeakMap();
+      function comparisonRun(run, height) {
+        if (height == null) return run;
+        let cache = comparisons.get(run);
+        if (!cache) comparisons.set(run, cache = new Map());
+        if (cache.has(height)) return cache.get(height);
+        const end = boundary(run.indexingHeights, height, 1);
+        if (end == null) return null;
+        const curves = Object.fromEntries(Object.entries(run.samples).map(([key, points]) => {
+          const kept = points.filter(([t]) => t < end), value = boundary(points, end, 0);
+          if (value == null) return [key, []];
+          kept.push([end, value]);
+          return [key, thin(kept)];
+        }));
+        const view = { ...run, duration_s: end, curves,
+          cycles: run.cycles.filter((c) => c.start < end).map((c) => ({ ...c, end: Math.min(c.end, end), indexing: Math.min(c.indexing, end - c.start) })) };
+        cache.set(height, view);
+        return view;
+      }
+      const runName = (run) => `${selected.machine === compared?.machine ? "" : `${machineWords(run.machine)} / `}${rev(run)}`;
       function detail() {
-        const r = selected, o = compared;
-        $("run-title").innerHTML = `${escape(rev(r))} <small>${dated(r.started_at)} · ${escape(r.status ?? "unknown")} in ${duration(r.duration_s)}</small>`;
-        $("compare").innerHTML = `<option value="">nothing</option>` + [...runs()].reverse().filter((x) => x !== r).map((x) => `<option value="${escape(x.label)}"${x === o ? " selected" : ""}>${escape(rev(x))} · ${duration(x.duration_s)}</option>`).join("");
+        const tips = [selected, compared].map((run) => run ? Math.min(run.chain_height ?? Infinity, run.indexingHeights.at(-1)?.[1] ?? NaN) : NaN);
+        const height = compared && tips.every(Number.isFinite) && !selected.resumed && !compared.resumed
+          ? Math.min(...tips) : null;
+        const mine = comparisonRun(selected, height), theirs = compared ? comparisonRun(compared, height) : null;
+        const valid = height != null && mine && theirs;
+        const r = valid ? mine : selected, o = valid ? theirs : compared;
+        const reached = [selected, compared].map((run, k) => run?.chain_height ?? tips[k]);
+        $("run-title").innerHTML = `${escape(rev(selected))} <small>${dated(selected.started_at)} · ${escape(selected.status ?? "unknown")} in ${duration(selected.duration_s)}</small>`;
+        $("compare").innerHTML = `<option value="">nothing</option>` + machines.flatMap((m, k) => [...(m.runs ?? m.folders)].sort((a, b) => b.started_at - a.started_at || order(a.label ?? a.folder, b.label ?? b.folder)).filter((x) => x !== selected).map((x) => {
+          const label = x.label ?? (x.folder.slice(m.name.length + 1) || "run");
+          return `<option value="${escape(JSON.stringify([k, label]))}"${compared?.machine === m.name && compared?.label === label ? " selected" : ""}>${escape(machineWords(m.name))} · ${escape(x.revision ? rev(x) : label.split("/")[0])}${x.duration_s == null ? "" : ` · ${duration(x.duration_s)}`}</option>`;
+        })).join("");
+        $("comparison-note").hidden = !compared;
+        $("comparison-note").textContent = valid
+          ? `Charts cut through initial indexed height ${grouped(height)} (linear estimates between samples): ${runName(selected)} ${duration(r.duration_s)}, ${runName(compared)} ${duration(o.duration_s)} to index. ${runName(reached[0] >= reached[1] ? selected : compared)} went ${grouped(Math.abs(reached[0] - reached[1]))} more blocks (${grouped(reached[0])} vs ${grouped(reached[1])}). Memory and disk are sampled at that time; later compute work is excluded. These are indexing times; whole-run values are above. Select nothing for full curves.`
+          : "No common recorded indexing range, or a resumed run: showing whole runs; time and resources are not height matched.";
         const shades = { indexing: "var(--cycle-indexing)", compute: "var(--cycle-compute)", "catch-up": "var(--cycle-catch-up)" };
         $("phases").innerHTML = [...new Set(r.cycles.map((c) => c.name))].map((n) => `<span><i style="--c: ${shades[n]}"></i>${n} ${duration(phase(r, n))}</span>`).join("");
         const tmax = Math.max(r.duration_s, o?.duration_s ?? 0);
@@ -1205,11 +1260,11 @@
           line.setAttribute("visibility", t === null ? "hidden" : "visible");
           if (t !== null) line.setAttribute("x1", f.x(t)), line.setAttribute("x2", f.x(t));
           // (Pointed past a run's end: none, it had stopped.)
-          const value = (p, end) => (t === null ? (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,") ? p.reduce((m, [, v]) => Math.max(m, v), 0) : p.at(-1)?.[1]) : t > end ? null : at(p, t));
+          const value = (p, end) => (!p.length ? null : t === null ? (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,") ? p.reduce((m, [, v]) => Math.max(m, v), 0) : p.at(-1)?.[1]) : t > end ? null : at(p, t));
           const word = t === null && (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,")) ? "max " : "";
           legend.innerHTML = [
             ...f.mine.map(([name, p], i) => `<span><i style="--c: ${COLORS[i]}"></i>${name} <b>${word}${value(p, f.ends[0]) == null ? "–" : f.c.fmt(value(p, f.ends[0]))}</b></span>`),
-            ...f.theirs.map(([name, p]) => `<span><i class="dashed" style="--c: var(--compare)"></i>${escape(rev(compared))} ${name} <b>${word}${value(p, f.ends[1]) == null ? "–" : f.c.fmt(value(p, f.ends[1]))}</b></span>`),
+            ...f.theirs.map(([name, p]) => `<span><i class="dashed" style="--c: var(--compare)"></i>${escape(runName(compared))} ${name} <b>${word}${value(p, f.ends[1]) == null ? "–" : f.c.fmt(value(p, f.ends[1]))}</b></span>`),
           ].join("") + (t === null ? "" : `<span>at <b>${duration(t)}</b></span>`);
         }
       }
@@ -1220,8 +1275,26 @@
         readAt(Math.max(0, Math.min(f.tmax, ((px - f.pad.l) / (f.w - f.pad.l - f.pad.r)) * f.tmax)));
       });
       $("charts").addEventListener("pointerleave", () => readAt(null));
-      $("compare").addEventListener("change", () => {
-        compared = runs().find((x) => x.label === $("compare").value) ?? null;
+      $("compare").addEventListener("change", async () => {
+        const value = $("compare").value;
+        if (!value) compared = null;
+        else {
+          const [k, label] = JSON.parse(value), m = machines[k], original = selected;
+          $("compare").disabled = true;
+          try {
+            if (!m.runs) await (m.loading ??= load(m, () => {}));
+            if (selected !== original || $("compare").value !== value) return;
+            const found = m.runs.find((x) => x.label === label);
+            if (!found) throw new Error("That run could not be read.");
+            compared = found;
+          } catch (error) {
+            m.loading = null;
+            detail();
+            $("comparison-note").hidden = false;
+            $("comparison-note").textContent = `Comparison could not be loaded: ${error.message}`;
+            return;
+          } finally { $("compare").disabled = false; }
+        }
         detail();
         bars();
       });
@@ -1238,6 +1311,8 @@
         }).join("") || `<span class="name">Not recorded for this run.</span>`;
       }
       function bars() {
+        $("totals-note").hidden = !compared;
+        $("totals-note").textContent = compared ? `Whole-run totals, not height matched: solid ${runName(selected)} (${grouped(selected.chain_height)} blocks); dashed ${runName(compared)} (${grouped(compared.chain_height)} blocks). Plugin timings and the final component disk breakdown have no height samples; neither is scaled or cut.` : "";
         barList($("compute"), selected.compute, compared?.compute, duration);
         barList($("breakdown"), selected.breakdown, compared?.breakdown, bytes);
       }
