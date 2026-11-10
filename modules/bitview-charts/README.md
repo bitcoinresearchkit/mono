@@ -30,10 +30,10 @@ chart.show(365);                                 // the last 365 points in view
   none there, null for the library's.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
   a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
-  `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick), `setRange(from, to)` (logical indices,
+  `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to)` (logical indices,
   fractions allowed; stops a flick when the effective range changes), `range`, `onRange(listener)`,
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
-  `setCrosshair(index, y, input = false, x = NaN)` (`input`: pointer input, `x`: its CSS pixels into the plot),
+  `setCrosshair(index, y)`,
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
@@ -58,8 +58,8 @@ chart.show(365);                                 // the last 365 points in view
 
 Range synchronization should flow from the chart being interacted with to its followers. Avoid reflecting a follower's
 rounded range back to the source: different widths can turn that echo into a real view change and stop its flick.
-For crosshair synchronization, forward `onCrosshair` events whose `input` argument is true, and clears (an index of
-NaN); avoid reflecting programmatic placements. A programmatic
+For pointer crosshair synchronization, forward `onCrosshair` events whose `input` argument is true (pointer placements and
+clears); avoid reflecting programmatic calls. A programmatic
 `setCrosshair` replaces the pointer's crosshair and clears its series hit, even at the same position.
 
 ## Panes

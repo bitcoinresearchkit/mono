@@ -32,8 +32,6 @@ export class Crosshair {
     this.pointed = undefined;
     /** The series a pointer's on at it (found once by the chart as it moves: see setCrosshair), or null. @type {any} */
     this.hit = null;
-    /** Whether the last update came from pointer input. */
-    this.input = false;
     this.width = 0;
     this.height = 0;
     // (As drawn: nothing to clear when it's gone already.)
