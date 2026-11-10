@@ -28,7 +28,8 @@ chart.show(365);                                 // the last 365 points in view
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
-- `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
+- `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
+  a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly), `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
   fractions allowed; a changed range stops a flick, as `show` does), `range`, `onRange(listener)`, `onLayout(listener)` (its size, its panes' places: a page's own
   things kept on them; a separator's drag, at each move), `setCrosshair(index, y)`, `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),

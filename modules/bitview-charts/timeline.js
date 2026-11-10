@@ -81,11 +81,15 @@ export class Timeline {
 
   /** @param {Float64Array} times */
   setTimes(times) {
-    const end = this.length > 0 && this.x(this.length - 1) <= this.width;
+    const length = this.length, end = length > 0 && this.x(length - 1) <= this.width;
     this.times = times;
-    // (Its end in view before, in view still: a new last point comes into view.)
-    if (end) this.show(this.to - this.from);
-    else this.limit();
+    // (Its end in view: shift by the points added, keeping its screen position and the pan remainder.)
+    if (end) {
+      const added = times.length - length;
+      this.from += added;
+      this.to += added;
+    }
+    this.limit();
   }
 
   /** The last `span` points in view, the right offset past them. @param {number} span */
