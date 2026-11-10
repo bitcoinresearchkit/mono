@@ -89,7 +89,7 @@ export class Chart {
     this.fitting = false;
     /** The axes fitted again at the next frame, narrower too (see fitAxes). */
     this.refit = false;
-    /** Pending view work: data alone keeps screen positions; an explicit placement after it keeps the requested range.
+    /** Pending view work: the latest data update keeps screen positions; an explicit placement after it keeps the requested range.
      * @type {"data" | "range" | null} */
     this.placed = "range";
     this.timeHeight = timeHeight;
@@ -206,7 +206,7 @@ export class Chart {
    */
   setTimes(times) {
     this.time.setTimes(times);
-    this.placed ??= "data";
+    this.placed = "data";
     this.#recross();
     this.invalidate(true);
   }
@@ -293,24 +293,42 @@ export class Chart {
    * @param {number} index @param {number} [y] @param {boolean} [input] @param {number} [x]
    */
   setCrosshair(index, y = NaN, input = false, x = NaN) {
-    if (!input) this.recrossing = false;
-    const k = index === index && this.time.length ? Math.min(Math.max(Math.round(index), 0), this.time.lastSlot) : NaN, crosshair = this.crosshair;
+    this.#placeCrosshair(index, y, input, x);
+    this.invalidate();
+  }
+
+  /** A pointer's crosshair gone, its origin kept for linked charts. */
+  #clearPointer() {
+    this.setCrosshair(NaN, NaN, true);
+  }
+
+  /** Placement and render refresh share one hit test and notification decision; a render needs no further frame.
+   * @param {number} index @param {number} y @param {boolean} input @param {number} x */
+  #placeCrosshair(index, y, input, x) {
+    const time = this.time, crosshair = this.crosshair;
+    const k = index === index && time.length ? Math.min(Math.max(Math.round(index), 0), time.lastSlot) : NaN;
     let pane = -1;
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
     // (Its pane by itself, not its place: one removed, the next in its place is another.)
     const inPane = pane >= 0 ? this.panes[pane] : null;
-    const moved = (k !== crosshair.index || y !== crosshair.y || inPane !== this.crossedPane || input !== this.#crossedInput || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
+    const moved = (k !== crosshair.index || y !== crosshair.y || inPane !== this.crossedPane || input !== this.#crossedInput || !Object.is(x, this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
+    const refresh = input && k === k && (this.recrossing || (inPane?.changes ?? -1) !== this.crossedChanges);
+    const viewChanged = input && k === k && (time.from !== this.crossedFrom || time.spacing !== this.crossedSpacing);
+    this.recrossing = false;
     (this.#crossedInput = input), (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.crossedPane = inPane), (this.pointerX = x);
-    const within = pane >= 0 ? y - this.panes[pane].top : NaN, at = x === x ? x : k === k ? this.time.x(k) : NaN;
+    const within = inPane ? y - inPane.top : NaN, at = x === x ? x : k === k ? time.x(k) : NaN;
     // (A pointer's: the series it's on, found once (at the pointer, not the point), told and its dot marked by it.)
-    if (!moved) return void this.invalidate();
-    const hit = input && k === k && pane >= 0 ? this.panes[pane].hit(this.time, k, at, within) : -1;
-    crosshair.hit = hit >= 0 ? this.panes[pane].series[hit] : null;
+    if (!moved && !refresh && !viewChanged) return;
+    const hit = input && k === k && inPane ? inPane.hit(time, k, at, within) : -1;
+    const series = hit >= 0 && inPane ? inPane.series[hit] : null, hitChanged = crosshair.hit !== series;
+    crosshair.hit = series;
+    // (Recorded before listeners: their changes still need refreshing at the next draw.)
+    (this.crossedChanges = inPane?.changes ?? -1), (this.crossedFrom = time.from), (this.crossedSpacing = time.spacing);
+    if (!moved && !refresh && !hitChanged) return;
     // (Its listeners as they were: their list never changed in place (one added or leaving makes a new one), so one
     // leaving as it's told skips no other, one added isn't told this time.)
     const listeners = this.crosshairListeners;
     for (let l = 0; l < listeners.length; l++) listeners[l](k, pane, within, input, at, hit);
-    this.invalidate();
   }
 
   /**
@@ -471,7 +489,7 @@ export class Chart {
   /** Drawn now (for a measurement: its frames draw it). @param {boolean} [whole] @returns {void} */
   render(whole = false) {
     this.whole = false;
-    const time = this.time, crosshair = this.crosshair, x = this.pointerX;
+    const time = this.time, crosshair = this.crosshair;
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
       pane.fit(time);
@@ -503,28 +521,16 @@ export class Chart {
         }
       }
     }
-    // (A pointer's crosshair on the point under it as the view moves beneath it (a wheel's scroll, a glide) or its data or
-    // layout change (see #recross), its listeners told with the panes fitted to the view: that point within the data, as
-    // setCrosshair has it (past its end, its last), so a still pointer there asks for no frame.)
-    // (Its pane's scale or series changed under it since it was told (a zoom, a live price):
-    // what it hits read again.)
-    const under = this.panes[crosshair.pane];
-    // (The view moved under a still pointer (a zoom, a pan within a point): the series it's on found again, told where
-    // that's another.)
-    let changed = Boolean(under) && under.changes !== this.crossedChanges;
-    if (under && this.#crossedInput && !changed && crosshair.index === crosshair.index && (time.from !== this.crossedFrom || time.spacing !== this.crossedSpacing) && crosshair.hit !== (under.series[under.hit(time, crosshair.index, x === x ? x : time.x(crosshair.index), crosshair.y - under.top)] ?? null)) changed = true;
-    (this.crossedFrom = time.from), (this.crossedSpacing = time.spacing);
+    // (Only the data already drawn is consumed. A listener below may queue another update for the next draw.)
+    this.placed = null;
+    // (The pointer refreshed on fitted geometry, through the same placement path as input. An unchanged pointer asks
+    // for neither another hit test nor another frame.)
     if (this.recrossing || (this.#crossedInput && crosshair.index === crosshair.index)) {
-      const index = x === x ? time.index(x) : crosshair.index;
+      const x = this.pointerX;
       // (Over an axis now (one come under it): gone, as a pointer over an axis has none.)
-      if (x === x && !(x >= 0 && x <= time.width)) (this.recrossing = false), this.setCrosshair(NaN, NaN, true);
-      else if (this.recrossing || changed || Math.min(Math.max(Math.round(index), 0), time.lastSlot) !== crosshair.index) {
-        // (Found again, told even where its point and height stay: what's under it may not.)
-        if (this.recrossing || changed) (this.recrossing = false), (crosshair.index = NaN);
-        this.setCrosshair(index, crosshair.y, true, x);
-      }
+      if (x === x && !(x >= 0 && x <= time.width)) this.#clearPointer();
+      else this.#placeCrosshair(x === x ? time.index(x) : crosshair.index, crosshair.y, true, x);
     }
-    this.crossedChanges = this.panes[crosshair.pane]?.changes ?? -1;
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
     // (Each legend pointed at the series read: the page's, crosshair or not (a tag, a row of its own, the pointer moved
@@ -533,7 +539,6 @@ export class Chart {
     const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
     for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
-    this.placed = null;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
       const listeners = this.rangeListeners;
@@ -651,17 +656,17 @@ export class Chart {
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
       const touch = !fine(event), y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, touch);
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.setCrosshair(NaN, NaN, true));
+      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.#clearPointer());
       const box = element.getBoundingClientRect(), axis = down.size ? null : axisAt(event.clientX - box.left, y);
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null });
       this.#stopGlide();
       trailSize = 0;
       clearTimeout(this.holding);
       // (A held finger's crosshair going at the next frame: gone now.)
-      if (this.letting) cancelAnimationFrame(this.letting), this.setCrosshair(NaN, NaN, true);
+      if (this.letting) cancelAnimationFrame(this.letting), this.#clearPointer();
       this.holding = this.letting = 0;
       // (A second finger: a pinch, the crosshair a held finger showed gone.)
-      if (held >= 0) (held = -1), this.setCrosshair(NaN, NaN, true);
+      if (held >= 0) (held = -1), this.#clearPointer();
       // (A second finger: a pinch, no axis dragged after it, the one finger left panning.)
       if (down.size > 1) {
         twoFingers = true;
@@ -687,19 +692,19 @@ export class Chart {
       const at = down.get(event.pointerId);
       if (!at && fine(event)) {
         // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
-        if (event.target !== element && !this.#owns(event.target)) return void (this.separatorLit && ((this.separatorLit = null), this.invalidate()), this.setCrosshair(NaN, NaN, true));
+        if (event.target !== element && !this.#owns(event.target)) return void (this.separatorLit && ((this.separatorLit = null), this.invalidate()), this.#clearPointer());
         // (A mouse or pen over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
         const box = element.getBoundingClientRect(), y = event.clientY - box.top, lit = separator(y, false), over = lit >= 0, axis = !over && findAxis(event.clientX - box.left, y);
         element.style.cursor = over ? "row-resize" : axis ? (foundPane ? "ns-resize" : "ew-resize") : "";
         // (The separator pointed at in the theme's active color: it can be dragged.)
         if (this.panes[lit] !== (this.separatorLit ?? undefined)) (this.separatorLit = this.panes[lit] ?? null), this.invalidate();
-        return void (over ? this.setCrosshair(NaN, NaN, true) : point(event));
+        return void (over ? this.#clearPointer() : point(event));
       }
       if (!at) return;
       // (Gone as far as a click can't, once: a drag back to where it began is no click.)
       if (!at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) >= 6) {
         at.moved = true;
-        if (at.axis && this.#crossedInput) this.setCrosshair(NaN, NaN, true);
+        if (at.axis && this.#crossedInput) this.#clearPointer();
       }
       if (held === event.pointerId) return void ((at.x = event.clientX), (at.y = event.clientY), point(event));
       if (!at.panning) {
@@ -735,7 +740,7 @@ export class Chart {
       if (fine(event)) this.#follow(event);
       this.invalidate();
     }, { signal });
-    element.addEventListener("pointerleave", (event) => fine(event) && !down.size && !this.resizing && ((this.separatorLit = null), this.setCrosshair(NaN, NaN, true)), { signal });
+    element.addEventListener("pointerleave", (event) => fine(event) && !down.size && !this.resizing && ((this.separatorLit = null), this.#clearPointer()), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
       if (event.type === "lostpointercapture" && event.target !== element) return;
       const released = event.type === "pointerup";
@@ -748,7 +753,7 @@ export class Chart {
       this.holding = 0;
       // (The finger holding the crosshair let go: it goes at the next frame (a page's own lifting handled first, as a
       // touch's end came after it: Studio keeps it there); no glide.)
-      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.setCrosshair(NaN, NaN, true)))));
+      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
       // (Let go where it began: a click.)
       if (released && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;

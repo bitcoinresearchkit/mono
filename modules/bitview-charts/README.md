@@ -58,6 +58,9 @@ chart.show(365);                                 // the last 365 points in view
 
 Range synchronization should flow from the chart being interacted with to its followers. Avoid reflecting a follower's
 rounded range back to the source: different widths can turn that echo into a real view change and stop its flick.
+Before pending data is drawn, the latest setter decides how axis fitting keeps the view: `setTimes` keeps screen
+positions; a later `show` or `setRange` keeps its normalized logical endpoints, including an explicit no-op range request.
+Data queued by a render callback remains pending until it is drawn.
 For pointer crosshair synchronization, forward `onCrosshair` events whose `input` argument is true (pointer placements and
 clears); avoid reflecting programmatic calls. A programmatic
 `setCrosshair` replaces the pointer's crosshair and clears its series hit, even at the same position.
