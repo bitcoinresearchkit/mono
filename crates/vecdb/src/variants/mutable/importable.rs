@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::{MutableRawVec, MutableVec};
-use crate::{Bytes, ImportOptions, ImportableVec, Result};
+use crate::{Bytes, Error, ImportOptions, ImportableVec, Result};
 
 impl<V> MutableVec<V>
 where
@@ -12,9 +12,15 @@ where
             .db
             .region(&Self::holes_region_name_with(options.name))
             .map(|region| {
-                region
-                    .create_reader()
-                    .read_all()
+                let reader = region.create_reader();
+                let bytes = reader.read_all();
+                if !bytes.len().is_multiple_of(size_of::<usize>()) {
+                    return Err(Error::CorruptedRegion {
+                        name: Self::holes_region_name_with(options.name),
+                        region_len: bytes.len(),
+                    });
+                }
+                bytes
                     .chunks(size_of::<usize>())
                     .map(usize::from_bytes)
                     .collect::<Result<BTreeSet<usize>>>()
