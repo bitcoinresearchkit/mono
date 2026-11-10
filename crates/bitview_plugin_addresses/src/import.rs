@@ -8,6 +8,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
+use tracing::warn;
 use vecdb::ReadableCloneableVec;
 
 use crate::{
@@ -18,6 +19,23 @@ use crate::{
 
 impl Vecs {
     pub fn import(
+        context: PluginImportContext<'_>,
+        mappings: &MappingsVecs,
+        windows: &Windows<&LazyWindowStartVec>,
+        prices: &PriceVecs,
+        totals: ShareTotals<'_>,
+    ) -> Result<Self> {
+        STORAGE.import_with_recovery(
+            context,
+            || Self::import_inner(context, mappings, windows, prices, totals),
+            |error| {
+                warn!("Rebuilding address data at {} after an import failure: {error}", STORAGE.path(context).display());
+                Ok(())
+            },
+        )
+    }
+
+    fn import_inner(
         context: PluginImportContext<'_>,
         mappings: &MappingsVecs,
         windows: &Windows<&LazyWindowStartVec>,

@@ -9,7 +9,8 @@ pub trait ImportableVec: Sized {
     ///
     /// Deletes the existing data, sidecar regions and rollback history included, when its
     /// version, format or value size differs (compressed vectors also reset a corrupt
-    /// layout); other corruption is an error.
+    /// layout); other corruption is an error. Compound overflow vectors reject incompatible
+    /// or incomplete pairs so their owner can rebuild the whole dataset without stale pointers.
     fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::import_with((db, name, version).into())
     }
