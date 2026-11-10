@@ -1716,7 +1716,7 @@
           if (state.week?.hash === hash) return;
           const end = state.tip + 1;
           const start = Math.max(0, end - 1200);
-          const [lows, times] = await Promise.all([series("tx_effective_fee_rate_min", "height", start, end), series("timestamp", "height", start, end)]);
+          const [lows, times] = await Promise.all([series("tx_effective_fee_rate_low_estimate", "height", start, end), series("timestamp", "height", start, end)]);
           if (state.tipHash !== hash) continue;
           state.week = { hash, lows, times };
           return drawWeek();
@@ -2555,7 +2555,7 @@
         const from = Math.max(a, b - STRIP + 1);
         const [pages, floors] = await Promise.all([
           Promise.all((from <= b - 10 ? [b - 10, b] : [b]).map((h) => get(`/v1/blocks/${h}`))),
-          series("tx_effective_fee_rate_min", "height", a, b + 1),
+          series("tx_effective_fee_rate_low_estimate", "height", a, b + 1),
         ]);
         const at = new Map(pages.flat().map((x) => [x.height, x]));
         const blocks = [];

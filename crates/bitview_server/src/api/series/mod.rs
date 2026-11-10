@@ -1,6 +1,6 @@
 //! Live `/api/series/*` API: catalog, search, info, single-series, bulk.
 
-use std::result::Result as StdResult;
+use std::{collections::BTreeMap, result::Result as StdResult};
 
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
@@ -213,6 +213,22 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     "The available series as a tree of categories and subcategories."
                 )
                 .json_response::<TreeNode>()
+                .not_modified(),
+        ),
+    )
+    .api_route(
+        "/api/series/aliases",
+        get_with(
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state.series_bodies.aliases.respond(&headers)
+            },
+            |op| op
+                .id("get_series_aliases")
+                .tag(tags::SERIES)
+                .mcp_ignore()
+                .summary("Series aliases")
+                .description("Legacy public series ids mapped to their canonical ids. Both names answer with the same data; discovery lists the canonical id.")
+                .json_response::<BTreeMap<String, String>>()
                 .not_modified(),
         ),
     )

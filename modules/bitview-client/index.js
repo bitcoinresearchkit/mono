@@ -2718,15 +2718,15 @@ const _Meter = _s({
   p1: [_i1, '*_p1'],
   p2: [_i1, '*_p2'],
   p5: [_i1, '*_p5'],
-  p10: [_i1, '*_p10'],
-  p20: [_i1, '*_p20'],
-  p30: [_i1, '*_p30'],
-  p40: [_i1, '*_p40'],
-  median: [_i1, '*_median'],
-  p60: [_i1, '*_p60'],
-  p70: [_i1, '*_p70'],
-  p80: [_i1, '*_p80'],
-  p90: [_i1, '*_p90'],
+  p10: [_i1, '*_interpolated_p10'],
+  p20: [_i1, '*_interpolated_p20'],
+  p30: [_i1, '*_interpolated_p30'],
+  p40: [_i1, '*_interpolated_p40'],
+  median: [_i1, '*_interpolated_midpoint'],
+  p60: [_i1, '*_interpolated_p60'],
+  p70: [_i1, '*_interpolated_p70'],
+  p80: [_i1, '*_interpolated_p80'],
+  p90: [_i1, '*_interpolated_p90'],
   p95: [_i1, '*_p95'],
   p98: [_i1, '*_p98'],
   p99: [_i1, '*_p99'],
@@ -3186,11 +3186,11 @@ const _RarityMeter = _s({
  * }} EntryCapital
  */
 const _EntryCapital = _s({
-  p95ToP98: [_i1, '*_p95_to_p98'],
-  p98ToP99: [_i1, '*_p98_to_p99'],
-  p99ToP99_5: [_i1, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_i1, '*_p99_5_to_p99_9'],
-  belowP99_9: [_i1, '*_below_p99_9'],
+  p95ToP98: [_i1, '*_between_p95_and_p98_floors'],
+  p98ToP99: [_i1, '*_between_p98_and_p99_floors'],
+  p99ToP99_5: [_i1, '*_between_p99_and_p99_5_floors'],
+  p99_5ToP99_9: [_i1, '*_between_p99_5_and_p99_9_floors'],
+  belowP99_9: [_i1, '*_below_p99_9_floor'],
 });
 
 /**
@@ -3869,6 +3869,29 @@ const _Rate = _s({
 });
 
 /**
+ * @typedef {{
+ *   tx: SeriesPattern20<?FeeRate>,
+ *   min: SeriesPattern1<?FeeRate>,
+ *   max: SeriesPattern1<?FeeRate>,
+ *   p10: SeriesPattern1<?FeeRate>,
+ *   p25: SeriesPattern1<?FeeRate>,
+ *   median: SeriesPattern1<?FeeRate>,
+ *   p75: SeriesPattern1<?FeeRate>,
+ *   p90: SeriesPattern1<?FeeRate>,
+ * }} TransactionsPerTxDistribution
+ */
+const _TransactionsPerTxDistribution = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_low_estimate'],
+  max: [_i1, '*_high_estimate'],
+  p10: [_i1, '*_p10'],
+  p25: [_i1, '*_p25'],
+  median: [_i1, '*_median'],
+  p75: [_i1, '*_p75'],
+  p90: [_i1, '*_p90'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   tx: SeriesPattern20<A>,
@@ -3913,11 +3936,11 @@ const _Value = _s({
  * }} EntrySupply
  */
 const _EntrySupply = _s({
-  p95ToP98: [_Value, '*_p95_to_p98'],
-  p98ToP99: [_Value, '*_p98_to_p99'],
-  p99ToP99_5: [_Value, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_Value, '*_p99_5_to_p99_9'],
-  belowP99_9: [_Value, '*_below_p99_9'],
+  p95ToP98: [_Value, '*_between_p95_and_p98_floors'],
+  p98ToP99: [_Value, '*_between_p98_and_p99_floors'],
+  p99ToP99_5: [_Value, '*_between_p99_and_p99_5_floors'],
+  p99_5ToP99_9: [_Value, '*_between_p99_5_and_p99_9_floors'],
+  belowP99_9: [_Value, '*_below_p99_9_floor'],
 });
 
 /**
@@ -4686,7 +4709,7 @@ const _Patterns = _s({
  * @typedef {{
  *   fee: PerTxDistribution<Sats>,
  *   feeRate: SeriesPattern20<?FeeRate>,
- *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
+ *   effectiveFeeRate: TransactionsPerTxDistribution,
  *   cpfpParent: TransactionsFlagged,
  *   cpfpChild: TransactionsFlagged,
  * }} Fees
@@ -4694,7 +4717,7 @@ const _Patterns = _s({
 const _Fees = _s({
   fee: [_PerTxDistribution, '*_fee'],
   feeRate: [_i20, '*_fee_rate'],
-  effectiveFeeRate: [_PerTxDistribution, '*_effective_fee_rate'],
+  effectiveFeeRate: [_TransactionsPerTxDistribution, '*_effective_fee_rate'],
   cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
   cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
 });
@@ -5475,8 +5498,8 @@ const _Bucket = _s({
  * }} Policy
  */
 const _Policy = _s({
-  preV30Standard: [_Bucket, '*_pre_v30_standard'],
-  preV30Nonstandard: [_Bucket, '*_pre_v30_nonstandard'],
+  preV30Standard: [_Bucket, '*_within_pre_v30_relay_limits'],
+  preV30Nonstandard: [_Bucket, '*_beyond_pre_v30_relay_limits'],
   oversized: [_Bucket, '*_oversized'],
   multiple: [_Bucket, '*_multiple'],
 });
@@ -5672,7 +5695,7 @@ const _Outputs = _s({
   spendingTxinIndex: [_i24, 'spending_txin_index'],
   count: [_FlowStats, '*_count'],
   perSecond: [_Windows, 'outputs_per_second'],
-  spendableCount: [_Flow, 'spendable_*_count'],
+  spendableCount: [_Flow, 'non_op_return_*_count'],
   types: [_ByType, '*'],
   opReturnValue: [_ValueFlow, 'op_return_value'],
 });
@@ -8085,6 +8108,20 @@ class BitviewClient extends BitviewClientBase {
    */
   async getSeriesTree({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series`;
+    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Series aliases
+   *
+   * Legacy public series ids mapped to their canonical ids. Both names answer with the same data; discovery lists the canonical id.
+   *
+   * Endpoint: `GET /api/series/aliases`
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<{ [key: string]: string }>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<{ [key: string]: string }>>}
+   */
+  async getSeriesAliases({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/series/aliases`;
     return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
   }
 

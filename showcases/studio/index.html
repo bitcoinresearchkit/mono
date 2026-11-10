@@ -11118,6 +11118,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
       /** @type {HTMLElement} */ (document.getElementById("live")).dataset.tip = SERVER_HOST;
       const tree = client.series;
+      /** The server's public id migrations, shared by saved charts, links and formulas. @type {Map<string, string>} */
+      const seriesRenames = new Map();
+      const seriesRenamesReady = client.getSeriesAliases().then((aliases) => {
+        for (const [old, current] of Object.entries(aliases)) seriesRenames.set(old, current);
+      }).catch(() => {});
       /**
        * Charts keep a series' dotted catalog path with its name, so a rename still finds it. (A series by its name and its
        * intervals: its endpoints, `by`, are made when first read, not for every series a walk passes.)
@@ -13142,7 +13147,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
-      const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
+      const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(/(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*(?![A-Za-z0-9_])(?!\s*\()/g, (name) => names.get(name) ?? name) : formula);
 
       const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
       /** Functions whose result is a percent, whatever their input's unit. */
@@ -13672,7 +13677,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
-        for (const layer of doc.layers) followPool(layer);
+        for (const layer of doc.layers) {
+          followPool(layer);
+          if (layer.series) layer.series = seriesRenames.get(layer.series) ?? layer.series;
+          if (layer.formula !== undefined) layer.formula = renamed(layer.formula, seriesRenames);
+          if (layer.paths) layer.paths = Object.fromEntries(Object.entries(layer.paths).map(([name, path]) => [seriesRenames.get(name) ?? name, path]));
+        }
         // A series follows its path: renamed in a newer client, it takes the new name; its path is learned (or
         // relearned) from the catalog once that is indexed.
         for (const layer of doc.layers) {
@@ -15840,7 +15850,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
       const KEPT_LOADS = 100;
-      /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: readonly any[], times: number[], version: number }>>} */
       const loads = new Map();
       /**
        * The points at a series' end a new block can still change, by interval (the server's own margins: `cache_class`,
@@ -15851,7 +15861,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Fetched again as a block comes, with the series at hand (`held`): only the tail a block can change, from where it
        * starts on (`to` its end), joined to the rest. Null without one to join to, or once the server has computed the
        * series anew (its version moved on): then it comes whole.
-       * @param {any} endpoint @param {string} index @param {{ start: number, data: any[], version: number } | null} held @param {number} [to]
+       * @param {any} endpoint @param {string} index @param {{ start: number, data: readonly any[], version: number } | null} held @param {number} [to]
        */
       async function refetchTail(endpoint, index, held, to = undefined) {
         if (!held?.data.length) return null;
@@ -15896,7 +15906,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
       /** The chunk the latest points are in, by the clock. */
       const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
-      /** @type {Map<string, Promise<{ start: number, data: any[], version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: readonly any[], version: number }>>} */
       const chunks = new Map();
       /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
       const failedChunks = new Set();
@@ -15964,7 +15974,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (newest.status === "rejected") throw newest.reason;
           let first = end;
           while (first > 0 && settled[first - 1].status === "fulfilled") first--;
-          const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], version: number }>} */ (part).value).filter((part) => part.data.length);
+          const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: readonly any[], version: number }>} */ (part).value).filter((part) => part.data.length);
           // Chunks of two computations of the series (the server's anew since the older came): all of it again, once; still
           // two (a cache can go on serving the older for a while), an error to retry, never one series of both.
           if (new Set(loaded.map((part) => part.version)).size > 1) {
@@ -16015,7 +16025,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const BY_BLOCK = "Only by block (Studio charts by date)";
       /** A series of text (a date, a hash, an address), said: its values aren't numbers. */
       const TEXT_VALUES = "Its values are text (a date, a hash, an address), not numbers to chart";
-      /** Whether a series' data is text: its first value a string, or an object that isn't a candle. @param {{ data: any[] }} data */
+      /** Whether a series' data is text: its first value a string, or an object that isn't a candle. @param {{ data: readonly any[] }} data */
       const isText = (data) => ((value) => typeof value === "string" || (typeof value === "object" && value !== null && !Array.isArray(value)))(data.data.find((value) => value !== null && value !== undefined));
       /**
        * A series by block, by its day (its own over 24 hours, their sum, their average; before a unit it ends in, as
@@ -40580,6 +40590,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       onClosed($("palette"), quickHide);
 
       async function start() {
+        await seriesRenamesReady;
+        for (const doc of [...library.charts, ...library.presets]) normalize(doc);
         // (The arrangement as loaded: one changed from it, not written yet, is this tab's own.)
         arrangedAs = arrangedNow();
         // (The page's first navigation, as navigate counts it: a chart opened while a link's read, the link's dropped.)

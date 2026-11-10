@@ -1,4 +1,4 @@
-use std::{sync::Arc, thread::available_parallelism};
+use std::{collections::BTreeMap, sync::Arc, thread::available_parallelism};
 
 use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::Query;
@@ -10,6 +10,7 @@ use crate::{CacheParams, prepared_json::PreparedJson};
 
 pub struct SeriesBodies {
     pub catalog: PreparedJson,
+    pub aliases: PreparedJson,
     pub count: PreparedJson,
     pub indexes: PreparedJson,
     pub list: CacheParams,
@@ -23,30 +24,42 @@ impl SeriesBodies {
     pub fn new(query: &Query) -> Self {
         let query_capacity = available_parallelism().map_or(1, |count| count.get());
         let catalog = PreparedJson::new(query.series_catalog());
+        let aliases = query.registry().aliases();
         let search = search_params(catalog.bytes(), query.registry().series_names());
         Self {
             catalog,
+            aliases: PreparedJson::new(&aliases),
             count: PreparedJson::new(query.series_count()),
             indexes: PreparedJson::new(query.indexes()),
             list: list_params(query.registry().series_names()),
             search,
-            info: info_params(query.registry().series_names().iter().map(|&name| {
-                (
-                    name,
-                    query
-                        .series_info(&name.into())
-                        .expect("registered series info"),
-                )
-            })),
+            info: info_params(
+                query.registry().series_names().iter().map(|&name| {
+                    (
+                        name,
+                        query
+                            .series_info(&name.into())
+                            .expect("registered series info"),
+                    )
+                }),
+                &aliases,
+            ),
             search_query: Arc::new(Semaphore::new(query_capacity)),
             data_query: Arc::new(Semaphore::new(query_capacity)),
         }
     }
 }
 
-/// URI-scoped metadata revision. Bump info1 if name resolution semantics change.
-fn info_params<'a>(entries: impl IntoIterator<Item = (&'a str, SeriesInfo)>) -> CacheParams {
+/// URI-scoped metadata revision, including public id resolution.
+fn info_params<'a>(
+    entries: impl IntoIterator<Item = (&'a str, SeriesInfo)>,
+    aliases: &BTreeMap<&str, &str>,
+) -> CacheParams {
     let mut engine = sha256::HashEngine::default();
+    for (old, new) in aliases {
+        hash_bytes(&mut engine, old.as_bytes());
+        hash_bytes(&mut engine, new.as_bytes());
+    }
     let mut bytes = Vec::new();
     for (name, info) in entries {
         hash_bytes(&mut engine, name.as_bytes());

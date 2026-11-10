@@ -86,7 +86,7 @@ impl Query {
             if i > 0 {
                 csv.push(b',');
             }
-            csv.extend_from_slice(col.name().as_bytes());
+            csv.extend_from_slice(registry::canonical_name(col.name()).as_bytes());
         }
         csv.push(b'\n');
 
@@ -644,7 +644,11 @@ impl ResolvedQuery {
     }
 
     pub fn csv_filename(&self) -> String {
-        let capacity = self.read.columns().map(|v| v.name().len()).sum::<usize>()
+        let capacity = self
+            .read
+            .columns()
+            .map(|v| registry::canonical_name(v.name()).len())
+            .sum::<usize>()
             + self.read.columns().len()
             - 1
             + self.index.name().len()
@@ -654,7 +658,7 @@ impl ResolvedQuery {
             if position != 0 {
                 filename.push('_');
             }
-            filename.push_str(vec.name());
+            filename.push_str(registry::canonical_name(vec.name()));
         }
         write!(filename, "-{}.csv", self.index).unwrap();
         filename

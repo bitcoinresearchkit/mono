@@ -13,6 +13,9 @@ use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::AnyExportableVec;
 
+mod aliases;
+pub(crate) use aliases::canonical_name;
+
 pub mod normalize;
 pub mod resolved_series_info;
 pub mod search;
@@ -81,7 +84,9 @@ impl<'a> SeriesRegistry<'a> {
             descriptions.push((db, plugin_descriptions));
         });
 
-        Self::finish_build(builder, plugins.to_tree_node(), descriptions)
+        let mut catalog = plugins.to_tree_node();
+        aliases::rename_catalog(&mut catalog);
+        Self::finish_build(builder, catalog, descriptions)
     }
 
     fn finish_build(
@@ -103,6 +108,7 @@ impl<'a> SeriesRegistry<'a> {
         let mut series_to_description = BTreeMap::new();
         for (db, plugin_descriptions) in descriptions_by_plugin {
             for (series, fragments) in plugin_descriptions {
+                let series = canonical_name(series);
                 if excluded.contains(&(series, db)) {
                     continue;
                 }
@@ -195,6 +201,8 @@ impl<'a> SeriesRegistry<'a> {
             .collect();
 
         let matcher = QuickMatch::new(&series_names);
+        // Aliases answer queries, but never duplicate discovery, counts or search results.
+        aliases::add_legacy_names(&mut by_series);
 
         Self {
             by_series,
@@ -224,6 +232,15 @@ impl<'a> SeriesRegistry<'a> {
 
     pub fn series_names(&self) -> &[&'a str] {
         &self.series_names
+    }
+
+    /// Legacy public ids and their canonical targets in this composition.
+    pub fn aliases(&self) -> BTreeMap<&'static str, &'static str> {
+        aliases::RENAMES
+            .iter()
+            .copied()
+            .filter(|&(_, new)| self.by_series.contains_key(new))
+            .collect()
     }
 
     pub(crate) fn series_page(&'static self, pagination: Pagination) -> PaginatedSeries {
@@ -362,7 +379,7 @@ impl<'a> Builder<'a> {
         let mut seen = FxHashSet::default();
         let mut by_name: FxHashMap<&'a str, Vec<Registration<'a>>> = FxHashMap::default();
         for registration in std::mem::take(&mut self.registrations) {
-            let name = registration.vec.name();
+            let name = canonical_name(registration.vec.name());
             debug_assert!(
                 seen.insert((name, registration.index, registration.db)),
                 "Duplicate series: {name} for index {:?}",
@@ -427,7 +444,7 @@ impl<'a> Builder<'a> {
 
     fn insert(&mut self, registration: Registration<'a>) {
         let Registration { db, vec, index } = registration;
-        let name = vec.name();
+        let name = canonical_name(vec.name());
         self.by_series.entry(name).or_default().insert(SeriesEntry {
             vec,
             index,

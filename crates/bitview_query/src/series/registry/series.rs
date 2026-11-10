@@ -4,7 +4,7 @@ use bitview_primitives::Index;
 
 use super::SeriesEntry;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Series<'a> {
     entries: Vec<SeriesEntry<'a>>,
     pub(super) description: Option<Arc<str>>,

@@ -8,7 +8,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21781
-- Operations: 107
+- Operations: 108
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -792,6 +792,14 @@ Series catalog
 The available series as a tree of categories and subcategories.
 
 Returns: JSON `TreeNode`
+
+#### GET `/api/series/aliases`
+
+Series aliases
+
+Legacy public series ids mapped to their canonical ids. Both names answer with the same data; discovery lists the canonical id.
+
+Returns: JSON `object`
 
 #### GET `/api/series/bulk`
 

@@ -961,6 +961,18 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-series-aliases",
+        method: "GET",
+        path: "/api/series/aliases",
+        summary: "Series aliases",
+        description: "Legacy public series ids mapped to their canonical ids. Both names answer with the same data; discovery lists the canonical id.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-series-bulk",
         method: "GET",
         path: "/api/series/bulk",
