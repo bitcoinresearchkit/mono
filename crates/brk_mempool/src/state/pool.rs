@@ -160,7 +160,8 @@ impl Pool {
             graveyard: self.graveyard.as_ref().clone(),
             upkeep: Upkeep::of(&self.graveyard),
             ancestry: self.ancestry.clone(),
-            unverified: Vec::new(),
+            // A panic may have abandoned a newer private witness: verify the restored records.
+            unverified: self.txs.records().map(|(_, record)| record.entry.txid).collect(),
             template_only: Vec::new(),
         }
     }

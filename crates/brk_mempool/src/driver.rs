@@ -116,17 +116,13 @@ impl Mempool {
         self.withheld = None;
         let published = self.read_only.load();
         let previous = std::mem::take(&mut self.state.upkeep);
-        let unverified = std::mem::take(&mut self.state.unverified);
         // Before the first publication, the graveyard read back, if any: the pool reloads from
         // Core, as after a crash.
         self.state = published.pool.as_ref().map_or_else(
             || State::restored(self.loaded_graveyard.clone(), Vec::new()),
             |pool| pool.restore(),
         );
-        // What awaits a late replacer and the unchecked records are the writer's alone, in no
-        // publication: kept.
         self.state.upkeep.keep_awaited(previous);
-        self.state.unverified = unverified;
         self.rebuilder.restore(
             published
                 .pool
@@ -155,6 +151,7 @@ impl Mempool {
             capped,
             requested,
             checked,
+            recheck,
         } = fetcher::fetch(
             &self.client,
             &self.state,
@@ -179,7 +176,7 @@ impl Mempool {
         {
             return Err(Error::StateUpdating);
         }
-        self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked);
+        self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
         self.state.template_only = template_only;
         let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
         prevouts::fill(&mut self.state, resolver, &unloaded);
@@ -213,9 +210,16 @@ impl Mempool {
         new_entries: Vec<MempoolEntryInfo>,
         new_txs: RapidHashMap<Txid, bitcoin::Transaction>,
         checked: usize,
+        mut recheck: RapidHashSet<Txid>,
     ) {
         let confirmed = Confirmed::since(&self.client, tip, self.state.graveyard.confirmed_tip());
         let diff = preparer::prepare(live, new_entries, new_txs, &confirmed, &self.state);
+        // The preparer alone decides which entry/body pairs are usable, including templates.
+        if !recheck.is_empty() {
+            for addition in &diff.added {
+                recheck.remove(&addition.entry.txid);
+            }
+        }
         // A panic after this point requires restoring private indexes before reuse. The private
         // state changes from here: what was withheld no longer is it.
         self.withheld = None;
@@ -223,6 +227,10 @@ impl Mempool {
         applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
         let unchecked = self.state.unverified.len() - checked;
         self.state.unverified.truncate(unchecked);
+        // Polling takes from the back: retries wait behind the untried prefix. Removed records
+        // need no retry; every still-listed failure keeps its held body until a check succeeds.
+        let txs = &self.state.txs;
+        self.state.unverified.splice(0..0, recheck.into_iter().filter(|txid| txs.contains(txid)));
         // An unread block is read again next cycle; one that never reads (pruned since) is let go
         // after a few, what it confirmed reading as vanished.
         self.unread_cycles = if confirmed.incomplete {

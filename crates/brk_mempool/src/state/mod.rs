@@ -30,7 +30,7 @@ pub struct State {
     pub upkeep: Upkeep,
     /// The graveyard's confirmed tip and its newest ancestors.
     pub ancestry: Ancestry,
-    /// Records restored from a shutdown save and not yet checked against Core's entries.
+    /// Records restored from a shutdown save or publication, not yet checked against Core.
     pub unverified: Vec<Txid>,
     /// The last applied poll's template transactions the listing lacks (left Core's pool since
     /// it built the template), in its order: block 0's bodies alone, never pooled.
