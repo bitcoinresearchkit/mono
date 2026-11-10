@@ -67,19 +67,18 @@ impl Query {
                     .data()
             })
             .transpose()?;
-        let prices = heights
-            .iter()
-            .map(|height| {
-                self.plugins()
-                    .price
-                    .spot
-                    .cents
-                    .height
-                    .collect_one(*height)
-                    .data()
-                    .map(Dollars::from)
-            })
-            .collect::<Result<Vec<_>>>()?;
+        let mut prices = Vec::with_capacity(heights.len());
+        if !heights.is_empty() {
+            let indices: Vec<_> = heights.iter().rev().map(|height| usize::from(*height)).collect();
+            self.plugins()
+                .price
+                .spot
+                .cents
+                .height
+                .read_sorted_into_at(&indices, &mut prices);
+            (prices.len() == heights.len()).then_some(()).data()?;
+        }
+        let prices = prices.into_iter().rev().map(Dollars::from).collect();
 
         Ok(ResolvedPoolBlocks {
             chain,
