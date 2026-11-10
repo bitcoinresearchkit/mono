@@ -154,6 +154,7 @@ const CARDS = {
   stack: { url: "/stack/", settle: 8000 },
   compass: { url: "/compass/", settle: 6000 },
   calendar: { url: "/calendar/", settle: 9000 },
+  miners: { url: "/miners/", settle: 9000 },
   catalog: { url: "/catalog/?series=hashrate", settle: 8000 },
   logs: { url: "/logs/", settle: 6000, run: `document.querySelector('button[data-group="statuses"][data-key$=":2"]').click(); document.getElementById("search").value = "/api/series/"; document.getElementById("search").dispatchEvent(new Event("input"))` },
   api: { url: "/api/", settle: 6000 },
@@ -220,6 +221,7 @@ const PICTURES = {
   stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
+  miners: { url: "/miners/", settle: 9000, cover: [240, 40, 960, 600] },
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY) || Object.hasOwn(CARDS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS), ...Object.keys(CARDS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);

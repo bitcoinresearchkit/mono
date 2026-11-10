@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <script src="/assets/launch/launch.js" data-app="Miners" data-color="#b86a18"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c0b09" />
+    <title>Miners · Bitview</title>
+    <meta name="description" content="What Bitcoin's miners have done: which pool first spent or created each new kind of output, which signal an upgrade, and every block that left coins unclaimed." />
+    <link rel="canonical" href="https://bitview.space/miners/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/miners/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Miners · Bitview" />
+    <meta property="og:description" content="What Bitcoin's miners have done: which pool first spent or created each new kind of output, which signal an upgrade, and every block that left coins unclaimed." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/miners.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Miners: tables of which mining pools first did something new on Bitcoin." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url(/assets/fonts/InterVariable.woff2) format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      :root {
+        --bg: #faf9f6;
+        --ink: #141210;
+        --dim: #6f6a61;
+        --line: rgb(20 18 16 / 0.1);
+        --accent: #b86a18;
+        --gutter: 16px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c0b09;
+          --ink: #efece6;
+          --dim: #9c968b;
+          --line: rgb(255 255 255 / 0.1);
+          --accent: #e3a252;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font: 15px/1.5 Inter, system-ui, sans-serif;
+        font-feature-settings: "tnum";
+      }
+      a {
+        color: inherit;
+      }
+      header,
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+      }
+      header {
+        padding-block: 18px 0;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .brand img {
+        width: 18px;
+        height: 18px;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 36px 0 10px;
+      }
+      .lede {
+        color: var(--dim);
+        font-size: 17px;
+        max-width: 56ch;
+        margin: 0 0 12px;
+      }
+      nav.jump {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 0 0 28px;
+        font-size: 14px;
+      }
+      nav.jump a {
+        color: var(--dim);
+        text-underline-offset: 3px;
+      }
+      section {
+        padding-block: 26px;
+        border-top: 1px solid var(--line);
+        scroll-margin-top: 8px;
+      }
+      h2 {
+        font-size: 19px;
+        letter-spacing: -0.01em;
+        margin: 0 0 4px;
+      }
+      .about {
+        color: var(--dim);
+        margin: 0 0 14px;
+        max-width: 62ch;
+      }
+      .about a {
+        color: var(--accent);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--dim);
+        font-size: 13px;
+        padding: 0 10px 6px 0;
+      }
+      td {
+        padding: 7px 10px 7px 0;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th.num,
+      td.num {
+        text-align: right;
+        padding-right: 0;
+        white-space: nowrap;
+      }
+      .pool {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .pool img {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        flex: none;
+      }
+      .when a {
+        text-underline-offset: 3px;
+        text-decoration-color: var(--line);
+      }
+      .when small {
+        display: block;
+        color: var(--dim);
+        font-size: 12.5px;
+      }
+      .none {
+        color: var(--dim);
+      }
+      .wait {
+        color: var(--dim);
+        min-height: 92px;
+      }
+      button {
+        font: inherit;
+        color: var(--accent);
+        background: none;
+        border: 0;
+        padding: 12px 0 0;
+        min-height: 44px;
+        cursor: pointer;
+      }
+      footer {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 26px var(--gutter) 40px;
+        color: var(--dim);
+        font-size: 13.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <header><a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a></header>
+    <main>
+      <h1>Miners</h1>
+      <p class="lede">What the pools have done: who first used each new kind of output, who signals an upgrade, and every block that left coins unclaimed.</p>
+      <nav class="jump" aria-label="On this page">
+        <a href="#p2a">P2A</a><a href="#ephemeral-dust">Ephemeral dust</a><a href="#bip54">BIP-54 coinbase</a><a href="#bip110">BIP-110 signaling</a><a href="#unclaimed">Unclaimed coins</a>
+      </nav>
+      <section id="p2a">
+        <h2>First P2A by pool</h2>
+        <p class="about">When each pool first mined a transaction spending or creating a pay-to-anchor output, and how many since.</p>
+        <div data-table="p2a" class="wait">Loading</div>
+      </section>
+      <section id="ephemeral-dust">
+        <h2>First ephemeral dust by pool</h2>
+        <p class="about">When each pool first mined a transaction spending ephemeral dust, and how many blocks of its have done so.</p>
+        <div data-table="ephemeral-dust" class="wait">Loading</div>
+      </section>
+      <section id="bip54">
+        <h2>First BIP-54 coinbase by pool</h2>
+        <p class="about">When each pool first mined a coinbase following BIP-54's locktime rule, and how many blocks since.</p>
+        <div data-table="bip54" class="wait">Loading</div>
+      </section>
+      <section id="bip110">
+        <h2>BIP-110 signaling blocks by pool</h2>
+        <p class="about">Blocks signaling BIP-110 on version bit 4 since the bit was assigned to it in December 2025: when each pool first did, and how many of its blocks have.</p>
+        <div data-table="bip110" class="wait">Loading</div>
+      </section>
+      <section id="unclaimed">
+        <h2>Blocks with unclaimed coins</h2>
+        <p class="about">A miner may claim less than it's owed, and what's left is gone for good. Every block where one did. Coins lost: <b id="unclaimed-total">&nbsp;</b>.</p>
+        <div data-table="unclaimed" class="wait">Loading</div>
+      </section>
+    </main>
+    <footer>Every number here is read from the chain by this server. Each height opens its block.</footer>
+    <script type="module">
+      /** Rows a single request may hold: 8-byte counts and amounts, 1-byte pools. */
+      const COUNT_PAGE = 40_000, POOL_PAGE = 320_000;
+      /** The pool rows of nearby blocks are read as one range, up to this gap. */
+      const POOL_READ_GAP = 2016;
+      /** A long list opens on its most recent rows. */
+      const LIST_ROWS = 20;
+      /** The day BIP-110 was assigned version bit 4: its table starts there, as BIP-91 signaled on the same bit in 2017. */
+      const BIP110_ASSIGNED = Date.UTC(2025, 11, 3);
+
+      const json = async (path) => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`${path}: ${response.status}`);
+        return response.json();
+      };
+      const heights = async (id, start, end, page) => {
+        const parts = [];
+        for (let at = start; at < end; at += page) parts.push(json(`/api/series/${id}/height?start=${at}&end=${Math.min(at + page, end)}`));
+        return (await Promise.all(parts)).flatMap((part) => part.data);
+      };
+      const fill = (name, html) => {
+        const place = document.querySelector(`[data-table="${name}"]`);
+        place.classList.remove("wait");
+        place.innerHTML = html;
+      };
+      const fail = (name) => fill(name, '<p class="none">This table couldn’t be read from the server. Reload to try again.</p>');
+
+      /** The first day a running total is above zero. */
+      const firstDay = (id) => json(`/api/series/${id}/day1`).then(({ data }) => data.findIndex((value) => value > 0));
+      // (What every table needs, read at once: the height each day begins at, the tip, the pools' names. Without them no
+      // table can be built, so each says so. A table's own first-day read is separate: it fails that table alone.)
+      const [dayStarts, tip, names] = await Promise.all([
+        json("/api/series/block_count_cumulative/day1").then(({ data }) => data),
+        json("/api/blocks/tip/height").then((height) => Math.round(height) + 1),
+        json("/api/v1/mining/pools/all").then(({ pools }) => new Map(pools.map((pool) => [pool.slug, pool.name]))),
+      ]).catch((error) => {
+        for (const place of document.querySelectorAll("[data-table]")) fail(place.dataset.table);
+        throw error;
+      });
+      /** The first block of day `day` (days since 2009-01-01). */
+      const dayStart = (day) => (day <= 0 ? 0 : dayStarts[day - 1]);
+      /** Each table's first block, its own promise: its series' first day's, and BIP-110's assignment day's. */
+      const firstOf = (id) => firstDay(id).then(dayStart);
+      const firsts = [
+        firstOf("p2a_output_count_cumulative"),
+        firstOf("ephemeral_dust_spending_tx_count_cumulative"),
+        firstOf("bip54_coinbase_locktime_block_count_cumulative"),
+        Promise.resolve(dayStart((BIP110_ASSIGNED - Date.UTC(2009, 0, 1)) / 86_400_000)),
+      ];
+      const dateOf = (height) => {
+        let low = 0, high = dayStarts.length - 1;
+        while (low < high) {
+          const middle = (low + high) >> 1;
+          if (dayStarts[middle] > height) high = middle;
+          else low = middle + 1;
+        }
+        return new Date(Date.UTC(2009, 0, 1 + low)).toISOString().slice(0, 10);
+      };
+      const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      const number = (value) => value.toLocaleString("en-US");
+      const pool = (slug) => `<span class="pool"><img src="/assets/pools/${esc(slug)}.svg" alt="" />${esc(names.get(slug) ?? "Unknown miner")}</span>`;
+      const when = (height) => (height === null ? '<span class="none">–</span>' : `<span class="when"><a href="/explorer/block/${height}">${number(height)}</a><small>${dateOf(height)}</small></span>`);
+      const table = (columns, rows) => `<table><thead><tr>${columns.map(([label, kind]) => `<th${kind ? ' class="num"' : ""}>${label}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+      const byFirst = (entries) => [...entries].sort((a, b) => a[1].first - b[1].first);
+
+      /** Every block's pool, as a lookup by height, from the earliest first block that could be read: one read the by-pool tables share. A failed first-day read only fails its own table. */
+      const pools = Promise.allSettled(firsts).then(async (results) => {
+        const from = Math.min(...results.filter((result) => result.status === "fulfilled").map((result) => result.value));
+        const slugs = await heights("block_pool", from, tip, POOL_PAGE);
+        return (height) => slugs[height - from];
+      });
+
+      // A pool logo that is missing shows the default one.
+      document.addEventListener("error", ({ target }) => {
+        if (target.matches?.(".pool img") && !target.src.endsWith("/assets/pools/default.svg")) target.src = "/assets/pools/default.svg";
+      }, true);
+
+      const counted = async (name, id, column, first) => {
+        try {
+          const start = await first;
+          const [rows, [baseline = 0], poolOf] = await Promise.all([heights(id, start, tip, COUNT_PAGE), start > 0 ? heights(id, start - 1, start, COUNT_PAGE) : [], pools]);
+          const added = new Map();
+          for (let i = 0; i < rows.length; i++) {
+            const value = rows[i] - (i ? rows[i - 1] : baseline);
+            if (!value) continue;
+            const slug = poolOf(start + i);
+            const entry = added.get(slug) ?? added.set(slug, { first: start + i, total: 0 }).get(slug);
+            entry.total += 1;
+          }
+          fill(name, table([["Pool"], ["First"], [column, true]], byFirst(added).map(([slug, { first, total }]) => `<tr><td>${pool(slug)}</td><td>${when(first)}</td><td class="num">${number(total)}</td></tr>`)));
+        } catch (error) {
+          console.error(error);
+          fail(name);
+        }
+      };
+
+      async function p2aTable() {
+        try {
+          const start = await firsts[0];
+          const [spent, created, poolOf] = await Promise.all([heights("p2a_input_count", start, tip, COUNT_PAGE), heights("p2a_output_count", start, tip, COUNT_PAGE), pools]);
+          const rows = new Map();
+          for (let i = 0; i < spent.length; i++) {
+            if (!spent[i] && !created[i]) continue;
+            const slug = poolOf(start + i);
+            const row = rows.get(slug) ?? rows.set(slug, { spend: null, made: null, inputs: 0, outputs: 0 }).get(slug);
+            if (spent[i]) { row.spend ??= start + i; row.inputs += spent[i]; }
+            if (created[i]) { row.made ??= start + i; row.outputs += created[i]; }
+          }
+          const sorted = [...rows].sort((a, b) => (a[1].spend ?? Infinity) - (b[1].spend ?? Infinity) || (a[1].made ?? Infinity) - (b[1].made ?? Infinity));
+          fill("p2a", table([["Pool"], ["First spend"], ["First creation"], ["Inputs", true], ["Outputs", true]], sorted.map(([slug, row]) => `<tr><td>${pool(slug)}</td><td>${when(row.spend)}</td><td>${when(row.made)}</td><td class="num">${number(row.inputs)}</td><td class="num">${number(row.outputs)}</td></tr>`)));
+        } catch (error) {
+          console.error(error);
+          fail("p2a");
+        }
+      }
+
+      const amount = (btc) => (btc >= 0.001 ? `${btc.toLocaleString("en-US", { maximumFractionDigits: 8 })} BTC` : `${number(Math.round(btc * 1e8))} sat`);
+
+      async function unclaimedTable() {
+        try {
+          // (The running total by day first, then the blocks of the days it rose on alone: about a tenth of the chain.)
+          const { data: totals } = await json("/api/series/unclaimed_rewards_cumulative/day1");
+          const ranges = [];
+          let lost = 0;
+          totals.forEach((total, day) => {
+            if (total === null) return;
+            if (total > lost) {
+              const [from, to] = [dayStart(day), dayStart(day + 1) ?? tip];
+              const last = ranges.at(-1);
+              if (last && from - last[1] <= POOL_READ_GAP) last[1] = to;
+              else ranges.push([from, to]);
+            }
+            lost = total;
+          });
+          const values = new Map(), slugs = new Map();
+          await Promise.all(ranges.map(async ([from, to]) => {
+            const [read, poolOf] = await Promise.all([heights("unclaimed_rewards", from, to, COUNT_PAGE), heights("block_pool", from, to, POOL_PAGE)]);
+            read.forEach((value, i) => {
+              if (value) { values.set(from + i, value); slugs.set(from + i, poolOf[i]); }
+            });
+          }));
+          document.getElementById("unclaimed-total").textContent = `${lost.toLocaleString("en-US", { maximumFractionDigits: 8 })} BTC`;
+          const row = (height) => `<tr><td>${when(height)}</td><td>${pool(slugs.get(height))}</td><td class="num">${amount(values.get(height))}</td></tr>`;
+          const newest = [...values.keys()].sort((a, b) => b - a);
+          const render = (rows, all) => fill("unclaimed", table([["Block"], ["Pool"], ["Unclaimed", true]], rows.map(row)) + (all ? "" : `<button id="more">Show all ${number(newest.length)}</button>`));
+          render(newest.slice(0, LIST_ROWS), newest.length <= LIST_ROWS);
+          document.getElementById("more")?.addEventListener("click", () => render(newest, true));
+        } catch (error) {
+          console.error(error);
+          fail("unclaimed");
+        }
+      }
+
+      await Promise.all([
+        p2aTable(),
+        counted("ephemeral-dust", "ephemeral_dust_spending_tx_count_cumulative", "Blocks", firsts[1]),
+        counted("bip54", "bip54_coinbase_locktime_block_count_cumulative", "Blocks", firsts[2]),
+        counted("bip110", "version_bit_4_block_count_cumulative", "Blocks", firsts[3]),
+        unclaimedTable(),
+      ]);
+    </script>
+  </body>
+</html>
