@@ -274,8 +274,43 @@ export class Fill {
         const stops = blended(from, to);
         for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
       }
+      const above = painted(from), below = painted(to), at = split ? top * bottom : top;
+      gradientPaint.set(gradient, above || below ? [above ? -Infinity : at, below ? Infinity : split ? at : bottom] : [Infinity, -Infinity]);
       (this.gradient = gradient), (this.from = from), (this.to = to), (this.top = top), (this.bottom = bottom), (this.split = split);
     }
     return this.gradient;
   }
 }
+
+/**
+ * Whether a style paints something (a known gradient: some visible height; a color: not fully transparent), each color read once.
+ * @param {any} style
+ */
+export function painted(style) {
+  if (typeof style !== "string") {
+    const bounds = gradientPaint.get(style);
+    return !bounds || bounds[0] < bounds[1];
+  }
+  let seen = paints.get(style);
+  if (seen === undefined) {
+    pen ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
+    pen.fillStyle = "#000";
+    pen.fillStyle = style;
+    const read = String(pen.fillStyle);
+    seen = !(/,\s*0\)$/.test(read) || /\/\s*0\)$/.test(read));
+    if (paints.size > 512) paints.clear();
+    paints.set(style, seen);
+  }
+  return seen;
+}
+/** Each color's painted() (see it). @type {Map<string, boolean>} */
+const paints = new Map();
+
+/** Intersect a box with a known gradient's painted heights; unknown styles leave it as it is.
+ * @param {CanvasGradient} style @param {Float64Array} box */
+export function clipPaint(style, box) {
+  const bounds = gradientPaint.get(style);
+  if (bounds) (box[1] = Math.max(box[1], bounds[0])), (box[3] = Math.min(box[3], bounds[1]));
+}
+/** Native gradients and their nontransparent height range (no pixel reads). @type {WeakMap<CanvasGradient, number[]>} */
+const gradientPaint = new WeakMap();

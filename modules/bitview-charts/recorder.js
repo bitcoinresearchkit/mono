@@ -4,11 +4,15 @@
 // same geometry as the picture, whatever the zoom, gaps, joints, steps or curves). One for every series, its buffers
 // grown, never made again.
 
+import { painted, clipPaint } from "./color.js";
+
 /** A curve's segments, as kept. */
 const CURVE = 8;
+/** Scratch space for a gradient's visible part within the current clip. */
+const paintBox = new Float64Array(4);
 /** A real canvas' context, for the gradients a series makes (a fill keeps them for its real draws too). @type {CanvasRenderingContext2D | null} */
 let real = null;
-/** Whether a series is being drawn into the recorder (its geometry wanted: a line's colors in one pass, as their union). */
+/** Whether a series is being drawn into the recorder (its geometry wanted instead of its picture). */
 export let measuring = false;
 
 const recorder = {
@@ -131,10 +135,13 @@ const recorder = {
     this.penX = NaN;
   },
   stroke() {
-    // (Nothing where its paint shows nothing. Dashed, its whole path: a dashed line's hit along it, its gaps too, as
-    // the chart library measured it: no one aims at a dash.)
+    // (Only inside the clip and its gradient's painted rows. Dashed, its whole path there: a dashed line's hit along
+    // it, its gaps too, as the chart library measured it: no one aims at a dash.)
     if (!painted(this.strokeStyle)) return;
-    this.strokeCount = this.keep("strokes", this.strokeCount);
+    const box = typeof this.strokeStyle === "string" ? this.clipBox : this.paintClip(this.strokeStyle);
+    if (!(box[2] > box[0] && box[3] > box[1])) return;
+    const clipped = box[0] > -Infinity || box[1] > -Infinity || box[2] < Infinity || box[3] < Infinity;
+    this.strokeCount = this.keep("strokes", this.strokeCount, clipped ? box : null);
   },
   fill() {
     if (!painted(this.fillStyle)) return void (this.pathCount = 0);
@@ -146,16 +153,31 @@ const recorder = {
       ends.set(this.fillEnds), clips.set(this.fillClips);
       (this.fillEnds = ends), (this.fillClips = clips);
     }
-    this.fillClips.set(this.clipBox, this.fillsMade * 4);
+    this.fillClips.set(typeof this.fillStyle === "string" ? this.clipBox : this.paintClip(this.fillStyle), this.fillsMade * 4);
     this.fillEnds[this.fillsMade++] = this.fillCount;
   },
-  /** The path's segments added to `into` (its count `count`), the new count returned. @param {"strokes" | "fills"} into @param {number} count */
-  keep(into, count) {
+  /** The current clip intersected with a gradient's painted heights. @param {CanvasGradient} style */
+  paintClip(style) {
+    paintBox.set(this.clipBox);
+    clipPaint(style, paintBox);
+    return paintBox;
+  },
+  /** The path's segments added to `into` (its count `count`), the new count returned.
+   * @param {"strokes" | "fills"} into @param {number} count @param {ArrayLike<number> | null} [box] */
+  keep(into, count, box = null) {
     let buffer = this[into];
     while ((count + this.pathCount) * 4 > buffer.length) buffer = grown(buffer);
-    buffer.set(this.path.subarray(0, this.pathCount * 4), count * 4);
+    if (!box) {
+      buffer.set(this.path.subarray(0, this.pathCount * 4), count * 4);
+      count += this.pathCount;
+    } else for (let k = 0; k < this.pathCount * 4; k += 4) {
+      const x = this.path[k], y = this.path[k + 1], dx = this.path[k + 2] - x, dy = this.path[k + 3] - y;
+      if (!clipSpan(x, y, dx, dy, box[0], box[1], box[2], box[3])) continue;
+      const at = count++ * 4;
+      (buffer[at] = x + span[0] * dx), (buffer[at + 1] = y + span[0] * dy), (buffer[at + 2] = x + span[1] * dx), (buffer[at + 3] = y + span[1] * dy);
+    }
     this[into] = buffer;
-    return count + this.pathCount;
+    return count;
   },
   save() {
     this.saved.push(this.clipBox);
@@ -178,27 +200,6 @@ const recorder = {
     return real.createLinearGradient(x0, y0, x1, y1);
   },
 };
-
-/**
- * Whether a style paints something (a gradient: yes; a color: not fully transparent), each color read once.
- * @param {any} style
- */
-export function painted(style) {
-  if (typeof style !== "string") return true;
-  let seen = paints.get(style);
-  if (seen === undefined) {
-    real ??= /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-    real.fillStyle = "#000";
-    real.fillStyle = style;
-    const read = String(real.fillStyle);
-    seen = !(/,\s*0\)$/.test(read) || /\/\s*0\)$/.test(read));
-    if (paints.size > 512) paints.clear();
-    paints.set(style, seen);
-  }
-  return seen;
-}
-/** Each color's painted() (see it). @type {Map<string, boolean>} */
-const paints = new Map();
 
 /** @param {Float64Array} buffer */
 function grown(buffer) {
@@ -306,10 +307,15 @@ let covers = new Float64Array(64), pieces = new Float64Array(64), splits = new F
  */
 function clipped(x, y, x0, y0, x1, y1, bx0, by0, bx1, by1) {
   const dx = x1 - x0, dy = y1 - y0;
-  span[0] = 0;
-  span[1] = 1;
-  if (!within(-dx, x0 - bx0) || !within(dx, bx1 - x0) || !within(-dy, y0 - by0) || !within(dy, by1 - y0) || !(span[0] < span[1])) return Infinity;
+  if (!clipSpan(x0, y0, dx, dy, bx0, by0, bx1, by1)) return Infinity;
   return toSegment(x, y, x0 + span[0] * dx, y0 + span[0] * dy, x0 + span[1] * dx, y0 + span[1] * dy);
+}
+
+/** Narrow span to the part of a segment within a box. @param {number} x @param {number} y @param {number} dx @param {number} dy
+ * @param {number} x0 @param {number} y0 @param {number} x1 @param {number} y1 */
+function clipSpan(x, y, dx, dy, x0, y0, x1, y1) {
+  (span[0] = 0), (span[1] = 1);
+  return within(-dx, x - x0) && within(dx, x1 - x) && within(-dy, y - y0) && within(dy, y1 - y) && span[0] < span[1];
 }
 
 /** The part of a segment kept by the box's sides so far (from, to: 0 to 1), as clipped() narrows it (made once). */

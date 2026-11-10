@@ -9,9 +9,9 @@
 
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
-import { Fill } from "./color.js";
+import { Fill, painted } from "./color.js";
 import { NOISE, firstFrom } from "./timeline.js";
-import { measure, measuring, painted } from "./recorder.js";
+import { measure, measuring } from "./recorder.js";
 
 /** A curved segment's control points, as #bend writes them (made once). */
 const BEND = new Float64Array(4);
@@ -42,8 +42,6 @@ const pen = {
   g: /** @type {CanvasRenderingContext2D | null} */ (null),
   dpr: 1,
   pass: -1,
-  /** Which colors' segments it draws, where not all (a measure's one pass: those that paint), else null. @type {Uint8Array | null} */
-  shown: null,
   // (The path drawn: on it, its last y, a run's end not written yet (NaN: none).)
   on: false,
   y: NaN,
@@ -83,7 +81,7 @@ const pen = {
    * @param {CanvasRenderingContext2D} g @param {number} dpr @param {number} pass @param {number} [length] @param {number[]} [dashes] @param {number} [period]
    */
   start(g, dpr, pass, length = 0, dashes = SOLID, period = 0) {
-    (this.g = g), (this.dpr = dpr), (this.pass = pass), (this.shown = null);
+    (this.g = g), (this.dpr = dpr), (this.pass = pass);
     (this.on = false), (this.has = false), (this.runX = NaN);
     (this.dashes = dashes), (this.period = period), (this.length = length), (this.before = length), (this.begun = false), (this.ruling = false), (this.id = -1), (this.seek = -1), (this.found = NaN), (this.first = NaN), (this.firstId = -1), (this.lastId = -1), (this.subStart = length), (this.longest = 0);
   },
@@ -97,7 +95,7 @@ const pen = {
     // runs, a pixel off its strips' over some thousands of pixels). Where, by the line's length alone (see splits): a
     // strip and a whole draw end their strokes at the same points.)
     if (this.on && this.period && this.splits()) this.close();
-    if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
+    if (this.has && !this.cut && (this.pass < 0 || this.color === this.pass)) {
       if (!this.on) {
         if (this.period) this.dash(g);
         g.moveTo(this.px, this.py);
@@ -153,7 +151,7 @@ const pen = {
   curve(c1x, c1y, c2x, c2y, x, y, color, cut) {
     const g = /** @type {CanvasRenderingContext2D} */ (this.g);
     y = Math.round(y * this.dpr) / this.dpr;
-    if (this.has && !this.cut && (this.pass < 0 ? !this.shown || this.shown[this.color] === 1 : this.color === this.pass)) {
+    if (this.has && !this.cut && (this.pass < 0 || this.color === this.pass)) {
       if (!this.on) {
         g.moveTo(this.px, this.py);
         (this.on = true), (this.y = this.py), (this.runX = NaN);
@@ -426,6 +424,8 @@ export class Line {
     // from the scale's low end: no large terms cancelling.)
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, px = width / span;
+    // (A slope too large to represent: the general column path uses Scale.y's divide-first mapping.)
+    if (!(k < Infinity && k > -Infinity)) return this.#columns(time, scale, x0, x1, null);
     // (Its columns as last read, while its values and its scale's kind stay.)
     // (Made again, wider, for a plot wider than its slots.)
     const size = 2 ** Math.ceil(Math.log2(Math.max(64, width + 4)));
@@ -584,17 +584,15 @@ export class Line {
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter's spikes.)
     g.lineJoin = "bevel";
-    // (One stroke a color: its segments in it. Measured (see recorder.js), all of them in one pass, their union as
-    // drawn: those of its colors that paint (a stroke of some paint for it, its segments chosen by `shown`; all, where
-    // its under color paints: below its value they show in it).)
-    const passes = colors && !measuring ? this.palette.length : 0, shown = colors && measuring && !this.palette.every(painted) && !(this.under && painted(this.under.color)) ? Uint8Array.from(this.palette, (c) => (painted(c) ? 1 : 0)) : null;
+    // (One stroke a color. Measured, an all-painted palette shares one union pass; otherwise each color keeps its
+    // own pass so its painted parts, including a split under color, are recorded as drawn.)
+    const passes = colors && (!measuring || !this.palette.every(painted)) ? this.palette.length : 0;
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
-      const under = this.under, color = colors && measuring ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
+      const under = this.under, color = colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
       g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, pass, phase, dash ?? SOLID, period);
-      pen.shown = shown;
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
@@ -688,6 +686,14 @@ export class Line {
       return;
     }
     if (!colors && !breaks) return this.#plain(time, scale, x0, x1);
+    this.#columns(time, scale, x0, x1, colors);
+  }
+
+  /** General columns, including gaps and colors, mapped through Scale.y.
+   * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {number} x0 @param {number} x1 @param {Uint8Array | Uint16Array | null} colors */
+  #columns(time, scale, x0, x1, colors) {
+    const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log";
     // (Each pixel column's points as runs: its low and high; a point with no value ends a run and breaks
     // the line there, in its column too; a break ends a run after its point. Columns at whole pixels of the view, their
     // points at whole indices: a view moved by whole pixels holds the same columns.)

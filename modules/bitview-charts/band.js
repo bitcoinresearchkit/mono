@@ -297,6 +297,7 @@ export class Band {
     const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height + scale.above, room = scale.height - top - scale.bottom * scale.height - scale.below;
     // (An area to an edge of the pane: its values against that edge, its top or its foot.)
     const kk = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c, toEdge = this.#edge(log), edgeY = this.to === "top" ? 0 : scale.height;
+    const fast = kk < Infinity && kk > -Infinity;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     // (A point each, zoomed in; a pixel column each, its last, zoomed out.)
     const from = zoomedIn ? a : Math.floor(x0) - 1, to = zoomedIn ? b : Math.ceil(x1) + 1, steps = zoomedIn && this.steps, curve = zoomedIn && this.curve && !steps;
@@ -346,7 +347,7 @@ export class Band {
       // band broken at any point without, in it too; no gap in it (most), its last read alone.)
       const first = Math.max(0, Math.ceil(viewFrom + (k * span) / width - NOISE)), last = Math.min(n - 1, Math.ceil(viewFrom + ((k + 1) * span) / width - NOISE) - 1);
       if (last < first) continue;
-      if (/** @type {Int32Array} */ (gaps)[first] > last) {
+      if (fast && /** @type {Int32Array} */ (gaps)[first] > last) {
         const hi = upper[last], lo = lower[last];
         this.#put(((last - viewFrom) * width) / span, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta), !colors || colors[last] === pass);
         continue;

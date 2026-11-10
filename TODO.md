@@ -26,6 +26,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 ## bitview-charts: raised by you, still open
 
 - Chart physical input validation: real finger pan/flick/pinch/hold and a real stylus remain manual checks; touch gestures cannot be driven here. Scripted lifecycle and frame-cost checks on the connected iPhone cover the library, not physical gestures (local `_notes/charts-open-items/report.md`).
+- Overlay margins: overlay fitting ignores series' `margins`, so an above Marks pill can run past the plot's top
+  even with `room: true` (existing gap, reproduced in Chromium, Mullvad and physical iPhone; a 130px chart's pill
+  starts at -20.6px). Apply the same margin fitting as side scales, once per shared overlay. Local `_notes/chart-geometry/report.md`.
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
   every color in the app written and derived in OKLCH; contrast judged by APCA (the best perceptual formula there is:
   WCAG 3 has left its own undecided; CSS's contrast-color() uses WCAG 2's). Done in the library: the axis tags (tint()), heatmap gradients (gradientTable()), fades (Fill's stops); left:
@@ -35,16 +38,8 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - bitview-charts, Codex's review of the whole library (2026-11-01): done in two commits (b8f0aa256, then the
   second: Bars.distance gone, one firstFrom, stale comments).
-- Studio's chart review (2026-11-01), remaining library work: Profile is still `fixed`, rebuilding its bins and
-  redrawing the pane on crosshair-only frames (`modules/bitview-charts/profile.js`, `pane.js`). Excluded from
-  `sandbox/studio-review-fixes`; needs a library change, not a Studio workaround. Heat already uses Grid and profiles
-  use Profile; stacks already delegate their arithmetic to the library. Cloud's custom crossing/color geometry has
-  no reproduced bug or measured reason to replace it.
-- Left from the 2026-11-01 chart review, in `modules/bitview-charts` (excluded from Studio's review fixes):
-  transparent `under` halves of lines still hit (recorder treats a gradient's whole stroke as painted); Marks uses its
-  own side's scale rather than its host's overlay; Line/Band's slope overflows for ranges around 1e-310 while Scale.y
-  divides the offset first. Reproduced by geometry probes on 2026-11-10; no Studio workaround. Studio's mark-target
-  filter excludes overlay hosts. Public re-exports are retained as API; the curve-control formatting is not a defect.
+- Left from the 2026-11-01 chart review, in `modules/bitview-charts`: the curve control points' four writes on one
+  line (Line, Band). Public re-exports stay as API.
 - Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
   with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed
   (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing

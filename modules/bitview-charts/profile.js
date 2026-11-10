@@ -10,7 +10,7 @@
 // ones. A close not the latest's dashed across it (`closeLine`, its color). `cumulative`: in place of the bars, the
 // amounts summed from the close outward (upward over it, downward under it), each group's stacked on the one before as
 // its bars are, filled in its colors to the edge, as long as the longer side's whole; read at a height (`sumsAt`).
-// Drawn whole each frame, on device pixels; the page told before each draw (`viewed`, its groups' day then). Fitted as
+// Held at the plot's edge, drawn whole when its view or data changes; the page told before each draw (`viewed`, its groups' day then). Fitted as
 // the page says (`fit`); a bar under a point found as drawn (`hit`).
 
 /**
@@ -39,7 +39,7 @@ export class Profile {
     this.bars = null;
     /** Its bins and the close as last drawn, cumulative (see sumsAt): none, null. @type {{ edges: number[], sums: Float64Array, count: number, line: number } | null} */
     this.summed = null;
-    /** Drawn whole each frame: its bars are the view's. */
+    /** Held at the plot's edge: a pan redraws it, an unchanged view keeps its picture and bins. */
     this.fixed = true;
     this.scaled = Boolean(fit);
     this.hidden = false;

@@ -12,9 +12,8 @@ import { Bars } from "./bars.js";
 import { Candles } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
-import { solid, tint } from "./color.js";
+import { solid, tint, painted } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
-import { painted } from "./recorder.js";
 import { Legend } from "./legend.js";
 
 /**
@@ -34,7 +33,7 @@ const TAG = PILL;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
- * moves (its pane drawn whole each frame, its picture never moved); `dashed`, its picture can't be stretched by a zoom
+ * moves (its pane drawn whole on a view change, its picture never moved); `dashed`, its picture can't be stretched by a zoom
  * (its dashes would stretch with it); `immovable`, nor moved by a pan (a curve's dashes run from where its path starts:
  * drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
  * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
@@ -670,12 +669,12 @@ export class Pane {
     }
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
     if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !overlaid || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
-    const same = !whole && !fixed && overlaid && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
-    const moves = same && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
+    const same = !whole && overlaid && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
+    const moves = same && (!fixed || !shift) && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
     // where that's quick: sharp all along.)
-    const slow = this.wholeCost > SLOW;
+    const slow = !fixed && this.wholeCost > SLOW;
     if (slow && same && !moves && !dashed && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
     const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && !dashed && stretch >= 0.5 && stretch <= 2;
     // (Moved, unless what it draws can't be: drawn whole.)
