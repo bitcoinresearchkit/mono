@@ -15815,7 +15815,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * interval, within its span. Made for a pass over a cache (its series found once).
        */
       function holder() {
-        const names = new Set(chart ? seriesIn(chart) : []), span = chart ? spans.get(spanKey(chart.id, chart.index)) : undefined;
+        const names = new Set(chart ? drawSeries(chart) : []), span = chart ? spans.get(spanKey(chart.id, chart.index)) : undefined;
         return (/** @type {string} */ key) => {
           const [name, rest = ""] = key.split("@"), [index, k] = rest.split("#");
           if (!chart || index !== chart.index || !names.has(name)) return false;
@@ -15842,7 +15842,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!liveHeight) return false;
         const span = spanOf(doc), latest = latestChunk(doc.index);
         const ends = span ? [latest - 1, latest].filter((k) => k >= span.from && k <= span.to).map((k) => `#${k}`) : [""];
-        return seriesIn(doc).some((name) => ends.some((end) => (askedAt.get(`${name}@${doc.index}${end}`) ?? liveHeight) < liveHeight));
+        return drawSeries(doc).some((name) => ends.some((end) => (askedAt.get(`${name}@${doc.index}${end}`) ?? liveHeight) < liveHeight));
       }
       /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
       const KEPT_LOADS = 100;
@@ -16034,7 +16034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
        *   flips, a formula's restarts (each the point before: see restarts); `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
-       * @typedef {{ times: number[], results: Map<string, Result>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
+       * @typedef {{ times: number[], results: Map<string, Result>, drawn: Set<string>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
@@ -16042,6 +16042,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
       // (A heatmap's dates, the price's: its days drawn on them, see Heat.)
       const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : heatLike(layer) ? ["price"] : [])), ...formulaSeries(doc)])];
+
+      /** Visible layers and their transitive inputs, in chart order. Hidden inputs still feed visible results. @param {Chart} doc */
+      function drawLayers(doc) {
+        if (doc.layers.every((layer) => !layer.hidden)) return doc.layers;
+        const byId = new Map(doc.layers.map((layer) => [layer.id, layer])), byLetter = new Map(doc.layers.map((layer) => [layer.letter, layer]));
+        const needed = new Set();
+        let timeline = false;
+        const visit = (/** @type {Layer | undefined} */ layer) => {
+          if (!layer || needed.has(layer)) return;
+          needed.add(layer);
+          if (layer.series || heatLike(layer)) timeline = true;
+          if (layer.formula !== undefined) {
+            try {
+              const node = parse(layer.formula);
+              for (const letter of refsOf(node)) visit(byLetter.get(letter));
+              if (!timeline && (refsOf(node, "series").size || seriesUnnamed(layer.formula).length)) timeline = true;
+            } catch {
+              // The formula evaluator reports invalid expressions without stopping other visible layers.
+            }
+          }
+          for (const id of layer.from ?? []) visit(byId.get(id));
+          if (layer.ref) visit(byId.get(layer.ref));
+          if (layer.colorFrom) visit(byId.get(layer.colorFrom));
+        };
+        doc.layers.filter((layer) => !layer.hidden).forEach(visit);
+        // A constant/date-only formula still needs the chart's clock, even when its source is hidden.
+        if (needed.size && !timeline) visit(doc.layers.find((layer) => layer.series || heatLike(layer)) ?? doc.layers.find((layer) => layer.formula !== undefined && (seriesNamed(layer.formula, "reads").length || seriesUnnamed(layer.formula).length)));
+        return doc.layers.filter((layer) => needed.has(layer));
+      }
+      /** Series needed for this draw and its prefetch, separate from the complete chart's metadata. @param {Chart} doc */
+      const drawSeries = (doc) => seriesIn({ ...doc, layers: drawLayers(doc) });
 
       /** Each chart's timeline and series on it, by its interval, while its data is the same (see resolve). @type {Map<string, any>} */
       const frames = new Map();
@@ -16064,9 +16095,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
        */
       async function resolve(doc, fresh = false) {
-        const sources = /** @type {(Layer & { series: string })[]} */ (doc.layers.filter((layer) => layer.series));
-        const named = formulaSeries(doc);
-        if (fresh) for (const name of seriesIn(doc)) retryInfo(name);
+        const layers = drawLayers(doc), drawing = { ...doc, layers };
+        const sources = /** @type {(Layer & { series: string })[]} */ (layers.filter((layer) => layer.series));
+        const named = formulaSeries(drawing);
+        if (fresh) for (const name of seriesIn(drawing)) retryInfo(name);
         /** A series with its data at the chart's interval, or why there is none. @param {string} name @returns {Promise<any>} */
         const fetchSeries = async (name) => {
           // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
@@ -16083,7 +16115,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return { meta, data: series.value };
         };
         // Each series once, however many layers and formulas read it.
-        const fetched = new Map(await Promise.all(seriesIn(doc).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
+        const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
         // The timeline and each series on it, kept from the last resolve of this chart that read the same data (the same
         // fetched objects): its series keep their identity, and with them what's computed from them (formulas, windows'
         // stats, the chart's series): an edit to one layer redoes that layer only.
@@ -16168,7 +16200,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // price's closes, its scale's (see Heat).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
         // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
-        for (const layer of doc.layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
+        for (const layer of layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
         for (const name of named) {
@@ -16311,7 +16343,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return { values: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit };
           });
         });
-        doc.layers.filter((layer) => layer.formula !== undefined || layer.from).forEach(computed);
+        layers.filter((layer) => layer.formula !== undefined || layer.from).forEach(computed);
+        // Hidden rows keep their metadata and catalog errors without asking for their values.
+        for (const layer of doc.layers) if (!results.has(layer.id) && layer.series) {
+          const name = layer.series;
+          results.set(layer.id, { unit: units.get(name) ?? "number", info: known.get(name), ...(catalogIndex && !catalogIndex.has(name) ? { error: "Not on Bitview", missing: true } : {}) });
+        }
         let first = length;
         for (const { values } of results.values()) {
           if (!values) continue;
@@ -16321,7 +16358,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
-        if (first === 0 || first === length) return { times, results, failed };
+        if (first === 0 || first === length) return { times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
         // Trimmed once a result and a start: kept the same, as the chart keeps its series.
         if (frame.trimmed?.first !== first) frame.trimmed = { first, times: times.slice(first) };
         for (const [id, result] of results) {
@@ -16336,7 +16373,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           trims.set(result, { first, out });
           results.set(id, out);
         }
-        return { times: frame.trimmed.times, results, failed };
+        return { times: frame.trimmed.times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
       }
 
       // ── The chart ─────────────────────────────────────────────────────────────
@@ -17075,7 +17112,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           spanned.clear();
         }
         // (Counted against the span it'll draw: see above.)
-        const pending = seriesIn(doc).filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
+        const pending = drawSeries(doc).filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
         const showLoading = pending > 0 && (first || !resolved);
         $("progress").hidden = !(pending > 0 && !showLoading);
         if (showLoading) {
@@ -20259,7 +20296,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function nearEnd(span, range, n) {
         const near = Math.max(CHUNK, (range.to - range.from) / 2);
-        const floor = span.floor && span.floor.of === seriesIn(chart).sort().join() ? span.floor.at : 0;
+        const floor = span.floor && span.floor.of === drawSeries(chart).sort().join() ? span.floor.at : 0;
         return range.from < near && span.from > floor ? -1 : range.to > n - 1 - near && !span.live ? 1 : 0;
       }
       /**
@@ -20275,7 +20312,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const side = nearEnd(span, range, n);
         if (!side) return;
         const k = side < 0 ? span.from - 1 : span.to + 1;
-        for (const name of seriesIn(chart)) {
+        for (const name of drawSeries(chart)) {
           if (chunked(name, chart.index) && !chunks.has(`${name}@${chart.index}#${k}`)) loadChunk(name, chart.index, k, false);
         }
       }
@@ -20443,7 +20480,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // that side again.
         const now = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
         if (reached !== undefined && now !== undefined && (by < 0 ? now >= reached : now <= reached)) {
-          const dropped = by < 0 ? span.to < was.to : span.from > was.from, k = by < 0 ? span.from : span.to, names = seriesIn(chart);
+          const dropped = by < 0 ? span.to < was.to : span.from > was.from, k = by < 0 ? span.from : span.to, names = drawSeries(chart);
           Object.assign(span, was, { rest: Date.now() + 5000 });
           if (dropped) void draw();
           // An older chunk that came empty for every series the chart reads (none failed; not judged by what's drawn: a
@@ -23904,10 +23941,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function drawThumb(doc) {
         // (The open chart's own data, or any chart's all in memory: asked for once, not again at another interval. Not a finer
         // interval's: only part of its history loads.)
-        const held = !FINE.has(doc.index) && (doc.id === chart?.id || seriesIn(doc).every((name) => loads.has(`${name}@${doc.index}`)));
+        const held = !FINE.has(doc.index) && (doc.id === chart?.id || drawSeries(doc).every((name) => loads.has(`${name}@${doc.index}`)));
         const index = held ? doc.index : await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
         // (Its own frame, the open chart's not changed by a copy of it: the arrays are shared all the same, see parts.)
-        const data = await resolve({ ...doc, index, ...(held ? { id: `${doc.id}:mark` } : {}) });
+        const data = await resolve({ ...doc, index, layers: doc.layers.map(layer => ({ ...layer, hidden: false })), ...(held ? { id: `${doc.id}:mark` } : {}) });
         if (retryFailed(data, index)) return null;
         const bubbles = await bubblesAt(doc, data, index);
         if (!bubbles) return null;
@@ -24042,6 +24079,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** A chart's mini chart drawn again where it's out of date, its marks with it (its row's, its legends'): whether it was. @param {Chart} doc */
       async function freshThumb(doc) {
+        // A background card must not load hidden data while its chart is open. The library draws it on return.
+        if (doc.id === chart?.id && !home && seriesIn(doc).some(name => !asked(name, doc))) return false;
         const key = thumbKey(doc), failed = thumbsFailed.get(doc.id);
         if (thumbs.get(doc.id)?.key === key || (failed?.key === key && Date.now() - failed.at < 30_000)) return false;
         const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [], washes: [], dots: [], marks: {} };
@@ -30358,6 +30397,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (selected && phone.matches && sheet) document.body.dataset.sheet = "panel";
         else if (selected && document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
         showSelection();
+        const layer = layerById(id), result = resolved?.results.get(id);
+        if (layer?.series && result && !result.info && !result.missing) void info(layer.series).then(meta => {
+          result.info = meta;
+          result.unit = unitOf(meta.type);
+          if (selected === id && resolved?.results.get(id) === result) renderInspector();
+        }, () => {});
         // (Drawings selected, let go: painted so.)
         if (unchosen) repaintDrawings();
         if (fromList && selected) /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
@@ -38137,17 +38182,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * per date at its interval, a column per layer (a cloud's, its low and its high but for an edge), the hidden ones too.
        * @param {Layer[]} which
        */
-      function exportData(which) {
+      async function exportData(which) {
         // (Still loading, what's there may be what was before: nothing then.)
         if (!settled()) return notice("The chart is still loading");
-        const layers = which.filter((layer) => resolved?.results.get(layer.id)?.values);
-        if (!layers.length || !resolved) return notice("Its data isn't here yet");
+        const doc = structuredClone(chart);
+        const data = await resolve({ ...doc, id: `${doc.id}:export`, layers: doc.layers.map(layer => ({ ...layer, hidden: false })) });
+        const layers = which.filter((layer) => data.results.get(layer.id)?.values);
+        if (!layers.length) return notice("Its data isn't here yet");
         const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
         // (A cloud's columns: its low, its high, but for an edge.)
         const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
         const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
-        const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.values)))(resolved?.results.get(layer.id)));
-        const rows = resolved.times.map((time, i) => {
+        const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.values)))(data.results.get(layer.id)));
+        const rows = data.times.map((time, i) => {
           const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
           return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
         }).filter(Boolean);
@@ -39229,7 +39276,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else draw(refit);
       }
       /** Whether the open chart can be drawn again from the data at hand (its data the same, none other on its way). */
-      const builds = () => Boolean(resolved) && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData;
+      const builds = () => Boolean(resolved) && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData && drawLayers(chart).every(layer => resolved?.drawn.has(layer.id));
       /**
        * The open chart drawn again from the data at hand once what was pressed has shown: the row, the eye, the swatch answer
        * on the next frame, the chart on the one after (a stack of many built again is a third of a second on a phone);
@@ -39420,7 +39467,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "theme") themeMenu(target);
         else if (action === "show-every") showEvery();
         else if (action === "retry-all") {
-          for (const name of seriesIn(chart)) {
+          for (const name of drawSeries(chart)) {
             forget(name, chart.index);
             retryInfo(name);
           }
@@ -39857,7 +39904,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         void live.offsetWidth;
         live.classList.add("block");
         // (Under the Charts page, the chart isn't drawn again for it: once it's back, see leaveHome.)
-        if (chart && seriesIn(chart).length) home ? (blockAtHome = true) : draw(false, true);
+        if (chart && drawSeries(chart).length) home ? (blockAtHome = true) : draw(false, true);
       }
       setInterval(checkLive, 15_000);
       // (The device's network gone: said at once, not a minute on; back, asked at once. Nothing said before the first
