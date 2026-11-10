@@ -10,7 +10,7 @@ use bitview_primitives::SeriesName;
 /// Comma-separated list of series names
 ///
 /// Deserialization permits at most 32 names, each exact, and 2,048 decoded input
-/// string bytes. For arrays, the byte budget is shared by their string values.
+/// string bytes. Array members must all be strings and share the byte budget.
 #[derive(Clone, Debug, Deref, JsonSchema)]
 #[schemars(
     with = "String",
@@ -67,12 +67,11 @@ impl<'de> Deserialize<'de> for SeriesList {
                         })
                         .is_some() =>
             {
-                sanitize(values.into_iter().filter_map(|value| match value {
-                    Value::String(text) => Some(text),
-                    _ => None,
-                }))
-                .map(Self)
-                .map_err(D::Error::custom)
+                let names = values.into_iter().map(|value| match value {
+                    Value::String(text) => Ok(text),
+                    _ => Err(D::Error::custom("Expected a series name string in array")),
+                }).collect::<Result<Vec<_>, D::Error>>()?;
+                sanitize(names.into_iter()).map(Self).map_err(D::Error::custom)
             }
             Value::String(_) | Value::Array(_) => Err(D::Error::custom(
                 "Series list too long: at most 32 names and 2,048 bytes",

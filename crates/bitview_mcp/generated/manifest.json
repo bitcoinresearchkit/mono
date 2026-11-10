@@ -5876,7 +5876,7 @@
           "type": "object",
           "properties": {
             "series": {
-              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. For arrays, the byte budget is shared by their string values.",
+              "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. Array members must all be strings and share the byte budget.",
               "type": "string",
               "examples": [
                 "date,price_close",

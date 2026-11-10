@@ -1340,7 +1340,7 @@
  * Comma-separated list of series names
  *
  * Deserialization permits at most 32 names, each exact, and 2,048 decoded input
- * string bytes. For arrays, the byte budget is shared by their string values.
+ * string bytes. Array members must all be strings and share the byte budget.
  *
  * @typedef {string} SeriesList
  */
