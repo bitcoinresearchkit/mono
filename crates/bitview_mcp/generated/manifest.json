@@ -668,6 +668,130 @@
     },
     {
       "tool": {
+        "name": "get_address_txs_summary",
+        "title": "Address confirmed transaction summaries",
+        "description": "Bitcoin: Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 5,000 (the default); zero returns an empty array.",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "address"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Address confirmed transaction summaries",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/address/{address}/txs/summary",
+        "parameters": [
+          {
+            "name": "address",
+            "argument": "address",
+            "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "argument": "max_txs",
+            "location": "query"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_address_txs_summary_after",
+        "title": "Address confirmed transaction summaries (paginated)",
+        "description": "Bitcoin: Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "description": "Bitcoin address, or the hex public key of a P2PK output.",
+              "type": "string",
+              "examples": [
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
+                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+              ]
+            },
+            "last_seen_txid": {
+              "description": "Last transaction from the previous summary page (excluded from this page).",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 5,000 (the default); zero returns an empty array.",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "address",
+            "last_seen_txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Address confirmed transaction summaries (paginated)",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/address/{address}/txs/summary/{last_seen_txid}",
+        "parameters": [
+          {
+            "name": "address",
+            "argument": "address",
+            "location": "path"
+          },
+          {
+            "name": "last_seen_txid",
+            "argument": "last_seen_txid",
+            "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "argument": "max_txs",
+            "location": "query"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "get_address_utxos",
         "title": "Address UTXOs",
         "description": "Bitcoin: Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.",
@@ -1214,6 +1338,71 @@
     },
     {
       "tool": {
+        "name": "get_block_fees_by_timestamp",
+        "title": "Block fees between inclusive timestamps",
+        "description": "Bitcoin: Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "A Unix timestamp, in seconds.",
+              "type": "integer",
+              "examples": [
+                1231006505,
+                1672531200,
+                1713571200,
+                1743631892,
+                1759000868
+              ],
+              "minimum": 0
+            },
+            "to": {
+              "description": "A Unix timestamp, in seconds.",
+              "type": "integer",
+              "examples": [
+                1231006505,
+                1672531200,
+                1713571200,
+                1743631892,
+                1759000868
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Block fees between inclusive timestamps",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/fees",
+        "parameters": [
+          {
+            "name": "from",
+            "argument": "from",
+            "location": "query"
+          },
+          {
+            "name": "to",
+            "argument": "to",
+            "location": "query"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "get_block_hash_by_height",
         "title": "Block hash by height",
         "description": "Bitcoin: Block hash as plain text.",
@@ -1647,6 +1836,50 @@
     },
     {
       "tool": {
+        "name": "get_block_summary",
+        "title": "Classified block transactions",
+        "description": "Bitcoin: Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Classified block transactions",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/block/{hash}/summary",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "get_block_tip_hash",
         "title": "Block tip hash",
         "description": "Bitcoin: Hash of the latest block.",
@@ -1693,6 +1926,156 @@
         "method": "GET",
         "path": "/api/blocks/tip/height",
         "parameters": []
+      }
+    },
+    {
+      "tool": {
+        "name": "get_block_transaction_summary",
+        "title": "Classified transaction in block",
+        "description": "Bitcoin: Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "txid": {
+              "description": "A transaction ID: its hash.",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "outputSchema": {
+          "$defs": {
+            "FeeRate": {
+              "type": "number"
+            },
+            "Sats": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "TransactionSummary": {
+              "required": [
+                "txid",
+                "fee",
+                "vsize",
+                "value",
+                "rate",
+                "flags"
+              ],
+              "type": "object",
+              "properties": {
+                "txid": {
+                  "$ref": "#/$defs/Txid"
+                },
+                "fee": {
+                  "$ref": "#/$defs/Sats"
+                },
+                "vsize": {
+                  "$ref": "#/$defs/VSize"
+                },
+                "value": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    }
+                  ]
+                },
+                "rate": {
+                  "$ref": "#/$defs/FeeRate"
+                },
+                "flags": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            },
+            "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "VSize": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "required": [
+            "txid",
+            "fee",
+            "vsize",
+            "value",
+            "rate",
+            "flags"
+          ],
+          "type": "object",
+          "properties": {
+            "txid": {
+              "$ref": "#/$defs/Txid"
+            },
+            "fee": {
+              "$ref": "#/$defs/Sats"
+            },
+            "vsize": {
+              "$ref": "#/$defs/VSize"
+            },
+            "value": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/Sats"
+                }
+              ]
+            },
+            "rate": {
+              "$ref": "#/$defs/FeeRate"
+            },
+            "flags": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        },
+        "annotations": {
+          "title": "Classified transaction in block",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/block/{hash}/tx/{txid}/summary",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          },
+          {
+            "name": "txid",
+            "argument": "txid",
+            "location": "path"
+          }
+        ]
       }
     },
     {
@@ -2595,6 +2978,115 @@
     },
     {
       "tool": {
+        "name": "get_blocks_bulk",
+        "title": "Bulk blocks",
+        "description": "Bitcoin: Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ],
+              "minimum": 0
+            },
+            "to": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Bulk blocks",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/blocks-bulk/{from}/{to}",
+        "parameters": [
+          {
+            "name": "from",
+            "argument": "from",
+            "location": "path"
+          },
+          {
+            "name": "to",
+            "argument": "to",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_blocks_bulk_to_tip",
+        "title": "Bulk blocks to tip",
+        "description": "Bitcoin: Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "from"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Bulk blocks to tip",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/blocks-bulk/{from}",
+        "parameters": [
+          {
+            "name": "from",
+            "argument": "from",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "get_blocks_from_height",
         "title": "Blocks from height",
         "description": "Bitcoin: Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.",
@@ -2708,6 +3200,76 @@
             "location": "path"
           }
         ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_cached_tx",
+        "title": "Retained transaction",
+        "description": "Bitcoin: Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "txid": {
+              "description": "A transaction ID: its hash.",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Retained transaction",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/tx/{txid}/cached",
+        "parameters": [
+          {
+            "name": "txid",
+            "argument": "txid",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_chain_tips",
+        "title": "Known chain tips",
+        "description": "Bitcoin: All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Known chain tips",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/chain-tips",
+        "parameters": []
       }
     },
     {
@@ -3649,6 +4211,98 @@
         "method": "GET",
         "path": "/api/mempool/recent",
         "parameters": []
+      }
+    },
+    {
+      "tool": {
+        "name": "get_mempool_txids_page",
+        "title": "Mempool transaction IDs (paginated)",
+        "description": "Bitcoin: Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "max_txs": {
+              "description": "Transaction IDs to return, at most 10,000 (the default).",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Mempool transaction IDs (paginated)",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/mempool/txids/page",
+        "parameters": [
+          {
+            "name": "max_txs",
+            "argument": "max_txs",
+            "location": "query"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_mempool_txids_page_after",
+        "title": "Mempool transaction IDs after a cursor",
+        "description": "Bitcoin: Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "txid": {
+              "description": "A transaction ID: its hash.",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "max_txs": {
+              "description": "Transaction IDs to return, at most 10,000 (the default).",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txid"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Mempool transaction IDs after a cursor",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/mempool/txids/page/{txid}",
+        "parameters": [
+          {
+            "name": "txid",
+            "argument": "txid",
+            "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "argument": "max_txs",
+            "location": "query"
+          }
+        ]
       }
     },
     {
@@ -8088,6 +8742,45 @@
             "name": "index",
             "argument": "index",
             "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_txs_outspends",
+        "title": "Output spend statuses for several transactions",
+        "description": "Bitcoin: Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "txids": {
+              "description": "One to fifty comma-separated, lowercase transaction IDs.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "txids"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "annotations": {
+          "title": "Output spend statuses for several transactions",
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/txs/outspends",
+        "parameters": [
+          {
+            "name": "txids",
+            "argument": "txids",
+            "location": "query"
           }
         ]
       }

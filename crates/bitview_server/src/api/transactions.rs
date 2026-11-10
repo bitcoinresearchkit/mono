@@ -4,15 +4,17 @@ use aide::axum::{
 };
 use axum::{
     body::Bytes,
-    extract::{DefaultBodyLimit, Path},
+    extract::{DefaultBodyLimit, Path, Query},
     http::HeaderMap,
     response::Response,
 };
-use bitview_types::{MerkleProof, RbfResponse};
+use bitview_types::{CachedTransaction, MerkleProof, RbfResponse};
 use brk_types::{
     Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
 };
 use serde_json::to_vec;
+use schemars::JsonSchema;
+use serde::Deserialize;
 use tower_http::limit::RequestBodyLimitLayer;
 
 use super::broadcast;
@@ -67,6 +69,22 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .summary("CPFP info")
                 .description("Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{\"ancestors\":[]}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*")
                 .json_response::<Cpfp>()
+                .not_modified(),
+        ),
+    )
+    .api_route(
+        "/api/v1/tx/{txid}/cached",
+        get_with(
+            async |headers: HeaderMap, Path(TxidParam { txid }): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
+                state.respond_optional_json_bound(headers, Version::ONE, move |q| q.cached_transaction_json(&txid)).await
+            },
+            |op| op
+                .id("get_cached_tx")
+                .tag(tags::TRANSACTIONS)
+                .summary("Retained transaction")
+                .description("Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.")
+                .json_response::<CachedTransaction>()
+                .response_with::<204, (), _>(|res| res.description("Not present in the published native retained cache; empty body"))
                 .not_modified(),
         ),
     )
@@ -215,6 +233,24 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         ),
     )
     .api_route(
+        "/api/txs/outspends",
+        get_with(
+            async |headers: HeaderMap, Query(query): Query<OutspendsQuery>, RequestState(state): RequestState| -> Result<Response> {
+                let txids = query.parse()?;
+                Ok(state.respond_json_bound(headers, Version::ONE, move |q| {
+                    q.batch_outspends_json(&txids)
+                }).await)
+            },
+            |op| op
+                .id("get_txs_outspends")
+                .tag(tags::TRANSACTIONS)
+                .summary("Output spend statuses for several transactions")
+                .description("Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.")
+                .json_response::<Vec<Vec<TxOutspend>>>()
+                .not_modified(),
+        ),
+    )
+    .api_route(
         "/api/tx/{txid}/outspends",
         get_with(
             async |
@@ -312,6 +348,17 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         ),
     )
     .api_route(
+        "/api/broadcast",
+        get_with(broadcast::serve_query, |op| {
+            op.id("get_broadcast")
+                .tag(tags::TRANSACTIONS)
+                .mcp_ignore()
+                .summary("Broadcast transaction from query")
+                .description("Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.")
+                .text_response::<Txid>()
+        }),
+    )
+    .api_route(
         "/api/tx",
         post_with(
             broadcast::serve,
@@ -330,4 +377,26 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             DefaultBodyLimit::disable(),
         )),
     )
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct OutspendsQuery {
+    /// One to fifty comma-separated, lowercase transaction IDs.
+    txids: String,
+}
+
+impl OutspendsQuery {
+    fn parse(self) -> Result<Vec<Txid>> {
+        let parts = self.txids.split(',');
+        if parts.clone().count() > 50 {
+            return Err(crate::Error::bad_request("at most 50 transaction IDs are accepted"));
+        }
+        parts.map(|part| {
+            if part.len() != 64 || !part.bytes().all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f')) {
+                return Err(crate::Error::bad_request("txids must be comma-separated lowercase transaction IDs"));
+            }
+            part.parse().map_err(|_| crate::Error::bad_request("invalid transaction ID"))
+        }).collect()
+    }
 }

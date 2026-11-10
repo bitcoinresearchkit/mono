@@ -90,6 +90,35 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-address-txs-summary",
+        method: "GET",
+        path: "/api/address/{address}/txs/summary",
+        summary: "Address confirmed transaction summaries",
+        description: "Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.",
+        path_parameters: &[
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 5,000 (the default); zero returns an empty array.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-address-txs-summary-after",
+        method: "GET",
+        path: "/api/address/{address}/txs/summary/{last_seen_txid}",
+        summary: "Address confirmed transaction summaries (paginated)",
+        description: "Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).",
+        path_parameters: &[
+            Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
+            Parameter { api_name: "last_seen_txid", name: "last-seen-txid", required: true, value_name: "Txid", repeatable: false, description: Some("Last transaction from the previous summary page (excluded from this page).") },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 5,000 (the default); zero returns an empty array.") },
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-address-utxos",
         method: "GET",
         path: "/api/address/{address}/utxo",
@@ -285,6 +314,20 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-block-fees-by-timestamp",
+        method: "GET",
+        path: "/api/v1/mining/blocks/fees",
+        summary: "Block fees between inclusive timestamps",
+        description: "Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+            Parameter { api_name: "from", name: "from", required: true, value_name: "Timestamp", repeatable: false, description: None },
+            Parameter { api_name: "to", name: "to", required: true, value_name: "Timestamp", repeatable: false, description: None },
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block-hash-by-height",
         method: "GET",
         path: "/api/block-height/{height}",
@@ -363,6 +406,19 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-block-summary",
+        method: "GET",
+        path: "/api/v1/block/{hash}/summary",
+        summary: "Classified block transactions",
+        description: "Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block-tip-hash",
         method: "GET",
         path: "/api/blocks/tip/hash",
@@ -381,6 +437,20 @@ pub static COMMANDS: &[Command] = &[
         summary: "Block tip height",
         description: "Height of the latest block.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*",
         path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-transaction-summary",
+        method: "GET",
+        path: "/api/v1/block/{hash}/tx/{txid}/summary",
+        summary: "Classified transaction in block",
+        description: "Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -466,6 +536,33 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-blocks-bulk",
+        method: "GET",
+        path: "/api/v1/blocks-bulk/{from}/{to}",
+        summary: "Bulk blocks",
+        description: "Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.",
+        path_parameters: &[
+            Parameter { api_name: "from", name: "from", required: true, value_name: "Height", repeatable: false, description: None },
+            Parameter { api_name: "to", name: "to", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-blocks-bulk-to-tip",
+        method: "GET",
+        path: "/api/v1/blocks-bulk/{from}",
+        summary: "Bulk blocks to tip",
+        description: "Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.",
+        path_parameters: &[
+            Parameter { api_name: "from", name: "from", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-blocks-from-height",
         method: "GET",
         path: "/api/blocks/{height}",
@@ -498,6 +595,44 @@ pub static COMMANDS: &[Command] = &[
         description: "Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-broadcast",
+        method: "GET",
+        path: "/api/broadcast",
+        summary: "Broadcast transaction from query",
+        description: "Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+            Parameter { api_name: "tx", name: "tx", required: true, value_name: "string", repeatable: false, description: Some("Raw transaction as hexadecimal text. Request-line limits also apply.") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-cached-tx",
+        method: "GET",
+        path: "/api/v1/tx/{txid}/cached",
+        summary: "Retained transaction",
+        description: "Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.",
+        path_parameters: &[
+            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-chain-tips",
+        method: "GET",
+        path: "/api/v1/chain-tips",
+        summary: "Known chain tips",
+        description: "All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.",
+        path_parameters: &[
         ],
         query_parameters: &[
         ],
@@ -725,6 +860,33 @@ pub static COMMANDS: &[Command] = &[
         path_parameters: &[
         ],
         query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-mempool-txids-page",
+        method: "GET",
+        path: "/api/mempool/txids/page",
+        summary: "Mempool transaction IDs (paginated)",
+        description: "Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transaction IDs to return, at most 10,000 (the default).") },
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-mempool-txids-page-after",
+        method: "GET",
+        path: "/api/mempool/txids/page/{txid}",
+        summary: "Mempool transaction IDs after a cursor",
+        description: "Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.",
+        path_parameters: &[
+            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transaction IDs to return, at most 10,000 (the default).") },
         ],
         request_body: None,
     },
@@ -1228,6 +1390,19 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "TxIndex", repeatable: false, description: Some("Global transaction index across the chain") },
         ],
         query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-txs-outspends",
+        method: "GET",
+        path: "/api/txs/outspends",
+        summary: "Output spend statuses for several transactions",
+        description: "Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+            Parameter { api_name: "txids", name: "txids", required: true, value_name: "string", repeatable: false, description: Some("One to fifty comma-separated, lowercase transaction IDs.") },
         ],
         request_body: None,
     },

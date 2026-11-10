@@ -3,7 +3,10 @@ use brk_types::{BlockHash, Height, Timestamp};
 use jiff::Timestamp as JiffTimestamp;
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{
+    Error, OptionData, Query, Result,
+    api::indexed_bound::{IndexedBound, indexed_bound},
+};
 
 /// An owned timestamp selection from one published chain view.
 pub struct ResolvedBlockTimestamp {
@@ -61,25 +64,6 @@ impl Query {
     }
 }
 
-fn lower_bound(
-    mut end: usize,
-    target: Timestamp,
-    inclusive: bool,
-    read: &mut impl FnMut(usize) -> Result<Timestamp>,
-) -> Result<usize> {
-    let mut begin = 0;
-    while begin < end {
-        let mid = begin + (end - begin) / 2;
-        let value = read(mid)?;
-        if value < target || (inclusive && value == target) {
-            begin = mid + 1;
-        } else {
-            end = mid;
-        }
-    }
-    Ok(begin)
-}
-
 /// O(log n + k), not universally O(log n): the first future-skewed header can
 /// precede the MTP crossing by many blocks. Far-future inputs never scan.
 fn select_timestamp(
@@ -91,12 +75,12 @@ fn select_timestamp(
     if len == 0 {
         return Err(Error::StateUpdating);
     }
-    let crossing = lower_bound(len, target, true, &mut maximum)?;
+    let crossing = indexed_bound(len, target, IndexedBound::Above, &mut maximum)?;
     if crossing == 0 {
         return Err(Error::NotFound("No block at or before timestamp".into()));
     }
     let mut best = maximum(crossing - 1)?;
-    let mut height = lower_bound(crossing, best, false, &mut maximum)?;
+    let mut height = indexed_bound(crossing, best, IndexedBound::AtLeast, &mut maximum)?;
     if best == target {
         return Ok((height, best));
     }

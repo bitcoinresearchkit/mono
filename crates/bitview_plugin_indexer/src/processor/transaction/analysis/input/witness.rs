@@ -93,7 +93,9 @@ fn analyze_taproot<'a>(witness: &'a Witness, scan: &mut TxScan<'_>) -> WitnessFa
     let inscription = is_tapscript
         && witness
             .nth(stack_items - 2)
-            .is_some_and(|script| walk_tapscript(Script::from_bytes(script), scan));
+            .is_some_and(|script| {
+                walk_envelope::<true>(Script::from_bytes(script), |opcode| scan.opcode(opcode))
+            });
     if inscription {
         scan.flags.insert(TxFeatureFlags::INSCRIPTION);
     }
@@ -109,20 +111,36 @@ fn analyze_taproot<'a>(witness: &'a Witness, scan: &mut TxScan<'_>) -> WitnessFa
     }
 }
 
-/// A tapscript's one walk, up to the first instruction it can't parse: its opcodes for the
-/// counters, and whether it holds an inscription's envelope, `OP_FALSE OP_IF` and a push of "ord".
-fn walk_tapscript(script: &Script, scan: &mut TxScan<'_>) -> bool {
+/// Any real OP_0 OP_IF prefix at instruction boundaries, ignoring protocol payload and leaf
+/// version, as the summary's broad envelope heuristic requires. No signature/key analysis.
+/// Only call for a known P2TR prevout; witness shape alone does not identify its script type.
+pub fn has_taproot_envelope(witness: &Witness) -> bool {
+    let has_annex = witness.len() > 1
+        && witness.last().is_some_and(|last| last.first() == Some(&TAPROOT_ANNEX_PREFIX));
+    let stack_items = witness.len() - usize::from(has_annex);
+    stack_items.checked_sub(2)
+        .and_then(|script| witness.nth(script))
+        .is_some_and(|script| walk_envelope::<false>(Script::from_bytes(script), |_| {}))
+}
+
+/// The indexer's tapscript walk counts every parsed opcode, including those after an envelope.
+/// The broad query-only detector has no counters and can stop at its first match.
+fn walk_envelope<const REQUIRE_ORD: bool>(
+    script: &Script,
+    mut opcode: impl FnMut(bitcoin::opcodes::Opcode),
+) -> bool {
     let mut state = 0;
     for instruction in script.instructions() {
         let Ok(instruction) = instruction else {
             break;
         };
         if let Instruction::Op(op) = instruction {
-            scan.opcode(op);
+            opcode(op);
         }
         state = match (state, instruction) {
             (3, _) => 3,
             (0, Instruction::PushBytes(bytes)) if bytes.is_empty() => 1,
+            (1, Instruction::Op(OP_IF)) if !REQUIRE_ORD => return true,
             (1, Instruction::Op(OP_IF)) => 2,
             (2, Instruction::PushBytes(bytes)) if bytes.as_bytes() == b"ord" => 3,
             (_, Instruction::PushBytes(bytes)) if bytes.is_empty() => 1,
@@ -131,3 +149,6 @@ fn walk_tapscript(script: &Script, scan: &mut TxScan<'_>) -> bool {
     }
     state == 3
 }
+
+#[cfg(test)]
+mod tests;

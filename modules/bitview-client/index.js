@@ -56,6 +56,16 @@
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
  */
 /**
+ * An address's net satoshi change in one confirmed transaction. Zero-net activity is retained.
+ *
+ * @typedef {Object} AddressTxSummary
+ * @property {Txid} txid
+ * @property {Height} height
+ * @property {number} value - Outputs funded to this exact script minus previous outputs spent from it, in satoshis.
+ * @property {Timestamp} time - Block header timestamp, in Unix seconds.
+ * @property {BlockTxIndex} txPosition - Zero-based position in the confirming block (coinbase is zero).
+ */
+/**
  * @typedef {Object} AddressValidation
  * @property {boolean} isvalid
  * @property {(Address|null)=} address - The validated address
@@ -130,6 +140,52 @@
  * @property {BlockHash} blockHash
  * @property {Timestamp} timestamp - The block's header time.
  * @property {boolean} spent - Whether a published block spends it.
+ */
+/**
+ * Flat bulk block wire shape, using the same local facts and semantics as ordinary V1 rows.
+ * Effective rate distributions are vsize-weighted locally; upstream ranks by tx count.
+ *
+ * @typedef {Object} BlockBulk
+ * @property {Height} height
+ * @property {BlockHash} hash
+ * @property {Timestamp} timestamp
+ * @property {Timestamp} medianTimestamp
+ * @property {(BlockHash|null)=} previousBlockHash
+ * @property {number} difficulty
+ * @property {Hex} header
+ * @property {number} version
+ * @property {number} bits
+ * @property {number} nonce
+ * @property {number} size
+ * @property {Weight} weight
+ * @property {number} txCount - All transactions, including the coinbase.
+ * @property {MerkleNode} merkleRoot
+ * @property {Sats} reward - Actual coinbase output value, including any claimed fees.
+ * @property {Sats} totalFeeAmt
+ * @property {Sats} avgFeeAmt
+ * @property {Sats} medianFeeAmt
+ * @property {BlockPercentiles} feeAmtPercentiles
+ * @property {FeeRate} avgFeeRate
+ * @property {FeeRate} medianFeeRate - Local effective rate median by vsize, not upstream's 4M WU middle band.
+ * @property {BlockPercentiles2} feeRatePercentiles - Local effective rate percentiles by vsize, not upstream's count-ranked percentiles.
+ * @property {number} totalInputs - Inputs excluding the coinbase input.
+ * @property {Sats} totalInputAmt
+ * @property {number} totalOutputs - All outputs, including coinbase and OP_RETURN outputs.
+ * @property {Sats} totalOutputAmt - Output value excluding the coinbase outputs.
+ * @property {number} segwitTotalTxs - Witness transactions excluding the coinbase.
+ * @property {number} segwitTotalSize
+ * @property {Weight} segwitTotalWeight
+ * @property {number} avgTxSize - Non-coinbase bytes / all tx count, rounded to two decimals.
+ * @property {number} utxosetChange
+ * @property {number} utxosetSize - Local UTXO count excludes OP_RETURN, but includes scripts over 10,000 bytes.
+ * @property {Hex} coinbaseRaw - Coinbase scriptsig hex, not the whole serialized transaction.
+ * @property {(Address|null)=} coinbaseAddress
+ * @property {Address[]} coinbaseAddresses
+ * @property {string} coinbaseSignature
+ * @property {string} coinbaseSignatureAscii
+ * @property {PoolSlug} poolSlug
+ * @property {number} poolId - Upstream pools.unique_id, zero-based; not pools.id or the one-based mining API ID.
+ * @property {BlockOrphan[]} orphans - This node's published stale-block observations at this height.
  */
 /**
  * Extended block data matching mempool.space /api/v1/blocks extras
@@ -280,6 +336,30 @@
  * @typedef {(("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
+ * Named bulk percentile fields in upstream's min, p10, p25, p50, p75, p90, max order.
+ *
+ * @typedef {Object} BlockPercentiles
+ * @property {Sats} min
+ * @property {Sats} perc_10
+ * @property {Sats} perc_25
+ * @property {Sats} perc_50
+ * @property {Sats} perc_75
+ * @property {Sats} perc_90
+ * @property {Sats} max
+ */
+/**
+ * Named bulk percentile fields in upstream's min, p10, p25, p50, p75, p90, max order.
+ *
+ * @typedef {Object} BlockPercentiles2
+ * @property {FeeRate} min
+ * @property {FeeRate} perc_10
+ * @property {FeeRate} perc_25
+ * @property {FeeRate} perc_50
+ * @property {FeeRate} perc_75
+ * @property {FeeRate} perc_90
+ * @property {FeeRate} max
+ */
+/**
  * @typedef {Object} BlockPool
  * @property {number} id - Zero-based pool ID, matching mempool.space's `unique_id`
  * @property {string} name
@@ -351,6 +431,40 @@
  * A mean size in bytes.
  *
  * @typedef {number} BytesFract
+ */
+/**
+ * A retained transaction with mempool enrichment. The base serializer owns all transaction
+ * fields, including sigops; this adds only derived fields and the retained first sighting.
+ * Graph, acceleration and upstream bookkeeping fields are omitted when unknown.
+ *
+ * @typedef {Object} CachedTransaction
+ * @property {(TxIndex|null)=} index - Internal transaction index (brk-specific, not in mempool.space)
+ * @property {Txid} txid
+ * @property {TxVersionRaw} version - Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
+ * @property {RawLockTime} locktime
+ * @property {TxIn[]} vin - Transaction inputs
+ * @property {TxOut[]} vout - Transaction outputs
+ * @property {number} size - Transaction size in bytes
+ * @property {Weight} weight
+ * @property {SigOps} sigops - BIP-141 signature-operation cost
+ * @property {Sats} fee - Transaction fee in satoshis
+ * @property {TxStatus} status
+ * @property {number} order
+ * @property {VSize} vsize
+ * @property {number} feePerVsize
+ * @property {number} adjustedVsize
+ * @property {number} adjustedFeePerVsize
+ * @property {FeeRate} effectiveFeePerVsize - Native Core chunk rate, quantized to milli-sat/vB; retained at burial for tombstones.
+ * @property {Timestamp} firstSeen
+ */
+/**
+ * One complete Bitcoin Core `getchaintips` record, under Core's field names.
+ *
+ * @typedef {Object} ChainTip
+ * @property {number} height
+ * @property {BlockHash} hash - Conventional block-hash hex. Keep the RPC field's public Rust type.
+ * @property {number} branchlen - Zero for the active tip; otherwise the branch's length off the active chain.
+ * @property {string} status - Core's status verbatim, including `unknown` and future values.
  */
 /**
  * Bitcoin multiplied by the blocks it was held.
@@ -1401,6 +1515,23 @@
  * @property {Sats} fee - Transaction fee in satoshis
  * @property {TxStatus} status
  */
+/**
+ * A canonical transaction's chain-derived summary. Vsize is BIP-141 weight/4 rounded up;
+ * rate is Bitview's stored policy-size chunk rate, rounded up to 0.001 sat/vB.
+ * Flags use mempool's bit positions, with the native classification policy described below.
+ * Observer-only time/acceleration/replacement facts are unavailable and are omitted. In
+ * particular, unset observation bits do not assert that the transaction was never observed.
+ *
+ * @typedef {Object} TransactionSummary
+ * @property {Txid} txid
+ * @property {Sats} fee
+ * @property {VSize} vsize
+ * @property {Sats} value - Sum of every output, including change, unspendable outputs and coinbase outputs.
+ * @property {FeeRate} rate
+ * @property {number} flags - Native standardness, key/signature and CoinJoin heuristics; broad opcode-envelope
+ *   detection; structural same-block CPFP roles; payout ratios include coinbase.
+ *   Bits 18 (replacement) and 19 (acceleration) carry no observation here.
+ */
 /** @typedef {({ [key: string]: TreeNode }|SeriesLeafWithSchema)} TreeNode */
 /**
  * A BIP352 silent payments tweak, `input_hash·A`: the compressed point a wallet multiplies by
@@ -1733,8 +1864,10 @@ const _camelName = (key) => {
 /**
  * `getJson`'s body reader: the JSON, its field names camelCased (map keys as `keep` says).
  * @param {*} keep
+ * @param {boolean} [noContent] - This operation declares an empty 204.
  */
-const _readJson = (keep) => async (/** @type {Response} */ res) => _camelKeys(await res.json(), keep);
+const _readJson = (keep, noContent = false) => async (/** @type {Response} */ res) =>
+  noContent && res.status === 204 ? null : _camelKeys(await res.json(), keep);
 
 /**
  * Freezes a parsed value and everything in it, once, before the memory cache shares it: every
@@ -2365,11 +2498,12 @@ class BitviewClientBase {
    * @param {string} body
    * @param {{ signal?: AbortSignal, contentType?: string }} [options]
    * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
+   * @param {boolean} [noContent] - This operation declares an empty 204.
    * @returns {Promise<T>}
    */
-  async postJson(path, body, options, keep) {
+  async postJson(path, body, options, keep, noContent = false) {
     const res = await this.post(path, body, options);
-    return _camelKeys(await res.json(), keep);
+    return _readJson(keep, noContent)(res);
   }
 
   /**
@@ -9070,6 +9204,47 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
+   * Address confirmed transaction summaries
+   *
+   * Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.
+   *
+   * Endpoint: `GET /api/address/{address}/txs/summary`
+   *
+   * @param {Address} address
+   * @param {number=} [max_txs] - Transactions to return, at most 5,000 (the default); zero returns an empty array.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressTxSummary[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressTxSummary[]>>}
+   */
+  async getAddressTxsSummary(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs/summary${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Address confirmed transaction summaries (paginated)
+   *
+   * Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).
+   *
+   * Endpoint: `GET /api/address/{address}/txs/summary/{last_seen_txid}`
+   *
+   * @param {Address} address
+   * @param {Txid} last_seen_txid - Last transaction from the previous summary page (excluded from this page).
+   * @param {number=} [max_txs] - Transactions to return, at most 5,000 (the default); zero returns an empty array.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressTxSummary[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<AddressTxSummary[]>>}
+   */
+  async getAddressTxsSummaryAfter(address, last_seen_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs/summary/${encodeURIComponent(last_seen_txid)}${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
    * Address mempool transactions
    *
    * Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
@@ -9429,6 +9604,86 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
+   * Bulk blocks to tip
+   *
+   * Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+   *
+   * Endpoint: `GET /api/v1/blocks-bulk/{from}`
+   *
+   * @param {Height} from
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockBulk[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockBulk[]>>}
+   */
+  async getBlocksBulkToTip(from, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/blocks-bulk/${encodeURIComponent(from)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Bulk blocks
+   *
+   * Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+   *
+   * Endpoint: `GET /api/v1/blocks-bulk/{from}/{to}`
+   *
+   * @param {Height} from
+   * @param {Height} to
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockBulk[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockBulk[]>>}
+   */
+  async getBlocksBulk(from, to, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/blocks-bulk/${encodeURIComponent(from)}/${encodeURIComponent(to)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Classified block transactions
+   *
+   * Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+   *
+   * Endpoint: `GET /api/v1/block/{hash}/summary`
+   *
+   * @param {BlockHash} hash
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TransactionSummary[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TransactionSummary[]>>}
+   */
+  async getBlockSummary(hash, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/block/${encodeURIComponent(hash)}/summary`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Classified transaction in block
+   *
+   * Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+   *
+   * Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/summary`
+   *
+   * @param {BlockHash} hash
+   * @param {Txid} txid
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TransactionSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TransactionSummary>>}
+   */
+  async getBlockTransactionSummary(hash, txid, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/block/${encodeURIComponent(hash)}/tx/${encodeURIComponent(txid)}/summary`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Known chain tips
+   *
+   * All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.
+   *
+   * Endpoint: `GET /api/v1/chain-tips`
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ChainTip[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<ChainTip[]>>}
+   */
+  async getChainTips({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/chain-tips`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
    * List all mining pools
    *
    * Every known mining pool.
@@ -9746,6 +10001,27 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
+   * Block fees between inclusive timestamps
+   *
+   * Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/fees`
+   *
+   * @param {Timestamp} from
+   * @param {Timestamp} to
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeesEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockFeesEntry[]>>}
+   */
+  async getBlockFeesByTimestamp(from, to, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    params.set('from', String(from));
+    params.set('to', String(to));
+    const query = params.toString();
+    const path = `/api/v1/mining/blocks/fees${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
    * Projected mempool blocks
    *
    * Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
@@ -9822,6 +10098,45 @@ class BitviewClient extends BitviewClientBase {
    */
   async getMempoolTxids({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/txids`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Mempool transaction IDs (paginated)
+   *
+   * Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.
+   *
+   * Endpoint: `GET /api/mempool/txids/page`
+   *
+   * @param {number=} [max_txs] - Transaction IDs to return, at most 10,000 (the default).
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Txid[]>>}
+   */
+  async getMempoolTxidsPage(max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/mempool/txids/page${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Mempool transaction IDs after a cursor
+   *
+   * Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.
+   *
+   * Endpoint: `GET /api/mempool/txids/page/{txid}`
+   *
+   * @param {Txid} txid
+   * @param {number=} [max_txs] - Transaction IDs to return, at most 10,000 (the default).
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<Txid[]>>}
+   */
+  async getMempoolTxidsPageAfter(txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/mempool/txids/page/${encodeURIComponent(txid)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
@@ -9941,6 +10256,22 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
+   * Retained transaction
+   *
+   * Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.
+   *
+   * Endpoint: `GET /api/v1/tx/{txid}/cached`
+   *
+   * @param {Txid} txid
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<?CachedTransaction>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<?CachedTransaction>>}
+   */
+  async getCachedTx(txid, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/tx/${encodeURIComponent(txid)}/cached`;
+    return this._getCached(path, 'json', _readJson(undefined, true), { signal, onValue, cache, memCache });
+  }
+
+  /**
    * RBF replacement history
    *
    * Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
@@ -10050,6 +10381,25 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
+   * Output spend statuses for several transactions
+   *
+   * Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.
+   *
+   * Endpoint: `GET /api/txs/outspends`
+   *
+   * @param {string} txids - One to fifty comma-separated, lowercase transaction IDs.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxOutspend[][]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<TxOutspend[][]>>}
+   */
+  async getTxsOutspends(txids, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    params.set('txids', String(txids));
+    const query = params.toString();
+    const path = `/api/txs/outspends${query ? '?' + query : ''}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
    * All output spend statuses
    *
    * Spend statuses in output-index order.
@@ -10122,6 +10472,25 @@ class BitviewClient extends BitviewClientBase {
     const query = params.toString();
     const path = `/api/v1/transaction-times${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Broadcast transaction from query
+   *
+   * Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
+   *
+   * Endpoint: `GET /api/broadcast`
+   *
+   * @param {string} tx - Raw transaction as hexadecimal text. Request-line limits also apply.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Txid>}
+   */
+  async getBroadcast(tx, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    params.set('tx', String(tx));
+    const query = params.toString();
+    const path = `/api/broadcast${query ? '?' + query : ''}`;
+    return this.getText(path, { signal, onValue, cache, memCache });
   }
 
   /**

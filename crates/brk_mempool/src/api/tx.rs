@@ -4,7 +4,7 @@ use std::{
 };
 
 use brk_error::Result;
-use brk_types::{BlockHash, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{BlockHash, FeeRate, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::FxHashSet;
 use serde::Serializer;
 
@@ -15,6 +15,17 @@ use crate::{
 };
 
 impl ReadOnlyState {
+    /// An owned retained body and its matching rate from one publication. Native cache
+    /// membership is the published pool plus every graveyard tombstone, not just RBF trees.
+    /// Status and unresolved prevouts remain exactly as retained; no chain lookup is made.
+    pub fn cached_transaction(&self, txid: &Txid) -> Result<Option<(PublishedTx, FeeRate)>> {
+        let state = self.pool()?;
+        let retained = state.pending_head(txid).or_else(|| {
+            state.graveyard.get(txid).map(|tomb| (&tomb.record, tomb.chunk_rate))
+        });
+        Ok(retained.map(|(record, rate)| (PublishedTx::from_record(record), rate)))
+    }
+
     /// Why a transaction left the pool at `tip`, while the graveyard remembers it: `None` for one
     /// pending or unknown.
     pub fn removal(&self, txid: &Txid, tip: &BlockHash) -> Result<Option<TxRemoval>> {
@@ -36,6 +47,22 @@ impl ReadOnlyState {
     /// The txid array [`Self::txids_hash`] validates.
     pub fn txids(&self) -> Result<impl Iterator<Item = &Txid>> {
         Ok(self.pool()?.txs.txids())
+    }
+
+    /// A bounded page in rust-bitcoin's binary txid order, strictly after `after` even if that
+    /// transaction has left the pool. The sorted view is shared by readers of this membership.
+    pub fn txids_page(&self, after: Option<&Txid>, limit: usize) -> Result<Vec<Txid>> {
+        let state = self.pool()?;
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+        let txids = state.sorted_txids.get_or_init(|| {
+            let mut txids: Vec<_> = state.txs.txids().copied().collect();
+            txids.sort_unstable();
+            txids.into()
+        });
+        let start = after.map_or(0, |after| txids.partition_point(|txid| txid <= after));
+        Ok(txids[start..start + limit.min(txids.len() - start)].to_vec())
     }
 
     /// A transaction pending in `view`, from one completed publication: none for one that left

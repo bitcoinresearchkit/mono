@@ -7,7 +7,7 @@ use axum::{
 };
 use bitview_primitives::BlockHashPrefix;
 use bitview_query::RepresentationId;
-use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
+use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressTxSummary, AddressValidation, Utxo};
 use brk_types::{Address, Transaction, Txid, Version};
 use serde_json::to_vec;
 
@@ -17,7 +17,8 @@ use crate::{
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
         AddressAfterTxidParam, AddressChainTxsQuery, AddressHashPrefixParam,
-        AddressMempoolTxsQuery, AddressParam, AddressTxsQuery, Empty, ValidateAddressParam,
+        AddressMempoolTxsQuery, AddressParam, AddressSummaryParam, AddressTxsQuery,
+        AddressTxsSummaryQuery, Empty, ValidateAddressParam,
         page_size,
     },
     request_state::RequestState,
@@ -28,8 +29,32 @@ use crate::{
 /// the rest), `/txs/chain` up to `CHAIN_PAGE`.
 const TXS_PAGE: usize = 50;
 const CHAIN_PAGE: usize = 25;
+const SUMMARY_PAGE: usize = 5_000;
 
 impl AppState {
+    async fn respond_addr_txs_summary(
+        &self,
+        headers: HeaderMap,
+        addr: Address,
+        last_seen_txid: Option<Txid>,
+        max_txs: Option<usize>,
+    ) -> Response {
+        self.respond_read(
+            headers,
+            "application/json",
+            move |q| {
+                let source = q.resolve_addr_txs_summary(
+                    &addr, last_seen_txid, page_size(max_txs, SUMMARY_PAGE),
+                )?;
+                let params = CacheParams::activity_bound(
+                    Version::ONE, BlockHashPrefix::from(&source.activity_anchor()),
+                );
+                Ok((source, params))
+            },
+            |q, source| Ok(Bytes::from(to_vec(&q.addr_txs_summary_resolved(source)?)?)),
+        ).await
+    }
+
     async fn respond_addr_chain_txs(
         &self,
         headers: HeaderMap,
@@ -151,6 +176,43 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             .description("Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
             .json_response::<Vec<Transaction>>()
             .not_modified()
+        ),
+    )
+    .api_route(
+        "/api/address/{address}/txs/summary",
+        get_with(async |
+            headers: HeaderMap,
+            Path(path): Path<AddressParam>,
+            Query(query): Query<AddressTxsSummaryQuery>,
+            RequestState(state): RequestState
+        | {
+            state.respond_addr_txs_summary(headers, path.addr, None, query.max_txs).await
+        }, |op| op
+            .id("get_address_txs_summary")
+            .tag(tags::ADDRESSES)
+            .summary("Address confirmed transaction summaries")
+            .description("Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.")
+            .json_response::<Vec<AddressTxSummary>>()
+            .not_modified()
+        ),
+    )
+    .api_route(
+        "/api/address/{address}/txs/summary/{last_seen_txid}",
+        get_with(async |
+            headers: HeaderMap,
+            Path(path): Path<AddressSummaryParam>,
+            Query(query): Query<AddressTxsSummaryQuery>,
+            RequestState(state): RequestState
+        | {
+            state.respond_addr_txs_summary(headers, path.addr, Some(path.last_seen_txid), query.max_txs).await
+        }, |op| op
+            .id("get_address_txs_summary_after")
+            .tag(tags::ADDRESSES)
+            .summary("Address confirmed transaction summaries (paginated)")
+            .description("Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).")
+            .json_response::<Vec<AddressTxSummary>>()
+            .not_modified()
+            .unknown_cursor()
         ),
     )
     .api_route(

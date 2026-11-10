@@ -18,7 +18,13 @@ mod blindbit;
 #[cfg(feature = "full-api")]
 mod blocks;
 #[cfg(feature = "full-api")]
+mod blocks_bulk;
+#[cfg(feature = "full-api")]
+mod block_summaries;
+#[cfg(feature = "full-api")]
 pub mod broadcast;
+#[cfg(feature = "full-api")]
+mod chain_tips;
 #[cfg(feature = "full-api")]
 mod fees;
 #[cfg(feature = "full-api")]
@@ -41,6 +47,8 @@ mod series;
 pub(crate) mod server;
 #[cfg(feature = "full-api")]
 mod transactions;
+#[cfg(feature = "full-api")]
+mod timestamp_fees;
 #[cfg(feature = "full-api")]
 mod urpd;
 #[cfg(feature = "full-api")]
@@ -75,7 +83,11 @@ impl ApiRoutes for ApiRouter<AppState> {
             general::add_routes,
             addrs::add_routes,
             blocks::add_routes,
+            blocks_bulk::add_routes,
+            block_summaries::add_routes,
+            chain_tips::add_routes,
             mining::add_routes,
+            timestamp_fees::add_routes,
             fees::add_routes,
             mempool::add_routes,
             transactions::add_routes,

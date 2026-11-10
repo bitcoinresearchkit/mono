@@ -2,6 +2,7 @@ mod addr;
 mod block;
 mod calendar;
 mod cpfp;
+mod indexed_bound;
 mod mempool;
 mod mining;
 pub(crate) mod oracle;
@@ -14,8 +15,8 @@ mod utxo_set;
 pub use addr::{ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos};
 /// The least dust limit the silent payments routes take: they hold nothing smaller.
 pub use bitview_plugin_silent_payments::DUST_FLOOR;
-pub(crate) use block::StaleBlocks;
-pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
+pub(crate) use block::{ChainTips, StaleBlocks};
+pub use block::{ResolvedBlockSummary, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksBulk, ResolvedBlocksV1};
 pub use cpfp::ResolvedCpfp;
 pub use mempool::{MempoolBlockSource, MempoolTxids, ResolvedMempoolBlockDiff, ResolvedRbf};
 pub use mining::ResolvedPoolBlocks;

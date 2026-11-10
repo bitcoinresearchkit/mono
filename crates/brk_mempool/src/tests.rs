@@ -860,6 +860,114 @@ fn address_transactions_keep_page_order() {
     }
 }
 
+/// Paging agrees with rust-bitcoin's ordered map, including absent/removed cursors and old
+/// publications held across a dense-store removal. Display-hex order is deliberately different.
+#[test]
+fn mempool_txid_pages_follow_binary_order_and_publications() {
+    use std::collections::BTreeSet;
+    use bitcoin::hashes::sha256d;
+
+    let id = |n: u64| Txid::from(bitcoin::Txid::from_byte_array(
+        sha256d::Hash::hash(&n.to_le_bytes()).to_byte_array(),
+    ));
+    let mut state = State::default();
+    let mut model = BTreeSet::new();
+    for n in 0..12_000 {
+        let txid = id(n);
+        let tx = Arc::new(Transaction { txid, ..(*body(1)).clone() });
+        let info = MempoolEntryInfo {
+            txid,
+            wtxid: bitcoin::Wtxid::from_byte_array([0; 32]),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::from(n as usize),
+        };
+        let entry = TxEntry::new(&info, 100, false);
+        state.insert(tx, entry);
+        model.insert(bitcoin::Txid::from(txid));
+    }
+    let mut rebuilder = Rebuilder::default();
+    let read = publish_pool(&state, &ReadOnlyState::default(), &mut rebuilder);
+    let mut equivalent = read.clone();
+    equivalent.pool = Some(Arc::new(crate::state::Pool::new(
+        &state, BlockHash::default(), read.pool().unwrap().graph.clone(), Some(read.pool().unwrap()),
+    )));
+    assert!(read.pool().unwrap().sorted_txids.get().is_none());
+    assert!(read.txids_page(None, 0).unwrap().is_empty());
+    assert!(read.pool().unwrap().sorted_txids.get().is_none(), "zero page must not sort");
+    let all: Vec<_> = model.iter().copied().map(Txid::from).collect();
+    assert_eq!(read.txids_page(None, usize::MAX).unwrap(), all);
+    assert!(Arc::ptr_eq(read.pool().unwrap().sorted_txids.get().unwrap(),
+        equivalent.pool().unwrap().sorted_txids.get().unwrap()), "late initialization shared across publications");
+    assert!(Arc::ptr_eq(&read.txids_json().unwrap(), &equivalent.txids_json().unwrap()));
+    let full_page = read.txids_page(None, 10_000).unwrap();
+    assert_eq!(full_page, &all[..10_000]);
+    assert_eq!(serde_json::to_vec(&full_page).unwrap().len(), 670_001);
+    for n in (0..2_048).chain(12_000..14_048) {
+        let cursor = id(n);
+        let limit = n as usize % 43;
+        let expected: Vec<_> = model.range((std::ops::Bound::Excluded(bitcoin::Txid::from(cursor)), std::ops::Bound::Unbounded))
+            .take(limit).copied().map(Txid::from).collect();
+        assert_eq!(read.txids_page(Some(&cursor), limit).unwrap(), expected);
+    }
+    let removed = all[all.len() / 2];
+    state.remove(&crate::key::TxKey::from(&removed));
+    model.remove(&bitcoin::Txid::from(removed));
+    let next = publish_pool(&state, &read, &mut rebuilder);
+    assert_eq!(read.txids_page(None, usize::MAX).unwrap(), all, "retained publication");
+    assert_eq!(next.txids_page(None, usize::MAX).unwrap(), model.iter().copied().map(Txid::from).collect::<Vec<_>>());
+    let expected: Vec<_> = model.range((std::ops::Bound::Excluded(bitcoin::Txid::from(removed)), std::ops::Bound::Unbounded))
+        .take(100).copied().map(Txid::from).collect();
+    assert_eq!(next.txids_page(Some(&removed), 100).unwrap(), expected);
+}
+
+#[test]
+fn cached_bodies_follow_retained_publications_through_burial_and_expiry() {
+    use std::time::Duration;
+
+    assert!(ReadOnlyState::default().cached_transaction(&txid(7)).is_err());
+    for removal in [TxRemoval::Mined, TxRemoval::Vanished, TxRemoval::Replaced { by: txid(8) }] {
+        let mut state = State::default();
+        let tx = body(7);
+        let first_seen = Timestamp::new(17);
+        let entry = MempoolEntryInfo {
+            txid: tx.txid, wtxid: bitcoin::Wtxid::from_byte_array([7; 32]),
+            vsize: VSize::from(tx.weight), weight: tx.weight, fee: tx.fee, first_seen,
+        };
+        state.insert(tx.clone(), TxEntry::new(&entry, tx.total_size as u64, false));
+        let mut rebuilder = Rebuilder::default();
+        let live = publish_pool(&state, &ReadOnlyState::default(), &mut rebuilder);
+        let (captured, _) = live.cached_transaction(&tx.txid).unwrap().unwrap();
+        assert!(Arc::ptr_eq(&captured.tx, &tx));
+        assert_eq!(captured.first_seen, first_seen);
+        assert!(live.cached_transaction(&txid(99)).unwrap().is_none());
+
+        let record = state.remove(&crate::key::TxKey::from(&tx.txid));
+        let burial_rate = FeeRate::from_milli(1_234);
+        state.graveyard.bury(record, burial_rate, removal, &mut state.upkeep);
+        let buried_at = state.graveyard.get(&tx.txid).unwrap().removed_at;
+        let buried = publish_pool(&state, &live, &mut rebuilder);
+        let (retained, rate) = buried.cached_transaction(&tx.txid).unwrap().unwrap();
+        assert!(Arc::ptr_eq(&retained.tx, &tx));
+        assert_eq!(retained.first_seen, first_seen);
+        assert_eq!(rate, burial_rate);
+        assert!(!retained.tx.status.confirmed, "cached status is the retained mempool view");
+
+        state.graveyard.evict_old(buried_at + Duration::from_secs(48 * 3_600 + 1), |_| false, &mut state.upkeep);
+        let expired = publish_pool(&state, &buried, &mut rebuilder);
+        assert!(expired.cached_transaction(&tx.txid).unwrap().is_none());
+        assert!(live.cached_transaction(&tx.txid).unwrap().is_some());
+        assert!(buried.cached_transaction(&tx.txid).unwrap().is_some(), "old readers keep their complete observation");
+        assert!(Arc::ptr_eq(&captured.tx, &retained.tx));
+    }
+}
+
+fn publish_pool(state: &State, previous: &ReadOnlyState, rebuilder: &mut Rebuilder) -> ReadOnlyState {
+    rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
+    previous.updated(state, BlockHash::default(), rebuilder.snapshot().clone(), true).unwrap()
+}
+
 fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
     state.mempool_block_source(index).unwrap().expect("served")
 }

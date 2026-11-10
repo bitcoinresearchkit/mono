@@ -5,6 +5,7 @@ use vecdb::ReadableVec;
 
 use crate::{Error, Query, Result};
 
+mod bulk;
 mod coinbase;
 mod header;
 pub mod info;
@@ -13,14 +14,17 @@ pub mod range_v1;
 pub mod raw;
 mod stale;
 pub mod status;
+mod summary;
 pub mod timestamp;
 pub mod txs;
 
+pub use bulk::ResolvedBlocksBulk;
 pub use range::ResolvedBlocks;
 pub(crate) use range_v1::blocks_v1_identity;
 pub use range_v1::ResolvedBlocksV1;
-pub(crate) use stale::StaleBlocks;
+pub(crate) use stale::{ChainTips, StaleBlocks};
 pub use timestamp::ResolvedBlockTimestamp;
+pub use summary::ResolvedBlockSummary;
 
 impl Query {
     pub(crate) fn height_by_hash_at(&self, hash: &BlockHash, guard: &ReadPin) -> Result<Height> {

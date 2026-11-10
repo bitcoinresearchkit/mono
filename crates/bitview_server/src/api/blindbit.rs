@@ -117,10 +117,9 @@ fn info(height: Height) -> BlindbitInfo {
 async fn forward_tx(
     permit: BroadcastPermit,
     _: Empty,
-    RequestState(state): RequestState,
     Json(body): Json<ForwardTx>,
 ) -> Result<Response> {
-    let txid = broadcast::submit(permit, &state, &body.data).await?;
+    let txid = broadcast::submit(permit, &body.data).await?;
     let mut response = Json(txid).into_response();
     let headers = response.headers_mut();
     headers.insert_cache_control("no-store");

@@ -25,7 +25,7 @@ use crate::{Error, OptionData, QueryPluginSet, Result, plugins::QueryPlugins};
 #[cfg(feature = "full-api")]
 use crate::{
     PublicationCache, ReadPin,
-    api::{StaleBlocks, oracle::OracleChunks},
+    api::{ChainTips, StaleBlocks, oracle::OracleChunks},
 };
 #[cfg(feature = "series")]
 use crate::{SeriesRegistry, pin::PublishedBounds};
@@ -46,6 +46,8 @@ pub(crate) struct QueryInner<'a> {
     pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
+    #[cfg(feature = "full-api")]
+    pub(crate) chain_tips: ChainTips,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,
@@ -96,6 +98,8 @@ impl Query {
                 payment_chunks: Default::default(),
                 #[cfg(feature = "full-api")]
                 stale_blocks: Default::default(),
+                #[cfg(feature = "full-api")]
+                chain_tips: Default::default(),
                 #[cfg(feature = "series")]
                 bounds: ArcSwapOption::empty(),
             }),

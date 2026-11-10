@@ -31,6 +31,7 @@ use crate::{prepared_json::PreparedJson, raw_body::RawBodyPermit};
 /// (decided before building), or a body and its validator.
 #[cfg(feature = "full-api")]
 enum Built {
+    Absent,
     Unchanged(CacheParams),
     Body(Bytes, CacheParams),
 }
@@ -226,13 +227,28 @@ impl AppState {
         version: Version,
         f: impl FnOnce(&Query) -> Result<(B, RepresentationId)> + Clone + Send + 'static,
     ) -> Response<Body> {
+        self.respond_optional_json_bound(headers, version, move |q| f(q).map(Some)).await
+    }
+
+    /// Content-bound JSON when present, otherwise an empty, uncacheable 204. Absence is
+    /// checked before validators, so a previous body's ETag can never turn a miss into 304.
+    /// Present bodies share the ordinary JSON admission and large-response lifetime rules.
+    #[cfg(feature = "full-api")]
+    pub async fn respond_optional_json_bound<B: AsRef<[u8]> + Send + 'static>(
+        &self,
+        headers: HeaderMap,
+        version: Version,
+        f: impl FnOnce(&Query) -> Result<Option<(B, RepresentationId)>> + Clone + Send + 'static,
+    ) -> Response<Body> {
         self.respond_json_built(&self.chain_query, headers, move |q, _| {
-            let (bytes, identity) = f(q)?;
-            Ok(Built::Body(
-                // A body shared with the pool (built once per publication) isn't copied.
-                Bytes::from_owner(bytes),
-                CacheParams::representation(version, identity),
-            ))
+            Ok(match f(q)? {
+                Some((bytes, identity)) => Built::Body(
+                    // A body shared with the pool (built once per publication) isn't copied.
+                    Bytes::from_owner(bytes),
+                    CacheParams::representation(version, identity),
+                ),
+                None => Built::Absent,
+            })
         })
         .await
     }
@@ -256,6 +272,14 @@ impl AppState {
         let budget = self.chain_bodies.clone();
         self.read_body(admission, &self.chain_bodies, move |q, permit| {
             let (bytes, params) = match f(q, &headers)? {
+                Built::Absent => {
+                    return Ok(Some(Response::builder()
+                        .status(axum::http::StatusCode::NO_CONTENT)
+                        .header(header::CACHE_CONTROL, "no-store")
+                        .header("cdn-cache-control", "no-store")
+                        .body(Body::empty())
+                        .expect("constant response headers")));
+                }
                 Built::Unchanged(params) => {
                     return Ok(Some(ResponseExtended::new_not_modified(&params)));
                 }
@@ -282,9 +306,19 @@ impl AppState {
         headers: HeaderMap,
         f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
     ) -> Response<Body> {
+        self.respond_json_history_keyed(headers, String::new(), f).await
+    }
+
+    #[cfg(feature = "full-api")]
+    pub async fn respond_json_history_keyed<T: Serialize>(
+        &self,
+        headers: HeaderMap,
+        key: String,
+        f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
+    ) -> Response<Body> {
         self.respond_json_built(&self.history_query, headers, move |q, headers| {
             let (tip, revision) = q.tip_publication();
-            let params = CacheParams::live(format!("h{tip}"));
+            let params = CacheParams::live(format!("h{tip}-{key}"));
             if params.etag.matches(headers) {
                 return Ok(Built::Unchanged(params));
             }
@@ -292,7 +326,7 @@ impl AppState {
             let params = if q.tip_publication().1 == revision {
                 params
             } else {
-                CacheParams::live_hash(RepresentationId::content_hash(&bytes))
+                CacheParams::live(format!("hc{}-{key}", RepresentationId::content_hash(&bytes)))
             };
             Ok(Built::Body(bytes, params))
         })

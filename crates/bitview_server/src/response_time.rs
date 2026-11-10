@@ -2,17 +2,20 @@ use std::time::Instant;
 
 use axum::{
     body::Body,
-    http::{Method, Request, Response, header::ETAG},
+    http::{Request, Response, header::ETAG},
     middleware::Next,
 };
 use tracing::{error, info};
 
 use crate::cache::{CacheParams, ErrorCachePolicy};
+use crate::request_action::RequestAction;
 
-pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
+pub(crate) async fn respond(mut request: Request<Body>, next: Next) -> Response<Body> {
     let uri = request.uri().clone();
     let method = request.method().clone();
     let start = Instant::now();
+    let action = RequestAction::new(&method);
+    request.extensions_mut().insert(action.clone());
     let mut response = next.run(request).await;
     let latency = start.elapsed();
     let status_code = response.status();
@@ -28,7 +31,7 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         "X-Response-Time",
         format!("{}us", latency.as_micros()).parse().unwrap(),
     );
-    if method == Method::POST {
+    if action.is_action() {
         CacheParams::apply_error_cache_control(response.headers_mut(), ErrorCachePolicy::NoStore);
         response.headers_mut().remove(ETAG);
     }

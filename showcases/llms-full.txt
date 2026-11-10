@@ -8,7 +8,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 22651
-- Operations: 107
+- Operations: 120
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -88,6 +88,31 @@ Parameters:
 - `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
 
 Returns: JSON `Transaction[]`
+
+#### GET `/api/address/{address}/txs/summary`
+
+Address confirmed transaction summaries
+
+Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.
+
+Parameters:
+- `address` (path, Address, required)
+- `max_txs` (query, integer, optional): Transactions to return, at most 5,000 (the default); zero returns an empty array.
+
+Returns: JSON `AddressTxSummary[]`
+
+#### GET `/api/address/{address}/txs/summary/{last_seen_txid}`
+
+Address confirmed transaction summaries (paginated)
+
+Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).
+
+Parameters:
+- `address` (path, Address, required)
+- `last_seen_txid` (path, Txid, required): Last transaction from the previous summary page (excluded from this page).
+- `max_txs` (query, integer, optional): Transactions to return, at most 5,000 (the default); zero returns an empty array.
+
+Returns: JSON `AddressTxSummary[]`
 
 #### GET `/api/address/{address}/utxo`
 
@@ -310,6 +335,29 @@ Parameters:
 
 Returns: JSON `BlockInfoV1`
 
+#### GET `/api/v1/block/{hash}/summary`
+
+Classified block transactions
+
+Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `TransactionSummary[]`
+
+#### GET `/api/v1/block/{hash}/tx/{txid}/summary`
+
+Classified transaction in block
+
+Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+
+Parameters:
+- `hash` (path, BlockHash, required)
+- `txid` (path, Txid, required)
+
+Returns: JSON `TransactionSummary`
+
 ### Block Height
 
 #### GET `/api/block-height/{height}`
@@ -378,6 +426,54 @@ Parameters:
 - `height` (path, Height, required)
 
 Returns: JSON `BlockInfoV1[]`
+
+### Blocks Bulk
+
+#### GET `/api/v1/blocks-bulk/{from}`
+
+Bulk blocks to tip
+
+Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+
+Parameters:
+- `from` (path, Height, required)
+
+Returns: JSON `BlockBulk[]`
+
+#### GET `/api/v1/blocks-bulk/{from}/{to}`
+
+Bulk blocks
+
+Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+
+Parameters:
+- `from` (path, Height, required)
+- `to` (path, Height, required)
+
+Returns: JSON `BlockBulk[]`
+
+### Broadcast
+
+#### GET `/api/broadcast`
+
+Broadcast transaction from query
+
+Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
+
+Parameters:
+- `tx` (query, string, required): Raw transaction as hexadecimal text. Request-line limits also apply.
+
+Returns: text `Txid`
+
+### Chain Tips
+
+#### GET `/api/v1/chain-tips`
+
+Known chain tips
+
+All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.
+
+Returns: JSON `ChainTip[]`
 
 ### Cpfp
 
@@ -488,6 +584,29 @@ Get all transaction IDs currently in the mempool. *[Mempool.space docs](https://
 
 Returns: JSON `Txid[]`
 
+#### GET `/api/mempool/txids/page`
+
+Mempool transaction IDs (paginated)
+
+Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.
+
+Parameters:
+- `max_txs` (query, integer, optional): Transaction IDs to return, at most 10,000 (the default).
+
+Returns: JSON `Txid[]`
+
+#### GET `/api/mempool/txids/page/{txid}`
+
+Mempool transaction IDs after a cursor
+
+Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.
+
+Parameters:
+- `txid` (path, Txid, required)
+- `max_txs` (query, integer, optional): Transaction IDs to return, at most 10,000 (the default).
+
+Returns: JSON `Txid[]`
+
 ### Mempool Blocks
 
 #### GET `/api/mempool-blocks/{index}`
@@ -536,6 +655,18 @@ Parameters:
 - `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockFeeRatesPreciseEntry[]`
+
+#### GET `/api/v1/mining/blocks/fees`
+
+Block fees between inclusive timestamps
+
+Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.
+
+Parameters:
+- `from` (query, Timestamp, required)
+- `to` (query, Timestamp, required)
+
+Returns: JSON `BlockFeesEntry[]`
 
 #### GET `/api/v1/mining/blocks/fees/{time_period}`
 
@@ -1069,6 +1200,17 @@ Parameters:
 
 Returns: JSON `TxStatus`
 
+#### GET `/api/v1/tx/{txid}/cached`
+
+Retained transaction
+
+Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.
+
+Parameters:
+- `txid` (path, Txid, required)
+
+Returns: JSON `CachedTransaction` (200), or an empty 204 (client result: null)
+
 #### GET `/api/v1/tx/{txid}/rbf`
 
 RBF replacement history
@@ -1092,6 +1234,19 @@ Parameters:
 - `index` (path, TxIndex, required): Global transaction index across the chain
 
 Returns: text `Txid`
+
+### Txs
+
+#### GET `/api/txs/outspends`
+
+Output spend statuses for several transactions
+
+Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.
+
+Parameters:
+- `txids` (query, string, required): One to fifty comma-separated, lowercase transaction IDs.
+
+Returns: JSON `TxOutspend[][]`
 
 ### Urpd
 
@@ -1228,6 +1383,14 @@ Returns: JSON `ServerVersion`
 - `mempool_stats`: `AddressMempoolStats` (required) — Statistics for unconfirmed transactions in the mempool
 - `balance`: `Sats` (required) — Total current balance in satoshis, including pending (unconfirmed) mempool changes
 
+### `AddressTxSummary`
+
+- `txid`: `Txid` (required)
+- `height`: `Height` (required)
+- `value`: `integer` (required) — Outputs funded to this exact script minus previous outputs spent from it, in satoshis.
+- `time`: `Timestamp` (required) — Block header timestamp, in Unix seconds.
+- `tx_position`: `BlockTxIndex` (required) — Zero-based position in the confirming block (coinbase is zero).
+
 ### `AddressValidation`
 
 - `isvalid`: `boolean` (required)
@@ -1287,6 +1450,49 @@ Returns: JSON `ServerVersion`
 - `block_hash`: `BlockHash` (required)
 - `timestamp`: `Timestamp` (required) — The block's header time.
 - `spent`: `boolean` (required) — Whether a published block spends it.
+
+### `BlockBulk`
+
+- `height`: `Height` (required)
+- `hash`: `BlockHash` (required)
+- `timestamp`: `Timestamp` (required)
+- `median_timestamp`: `Timestamp` (required)
+- `previous_block_hash`: `BlockHash | null`
+- `difficulty`: `number` (required)
+- `header`: `Hex` (required)
+- `version`: `integer` (required)
+- `bits`: `integer` (required)
+- `nonce`: `integer` (required)
+- `size`: `integer` (required)
+- `weight`: `Weight` (required)
+- `tx_count`: `integer` (required) — All transactions, including the coinbase.
+- `merkle_root`: `MerkleNode` (required)
+- `reward`: `Sats` (required) — Actual coinbase output value, including any claimed fees.
+- `total_fee_amt`: `Sats` (required)
+- `avg_fee_amt`: `Sats` (required)
+- `median_fee_amt`: `Sats` (required)
+- `fee_amt_percentiles`: `BlockPercentiles` (required)
+- `avg_fee_rate`: `FeeRate` (required)
+- `median_fee_rate`: `FeeRate` (required) — Local effective rate median by vsize, not upstream's 4M WU middle band.
+- `fee_rate_percentiles`: `BlockPercentiles2` (required) — Local effective rate percentiles by vsize, not upstream's count-ranked percentiles.
+- `total_inputs`: `integer` (required) — Inputs excluding the coinbase input.
+- `total_input_amt`: `Sats` (required)
+- `total_outputs`: `integer` (required) — All outputs, including coinbase and OP_RETURN outputs.
+- `total_output_amt`: `Sats` (required) — Output value excluding the coinbase outputs.
+- `segwit_total_txs`: `integer` (required) — Witness transactions excluding the coinbase.
+- `segwit_total_size`: `integer` (required)
+- `segwit_total_weight`: `Weight` (required)
+- `avg_tx_size`: `number` (required) — Non-coinbase bytes / all tx count, rounded to two decimals.
+- `utxoset_change`: `integer` (required)
+- `utxoset_size`: `integer` (required) — Local UTXO count excludes OP_RETURN, but includes scripts over 10,000 bytes.
+- `coinbase_raw`: `Hex` (required) — Coinbase scriptsig hex, not the whole serialized transaction.
+- `coinbase_address`: `Address | null`
+- `coinbase_addresses`: `Address[]` (required)
+- `coinbase_signature`: `string` (required)
+- `coinbase_signature_ascii`: `string` (required)
+- `pool_slug`: `PoolSlug` (required)
+- `pool_id`: `integer` (required) — Upstream pools.unique_id, zero-based; not pools.id or the one-based mining API ID.
+- `orphans`: `BlockOrphan[]` (required) — This node's published stale-block observations at this height.
 
 ### `BlockExtras`
 
@@ -1405,6 +1611,26 @@ Returns: JSON `ServerVersion`
 
 `valid-headers | valid-fork`
 
+### `BlockPercentiles`
+
+- `min`: `Sats` (required)
+- `perc_10`: `Sats` (required)
+- `perc_25`: `Sats` (required)
+- `perc_50`: `Sats` (required)
+- `perc_75`: `Sats` (required)
+- `perc_90`: `Sats` (required)
+- `max`: `Sats` (required)
+
+### `BlockPercentiles2`
+
+- `min`: `FeeRate` (required)
+- `perc_10`: `FeeRate` (required)
+- `perc_25`: `FeeRate` (required)
+- `perc_50`: `FeeRate` (required)
+- `perc_75`: `FeeRate` (required)
+- `perc_90`: `FeeRate` (required)
+- `max`: `FeeRate` (required)
+
 ### `BlockPool`
 
 - `id`: `integer` (required) — Zero-based pool ID, matching mempool.space's `unique_id`
@@ -1452,6 +1678,34 @@ Returns: JSON `ServerVersion`
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgWeight`: `Weight` (required) — Mean block weight in this bucket, rounded half up (weight units)
+
+### `CachedTransaction`
+
+- `index`: `TxIndex | null` — Internal transaction index (brk-specific, not in mempool.space)
+- `txid`: `Txid` (required)
+- `version`: `TxVersionRaw` (required) — Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
+- `locktime`: `RawLockTime` (required)
+- `vin`: `TxIn[]` (required) — Transaction inputs
+- `vout`: `TxOut[]` (required) — Transaction outputs
+- `size`: `integer` (required) — Transaction size in bytes
+- `weight`: `Weight` (required)
+- `sigops`: `SigOps` (required) — BIP-141 signature-operation cost
+- `fee`: `Sats` (required) — Transaction fee in satoshis
+- `status`: `TxStatus` (required)
+- `order`: `integer` (required)
+- `vsize`: `VSize` (required)
+- `feePerVsize`: `number` (required)
+- `adjustedVsize`: `number` (required)
+- `adjustedFeePerVsize`: `number` (required)
+- `effectiveFeePerVsize`: `FeeRate` (required) — Native Core chunk rate, quantized to milli-sat/vB; retained at burial for tombstones.
+- `firstSeen`: `Timestamp` (required)
+
+### `ChainTip`
+
+- `height`: `integer` (required)
+- `hash`: `BlockHash` (required) — Conventional block-hash hex. Keep the RPC field's public Rust type.
+- `branchlen`: `integer` (required) — Zero for the active tip; otherwise the branch's length off the active chain.
+- `status`: `string` (required) — Core's status verbatim, including `unknown` and future values.
 
 ### `ConfirmedCpfp`
 
@@ -1995,6 +2249,15 @@ Returns: JSON `ServerVersion`
 - `sigops`: `SigOps` (required) — BIP-141 signature-operation cost
 - `fee`: `Sats` (required) — Transaction fee in satoshis
 - `status`: `TxStatus` (required)
+
+### `TransactionSummary`
+
+- `txid`: `Txid` (required)
+- `fee`: `Sats` (required)
+- `vsize`: `VSize` (required)
+- `value`: `Sats` (required) — Sum of every output, including change, unspendable outputs and coinbase outputs.
+- `rate`: `FeeRate` (required)
+- `flags`: `integer` (required) — Native standardness, key/signature and CoinJoin heuristics; broad opcode-envelope detection; structural same-block CPFP roles; payout ratios include coinbase. Bits 18 (replacement) and 19 (acceleration) carry no observation here.
 
 ### `TreeNode`
 

@@ -19,15 +19,8 @@ pub struct GetBlockHeaderVerbose {
     pub previous_block_hash: Option<BlockHash>,
 }
 
-/// One of `getchaintips`' tips.
-#[derive(Debug, Clone, Deserialize)]
-pub struct GetChainTip {
-    pub height: u32,
-    pub hash: BlockHash,
-    /// The tip's blocks off the best chain.
-    pub branchlen: u32,
-    pub status: String,
-}
+/// The shared `getchaintips` record, preserving the public RPC name and field types.
+pub use brk_types::ChainTip as GetChainTip;
 
 /// `getblocktemplate`.
 #[derive(Deserialize)]

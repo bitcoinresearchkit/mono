@@ -9,6 +9,7 @@ use vecdb::ReadableVec;
 
 use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result};
 
+mod cached;
 pub mod rbf;
 
 pub use rbf::ResolvedRbf;
@@ -177,6 +178,15 @@ impl Query {
         let mempool = self.require_mempool()?;
         let hash = mempool.txids_hash()?;
         Ok(MempoolTxids { mempool, hash })
+    }
+
+    /// A bounded sorted txid page and the identity of its exact JSON, from one publication.
+    pub fn mempool_txids_page_json(
+        &self,
+        after: Option<&Txid>,
+        limit: usize,
+    ) -> Result<(Vec<u8>, RepresentationId)> {
+        Ok(serialize_json(&self.require_mempool()?.txids_page(after, limit)?))
     }
 
     /// mempool.space's `/api/v1/fees/recommended` (whole sat/vB) with its content identity, built

@@ -34,7 +34,9 @@ pub(crate) struct Pool {
     pub info_json: JsonBody,
     /// The txid array as JSON, built by the first request (a publication with the same members
     /// shares it too).
-    pub txids_json: OnceLock<Arc<[u8]>>,
+    pub txids_json: Arc<OnceLock<Arc<[u8]>>>,
+    /// Full txids in rust-bitcoin key order, built once when paging is first requested.
+    pub sorted_txids: Arc<OnceLock<Arc<[Txid]>>>,
     /// The recently added transactions as JSON and its hash, built by the first request (a
     /// publication with the same contents shares it too).
     pub recent_json: OnceLock<JsonBody>,
@@ -69,9 +71,9 @@ impl Pool {
                 json::body(&state.info),
             ),
         };
-        let txids_json = previous
+        let (txids_json, sorted_txids) = previous
             .filter(|pool| pool.txs.membership_revision() == state.txs.membership_revision())
-            .map_or_else(OnceLock::new, |pool| pool.txids_json.clone());
+            .map_or_else(Default::default, |pool| (pool.txids_json.clone(), pool.sorted_txids.clone()));
         let recent_json = previous
             .filter(|pool| pool.txs.content_revision() == state.txs.content_revision())
             .map_or_else(OnceLock::new, |pool| pool.recent_json.clone());
@@ -105,6 +107,7 @@ impl Pool {
             graph,
             info_json,
             txids_json,
+            sorted_txids,
             recent_json,
             recent_trees: Default::default(),
             replacements_json: Default::default(),

@@ -55,6 +55,7 @@ mod port;
 mod prepared_json;
 #[cfg(feature = "full-api")]
 mod raw_body;
+mod request_action;
 mod request_deadline;
 mod request_state;
 mod response_time;

@@ -440,6 +440,18 @@ class EmptyCpfp(TypedDict):
     """
     ancestors: List[CpfpEntry]
 
+class BlockPercentiles(TypedDict):
+    """
+    Named bulk percentile fields in upstream's min, p10, p25, p50, p75, p90, max order.
+    """
+    min: Sats
+    perc_10: Sats
+    perc_25: Sats
+    perc_50: Sats
+    perc_75: Sats
+    perc_90: Sats
+    max: Sats
+
 class AddressMempoolStats(TypedDict):
     """
     Address statistics in the mempool (unconfirmed transactions only), in mempool.space's format.
@@ -862,6 +874,25 @@ class ForwardTx(TypedDict):
     """
     data: str
 
+class TransactionSummary(TypedDict):
+    """
+    A canonical transaction's chain-derived summary. Vsize is BIP-141 weight/4 rounded up;
+    rate is Bitview's stored policy-size chunk rate, rounded up to 0.001 sat/vB.
+    Flags use mempool's bit positions, with the native classification policy described below.
+    Observer-only time/acceleration/replacement facts are unavailable and are omitted. In
+    particular, unset observation bits do not assert that the transaction was never observed.
+
+    Attributes:
+        value: Sum of every output, including change, unspendable outputs and coinbase outputs.
+        flags: Native standardness, key/signature and CoinJoin heuristics; broad opcode-envelope detection; structural same-block CPFP roles; payout ratios include coinbase. Bits 18 (replacement) and 19 (acceleration) carry no observation here.
+    """
+    txid: Txid
+    fee: Sats
+    vsize: VSize
+    value: Sats
+    rate: FeeRate
+    flags: int
+
 class _RbfTxRequired(TypedDict):
     txid: Txid
     fee: Sats
@@ -952,6 +983,18 @@ class MempoolBlock(TypedDict):
     totalFees: Sats
     medianFee: FeeRate
     feeRange: List[FeeRate]
+
+class BlockPercentiles2(TypedDict):
+    """
+    Named bulk percentile fields in upstream's min, p10, p25, p50, p75, p90, max order.
+    """
+    min: FeeRate
+    perc_10: FeeRate
+    perc_25: FeeRate
+    perc_50: FeeRate
+    perc_75: FeeRate
+    perc_90: FeeRate
+    max: FeeRate
 
 class BlockFeeRatesPreciseEntry(TypedDict):
     """
@@ -1159,6 +1202,21 @@ class ConfirmedCpfp(TypedDict):
     effectiveFeePerVsize: FeeRate
     cluster: CpfpCluster
 
+class AddressTxSummary(TypedDict):
+    """
+    An address's net satoshi change in one confirmed transaction. Zero-net activity is retained.
+
+    Attributes:
+        value: Outputs funded to this exact script minus previous outputs spent from it, in satoshis.
+        time: Block header timestamp, in Unix seconds.
+        tx_position: Zero-based position in the confirming block (coinbase is zero).
+    """
+    txid: Txid
+    height: Height
+    value: int
+    time: Timestamp
+    tx_position: BlockTxIndex
+
 class _TxStatusRequired(TypedDict):
     confirmed: bool
 
@@ -1248,6 +1306,20 @@ class OracleBlock(TypedDict):
     scores: List[float]
     histogram: List[float]
     outputs: OracleOutputs
+
+class ChainTip(TypedDict):
+    """
+    One complete Bitcoin Core `getchaintips` record, under Core's field names.
+
+    Attributes:
+        hash: Conventional block-hash hex. Keep the RPC field's public Rust type.
+        branchlen: Zero for the active tip; otherwise the branch's length off the active chain.
+        status: Core's status verbatim, including `unknown` and future values.
+    """
+    height: int
+    hash: BlockHash
+    branchlen: int
+    status: str
 
 class BlockTimestamp(TypedDict):
     """
@@ -1570,6 +1642,43 @@ class MempoolBlockContent(TypedDict):
     stats: MempoolBlock
     transactions: List[Transaction]
 
+class _CachedTransactionRequired(TypedDict):
+    txid: Txid
+    version: TxVersionRaw
+    locktime: RawLockTime
+    vin: List[TxIn]
+    vout: List[TxOut]
+    size: int
+    weight: Weight
+    sigops: SigOps
+    fee: Sats
+    status: TxStatus
+    order: int
+    vsize: VSize
+    feePerVsize: float
+    adjustedVsize: float
+    adjustedFeePerVsize: float
+    effectiveFeePerVsize: FeeRate
+    firstSeen: Timestamp
+
+class CachedTransaction(_CachedTransactionRequired, total=False):
+    """
+    A retained transaction with mempool enrichment. The base serializer owns all transaction
+    fields, including sigops; this adds only derived fields and the retained first sighting.
+    Graph, acceleration and upstream bookkeeping fields are omitted when unknown.
+
+    Attributes:
+        index: Internal transaction index (brk-specific, not in mempool.space)
+        version: Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
+        vin: Transaction inputs
+        vout: Transaction outputs
+        size: Transaction size in bytes
+        sigops: BIP-141 signature-operation cost
+        fee: Transaction fee in satoshis
+        effectiveFeePerVsize: Native Core chunk rate, quantized to milli-sat/vB; retained at burial for tombstones.
+    """
+    index: Union[TxIndex, None]
+
 class PoolDetailInfo(TypedDict):
     """
     Attributes:
@@ -1709,6 +1818,69 @@ class BlockInfoV1(_BlockInfoV1Required, total=False):
     previousblockhash: Union[BlockHash, None]
     stale: bool
 
+class _BlockBulkRequired(TypedDict):
+    height: Height
+    hash: BlockHash
+    timestamp: Timestamp
+    median_timestamp: Timestamp
+    difficulty: float
+    header: Hex
+    version: int
+    bits: int
+    nonce: int
+    size: int
+    weight: Weight
+    tx_count: int
+    merkle_root: MerkleNode
+    reward: Sats
+    total_fee_amt: Sats
+    avg_fee_amt: Sats
+    median_fee_amt: Sats
+    fee_amt_percentiles: BlockPercentiles
+    avg_fee_rate: FeeRate
+    median_fee_rate: FeeRate
+    fee_rate_percentiles: BlockPercentiles2
+    total_inputs: int
+    total_input_amt: Sats
+    total_outputs: int
+    total_output_amt: Sats
+    segwit_total_txs: int
+    segwit_total_size: int
+    segwit_total_weight: Weight
+    avg_tx_size: float
+    utxoset_change: int
+    utxoset_size: int
+    coinbase_raw: Hex
+    coinbase_addresses: List[Address]
+    coinbase_signature: str
+    coinbase_signature_ascii: str
+    pool_slug: PoolSlug
+    pool_id: int
+    orphans: List[BlockOrphan]
+
+class BlockBulk(_BlockBulkRequired, total=False):
+    """
+    Flat bulk block wire shape, using the same local facts and semantics as ordinary V1 rows.
+    Effective rate distributions are vsize-weighted locally; upstream ranks by tx count.
+
+    Attributes:
+        tx_count: All transactions, including the coinbase.
+        reward: Actual coinbase output value, including any claimed fees.
+        median_fee_rate: Local effective rate median by vsize, not upstream's 4M WU middle band.
+        fee_rate_percentiles: Local effective rate percentiles by vsize, not upstream's count-ranked percentiles.
+        total_inputs: Inputs excluding the coinbase input.
+        total_outputs: All outputs, including coinbase and OP_RETURN outputs.
+        total_output_amt: Output value excluding the coinbase outputs.
+        segwit_total_txs: Witness transactions excluding the coinbase.
+        avg_tx_size: Non-coinbase bytes / all tx count, rounded to two decimals.
+        utxoset_size: Local UTXO count excludes OP_RETURN, but includes scripts over 10,000 bytes.
+        coinbase_raw: Coinbase scriptsig hex, not the whole serialized transaction.
+        pool_id: Upstream pools.unique_id, zero-based; not pools.id or the one-based mining API ID.
+        orphans: This node's published stale-block observations at this height.
+    """
+    previous_block_hash: Union[BlockHash, None]
+    coinbase_address: Union[Address, None]
+
 class _AddressValidationRequired(TypedDict):
     isvalid: bool
 
@@ -1846,7 +2018,9 @@ class BitviewClientBase:
         path: str,
         body: Optional[str] = None,
         content_type: Optional[str] = None,
-    ) -> bytes:
+        *,
+        no_content: bool = False,
+    ) -> Optional[bytes]:
         """A failed exchange closes the connection, which `http.client` would otherwise leave
         mid-request for every later call."""
         try:
@@ -1860,13 +2034,14 @@ class BitviewClientBase:
             raise BitviewError(str(e))
         if res.status >= 400:
             raise _response_error(res.status, data)
-        return data
+        return None if no_content and res.status == 204 else data
 
     def get(self, path: str) -> bytes:
         return self._request("GET", path)
 
-    def get_json(self, path: str) -> Any:
-        return json.loads(self.get(path))
+    def get_json(self, path: str, *, no_content: bool = False) -> Any:
+        data = self._request("GET", path, no_content=no_content)
+        return None if data is None else json.loads(data)
 
     def get_text(self, path: str) -> str:
         return self.get(path).decode()
@@ -1874,8 +2049,9 @@ class BitviewClientBase:
     def post(self, path: str, body: str = "", content_type: Optional[str] = None) -> bytes:
         return self._request("POST", path, body, content_type)
 
-    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None) -> Any:
-        return json.loads(self.post(path, body, content_type))
+    def post_json(self, path: str, body: str = "", content_type: Optional[str] = None, *, no_content: bool = False) -> Any:
+        data = self._request("POST", path, body, content_type, no_content=no_content)
+        return None if data is None else json.loads(data)
 
     def post_text(self, path: str, body: str = "", content_type: Optional[str] = None) -> str:
         return self.post(path, body, content_type).decode()
@@ -6360,6 +6536,30 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}{"?" + query if query else ""}'
         return self.get_json(path)
 
+    def get_address_txs_summary(self, address: Address, max_txs: Optional[int] = None) -> List[AddressTxSummary]:
+        """Address confirmed transaction summaries.
+
+        Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.
+
+        Endpoint: `GET /api/address/{address}/txs/summary`"""
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs/summary{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_address_txs_summary_after(self, address: Address, last_seen_txid: Txid, max_txs: Optional[int] = None) -> List[AddressTxSummary]:
+        """Address confirmed transaction summaries (paginated).
+
+        Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).
+
+        Endpoint: `GET /api/address/{address}/txs/summary/{last_seen_txid}`"""
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs/summary/{_segment(last_seen_txid)}{"?" + query if query else ""}'
+        return self.get_json(path)
+
     def get_address_mempool_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address mempool transactions.
 
@@ -6564,6 +6764,46 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/blocks/{height}`"""
         return self.get_json(f'/api/v1/blocks/{_segment(height)}')
 
+    def get_blocks_bulk_to_tip(self, from_: Height) -> List[BlockBulk]:
+        """Bulk blocks to tip.
+
+        Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+
+        Endpoint: `GET /api/v1/blocks-bulk/{from}`"""
+        return self.get_json(f'/api/v1/blocks-bulk/{_segment(from_)}')
+
+    def get_blocks_bulk(self, from_: Height, to: Height) -> List[BlockBulk]:
+        """Bulk blocks.
+
+        Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+
+        Endpoint: `GET /api/v1/blocks-bulk/{from}/{to}`"""
+        return self.get_json(f'/api/v1/blocks-bulk/{_segment(from_)}/{_segment(to)}')
+
+    def get_block_summary(self, hash: BlockHash) -> List[TransactionSummary]:
+        """Classified block transactions.
+
+        Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+
+        Endpoint: `GET /api/v1/block/{hash}/summary`"""
+        return self.get_json(f'/api/v1/block/{_segment(hash)}/summary')
+
+    def get_block_transaction_summary(self, hash: BlockHash, txid: Txid) -> TransactionSummary:
+        """Classified transaction in block.
+
+        Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+
+        Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/summary`"""
+        return self.get_json(f'/api/v1/block/{_segment(hash)}/tx/{_segment(txid)}/summary')
+
+    def get_chain_tips(self) -> List[ChainTip]:
+        """Known chain tips.
+
+        All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.
+
+        Endpoint: `GET /api/v1/chain-tips`"""
+        return self.get_json('/api/v1/chain-tips')
+
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
 
@@ -6744,6 +6984,19 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`"""
         return self.get_json(f'/api/v1/mining/blocks/sizes-weights/{_segment(time_period)}')
 
+    def get_block_fees_by_timestamp(self, from_: Timestamp, to: Timestamp) -> List[BlockFeesEntry]:
+        """Block fees between inclusive timestamps.
+
+        Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.
+
+        Endpoint: `GET /api/v1/mining/blocks/fees`"""
+        params: List[Tuple[str, Any]] = []
+        params.append(('from', from_))
+        params.append(('to', to))
+        query = urlencode(params)
+        path = f'/api/v1/mining/blocks/fees{"?" + query if query else ""}'
+        return self.get_json(path)
+
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
 
@@ -6793,6 +7046,30 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/mempool/txids`"""
         return self.get_json('/api/mempool/txids')
+
+    def get_mempool_txids_page(self, max_txs: Optional[int] = None) -> List[Txid]:
+        """Mempool transaction IDs (paginated).
+
+        Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.
+
+        Endpoint: `GET /api/mempool/txids/page`"""
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/mempool/txids/page{"?" + query if query else ""}'
+        return self.get_json(path)
+
+    def get_mempool_txids_page_after(self, txid: Txid, max_txs: Optional[int] = None) -> List[Txid]:
+        """Mempool transaction IDs after a cursor.
+
+        Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.
+
+        Endpoint: `GET /api/mempool/txids/page/{txid}`"""
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/mempool/txids/page/{_segment(txid)}{"?" + query if query else ""}'
+        return self.get_json(path)
 
     def get_mempool_recent(self) -> List[MempoolRecentTx]:
         """Recent mempool transactions.
@@ -6858,6 +7135,14 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/cpfp/{txid}`"""
         return self.get_json(f'/api/v1/cpfp/{_segment(txid)}')
 
+    def get_cached_tx(self, txid: Txid) -> Optional[CachedTransaction]:
+        """Retained transaction.
+
+        Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.
+
+        Endpoint: `GET /api/v1/tx/{txid}/cached`"""
+        return self.get_json(f'/api/v1/tx/{_segment(txid)}/cached', no_content=True)
+
     def get_tx_rbf(self, txid: Txid) -> RbfResponse:
         """RBF replacement history.
 
@@ -6918,6 +7203,18 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/tx/{txid}/outspend/{vout}`"""
         return self.get_json(f'/api/tx/{_segment(txid)}/outspend/{_segment(vout)}')
 
+    def get_txs_outspends(self, txids: str) -> List[List[TxOutspend]]:
+        """Output spend statuses for several transactions.
+
+        Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.
+
+        Endpoint: `GET /api/txs/outspends`"""
+        params: List[Tuple[str, Any]] = []
+        params.append(('txids', txids))
+        query = urlencode(params)
+        path = f'/api/txs/outspends{"?" + query if query else ""}'
+        return self.get_json(path)
+
     def get_tx_outspends(self, txid: Txid) -> List[TxOutspend]:
         """All output spend statuses.
 
@@ -6961,6 +7258,18 @@ class BitviewClient(BitviewClientBase):
         query = urlencode(params)
         path = f'/api/v1/transaction-times{"?" + query if query else ""}'
         return self.get_json(path)
+
+    def get_broadcast(self, tx: str) -> Txid:
+        """Broadcast transaction from query.
+
+        Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
+
+        Endpoint: `GET /api/broadcast`"""
+        params: List[Tuple[str, Any]] = []
+        params.append(('tx', tx))
+        query = urlencode(params)
+        path = f'/api/broadcast{"?" + query if query else ""}'
+        return self.get_text(path)
 
     def post_tx(self, body: str) -> Txid:
         """Broadcast transaction.

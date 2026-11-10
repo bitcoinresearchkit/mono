@@ -3157,6 +3157,62 @@ impl BitviewClient {
         self.base.get_json(&path)
     }
 
+    /// Address confirmed transaction summaries
+    ///
+    /// Confirmed-only net satoshi changes for this exact address script, newest height and transaction position first. Includes zero-net activity. Returns up to `max_txs` (5,000 by default and at most); zero returns `[]`. Continue with the last returned txid in `/api/address/{address}/txs/summary/{last_seen_txid}`.
+    ///
+    /// Endpoint: `GET /api/address/{address}/txs/summary`
+    pub fn get_address_txs_summary(
+        &self,
+        address: Address,
+        max_txs: Option<usize>,
+    ) -> Result<Vec<AddressTxSummary>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/address/{}/txs/summary{}",
+            path_segment(address),
+            query_str
+        );
+        self.base.get_json(&path)
+    }
+
+    /// Address confirmed transaction summaries (paginated)
+    ///
+    /// Confirmed summaries strictly older than `last_seen_txid`, newest first, up to `max_txs` (5,000 by default and at most); zero returns `[]`. An unknown txid answers 422, including for an address without history or a zero limit. A known foreign or mempool-only cursor answers `[]`. Malformed cursors answer 400 (stricter than electrs, which ignores them).
+    ///
+    /// Endpoint: `GET /api/address/{address}/txs/summary/{last_seen_txid}`
+    pub fn get_address_txs_summary_after(
+        &self,
+        address: Address,
+        last_seen_txid: Txid,
+        max_txs: Option<usize>,
+    ) -> Result<Vec<AddressTxSummary>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/address/{}/txs/summary/{}{}",
+            path_segment(address),
+            path_segment(last_seen_txid),
+            query_str
+        );
+        self.base.get_json(&path)
+    }
+
     /// Address mempool transactions
     ///
     /// Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
@@ -3430,6 +3486,65 @@ impl BitviewClient {
             .get_json(&format!("/api/v1/blocks/{}", path_segment(height)))
     }
 
+    /// Bulk blocks to tip
+    ///
+    /// Flat snake_case rows in ascending height order from `from` through the published tip, inclusive. At most 10 blocks; no query parameters. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+    ///
+    /// Endpoint: `GET /api/v1/blocks-bulk/{from}`
+    pub fn get_blocks_bulk_to_tip(&self, from: Height) -> Result<Vec<BlockBulk>> {
+        self.base
+            .get_json(&format!("/api/v1/blocks-bulk/{}", path_segment(from)))
+    }
+
+    /// Bulk blocks
+    ///
+    /// Flat snake_case rows in ascending height order from `from` through `to`, inclusive. At most 10 blocks; a missing endpoint fails the request. Uses local V1 analytics: effective rate distributions are vsize-weighted and can differ from mempool.space.
+    ///
+    /// Endpoint: `GET /api/v1/blocks-bulk/{from}/{to}`
+    pub fn get_blocks_bulk(&self, from: Height, to: Height) -> Result<Vec<BlockBulk>> {
+        self.base.get_json(&format!(
+            "/api/v1/blocks-bulk/{}/{}",
+            path_segment(from),
+            path_segment(to)
+        ))
+    }
+
+    /// Classified block transactions
+    ///
+    /// Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+    ///
+    /// Endpoint: `GET /api/v1/block/{hash}/summary`
+    pub fn get_block_summary(&self, hash: BlockHash) -> Result<Vec<TransactionSummary>> {
+        self.base
+            .get_json(&format!("/api/v1/block/{}/summary", path_segment(hash)))
+    }
+
+    /// Classified transaction in block
+    ///
+    /// Canonical chain only. All outputs contribute to value; vsize is BIP-141 weight/4 rounded up. Rate is the stored local policy-size chunk rate, rounded up to 0.001 sat/vB. Flags use mempool bit positions with Bitview's documented native standardness, key/signature and CoinJoin heuristics, broad opcode-envelope detection, structural same-block CPFP and payout ratios including coinbase. Time, acceleration and replacement observations are unavailable: optional fields are omitted and observation bits are not populated. This is a native-policy adapter, not exact mempool classifier parity.
+    ///
+    /// Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/summary`
+    pub fn get_block_transaction_summary(
+        &self,
+        hash: BlockHash,
+        txid: Txid,
+    ) -> Result<TransactionSummary> {
+        self.base.get_json(&format!(
+            "/api/v1/block/{}/tx/{}/summary",
+            path_segment(hash),
+            path_segment(txid)
+        ))
+    }
+
+    /// Known chain tips
+    ///
+    /// All tips known to this server's Bitcoin Core node, including the active tip and every fork status. Returns the last complete background observation in Core's order (descending height; tie order unspecified). Refreshed at startup and after indexed chain-tip changes; requests never call Core. Before the first successful observation, returns 503. No query parameters.
+    ///
+    /// Endpoint: `GET /api/v1/chain-tips`
+    pub fn get_chain_tips(&self) -> Result<Vec<ChainTip>> {
+        self.base.get_json(&format!("/api/v1/chain-tips"))
+    }
+
     /// List all mining pools
     ///
     /// Every known mining pool.
@@ -3684,6 +3799,28 @@ impl BitviewClient {
         ))
     }
 
+    /// Block fees between inclusive timestamps
+    ///
+    /// Canonical nonnegative integer from/to seconds are required, from <= to. Selects raw header timestamps inclusively and groups by the requested span. Fees, height and time use round-half-up means. USD is the mean on-chain oracle spot price, null if any selected price is unavailable; it is not upstream's external SQL price selection.
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/fees`
+    pub fn get_block_fees_by_timestamp(
+        &self,
+        from: Timestamp,
+        to: Timestamp,
+    ) -> Result<Vec<BlockFeesEntry>> {
+        let mut query = Vec::new();
+        query.push(query_pair("from", from));
+        query.push(query_pair("to", to));
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!("/api/v1/mining/blocks/fees{}", query_str);
+        self.base.get_json(&path)
+    }
+
     /// Projected mempool blocks
     ///
     /// Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
@@ -3737,6 +3874,52 @@ impl BitviewClient {
     /// Endpoint: `GET /api/mempool/txids`
     pub fn get_mempool_txids(&self) -> Result<Vec<Txid>> {
         self.base.get_json(&format!("/api/mempool/txids"))
+    }
+
+    /// Mempool transaction IDs (paginated)
+    ///
+    /// Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.
+    ///
+    /// Endpoint: `GET /api/mempool/txids/page`
+    pub fn get_mempool_txids_page(&self, max_txs: Option<usize>) -> Result<Vec<Txid>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!("/api/mempool/txids/page{}", query_str);
+        self.base.get_json(&path)
+    }
+
+    /// Mempool transaction IDs after a cursor
+    ///
+    /// Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.
+    ///
+    /// Endpoint: `GET /api/mempool/txids/page/{txid}`
+    pub fn get_mempool_txids_page_after(
+        &self,
+        txid: Txid,
+        max_txs: Option<usize>,
+    ) -> Result<Vec<Txid>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/mempool/txids/page/{}{}",
+            path_segment(txid),
+            query_str
+        );
+        self.base.get_json(&path)
     }
 
     /// Recent mempool transactions
@@ -3822,6 +4005,16 @@ impl BitviewClient {
             .get_json(&format!("/api/v1/cpfp/{}", path_segment(txid)))
     }
 
+    /// Retained transaction
+    ///
+    /// Returns a retained transaction with all mandatory mempool enrichment fields, or an empty 204 when absent. Native cache membership includes published pool records and all retained graveyard bodies, beyond upstream's RBF-only admission. Lone tombstones normally remain one hour; replacement trees one day after their root leaves, subject to the existing memory policy. Status and prevouts are the retained mempool view, including after mining; no chain or RPC fallback. firstSeen is the retained first sighting. effectiveFeePerVsize is the native Core chunk rate (milli-sat/vB precision), frozen at burial for tombstones. Sigops use the existing base-body count, which omits missing-prevout components. Unknown graph, acceleration, position and bookkeeping fields are omitted. Found bodies use the live cache tier; absence is not stored.
+    ///
+    /// Endpoint: `GET /api/v1/tx/{txid}/cached`
+    pub fn get_cached_tx(&self, txid: Txid) -> Result<Option<CachedTransaction>> {
+        self.base
+            .get_optional_json(&format!("/api/v1/tx/{}/cached", path_segment(txid)))
+    }
+
     /// RBF replacement history
     ///
     /// Returns the RBF replacement tree for a transaction, if any. Both `replacements` and `replaces` are null when the tx has no known RBF history within the mempool monitor's retention window. A history past 63 versions or 4,096 transactions comes cut to its newest part, its root marked `"truncated": true`.
@@ -3899,6 +4092,23 @@ impl BitviewClient {
         ))
     }
 
+    /// Output spend statuses for several transactions
+    ///
+    /// Outspends for 1–50 comma-separated lowercase transaction IDs in `txids`, in request order and then output order. Unknown transactions have an empty array; repeated IDs retain their positions. Invalid IDs, empty elements and unknown query parameters answer 400. The complete batch uses one chain and mempool publication.
+    ///
+    /// Endpoint: `GET /api/txs/outspends`
+    pub fn get_txs_outspends(&self, txids: &str) -> Result<Vec<Vec<TxOutspend>>> {
+        let mut query = Vec::new();
+        query.push(query_pair("txids", txids));
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!("/api/txs/outspends{}", query_str);
+        self.base.get_json(&path)
+    }
+
     /// All output spend statuses
     ///
     /// Spend statuses in output-index order.
@@ -3954,6 +4164,23 @@ impl BitviewClient {
         };
         let path = format!("/api/v1/transaction-times{}", query_str);
         self.base.get_json(&path)
+    }
+
+    /// Broadcast transaction from query
+    ///
+    /// Submit `tx` as hexadecimal transaction text through the same admission and Core RPC as `POST /api/tx`. This GET changes node state. Submission responses are not cached. HTTP request-line limits apply; use POST for large transactions. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
+    ///
+    /// Endpoint: `GET /api/broadcast`
+    pub fn get_broadcast(&self, tx: &str) -> Result<Txid> {
+        let mut query = Vec::new();
+        query.push(query_pair("tx", tx));
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!("/api/broadcast{}", query_str);
+        self.base.get_text(&path).and_then(parse_text)
     }
 
     /// Broadcast transaction

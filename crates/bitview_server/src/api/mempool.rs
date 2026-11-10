@@ -1,5 +1,5 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{extract::Path, http::HeaderMap, response::Response};
+use axum::{extract::{Path, Query}, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
     MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolRecentTx, Txid, Version,
@@ -11,7 +11,7 @@ use crate::{
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
-    params::{Empty, MempoolBlockDiffParam, MempoolBlockParam},
+    params::{Empty, MempoolBlockDiffParam, MempoolBlockParam, MempoolTxidsQuery, TxidParam},
     request_state::RequestState,
 };
 
@@ -49,6 +49,36 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .json_response::<Vec<Txid>>()
                     .not_modified()
             },
+        ),
+    )
+    .api_route(
+        "/api/mempool/txids/page",
+        get_with(
+            async |headers: HeaderMap, Query(query): Query<MempoolTxidsQuery>, RequestState(state): RequestState| {
+                mempool_txids::serve_page(state, headers, None, query.max_txs).await
+            },
+            |op| op
+                .id("get_mempool_txids_page")
+                .tag(tags::MEMPOOL)
+                .summary("Mempool transaction IDs (paginated)")
+                .description("Up to `max_txs` transaction IDs (10,000 by default and at most), sorted in rust-bitcoin's binary txid order. Continue with the last returned ID as the path cursor. Membership can change between pages.")
+                .json_response::<Vec<Txid>>()
+                .not_modified(),
+        ),
+    )
+    .api_route(
+        "/api/mempool/txids/page/{txid}",
+        get_with(
+            async |headers: HeaderMap, Path(path): Path<TxidParam>, Query(query): Query<MempoolTxidsQuery>, RequestState(state): RequestState| {
+                mempool_txids::serve_page(state, headers, Some(path.txid), query.max_txs).await
+            },
+            |op| op
+                .id("get_mempool_txids_page_after")
+                .tag(tags::MEMPOOL)
+                .summary("Mempool transaction IDs after a cursor")
+                .description("Up to `max_txs` transaction IDs (10,000 by default and at most), strictly after `txid` in rust-bitcoin's binary txid order. The cursor need not still be in the mempool.")
+                .json_response::<Vec<Txid>>()
+                .not_modified(),
         ),
     )
     .api_route(

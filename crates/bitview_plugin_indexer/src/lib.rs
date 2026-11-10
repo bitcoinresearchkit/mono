@@ -55,6 +55,7 @@ pub use confirmed::{OutputRange, OutputRanges, OutputScripts};
 pub use constants::overwritten_output;
 pub use has::HasIndexer;
 pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
+pub use processor::transaction::analysis::input::witness::has_taproot_envelope;
 
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;

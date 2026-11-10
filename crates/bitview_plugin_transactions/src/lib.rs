@@ -12,12 +12,14 @@ mod import;
 mod inscription;
 mod patterns;
 mod resume;
+mod summary;
 mod versions;
 mod vsize;
 
 pub use dependencies::Dependencies;
 pub use fees::Vecs as FeesVecs;
 pub use has::HasTransactions;
+pub use summary::SummaryFacts;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{Count, Count16};
