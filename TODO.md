@@ -26,6 +26,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 ## bitview-charts: raised by you, still open
 
 - Chart physical input validation: real finger pan/flick/pinch/hold and a real stylus remain manual checks; touch gestures cannot be driven here. Scripted lifecycle and frame-cost checks on the connected iPhone cover the library, not physical gestures (local `_notes/charts-open-items/report.md`).
+- Overlay margins: overlay fitting ignores series' `margins`, so an above Marks pill can run past the plot's top
+  even with `room: true` (existing gap, reproduced in Chromium, Mullvad and physical iPhone; a 130px chart's pill
+  starts at -20.6px). Apply the same margin fitting as side scales, once per shared overlay. Local `_notes/chart-geometry/report.md`.
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
   every color in the app written and derived in OKLCH; contrast judged by APCA (the best perceptual formula there is:
   WCAG 3 has left its own undecided; CSS's contrast-color() uses WCAG 2's). Done in the library: the axis tags (tint()), heatmap gradients (gradientTable()), fades (Fill's stops); left:
@@ -66,8 +69,7 @@ Only what's left. An item done is removed: its history is in the commits and log
     price) to 0.87 (the 24-band stack): what (15)–(17) could save is a part of that, a few percent of a frame
     (scratchpad n437/cross.mjs, phone-cross.mjs; cross-before.txt).
   - Batch 3 as found, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
-    drawings, trends' gradient colors (~21012); (16) Heat `fixed` (~18787) redraws its pane at every crosshair move,
-    profile bins rebuilt each time (~22652); (17) profileShare summed twice a move (~22356, ~22598) though its day is
+    drawings, trends' gradient colors (~21012); (17) profileShare summed twice a move (~22356, ~22598) though its day is
     the view's last.
   - Not to do now: Cloud, Heat, stackOf duplicate parts of the library's Band, Grid/Profile, stack (11–13): the
     question above (one should go).
@@ -90,10 +92,7 @@ Only what's left. An item done is removed: its history is in the commits and log
   - Repeated work (measure first): profileShare per crosshair move (~22350, ~22553); a percent stack's readout
     builds stackOf's key once a band (~18235, ~17832; bandAt calls stackOf before checking the pane is stacked,
     ~17807); figuresRoom each move (~19638); readouts found and written for hidden legends (~18207).
-- Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
-  whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
-  (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
-  ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
+- Left from that review: unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
 - Decided (2026-11-02): Studio onto the library's Grid, Profile and stack. The stack done (committed after: the
   library's stack makes tops, feet and scale; Studio's stackOf calls it; every stacked preset's columns identical).
   Heatmaps onto Grid committed (2026-11-02). Profiles onto Profile committed after. Next: the cumulative

@@ -12,7 +12,7 @@
 // frame), `margins` (room it keeps clear at its scale's ends, by the points' spacing: CSS pixels over its highest and
 // under its lowest, into `out`: its marks over and under bars) and `viewed` (told before each draw of its pane, the
 // view as it is: what it draws found again from it, once). Its options: `fixed` (what it draws holds its place
-// as the view moves, a mark at the plot's edge: its pane drawn whole each frame), `over` (drawn over everything, the
+// as the view moves, a mark at the plot's edge: its pane drawn whole when the view changes), `over` (drawn over everything, the
 // crosshair too, on its pane's layer over it, whole each frame: labels and handles placed in the plot, its pane's
 // picture moved without them) or `behind` (drawn behind every series, whatever their order: a backdrop). After a
 // change of what it draws, `changed()`, then the chart's invalidate().
@@ -41,7 +41,7 @@ export class Custom {
     this.faint = false;
     /** A scale of its own (see the pane's Series), none: its side's. @type {import("./scale.js").Scale | null} */
     this.overlay = null;
-    /** What it draws holds its place as the view moves: its pane drawn whole each frame. */
+    /** What it draws holds its place as the view moves: its pane redraws on view or content changes. */
     this.fixed = fixed;
     /** Drawn over everything, on its pane's layer over it, whole each frame. */
     this.over = over;

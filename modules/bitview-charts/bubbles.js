@@ -7,7 +7,8 @@
 // ground's color: overlapping bubbles stand apart).
 
 import { Line } from "./line.js";
-import { measure, measuring, painted } from "./recorder.js";
+import { measure, measuring } from "./recorder.js";
+import { painted } from "./color.js";
 
 /** The bubbles a draw puts down: their x, y, radius (CSS pixels), whether above zero, and their order (made once, grown). */
 let xs = new Float64Array(64), ys = new Float64Array(64), radii = new Float64Array(64), ups = new Uint8Array(64), order = new Int32Array(64);

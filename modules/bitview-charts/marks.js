@@ -23,7 +23,7 @@ const SPAN = new Float64Array(2);
 
 /**
  * @typedef {{ at: number, position: "above" | "below" | "on", shape: "up" | "down" | "circle" | "square", color: string, text?: string, textColor?: string, size?: number }} Mark
- * @typedef {{ values?: Float64Array, upper?: Float64Array, high?: Float64Array, low?: Float64Array, close?: Float64Array, hidden?: boolean, first(i: number): number, extent(a: number, b: number, positive: boolean, out: Float64Array): void }} Host
+ * @typedef {{ values?: Float64Array, upper?: Float64Array, high?: Float64Array, low?: Float64Array, close?: Float64Array, hidden?: boolean, overlay?: import("./scale.js").Scale | null, first(i: number): number, extent(a: number, b: number, positive: boolean, out: Float64Array): void }} Host
  */
 
 export class Marks {
@@ -55,6 +55,11 @@ export class Marks {
 
   /** Never fitted to: its room is its margins. */
   extent() {}
+
+  /** Read on its host's overlay, where it has one, through the pane's usual scale selection. */
+  get overlay() {
+    return this.series.overlay ?? null;
+  }
 
   /** Its series' base (a relative scale read as its series is). @param {number} i */
   first(i) {

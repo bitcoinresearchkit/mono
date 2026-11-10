@@ -6,9 +6,8 @@
 
 import { kept } from "./format.js";
 import { Line, FAINT } from "./line.js";
-import { inkOn } from "./color.js";
+import { inkOn, painted } from "./color.js";
 import { pill } from "./tags.js";
-import { painted } from "./recorder.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

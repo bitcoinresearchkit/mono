@@ -136,8 +136,8 @@ clears); avoid reflecting programmatic calls. A programmatic
   `cell(value)`) as bars from the plot's right edge, stacked, as long as a bin's total against the longest in view
   (`width(plot)` pixels at most); rows gathered into bins `bin` pixels tall at least, on whole multiples of a row (the
   same at any pan), a pixel of `backdrop` between two; split at `at` (a close), a group's `gain` under it and `loss` over
-  it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Drawn whole each
-  frame, the page told first (`viewed`); `set(...)` its groups and the rest; `hit(x, y)`, the bar under a point (its
+  it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Held at the plot's
+  edge; an unchanged view keeps its picture and bins. The page is told before each render (`viewed`); `set(...)` its groups and the rest; `hit(x, y)`, the bar under a point (its
   group, its bin's rows). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
@@ -172,8 +172,8 @@ clears); avoid reflecting programmatic calls. A programmatic
 - `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own
   (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags
   on a price axis or the time axis (a drawing's value, its date), a price axis' over its lines'; `viewed`, told before each draw of its pane (what it
-  draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole each
-  frame); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
+  draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole on a
+  view or content change, kept while unchanged); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
   placed in the plot); `behind`, behind every series; `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 - `compact(v, step)`: a value as a scale writes it unless told otherwise (four significant digits at most, thousands as
@@ -181,6 +181,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   written with: for a page's own words to read as the axis's.
 - Hits (`Pane.hit`, the crosshair's and clicks' series) are measured against each series' own drawing near the pointer
   (recorder.js: a canvas stand-in keeping its strokes, fills and dots), so they match the picture at any zoom.
+  Strokes and fills honor rectangular clips and a library gradient's painted rows; transparent parts are not hit.
 
 ## How it draws
 
