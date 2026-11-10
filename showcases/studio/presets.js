@@ -473,6 +473,10 @@ export function studioPresets(client, facts) {
           { heatmap: urpd, measure: "pnl" },
         ]),
         ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss"), color, true),
+        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Realized profit share", titled("Realized profit share"), [
+          { formula: `100 * ${realized.profit.sum._24h.name} / (${realized.profit.sum._24h.name} + ${realized.loss.sum._24h.name})`, label: "Daily", format: "percent", color: color ?? "violet", width: 1, opacity: 0.25 },
+          { formula: `100 * rma(${realized.profit.sum._24h.name}, 14d) / (rma(${realized.profit.sum._24h.name}, 14d) + rma(${realized.loss.sum._24h.name}, 14d))`, label: "14-day smoothed", format: "percent", color: color ?? "violet", width: 2, levels: [{ value: 50, color: "gray", dash: 3 }] },
+        ]),
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
         ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), color, true),
         ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), color, true),
@@ -925,6 +929,7 @@ export function studioPresets(client, facts) {
       ]),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
+        chart("Stochastic RSI", "Stochastic RSI of the price (14, 14, 3, 3)", [price(), { formula: "stochrsi_k(A)", label: "%K", pane: 2, color: "sky", levels: [{ value: 20, color: "green", dash: 3 }, { value: 80, color: "red", dash: 3 }] }, { formula: "stochrsi_d(A)", label: "%D", pane: 2, color: "orange" }]),
         chart("MACD", "MACD of the price", [price(), { formula: "macd(A)", label: "MACD", pane: 2, color: "sky" }, { formula: "macd_signal(A)", label: "Signal", pane: 2, color: "orange" }, { formula: "macd_hist(A)", label: "Histogram", pane: 2, type: "histogram", colors: 4, color: "green", colorBelow: "red" }], { range: "1y" }),
         chart("Volatility", "Annualized price volatility", [price(), { formula: "volatility(A, 30d)", label: "30 days", pane: 2, color: "sky" }, { formula: "volatility(A, 1y)", label: "1 year", pane: 2, color: "violet" }]),
         // (Marked where the 111-day crosses over twice the 350-day: the tops it called.)

@@ -12613,6 +12613,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       }
+      /** Wilder's moving average, seeded with the first n finite values' arithmetic mean. @param {Vector} x */
+      function rmaOf(x, n) {
+        const out = new Float64Array(x.length).fill(NaN);
+        let value = 0, seen = 0;
+        for (let i = 0; i < x.length; i++) {
+          if (!Number.isFinite(x[i])) continue;
+          if (++seen <= n) value += x[i] / n;
+          else value += (x[i] - value) / n;
+          if (seen >= n) out[i] = value;
+        }
+        return out;
+      }
       /** A rolling standard deviation (two values at least). @param {Vector} x */
       const deviationOf = (x, n, partial = false) => ((stats) => stats.variance.map((value, i) => (stats.count[i] >= 2 ? Math.sqrt(value) : NaN)))(rolling(x, n, partial));
       /** Wilder's RSI over `n` points: its average gain against its average loss, each smoothed by 1/n. @param {Vector} x */
@@ -12632,6 +12644,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       }
+      /** Raw stochastic RSI, shared by its raw, %K and %D formula functions. @param {Vector} x */
+      function stochrsiOf(x, n) {
+        const r = rsiOf(x, n), lo = extreme(r, n, (a, b) => a < b), hi = extreme(r, n, (a, b) => a > b);
+        // (Its RSI flat over the window: where it was.)
+        let was = NaN;
+        return r.map((value, i) => (Number.isFinite(value) ? (was = hi[i] > lo[i] ? ((value - lo[i]) / (hi[i] - lo[i])) * 100 : was) : NaN));
+      }
+      /** Three-point smoothing for each stochastic line, independent of the chart's interval. @param {Vector} x */
+      const stochrsiKOf = (x, n) => rolling(stochrsiOf(x, n), 3).mean;
       /** MACD's line: an EMA over 12/26 of `n` points less one over `n`. @param {Vector} x */
       const macdOf = (x, n, partial = false) => ((fast, slow) => fast.map((value, i) => value - slow[i]))(emaOf(x, Math.max(1, Math.round((n * 12) / 26)), partial), emaOf(x, n, partial));
       /** Annualized volatility: the deviation of log returns over `n` points, a year's worth of points' (`step`: a point's days), in %. @param {Vector} x */
@@ -12858,7 +12879,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** Functions whose window takes two points at least. */
-      const TWO_POINTS = new Set(["stdev", "zscore", "volatility", "chop", "rsi", "stochrsi", "macd", "macd_signal", "macd_hist"]);
+      const TWO_POINTS = new Set(["stdev", "zscore", "volatility", "chop", "rsi", "stochrsi", "stochrsi_k", "stochrsi_d", "macd", "macd_signal", "macd_hist"]);
       /**
        * name → [arity, signature, what it does, run, the span may be left out, its usual span (days)]; a window is a span
        * of time (30d, 4w, 6mo, 2y, 12h; a bare number is days), always the last argument, run as the interval's points
@@ -12871,6 +12892,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FUNCTIONS = {
         sma: [2, "sma(x, span?)", "moving average (no span: of all so far)", (x, n, _p, partial) => rolling(x, n, partial).mean, true],
         ema: [2, "ema(x, span)", "exponential moving average", (x, n, _p, partial) => emaOf(x, n, partial)],
+        rma: [2, "rma(x, span)", "Wilder's moving average, seeded with the span's mean", (x, n) => rmaOf(x, n)],
         sum: [2, "sum(x, span?)", "rolling sum (no span: of all so far)", (x, n, _p, partial) => {
           // All so far: a running total, exact.
           if (n === Infinity) {
@@ -12900,12 +12922,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return x.map((value) => (Number.isFinite(value) ? ((top = Math.max(top, value)), top > 0 ? (value / top - 1) * 100 : NaN) : NaN));
         }],
         rsi: [2, "rsi(x, span?)", "relative strength index, 0 to 100 (span: 14 points if left out)", (x, n) => rsiOf(x, n), true, 14],
-        stochrsi: [2, "stochrsi(x, span?)", "stochastic RSI: the RSI's place between its own low and high, 0 to 100 (span: 14 points if left out)", (x, n) => {
-          const r = rsiOf(x, n), lo = extreme(r, n, (a, b) => a < b), hi = extreme(r, n, (a, b) => a > b);
-          // (Its RSI flat over the window: where it was.)
-          let was = NaN;
-          return r.map((value, i) => (Number.isFinite(value) ? (was = hi[i] > lo[i] ? ((value - lo[i]) / (hi[i] - lo[i])) * 100 : was) : NaN));
-        }, true, 14],
+        stochrsi: [2, "stochrsi(x, span?)", "stochastic RSI: the RSI's place between its own low and high, 0 to 100 (span: 14 points if left out)", (x, n) => stochrsiOf(x, n), true, 14],
+        stochrsi_k: [2, "stochrsi_k(x, span?)", "stochastic RSI %K: its three-point average (span: 14 points if left out)", (x, n) => stochrsiKOf(x, n), true, 14],
+        stochrsi_d: [2, "stochrsi_d(x, span?)", "stochastic RSI %D: %K's three-point average (span: 14 points if left out)", (x, n) => rolling(stochrsiKOf(x, n), 3).mean, true, 14],
         macd: [2, "macd(x, span?)", "MACD line: a fast EMA (12/26 of the span) less a slow one (span: 26 points if left out)", (x, n, _p, partial) => macdOf(x, n, partial), true, 26],
         macd_signal: [2, "macd_signal(x, span?)", "MACD's signal: its line's EMA over 9/26 of the span (span: 26 points if left out)", (x, n, _p, partial) => emaOf(macdOf(x, n, partial), Math.max(1, Math.round((n * 9) / 26)), partial), true, 26],
         macd_hist: [2, "macd_hist(x, span?)", "MACD's histogram: its line less its signal (span: 26 points if left out)", (x, n, _p, partial) => ((line) => ((signal) => line.map((value, i) => value - signal[i]))(emaOf(line, Math.max(1, Math.round((n * 9) / 26)), partial)))(macdOf(x, n, partial)), true, 26],
@@ -13145,7 +13164,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
       const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "rma", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
       /** Functions whose result is a percent, whatever their input's unit. */
       const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
@@ -13306,8 +13325,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
                 // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
                 // RSI's stochastic, MACD's signal, reach twice as far.)
-                const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
-                if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
+                const reach = node.f.startsWith("stochrsi") ? points * 2 + (node.f === "stochrsi_d" ? 3 : node.f === "stochrsi_k" ? 1 : -1) : ["macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
+                if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "stochrsi_k", "stochrsi_d", "chop"].includes(node.f)) && outreaches(x, reach)) {
                   const written = spanned ? node.args[arity - 1] : null;
                   throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff"].includes(node.f));
                 }
