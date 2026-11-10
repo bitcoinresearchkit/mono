@@ -43,6 +43,10 @@ export class Marks {
     this.saidFont = "";
     /** How far past its point a mark reaches (its words' half, a shape's): drawn into the strips it reaches. */
     this.reach = 18;
+    /** The stacks' room at their clamped mark size; set() clears it. */
+    this.roomAt = NaN;
+    this.roomAbove = 0;
+    this.roomBelow = 0;
     this.set(marks);
   }
 
@@ -50,7 +54,7 @@ export class Marks {
   set(marks) {
     this.version++;
     this.marks = marks;
-    this.saidAt = NaN;
+    this.saidAt = this.roomAt = NaN;
   }
 
   /** Never fitted to: its room is its margins. */
@@ -79,23 +83,31 @@ export class Marks {
    */
   margins(spacing, out, time, positive) {
     if (!this.room || !this.marks.length || this.series.hidden) return;
+    const a = Math.ceil(time.from), b = Math.floor(time.to);
+    if (a > b) return;
     (SPAN[0] = Infinity), (SPAN[1] = -Infinity);
-    this.series.extent(Math.ceil(time.from), Math.floor(time.to), positive, SPAN);
+    // (Only presence matters here: the first visible point usually answers without finding the whole range.)
+    this.series.extent(a, a, positive, SPAN);
+    if (!(SPAN[0] <= SPAN[1]) && a < b) this.series.extent(a + 1, b, positive, SPAN);
     if (!(SPAN[0] <= SPAN[1])) return;
-    // (The tallest stack at a point, as drawn: each mark as tall as its shape is, a margin, its words' pill where it has
-    // words.)
-    const unit = Math.min(Math.max(spacing, 12), 30), height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3), marks = this.marks;
-    let point = -1, above = 0, below = 0, top = 0, foot = 0;
-    for (let k = 0; k < marks.length; k++) {
-      const mark = marks[k], size = height * (mark.size ?? 1), shape = Math.max(size, size && shapeHeight(mark.shape, size)) + margin, words = mark.text ? TALL + GAP : 0;
-      if (mark.at !== point) (point = mark.at), (above = below = 0);
-      if (mark.position === "above") top = Math.max(top, (above += shape + words));
-      else if (mark.position === "below") foot = Math.max(foot, (below += shape + words));
-      // (On its point: half its shape each way, its words under it.)
-      else (top = Math.max(top, shape / 2)), (foot = Math.max(foot, shape / 2 + words));
+    const unit = Math.min(Math.max(spacing, 12), 30);
+    if (unit !== this.roomAt) {
+      // (The tallest stack at a point, as drawn: each mark as tall as its shape is, a margin, its words' pill where it has
+      // words.)
+      const height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3), marks = this.marks;
+      let point = -1, above = 0, below = 0, top = 0, foot = 0;
+      for (let k = 0; k < marks.length; k++) {
+        const mark = marks[k], size = height * (mark.size ?? 1), shape = Math.max(size, size && shapeHeight(mark.shape, size)) + margin, words = mark.text ? TALL + GAP : 0;
+        if (mark.at !== point) (point = mark.at), (above = below = 0);
+        if (mark.position === "above") top = Math.max(top, (above += shape + words));
+        else if (mark.position === "below") foot = Math.max(foot, (below += shape + words));
+        // (On its point: half its shape each way, its words under it.)
+        else (top = Math.max(top, shape / 2)), (foot = Math.max(foot, shape / 2 + words));
+      }
+      (this.roomAt = unit), (this.roomAbove = Math.ceil(top)), (this.roomBelow = Math.ceil(foot));
     }
-    out[0] = Math.max(out[0], Math.ceil(top));
-    out[1] = Math.max(out[1], Math.ceil(foot));
+    out[0] = Math.max(out[0], this.roomAbove);
+    out[1] = Math.max(out[1], this.roomBelow);
   }
 
   /** Which marks show their words at `spacing`: from the latest back, each clear of the one after it (3 pixels apart). @param {CanvasRenderingContext2D} g @param {number} spacing */
