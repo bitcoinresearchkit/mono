@@ -160,8 +160,11 @@ clears); avoid reflecting programmatic calls. A programmatic
 - Any series' `behind`: drawn behind every series, whatever their order (a backdrop: levels).
 - Any series' `faint`: drawn at a fifth of its opacity (`FAINT`, for a page's own layers to match), its tag and
   price line gone (another lit over it); then `chart.invalidate(true)`.
-- Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log, fitted to it alone each frame where it has an
-  extent, else as set: a volume along a price pane's foot, a page's drawing on a range of its own).
+- Any series' `overlay`: a `Scale` of its own (unseen, the pane's height, linear or log: a volume along a price pane's
+  foot, a page's drawing on a range of its own). Each shared overlay is fitted once per pass to its visible series'
+  combined extent and margins, by the same rules as a side scale; no extent, its range stays as set. An overlay that
+  references a pane's side scale follows that side's auto/manual fit.
+  An independent relative overlay is rejected; use a side scale for relative series.
 - Any series' `fit`: a function `(a, b, positive, out)` taking its place in fitting its scale (as `extent`: its range
   from point `a` to `b` widening `out`'s low and high), its own `extent` there to call (a range from zero, a fixed one).
 - `stack(members, { percent })`: a stack's columns from its members' (the first at the foot): `tops` (each member's value

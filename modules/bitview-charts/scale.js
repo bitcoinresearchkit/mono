@@ -59,6 +59,8 @@ export class Scale {
   }
   set mode(mode) {
     (this.#mode = mode), (this.#stale = true);
+    // (A scale left relative reads raw values again, without a fitting pass clearing its base.)
+    if (!this.relative) (this.#m = 1), (this.#c = 0);
   }
   /** A relative scale's reading of the series drawn now: t = v * m + c (see setBase). */
   get m() {
@@ -126,7 +128,7 @@ export class Scale {
   }
 
   get relative() {
-    return this.mode === "percent" || this.mode === "indexed";
+    return this.#mode === "percent" || this.#mode === "indexed";
   }
 
   /**

@@ -26,9 +26,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 ## bitview-charts: raised by you, still open
 
 - Chart physical input validation: real finger pan/flick/pinch/hold and a real stylus remain manual checks; touch gestures cannot be driven here. Scripted lifecycle and frame-cost checks on the connected iPhone cover the library, not physical gestures (local `_notes/charts-open-items/report.md`).
-- Overlay margins: overlay fitting ignores series' `margins`, so an above Marks pill can run past the plot's top
-  even with `room: true` (existing gap, reproduced in Chromium, Mullvad and physical iPhone; a 130px chart's pill
-  starts at -20.6px). Apply the same margin fitting as side scales, once per shared overlay. Local `_notes/chart-geometry/report.md`.
 - OKLCH throughout (2026-10-31): the library worked in OKLCH (its color math, tints and fades, from OKLCH colors), and
   every color in the app written and derived in OKLCH; contrast judged by APCA (the best perceptual formula there is:
   WCAG 3 has left its own undecided; CSS's contrast-color() uses WCAG 2's). Done in the library: the axis tags (tint()), heatmap gradients (gradientTable()), fades (Fill's stops); left:

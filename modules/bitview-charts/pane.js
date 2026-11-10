@@ -38,7 +38,9 @@ const TAG = PILL;
  * drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
  * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
  * (its grid by the other's); `overlay`, a scale of its own (unseen, the pane's height, linear or log, fitted to it
- * alone each frame where it has an extent: a volume along the pane's foot); `fit`, how it widens its scale's range in its place (a page's own reading: none of it, a
+ * each frame from every series sharing it, with their margins: a volume along the pane's foot; a side's scale used
+ * as an overlay follows that side's auto/manual fit); `fit`, how it widens its scale's range in its place (a page's
+ * own reading: none of it, a
  * fixed range, its own and 0; none given, its extent); `margins`, room it keeps clear at its scale's ends (CSS pixels
  * over and under the range, by the points' spacing: its marks over bars); `viewed`, brought up to the view before each
  * draw (its version changed where what it draws hangs on it: bubbles sized to the largest in view). How far a point is
@@ -68,6 +70,8 @@ const TAG = PILL;
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
  * }} Series
  */
+
+/** A scale and its members, by original pane indices. @typedef {{ scale: Scale, side: number, indices: number[] }} ScaleGroup */
 
 export class Pane {
   /**
@@ -193,6 +197,13 @@ export class Pane {
     this.ticks = new Float64Array(24);
     this.axisTicks = new Float64Array(24);
     this.extent = new Float64Array(2);
+    /** Membership metadata stays apart from the drawing state above. Rebuilt only for changed bindings.
+     * @type {{
+     *   groups: ScaleGroup[],
+     *   bindings: { series: Series, overlay: Scale | null | undefined, side: number }[],
+     *   right: Scale | null, left: Scale | null,
+     * }} */
+    this.fitting = { groups: [], bindings: [], right: null, left: null };
   }
 
   /**
@@ -579,40 +590,56 @@ export class Pane {
 
   /** Fitted to its series in the timeline's view (a relative scale's, each read against its first value in view). @param {import("./timeline.js").Timeline} time */
   fit(time) {
-    const n = this.series.length;
+    const n = this.series.length, a = Math.floor(time.from), b = Math.ceil(time.to);
     if (this.bases.length < n) (this.bases = new Float64Array(n * 2)), (this.drawnBases = new Float64Array(n * 2));
     this.basesSame = true;
-    this.#fit(time, this.scale, this.auto, 0);
-    if (this.left) this.#fit(time, this.left, this.leftAuto, 1);
-    // (An overlay to its series alone, where it has an extent in view: else as it was.)
-    const own = this.own, a = Math.floor(time.from), b = Math.ceil(time.to);
-    for (const series of this.series) {
-      const overlay = series.overlay;
-      if (!overlay || series.hidden) continue;
-      console.assert(!overlay.relative, "bitview-charts: an overlay reads its values as they are (linear or log)");
-      overlay.height = this.height;
-      (own[0] = Infinity), (own[1] = -Infinity);
-      series.fit ? series.fit(a, b, overlay.mode === "log", own) : series.extent(a, b, overlay.mode === "log", own);
-      overlay.fit(own[0], own[1]);
+    const state = this.fitting, bindings = state.bindings;
+    let groups = state.groups;
+    let same = bindings.length === n && state.right === this.scale && state.left === this.left;
+    for (let k = 0; same && k < n; k++) {
+      const binding = bindings[k], series = this.series[k];
+      same = binding.series === series && binding.overlay === series.overlay && binding.side === this.sides[k];
+    }
+    if (!same) {
+      const scales = new Map();
+      scales.set(this.scale, { scale: this.scale, side: 0, indices: [] });
+      if (this.left) scales.set(this.left, { scale: this.left, side: 1, indices: [] });
+      bindings.length = n;
+      for (let k = 0; k < n; k++) {
+        const series = this.series[k], overlay = series.overlay, side = this.sides[k], binding = bindings[k];
+        if (binding) (binding.series = series), (binding.overlay = overlay), (binding.side = side);
+        else bindings[k] = { series, overlay, side };
+        const scale = this.scaleOf(k);
+        let group = scales.get(scale);
+        if (!group) scales.set(scale, (group = { scale, side: -1, indices: [] }));
+        group.indices.push(k);
+      }
+      (state.right = this.scale), (state.left = this.left);
+      state.groups = groups = Array.from(scales.values());
+    }
+    for (let k = 0; k < groups.length; k++) {
+      const group = groups[k];
+      if (group.scale.height !== this.height) group.scale.height = this.height;
+      this.#fit(time, group, a, b);
     }
   }
 
   /**
-   * A scale fitted to its side's series.
-   * @param {import("./timeline.js").Timeline} time @param {Scale} scale @param {boolean} auto @param {number} side
+   * Each scale's visible series, addressed by their original pane indices (relative bases keep those slots).
+   * @param {import("./timeline.js").Timeline} time
+   * @param {ScaleGroup} group @param {number} a @param {number} b
    */
-  #fit(time, scale, auto, side) {
-    const out = this.extent, log = scale.mode === "log", relative = scale.relative, from = this.#from(time), own = this.own, n = this.series.length;
+  #fit(time, group, a, b) {
+    const scale = group.scale, indices = group.indices, side = group.side, auto = side < 0 || (side === 0 ? this.auto : this.leftAuto);
+    const out = this.extent, log = scale.mode === "log", relative = scale.relative, from = relative ? this.#from(time) : 0, own = this.own, n = indices.length;
+    if (relative && side < 0) throw new Error("bitview-charts: an overlay reads its values as they are (linear or log)");
     out[0] = Infinity;
     out[1] = -Infinity;
-    // (Not relative: each read as it is (a relative mode left, its reading gone too).)
-    if (!relative) scale.setBase(NaN);
     let same = true, above = 0, below = 0;
     // (The points at least partly in view, as the chart library's strict range: the one past each edge its line runs to.)
-    const a = Math.floor(time.from), b = Math.ceil(time.to);
-    for (let k = 0; k < n; k++) {
-      if (this.sides[k] !== side || this.series[k].hidden || this.series[k].overlay) continue;
-      const series = this.series[k];
+    for (let at = 0; at < n; at++) {
+      const k = indices[at], series = this.series[k];
+      if (series.hidden) continue;
       // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
       if (series.margins) {
         (ROOM[0] = 0), (ROOM[1] = 0), series.margins(time.spacing, ROOM, time, log);
@@ -638,10 +665,11 @@ export class Pane {
     }
     if (!same) this.basesSame = false;
     if (auto) (scale.askedAbove = above), (scale.askedBelow = below);
-    // (What's asked, kept to half the room its shares leave, its range set by hand too: a small pane's the right way up,
-    // the room it asked back once it's taller.)
-    const free = (scale.height * (1 - scale.top - scale.bottom)) / 2, asked = scale.askedAbove + scale.askedBelow, k = asked > free ? Math.max(0, free) / asked : 1;
-    (scale.above = scale.askedAbove * k), (scale.below = scale.askedBelow * k);
+    const asked = scale.askedAbove + scale.askedBelow;
+    if (asked) {
+      const free = (scale.height * (1 - scale.top - scale.bottom)) / 2, k = asked > free ? Math.max(0, free) / asked : 1;
+      (scale.above = scale.askedAbove * k), (scale.below = scale.askedBelow * k);
+    } else if (scale.above || scale.below) (scale.above = 0), (scale.below = 0);
     if (auto) scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
   }
