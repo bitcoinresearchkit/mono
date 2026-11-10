@@ -113,29 +113,29 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (453): https://bitview.space/studio/presets/holders/
-  - Compare (19): https://bitview.space/studio/presets/holders/compare/
+- Holders (542): https://bitview.space/studio/presets/holders/
+  - Compare (48): https://bitview.space/studio/presets/holders/compare/
   - All coins (49): https://bitview.space/studio/presets/holders/all-coins/
-  - Short-term holders (52): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (50): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (219): https://bitview.space/studio/presets/holders/age-cutoffs/
-  - Entry price (64): https://bitview.space/studio/presets/holders/entry-price/
-- Coin age (2548): https://bitview.space/studio/presets/coin-age/
-  - Age bands (822): https://bitview.space/studio/presets/coin-age/age-bands/
-  - Over an age (537): https://bitview.space/studio/presets/coin-age/over-an-age/
-  - Under an age (604): https://bitview.space/studio/presets/coin-age/under-an-age/
-  - Halving epochs (136): https://bitview.space/studio/presets/coin-age/halving-epochs/
-  - Vintages (448): https://bitview.space/studio/presets/coin-age/vintages/
+  - Short-term holders (56): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (54): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (235): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - Entry price (100): https://bitview.space/studio/presets/holders/entry-price/
+- Coin age (3078): https://bitview.space/studio/presets/coin-age/
+  - Age bands (963): https://bitview.space/studio/presets/coin-age/age-bands/
+  - Over an age (645): https://bitview.space/studio/presets/coin-age/over-an-age/
+  - Under an age (718): https://bitview.space/studio/presets/coin-age/under-an-age/
+  - Halving epochs (187): https://bitview.space/studio/presets/coin-age/halving-epochs/
+  - Vintages (564): https://bitview.space/studio/presets/coin-age/vintages/
 - Profitability (588): https://bitview.space/studio/presets/profitability/
   - All coins (196): https://bitview.space/studio/presets/profitability/all-coins/
   - Short-term holders (196): https://bitview.space/studio/presets/profitability/short-term-holders/
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/
-- UTXOs (879): https://bitview.space/studio/presets/utxos/
-  - By amount (241): https://bitview.space/studio/presets/utxos/by-amount/
-  - Over an amount (232): https://bitview.space/studio/presets/utxos/over-an-amount/
-  - Under an amount (232): https://bitview.space/studio/presets/utxos/under-an-amount/
-  - By type (173): https://bitview.space/studio/presets/utxos/by-type/
-- Addresses (884): https://bitview.space/studio/presets/addresses/
+- UTXOs (1207): https://bitview.space/studio/presets/utxos/
+  - By amount (337): https://bitview.space/studio/presets/utxos/by-amount/
+  - Over an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
+  - Under an amount (310): https://bitview.space/studio/presets/utxos/under-an-amount/
+  - By type (249): https://bitview.space/studio/presets/utxos/by-type/
+- Addresses (1136): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
   - Reused (11): https://bitview.space/studio/presets/addresses/reused/
   - Respent (11): https://bitview.space/studio/presets/addresses/respent/
@@ -143,9 +143,9 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/
-  - By balance (228): https://bitview.space/studio/presets/addresses/by-balance/
-  - Over a balance (218): https://bitview.space/studio/presets/addresses/over-a-balance/
-  - Under a balance (218): https://bitview.space/studio/presets/addresses/under-a-balance/
+  - By balance (324): https://bitview.space/studio/presets/addresses/by-balance/
+  - Over a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
+  - Under a balance (296): https://bitview.space/studio/presets/addresses/under-a-balance/
 - Mining (977): https://bitview.space/studio/presets/mining/
   - Hashing (4): https://bitview.space/studio/presets/mining/hashing/
   - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
