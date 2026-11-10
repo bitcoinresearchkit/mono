@@ -26122,7 +26122,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function morph(opening, update) {
         for (const animation of morphing) animation.cancel();
-        if (reduced.matches) return (update(), Promise.resolve());
+        // (Out of sight, no motion: a hidden page draws no frames, so it would never end, and a draw waits on it.)
+        if (reduced.matches || document.hidden) return (update(), Promise.resolve());
         document.body.dataset.morph = "";
         const tile = update(), card = $("main"), at = card.getBoundingClientRect(), box = tile?.getBoundingClientRect();
         const ends = (/** @type {Keyframe[]} */ frames) => (opening ? frames : [...frames].reverse());
