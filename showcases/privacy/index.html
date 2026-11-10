@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <title>Privacy · Bitview</title>
+    <meta
+      name="description"
+      content="What Bitview receives and keeps: no accounts, cookies or tracking, and request logs without IP addresses or user agents. Covers bitview.space and mcp.bitview.space."
+    />
+    <link rel="canonical" href="https://bitview.space/privacy/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* One policy for every Bitview service: plain text on the page's colours, system fonts, nothing loaded. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#ffffff, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#3c3f45, #c4c7cc);
+        --soft: light-dark(#5f636b, #8f949c);
+        --rule: light-dark(rgb(15 16 18 / 0.12), rgb(247 248 248 / 0.12));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 32px 16px 80px;
+      }
+
+      a {
+        color: var(--ink);
+        text-underline-offset: 0.2em;
+        text-decoration-color: var(--rule);
+
+        &:hover {
+          text-decoration-color: currentColor;
+        }
+      }
+
+      code {
+        font: 0.9em var(--mono);
+        overflow-wrap: anywhere;
+      }
+
+      .home {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      h1 {
+        margin: 48px 0 4px;
+        color: var(--ink);
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 36px 0 8px;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink);
+        font-size: 18px;
+      }
+
+      .updated {
+        margin: 0;
+        color: var(--soft);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+
+      <h1>Privacy</h1>
+      <p class="updated">Last updated November 10, 2026</p>
+
+      <h2>What this covers</h2>
+      <p>
+        Every Bitview service run at these two addresses:
+      </p>
+      <ul>
+        <li>
+          <a href="https://bitview.space/">bitview.space</a>: the website and its apps, the REST API,
+          <a href="/llms.txt">llms.txt</a> and <code>llms-full.txt</code>, and the Agent Skill and Claude Code plugin,
+          which call the API.
+        </li>
+        <li><a href="https://mcp.bitview.space/">mcp.bitview.space</a>: the MCP server.</li>
+      </ul>
+      <p>Bitview is open source, and anyone can run it. A server someone else runs is theirs, under their own policy.</p>
+
+      <h2>Nothing about you is asked for</h2>
+      <p>
+        There are no accounts, API keys, cookies, analytics, ads or trackers. A request carries only what it asks
+        for, in its path and query: series ids, ranges, block hashes, transaction ids or addresses.
+      </p>
+
+      <h2>Request logs</h2>
+      <p>
+        The bitview.space server logs one line per request: the time, the method, the status, the path with its
+        query, and how long the answer took. It logs no IP address, no user agent and no other detail about who sent
+        the request.
+      </p>
+      <p>
+        The lines are kept in daily files on the server, which deletes files older than seven days when it starts.
+        The last 1,000 lines are also public, on the <a href="/logs/">Logs</a> page and at
+        <code>/api/server/logs</code>, so anything in a path or query, an address for example, can be seen there.
+      </p>
+
+      <h2>The MCP server</h2>
+      <p>
+        At its default log level, the MCP server logs its start (the address it listens on and its tool count) and no
+        tool call. Each tool call becomes a GET request to the bitview.space API, which logs it like any other request,
+        as above. It keeps no sessions, and no record of what was asked or answered.
+      </p>
+
+      <h2>Network providers</h2>
+      <p>
+        Both addresses are served through Cloudflare, which handles every connection and so sees the IP address it
+        comes from, under <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>.
+      </p>
+
+      <h2>In your browser</h2>
+      <p>
+        Some apps keep settings and recent choices in your browser's storage, such as Studio's charts or when you
+        last opened each app. They stay on your device and are never sent.
+      </p>
+      <p>
+        Two pages load files from elsewhere: the Benchmarks page reads its results from GitHub, and the MCP server's
+        pages load their fonts from jsDelivr. Those services receive the request as for any page they serve.
+      </p>
+
+      <h2>Sharing</h2>
+      <p>Nothing is sold or shared. Beyond the logs above, nothing is kept to share.</p>
+
+      <h2>Changes and contact</h2>
+      <p>
+        This page changes when the services do, and its date says when it last did. Its history is in the
+        <a href="https://github.com/bitcoinresearchkit/mono/commits/main/showcases/privacy/index.html">source</a>.
+        Questions: <a href="mailto:support@bitview.space">support@bitview.space</a>.
+      </p>
+    </main>
+  </body>
+</html>

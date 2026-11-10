@@ -18,7 +18,6 @@ const HTML: &str = include_str!("../assets/index.html");
 
 pub struct Pages {
     pub(crate) home: Bytes,
-    pub(crate) privacy: Bytes,
     pub(crate) terms: Bytes,
     pub(crate) support: Bytes,
 }
@@ -50,11 +49,6 @@ impl Pages {
                 &format!(
                     "Free, read-only Bitcoin data for AI through the {display_name} MCP server."
                 ),
-            ),
-            privacy: render(
-                "privacy",
-                &format!("Privacy — {display_name} MCP"),
-                &format!("Privacy policy for the {display_name} MCP server."),
             ),
             terms: render(
                 "terms",

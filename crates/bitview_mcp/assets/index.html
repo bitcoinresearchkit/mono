@@ -153,14 +153,12 @@
       }
 
       .home-view,
-      .privacy-view,
       .terms-view,
       .support-view {
         display: none;
       }
 
       body[data-page="home"] .home-view,
-      body[data-page="privacy"] .privacy-view,
       body[data-page="terms"] .terms-view,
       body[data-page="support"] .support-view {
         display: block;
@@ -803,119 +801,12 @@
             <a href="https://github.com/bitcoinresearchkit/mono">Source</a>
             <a href="{{PUBLIC_URL}}support">Support</a>
             <a href="{{API_URL}}">REST API</a>
-            <a href="{{PUBLIC_URL}}privacy">Privacy</a>
+            <a href="{{API_URL}}/privacy/">Privacy</a>
             <a href="{{PUBLIC_URL}}terms">Terms</a>
           </nav>
         </div>
         </section>
       </div>
-
-      <article class="privacy-view policy shell" aria-labelledby="privacy-title">
-        <header class="policy-header">
-          <p class="eyebrow">Policy</p>
-          <h1 id="privacy-title">Privacy.</h1>
-          <p class="policy-meta">Last updated October 23, 2026</p>
-        </header>
-
-        <div class="policy-body">
-          <section>
-            <h2>Scope</h2>
-            <p>
-              This policy describes the {{DISPLAY_NAME}} Model Context Protocol
-              service available at <a href="{{PUBLIC_URL}}">{{PUBLIC_URL}}</a>,
-              which {{DISPLAY_NAME}} publishes and operates. It covers this MCP
-              endpoint and its documentation pages. Other
-              websites and independently operated deployments may have their own
-              policies.
-            </p>
-          </section>
-
-          <section>
-            <h2>Information processed</h2>
-            <p>
-              MCP clients send the protocol requests needed to discover tools and
-              call them. A tool call includes a tool name and may include arguments.
-              The service also receives the ordinary network information required
-              to handle an HTTP connection.
-            </p>
-          </section>
-
-          <section>
-            <h2>Application logs</h2>
-            <p>
-              At the default log level, startup logs contain the local bind address
-              and tool count; tool calls are not logged. At debug level, each tool
-              call logs its MCP tool name and upstream cache status and age. The <code>bitview_mcp</code>
-              application does not log tool arguments, request bodies, response
-              bodies, IP addresses, cookies, or user identifiers during normal
-              successful request processing.
-            </p>
-            <p>
-              Transport libraries may emit limited diagnostic values for malformed
-              or failed requests. Operators can also change log verbosity through
-              environment configuration; verbose protocol tracing may include
-              additional request or response details. Log destinations and retention
-              are controlled by the operator.
-            </p>
-            <p>
-              Hosting platforms, content-delivery networks, and reverse proxies may
-              separately process or retain standard network logs according to the
-              operator's hosting configuration.
-            </p>
-          </section>
-
-          <section>
-            <h2>API requests</h2>
-            <p>
-              Tool calls are translated into read-only HTTP GET requests to the
-              configured Bitview REST API at <a href="{{API_URL}}">{{API_URL}}</a>.
-              The API receives those requests and may maintain its own operational
-              logs.
-            </p>
-          </section>
-
-          <section>
-            <h2>Storage and tracking</h2>
-            <p>
-              The MCP service has no user accounts, authentication, advertising,
-              analytics, or persistent MCP sessions. It does not set cookies or use
-              browser local storage. The application does not build user profiles or
-              retain a history of tool arguments and results.
-            </p>
-          </section>
-
-          <section>
-            <h2>Documentation fonts</h2>
-            <p>
-              The browser documentation pages load font files from jsDelivr. When a
-              person opens a documentation page, jsDelivr receives the standard web
-              request needed to deliver those files. MCP tool calls do not load the
-              documentation fonts.
-            </p>
-          </section>
-
-          <section>
-            <h2>Sharing</h2>
-            <p>
-              The MCP application does not sell or rent personal information. Data
-              is sent only to the configured API and infrastructure providers as
-              necessary to operate the service, or when disclosure is required by
-              law.
-            </p>
-          </section>
-
-          <section>
-            <h2>Changes and contact</h2>
-            <p>
-              This policy may be updated when the service changes. The date above
-              identifies the current version. Questions can be sent to
-              <a href="mailto:support@bitview.space"
-                >support@bitview.space</a
-              >.
-            </p>
-          </section>
-        </div>
-      </article>
 
       <article class="terms-view policy shell" aria-labelledby="terms-title">
         <header class="policy-header">
@@ -1096,7 +987,7 @@
           <section>
             <h2>Policies</h2>
             <p>
-              Review the <a href="{{PUBLIC_URL}}privacy">privacy policy</a> and
+              Review the <a href="{{API_URL}}/privacy/">privacy policy</a> and
               <a href="{{PUBLIC_URL}}terms">terms of use</a> before using the
               service.
             </p>

@@ -10,7 +10,7 @@ use axum::{
         request::Parts,
     },
     middleware::{self, Next},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post_service},
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
@@ -87,6 +87,8 @@ pub fn router(
         .with_json_response(true)
         .with_max_request_body_bytes(MAX_REQUEST_BYTES);
 
+    // One policy covers every Bitview service: the website's, beside the API it calls.
+    let privacy = Redirect::permanent(&format!("{api_url}/privacy/"));
     let discovery_routes = discovery::router(&display_name, &public_url);
     let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
@@ -113,7 +115,7 @@ pub fn router(
             )),
         )
         .route("/logo.png", get(logo::get))
-        .route("/privacy", page::route(pages.privacy))
+        .route("/privacy", get(move || ready(privacy.clone())))
         .route("/terms", page::route(pages.terms))
         .route("/support", page::route(pages.support))
         .merge(discovery_routes)

@@ -9,7 +9,7 @@
   "homepage": "https://bitview.space",
   "repository": "https://github.com/bitcoinresearchkit/mono",
   "license": "MIT",
-  "privacyPolicyUrl": "https://mcp.bitview.space/privacy",
+  "privacyPolicyUrl": "https://bitview.space/privacy/",
   "keywords": [
     "bitcoin",
     "blockchain",
