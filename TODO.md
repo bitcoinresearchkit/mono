@@ -44,35 +44,11 @@ Only what's left. An item done is removed: its history is in the commits and log
   `sandbox/studio-review-fixes`; needs a library change, not a Studio workaround. Heat already uses Grid and profiles
   use Profile; stacks already delegate their arithmetic to the library. Cloud's custom crossing/color geometry has
   no reproduced bug or measured reason to replace it.
-- Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out).
-  Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
-  as-of date. (1) committed after (focus restored after Legend.set). (5) committed after (every layer hidden: the
-  legend wraps). A percent stack's readout reading the stacks once (not once a band; bandAt only for a stacked pane):
-  committed. (4) committed (2026-11-02): the chip names the layer pointed at (its line or band, its axis tag), kept
-  in its pane's empty space and on the chip. Left: the rest of the repeated work (measure first). As found:
-  - Bugs: (1) a legend rebuilt loses keyboard focus (~17893 innerHTML then restoreFocus, then Legend.set appends
-    every element again as the count element was dropped; the focus key carries data-pointed / data-lit, ~23578);
-    (2) a picture keeps the spotlight's faint series and levels (export clears the legend's classes only, ~38492;
-    fadeLayer ~16701); (3) a picture drops a resting value's as-of date (CSS content attr(data-as-of) ~6000, the
-    picture reads textContent ~38464); (4) on a named chip, moving onto it loses its caption, and hovering an axis
-    tag can't name it (the library names from crosshair.pointed/hit, cleared over page elements: index.js ~652, ~496;
-    lightTag ~19257 lights classes only); (5) a folded pane's legend with all hidden lists every item on one clipped
-    line (~2998 height 22px overflow hidden, ~17528).
-  - Leftovers: the "pane-layers" click branch (~39264) has no producer; profile captions call fitSoon on legends
-    (~17856), whose strip classes legends no longer have.
-  - Repeated work (measure first): a percent stack's readout
-    builds stackOf's key once a band (~18235, ~17832; bandAt calls stackOf before checking the pane is stacked,
-    ~17807); figuresRoom each move (~19638); readouts found and written for hidden legends (~18207).
 - Left from the 2026-11-01 chart review, in `modules/bitview-charts` (excluded from Studio's review fixes):
   transparent `under` halves of lines still hit (recorder treats a gradient's whole stroke as painted); Marks uses its
   own side's scale rather than its host's overlay; Line/Band's slope overflows for ranges around 1e-310 while Scale.y
   divides the offset first. Reproduced by geometry probes on 2026-11-10; no Studio workaround. Studio's mark-target
   filter excludes overlay hosts. Public re-exports are retained as API; the curve-control formatting is not a defect.
-- Decided (2026-11-02): Studio onto the library's Grid, Profile and stack. The stack done (committed after: the
-  library's stack makes tops, feet and scale; Studio's stackOf calls it; every stacked preset's columns identical).
-  Heatmaps onto Grid committed (2026-11-02). Profiles onto Profile committed after. Next: the cumulative
-  view (mockups first). Also to look at: Studio's own gradientTable (~30978) beside the library's
-  (color.js).
 - Phone (connected 2026-11-01): after b8f0aa256, 48 presets 0 errors, 40 with no slow frame in 60 while panning, 8
   with one or two (scratchpad n437/phone-fix.txt; worst Supply by profit band 51 ms, Supply by age band 49). Probed
   (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing

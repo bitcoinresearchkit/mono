@@ -15355,10 +15355,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("panel-toggle").setAttribute("aria-pressed", String(state === "open"));
       }
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
-      // (Its rows' values written only while it shows (see updateReadout): shown again with some left behind, at once.)
-      let rowsBehind = false;
       // (Shown or not, the panes' room over their lines again: their legends there only while it's not, see .legend.)
-      new MutationObserver(() => (fitMargins(), respot(), panelShown() && (layersBehind ? writeLayers() : rowsBehind && valuesSoon()))).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
+      new MutationObserver(() => (fitMargins(), respot(), panelShown() && layersBehind ? writeLayers() : valuesSoon())).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
@@ -18456,12 +18454,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * there's none.
        */
       function updateReadout() {
-        const point = readPoint();
-        // (The panel's rows only while it shows: hidden, it's still laid out, and each written value lays the page out
-        // again; shown, they're written at once, see rowsBehind.)
-        rowsBehind = !panelShown();
-        // (Where they are, the legends' and the rows', looked for there: not through the whole page at each move.)
-        for (const element of [...all$("[data-value]", $("chart")), ...(rowsBehind ? [] : all$(".row-value[data-value]", $("layer-list")))]) {
+        const point = readPoint(), shown = panelShown();
+        // (The panel's rows only while it shows: hidden, each written value can lay the page out again.)
+        // (Only legends in view: the panel takes their place while open. A picture reads every presented legend.)
+        const reading = exporting || !shown ? legends() : [];
+        for (const element of [...reading.flatMap((legend) => all$("[data-value]", legend)), ...(shown ? all$(".row-value[data-value]", $("layer-list")) : [])]) {
           const id = /** @type {string} */ (element.dataset.value), layer = layerById(id), result = resolved?.results.get(id);
           if (!layer || !result || result.error) continue;
           // (A named band's value: its name, in its color.)
@@ -18489,8 +18486,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         // (The stacks read once, not once a band.)
-        const stacked = resolved ? stackOf(chart, resolved) : null;
-        for (const element of all$("[data-band-share]", $("chart"))) {
+        const shares = reading.flatMap((legend) => all$("[data-band-share]", legend)), stacked = shares.length && resolved ? stackOf(chart, resolved) : null;
+        for (const element of shares) {
           const layer = layerById(element.dataset.bandShare ?? ""), text = layer ? format(shareAt(layer, point, stacked), "percent") : "";
           if (element.textContent !== text) element.textContent = text;
         }
@@ -19882,6 +19879,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         valuesSoon();
         reachOut();
       }
+      /** Row widths as last laid on: independent of the crosshair, forgotten when rows are written again. @type {{ revision: number, from: number, to: number, sizes: typeof rowSizes } | null} */
+      let roomsAt = null;
       /**
        * Each row's change from the view's start to the readout's point. Its figures keep the room of their widest
        * value and change, so nothing beside them moves while the crosshair runs.
@@ -19912,13 +19911,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Over them, what they're since, once the view rests: the date they share, else each its own first in view.)
         if (moving) return;
-        for (const figures of all$(".row-figures", $("layer-list"))) {
-          const layer = layerById(/** @type {HTMLElement} */ (figures.closest("[data-layer]"))?.dataset.layer ?? ""), result = layer && resolved.results.get(layer.id);
-          if (!layer || !result) continue;
-          const room = figuresRoom(layer, result), main = /** @type {HTMLElement} */ (figures.parentElement);
-          figures.classList.toggle("dated", room.dated);
-          for (const [name, px] of /** @type {const} */ ([["--value-room", room.value], ["--change-room", room.change], ["--date-room", room.date]])) {
-            if (main.style.getPropertyValue(name) !== (px ? `${px}px` : "")) px ? main.style.setProperty(name, `${px}px`) : main.style.removeProperty(name);
+        const from = firstInView(), to = lastShown();
+        if (!roomsAt || roomsAt.revision !== dataRevision || roomsAt.from !== from || roomsAt.to !== to || roomsAt.sizes !== rowSizes) {
+          roomsAt = { revision: dataRevision, from, to, sizes: rowSizes };
+          for (const figures of all$(".row-figures", $("layer-list"))) {
+            const layer = layerById(/** @type {HTMLElement} */ (figures.closest("[data-layer]"))?.dataset.layer ?? ""), result = layer && resolved.results.get(layer.id);
+            if (!layer || !result) continue;
+            const room = figuresRoom(layer, result), main = /** @type {HTMLElement} */ (figures.parentElement);
+            figures.classList.toggle("dated", room.dated);
+            for (const [name, px] of /** @type {const} */ ([["--value-room", room.value], ["--change-room", room.change], ["--date-room", room.date]])) {
+              if (main.style.getPropertyValue(name) !== (px ? `${px}px` : "")) px ? main.style.setProperty(name, `${px}px`) : main.style.removeProperty(name);
+            }
           }
         }
         const head = $("changes-since"), text = since.size === 1 ? `Since ${pointLabel([...since][0])}` : since.size ? "Since the view's start" : "";
@@ -30024,6 +30027,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }, (next) => roomsAhead(next, k));
       }
       function writeLayers() {
+        roomsAt = null;
         layersBehind = false;
         const list = $("layer-list");
         const focus = focusKey(list);
