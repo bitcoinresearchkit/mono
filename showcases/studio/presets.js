@@ -21,14 +21,17 @@
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
+ * @typedef {(name: string, title: string, layers: Layer[], options?: { log?: number[], stack?: Record<number, string>, range?: string, halvings?: boolean, priceHidden?: boolean }) => ChartNode} ChartBuilder
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
- * @typedef {{ pools: Set<string>, recent: Set<string>, height: number, year: number }} Facts the chain's, from its server:
+ * @typedef {(name: string, items: (ChartNode | SectionNode | null | undefined | false)[], options?: { workings?: boolean, icon?: string }) => SectionNode} SectionBuilder
+ * @typedef {{ pools: Set<string>, recent: Set<string>, height: number, year: number, topPools: string[], names: Map<string, string> }} Facts the chain's, from its server:
  * the pools that have found a block, those that have in the last 3 years (the server's longest window short of all
- * time), its height, the year
+ * time), its height, the year, the five pools with the most blocks lately (see TOP_POOLS_WINDOW) and every pool's name
  */
 
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
+import { chainStatistics } from "./chain-statistics.js";
 
 /** @param {any} n */
 const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
@@ -151,18 +154,26 @@ function shades(/** @type {number} */ i, /** @type {number} */ count) {
   return { color: wheelColor(i, count, 131, 183), colorBelow: wheelColor(i, count, 44, 17) };
 }
 
+/** The blocks "today's top pools" are counted over: two difficulty periods. */
+const TOP_POOLS_WINDOW = 2016 * 2;
+
 /**
  * The chain's facts the presets go by, from its server (`origin`): the pools that have found a block (see notYet) and
- * those that have lately (see poolCharts), its height, the year (see notYet).
+ * those that have lately (see poolCharts), its height, the year (see notYet), today's top pools and the pools' names (see
+ * chainStatistics).
  * @param {string} origin @returns {Promise<Facts>}
  */
 export async function chainFacts(origin) {
   // (In a time: a stalled server holds up nothing; its facts are then missing, and the presets made without them.)
   const read = (/** @type {string} */ path) => fetch(`${origin}${path}`, { signal: AbortSignal.timeout(15_000) }).then((response) => (response.ok ? response : Promise.reject(new Error(`${path}: ${response.status}`))));
-  const [pools, recent, height] = await Promise.all([read("/api/v1/mining/pools/all").then((r) => r.json()), read("/api/v1/mining/pools/3y").then((r) => r.json()), read("/api/blocks/tip/height").then((r) => r.text()).then(Number)]);
+  const [pools, recent, height, lately] = await Promise.all([read("/api/v1/mining/pools/all").then((r) => r.json()), read("/api/v1/mining/pools/3y").then((r) => r.json()), read("/api/blocks/tip/height").then((r) => r.text()).then(Number), read(`/api/series/block_pool/height?start=-${TOP_POOLS_WINDOW}`).then((r) => r.json())]);
   if (!Number.isFinite(height)) throw new Error("The chain's height isn't a number");
   const found = (/** @type {any} */ list) => new Set(list.pools.filter((/** @type {any} */ pool) => pool.blockCount > 0).map((/** @type {any} */ pool) => pool.slug));
-  return { pools: found(pools), recent: found(recent), height, year: new Date().getUTCFullYear() };
+  const blocksOf = new Map(/** @type {[string, number][]} */ ([]));
+  for (const slug of lately.data) blocksOf.set(slug, (blocksOf.get(slug) ?? 0) + 1);
+  const topPools = [...blocksOf].filter(([slug]) => slug !== "unknown").sort((a, b) => b[1] - a[1]).slice(0, 5).map(([slug]) => slug);
+  const names = new Map(pools.pools.map((/** @type {any} */ pool) => [pool.slug, pool.name]));
+  return { pools: found(pools), recent: found(recent), height, year: new Date().getUTCFullYear(), topPools, names };
 }
 
 /**
@@ -206,11 +217,9 @@ export function studioPresets(client, facts) {
   /**
    * A chart: its layers, each with its pane (1 if none), and its panes' scales (a pane with the price, or `log` said,
    * logarithmic; else linear) and stacks.
-   * @param {string} name @param {string} title @param {Layer[]} layers
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
    * Over a heatmap or a cloud, the price is outlined: edged in the chart's background, read on what's under it.
-   * @param {{ log?: number[], stack?: Record<number, string>, range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
-   * @returns {ChartNode}
+   * @type {ChartBuilder}
    */
   const chart = (name, title, layers, options = {}) => {
     if (layers.some((layer) => layer.heatmap || layer.cloud)) layers = layers.map((layer) => (layer.series === t.price.ohlc.name ? { ...layer, outline: true } : layer));
@@ -222,10 +231,7 @@ export function studioPresets(client, facts) {
     });
     return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
-  /**
-   * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
-   * @param {{ workings?: boolean, icon?: string }} [options] @returns {SectionNode}
-   */
+  /** @type {SectionBuilder} */
   const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}), ...(options.icon ? { icon: options.icon } : {}) });
   /**
    * A family's member: its folders, or, with one alone (0-sat outputs: their UTXOs only), that one's charts, not a
@@ -1123,6 +1129,7 @@ export function studioPresets(client, facts) {
           ...entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`))),
         ]),
       ]),
+      chainStatistics({ t, facts, chart, section, ramp }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)

@@ -12179,6 +12179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         Days: "days", Seconds: "seconds", SecondsFract: "seconds", PerSecond: "persecond", PerDay: "perday",
         Bytes: "bytes", BytesFract: "bytes", VSize: "vbytes", Weight: "weight", WeightFract: "weight", SigOps: "sigops",
         Hashrate: "hashrate", Difficulty: "difficulty", FeeRate: "feerate", HashPrice: "hashprice", HashValue: "hashvalue",
+        Work: "number", ExpectedCount: "count",
         CoinDays: "coindays", CoinBlocks: "coinblocks", DollarBlocks: "dollarblocks", DollarDaysPerCoin: "dollardays",
       };
       /** A series' unit, by its value type as Bitview names it (Dollars, Bitcoin, Percent, Bytes…). */
@@ -28938,9 +28939,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function presetsMaker(presetsUrl, clientUrl, origin, known) {
         try {
           const [{ studioPresets, chainFacts }, { BitviewClient }] = await Promise.all([import(presetsUrl), import(clientUrl)]);
-          /** @type {{ pools: Set<string>, recent: Set<string>, height: number, year: number } | undefined} */
+          /** @type {{ pools: Set<string>, recent: Set<string>, height: number, year: number, topPools: string[], names: Map<string, string> } | undefined} */
           const facts = await chainFacts(origin).catch(() => undefined);
-          const said = facts ? JSON.stringify([[...facts.pools].sort(), [...facts.recent].sort(), Math.floor(facts.height / 210_000), facts.year]) : "";
+          const said = facts ? JSON.stringify([[...facts.pools].sort(), [...facts.recent].sort(), Math.floor(facts.height / 210_000), facts.year, facts.topPools.map((slug) => [slug, facts.names.get(slug)])]) : "";
           postMessage(known !== null && said === known ? { facts: said } : { facts: said, text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts)) });
         } catch (error) {
           postMessage({ error: String(error) });
