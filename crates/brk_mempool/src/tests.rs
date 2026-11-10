@@ -1021,3 +1021,56 @@ fn served_json_carries_only_complete_content_and_retires() {
     assert!(old.served_blocks()[1].json.get().is_none(), "no carry from another index");
     assert!(!old_bytes.is_empty());
 }
+
+/// Identical arrays use the same wire representation as separate equal arrays; empty blocks
+/// keep an empty order. Applying general diffs reconstructs changed bodies and order exactly.
+#[test]
+fn block_diff_reconstructs_current_bodies() {
+    let (a, b, c) = (body(1), body(2), body(3));
+    let changed = Arc::new(Transaction { total_sigop_cost: SigOps::new(7), ..(*b).clone() });
+    let cases: Vec<Vec<Arc<Transaction>>> = vec![
+        vec![], vec![a.clone()], vec![a.clone(), b.clone(), c.clone()],
+        vec![c.clone(), a.clone(), b.clone()], vec![a.clone(), changed],
+        vec![c.clone()], vec![b.clone(), c.clone(), body(4)],
+    ];
+    for prior in &cases {
+        let prior_refs: Vec<_> = prior.iter().collect();
+        for current in &cases {
+            let current_refs: Vec<_> = current.iter().collect();
+            let mut state = ReadOnlyState::default();
+            state.publish_projection(snapshot(&[&prior_refs], 0), BlockHash::default());
+            let since = served(&state, 0).hash();
+            state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
+            let source = served(&state, 0);
+            let bytes = serde_json::to_vec(&state.resolve_mempool_block_diff(source.clone(), since).unwrap().build()).unwrap();
+            let diff: Value = serde_json::from_slice(&bytes).unwrap();
+            let mut rebuilt = Vec::new();
+            // Equal hashes deduplicate history to its latest body array.
+            let base = if since == source.hash() { current } else { prior };
+            for entry in diff["order"].as_array().unwrap() {
+                if let Some(run) = entry.as_array() {
+                    let from = run[0].as_u64().unwrap() as usize;
+                    let len = run[1].as_u64().unwrap() as usize;
+                    rebuilt.extend(base[from..from + len].iter().map(|tx| to_value(tx.as_ref()).unwrap()));
+                } else {
+                    rebuilt.push(entry.clone());
+                }
+            }
+            assert_eq!(rebuilt, current.iter().map(|tx| to_value(tx.as_ref()).unwrap()).collect::<Vec<_>>());
+            let full: Value = serde_json::from_slice(&source.json()).unwrap();
+            assert_eq!(diff["stats"], full["stats"]);
+            let expected_removed: Vec<_> = base.iter()
+                .filter(|old| !current.iter().any(|tx| tx.txid == old.txid))
+                .map(|tx| to_value(tx.txid).unwrap()).collect();
+            assert_eq!(diff["removed"], to_value(expected_removed).unwrap());
+            if since == source.hash() {
+                // Resolve the old source against a separately built equal body array in history:
+                // same bytes through the general algorithm instead of the pointer shortcut.
+                state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
+                let general = state.resolve_mempool_block_diff(source, since).unwrap().build();
+                assert_eq!(bytes, serde_json::to_vec(&general).unwrap());
+                assert_eq!(diff["order"], if current.is_empty() { serde_json::json!([]) } else { serde_json::json!([[0, current.len()]]) });
+            }
+        }
+    }
+}

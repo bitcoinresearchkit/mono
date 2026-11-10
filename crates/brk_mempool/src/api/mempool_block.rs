@@ -114,32 +114,39 @@ impl ResolvedMempoolBlockDiff {
         } = self;
         let block = source.block();
         let (hash, bodies) = (block.content.hash, block.content.bodies.clone());
-        let mut prior_index: RapidHashMap<Txid, u32> = past
-            .iter()
-            .enumerate()
-            .map(|(idx, tx)| (tx.txid, idx as u32))
-            .collect();
         let mut entries: Vec<MempoolBlockDiffEntry<usize>> = Vec::new();
-        for (position, tx) in bodies.iter().enumerate() {
-            match prior_index.remove(&tx.txid) {
-                Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
-                    // A kept transaction continuing the previous run extends it.
-                    if let Some(MempoolBlockDiffEntry::Retained(run)) = entries.last_mut()
-                        && run.0 + run.1 == idx
-                    {
-                        run.1 += 1;
-                    } else {
-                        entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(idx, 1)));
-                    }
-                }
-                _ => entries.push(MempoolBlockDiffEntry::New(position)),
+        let removed = if Arc::ptr_eq(&past, &bodies) {
+            if !bodies.is_empty() {
+                entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(0, bodies.len() as u32)));
             }
-        }
-        let removed = past
-            .iter()
-            .filter(|tx| prior_index.contains_key(&tx.txid))
-            .map(|tx| tx.txid)
-            .collect();
+            Vec::new()
+        } else {
+            let mut prior_index: RapidHashMap<Txid, u32> = past
+                .iter()
+                .enumerate()
+                .map(|(idx, tx)| (tx.txid, idx as u32))
+                .collect();
+            for (position, tx) in bodies.iter().enumerate() {
+                match prior_index.remove(&tx.txid) {
+                    Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
+                        // A kept transaction continuing the previous run extends it.
+                        if let Some(MempoolBlockDiffEntry::Retained(run)) = entries.last_mut()
+                            && run.0 + run.1 == idx
+                        {
+                            run.1 += 1;
+                        } else {
+                            entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(idx, 1)));
+                        }
+                    }
+                    _ => entries.push(MempoolBlockDiffEntry::New(position)),
+                }
+            }
+            past
+                .iter()
+                .filter(|tx| prior_index.contains_key(&tx.txid))
+                .map(|tx| tx.txid)
+                .collect()
+        };
         MempoolBlockDiff {
             hash,
             since,
