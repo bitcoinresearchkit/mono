@@ -1,7 +1,7 @@
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_rpc::MempoolState;
 use brk_types::{MempoolEntryInfo, Txid};
-use rapidhash::RapidHashMap;
+use rapidhash::{RapidHashMap, RapidHashSet};
 
 use crate::stores::tx_store::TxRecord;
 
@@ -9,8 +9,11 @@ pub struct Fetched {
     /// Passthrough fields from the batched RPC fetch: the listing (`getrawmempool`), fee floor,
     /// chain tip.
     pub state: MempoolState,
-    /// How many of the newest `State::unverified` records this cycle checked.
+    /// How many of the newest `State::unverified` records this cycle attempted.
     pub checked: usize,
+    /// Attempted records whose held witness was not verified by an entry observation.
+    /// Accepted replacement bodies clear these in the driver; the rest stay queued if listed.
+    pub recheck: RapidHashSet<Txid>,
     /// `MempoolEntryInfo` for newly-observed txids only (existing ones
     /// keep their first-sight entry on the live store).
     pub new_entries: Vec<MempoolEntryInfo>,

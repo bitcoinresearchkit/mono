@@ -130,8 +130,14 @@ pub fn fetch(
     // holds what one listing held), and not a template's (its body is the template's).
     let checked = mempool.unverified.len().min(MAX_TX_FETCHES_PER_CYCLE);
     let checking = &mempool.unverified[mempool.unverified.len() - checked..];
+    let mut recheck: RapidHashSet<Txid> = checking.iter().copied().collect();
     if !checking.is_empty() {
         let (entries, _) = client.fetch_new_pool_data(checking, &[])?;
+        for entry in &entries {
+            if mempool.txs.record(&entry.txid).is_some_and(|record| record.entry.wtxid == entry.wtxid) {
+                recheck.remove(&entry.txid);
+            }
+        }
         let variants: RapidHashSet<Txid> = entries
             .iter()
             .filter(|entry| {
@@ -207,6 +213,7 @@ pub fn fetch(
     Ok(Fetched {
         state,
         checked,
+        recheck,
         new_entries,
         new_txs,
         block_template_txids: template.then_some(block_template_txids),
