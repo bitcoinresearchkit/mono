@@ -132,7 +132,7 @@ where
             Some(stamps) => stamps,
             None => {
                 fs::create_dir_all(&path)?;
-                list_change_stamps(&path)?
+                list_change_stamps(fs::read_dir(&path)?)?
             }
         };
 
@@ -226,22 +226,25 @@ fn change_file(path: &Path, stamp: Stamp) -> PathBuf {
 
 /// The sorted change-file stamps, or `None` without a changes directory.
 fn list_existing(path: &Path) -> Result<Option<Vec<Stamp>>> {
-    match list_change_stamps(path) {
-        Ok(stamps) => Ok(Some(stamps)),
-        Err(Error::IO(err)) if err.kind() == ErrorKind::NotFound => Ok(None),
-        Err(err) => Err(err),
+    match fs::read_dir(path) {
+        Ok(entries) => list_change_stamps(entries).map(Some),
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(err.into()),
     }
 }
 
-fn list_change_stamps(path: &Path) -> Result<Vec<Stamp>> {
-    let mut stamps = fs::read_dir(path)?
-        .filter_map(|entry| {
-            let path = entry.ok()?.path();
-            Some(Stamp::from(
-                path.file_name()?.to_str()?.parse::<u64>().ok()?,
-            ))
-        })
-        .collect::<Vec<_>>();
+fn list_change_stamps(entries: fs::ReadDir) -> Result<Vec<Stamp>> {
+    let mut stamps = Vec::new();
+    for entry in entries {
+        let path = entry?.path();
+        if let Some(stamp) = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .and_then(|name| name.parse::<u64>().ok())
+        {
+            stamps.push(Stamp::from(stamp));
+        }
+    }
     stamps.sort_unstable();
     Ok(stamps)
 }
