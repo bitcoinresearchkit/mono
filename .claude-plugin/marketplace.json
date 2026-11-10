@@ -1,14 +1,13 @@
 {
   "name": "bitview",
-  "description": "Bitview's Agent Skill: free Bitcoin data from a full node.",
+  "description": "Bitview's Claude Code plugin: free Bitcoin data from a full node, as a skill and an MCP server.",
   "owner": {
     "name": "Bitview"
   },
   "plugins": [
     {
       "name": "bitview",
-      "source": "./skills/bitview",
-      "description": "Bitcoin on-chain, market, mempool, fee, mining and holder-cohort data from Bitview's free API."
+      "source": "./plugins/bitview"
     }
   ]
 }

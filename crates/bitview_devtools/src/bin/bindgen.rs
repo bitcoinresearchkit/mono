@@ -21,6 +21,10 @@ use std::process::exit;
 /// The JavaScript package manifest: hand-written, only its version is generated.
 const PACKAGE_JSON: &str = "modules/bitview-client/package.json";
 
+/// The MCP server's logo, which the Claude Code plugin carries as its icon.
+const MCP_LOGO: &str = "crates/bitview_mcp/assets/logo.png";
+const PLUGIN_ICON: &str = "plugins/bitview/.claude-plugin/icon.png";
+
 /// Every generated file, relative to the workspace root (and to the check's output root).
 const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_mcp/server.json",
@@ -31,8 +35,11 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "packages/bitview_client/bitview_client/__init__.py",
     "showcases/llms.txt",
     "showcases/llms-full.txt",
-    "showcases/skills/bitview/SKILL.md",
-    "skills/bitview/SKILL.md",
+    "showcases/.well-known/agent-skills/index.json",
+    "showcases/.well-known/agent-skills/bitview/SKILL.md",
+    "plugins/bitview/.claude-plugin/plugin.json",
+    PLUGIN_ICON,
+    "plugins/bitview/skills/bitview/SKILL.md",
     "crates/bitview_mcp/generated/manifest.json",
 ];
 
@@ -117,6 +124,11 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
     generate_clients(registry.catalog(), &to_string(&openapi)?, &output_paths)?;
     if matches!(scope, OutputScope::All) {
         generate_registry_manifest(&output_root)?;
+        let icon = output_root.join(PLUGIN_ICON);
+        let logo = fs::read(workspace_root.join(MCP_LOGO))?;
+        if fs::read(&icon).ok().as_deref() != Some(logo.as_slice()) {
+            fs::write(icon, logo)?;
+        }
     }
 
     if check {
@@ -146,8 +158,7 @@ fn output_paths(root: &Path, scope: OutputScope) -> ClientOutputPaths {
         .javascript(root.join("modules/bitview-client/index.js"))
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
         .llm(root.join("showcases"))
-        .skill(root.join("showcases/skills/bitview/SKILL.md"))
-        .skill(root.join("skills/bitview/SKILL.md"))
+        .plugin(root.join("plugins/bitview"))
         .llm_manifest(root.join("crates/bitview_mcp/generated/manifest.json"))
 }
 

@@ -282,6 +282,7 @@ dependencies = [
  "brk_types",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
 ]
 

@@ -53,7 +53,8 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 
 ## Agent Skill
 
-- [SKILL.md](https://bitview.space/skills/bitview/SKILL.md), also in the repository's `skills/bitview`
+- [SKILL.md](https://bitview.space/.well-known/agent-skills/bitview/SKILL.md), listed in the [skill index](https://bitview.space/.well-known/agent-skills/index.json)
+- Claude Code plugin with the skill and the MCP server: `claude plugin marketplace add bitcoinresearchkit/mono`, then `claude plugin install bitview@bitview`
 
 ## Source
 

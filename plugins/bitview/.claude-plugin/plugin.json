@@ -1,0 +1,27 @@
+{
+  "name": "bitview",
+  "displayName": "Bitview",
+  "version": "0.13.0",
+  "description": "Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain. Free and read-only, with no API key.",
+  "author": {
+    "name": "Bitview"
+  },
+  "homepage": "https://bitview.space",
+  "repository": "https://github.com/bitcoinresearchkit/mono",
+  "license": "MIT",
+  "privacyPolicyUrl": "https://mcp.bitview.space/privacy",
+  "keywords": [
+    "bitcoin",
+    "blockchain",
+    "on-chain",
+    "mempool",
+    "mining",
+    "market-data"
+  ],
+  "mcpServers": {
+    "bitview": {
+      "type": "http",
+      "url": "https://mcp.bitview.space/"
+    }
+  }
+}

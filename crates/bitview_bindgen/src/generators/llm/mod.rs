@@ -6,7 +6,8 @@ use std::{
 };
 
 use bitview_catalog::TreeNode;
-use serde_json::Value;
+use serde_json::{Value, json, to_string_pretty};
+use sha2::{Digest, Sha256};
 
 use super::write_if_changed;
 use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openapi::Spec};
@@ -36,6 +37,10 @@ const SERIES_FLOW: [(&str, &[&str]); 3] = [
     ),
 ];
 const SERIES_RULE: &str = "Never invent a series id: only ids the API returned exist.";
+const SKILL: &str = "bitview";
+/// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
+const SKILLS_PATH: &str = ".well-known/agent-skills";
+const REPOSITORY: &str = "https://github.com/bitcoinresearchkit/mono";
 
 pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
@@ -43,15 +48,20 @@ pub(crate) fn generate_llm_clients(
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     roots: &[PathBuf],
-    skills: &[PathBuf],
+    plugins: &[PathBuf],
     manifest_path: Option<&Path>,
 ) -> io::Result<()> {
-    if !skills.is_empty() || !roots.is_empty() {
+    if !plugins.is_empty() || !roots.is_empty() {
         let flow = render_series_flow(endpoints, Endpoint::should_generate, route)?;
-        let skill = render_skill(&flow);
-        for path in skills {
-            write_if_changed(path, &skill)?;
+        let description = skill_description();
+        let skill = render_skill(&description, &flow);
+        let skill_path = format!("skills/{SKILL}/SKILL.md");
+        let plugin = render_plugin(&spec.info.version)?;
+        for root in plugins {
+            write_if_changed(&root.join(&skill_path), &skill)?;
+            write_if_changed(&root.join(".claude-plugin/plugin.json"), &plugin)?;
         }
+        let index = render_skill_index(&description, &skill)?;
         let metric_count = count_metrics(catalog);
         let generated = endpoints
             .iter()
@@ -74,6 +84,9 @@ pub(crate) fn generate_llm_clients(
         for root in roots {
             write_if_changed(&root.join("llms.txt"), &llms)?;
             write_if_changed(&root.join("llms-full.txt"), &llms_full)?;
+            let skills = root.join(SKILLS_PATH);
+            write_if_changed(&skills.join("index.json"), &index)?;
+            write_if_changed(&skills.join(SKILL).join("SKILL.md"), &skill)?;
         }
     }
     if let Some(path) = manifest_path {
@@ -140,12 +153,19 @@ fn route(endpoint: &Endpoint) -> String {
     }
 }
 
+/// The skill's trigger, in its frontmatter and the site's skill index.
+fn skill_description() -> String {
+    format!(
+        "Fetches live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data."
+    )
+}
+
 /// The Agent Skill: a pointer to llms.txt and the series flow, for agents that don't know Bitview.
-fn render_skill(flow: &str) -> String {
+fn render_skill(description: &str, flow: &str) -> String {
     format!(
         "---\n\
-name: bitview\n\
-description: \"Fetches live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data.\"\n\
+name: {SKILL}\n\
+description: \"{description}\"\n\
 ---\n\n\
 # Bitview\n\n\
 Bitview is a Bitcoin data API read from a full node. {ACCESS} Start from {BASE_URL}/llms.txt; {BASE_URL}/llms-full.txt is the full API reference. Call the REST API at {BASE_URL} directly.\n\n\
@@ -153,6 +173,52 @@ For a series:\n\n\
 {flow}\n\
 {SERIES_RULE}\n"
     )
+}
+
+/// The site's skill index, per the agent-skills discovery RFC v0.2.0: the digest is of the
+/// served SKILL.md's bytes, its url relative to the index.
+fn render_skill_index(description: &str, skill: &str) -> io::Result<String> {
+    let digest =
+        Sha256::digest(skill.as_bytes())
+            .iter()
+            .fold(String::from("sha256:"), |mut hex, byte| {
+                write!(hex, "{byte:02x}").unwrap();
+                hex
+            });
+    pretty(&json!({
+        "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+        "skills": [{
+            "name": SKILL,
+            "type": "skill-md",
+            "description": description,
+            "url": format!("{SKILL}/SKILL.md"),
+            "digest": digest,
+        }],
+    }))
+}
+
+/// The Claude Code plugin: the skill beside the MCP server, versioned with the API.
+fn render_plugin(version: &str) -> io::Result<String> {
+    pretty(&json!({
+        "name": SKILL,
+        "displayName": "Bitview",
+        "version": version.trim_start_matches('v'),
+        "description": format!("Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS}"),
+        "author": { "name": "Bitview" },
+        "homepage": BASE_URL,
+        "repository": REPOSITORY,
+        "license": "MIT",
+        "privacyPolicyUrl": format!("{MCP_URL}privacy"),
+        "keywords": ["bitcoin", "blockchain", "on-chain", "mempool", "mining", "market-data"],
+        "mcpServers": { "bitview": { "type": "http", "url": MCP_URL } },
+    }))
+}
+
+fn pretty(value: &Value) -> io::Result<String> {
+    let mut content = to_string_pretty(value)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+    content.push('\n');
+    Ok(content)
 }
 
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
@@ -214,9 +280,10 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 - [Python](https://pypi.org/project/bitview-client/)\n\
 - [Rust](https://crates.io/crates/bitview_client)\n\n\
 ## Agent Skill\n\n\
-- [SKILL.md]({BASE_URL}/skills/bitview/SKILL.md), also in the repository's `skills/bitview`\n\n\
+- [SKILL.md]({BASE_URL}/{SKILLS_PATH}/{SKILL}/SKILL.md), listed in the [skill index]({BASE_URL}/{SKILLS_PATH}/index.json)\n\
+- Claude Code plugin with the skill and the MCP server: `claude plugin marketplace add bitcoinresearchkit/mono`, then `claude plugin install {SKILL}@{SKILL}`\n\n\
 ## Source\n\n\
-- [GitHub](https://github.com/bitcoinresearchkit/mono)\n\
+- [GitHub]({REPOSITORY})\n\
 - MIT licensed\n",
         endpoints.len(),
     )
