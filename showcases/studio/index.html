@@ -15847,7 +15847,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
       const KEPT_LOADS = 100;
-      /** @type {Map<string, Promise<{ start: number, data: any[], times: number[], version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: readonly any[], times: number[], version: number }>>} */
       const loads = new Map();
       /**
        * The points at a series' end a new block can still change, by interval (the server's own margins: `cache_class`,
@@ -15858,7 +15858,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Fetched again as a block comes, with the series at hand (`held`): only the tail a block can change, from where it
        * starts on (`to` its end), joined to the rest. Null without one to join to, or once the server has computed the
        * series anew (its version moved on): then it comes whole.
-       * @param {any} endpoint @param {string} index @param {{ start: number, data: any[], version: number } | null} held @param {number} [to]
+       * @param {any} endpoint @param {string} index @param {{ start: number, data: readonly any[], version: number } | null} held @param {number} [to]
        */
       async function refetchTail(endpoint, index, held, to = undefined) {
         if (!held?.data.length) return null;
@@ -15903,7 +15903,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
       /** The chunk the latest points are in, by the clock. */
       const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
-      /** @type {Map<string, Promise<{ start: number, data: any[], version: number }>>} */
+      /** @type {Map<string, Promise<{ start: number, data: readonly any[], version: number }>>} */
       const chunks = new Map();
       /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
       const failedChunks = new Set();
@@ -20690,8 +20690,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return ends;
       }
       /** Those ends, dotted in the line's color (faint with it), a little wider than it. */
-      function paintEnds(context, /** @type {{ x: number, y: number, i: number }[]} */ ends, /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null, faint?: boolean }} */ look) {
-        context.globalAlpha = look.faint ? FAINT : 1;
+      function paintEnds(context, /** @type {{ x: number, y: number, i: number }[]} */ ends, /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ look, faint = false) {
+        context.globalAlpha = faint ? FAINT : 1;
         for (const { x, y, i } of ends) {
           context.fillStyle = look.at?.(i) ?? look.color;
           context.beginPath();
@@ -21214,9 +21214,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         constructor(layer, series) {
           this.layer = layer;
           this.series = series;
-          /** The view moved, or something it shows changed, since what it shows was last found (see fresh). */
-          this.stale = true;
-          this.update = () => engine.invalidate(true);
+          /** The pane and timeline whose drawing geometry is kept (see fresh). @type {{ pane: import("/modules/bitview-charts/pane.js").Pane | undefined, changes: number | undefined, from: number, spacing: number, width: number, times: ArrayLike<number> } | null} */
+          this.view = null;
+          this.update = () => ((this.view = null), engine.invalidate(true));
           /** @type {{ drawing: Drawing, points: { x: number, y: number }[], box: { left: number, top: number, right: number, bottom: number } | null }[]} */
           this.shown = [];
           this.size = { width: 0, height: 0 };
@@ -21228,7 +21228,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.markOrder = "bottom";
           /** A trend's segments' ends, dotted (where one starts after a switch, or ends before one), as the series draws. @type {{ x: number, y: number, i: number }[]} */
           this.ends = [];
-          this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null, faint?: boolean }} */ ({ color: "", radius: 1.5 });
+          this.endsLook = /** @type {{ color: string, radius: number, at?: ((i: number) => string) | null }} */ ({ color: "", radius: 1.5 });
           /** Its axes' tags, found once a view (read again as the axes are drawn). @type {AxisTag[] | null} */
           this.priceTags = null;
           /** @type {AxisTag[] | null} */
@@ -21236,12 +21236,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Its layers on its series' pane, on its side: the halvings under every series (its pane with no fill to draw
           // them over); just over its series, a trend's ends and the halvings over its fill; over everything (the crosshair
           // too), the halvings' names and its drawings, their values and dates on the axes. Each pane's view the plot's
-          // size (see sizeOf). Brought up to the view before each draw (see viewed).
+          // size (see sizeOf). Brought up to the view as first read (see fresh).
           const size = { width: 0, height: 0 }, sizeOf = (/** @type {{ time: { width: number }, scale: { height: number } }} */ at) => ((size.width = at.time.width), (size.height = at.scale.height), size);
-          const under = new Custom({ draw: (g, at) => void (this.fresh().markOrder === "bottom" && this.marks.length && paintHalvings(g, sizeOf(at), this.marks)), viewed: () => this.viewed() }, { behind: true });
+          const under = new Custom({ draw: (g, at) => void (this.fresh().markOrder === "bottom" && this.marks.length && paintHalvings(g, sizeOf(at), this.marks)) }, { behind: true });
           const beside = new Custom({
             draw: (g, at) => {
-              if (this.fresh().ends.length) paintEnds(g, this.ends, this.endsLook);
+              if (this.fresh().ends.length) paintEnds(g, this.ends, this.endsLook, fadedNow.has(this.layer));
               if (this.markOrder === "normal" && this.marks.length) paintHalvings(g, sizeOf(at), this.marks);
             },
           });
@@ -21263,15 +21263,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           );
           for (const custom of [under, beside, over]) ownLayer(series, custom);
         }
-        /** The view moved, or what it shows changed: found again as it's next read. */
-        viewed() {
-          this.stale = true;
-          this.priceTags = this.timeTags = null;
-        }
         /** What it shows as things are now: found once a view, as its layers, its tags or a hit read it. */
         fresh() {
-          if (!this.stale) return this;
-          this.stale = false;
+          const time = engine.time, view = this.view, pane = view?.pane ?? engine.panes[seriesPane(this.series)];
+          if (view && view.changes === pane?.changes && view.from === time.from && view.spacing === time.spacing && view.width === time.width && view.times === time.times) return this;
+          this.view = { pane, changes: pane?.changes, from: time.from, spacing: time.spacing, width: time.width, times: time.times };
+          this.priceTags = this.timeTags = null;
           const line = timeLine(), series = this.series;
           // (Once a pane, the lowest pane's with their words: over its frontmost fill, a cloud's, an area's, bars, candles,
           // so none hides them; under the lines in front of it. No fill: under every series.)
@@ -21287,7 +21284,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (this.ends.length && own) {
             // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
             const painted = paintedLayers.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
-            this.endsLook = { color: series?.engine.color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (op < 1 ? alpha(dated(i), op) : dated(i)) : null, faint: fadedNow.has(own.id) };
+            this.endsLook = { color: series?.engine.color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (op < 1 ? alpha(dated(i), op) : dated(i)) : null };
           }
           this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
             const points = onScreen(drawing, series, line);
@@ -22489,7 +22486,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's (`kind`, see viewProfile): its holder groups and their colors, each one's day last shown (`last`), its
        * shares' colors (in profit, in loss), its close's line's (`mark`) and the card's (`halo`); its close and share in
        * profit (`shares`, see profileShares).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cumulative: boolean, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cumulative: boolean, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, profit?: { grid: ReturnType<typeof heatGrid>, close: number, days: (HeatDay | undefined)[], share: number | null }, shares?: { close: number, share: number }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how, read by its layer's drawing (see Heat).
@@ -22582,7 +22579,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return { amount: `${change < 0 ? "−" : "+"}${Math.abs(change).toFixed(1)}% ${format(total, look.measure === "supply" ? "btc" : "usd")}`, at: "" };
           }
         }
-        const close = profileClose(shown), share = close > 0 ? profileShare(shown, grid, close) : null;
+        const close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
         return share === null ? null : { amount: `${share}% in profit`, at: "" };
       }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
@@ -22720,9 +22717,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
       /**
        * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent, rounded;
-       * none, no coins. @param {ReturnType<typeof profileDays>} shown @param {NonNullable<HeatLook["grid"]>} grid @param {number} close
+       * none, no coins. Kept while its days, grid and close are the same: a crosshair reads the view's day too.
+       * @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} close
        */
-      function profileShare(shown, grid, close) {
+      function profileShare(heat, shown, close) {
+        const grid = /** @type {NonNullable<HeatLook["grid"]>} */ (heat.grid), had = heat.profit;
+        if (had && had.grid === grid && had.close === close && had.days.length === shown.length && shown.every((item, k) => item?.day === had.days[k])) return had.share;
         let under = 0, all = 0;
         for (const item of shown) {
           if (!item) continue;
@@ -22736,7 +22736,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           for (let k = 0; k < rows.length; k++) (all += supply[k]), k < cut && (under += supply[k]);
         }
-        return all > 0 ? Math.round((100 * under) / all) : null;
+        const share = all > 0 ? Math.round((100 * under) / all) : null;
+        heat.profit = { grid, close, days: shown.map((item) => item?.day), share };
+        return share;
       }
       /**
        * A profile (see heatLike), as its library Profile is drawn (told before each draw): the view's last day (see
@@ -22782,7 +22784,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         heat.keep = keep;
         if (wanted.length) (heatWants.set(heat.id, wanted), heatPumping || ((heatPumping = true), queueMicrotask(heatPump)));
         else heatWants.delete(heat.id);
-        const share = close > 0 ? profileShare(days, grid, close) : null;
+        const share = close > 0 ? profileShare(heat, days, close) : null;
         if (share === null) return void (shown(undefined), show([]));
         shown({ close, share });
         const groups = days.flatMap((item) => (item ? [{ id: item.cohort.id, rows: item.day.rows, values: amountsOf(item.day, heat.measure), gain: item.cohort.gain, loss: item.cohort.loss, dimGain: item.cohort.dimGain, dimLoss: item.cohort.dimLoss }] : []));

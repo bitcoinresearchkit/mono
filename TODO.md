@@ -39,42 +39,11 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - bitview-charts, Codex's review of the whole library (2026-11-01): done in two commits (b8f0aa256, then the
   second: Bars.distance gone, one firstFrom, stale comments).
-- Studio's chart code, Codex's review (2026-11-01; full report: scratchpad codex/studio1/out). To fix, in batches
-  (each: fresh test, type checks, 79-preset sweep, phone sweep, Codex on the diff, commit). Lines as of ac6dbc585:
-  - Batch 1 committed (804a3cc8d); batch 2 committed after it ((3) every LWC geometry place, previewShown's
-    ±0.5 for saved views; (4) a pinned crosshair put back after a live tick; (5) the close line colored candle by
-    candle). Left: batch 3 (per-frame work, below), then going live.
-  - Batch 1 as made: (1), (2), (7) (Shade `behind` by default in the library), (9), (10),
-    (14); (8) kept, its comment fixed (a histogram's below-base palette is made with its data: a color edit needs
-    it). Type checks clean, 79 presets 0 errors; Codex on the diff (scratchpad codex/studio2/out); then phone, commit.
-  - Batch 1 as found: (1) stacksMade's key (~23502) lacks layer type and `from`: a layer made bubbles on
-    another stays in the stack; (2) the timeline trim (~16159) slices every column but `closes` (heatmaps' closes off
-    by `first` points); (7) Shading's Shade not `behind` (~18523): it can paint over series; (8) histograms excluded
-    from kept data (~17232, ~17065: an LWC-era rule; Bars has columns now); (9) candles' `dated` unreachable (~17122,
-    ~17203, ~16761); (10) LWC comments (~16319 Chart.#sync, ~17149 shading overlay, ~22275 field merge); (14)
-    updateValues called twice (~17473 with updateLegends ~17910), dashFor (~18914) and dashesOf (~20443) the same
-    five dashes.
-  - Batch 2 plan for (3), read 2026-11-01: the library puts point i at (i - from) * spacing (LWC: (i - from + 0.5),
-    a range one bar longer). Fix four: presetWindow (~17582: to = n-1 + gap/spacing, from = to - width/spacing; same
-    intent, first point's middle `room` in, last's `gap` from the end), lastShown (~17667: Math.ceil(to), the
-    library's tags' rule), firstInView (~17673: Math.floor(from), the library's #from), the span glide (~36085:
-    first - 0.5 to last + 0.5, whole bars). previewShown's ±0.5 (~24115) is already right for the library.
-  - Batch 2, to look at closely: (3) Studio's range maths (~17583, ~17670) use LWC's bar geometry (n-1, half a bar),
-    the library's Timeline doesn't: lead and gap off by a few px, the resting legend reading point 10 where tags read
-    11; (4) a live tick doesn't re-anchor a pinned crosshair after the scale refits (~39826: holdCross); (5) candles'
-    close line tinted by the view's last candle (~16764), wrong when the tag reads the crosshair's candle; (6) bandAt
-    (~17817) can override the library's hit with a nearer value at the rounded point: fixed (2026-11-02), each line's
-    stroke measured against its drawing (Pane.distanceOf).
-  - Batch 3 measured first (2026-11-01), left as is: a crosshair move costs 0.045 ms median in Chromium over 48
-    presets (worst the profiles: Supply profile by age band 0.31, by holder group 0.24), on the phone 0.2 ms (the
-    price) to 0.87 (the 24-band stack): what (15)–(17) could save is a part of that, a few percent of a frame
-    (scratchpad n437/cross.mjs, phone-cross.mjs; cross-before.txt).
-  - Batch 3 as found, per-frame work: (15) every render marks each Sketch stale (~20990 viewed): crosshair moves recompute
-    drawings, trends' gradient colors (~21012); (16) Heat `fixed` (~18787) redraws its pane at every crosshair move,
-    profile bins rebuilt each time (~22652); (17) profileShare summed twice a move (~22356, ~22598) though its day is
-    the view's last.
-  - Not to do now: Cloud, Heat, stackOf duplicate parts of the library's Band, Grid/Profile, stack (11–13): the
-    question above (one should go).
+- Studio's chart review (2026-11-01), remaining library work: Profile is still `fixed`, rebuilding its bins and
+  redrawing the pane on crosshair-only frames (`modules/bitview-charts/profile.js`, `pane.js`). Excluded from
+  `sandbox/studio-review-fixes`; needs a library change, not a Studio workaround. Heat already uses Grid and profiles
+  use Profile; stacks already delegate their arithmetic to the library. Cloud's custom crossing/color geometry has
+  no reproduced bug or measured reason to replace it.
 - Studio's legend and layers-panel code, Codex's review (2026-11-01; full: scratchpad codex/legend/out).
   Committed (d1917fa27): the two leftovers gone, (2) a picture clears the spotlight, (3) a picture writes a value's
   as-of date. (1) committed after (focus restored after Legend.set). (5) committed after (every layer hidden: the
@@ -91,13 +60,14 @@ Only what's left. An item done is removed: its history is in the commits and log
     line (~2998 height 22px overflow hidden, ~17528).
   - Leftovers: the "pane-layers" click branch (~39264) has no producer; profile captions call fitSoon on legends
     (~17856), whose strip classes legends no longer have.
-  - Repeated work (measure first): profileShare per crosshair move (~22350, ~22553); a percent stack's readout
+  - Repeated work (measure first): a percent stack's readout
     builds stackOf's key once a band (~18235, ~17832; bandAt calls stackOf before checking the pane is stacked,
     ~17807); figuresRoom each move (~19638); readouts found and written for hidden legends (~18207).
-- Left from that review, not started: a transparent `under` half of a line still hit (recorder keeps a gradient's
-  whole stroke: strokes would need the clip, line.js ~596, recorder.js ~186); marks ignore their host's overlay scale
-  (marks.js ~145: Studio has none); tiny ranges (1e-310) overflow the zoomed-out slope in line.js ~430 and band.js
-  ~301 (scale.js divides first); unused re-exports (kept: the library's API); the curve control points' one line (line, band: left).
+- Left from the 2026-11-01 chart review, in `modules/bitview-charts` (excluded from Studio's review fixes):
+  transparent `under` halves of lines still hit (recorder treats a gradient's whole stroke as painted); Marks uses its
+  own side's scale rather than its host's overlay; Line/Band's slope overflows for ranges around 1e-310 while Scale.y
+  divides the offset first. Reproduced by geometry probes on 2026-11-10; no Studio workaround. Studio's mark-target
+  filter excludes overlay hosts. Public re-exports are retained as API; the curve-control formatting is not a defect.
 - Decided (2026-11-02): Studio onto the library's Grid, Profile and stack. The stack done (committed after: the
   library's stack makes tops, feet and scale; Studio's stackOf calls it; every stacked preset's columns identical).
   Heatmaps onto Grid committed (2026-11-02). Profiles onto Profile committed after. Next: the cumulative
