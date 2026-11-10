@@ -82,6 +82,7 @@ unsafe impl Bytes for EmptyAddressData {
     }
 
     fn from_bytes(bytes: &[u8]) -> VecdbResult<Self> {
+        Self::validate_length(bytes)?;
         Ok(Self {
             tx_count: u32::from_bytes(&bytes[0..4])?,
             funded_txo_count: u32::from_bytes(&bytes[4..8])?,

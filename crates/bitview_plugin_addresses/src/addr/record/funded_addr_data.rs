@@ -61,9 +61,14 @@ impl CentsSats96 {
             high.wrapping_sub(value_high) as u32,
         ];
     }
+}
+
+// SAFETY: three u32 words occupy 12 bytes; each word is encoded explicitly, not in native layout.
+unsafe impl Bytes for CentsSats96 {
+    type Array = [u8; 12];
 
     #[inline]
-    fn to_bytes(self) -> [u8; 12] {
+    fn to_bytes(&self) -> Self::Array {
         let mut bytes = [0; 12];
         bytes[0..4].copy_from_slice(&self.0[0].to_le_bytes());
         bytes[4..8].copy_from_slice(&self.0[1].to_le_bytes());
@@ -73,6 +78,7 @@ impl CentsSats96 {
 
     #[inline]
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Self::validate_length(bytes)?;
         Ok(Self([
             u32::from_bytes(&bytes[0..4])?,
             u32::from_bytes(&bytes[4..8])?,
@@ -301,6 +307,7 @@ unsafe impl Bytes for FundedAddressData {
     }
 
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Self::validate_length(bytes)?;
         Ok(Self {
             received: Sats::from_bytes(&bytes[0..8])?,
             sent: Sats::from_bytes(&bytes[8..16])?,
