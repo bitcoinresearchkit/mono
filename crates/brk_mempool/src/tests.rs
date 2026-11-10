@@ -173,8 +173,9 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
             visited[m.as_usize()] = true;
         }
         let order = cluster::load(txs, &component, &mut graph);
-        graph.linearize(|local, rate| {
-            chunks.push_chunk(local.iter().map(|&l| order[u32::from(l) as usize]), rate);
+        graph.linearize(|local, _| {
+            let members = local.iter().map(|&l| order[u32::from(l) as usize]);
+            chunks.push_chunk(members.clone(), cluster::paid_rate(txs, members));
         });
         chunks.end_component();
     }
@@ -998,5 +999,102 @@ fn ranked_projection_preserves_paid_fees_and_template_order() {
             assert!(Arc::ptr_eq(rebuilder.snapshot(), &snap));
             previous = Some(snap);
         }
+    }
+}
+
+/// At every boundary, compare the incremental residual operation to a pool physically rebuilt
+/// from survivors. This reference uses no old component identities, edges, chunk sums or ties.
+#[test]
+fn successive_blocks_match_fresh_surviving_pools() {
+    for round in 0..120 {
+        let mut txs = pool(30 + round % 10);
+        for (i, tx) in txs.iter_mut().enumerate() {
+            tx.weight = Weight::from(100_000 + ((i * 389_173 + round * 1_973) % 1_700_000) as u64);
+            tx.vsize = VSize::from(tx.weight);
+            tx.sigops = SigOps::new(if i % 9 == 0 { 30_000 } else { 0 });
+            // Equal-rate runs, promoted and below-floor chunks across chains/fans/diamonds.
+            tx.modified = match (i + round) % 7 {
+                0 => -10_000,
+                1 => 0,
+                2..=4 => u64::from(tx.sigops.adjust_weight(tx.weight)) as i64,
+                _ => i as i64 * 1_000_000,
+            };
+        }
+        // Prefix exclusion represents GBT; no exclusion represents its local fallback.
+        let mut consumed: Vec<bool> = (0..txs.len()).map(|i| i < round % 4).collect();
+        let slots = if round % 2 == 0 { 8 } else { 7 };
+        let projected = partition(&txs, &chunks(&txs), &consumed, slots, &mut ChunkCache::default());
+        assert!(projected.blocks.len() <= slots);
+        for (block_index, block) in projected.blocks.iter().enumerate() {
+            let survivors: Vec<usize> = (0..txs.len()).filter(|&i| !consumed[i]).collect();
+            let mut remap = vec![usize::MAX; txs.len()];
+            for (local, &old) in survivors.iter().enumerate() { remap[old] = local; }
+            let fresh: Vec<SnapTx> = survivors.iter().map(|&old| {
+                let mut tx = txs[old].clone();
+                tx.parents = tx.parents.iter().filter(|p| !consumed[p.as_usize()]).map(|p| TxIndex::from(remap[p.as_usize()])).collect();
+                tx.children = tx.children.iter().filter(|c| !consumed[c.as_usize()]).map(|c| TxIndex::from(remap[c.as_usize()])).collect();
+                tx
+            }).collect();
+            let reference = partition(&fresh, &chunks(&fresh), &vec![false; fresh.len()], slots - block_index, &mut ChunkCache::default());
+            let expected: Vec<(Txid, FeeRate)> = reference.blocks[0].iter().map(|&(m, r)| (fresh[m.as_usize()].txid, r)).collect();
+            let actual: Vec<(Txid, FeeRate)> = block.iter().map(|&(m, r)| (txs[m.as_usize()].txid, r)).collect();
+            assert_eq!(actual, expected, "round {round}, block {block_index}");
+            for &(member, _) in block { assert!(!consumed[member.as_usize()]); consumed[member.as_usize()] = true; }
+        }
+        assert!(consumed.into_iter().all(|c| c));
+    }
+}
+
+#[test]
+fn residual_siblings_split_after_local_and_gbt_boundaries() {
+    let mut txs = pool(23);
+    for (i, tx) in txs.iter_mut().enumerate() {
+        let (weight, fee) = match i {
+            0 => (400, 10_000),
+            1 => (2_000, 10),
+            2 => (400, 1),
+            3..=12 => (399_080, 50_000),
+            _ => (399_080, 30_000),
+        };
+        tx.weight = Weight::from(weight as u64);
+        tx.vsize = VSize::from(tx.weight);
+        tx.sigops = SigOps::ZERO;
+        tx.modified = fee;
+        tx.fee = Sats::from(fee as u64);
+        tx.parents.clear();
+        tx.children.clear();
+    }
+    txs[0].children = [TxIndex::from(1), TxIndex::from(2)].into_iter().collect();
+    txs[1].parents.push(TxIndex::from(0));
+    txs[2].parents.push(TxIndex::from(0));
+    let linearized = chunks(&txs);
+    let local = partition(&txs, &linearized, &vec![false; txs.len()], 8, &mut ChunkCache::default());
+    let position = |projection: &crate::snapshot::partition::Projection, member| projection.blocks.iter().position(|b| b.iter().any(|&(m, _)| m == TxIndex::from(member))).unwrap();
+    assert_eq!(position(&local, 0), 0);
+    assert_eq!(position(&local, 2), 1);
+    assert_eq!(position(&local, 1), 2);
+    let mut excluded = vec![false; txs.len()];
+    for &(m, _) in &local.blocks[0] { excluded[m.as_usize()] = true; }
+    let gbt = partition(&txs, &linearized, &excluded, 7, &mut ChunkCache::default());
+    assert_eq!(gbt.blocks, local.blocks[1..]);
+}
+
+/// Exact capacity boundaries are strict; the mining floor is inclusive and independent of the
+/// rolling relay floor. Below-floor and individually unmineable transactions remain backlog.
+#[test]
+fn projection_keeps_strict_resources_and_signed_floor() {
+    for (weight, sigops, fee, mineable) in [
+        (3_991_999, 0, 1_000_000, true), (3_992_000, 0, 1_000_000, false),
+        (400, 79_599, 1_000_000, true), (400, 79_600, 1_000_000, false),
+        (4_000, 0, 1, true), (4_004, 0, 1, false),
+        (400, 0, 0, false), (400, 0, -1, false),
+    ] {
+        let mut txs = pool(1);
+        txs[0].weight = Weight::from(weight as u64);
+        txs[0].sigops = SigOps::new(sigops);
+        txs[0].modified = fee;
+        let projection = partition(&txs, &chunks(&txs), &[false], 8, &mut ChunkCache::default());
+        assert_eq!(projection.blocks.len(), 1);
+        assert_eq!(projection.overflow, !mineable, "weight {weight}, sigops {sigops}, fee {fee}");
     }
 }
