@@ -111,8 +111,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Consider loading hidden flow windows only when selected, while retaining formula dependencies and link/export behavior. One local cached-proxy sample of Coin age → Over an age → Over 1 year old → Realized → Gross profit and loss rose from 50 to 194 distinct series requests when expanded from month-only to four windows (5.2 to 9.5 s to draw; not a benchmark). Cost trace: `_notes/studio-technical/cutoff-window-cost.json`.
-
 - Consider one window selector for every windowed stack, replacing separate 24h/1w/1m/1y presets tree-wide. The cohort-share draft exposes 60 multi-window stack groups (about 180 presets saved); preserve old preset addresses and carry the selected window through shared links, saved charts, previews and history. Keep this out of the share additions.
 
 - Decide a tree-wide share/absolute pairing pass: baseline audit of 1,360 direct-share presets found 45 without a matching absolute on the chart or in its folder (31 missing, 14 only a per-block average); examples: Holders › Compare › Share in profit, and Network › Transactions › Features › Compare. Keep this outside the cohort-flow additions; audit in `_notes/studio-technical/existing-share-audit.json`.
