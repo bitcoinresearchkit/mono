@@ -103,9 +103,10 @@ impl Snapshot {
                 .ok()
                 .map(|i| modified_fees[i].1)
         };
-        let mut snap_txs: Vec<SnapTx> = records()
-            .map(|(_, record)| Self::live_tx(record, modified_of(&record.entry.txid)))
-            .collect();
+        let mut snap_txs = Vec::with_capacity(n);
+        snap_txs.extend(records().map(|(_, record)| {
+            Self::live_tx(record, modified_of(&record.entry.txid))
+        }));
         // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
         // return after its child arrived), each checked by its full txid.
         let pooled = txs.len();
