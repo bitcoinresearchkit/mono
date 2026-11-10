@@ -91,6 +91,7 @@ unsafe impl Bytes for FundedAddressDataCompact {
     }
 
     fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        Self::validate_length(bytes)?;
         Ok(Self {
             received: u64::from_bytes(&bytes[0..8])?,
             sent: u64::from_bytes(&bytes[8..16])?,

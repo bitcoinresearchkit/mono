@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{Error, Result};
 
 pub mod array;
 pub mod numeric;
@@ -29,4 +29,16 @@ pub unsafe trait Bytes: Sized {
     fn to_bytes(&self) -> Self::Array;
 
     fn from_bytes(bytes: &[u8]) -> Result<Self>;
+
+    /// Checks that `bytes` contains one value before a composite decoder slices its fields.
+    #[inline]
+    fn validate_length(bytes: &[u8]) -> Result<()> {
+        if bytes.len() != size_of::<Self>() {
+            return Err(Error::WrongLength {
+                expected: size_of::<Self>(),
+                received: bytes.len(),
+            });
+        }
+        Ok(())
+    }
 }

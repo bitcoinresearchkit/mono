@@ -110,6 +110,7 @@ macro_rules! ohlc {
             }
 
             fn from_bytes(bytes: &[u8]) -> VecdbResult<Self> {
+                Self::validate_length(bytes)?;
                 Ok(Self {
                     open: <$price>::from_bytes(&bytes[0..8])?,
                     high: <$price>::from_bytes(&bytes[8..16])?,
