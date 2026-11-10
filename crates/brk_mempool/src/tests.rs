@@ -1074,3 +1074,50 @@ fn block_diff_reconstructs_current_bodies() {
         }
     }
 }
+
+/// Priority-only changes invalidate projection reuse without changing paid totals, including
+/// signed-64 extremes and clearing the authoritative map. GBT order remains the node's.
+#[test]
+fn ranked_projection_preserves_paid_fees_and_template_order() {
+    let mut state = State::default();
+    for seed in [1, 2] {
+        let tx = body(seed);
+        let info = MempoolEntryInfo {
+            txid: tx.txid,
+            wtxid: bitcoin::Wtxid::all_zeros(),
+            vsize: VSize::from(tx.weight),
+            weight: tx.weight,
+            fee: tx.fee,
+            first_seen: Timestamp::now(),
+        };
+        state.insert(tx, TxEntry::new(&info, 100, false));
+    }
+    let mut rebuilder = Rebuilder::default();
+    let unloaded = RapidHashSet::default();
+    for template in [None, Some(Vec::new()), Some(vec![txid(1)])] {
+        let mut previous = None;
+        for fees in [vec![(txid(1), 3_150_000_000_000_000), (txid(2), 4_200_000_000_000_000)],
+            vec![(txid(1), i64::MAX), (txid(2), i64::MIN)], Vec::new()] {
+            rebuilder.tick(&state, template.as_deref(), FeeRate::ZERO, &fees, &unloaded, true);
+            let snap = rebuilder.snapshot().clone();
+            if let Some(previous) = previous { assert!(!Arc::ptr_eq(&snap, &previous)); }
+            let (ranked, _, _) = Snapshot::build_txs(&state.txs, &[], &fees, &mut ChunkCache::default());
+            let paid: u64 = ranked.iter().map(|tx| u64::from(tx.fee)).sum();
+            assert_eq!(paid, 3_000);
+            for tx in &ranked {
+                let expected = fees.iter().find(|(id, _)| *id == tx.txid).map_or(u64::from(tx.fee) as i64, |&(_, f)| f);
+                assert_eq!(tx.modified, expected);
+            }
+            let first = if let Some(template) = &template {
+                assert_eq!(snap.block0_txids().collect::<Vec<_>>(), *template);
+                snap.served_blocks().get(1).and_then(|b| b.content.bodies.first()).map(|tx| tx.txid)
+            } else { snap.block0_txids().next() };
+            if template.as_ref().is_none_or(|t| t.is_empty()) {
+                assert_eq!(first, Some(if fees.get(1).is_some_and(|&(_, fee)| fee == i64::MIN) { txid(1) } else { txid(2) }));
+            }
+            rebuilder.tick(&state, template.as_deref(), FeeRate::ZERO, &fees, &unloaded, true);
+            assert!(Arc::ptr_eq(rebuilder.snapshot(), &snap));
+            previous = Some(snap);
+        }
+    }
+}

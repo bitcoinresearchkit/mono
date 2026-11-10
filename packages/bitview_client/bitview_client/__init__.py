@@ -1559,7 +1559,7 @@ class MempoolBlockContent(TypedDict):
     """
     A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
     `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
-    from base fees within Core's default budgets. Returned by
+    ranked by signed modified fees within Core's default budgets, with paid-fee statistics. Returned by
     `GET /api/mempool-blocks/{index}`.
 
     Attributes:
@@ -6749,7 +6749,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_blocks(self) -> List[MempoolBlock]:
         """Projected mempool blocks.
 
-        Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), from base fees (a node operator's `prioritisetransaction` deltas and mining options shape block 0 only). The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
+        Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`; mining options shape block 0 only), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
 

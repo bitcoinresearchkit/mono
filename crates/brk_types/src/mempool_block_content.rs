@@ -6,7 +6,7 @@ use crate::{MempoolBlock, MempoolBlockHash, Transaction};
 
 /// A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
 /// `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
-/// from base fees within Core's default budgets. Returned by
+/// ranked by signed modified fees within Core's default budgets, with paid-fee statistics. Returned by
 /// `GET /api/mempool-blocks/{index}`.
 // `Txs` holds the bodies: owned by default, a view of the published ones when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]

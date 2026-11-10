@@ -60,8 +60,8 @@ pub struct Snapshot {
     /// reuses it.
     pub(crate) template_only: Box<[u64]>,
     pub(crate) unloaded: RapidHashSet<Txid>,
-    /// The operator's fee deltas it ranked by: a rebuild under the same ones reuses it.
-    pub(crate) fee_deltas: Box<[(Txid, i64)]>,
+    /// The node's signed modified fees it ranked by: a rebuild under the same ones reuses it.
+    pub(crate) modified_fees: Box<[(Txid, i64)]>,
     /// The served bodies of the fee tiers and every block's stats, serialized by the
     /// first request after publication.
     fees_json: OnceLock<JsonBody>,
@@ -124,7 +124,7 @@ impl Snapshot {
             template_missing: false,
             template_only: Box::default(),
             unloaded: RapidHashSet::default(),
-            fee_deltas: Box::default(),
+            modified_fees: Box::default(),
             fees_json: OnceLock::new(),
             precise_fees_json: OnceLock::new(),
             blocks_json: OnceLock::new(),

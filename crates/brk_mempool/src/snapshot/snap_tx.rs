@@ -12,8 +12,8 @@ pub struct SnapTx {
     pub txid: Txid,
     /// What it pays: shown, and summed into a block's fees.
     pub fee: Sats,
-    /// What Core's block builder ranks it by: `fee` plus the operator's `prioritisetransaction`
-    /// delta, negative when that is. Linearization and packing order by it; what's shown (rates,
+    /// What Core's block builder ranks it by: the node's authoritative signed modified fee.
+    /// It defaults to the base fee for entries absent from a successful priority map. Linearization and packing order by it; what's shown (rates,
     /// stats, fee tiers) is what's paid: an operator's own deltas never reach public numbers.
     pub modified: i64,
     pub vsize: VSize,
