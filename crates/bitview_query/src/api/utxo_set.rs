@@ -79,7 +79,7 @@ impl Query {
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
         let end = point.end_within(reader.len())?;
-        let state = reader.state_at(end).map_err(updating)?;
+        let state = reader.state_at(end)?;
         if state.hash() != *point.hash {
             return Err(Error::StateUpdating);
         }
@@ -105,11 +105,11 @@ impl Query {
         let reader = view.reader(usize::from(pin.lengths().height))?;
         let end = point.end_within(reader.len())?;
         let first = usize::from(point.first);
-        let mut diffs = reader.diffs(first).map_err(updating)?;
+        let mut diffs = reader.diffs(first)?;
         let mut created = UtxoChanges::default();
         let mut spent = BTreeMap::<u32, (u64, u64)>::new();
         for height in first..end {
-            let diff = diffs.advance().map_err(updating)?.data()?;
+            let diff = diffs.advance()?.data()?;
             created.height.push(Height::from(height));
             created.count.push(diff.created.count);
             created.supply.push(btc(diff.created.sats));
@@ -166,15 +166,5 @@ impl Query {
             date: Date::from(timestamp),
             settled,
         })
-    }
-}
-
-/// A rewind racing a replay hands it another chain's rows, which the journals reject as invalid
-/// data: the state is updating.
-fn updating(error: std::io::Error) -> Error {
-    if error.kind() == std::io::ErrorKind::InvalidData {
-        Error::StateUpdating
-    } else {
-        error.into()
     }
 }
