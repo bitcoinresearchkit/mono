@@ -52,41 +52,72 @@ impl FeeView {
                 (stats, previous.complete)
             }
         };
+        let precise = precise(&stats, min_fee);
         Self {
-            whole: whole(&stats, min_fee),
-            precise: precise(&stats, min_fee),
+            whole: whole(&precise),
+            precise,
             stats,
             complete,
         }
     }
 }
 
-/// mempool.space's `getPreciseRecommendedFee` (backend/src/api/fee-api.ts), its tier formula
-/// over Bitview's projected blocks. One input differs: a block's median is the vsize-weighted
-/// median of its members' effective rates (Core's `getblockstats` rule, as every Bitview median),
-/// where mempool.space averages the middle 0.25% of a 4M WU block padded below with its unused
-/// space; the two agree on full blocks. `min_fee` is bitcoind's live `mempoolminfee` in sat/vB
-/// and floors every tier while the mempool is purging by fee.
+/// Queue-based recommendations with fixed, target-specific empirical margins. The base is
+/// mempool.space's tier formula over Bitview's member-vsize-weighted chunk medians (different
+/// from mempool.space's capacity-padded central band). The margin is not a probability promise.
 pub fn precise(stats: &[BlockStats], min_fee: FeeRate) -> PreciseRecommendedFees {
     let fees = recommend(stats, min_fee, PRECISE);
-    PreciseRecommendedFees {
+    with_margin(PreciseRecommendedFees {
         fastest_fee: (fees.fastest_fee + PRIORITY_FACTOR).max(MIN_FASTEST_FEE),
         half_hour_fee: (fees.half_hour_fee + PRIORITY_FACTOR / 2.0).max(MIN_HALF_HOUR_FEE),
         ..fees
-    }
+    })
 }
 
-/// mempool.space's `getRecommendedFee`: the same tiers at whole sat/vB, without
-/// [`precise`]'s priority offsets.
-pub fn whole(stats: &[BlockStats], min_fee: FeeRate) -> RecommendedFees {
-    let fees = recommend(stats, min_fee, WHOLE);
-    let whole = FeeRate::whole_sats;
+/// One curve for both representations; whole quotes round up without recomputing the model.
+fn whole(fees: &PreciseRecommendedFees) -> RecommendedFees {
+    let whole = |rate: FeeRate| {
+        debug_assert_ne!(rate.milli(), u64::MAX, "a finite fee quote");
+        // Round the integer directly: a rounded-up FeeRate could overflow at the finite bound.
+        rate.milli().div_ceil(WHOLE.milli())
+    };
     RecommendedFees {
         fastest_fee: whole(fees.fastest_fee),
         half_hour_fee: whole(fees.half_hour_fee),
         hour_fee: whole(fees.hour_fee),
         economy_fee: whole(fees.economy_fee),
         minimum_fee: whole(fees.minimum_fee),
+    }
+}
+
+/// Ratios fitted to the .95 quantile of required/base on the development capture, with every
+/// label matured before the holdout. Targets are 1, 3, 6 and 144 actual blocks. The capture
+/// does not support a long-target fit, so economy retains its base. No runtime learning or
+/// historical-confirmation guarantee is implied by these fixed margins.
+pub(crate) fn with_margin(fees: PreciseRecommendedFees) -> PreciseRecommendedFees {
+    const MARGINS: [(u64, u64); 4] = [(2006, 1000), (1011, 500), (1000, 341), (1, 1)];
+    let mut rates = [
+        fees.fastest_fee,
+        fees.half_hour_fee,
+        fees.hour_fee,
+        fees.economy_fee,
+    ];
+    for (rate, (numerator, denominator)) in rates.iter_mut().zip(MARGINS) {
+        let milli = (u128::from(rate.milli()) * u128::from(numerator))
+            .div_ceil(u128::from(denominator))
+            // FeeRate reserves u64::MAX as NaN; its finite-bound constant is private.
+            .min(u128::from(u64::MAX - 1));
+        *rate = FeeRate::from_milli(milli as u64).max(fees.minimum_fee);
+    }
+    for i in (0..rates.len() - 1).rev() {
+        rates[i] = rates[i].max(rates[i + 1]);
+    }
+    PreciseRecommendedFees {
+        fastest_fee: rates[0],
+        half_hour_fee: rates[1],
+        hour_fee: rates[2],
+        economy_fee: rates[3],
+        ..fees
     }
 }
 

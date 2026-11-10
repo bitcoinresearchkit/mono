@@ -1,5 +1,63 @@
 use std::sync::Arc;
 
+/// Whole and precise recommendations are two renderings of one curve, including partial
+/// views and a changing relay floor. Margins never invert priorities or produce an invalid rate.
+#[test]
+fn fee_views_share_one_curve() {
+    use crate::snapshot::{
+        block_stats::BlockStats,
+        fees::{FeeView, with_margin},
+    };
+    use brk_types::PreciseRecommendedFees;
+
+    for milli in [1, 100, 1001, 21_000, 1_000_000] {
+        let floor = FeeRate::from_milli(milli);
+        let mut stats = vec![BlockStats::default(); 3];
+        for (i, block) in stats.iter_mut().enumerate() {
+            block.total_weight = Weight::from(3_992_000u64);
+            block.fee_range = [FeeRate::from_milli(milli * (3 - i) as u64); 7];
+        }
+        let complete = FeeView::new(&stats, None, floor);
+        let mut fresh = stats[..1].to_vec();
+        fresh[0].fee_range = [FeeRate::from_milli(milli * 6); 7];
+        let held = FeeView::new(&fresh, Some((&complete, true)), floor);
+        assert_eq!(held.stats[0].fee_range, fresh[0].fee_range);
+        assert_eq!(held.stats[1].fee_range, complete.stats[1].fee_range);
+        for view in [&complete, &held] {
+            let p = &view.precise;
+            let rates = [
+                p.fastest_fee,
+                p.half_hour_fee,
+                p.hour_fee,
+                p.economy_fee,
+                p.minimum_fee,
+            ];
+            assert!(rates.windows(2).all(|pair| pair[0] >= pair[1]));
+            assert!(rates.iter().all(|rate| *rate >= floor));
+            let w = &view.whole;
+            assert_eq!(
+                [
+                    w.fastest_fee,
+                    w.half_hour_fee,
+                    w.hour_fee,
+                    w.economy_fee,
+                    w.minimum_fee
+                ],
+                rates.map(|rate| rate.milli().div_ceil(1000)),
+            );
+        }
+    }
+    let largest = FeeRate::from_milli(u64::MAX - 1);
+    let bounded = with_margin(PreciseRecommendedFees {
+        fastest_fee: largest,
+        half_hour_fee: largest,
+        hour_fee: largest,
+        economy_fee: largest,
+        minimum_fee: largest,
+    });
+    assert_eq!(bounded.fastest_fee.milli(), u64::MAX - 1);
+}
+
 use bitcoin::hashes::Hash;
 use bitcoin::{ScriptBuf, Witness};
 use brk_cpfp::Cluster;
