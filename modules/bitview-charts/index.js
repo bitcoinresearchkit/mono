@@ -89,8 +89,9 @@ export class Chart {
     this.fitting = false;
     /** The axes fitted again at the next frame, narrower too (see fitAxes). */
     this.refit = false;
-    /** The view set anew since the last frame (a timeline, the latest shown): unseen, its axes fitted keep its right end. */
-    this.placed = true;
+    /** Pending view work: data alone keeps screen positions; an explicit placement after it keeps the requested range.
+     * @type {"data" | "range" | null} */
+    this.placed = "range";
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -205,6 +206,7 @@ export class Chart {
    */
   setTimes(times) {
     this.time.setTimes(times);
+    this.placed ??= "data";
     this.#recross();
     this.invalidate(true);
   }
@@ -235,7 +237,7 @@ export class Chart {
     const { from, to } = this.time;
     this.time.show(span);
     this.#stopIfChanged(from, to);
-    this.placed = true;
+    this.placed = "range";
     this.invalidate(true);
   }
 
@@ -250,6 +252,7 @@ export class Chart {
     if (time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
     else time.setRange(from, to);
     this.#stopIfChanged(wasFrom, wasTo);
+    if (this.placed) this.placed = "range";
     this.invalidate();
   }
 
@@ -490,7 +493,7 @@ export class Chart {
       if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
         if (this.axis) this.fitted[0] = wantRight;
         if (this.left) this.fitted[1] = wantLeft;
-        this.layout(!this.placed);
+        this.layout(this.placed !== "range");
         const was = this.fitting;
         this.fitting = true;
         try {
@@ -530,7 +533,7 @@ export class Chart {
     const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
     for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
-    this.placed = false;
+    this.placed = null;
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);
       const listeners = this.rangeListeners;
