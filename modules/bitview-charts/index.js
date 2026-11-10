@@ -175,7 +175,7 @@ export class Chart {
     const crosshair = this.crosshair;
     if (crosshair.index !== crosshair.index) return;
     if (this.pointerX === this.pointerX) this.recrossing = true;
-    else this.setCrosshair(crosshair.index, crosshair.y);
+    else this.setCrosshair(crosshair.index, crosshair.y, crosshair.input);
   }
 
   /**
@@ -277,8 +277,8 @@ export class Chart {
     for (let p = 0; p < this.panes.length; p++) if (y >= this.panes[p].top && y < this.panes[p].top + this.panes[p].height) pane = p;
     // (Its pane by itself, not its place: one removed, the next in its place is another.)
     const inPane = pane >= 0 ? this.panes[pane] : null;
-    const moved = (k !== crosshair.index || y !== crosshair.y || inPane !== this.crossedPane || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
-    (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.crossedPane = inPane), (this.pointerX = x);
+    const moved = (k !== crosshair.index || y !== crosshair.y || inPane !== this.crossedPane || input !== crosshair.input || (x === x && x !== this.pointerX)) && !(k !== k && crosshair.index !== crosshair.index);
+    (crosshair.input = input), (crosshair.index = k), (crosshair.y = y), (crosshair.pane = pane), (this.crossedPane = inPane), (this.pointerX = x);
     const within = pane >= 0 ? y - this.panes[pane].top : NaN, at = x === x ? x : k === k ? this.time.x(k) : NaN;
     // (A pointer's: the series it's on, found once (at the pointer, not the point), told and its dot marked by it.)
     if (!moved) return void this.invalidate();
