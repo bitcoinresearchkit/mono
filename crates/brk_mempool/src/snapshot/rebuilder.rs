@@ -74,6 +74,7 @@ impl Rebuilder {
             (!complete).then_some(&self.snapshot.fees),
             &mut self.chunks,
             &mut self.leftovers,
+            &self.snapshot,
         );
         self.snapshot = Arc::new(snapshot);
     }
@@ -88,6 +89,7 @@ impl Rebuilder {
         held_fees: Option<&FeeView>,
         cache: &mut ChunkCache,
         leftovers: &mut ChunkCache,
+        previous: &Snapshot,
     ) -> Snapshot {
         let (txs, key_to_idx, chunks) =
             Snapshot::build_txs(&state.txs, &state.template_only, fee_deltas, cache);
@@ -163,7 +165,7 @@ impl Rebuilder {
             min_fee,
             held_fees.map(|held| (held, !packed && !missing)),
         );
-        snapshot.set_served(blocks, state.txs.content_revision(), missing);
+        snapshot.set_served(blocks, state.txs.content_revision(), missing, previous.served_blocks());
         snapshot.template_only = state
             .template_only
             .iter()

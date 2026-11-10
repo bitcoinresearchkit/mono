@@ -7,7 +7,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::{Snapshot, snapshot::ServedBlock};
+use crate::{Snapshot, snapshot::BlockContent};
 
 use super::{Pool, State};
 
@@ -29,7 +29,7 @@ pub struct ReadOnlyState {
     projection_tip: Option<BlockHash>,
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
-    history: VecDeque<(Instant, usize, ServedBlock)>,
+    history: VecDeque<(Instant, usize, BlockContent)>,
 }
 
 impl ReadOnlyState {
@@ -73,15 +73,15 @@ impl ReadOnlyState {
         for (at, index, past) in &mut self.history {
             if outgoing
                 .get(*index)
-                .is_some_and(|block| block.hash == past.hash)
+                .is_some_and(|block| block.content.hash == past.hash)
             {
                 *at = now;
             }
         }
         for (index, block) in graph.served_blocks().iter().enumerate() {
             self.history
-                .retain(|(_, i, past)| (*i, past.hash) != (index, block.hash));
-            self.history.push_back((now, index, block.clone()));
+                .retain(|(_, i, past)| (*i, past.hash) != (index, block.content.hash));
+            self.history.push_back((now, index, block.content.clone()));
         }
         self.history
             .retain(|(at, ..)| now.duration_since(*at) <= HISTORY_AGE);

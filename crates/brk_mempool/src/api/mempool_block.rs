@@ -36,10 +36,10 @@ impl MempoolBlockSource {
     /// Identity of the captured body.
     #[must_use]
     pub fn hash(&self) -> MempoolBlockHash {
-        self.block().hash
+        self.block().content.hash
     }
 
-    /// The captured block as JSON, never a newer publication's: encoded once per publication.
+    /// The captured block as JSON, never a newer publication's: reusing an equal predecessor's encoding.
     #[must_use]
     pub fn json(&self) -> Arc<[u8]> {
         let block = self.block();
@@ -47,9 +47,9 @@ impl MempoolBlockSource {
             .json
             .get_or_init(|| {
                 let content = MempoolBlockContent {
-                    hash: block.hash,
+                    hash: block.content.hash,
                     stats: self.snapshot.stats(self.index),
-                    transactions: BlockTxs(block.bodies.clone()),
+                    transactions: BlockTxs(block.content.bodies.clone()),
                 };
                 serde_json::to_vec(&content)
                     .expect("mempool blocks serialize")
@@ -83,7 +83,7 @@ impl ReadOnlyState {
         self.snapshot()
             .served_blocks()
             .first()
-            .map_or_else(|| Arc::from([]), |block| block.bodies.clone())
+            .map_or_else(|| Arc::from([]), |block| block.content.bodies.clone())
     }
 
     /// Capture the past side of one diff request against `source`, a block of this
@@ -113,33 +113,40 @@ impl ResolvedMempoolBlockDiff {
             source,
         } = self;
         let block = source.block();
-        let (hash, bodies) = (block.hash, block.bodies.clone());
-        let mut prior_index: RapidHashMap<Txid, u32> = past
-            .iter()
-            .enumerate()
-            .map(|(idx, tx)| (tx.txid, idx as u32))
-            .collect();
+        let (hash, bodies) = (block.content.hash, block.content.bodies.clone());
         let mut entries: Vec<MempoolBlockDiffEntry<usize>> = Vec::new();
-        for (position, tx) in bodies.iter().enumerate() {
-            match prior_index.remove(&tx.txid) {
-                Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
-                    // A kept transaction continuing the previous run extends it.
-                    if let Some(MempoolBlockDiffEntry::Retained(run)) = entries.last_mut()
-                        && run.0 + run.1 == idx
-                    {
-                        run.1 += 1;
-                    } else {
-                        entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(idx, 1)));
-                    }
-                }
-                _ => entries.push(MempoolBlockDiffEntry::New(position)),
+        let removed = if Arc::ptr_eq(&past, &bodies) {
+            if !bodies.is_empty() {
+                entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(0, bodies.len() as u32)));
             }
-        }
-        let removed = past
-            .iter()
-            .filter(|tx| prior_index.contains_key(&tx.txid))
-            .map(|tx| tx.txid)
-            .collect();
+            Vec::new()
+        } else {
+            let mut prior_index: RapidHashMap<Txid, u32> = past
+                .iter()
+                .enumerate()
+                .map(|(idx, tx)| (tx.txid, idx as u32))
+                .collect();
+            for (position, tx) in bodies.iter().enumerate() {
+                match prior_index.remove(&tx.txid) {
+                    Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
+                        // A kept transaction continuing the previous run extends it.
+                        if let Some(MempoolBlockDiffEntry::Retained(run)) = entries.last_mut()
+                            && run.0 + run.1 == idx
+                        {
+                            run.1 += 1;
+                        } else {
+                            entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(idx, 1)));
+                        }
+                    }
+                    _ => entries.push(MempoolBlockDiffEntry::New(position)),
+                }
+            }
+            past
+                .iter()
+                .filter(|tx| prior_index.contains_key(&tx.txid))
+                .map(|tx| tx.txid)
+                .collect()
+        };
         MempoolBlockDiff {
             hash,
             since,
