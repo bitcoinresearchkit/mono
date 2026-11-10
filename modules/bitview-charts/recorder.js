@@ -85,6 +85,7 @@ const recorder = {
     if (force && this.penX === this.penX && (this.penX !== this.startX || this.penY !== this.startY)) this.segment(this.penX, this.penY, this.startX, this.startY);
   },
   closePath() {
+    if (this.penX !== this.penX) return;
     this.closeSub(true);
     (this.penX = this.startX), (this.penY = this.startY);
   },
