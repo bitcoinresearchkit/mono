@@ -847,8 +847,8 @@
         const columns = new Map(sheet ? sheet.header.filter((name) => name !== "timestamp_ms").map((name) => [name, sheet.numbers(name)]) : []);
         return {
           times,
-          /** (seconds, value) points of a column, empty when the run did not record it. */
-          column: (name) => (columns.get(name) ?? []).slice(0, times.length).map((v, i) => [times[i], v]),
+          /** A column shares its timestamps; curves pick only the points they display. */
+          column: (name) => ({ times, values: columns.get(name) ?? [] }),
           last: (name) => columns.get(name)?.at(-1) ?? null,
           /** Growth of a cumulative counter over the run: the counters start before bootstrap. */
           growth: (name) => (columns.get(name)?.length ? columns.get(name).at(-1) - columns.get(name)[0] : null),
@@ -863,14 +863,15 @@
        * compute-phase logs in after indexing). */
       function progress(content, file) {
         const sheet = csv(content, file);
-        if (!sheet) return [];
+        if (!sheet) return { times: [], values: [] };
         const times = sheet.numbers("timestamp_ms"), heights = sheet.numbers("height"), sources = sheet.strings("source");
-        const points = [];
+        const points = { times: [], values: [] };
         for (let i = 0; i < Math.min(times.length, heights.length); i++) {
           if (!sources.length) {
-            if (points.length && heights[i] < points.at(-1)[1]) break;
+            if (points.values.length && heights[i] < points.values.at(-1)) break;
           } else if (sources[i] !== "indexer") continue;
-          points.push([times[i] / 1000, heights[i]]);
+          points.times.push(times[i] / 1000);
+          points.values.push(heights[i]);
         }
         return points;
       }
@@ -906,11 +907,30 @@
       }
       /** As Rust rounds: half away from zero. */
       const round = (v, digits) => (Math.sign(v) * Math.round(Math.abs(v) * 10 ** digits)) / 10 ** digits;
-      /** At most `POINTS` of a curve, evenly picked, its first and last kept. */
-      function thin(points) {
-        const pick = (i) => [round(points[i][0], 1), points[i][1]];
-        if (points.length <= POINTS) return points.map((_, i) => pick(i));
-        return Array.from({ length: POINTS }, (_, k) => pick(Math.floor((k * (points.length - 1) + (POINTS - 1) / 2) / (POINTS - 1))));
+      /** Index of the first value at least the boundary, or `end`. */
+      function lowerBound(values, value, end = values.length) {
+        let lo = 0, hi = end;
+        while (lo < hi) {
+          const mid = (lo + hi) >>> 1;
+          if (values[mid] < value) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+      /** At most `POINTS`, chosen directly from columns; a cut ends with an interpolated sample. */
+      function thin(series, end = null) {
+        const { times, values } = series;
+        let length = Math.min(times.length, values.length), last;
+        if (end != null) {
+          last = boundary(times, values, end, length);
+          if (last == null) return [];
+          length = lowerBound(times, end, length) + 1;
+        }
+        const count = Math.min(length, POINTS);
+        return Array.from({ length: count }, (_, k) => {
+          const i = length <= POINTS ? k : Math.floor((k * (length - 1) + (POINTS - 1) / 2) / (POINTS - 1));
+          return i === length - 1 && end != null ? [round(end, 1), last] : [round(times[i], 1), values[i]];
+        });
       }
 
       /** One run, its summaries and curves (the counters', CPU and I/O, cumulative: read as rates when drawn). Its label is
@@ -937,11 +957,11 @@
         const bootstrap = cycles(timed, end);
         const bands = bootstrap.map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) }));
         const firstCompute = bootstrap.find((c) => c.name !== "indexing")?.start ?? end;
-        const indexingHeights = bootstrap[0]?.name === "indexing" ? heights.filter(([t]) => t < firstCompute) : [];
+        const indexingEnd_s = bootstrap[0]?.name === "indexing" ? firstCompute : 0;
         return {
           machine,
           samples,
-          indexingHeights,
+          indexingEnd_s,
           label: folder.slice(machine.length + 1) || "run",
           started_at: startedAt(info),
           status: statusOf(run),
@@ -1170,32 +1190,24 @@
       const COLORS = ["var(--accent)", "light-dark(#2b6ce6, #6ea0ff)"];
       let cross = null;
       /** Linear estimates between recorded samples; never extrapolate. */
-      function boundary(points, value, axis) {
-        let lo = 0, hi = points.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >>> 1;
-          if (points[mid][axis] < value) lo = mid + 1;
-          else hi = mid;
-        }
-        if (lo === points.length || (lo === 0 && points[lo][axis] !== value)) return null;
-        if (points[lo][axis] === value) return points[lo][1 - axis];
-        const a = points[lo - 1], b = points[lo];
-        return a[1 - axis] + (b[1 - axis] - a[1 - axis]) * (value - a[axis]) / (b[axis] - a[axis]);
+      function boundary(keys, values, value, end = keys.length) {
+        const i = lowerBound(keys, value, end);
+        if (i === end || (i === 0 && keys[i] !== value)) return null;
+        if (keys[i] === value) return values[i];
+        return values[i - 1] + (values[i] - values[i - 1]) * (value - keys[i - 1]) / (keys[i] - keys[i - 1]);
       }
+      /** Only initial indexing can set a matched height; later catch-up includes compute work. */
+      const indexingCount = (run) => lowerBound(run.samples.height.times, run.indexingEnd_s);
       const comparisons = new WeakMap();
       function comparisonRun(run, height) {
         if (height == null) return run;
         let cache = comparisons.get(run);
         if (!cache) comparisons.set(run, cache = new Map());
         if (cache.has(height)) return cache.get(height);
-        const end = boundary(run.indexingHeights, height, 1);
+        const { times, values } = run.samples.height;
+        const end = boundary(values, times, height, indexingCount(run));
         if (end == null) return null;
-        const curves = Object.fromEntries(Object.entries(run.samples).map(([key, points]) => {
-          const kept = points.filter(([t]) => t < end), value = boundary(points, end, 0);
-          if (value == null) return [key, []];
-          kept.push([end, value]);
-          return [key, thin(kept)];
-        }));
+        const curves = Object.fromEntries(Object.entries(run.samples).map(([key, series]) => [key, thin(series, end)]));
         const view = { ...run, duration_s: end, curves,
           cycles: run.cycles.filter((c) => c.start < end).map((c) => ({ ...c, end: Math.min(c.end, end), indexing: Math.min(c.indexing, end - c.start) })) };
         cache.set(height, view);
@@ -1203,7 +1215,7 @@
       }
       const runName = (run) => `${selected.machine === compared?.machine ? "" : `${machineWords(run.machine)} / `}${rev(run)}`;
       function detail() {
-        const tips = [selected, compared].map((run) => run ? Math.min(run.chain_height ?? Infinity, run.indexingHeights.at(-1)?.[1] ?? NaN) : NaN);
+        const tips = [selected, compared].map((run) => run ? Math.min(run.chain_height ?? Infinity, run.samples.height.values[indexingCount(run) - 1] ?? NaN) : NaN);
         const height = compared && tips.every(Number.isFinite) && !selected.resumed && !compared.resumed
           ? Math.min(...tips) : null;
         const mine = comparisonRun(selected, height), theirs = compared ? comparisonRun(compared, height) : null;
