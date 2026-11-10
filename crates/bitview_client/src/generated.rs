@@ -1685,6 +1685,8 @@ pub mod tree {
     } }
     shape! { Averaged<A, B> at "series().blocks.interval" {
         block: SeriesPattern19<A> = "*",
+        cumulative: SeriesPattern1<A> = "*_cumulative",
+        sum: Windows<A> = "*_sum",
         avg: Windows<B> = "*_avg",
     } }
     shape! { EventCount<A> at "series().addresses.respent.events.active" {

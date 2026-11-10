@@ -113,8 +113,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - Consider one window selector for every windowed stack, replacing separate 24h/1w/1m/1y presets tree-wide. The cohort-share draft exposes 60 multi-window stack groups (about 180 presets saved); preserve old preset addresses and carry the selected window through shared links, saved charts, previews and history. Keep this out of the share additions.
 
-- Decide a tree-wide share/absolute pairing pass: baseline audit of 1,360 direct-share presets found 45 without a matching absolute on the chart or in its folder (31 missing, 14 only a per-block average); examples: Holders › Compare › Share in profit, and Network › Transactions › Features › Compare. Keep this outside the cohort-flow additions; audit in `_notes/studio-technical/existing-share-audit.json`.
-
 - Deployed 673a0d69 (2026-11-02): prod checked in Chromium (79 presets, 0 errors) and Mullvad; the phone not
   connected then: check it on prod once it is.
 - Presets review (you, 2026-11-02: "the best presets tree possible, that shows in the best way everything, uses the
