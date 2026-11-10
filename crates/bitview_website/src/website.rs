@@ -3,6 +3,7 @@ use std::{
     convert::Infallible,
     fmt::{Formatter, Result as FmtResult},
     fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
     result::Result as StdResult,
     str::FromStr,
@@ -128,16 +129,25 @@ impl Website {
             None => {
                 candidates.find_map(|candidate| EMBEDDED.get_file(candidate).map(File::embedded))
             }
-            Some(base) => candidates
-                .map(|candidate| base.join(candidate))
-                .find(|file| file.is_file())
-                .and_then(|file| match fs::read(&file) {
-                    Ok(contents) => Some(File::fresh(contents, &file)),
-                    Err(e) => {
-                        error!("{}: {e}", file.display());
-                        None
+            Some(base) => {
+                let failed = |file: &Path, e: std::io::Error| {
+                    error!("{}: {e}", file.display());
+                    Error::internal("Failed to read website file")
+                };
+                for file in candidates.map(|candidate| base.join(candidate)) {
+                    let metadata = match fs::metadata(&file) {
+                        Ok(metadata) => metadata,
+                        Err(e) if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::NotADirectory) => continue,
+                        Err(e) => return Err(failed(&file, e)),
+                    };
+                    if metadata.is_file() {
+                        return fs::read(&file)
+                            .map(|contents| File::fresh(contents, &file))
+                            .map_err(|e| failed(&file, e));
                     }
-                }),
+                }
+                None
+            }
         };
         file.ok_or_else(|| Error::not_found("File not found"))
     }
