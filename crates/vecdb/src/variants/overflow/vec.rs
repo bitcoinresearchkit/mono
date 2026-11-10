@@ -8,7 +8,7 @@ use crate::{
     AnyStoredVec, AnyVec, BytesVec, Error, Header, ImportOptions, ImportableVec, MutableVec,
     OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
-    Version, WritableVec, base::clear_pushed,
+    Version, WritableVec, base::clear_pushed, vec_region_name_with,
 };
 
 const VERSION: Version = Version::ONE;
@@ -257,15 +257,30 @@ where
             ..options
         };
 
+        // A missing or incompatible half cannot be recovered from the other half's pointers.
+        // Let the owner rebuild its dataset, including both halves and their undo histories.
+        let compact_region = vec_region_name_with::<I>(options.name);
+        let overflow_region = vec_region_name_with::<usize>(&overflow_name);
+        let has_bytes = |name: &str| options.db.region(name)
+            .is_some_and(|region| region.meta().byte_len() > 0);
+        let has_compact = has_bytes(&compact_region);
+        let has_overflow = has_bytes(&overflow_region);
+        if has_compact != has_overflow {
+            return Err(Error::CorruptedRegion {
+                name: if has_compact { overflow_region } else { compact_region },
+                region_len: 0,
+            });
+        }
+
         let unread_updates = options.unread_updates;
-        let mut compact = MutableVec::<BytesVec<_, _>>::import_with(options)?;
-        let mut overflow = MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?;
+        let compact = MutableVec::<BytesVec<_, _>>::import_strict_with(options)?;
+        let overflow = MutableVec::<BytesVec<_, _>>::import_strict_with(overflow_options)?;
 
         if compact.stamp() != overflow.stamp() {
-            compact.reset()?;
-            overflow.reset()?;
-            overflow.write()?;
-            compact.write()?;
+            return Err(Error::StampMismatch {
+                file: overflow.stamp(),
+                vec: compact.stamp(),
+            });
         }
 
         let len = compact.len();

@@ -7,7 +7,7 @@ impl<V> MutableVec<V>
 where
     V: MutableRawVec,
 {
-    fn import_inner(options: ImportOptions) -> Result<Self> {
+    pub(crate) fn import_strict_with(options: ImportOptions) -> Result<Self> {
         let holes = options
             .db
             .region(&Self::holes_region_name_with(options.name))
@@ -40,7 +40,7 @@ where
     V: MutableRawVec,
 {
     fn import_with(options: ImportOptions) -> Result<Self> {
-        match Self::import_inner(options) {
+        match Self::import_strict_with(options) {
             Err(error) if error.is_schema_mismatch() => {
                 options
                     .db

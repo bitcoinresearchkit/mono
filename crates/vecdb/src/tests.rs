@@ -77,7 +77,25 @@ fn run<V: Variant>(dir: &Path, seed: u64) {
             1..=4 => {
                 let bump = rng.chance(16);
                 let state = subjects.swap_remove(i).close(&mut rng, bump);
-                subjects.push(Subject::open(&db, state));
+                // Compound vectors reject a schema change: rebuild their whole owner, with
+                // the other vector and both histories, after all handles have been dropped.
+                if bump && let Err(error) = V::import_with(
+                    ImportOptions::new(&db, state.name, Version::new(state.version)),
+                ) {
+                    assert!(matches!(error, crate::Error::DifferentVersion { .. }));
+                    let mut states: Vec<_> = subjects.drain(..).map(|s| {
+                        let mut state = s.close(&mut rng, false);
+                        state.model = Model::default();
+                        state
+                    }).collect();
+                    states.push(state);
+                    drop(db);
+                    fs::remove_dir_all(&dir).unwrap();
+                    db = Database::open(&dir).unwrap();
+                    subjects = states.into_iter().map(|s| Subject::open(&db, s)).collect();
+                } else {
+                    subjects.push(Subject::open(&db, state));
+                }
                 subjects.last().unwrap().check(&mut rng);
             }
             5 => db.compact().unwrap(),

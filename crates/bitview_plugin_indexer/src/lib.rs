@@ -134,16 +134,6 @@ fn holds_block(reader: &Reader, position: BlkPosition, hash: &BlockHash) -> Resu
     }
 }
 
-fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<bool> {
-    let removed = match fs::remove_dir_all(path) {
-        Ok(()) => true,
-        Err(err) if err.kind() == ErrorKind::NotFound => false,
-        Err(err) => return Err(err.into()),
-    };
-    write_xor_marker(path, source_xor)?;
-    Ok(removed)
-}
-
 impl<M: StorageMode> Indexer<M> {
     /// The published tip's hash, recorded with the published lengths: never ahead of what reads
     /// can see, though the indexer appends blocks before every plugin computes them.
@@ -218,52 +208,39 @@ impl Indexer {
     /// the import, so a reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         reader.check_source()?;
-        Self::import_inner(context, reader, true)
+        STORAGE.import_with_recovery(
+            context,
+            || Self::import_inner(context, reader),
+            |error| {
+                let path = STORAGE.path(context);
+                warn!("Rebuilding indexer data at {} after an import failure: {error}", path.display());
+                write_xor_marker(&path, reader.xor_bytes())
+            },
+        )
     }
 
-    fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {
+    fn import_inner(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         let plugin_path = STORAGE.path(context);
 
-        let try_import = || -> Result<Self> {
-            let i = Instant::now();
-            let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
-            info!("Loaded indexer vectors in {:.2?}", i.elapsed());
+        let i = Instant::now();
+        let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
+        info!("Loaded indexer vectors in {:.2?}", i.elapsed());
 
-            let i = Instant::now();
-            let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
-            info!("Loaded indexer state in {:.2?}", i.elapsed());
+        let i = Instant::now();
+        let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
+        info!("Loaded indexer state in {:.2?}", i.elapsed());
 
-            Ok(Self {
-                reader: reader.clone(),
-                vecs,
-                stores,
-                buffers: BlockBuffers::default(),
-                floor: RollbackFloor::load(&plugin_path)?,
-                resume: None,
-                compute_start: Lengths::default(),
-                ingestion: None,
-                recheck_newest: true,
-                state: Arc::default(),
-            })
-        };
-
-        let mut indexer = match try_import() {
-            Ok(indexer) => indexer,
-            // Another process has the database open: never reset over a lock.
-            Err(err) if err.is_lock_error() => return Err(err),
-            Err(err) if can_retry && err.is_data_error() => {
-                // The failed attempt has returned, so all of its local database
-                // handles have been dropped before the directory is removed.
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                if removed {
-                    warn!(
-                        "Removed invalid indexer data at {} after an import failure: {err}",
-                        plugin_path.display()
-                    );
-                }
-                return Self::import_inner(context, reader, false);
-            }
-            Err(err) => return Err(err),
+        let mut indexer = Self {
+            reader: reader.clone(),
+            vecs,
+            stores,
+            buffers: BlockBuffers::default(),
+            floor: RollbackFloor::load(&plugin_path)?,
+            resume: None,
+            compute_start: Lengths::default(),
+            ingestion: None,
+            recheck_newest: true,
+            state: Arc::default(),
         };
 
         indexer.drop_uncommitted_rows()?;
@@ -283,18 +260,7 @@ impl Indexer {
                     .finish_update(published, indexer.tip_of(&published), unspent);
                 Ok(indexer)
             }
-            ImportValidation::Reset(reason) if can_retry => {
-                drop(indexer);
-                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                if removed {
-                    warn!(
-                        "Removed incompatible indexer data at {}: {reason}",
-                        plugin_path.display()
-                    );
-                }
-                Self::import_inner(context, reader, false)
-            }
-            ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
+            ImportValidation::Reset(reason) => Err(Error::InvalidData(reason)),
         }
     }
 

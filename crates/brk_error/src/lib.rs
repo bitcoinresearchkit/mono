@@ -111,6 +111,10 @@ pub enum Error {
     #[error("{0}")]
     Parse(String),
 
+    /// Stored data failed an owner-level consistency check and must be rebuilt.
+    #[error("Invalid data: {0}")]
+    InvalidData(&'static str),
+
     #[error("Internal error: {0}")]
     Internal(&'static str),
 
@@ -181,7 +185,7 @@ impl Error {
             Error::VecDB(e) => e.is_data_error(),
             #[cfg(feature = "fjall")]
             Error::Fjall(e) => e.is_data_error(),
-            Error::VersionMismatch { .. } | Error::MissingVersion { .. } => true,
+            Error::VersionMismatch { .. } | Error::MissingVersion { .. } | Error::InvalidData(_) => true,
             _ => false,
         }
     }
