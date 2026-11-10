@@ -52,6 +52,10 @@ impl BlockProcessor<'_> {
             .blocks
             .coinbase_sequence
             .debug_checked_push(height, self.block.txdata[0].input[0].sequence.0.into());
+        self.vecs
+            .blocks
+            .coinbase_locktime
+            .debug_checked_push(height, self.block.txdata[0].lock_time.into());
 
         Ok(())
     }

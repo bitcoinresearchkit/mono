@@ -5,8 +5,7 @@ use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
 use vecdb::{
-    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, ReadableVec, Rw,
-    StorageMode, VecIndex,
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode,
 };
 
 pub mod counters;
@@ -79,16 +78,6 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
 }
 
 impl TransactionsVecs {
-    /// Each block's coinbase, its first transaction, for heights `start..end`: positions in the
-    /// per-transaction columns, ascending, as `read_sorted_at` takes them.
-    pub fn coinbases(&self, start: usize, end: usize) -> Vec<usize> {
-        self.first_tx_index
-            .collect_range_at(start, end)
-            .iter()
-            .map(|tx| tx.to_usize())
-            .collect()
-    }
-
     pub fn split_for_finalize(
         &mut self,
     ) -> (
