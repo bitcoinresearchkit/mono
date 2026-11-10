@@ -409,6 +409,7 @@ export class Chart {
    * @param {boolean} [whole]
    */
   invalidate(whole = false) {
+    if (this.listening.signal.aborted) return;
     this.whole ||= whole;
     this.moved ||= !whole;
     this.frame ||= requestAnimationFrame(this.tick);
@@ -438,7 +439,7 @@ export class Chart {
     this.moved = false;
     if (whole) this.seams = false;
     this.render(whole);
-    if (this.seams) this.frame ||= requestAnimationFrame(this.tick);
+    if (this.seams && !this.listening.signal.aborted) this.frame ||= requestAnimationFrame(this.tick);
   }
 
   /** Drawn now (for a measurement: its frames draw it). @param {boolean} [whole] @returns {void} */
