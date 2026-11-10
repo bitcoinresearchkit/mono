@@ -149,6 +149,7 @@ impl Vecs {
             return Ok(());
         }
 
+        let mut columns = columns.reader(heights, start_tx..target);
         let mut cumulative = (
             transfer_volume.collect_last().unwrap_or_default(),
             valued.inscription_fees.collect_last().unwrap_or_default(),
@@ -228,14 +229,9 @@ impl Vecs {
                         .map(|_| u64::from(tx_count.next().unwrap()) as usize),
                 );
                 // Its flags decode on other threads while this one reads the rest.
-                let (columns, batch_txs, batch_first_tx) = (&columns, &*batch_txs, first_tx);
+                let (columns, batch_txs, batch_first_tx) = (&mut columns, &*batch_txs, first_tx);
                 scope.spawn(move |_| {
-                    columns.read(
-                        height..height + batch_txs.len(),
-                        batch_txs,
-                        batch_first_tx,
-                        bits,
-                    )
+                    columns.read(batch_txs, bits)
                 });
                 for (offset, &n) in batch_txs.iter().enumerate() {
                     if offset == blocks.len() {

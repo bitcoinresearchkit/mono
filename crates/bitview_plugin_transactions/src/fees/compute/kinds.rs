@@ -7,7 +7,7 @@ use bitview_primitives::{Boolean, Count, Count16};
 use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
 use brk_types::{Height, Sats, TxIndex, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, Cursor, PcoVec, ReadableVec};
 
 use crate::{
     features::{FEATURES, with_flagged_features},
@@ -167,41 +167,14 @@ impl<'a> Columns<'a> {
         })
     }
 
-    /// Reads the flags of `heights`' blocks (`txs` each, from transaction `first_tx`) into `bits`,
-    /// each column's over the batch's transactions, 64 a word; the columns in parallel.
-    pub fn read(
-        &self,
-        heights: Range<usize>,
-        txs: &[usize],
-        first_tx: usize,
-        bits: &mut [Vec<u64>; READ],
-    ) {
-        let total: usize = txs.iter().sum();
-        let words = total.div_ceil(64);
-        self.0.par_iter().zip(bits.par_iter_mut()).for_each_init(
-            Vec::new,
-            |counts, (column, bits)| {
-                bits.clear();
-                bits.resize(words, 0);
-                if let Some(source) = column.counts {
-                    source.collect_range_into_at(heights.start, heights.end, counts);
-                }
-                let mut flags = column.flags.range_cursor_at(first_tx, first_tx + total);
-                let mut at = 0;
-                for (block, &n) in txs.iter().enumerate() {
-                    if column.counts.is_some() && *counts[block] == 0 {
-                        flags.advance(n);
-                    } else {
-                        let mut i = at;
-                        flags.for_each(n, |flag| {
-                            bits[i / 64] |= u64::from(flag.is_true()) << (i % 64);
-                            i += 1;
-                        });
-                    }
-                    at += n;
-                }
-            },
-        );
+    /// Retains decoded count and flag pages for this update's prepared ranges.
+    pub fn reader(self, heights: Range<usize>, txs: Range<usize>) -> Readers<'a> {
+        Readers(self.0.map(|column| ColumnReader {
+            flags: column.flags.bounded_cursor_at(txs.start, txs.end),
+            counts: column.counts.map(|counts| {
+                counts.bounded_cursor_at(heights.start, heights.end)
+            }),
+        }))
     }
 
     /// Sets each read bit of the batch's transactions from `offset` in theirs (`masks`), going by
@@ -225,5 +198,37 @@ impl<'a> Columns<'a> {
                 }
             }
         }
+    }
+}
+
+/// One update's bounded readers, dropped before another update can change the sources.
+struct ColumnReader<'a> {
+    flags: Cursor<'a, TxIndex, Boolean, PcoVec<TxIndex, Boolean>>,
+    counts: Option<Cursor<'a, Height, Count16, PcoVec<Height, Count16>>>,
+}
+
+pub struct Readers<'a>([ColumnReader<'a>; READ]);
+
+impl Readers<'_> {
+    /// Reads each column in parallel, packing this batch's flags 64 transactions a word.
+    pub fn read(&mut self, txs: &[usize], bits: &mut [Vec<u64>; READ]) {
+        let words = txs.iter().sum::<usize>().div_ceil(64);
+        self.0.par_iter_mut().zip(bits.par_iter_mut()).for_each(|(column, bits)| {
+            bits.clear();
+            bits.resize(words, 0);
+            let mut at = 0;
+            for &n in txs {
+                if column.counts.as_mut().is_some_and(|counts| *counts.next().unwrap() == 0) {
+                    column.flags.advance(n);
+                } else {
+                    let mut i = at;
+                    column.flags.for_each(n, |flag| {
+                        bits[i / 64] |= u64::from(flag.is_true()) << (i % 64);
+                        i += 1;
+                    });
+                }
+                at += n;
+            }
+        });
     }
 }
