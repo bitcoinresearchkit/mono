@@ -17,7 +17,7 @@ const NUM_BLOCKS: usize = 8;
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
     chunks: ChunkCache,
-    /// The same for what block 0 leaves of a component.
+    /// The same for the residual components across virtual block boundaries.
     leftovers: ChunkCache,
 }
 

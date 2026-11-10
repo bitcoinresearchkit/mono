@@ -97,8 +97,8 @@ are the members' CPFP rates. Later projected blocks are packed as Core's block a
 ranked by the node's signed modified fees (`getprioritisedtransactions`; mining options shape block 0 only):
 whole chunks by descending feerate, in dependency order, within Core's default weight and sigop
 budgets (3,992,000 WU and 79,600 sigops of transactions; a candidate tested at its actual weight,
-the block counting actual weight); a component block 0 took part of is linearized again without
-those members; a chunk that doesn't fit waits for the next block with the rest of its component,
+the block counting actual weight); after every virtual block, partially consumed components
+split into their residual components and are linearized again without consumed members; a chunk that doesn't fit waits for the next block with the rest of its component,
 one no block can hold for the last; a block closes after 1,000 misses in a row within 4,000 WU
 of full. Up to eight blocks in all, mempool.space's count, the last a catch-all; empty trailing
 blocks are not projected. Priority metadata is observed independently of membership. A failed priority RPC or parse retains the last valid ranking map with a warning while other data updates; an unsupported method uses base-fee compatibility. Paid rates and totals always use base fees, and neither GBT nor the mixed RPC batch is an atomic pool snapshot. From an incomplete view (Core's template a few seconds older than its
