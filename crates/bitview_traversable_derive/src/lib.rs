@@ -19,6 +19,9 @@ struct FieldModel<'a> {
     hidden: bool,
     rename: Option<String>,
     wrap: Option<String>,
+    /// The client name of the branch holding the field's series: the one `wrap` makes around it,
+    /// else its own, in place of its type's.
+    client: Option<LitStr>,
     /// A few plain words for anyone, opening the description of every series under the field.
     lead: Option<String>,
     description: Option<String>,
@@ -57,13 +60,7 @@ fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
-                if !is_type_name(&value.value()) {
-                    return Err(Error::new_spanned(
-                        value,
-                        "a client name is a type name: ASCII letters and digits, an uppercase first",
-                    ));
-                }
-                client = Some(value.clone());
+                client = Some(declared_client(value)?);
             }
             _ => {
                 return Err(Error::new_spanned(
@@ -83,6 +80,18 @@ fn is_type_name(name: &str) -> bool {
         && name.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
+/// A declared client name, a type name.
+fn declared_client(value: &LitStr) -> Result<LitStr> {
+    if is_type_name(&value.value()) {
+        Ok(value.clone())
+    } else {
+        Err(Error::new_spanned(
+            value,
+            "a client name is a type name: ASCII letters and digits, an uppercase first",
+        ))
+    }
+}
+
 fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
     let mut model = FieldModel {
         ty: &field.ty,
@@ -95,6 +104,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         hidden: false,
         rename: None,
         wrap: None,
+        client: None,
         lead: None,
         description: doc_comment(field),
     };
@@ -103,6 +113,16 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             Meta::Path(path) if path.is_ident("skip") => model.skipped = true,
             Meta::Path(path) if path.is_ident("flatten") => model.flatten = true,
             Meta::Path(path) if path.is_ident("hidden") => model.hidden = true,
+            Meta::NameValue(name_value) if name_value.path.is_ident("client") => {
+                let Expr::Lit(ExprLit {
+                    lit: Lit::Str(value),
+                    ..
+                }) = &name_value.value
+                else {
+                    return Err(Error::new_spanned(&name_value.value, "expected a string"));
+                };
+                model.client = Some(declared_client(value)?);
+            }
             Meta::NameValue(name_value)
                 if name_value.path.is_ident("rename")
                     || name_value.path.is_ident("wrap")
@@ -132,7 +152,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             _ => {
                 return Err(Error::new_spanned(
                     meta,
-                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"` or `lead = \"..\"`",
+                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"` or `lead = \"..\"`",
                 ));
             }
         }
@@ -682,13 +702,21 @@ fn generate_field_traversals(
             None => (key, vec![]),
         };
 
-        let build_wrapped = |base: ProcMacro2TokenStream| -> ProcMacro2TokenStream {
-            wrap_path.iter().rev().fold(base, |inner, key| {
-                quote! { ::bitview_traversable::TreeNode::wrap(#key, #inner) }
-            })
-        };
-
-        let node_expr = build_wrapped(quote! { self.#member.to_tree_node() });
+        // The innermost wrap, holding the field, takes the field's client name; without one, the
+        // field's own node does.
+        let mut node_expr = quote! { self.#member.to_tree_node() };
+        let mut wraps = wrap_path.iter().rev();
+        if let Some(innermost) = wraps.next() {
+            node_expr = quote! { ::bitview_traversable::TreeNode::wrap(#innermost, #node_expr) };
+        }
+        if let Some(client) = &field.client {
+            node_expr = quote! {
+                #node_expr.with_client_name(::std::option::Option::Some(#client))
+            };
+        }
+        for key in wraps {
+            node_expr = quote! { ::bitview_traversable::TreeNode::wrap(#key, #node_expr) };
+        }
         quote! {
             collected.merge_field(::std::string::String::from(#outer_key), #node_expr);
         }
@@ -708,11 +736,7 @@ fn generate_field_traversals(
     quote! {
         let mut collected = ::bitview_traversable::TreeBranch::default();
         #(#field_operations)*
-        let mut node = #final_expr;
-        if let ::bitview_traversable::TreeNode::Branch(branch) = &mut node {
-            branch.client_name = #client_name;
-        }
-        node
+        #final_expr.with_client_name(#client_name)
     }
 }
 

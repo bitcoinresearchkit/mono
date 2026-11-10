@@ -9,7 +9,7 @@ use brk_types::{Height, Version};
 use statedb::Spends;
 use vecdb::{LazyVec, ReadableCloneableVec};
 
-use super::{STORAGE, TypesVecs, Vecs};
+use super::{STORAGE, TypesVecs, Vecs, counts::Counts};
 
 /// Removes the one coinbase input of every block through `height`.
 pub(crate) fn without_coinbase(height: Height, total: Count) -> Count {
@@ -49,12 +49,15 @@ impl Vecs {
             &count.cumulative.height,
         )?;
 
+        let counts = Counts::import(&db, version, mappings, window_starts)?;
+
         let this = Self {
             spends: Spends::open(db.path())?,
             db,
             count,
             per_second,
             types,
+            counts,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

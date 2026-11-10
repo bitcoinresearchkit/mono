@@ -1,8 +1,13 @@
-use bitview_cohort::ByType;
+use bitview_cohort::{ByType, SpendableType};
 use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CumulativeSource, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling};
-use vecdb::{Rw, StorageMode};
+use bitview_vecs::{
+    CumulativeSource, IndexSources, LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling,
+    ValuePerBlockCumulativeRolling, shapes::Windows,
+};
+use brk_error::Result;
+use brk_types::{Height, Version};
+use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -12,6 +17,38 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) count_stored: ByType<CumulativeSource<Count, M>>,
     #[traversable(hidden)]
     pub(crate) tx_count_stored: ByType<CumulativeSource<Count, M>>,
+    #[traversable(flatten)]
+    pub(crate) values: SpendableType<OutputValue<M>>,
+}
+
+/// What a spendable type's outputs were sent.
+#[derive(Traversable)]
+pub(crate) struct OutputValue<M: StorageMode = Rw> {
+    /// All outputs of the type ever created, in bitcoin.
+    #[traversable(lead = "Value sent to outputs of this type.")]
+    pub(crate) value: ValuePerBlockCumulativeRolling<M>,
+}
+
+impl OutputValue {
+    pub(crate) fn import_all(
+        db: &Database,
+        version: Version,
+        indexes: &IndexSources,
+        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+    ) -> Result<SpendableType<Self>> {
+        SpendableType::try_from_fn(|kind| {
+            let name = format!("{}_output_value", kind.key());
+            Ok(Self {
+                value: ValuePerBlockCumulativeRolling::import(
+                    db,
+                    &name,
+                    version,
+                    indexes,
+                    window_starts,
+                )?,
+            })
+        })
+    }
 }
 
 #[derive(Clone, Traversable)]

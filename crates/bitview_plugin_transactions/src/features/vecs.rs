@@ -1,5 +1,7 @@
 use bitview_plugin_indexer::FlagView;
+use bitview_primitives::{Count, ExpectedCount};
 use bitview_traversable::Traversable;
+use bitview_vecs::PerBlockCumulativeRolling;
 use vecdb::{Rw, StorageMode};
 
 use crate::flagged::{Flagged, TxCount};
@@ -10,6 +12,15 @@ type Windowed<M> = TxCount<M>;
 /// cumulative and window sums and its share of all transactions.
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub shapes: Shapes<M>,
+    /// The sum over transactions of one over their inputs factorial times their outputs
+    /// factorial: how many would have BIP-69's order by chance, their outputs taken as distinct
+    /// (inputs always are). Identical outputs, the same value to the same script, sort in more
+    /// orders, so a transaction with some is undercounted; one with over 20 inputs or outputs
+    /// adds nothing, its chance below 1 in 21! (5 × 10^19).
+    #[traversable(lead = "Transactions BIP-69's order would match by chance.")]
+    pub bip69_expected_by_chance: PerBlockCumulativeRolling<ExpectedCount, M>,
     // By the locking scripts transactions create or spend.
     pub scripts: Scripts<M>,
     // By their signatures' hash types, and the Taproot annex.
@@ -142,4 +153,19 @@ pub struct Signatures<M: StorageMode = Rw> {
         lead = "Transactions with ANYONECANPAY signatures: committing to their own input alone, so others can add theirs."
     )]
     pub sighash_anyone_can_pay: Flagged<FlagView, Windowed<M>>,
+}
+
+/// Transactions by their inputs, outputs and their order.
+#[derive(Traversable)]
+pub struct Shapes<M: StorageMode = Rw> {
+    /// Transactions with exactly one input and one output, coinbase included.
+    #[traversable(lead = "Transactions with one input and one output.")]
+    pub one_input_one_output: PerBlockCumulativeRolling<Count, M>,
+    /// Transactions with exactly one input and two outputs, coinbase included.
+    #[traversable(lead = "Transactions with one input and two outputs.")]
+    pub one_input_two_output: PerBlockCumulativeRolling<Count, M>,
+    /// Transactions whose inputs and outputs are in BIP-69's order, those sorted by chance
+    /// included.
+    #[traversable(lead = "Transactions in BIP-69 order.")]
+    pub bip69: PerBlockCumulativeRolling<Count, M>,
 }

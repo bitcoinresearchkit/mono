@@ -1,4 +1,4 @@
-use bitcoin::{Script, TxIn, constants::WITNESS_SCALE_FACTOR};
+use bitcoin::{TxIn, constants::WITNESS_SCALE_FACTOR};
 use brk_types::{OutputType, SigOpCount, SigOps32};
 
 use crate::processor::txout::ProcessedOutput;
@@ -56,18 +56,12 @@ impl Accumulator {
                 }
                 if facts.redeem.is_p2wpkh() {
                     self.witness += 1;
-                } else if facts.redeem.is_p2wsh()
-                    && let Some(last) = facts.witness.last
-                {
-                    self.witness += SigOpCount::of(Script::from_bytes(last)).accurate;
+                } else if facts.redeem.is_p2wsh() {
+                    self.witness += facts.witness.script.sigops;
                 }
             }
             OutputType::P2WPKH => self.witness += 1,
-            OutputType::P2WSH => {
-                if let Some(last) = facts.witness.last {
-                    self.witness += SigOpCount::of(Script::from_bytes(last)).accurate;
-                }
-            }
+            OutputType::P2WSH => self.witness += facts.witness.script.sigops,
             OutputType::P2TR => {}
             _ => {}
         }

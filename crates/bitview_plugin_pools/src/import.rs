@@ -3,12 +3,12 @@ use std::collections::BTreeMap;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Hashrate, POOL_ATTRIBUTION_VERSION, pools};
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{CumulativeRolling, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::Height;
 use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec, Version};
 
-use crate::{STORAGE, Vecs, pool::PoolVecs, pool_heights::PoolHeights};
+use crate::{Concentration, STORAGE, Vecs, pool::PoolVecs, pool_heights::PoolHeights};
 
 impl Vecs {
     /// `network` holds the network hash-rate estimates matching the pool windows (24 hours,
@@ -48,6 +48,15 @@ impl Vecs {
             heights,
             by_slug,
             pools,
+            concentration: Concentration::import(&db, "", version)?,
+            concentration_grouped: Concentration::import(&db, "_antpool_group_as_one", version)?,
+            antpool_group: CumulativeRolling::import(
+                &db,
+                "pool_antpool_group_block_count",
+                version,
+                mappings,
+                window_starts,
+            )?,
             db,
         };
 

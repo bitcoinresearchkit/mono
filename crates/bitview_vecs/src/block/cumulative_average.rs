@@ -4,10 +4,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{
-    AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
-    WritableVec,
-};
+use vecdb::{ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{
     CachedSeries, CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingAvgsFromHeight,
@@ -61,11 +58,7 @@ where
 
     #[inline(always)]
     pub fn push_block(&mut self, value: T) {
-        let height = Height::from(self.cumulative.len());
-        let cumulative = self
-            .last
-            .add_at(height, &self.cumulative, |total| *total += value);
-        self.cumulative.push(cumulative);
+        self.last.push(&mut self.cumulative, value);
     }
 
     pub fn compute_from<S>(
@@ -84,7 +77,7 @@ where
             source,
             |(height, value, this)| {
                 let value = transform(height, value);
-                last.add_at(height, this, |total| *total += value)
+                last.add_at(height, this, value)
             },
             exit,
         )?)

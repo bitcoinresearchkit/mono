@@ -2,6 +2,7 @@ use bitview_traversable::Traversable;
 use brk_types::{FeeRate, Height, Sats, TxIndex};
 use vecdb::{PcoVec, Rw, StorageMode};
 
+use super::ranges::Ranges;
 use crate::{distribution::PerTxDistribution, flagged::Classified};
 
 #[derive(Traversable)]
@@ -59,4 +60,6 @@ pub struct Vecs<M: StorageMode = Rw> {
         lead = "CPFP children: transactions paying extra to confirm the ones before them (child pays for parent)."
     )]
     pub(crate) cpfp_child: Classified<M>,
+    #[traversable(flatten)]
+    pub(crate) ranges: Ranges<M>,
 }

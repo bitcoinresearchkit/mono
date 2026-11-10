@@ -3,9 +3,9 @@
 use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::{Boolean, Count, Count16};
-use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
-use brk_types::{Height, Sats, TxIndex, Version};
+use bitview_primitives::{Boolean, Count, Count16, ExpectedCount};
+use bitview_vecs::{CachedSeries, PerBlockCumulative, PerBlockCumulativeRolling};
+use brk_types::{Height, Sats, TxIndex, VSize, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec};
 
@@ -33,8 +33,8 @@ pub const CPFP_CHILD: usize = CPFP_PARENT + 1;
 pub const BITS: usize = CPFP_CHILD + 1;
 const _: () = assert!(BITS <= 64);
 
-/// The dust feature's bit, for nonstandard.
-pub const DUST: usize = {
+/// A flagged feature's bit, by its name.
+const fn flagged_bit(name: &[u8]) -> usize {
     macro_rules! position {
         (
             scripts: [$($script:ident),*],
@@ -46,11 +46,18 @@ pub const DUST: usize = {
     }
     let names = with_flagged_features!(position);
     let mut i = 0;
-    while !eq(names[i].as_bytes(), b"dust_output") {
+    while !eq(names[i].as_bytes(), name) {
         i += 1;
     }
     i
-};
+}
+
+/// For nonstandard.
+pub const DUST: usize = flagged_bit(b"dust_output");
+/// For the payments of transactions signaling replacement.
+pub const RBF_SIGNALING: usize = flagged_bit(b"rbf_signaling");
+/// For the payments of transactions spending SegWit without a witness: pay-to-anchor's.
+pub const P2A: usize = flagged_bit(b"p2a");
 
 const fn eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
@@ -66,6 +73,40 @@ const fn eq(a: &[u8], b: &[u8]) -> bool {
     true
 }
 
+/// What the fee pass counts from what it reads: a block's `Tally`, and the series each goes to.
+macro_rules! define_tallies {
+    ($($tally:ident,)+) => {
+        #[derive(Default)]
+        pub struct Tally {
+            $(pub $tally: u64,)+
+        }
+
+        pub(crate) struct Tallied<'a> {
+            $(pub $tally: &'a mut PerBlockCumulativeRolling<Count>,)+
+        }
+
+        impl Tallied<'_> {
+            pub fn push_block(&mut self, tally: &Tally) {
+                $(self.$tally.push_block(Count::from(tally.$tally));)+
+            }
+
+            fn stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+                [$(self.$tally.stored_mut() as &mut dyn AnyStoredVec,)+].into_iter()
+            }
+        }
+    };
+}
+
+define_tallies! {
+    one_input_one_output,
+    one_input_two_output,
+    payment,
+    segwit_payment,
+    rbf_payment,
+    ephemeral_dust,
+    same_block_spending,
+}
+
 /// What the fee pass values beside its own CPFP roles: the features (as `split_mut` lists them,
 /// SegWit and the single input and output last), inscriptions, the versions and nonstandard;
 /// with nonstandard's flag and count, and inscriptions' fees, which the same transactions give.
@@ -78,6 +119,11 @@ pub(crate) struct Valued<'a> {
     pub nonstandard_count: &'a mut PerBlockCumulativeRolling<Count>,
     /// Inscription transactions' fees through every block, in sats.
     pub inscription_fees: &'a mut CachedSeries<Height, Sats>,
+    /// Every transaction's virtual size through every block.
+    pub vsize_total: &'a mut PerBlockCumulative<VSize>,
+    /// What BIP-69's order would match by chance through every block.
+    pub bip69_expected: &'a mut PerBlockCumulative<ExpectedCount>,
+    pub tallied: Tallied<'a>,
 }
 
 impl Valued<'_> {
@@ -113,6 +159,9 @@ impl Valued<'_> {
             nonstandard_flag,
             nonstandard_count,
             inscription_fees,
+            vsize_total,
+            bip69_expected,
+            tallied,
         } = self;
         let mut blocks: Vec<&mut dyn AnyStoredVec> = features
             .iter_mut()
@@ -124,7 +173,10 @@ impl Valued<'_> {
             nonstandard.stored_mut(),
             nonstandard_count.stored_mut(),
             &mut **inscription_fees as &mut dyn AnyStoredVec,
+            vsize_total.stored_mut(),
+            bip69_expected.stored_mut(),
         ]);
+        blocks.extend(tallied.stored_mut());
         (&mut **nonstandard_flag, blocks)
     }
 }

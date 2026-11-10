@@ -5,7 +5,7 @@ use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
 
-use super::{OutputTypeVecs, Vecs};
+use super::{OutputTypeVecs, OutputValue, Vecs};
 
 impl Vecs {
     pub(crate) fn import(
@@ -61,6 +61,7 @@ impl Vecs {
             types,
             count_stored,
             tx_count_stored,
+            values: OutputValue::import_all(db, version, mappings, window_starts)?,
         })
     }
 }

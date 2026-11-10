@@ -1,12 +1,12 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::Count;
-use bitview_vecs::PerBlockCumulativeRolling;
+use bitview_primitives::{Count, ExpectedCount};
+use bitview_vecs::{PerBlockCumulative, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_exit::Exit;
 
 use crate::flagged::TxValue;
 
-use super::{Vecs, with_flagged_features};
+use super::{Shapes, Vecs, with_flagged_features};
 
 /// The features, as the fee pass values them: those with a flag (in `with_flagged_features`
 /// order), then SegWit, a single input and a single output.
@@ -17,7 +17,14 @@ pub(crate) struct Counts<'a>([&'a mut PerBlockCumulativeRolling<Count>; FEATURES
 
 impl Vecs {
     /// The counts and the values apart, so both compute at once: the values are the fee pass's.
-    pub(crate) fn split_mut(&mut self) -> (Counts<'_>, [&mut TxValue; FEATURES]) {
+    pub(crate) fn split_mut(
+        &mut self,
+    ) -> (
+        Counts<'_>,
+        [&mut TxValue; FEATURES],
+        &mut Shapes,
+        &mut PerBlockCumulative<ExpectedCount>,
+    ) {
         macro_rules! split {
             (
                 scripts: [$($script:ident),*],
@@ -41,6 +48,8 @@ impl Vecs {
                         &mut self.one_input.value,
                         &mut self.one_output.value,
                     ],
+                    &mut self.shapes,
+                    &mut self.bip69_expected_by_chance,
                 )
             };
         }

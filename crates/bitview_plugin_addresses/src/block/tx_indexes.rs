@@ -22,6 +22,11 @@ impl TxIndexes {
     }
 
     #[inline]
+    pub fn contains(&self, tx_index: TxIndex) -> bool {
+        self.0.binary_search(&tx_index).is_ok()
+    }
+
+    #[inline]
     pub fn len(&self) -> u32 {
         self.0.len() as u32
     }

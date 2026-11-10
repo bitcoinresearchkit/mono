@@ -2,9 +2,9 @@ use std::ops::{Add, AddAssign};
 
 use bitview_primitives::{
     Bytes, Bytes32, BytesFract, CentsFract, CoinBlocks, CoinDays, Count, Count16, Count32,
-    CountFract, DollarBlocks, DollarDaysPerCoin, Float64, PartsPerMillion32, PartsPerMillion64,
-    PartsPerMillionSigned32, PartsPerMillionSigned64, PriceRatio, SatsFract, Seconds, SecondsFract,
-    SigOpsFract, VSizeFract, WeightFract,
+    CountFract, DollarBlocks, DollarDaysPerCoin, ExpectedCount, Float64, PartsPerMillion32,
+    PartsPerMillion64, PartsPerMillionSigned32, PartsPerMillionSigned64, PriceRatio, SatsFract,
+    Seconds, SecondsFract, SigOpsFract, VSizeFract, WeightFract, Work,
 };
 use brk_types::{Cents, CentsSigned, Sats, SigOps, VSize, Weight, Weight32};
 use schemars::JsonSchema;
@@ -62,6 +62,8 @@ quantities! {
     DollarBlocks => (DollarBlocks, DollarBlocks),
     DollarDaysPerCoin => (DollarDaysPerCoin, DollarDaysPerCoin),
     Float64 => (Float64, Float64),
+    ExpectedCount => (ExpectedCount, ExpectedCount),
+    Work => (Work, Work),
 }
 
 /// A stored fixed-point ratio and its public representations.

@@ -1,18 +1,20 @@
 use bitcoin::{Script, script::Instruction};
 use brk_types::{OutputType, SigOpCount};
 
-use super::{super::features, ScriptSigFacts};
-use crate::TxFeatureFlags;
+use super::{super::scan::TxScan, ScriptSigFacts};
 
+/// A scriptSig, its every data push handed to `scan` by its place.
 pub fn analyze<'a>(
     script: &'a Script,
     output_type: OutputType,
-    scan_signatures: bool,
-    flags: &mut TxFeatureFlags,
+    scan: &mut TxScan<'_>,
 ) -> ScriptSigFacts<'a> {
-    if scan_signatures && let Some((signature, last_push)) = direct_push_spend(script, output_type)
-    {
-        features::record_validated_ecdsa_sighash(signature, flags);
+    if let Some((signature, last_push)) = direct_push_spend(script, output_type) {
+        // P2PK's one push, or P2PKH's signature and key.
+        scan.ecdsa(signature);
+        if output_type == OutputType::P2PKH {
+            scan.input_pubkey(last_push);
+        }
         return ScriptSigFacts {
             accurate_sigops: 0,
             last_push: Some(last_push),
@@ -21,32 +23,23 @@ pub fn analyze<'a>(
         };
     }
 
-    let mut first_push = None;
     let mut last_push = None;
-    let mut only_push_bytes = true;
-    let mut push_count = 0;
+    // The latest data push, handed on once the next shows whether it was the last.
+    let mut pending = None;
     let mut push_only = true;
     let mut sigops = SigOpCount::default();
-    let validated_shape = scan_signatures
-        && matches!(
-            output_type,
-            OutputType::P2PKH | OutputType::P2PK33 | OutputType::P2PK65
-        );
 
     for instruction in script.instructions() {
         match instruction {
             Ok(instruction @ Instruction::PushBytes(bytes)) => {
                 let bytes = bytes.as_bytes();
-                first_push.get_or_insert(bytes);
                 last_push = Some(bytes);
-                push_count += 1;
-                sigops.step(instruction);
-                if scan_signatures && !validated_shape {
-                    features::scan_ecdsa_signature(bytes, flags);
+                if let Some(previous) = pending.replace(bytes) {
+                    push(scan, output_type, previous, false);
                 }
+                sigops.step(instruction);
             }
             Ok(instruction @ Instruction::Op(opcode)) => {
-                only_push_bytes = false;
                 last_push = None;
                 if opcode.to_u8() > 0x60 {
                     push_only = false;
@@ -54,26 +47,14 @@ pub fn analyze<'a>(
                 sigops.step(instruction);
             }
             Err(_) => {
-                only_push_bytes = false;
                 last_push = None;
                 push_only = false;
                 break;
             }
         }
     }
-
-    if validated_shape {
-        let expected_pushes = match output_type {
-            OutputType::P2PKH => 2,
-            OutputType::P2PK33 | OutputType::P2PK65 => 1,
-            _ => unreachable!(),
-        };
-
-        if only_push_bytes && push_count == expected_pushes {
-            features::record_validated_ecdsa_sighash(first_push.unwrap(), flags);
-        } else {
-            scan_ecdsa_signatures(script, flags);
-        }
+    if let Some(last) = pending {
+        push(scan, output_type, last, true);
     }
 
     ScriptSigFacts {
@@ -81,6 +62,20 @@ pub fn analyze<'a>(
         last_push,
         legacy_sigops: sigops.legacy,
         push_only,
+    }
+}
+
+/// A data push: a P2SH spend's last is its redeem script, which consensus requires on top of a
+/// push-only scriptSig; a P2PKH spend's pushes are each read as a signature or a key by their
+/// shape, as opcodes may reorder them; any other is an argument.
+fn push(scan: &mut TxScan<'_>, spent: OutputType, bytes: &[u8], is_last: bool) {
+    match spent {
+        OutputType::P2SH if is_last => {}
+        OutputType::P2PKH => {
+            scan.ecdsa(bytes);
+            scan.input_pubkey(bytes);
+        }
+        _ => scan.ecdsa(bytes),
     }
 }
 
@@ -110,13 +105,5 @@ pub fn direct_push_spend(script: &Script, output_type: OutputType) -> Option<(&[
                 .then(|| (signature, &bytes[public_key_start..public_key_end]))
         }
         _ => None,
-    }
-}
-
-pub fn scan_ecdsa_signatures(script: &Script, flags: &mut TxFeatureFlags) {
-    for instruction in script.instructions() {
-        if let Ok(Instruction::PushBytes(bytes)) = instruction {
-            features::scan_ecdsa_signature(bytes.as_bytes(), flags);
-        }
     }
 }

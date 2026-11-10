@@ -7,10 +7,10 @@ use std::time::{Duration, Instant};
 use bitview_compute::write_locked;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Boolean, Count};
+use bitview_primitives::{Boolean, Count, ExpectedCount};
 use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
-use brk_error::Result;
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Height, Sats, SigOps, VSize};
 use rayon::prelude::*;
@@ -20,12 +20,45 @@ use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec, VecIndex, WritableVec
 use super::Vecs;
 use crate::{distribution::TxDistribution, resume::prepare_blocks};
 use block::{Block, Components, is};
-pub(crate) use kinds::Valued;
 use kinds::{
     CPFP_CHILD, CPFP_PARENT, Columns, NONSTANDARD, ONE_INPUT, ONE_OUTPUT, READ, SEGWIT, VERSIONS,
 };
+pub(crate) use kinds::{Tallied, Valued};
 
 const COMPUTE_BATCH_HEIGHTS: usize = 64;
+
+/// The chance that `inputs` and `outputs` in random order are sorted: one over each's factorial,
+/// the outputs taken as distinct. Past 20 of either it is below 1 in 21!, and counted as none:
+/// under 10^-10 transactions over all of mainnet's. Each transaction looks it up rather than
+/// dividing.
+#[inline]
+fn bip69_chance(inputs: usize, outputs: usize) -> f64 {
+    const CHANCES: [[f64; 21]; 21] = {
+        let mut factorials = [1.0; 21];
+        let mut n = 1;
+        while n < 21 {
+            factorials[n] = factorials[n - 1] * n as f64;
+            n += 1;
+        }
+        let mut table = [[0.0; 21]; 21];
+        let mut i = 0;
+        while i < 21 {
+            let mut o = 0;
+            while o < 21 {
+                table[i][o] = 1.0 / (factorials[i] * factorials[o]);
+                o += 1;
+            }
+            i += 1;
+        }
+        table
+    };
+    CHANCES
+        .get(inputs)
+        .and_then(|row| row.get(outputs))
+        .copied()
+        .unwrap_or(0.0)
+}
+
 /// Blocks between flushes, below the shared `WRITE_INTERVAL`: six per-transaction columns hold
 /// their pushed rows in memory until written (~3,000 transactions per block at the tip).
 const FLUSH_BLOCKS: usize = 1_000;
@@ -40,10 +73,26 @@ struct Batch {
     bits: [Vec<u64>; READ],
 }
 
+impl Batch {
+    /// Computes the batch's blocks, in parallel.
+    fn compute(&mut self, indexer: &Indexer) -> Result<()> {
+        let bits = &self.bits;
+        self.blocks[..self.txs.len()]
+            .par_iter_mut()
+            // Component scratch per worker task, freed with the batch: a big
+            // component's buffers don't stay retained per block slot.
+            .try_for_each_init(Components::default, |components, block| {
+                block.compute(components, bits, indexer)
+            })
+    }
+}
+
 impl Vecs {
-    /// The fee pass, which also yields the per-block fee, effective fee rate and `vsize`
-    /// distributions from the values it holds, every kind's value (`valued`, and its CPFP roles'),
-    /// nonstandard transactions and inscriptions' fees; then the cumulative fee total.
+    /// The fee pass: the one walk of every transaction with its inputs' values, so all that needs
+    /// them is computed in it: the per-block fee, effective fee rate and `vsize` distributions,
+    /// every kind's value (`valued`, and its CPFP roles'), the counts it tallies (payments,
+    /// transaction shapes, ephemeral dust), BIP-69's chance matches, nonstandard transactions and
+    /// inscriptions' fees; then the cumulative fee total.
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
@@ -85,6 +134,7 @@ impl Vecs {
         blocks.extend(self.fee.distribution.iter_any_stored_mut());
         blocks.extend(self.effective_fee_rate.distribution.iter_any_stored_mut());
         blocks.extend(vsize.iter_any_stored_mut());
+        blocks.extend(self.ranges.stored_mut());
         (
             [
                 &mut self.fee.tx,
@@ -127,6 +177,10 @@ impl Vecs {
             + txs.total_size.version()
             + txs.tx_version.version()
             + columns.version()
+            + vecs.op_return.first_index.version()
+            + vecs.op_return.to_tx_index.version()
+            + outputs.output_type.version()
+            + inputs.output_type.version()
             + outpoints.version();
         let target = txs.first_txin_index.len();
         let max_height = txs.first_tx_index.len();
@@ -163,7 +217,6 @@ impl Vecs {
         let mut next_block_output = outputs
             .first_txout_index
             .bounded_cursor_at(start_height + 1, max_height + 1);
-        let mut output_starts = Vec::new();
 
         // Dependencies have written their vectors before this pass. Retain the
         // decoded pages across blocks instead of reopening each compressed range.
@@ -172,12 +225,24 @@ impl Vecs {
         let mut sizes = txs.total_size.range_cursor_at(start_tx, target);
         let mut tx_versions = txs.tx_version.range_cursor_at(start_tx, target);
         let mut txin_starts = txs.first_txin_index.range_cursor_at(start_tx, target);
+        // Ascending, so walked alongside the transactions.
+        let op_returns = &vecs.op_return;
+        let mut op_return_txs = op_returns.to_tx_index.range_cursor_at(
+            op_returns
+                .first_index
+                .collect_one_at(start_height)
+                .data()?
+                .to_usize(),
+            op_returns.to_tx_index.len(),
+        );
+        let mut next_op_return_tx = op_return_txs.next();
         let outpoint_len = outpoints.len();
         let mut outpoints = outpoints.range_cursor_at(start_input, outpoint_len);
         let mut input_value = input_values.range_cursor_at(start_input, input_values.len());
 
         let mut scratch_sizes = Vec::new();
         let mut scratch_sigops = Vec::new();
+        let mut output_starts = Vec::new();
         let mut first_tx = start_tx;
         let mut height = start_height;
         let mut last_progress = Instant::now();
@@ -202,14 +267,9 @@ impl Vecs {
                         &mut pushed,
                     );
                     scope.spawn(move |_| {
-                        *pushed = this.push_batch(
-                            batch,
-                            vsize,
-                            transfer_volume,
-                            valued,
-                            cumulative,
-                            exit,
-                        );
+                        *pushed = batch.compute(indexer).and_then(|()| {
+                            this.push_batch(batch, vsize, transfer_volume, valued, cumulative, exit)
+                        });
                     });
                 }
                 if !more {
@@ -256,9 +316,9 @@ impl Vecs {
                     let mut sigop = scratch_sigops.iter();
                     weights.for_each(n, |weight| {
                         block.vsizes.push(weight.into());
-                        block
-                            .weights
-                            .push(SigOps::from(*sigop.next().unwrap()).adjust_weight(weight.into()));
+                        block.weights.push(
+                            SigOps::from(*sigop.next().unwrap()).adjust_weight(weight.into()),
+                        );
                         let size = u64::from(u32::from(*size.next().unwrap()));
                         block
                             .masks
@@ -284,17 +344,32 @@ impl Vecs {
                         &mut output_starts,
                     );
                     for (tx, mask) in block.masks.iter_mut().enumerate() {
+                        let first_input = block.txin_starts[tx].to_usize();
                         let inputs = block
                             .txin_starts
                             .get(tx + 1)
                             .map_or(input_end, |i| i.to_usize())
-                            - block.txin_starts[tx].to_usize();
-                        let outputs = output_starts
+                            - first_input;
+                        let tx_outputs = output_starts
                             .get(tx + 1)
                             .map_or(output_end, |i| i.get().to_usize())
                             - output_starts[tx].get().to_usize();
                         *mask |= (u64::from(inputs == 1) << ONE_INPUT)
-                            | (u64::from(outputs == 1) << ONE_OUTPUT);
+                            | (u64::from(tx_outputs == 1) << ONE_OUTPUT);
+                        block.bip69_expected += bip69_chance(inputs, tx_outputs);
+                        block.tally.one_input_one_output +=
+                            u64::from(inputs == 1 && tx_outputs == 1);
+                        block.tally.one_input_two_output +=
+                            u64::from(inputs == 1 && tx_outputs == 2);
+                        let mut paying = tx_outputs;
+                        while next_op_return_tx
+                            .is_some_and(|op_tx| op_tx.to_usize() == first_tx + tx)
+                        {
+                            paying -= 1;
+                            next_op_return_tx = op_return_txs.next();
+                        }
+                        // All but one, its likely change, when there are several.
+                        block.payments.push((paying - usize::from(paying > 1)) as u32);
                     }
                     input_value.for_each(
                         input_end - block.input_begin,
@@ -332,8 +407,8 @@ impl Vecs {
         self.write_fees(vsize, transfer_volume, valued, exit)
     }
 
-    /// Computes a batch read (its blocks in parallel) and pushes it, block by block: `cumulative`
-    /// the transfer volume and inscriptions' fees so far.
+    /// Pushes a batch computed, block by block: `cumulative` the transfer volume and inscriptions'
+    /// fees so far.
     fn push_batch(
         &mut self,
         batch: &mut Batch,
@@ -347,19 +422,9 @@ impl Vecs {
             blocks,
             txs,
             height,
-            bits,
+            ..
         } = batch;
-        let blocks = &mut blocks[..txs.len()];
-        let bits = &*bits;
-        blocks
-            .par_iter_mut()
-            // Component scratch per worker task, freed with the batch: a big
-            // component's buffers don't stay retained per block slot.
-            .for_each_init(Components::default, |components, block| {
-                block.compute(components, bits)
-            });
-
-        for (offset, block) in blocks.iter().enumerate() {
+        for (offset, block) in blocks[..txs.len()].iter().enumerate() {
             let mut parent_count = 0;
             let mut child_count = 0;
             let mut nonstandard_count = 0;
@@ -393,6 +458,14 @@ impl Vecs {
             for (bit, value) in valued.values_mut() {
                 value.push(block.values[bit]);
             }
+            self.ranges.push_block(&block.ranges);
+            valued.tallied.push_block(&block.tally);
+            valued
+                .vsize_total
+                .push_block(block.vsizes.iter().copied().sum());
+            valued
+                .bip69_expected
+                .push_block(ExpectedCount::from(block.bip69_expected));
             cumulative.1 += block.inscription_fees;
             valued.inscription_fees.push(cumulative.1);
             self.fee.distribution.push(block.fee_stats);

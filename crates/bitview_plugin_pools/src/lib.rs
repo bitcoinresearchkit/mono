@@ -1,4 +1,6 @@
+mod antpool_group;
 mod compute;
+mod concentration;
 mod dependencies;
 mod has;
 mod import;
@@ -12,11 +14,13 @@ pub use pool::PoolVecs;
 use std::{collections::BTreeMap, ops::Deref};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{PoolSlug, Pools};
+use bitview_primitives::{Count, PoolSlug, Pools};
 use bitview_traversable::{AnyExportableVec, AnyStoredVec, Traversable, TreeNode};
+use bitview_vecs::CumulativeRolling;
 use brk_types::Height;
 use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 
+use concentration::Concentration;
 use pool_heights::PoolHeights;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
@@ -39,6 +43,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     // Each known mining pool, plus `unknown` for unattributed blocks.
     #[traversable(flatten)]
     pub by_slug: BySlug,
+    /// What the largest pools of each day found, ranked by that day's blocks.
+    concentration: Concentration<M>,
+    /// The same, with AntPool and the pools sharing its block templates counted as one.
+    concentration_grouped: Concentration<M>,
+    /// Blocks found by AntPool and the pools sharing its block templates: Poolin, Ultimus, SECPOOL,
+    /// Sigmapool, Binance Pool, Rawpool, Luxor, CloverPool and Mining Squared, and Braiins below
+    /// height 956,057.
+    #[traversable(
+        wrap = "groups/antpool",
+        rename = "block_count",
+        lead = "Blocks found by AntPool and the pools sharing its block templates."
+    )]
+    antpool_group: CumulativeRolling<Count, M>,
 }
 
 /// Each pool's series, by its slug: their descriptions led by the pool they're of (see `Pool::lead`).

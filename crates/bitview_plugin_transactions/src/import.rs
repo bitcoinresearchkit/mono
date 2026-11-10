@@ -2,13 +2,16 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{
-    LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative,
-    ValuePerBlockCumulativeRolling, shapes::Windows,
+    LazyPerSecondWindows, LazyWindowStartVec, PerBlockCumulativeRolling,
+    PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;
 
-use super::{STORAGE, Vecs, features, fees, inscription, patterns, versions, vsize};
+use super::{
+    Payments, STORAGE, Spending, Timelocks, Vecs, features, fees, inscription, patterns, versions,
+    vsize,
+};
 use crate::flagged::{Classified, Totals};
 
 impl Vecs {
@@ -42,7 +45,7 @@ impl Vecs {
         };
         let features =
             features::Vecs::import(&db, version, indexer, mappings, window_starts, totals)?;
-        let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
+        let vsize = vsize::Vecs::import(&db, version, indexer, mappings, window_starts)?;
         let fees = fees::Vecs::import(&db, version, mappings, window_starts, totals)?;
         let inscription = inscription::Vecs::import(
             &db,
@@ -67,8 +70,31 @@ impl Vecs {
         let per_second =
             LazyPerSecondWindows::new("tx_per_second", version + Version::TWO, &count.rolling.sum);
 
+        let payments = Payments::import(&db, version, mappings, window_starts)?;
+        let timelocks = Timelocks::import(&db, version, mappings, window_starts)?;
+        let spending = Spending::import(&db, version, mappings, window_starts)?;
+        let ephemeral_dust = PerBlockCumulativeRolling::import(
+            &db,
+            "ephemeral_dust_spending_tx_count",
+            version,
+            mappings,
+            window_starts,
+        )?;
+        let same_block_spending = PerBlockCumulativeRolling::import(
+            &db,
+            "same_block_spending_tx_count",
+            version,
+            mappings,
+            window_starts,
+        )?;
+
         let this = Self {
             db,
+            payments,
+            timelocks,
+            spending,
+            ephemeral_dust,
+            same_block_spending,
             count,
             features,
             vsize,

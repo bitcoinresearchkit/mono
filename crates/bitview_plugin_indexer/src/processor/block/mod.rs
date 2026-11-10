@@ -44,6 +44,14 @@ impl BlockProcessor<'_> {
             .blocks
             .timestamp
             .debug_checked_push(height, Timestamp::from(self.block.header.time));
+        self.vecs.blocks.version.debug_checked_push(
+            height,
+            (self.block.header.version.to_consensus() as u32).into(),
+        );
+        self.vecs
+            .blocks
+            .coinbase_sequence
+            .debug_checked_push(height, self.block.txdata[0].input[0].sequence.0.into());
 
         Ok(())
     }

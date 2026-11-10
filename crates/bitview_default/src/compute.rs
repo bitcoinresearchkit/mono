@@ -186,7 +186,15 @@ impl DefaultPlugins {
                 )?;
                 let mining = self.mining.as_ref();
                 let pools = scope.spawn(move || {
-                    timed_compute(pools, PoolsDependencies { indexer, mining }, context)
+                    timed_compute(
+                        pools,
+                        PoolsDependencies {
+                            indexer,
+                            mining,
+                            mappings,
+                        },
+                        context,
+                    )
                 });
                 Ok((mining, transactions, [op_return, pools]))
             });

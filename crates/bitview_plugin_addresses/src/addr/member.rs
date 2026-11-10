@@ -51,11 +51,14 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// Addresses that have received more than one output over their lifetime. The two coinbase
     /// outputs overwritten by BIP30 duplicates at heights 91,842 and 91,880 do not count as
     /// received.
-    #[traversable(lead = "Reused addresses: ones that received more than once.")]
+    #[traversable(
+        client = "Reused",
+        lead = "Reused addresses: ones that received more than once."
+    )]
     pub reused: ReuseVecs<M>,
     /// Addresses from which more than one output has been spent over their
     /// lifetime.
-    #[traversable(lead = "Addresses spent from more than once.")]
+    #[traversable(client = "Respent", lead = "Addresses spent from more than once.")]
     pub respent: ReuseVecs<M>,
     /// Addresses whose public key or spending script has appeared on-chain. P2PK
     /// and P2TR are exposed when funded; hashed script types become exposed when

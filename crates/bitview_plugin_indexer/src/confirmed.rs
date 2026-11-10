@@ -3,12 +3,14 @@ use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
 use rapidhash::RapidHashMap;
-use vecdb::{BytesVecReader, ReadableVec, Ro};
+use vecdb::{BytesVecReader, ReadableVec, Ro, StorageMode};
 
-use crate::{Indexer, UtxoKey, readers::AddrReaders};
+use crate::{
+    Indexer, UtxoKey, processor::transaction::analysis::policy::is_dust, readers::AddrReaders,
+};
 
-/// Reads of confirmed transactions: their bytes from the block files, and the outputs they spend.
-impl Indexer<Ro> {
+/// Reads of confirmed transactions: their bytes from the block files.
+impl<M: StorageMode> Indexer<M> {
     /// One indexed transaction's bytes and decoding. The caller's pin covers `index`.
     pub fn read_tx(&self, index: TxIndex) -> Result<(Vec<u8>, Transaction)> {
         let transactions = &self.vecs().transactions;
@@ -51,6 +53,30 @@ impl Indexer<Ro> {
         Ok((bytes, transaction))
     }
 
+    /// The positions of a transaction's dust outputs, by the rule its `DUST_OUTPUT` flag follows.
+    ///
+    /// It reads the transaction from the block files, as the server's transaction reads do: the dust
+    /// rule needs output scripts the indexer doesn't store for every type (bare multisig and unknown
+    /// scripts, whose threshold depends on their length). It is called only for the rare fee-less
+    /// transaction flagged with a dust output, so almost every block reads nothing; storing a dust
+    /// position per transaction instead would cost a column over every transaction.
+    pub fn dust_outputs(&self, index: TxIndex) -> Result<Vec<Vout>> {
+        let (_, transaction) = self.read_tx(index)?;
+        Ok(transaction
+            .output
+            .iter()
+            .enumerate()
+            .filter(|(_, output)| {
+                let script = &output.script_pubkey;
+                is_dust(output.value, OutputType::from(script), script)
+            })
+            .map(|(vout, _)| Vout::from(vout))
+            .collect())
+    }
+}
+
+/// Reads of confirmed transactions' outputs, and of the outputs they spend.
+impl Indexer<Ro> {
     /// Transaction output ranges as published at `safe`.
     pub fn output_ranges(&self, safe: Lengths) -> OutputRanges {
         OutputRanges {

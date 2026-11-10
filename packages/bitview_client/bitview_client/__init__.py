@@ -21,6 +21,8 @@ T = TypeVar('T')
 Year10 = int
 # Index of a year.
 Year1 = int
+# Proof of work, in the hashes expected to find it.
+Work = float
 # A mean weight in weight units.
 WeightFract = float
 # Weight in weight units (WU): non-witness bytes count four and witness bytes one. A block holds
@@ -163,7 +165,7 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 # An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "op_return", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty_script", "unknown_script"]
 # Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
+OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bip47", "bare_hash", "text", "empty", "unknown"]
 # A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
 # average).
 Multiple = float
@@ -222,6 +224,8 @@ Format = Literal["json", "csv"]
 Float = float
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
+# A number of things expected from chance: a sum of probabilities.
+ExpectedCount = float
 # Always empty: prices are quoted in USD only.
 ExchangeRates = dict
 # Error category, following the HTTP status: `invalid_request` (4xx other than 404),
@@ -266,6 +270,8 @@ Cpfp = Union["CpfpInfo", "ConfirmedCpfp", "EmptyCpfp"]
 CountSigned = int
 # A mean number of things.
 CountFract = float
+# A number of things that fits 32 bits, such as outputs per block.
+Count32 = int
 # A number of things.
 Count = int
 # Up to the first 100 bytes of a coinbase transaction's first-input
@@ -3425,6 +3431,14 @@ class UtxoSetSeries(_Node):
     count: SeriesPattern1[Count] = _at(SeriesPattern1, 'utxo_count')
 
 
+class Concentration(_Node):
+    top2: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_2_*')
+    top3: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_3_*')
+    top4: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_4_*')
+    top5: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_5_*')
+    top6: SeriesPattern9[Count32] = _at(SeriesPattern9, 'top_6_*')
+
+
 class HashPriceValue(_Node, Generic[A]):
     value: SeriesPattern1[A] = _at(SeriesPattern1, '*')
     atl: SeriesPattern1[A] = _at(SeriesPattern1, '*_atl')
@@ -3808,6 +3822,19 @@ class Inscription(_Node):
     fees: FeesSeries = _at(FeesSeries, '*')
 
 
+class Vsize(_Node):
+    tx: SeriesPattern20[VSize] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_max')
+    p10: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_p90')
+    cumulative: SeriesPattern1[VSize] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[VSize] = _at(Windows, '*_sum')
+
+
 class TransactionsFlagged(_Node):
     flag: SeriesPattern20[Boolean] = _at(SeriesPattern20, 'is_*')
     block: SeriesPattern19[Count] = _at(SeriesPattern19, '*_tx_count')
@@ -3821,14 +3848,6 @@ class Patterns(_Node):
     coinjoin: TransactionsFlagged = _at(TransactionsFlagged, '*')
     consolidation: TransactionsFlagged = _at(TransactionsFlagged, 'consolidation')
     batch_payout: TransactionsFlagged = _at(TransactionsFlagged, 'batch_payout')
-
-
-class Fees(_Node):
-    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
-    fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_fee_rate')
-    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
-    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
-    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
 
 
 class TxCount(_Node):
@@ -3870,17 +3889,6 @@ class TransactionsScripts(_Node):
     unknown_script: Flagged = _at(Flagged, 'unknown_*')
     fake_pubkey: Flagged = _at(Flagged, 'fake_pubkey')
     fake_scripthash: Flagged = _at(Flagged, 'fake_scripthash')
-
-
-class Features(_Node):
-    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
-    signatures: Signatures = _at(Signatures, 'sighash')
-    segwit: TxCount = _at(TxCount, 'segwit_*')
-    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
-    dust_output: Flagged = _at(Flagged, 'dust_output')
-    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
-    one_input: TxCount = _at(TxCount, 'one_input_*')
-    one_output: TxCount = _at(TxCount, 'one_output_*')
 
 
 class Fullness(_Node):
@@ -4183,6 +4191,16 @@ class Age(_Node):
     vintages: Vintage = _at(Vintage, 'vintage')
 
 
+class OutputCount(_Node):
+    output_count: Flow[Count] = _at(Flow, '*')
+
+
+class Sizes(_Node):
+    over_42_bytes: OutputCount = _at(OutputCount, '*_42_bytes_output_count')
+    over_520_bytes: OutputCount = _at(OutputCount, '*_520_bytes_output_count')
+    over_10k_bytes: OutputCount = _at(OutputCount, '*_10k_bytes_output_count')
+
+
 class Bucket(_Node):
     output_count: Flow[Count] = _at(Flow, '*_output_count')
     data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
@@ -4218,6 +4236,7 @@ class ByKind(_Node):
     bitproof: Bucket = _at(Bucket, '*_bitproof')
     ascribe: Bucket = _at(Bucket, '*_ascribe')
     stampery: Bucket = _at(Bucket, '*_stampery')
+    bip47: Bucket = _at(Bucket, '*_bip47')
     bare_hash: Bucket = _at(Bucket, '*_bare_hash')
     text: Bucket = _at(Bucket, '*_text')
     empty: Bucket = _at(Bucket, '*_empty')
@@ -4234,6 +4253,110 @@ class OpReturn(_Node):
     fees: FeesSeries = _at(FeesSeries, '*')
     protocols: ByKind = _at(ByKind, '*')
     policies: Policy = _at(Policy, '*')
+    sizes: Sizes = _at(Sizes, '*_data_over')
+
+
+class Spending(_Node):
+    only_segwit: Flow[Count] = _at(Flow, 'only_segwit_*')
+    only_legacy: Flow[Count] = _at(Flow, 'only_legacy_*')
+    segwit_and_legacy: Flow[Count] = _at(Flow, 'segwit_and_legacy_*')
+
+
+class Timelocks(_Node):
+    height: Flow[Count] = _at(Flow, 'height_*')
+    time: Flow[Count] = _at(Flow, 'time_*')
+    unenforced: Flow[Count] = _at(Flow, 'unenforced_*')
+    relative_height: Flow[Count] = _at(Flow, 'relative_height_*')
+    relative_time: Flow[Count] = _at(Flow, 'relative_time_*')
+
+
+class Payments(_Node):
+    count: Flow[Count] = _at(Flow, '*')
+    segwit_spending: Flow[Count] = _at(Flow, 'segwit_spending_*')
+    rbf_signaling: Flow[Count] = _at(Flow, 'rbf_signaling_*')
+
+
+class VsizeByEffectiveFeeRate(_Node):
+    under_0p1_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_under_0p1_*')
+    _0p1_to_0p25_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p1_to_0p25_*')
+    _0p25_to_0p5_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p25_to_0p5_*')
+    _0p5_to_1_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_0p5_to_1_*')
+    _1_to_2_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_1_to_2_*')
+    _2_to_5_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_2_to_5_*')
+    _5_to_10_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_5_to_10_*')
+    _10_to_25_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_10_to_25_*')
+    _25_to_50_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_25_to_50_*')
+    _50_to_100_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_50_to_100_*')
+    _100_to_250_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_100_to_250_*')
+    _250_to_500_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_250_to_500_*')
+    _500_to_1k_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_500_to_1k_*')
+    over_1k_sat_vb: Flow[VSize] = _at(Flow, 'effective_fee_rate_over_1k_*')
+
+
+class TxCountByFeeRate(_Node):
+    under_0p1_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_under_0p1_*')
+    _0p1_to_0p25_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p1_to_0p25_*')
+    _0p25_to_0p5_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p25_to_0p5_*')
+    _0p5_to_1_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_0p5_to_1_*')
+    _1_to_2_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_1_to_2_*')
+    _2_to_5_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_2_to_5_*')
+    _5_to_10_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_5_to_10_*')
+    _10_to_25_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_10_to_25_*')
+    _25_to_50_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_25_to_50_*')
+    _50_to_100_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_50_to_100_*')
+    _100_to_250_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_100_to_250_*')
+    _250_to_500_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_250_to_500_*')
+    _500_to_1k_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_500_to_1k_*')
+    over_1k_sat_vb: Flow[Count] = _at(Flow, 'fee_rate_over_1k_*')
+
+
+class ZeroFee(_Node):
+    tx_count: Flow[Count] = _at(Flow, '*')
+
+
+class Fees(_Node):
+    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
+    fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_fee_rate')
+    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
+    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
+    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
+    zero_fee: ZeroFee = _at(ZeroFee, 'zero_fee_*_count')
+    tx_count_by_fee_rate: TxCountByFeeRate = _at(TxCountByFeeRate, 'sat_vb_*_count')
+    vsize_by_effective_fee_rate: VsizeByEffectiveFeeRate = _at(VsizeByEffectiveFeeRate, 'sat_vb_*_vsize')
+
+
+class Features(_Node):
+    one_input_one_output: Flow[Count] = _at(Flow, 'one_input_one_output_*_count')
+    one_input_two_output: Flow[Count] = _at(Flow, 'one_input_two_output_*_count')
+    bip69: Flow[Count] = _at(Flow, 'bip69_*_count')
+    bip69_expected_by_chance: Flow[Optional[ExpectedCount]] = _at(Flow, 'bip69_expected_by_chance_*_count')
+    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
+    signatures: Signatures = _at(Signatures, 'sighash')
+    segwit: TxCount = _at(TxCount, 'segwit_*')
+    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
+    dust_output: Flagged = _at(Flagged, 'dust_output')
+    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
+    one_input: TxCount = _at(TxCount, 'one_input_*')
+    one_output: TxCount = _at(TxCount, 'one_output_*')
+
+
+class ByType(_Node):
+    p2pk: Flow[Count] = _at(Flow, 'coinbase_p2pk_*')
+    p2pkh: Flow[Count] = _at(Flow, 'coinbase_p2pkh_*')
+    p2ms: Flow[Count] = _at(Flow, 'coinbase_p2ms_*')
+    p2sh: Flow[Count] = _at(Flow, 'coinbase_p2sh_*')
+    p2wpkh: Flow[Count] = _at(Flow, 'coinbase_p2wpkh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'coinbase_p2wsh_*')
+    p2tr: Flow[Count] = _at(Flow, 'coinbase_p2tr_*')
+    p2a: Flow[Count] = _at(Flow, 'coinbase_p2a_*')
+    empty_script: Flow[Count] = _at(Flow, 'coinbase_empty_script_*')
+    unknown_script: Flow[Count] = _at(Flow, 'coinbase_unknown_script_*')
+    op_return: Flow[Count] = _at(Flow, 'coinbase_op_return_*')
+
+
+class OutputsCoinbase(_Node):
+    count: Flow[Count] = _at(Flow, 'coinbase_*')
+    types: ByType = _at(ByType, '*')
 
 
 class OutputTypeSeries(_Node):
@@ -4241,9 +4364,92 @@ class OutputTypeSeries(_Node):
     share: Share = _at(Share, '*_share')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
     tx_share: Share = _at(Share, '*_tx_share')
+    value: ValueFlow = _at(ValueFlow, '*_value')
 
 
-class ByType(_Node):
+class SpentWithin(_Node):
+    _1_block: Flow[Count] = _at(Flow, 'within_1_block_*')
+    _6_blocks: Flow[Count] = _at(Flow, 'within_6_blocks_*')
+    _144_blocks: Flow[Count] = _at(Flow, 'within_144_blocks_*')
+    _2016_blocks: Flow[Count] = _at(Flow, 'within_2016_blocks_*')
+
+
+class Opcodes(_Node):
+    checksig: Flow[Count] = _at(Flow, 'op_checksig_*')
+    checksigverify: Flow[Count] = _at(Flow, 'op_checksigverify_*')
+    checkmultisig: Flow[Count] = _at(Flow, 'op_checkmultisig_*')
+    checksigadd: Flow[Count] = _at(Flow, 'op_checksigadd_*')
+    checklocktimeverify: Flow[Count] = _at(Flow, 'op_checklocktimeverify_*')
+    checksequenceverify: Flow[Count] = _at(Flow, 'op_checksequenceverify_*')
+    hash160: Flow[Count] = _at(Flow, 'op_hash160_*')
+    sha256: Flow[Count] = _at(Flow, 'op_sha256_*')
+    if_: Flow[Count] = _at(Flow, 'op_if_*')
+    notif: Flow[Count] = _at(Flow, 'op_notif_*')
+
+
+class Multisig(_Node):
+    p2sh: Flow[Count] = _at(Flow, 'p2sh_*')
+    p2sh_p2wsh: Flow[Count] = _at(Flow, 'p2sh_p2wsh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'p2wsh_*')
+
+
+class NestedSegwit(_Node):
+    p2wpkh: Flow[Count] = _at(Flow, 'p2sh_p2wpkh_*')
+    p2wsh: Flow[Count] = _at(Flow, 'p2sh_p2wsh_*')
+
+
+class Pubkeys(_Node):
+    compressed: Flow[Count] = _at(Flow, 'compressed_*')
+    uncompressed: Flow[Count] = _at(Flow, 'uncompressed_*')
+
+
+class EcdsaSighashes(_Node):
+    all: Flow[Count] = _at(Flow, 'sighash_all_*')
+    none: Flow[Count] = _at(Flow, 'sighash_none_*')
+    single: Flow[Count] = _at(Flow, 'sighash_single_*')
+    all_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_all_anyone_can_pay_*')
+    none_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_none_anyone_can_pay_*')
+    single_anyone_can_pay: Flow[Count] = _at(Flow, 'sighash_single_anyone_can_pay_*')
+
+
+class EcdsaLengths(_Node):
+    _70_bytes: Flow[Count] = _at(Flow, 'ecdsa_70_*')
+    _71_bytes: Flow[Count] = _at(Flow, 'ecdsa_71_*')
+    _72_bytes: Flow[Count] = _at(Flow, 'ecdsa_72_*')
+    _73_bytes: Flow[Count] = _at(Flow, 'ecdsa_73_*')
+    _74_bytes: Flow[Count] = _at(Flow, 'ecdsa_74_*')
+    over_74_bytes: Flow[Count] = _at(Flow, 'ecdsa_over_74_*')
+
+
+class EcdsaSignatures(_Node):
+    count: Flow[Count] = _at(Flow, 'ecdsa_*_count')
+    bytes: Flow[Bytes] = _at(Flow, 'ecdsa_*_bytes')
+    strict_der: Flow[Count] = _at(Flow, 'strict_der_ecdsa_*_count')
+    low_r: Flow[Count] = _at(Flow, 'low_r_ecdsa_*_count')
+    low_s: Flow[Count] = _at(Flow, 'low_s_ecdsa_*_count')
+    low_r_low_s: Flow[Count] = _at(Flow, 'low_r_low_s_ecdsa_*_count')
+    length: EcdsaLengths = _at(EcdsaLengths, 'bytes_*_count')
+    sighash: EcdsaSighashes = _at(EcdsaSighashes, 'ecdsa_*_count')
+
+
+class SchnorrSignatures(_Node):
+    count: Flow[Count] = _at(Flow, '*_count')
+    bytes: Flow[Bytes] = _at(Flow, '*_bytes')
+
+
+class InputSignatures(_Node):
+    schnorr: SchnorrSignatures = _at(SchnorrSignatures, 'schnorr_*')
+    ecdsa: EcdsaSignatures = _at(EcdsaSignatures, '*')
+
+
+class TypeSeries(_Node):
+    count: Flow[Count] = _at(Flow, '*_count')
+    share: Share = _at(Share, '*_share')
+    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
+    tx_share: Share = _at(Share, '*_tx_share')
+
+
+class Types(_Node):
     p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
     p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
     p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
@@ -4254,20 +4460,20 @@ class ByType(_Node):
     p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
     empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
     unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
-    op_return: OutputTypeSeries = _at(OutputTypeSeries, 'op_return_*')
+    op_return: TypeSeries = _at(TypeSeries, 'op_return_*')
 
 
 class SpendableType(_Node):
-    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
-    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
-    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
-    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
-    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
-    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
-    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
-    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
-    empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
-    unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
+    p2pk: TypeSeries = _at(TypeSeries, 'p2pk_*')
+    p2pkh: TypeSeries = _at(TypeSeries, 'p2pkh_*')
+    p2ms: TypeSeries = _at(TypeSeries, 'p2ms_*')
+    p2sh: TypeSeries = _at(TypeSeries, 'p2sh_*')
+    p2wpkh: TypeSeries = _at(TypeSeries, 'p2wpkh_*')
+    p2wsh: TypeSeries = _at(TypeSeries, 'p2wsh_*')
+    p2tr: TypeSeries = _at(TypeSeries, 'p2tr_*')
+    p2a: TypeSeries = _at(TypeSeries, 'p2a_*')
+    empty_script: TypeSeries = _at(TypeSeries, 'empty_script_*')
+    unknown_script: TypeSeries = _at(TypeSeries, 'unknown_script_*')
 
 
 class FlowStats(_Node, Generic[A, B]):
@@ -4289,14 +4495,10 @@ class Outputs(_Node):
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
     spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
-    types: ByType = _at(ByType, '*')
+    types: Types = _at(Types, '*')
     op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
-
-
-class Inputs(_Node):
-    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
-    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
-    types: SpendableType = _at(SpendableType, '*')
+    coinbase: OutputsCoinbase = _at(OutputsCoinbase, '*_count')
+    pubkeys: Pubkeys = _at(Pubkeys, 'pubkey_in_*_count')
 
 
 class Averaged(_Node, Generic[A, B]):
@@ -4331,6 +4533,13 @@ class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
     supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
+
+
+class AddressesReused(_Node):
+    count: ReusedCount = _at(ReusedCount, '')
+    supply: PredicateSupply = _at(PredicateSupply, 'reused_*_supply')
+    events: AddressesReuseEvents = _at(AddressesReuseEvents, '')
+    direct: OutputCount = _at(OutputCount, 'output_back_to_input_*_count')
 
 
 class AddressesActivity(_Node):
@@ -4369,7 +4578,7 @@ class Addresses(_Node):
     new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
     avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: Reused = _at(Reused, '')
+    reused: AddressesReused = _at(AddressesReused, '*')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
     supply: CohortSupply = _at(CohortSupply, '*_supply')
@@ -4381,6 +4590,14 @@ class Addresses(_Node):
 class CumulativeFlow(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[Count] = _at(Windows, '*_sum')
+
+
+class Antpool(_Node):
+    block_count: CumulativeFlow = _at(CumulativeFlow, '*')
+
+
+class Groups(_Node):
+    antpool: Antpool = _at(Antpool, '*')
 
 
 class Pool(_Node):
@@ -4560,6 +4777,34 @@ class Pools(_Node):
     noderunners: Pool = _at(Pool, '*_noderunners')
     dmnd: Pool = _at(Pool, '*_dmnd')
     trustpool: Pool = _at(Pool, '*_trustpool')
+    concentration: Concentration = _at(Concentration, 'pools_block_count')
+    concentration_grouped: Concentration = _at(Concentration, 'pools_antpool_group_as_one_block_count')
+    groups: Groups = _at(Groups, '*_antpool_group_block_count')
+
+
+class Inputs(_Node):
+    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, 'input_*')
+    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
+    types: SpendableType = _at(SpendableType, 'input')
+    signatures: InputSignatures = _at(InputSignatures, 'signature')
+    pubkeys: Pubkeys = _at(Pubkeys, 'pubkey_in_input_*')
+    nested_segwit: NestedSegwit = _at(NestedSegwit, 'input_*')
+    multisig: Multisig = _at(Multisig, 'multisig_input_*')
+    opcodes: Opcodes = _at(Opcodes, 'in_input_*')
+    p2tr_script_path: Flow[Count] = _at(Flow, 'p2tr_script_path_input_*')
+    inscriptions: Flow[Count] = _at(Flow, 'inscription_input_*')
+    spent_within: SpentWithin = _at(SpentWithin, 'spent_utxo_*')
+    same_block: Flow[Count] = _at(Flow, 'same_block_spent_utxo_*')
+    coinbase_witness: CumulativeFlow = _at(CumulativeFlow, 'coinbase_witness_block_*')
+
+
+class CoinbaseLocktime(_Node):
+    nonzero: CumulativeFlow = _at(CumulativeFlow, 'nonzero_*')
+    bip54: CumulativeFlow = _at(CumulativeFlow, 'bip54_*')
+
+
+class VersionBits(_Node):
+    bit4: CumulativeFlow = _at(CumulativeFlow, '*')
 
 
 class Blocks(_Node):
@@ -4571,6 +4816,10 @@ class Blocks(_Node):
     fullness: Fullness = _at(Fullness, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: Halving = _at(Halving, 'halving')
+    empty_count: CumulativeFlow = _at(CumulativeFlow, 'empty_*_count')
+    work: Flow[Optional[Work]] = _at(Flow, '*_work')
+    version_bits: VersionBits = _at(VersionBits, 'version_bit_4_*_count')
+    coinbase_locktime: CoinbaseLocktime = _at(CoinbaseLocktime, 'coinbase_locktime_*_count')
 
 
 class Price(_Node):
@@ -4888,13 +5137,18 @@ class VersionCount(_Node, Generic[A]):
 class Transactions(_Node):
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     features: Features = _at(Features, '*')
-    vsize: PerTxDistribution[VSize] = _at(PerTxDistribution, '*_vsize')
+    vsize: Vsize = _at(Vsize, '*_vsize')
     fees: Fees = _at(Fees, '*')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     nonstandard: TransactionsFlagged = _at(TransactionsFlagged, 'nonstandard')
     versions: VersionCount[TxCount] = _at((VersionCount, TxCount), '*')
     transfer_volume: ValueFlow = _at(ValueFlow, 'transfer_volume')
+    payments: Payments = _at(Payments, 'payment_count')
+    timelocks: Timelocks = _at(Timelocks, 'locktime_*_count')
+    spending: Spending = _at(Spending, 'spending_*_count')
+    ephemeral_dust: Flow[Count] = _at(Flow, 'ephemeral_dust_spending_*_count')
+    same_block_spending: Flow[Count] = _at(Flow, 'same_block_spending_*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, '*_per_second')
 
 
@@ -4977,7 +5231,7 @@ class SeriesTree(_Node):
     mappings: Mappings = _at(Mappings, 'date')
     price: Price = _at(Price, 'price')
     blocks: Blocks = _at(Blocks, 'block')
-    inputs: Inputs = _at(Inputs, 'input')
+    inputs: Inputs = _at(Inputs, 'count')
     outputs: Outputs = _at(Outputs, 'output')
     transactions: Transactions = _at(Transactions, 'tx')
     mining: Mining = _at(Mining, 'hash')
@@ -5760,6 +6014,7 @@ class BitviewClient(BitviewClientBase):
       "bitproof": "Bitproof",
       "ascribe": "Ascribe",
       "stampery": "Stampery",
+      "bip47": "BIP-47",
       "bare_hash": "Bare hash",
       "text": "Text",
       "empty": "Empty",

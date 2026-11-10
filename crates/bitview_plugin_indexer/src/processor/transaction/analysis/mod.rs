@@ -3,19 +3,21 @@ pub mod features;
 pub mod input;
 pub mod output;
 pub mod policy;
+pub mod scan;
+pub mod signature;
 pub mod sigops;
 
-use bitcoin::Sequence;
 use brk_types::{OutputType, SigOps32};
 use rayon::prelude::*;
 use vecdb::{likely, unlikely};
 
 use super::ComputedTx;
-use crate::TxFeatureFlags;
+use crate::{BlockCounters, TxFeatureFlags};
 use brk_types::{Height, TxIndex};
 
 use crate::processor::{BlockProcessor, txin::InputSource, txout::ProcessedOutput};
 
+#[derive(Clone, Copy, Default)]
 pub struct TransactionAnalysis {
     pub total_sigop_cost: SigOps32,
     pub features: TxFeatureFlags,
@@ -35,13 +37,8 @@ fn record_epobc_tag(flags: &mut TxFeatureFlags, tx: &bitcoin::Transaction, first
     flags.insert(TxFeatureFlags::EPOBC * u32::from(tagged));
 }
 
-#[inline(always)]
-pub fn record_rbf_signaling(flags: &mut TxFeatureFlags, sequence: Sequence) {
-    flags.insert(TxFeatureFlags::RBF_SIGNALING * u32::from(sequence.is_rbf()));
-}
-
 impl BlockProcessor<'_> {
-    /// Analyzes each transaction into `analyses`, cleared first.
+    /// Analyzes each transaction into `analyses`, resized to them, and counts the block.
     /// The block at `height`, its first transaction at `block_first_tx_index`: an associated
     /// function, so it runs beside the finalization that mutably borrows the processor.
     pub fn analyze_transactions(
@@ -51,57 +48,87 @@ impl BlockProcessor<'_> {
         txins: &[InputSource],
         txouts: &[ProcessedOutput],
         analyses: &mut Vec<TransactionAnalysis>,
-    ) {
+    ) -> BlockCounters {
         let track_executed_legacy = policy::tracks_executed_legacy_sigops(height);
 
-        analyses.clear();
-        analyses.par_extend(txs.par_iter().map(|tx| {
-            let tx_inputs = tx.inputs(txins);
-            let tx_outputs = tx.outputs(txouts);
-            let is_coinbase = tx.is_coinbase(block_first_tx_index);
-
-            let mut sigops = sigops::Accumulator::new(track_executed_legacy);
-            let mut flags = TxFeatureFlags::default();
-            let mut output_scanner = output::Scanner::default();
-            let mut policy = policy::Accumulator::new(height);
-
-            if unlikely(is_coinbase) {
-                let input = &tx.tx.input[0];
-                record_rbf_signaling(&mut flags, input.sequence);
-                sigops.scan_coinbase_input(input);
-            } else {
-                record_epobc_tag(
-                    &mut flags,
-                    tx.tx,
-                    resolved_output_facts(&tx_inputs[0], txouts).0,
+        // Every entry is overwritten: only growth needs initializing.
+        analyses.resize(txs.len(), TransactionAnalysis::default());
+        analyses
+            .par_iter_mut()
+            .zip(txs.par_iter())
+            .fold(BlockCounters::default, |mut block, (analysis, tx)| {
+                *analysis = analyze_transaction(
+                    tx,
+                    height,
+                    block_first_tx_index,
+                    track_executed_legacy,
+                    txins,
+                    txouts,
+                    &mut block,
                 );
-                for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
-                    record_rbf_signaling(&mut flags, input.sequence);
-                    let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);
-                    let facts = input::analyze(input, output_type, &mut flags);
-                    sigops.scan_input(output_type, legacy_sigop_cost, &facts);
-                    policy.scan_input(input, output_type, &facts);
-                }
-            }
+                block
+            })
+            .reduce(BlockCounters::default, BlockCounters::merged)
+    }
+}
 
-            for (txout, output) in tx.tx.output.iter().zip(tx_outputs) {
-                output_scanner.scan(txout, output, &mut flags);
-                sigops.scan_output(output);
-                if likely(!is_coinbase) {
-                    policy.scan_output(txout, output);
-                }
-            }
+fn analyze_transaction(
+    tx: &ComputedTx<'_>,
+    height: Height,
+    block_first_tx_index: TxIndex,
+    track_executed_legacy: bool,
+    txins: &[InputSource],
+    txouts: &[ProcessedOutput],
+    block: &mut BlockCounters,
+) -> TransactionAnalysis {
+    let tx_inputs = tx.inputs(txins);
+    let tx_outputs = tx.outputs(txouts);
+    let is_coinbase = tx.is_coinbase(block_first_tx_index);
 
-            let sigops = sigops.finish();
-            if likely(!is_coinbase) {
-                policy.finish(tx, sigops, &mut flags);
-            }
+    let mut sigops = sigops::Accumulator::new(track_executed_legacy);
+    let mut output_scanner = output::Scanner::default();
+    let mut policy = policy::Accumulator::new(height);
+    let mut scan = scan::TxScan::new(block);
 
-            TransactionAnalysis {
-                total_sigop_cost: sigops.total,
-                features: flags,
-            }
-        }));
+    if unlikely(is_coinbase) {
+        let input = &tx.tx.input[0];
+        scan.sequence(input.sequence);
+        sigops.scan_coinbase_input(input);
+    } else {
+        record_epobc_tag(
+            &mut scan.flags,
+            tx.tx,
+            resolved_output_facts(&tx_inputs[0], txouts).0,
+        );
+        // BIP-68 applies from version 2, read as an unsigned number.
+        let counts_relative_locks = tx.tx.version.0 as u32 >= 2;
+        for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
+            scan.sequence(input.sequence);
+            let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);
+            let facts = input::analyze(input, output_type, &mut scan);
+            sigops.scan_input(output_type, legacy_sigop_cost, &facts);
+            policy.scan_input(input, output_type, &facts);
+            scan.scan_input(input, output_type, &facts, counts_relative_locks);
+        }
+    }
+
+    for (txout, output) in tx.tx.output.iter().zip(tx_outputs) {
+        let keys = output_scanner.scan(txout, output, &mut scan.flags);
+        sigops.scan_output(output);
+        scan.scan_output(keys);
+        if likely(!is_coinbase) {
+            policy.scan_output(txout, output);
+        }
+    }
+
+    let sigops = sigops.finish();
+    if likely(!is_coinbase) {
+        policy.finish(tx, sigops, &mut scan.flags);
+    }
+
+    TransactionAnalysis {
+        total_sigop_cost: sigops.total,
+        features: scan.finish(tx.tx, is_coinbase),
     }
 }
 

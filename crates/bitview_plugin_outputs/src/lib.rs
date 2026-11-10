@@ -1,5 +1,6 @@
 mod by_type;
 mod compute;
+mod counts;
 mod dependencies;
 mod has;
 mod import;
@@ -22,6 +23,7 @@ use brk_types::Version;
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
+use counts::{Coinbase, Pubkeys};
 use spent::Vecs as SpentVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("outputs"), Version::new(9));
@@ -55,4 +57,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// outputs.
     #[traversable(lead = "Bitcoin burned in OP_RETURN outputs.")]
     pub op_return_value: ValuePerBlockCumulativeRolling<M>,
+    /// Outputs of coinbase transactions, in all and by type.
+    coinbase: Coinbase<M>,
+    pubkeys: Pubkeys<M>,
 }

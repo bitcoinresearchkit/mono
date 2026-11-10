@@ -29,3 +29,14 @@ pub use rolling::*;
 pub use sources::*;
 pub use value::*;
 pub use views::*;
+
+/// What `counter_group!` names, for crates that don't depend on these themselves.
+#[doc(hidden)]
+pub mod __macro {
+    pub use bitview_primitives::{Bytes, Count};
+    pub use bitview_traversable::Traversable;
+    pub use brk_error::Result;
+    pub use brk_exit::Exit;
+    pub use brk_types::{Height, Version};
+    pub use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
+}

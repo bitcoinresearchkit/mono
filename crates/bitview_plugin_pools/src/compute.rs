@@ -18,7 +18,11 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies { indexer, mining } = dependencies;
+        let Dependencies {
+            indexer,
+            mining,
+            mappings,
+        } = dependencies;
         let exit = context.exit();
 
         // Blocks and their totals publish together, once both are complete.
@@ -26,7 +30,16 @@ impl ComputePlugin for Vecs {
         self.compute_pool(indexer, exit, &mut snapshot)?;
         self.fill_rewards(mining, &mut snapshot);
         self.heights.publish(snapshot);
-        Ok(())
+        let from = indexer.compute_start().height;
+        crate::concentration::compute(
+            &mut self.concentration,
+            &mut self.concentration_grouped,
+            &self.block_pool,
+            mappings,
+            from,
+            exit,
+        )?;
+        crate::antpool_group::compute(&mut self.antpool_group, &self.block_pool, from, exit)
     }
 }
 

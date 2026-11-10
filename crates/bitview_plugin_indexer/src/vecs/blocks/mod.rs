@@ -1,4 +1,4 @@
-use bitview_primitives::{Bytes, Bytes32, Difficulty};
+use bitview_primitives::{BlockVersion, Bytes, Bytes32, Difficulty, RawSequence};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{
@@ -48,6 +48,12 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     pub weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
+    /// The block header's version field, read for what it signals.
+    #[traversable(hidden)]
+    pub version: M::Stored<PcoVec<Height, BlockVersion>>,
+    /// The coinbase input's sequence, which no other column keeps.
+    #[traversable(hidden)]
+    pub coinbase_sequence: M::Stored<PcoVec<Height, RawSequence>>,
     /// Non-coinbase transactions using SegWit serialization. Value for the represented block.
     pub segwit_tx_count: BlockCount<M>,
     /// Combined total serialized size in bytes of the block's non-coinbase
@@ -70,6 +76,8 @@ impl BlocksVecs {
             size,
             weight,
             position,
+            version_column,
+            coinbase_sequence,
             segwit_tx_count,
             segwit_tx_size,
             segwit_tx_weight,
@@ -82,6 +90,8 @@ impl BlocksVecs {
             size = PcoVec::import(db, "block_size", version).map(Compact::new),
             weight = PcoVec::import(db, "block_weight", version).map(Compact::new),
             position = PcoVec::import(db, "block_position", version),
+            version_column = PcoVec::import(db, "block_version", version),
+            coinbase_sequence = PcoVec::import(db, "coinbase_sequence", version),
             segwit_tx_count = block_count(db, "segwit_tx_count", version),
             segwit_tx_size = PcoVec::import(db, "segwit_tx_size", version).map(Compact::new),
             segwit_tx_weight = PcoVec::import(db, "segwit_tx_weight", version).map(Compact::new),
@@ -95,6 +105,8 @@ impl BlocksVecs {
             size,
             weight,
             position,
+            version: version_column,
+            coinbase_sequence,
             segwit_tx_count,
             segwit_tx_size,
             segwit_tx_weight,
@@ -127,6 +139,8 @@ impl BlocksVecs {
             &*self.size,
             &*self.weight,
             &self.position,
+            &self.version,
+            &self.coinbase_sequence,
             &*self.segwit_tx_count,
             &*self.segwit_tx_size,
             &*self.segwit_tx_weight,

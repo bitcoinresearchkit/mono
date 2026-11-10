@@ -9,7 +9,7 @@ use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::{Vecs, breakdown::BlockMetrics, policy::Policy};
+use crate::{Sizes, Vecs, breakdown::BlockMetrics, policy::Policy};
 use carrier::Carrier;
 
 pub struct Batch {
@@ -104,6 +104,7 @@ impl Batch {
             let mut policy = Policy::default();
             let mut current_tx = None;
             let mut carrier = Carrier::default();
+            let mut sizes = [0u64; 3];
 
             for record_index in offsets[0]..offsets[1] {
                 let tx_index = tx_indexes[record_index];
@@ -122,6 +123,7 @@ impl Batch {
                     carrier_index += 1;
                 }
 
+                Sizes::add_output(&mut sizes, u32::from(post_op_return_bytes[record_index]));
                 total.output_count += 1;
                 total.data_bytes += bytes;
                 by_kind[kind_index].output_count += 1;
@@ -133,6 +135,7 @@ impl Batch {
             target.total.push(total);
             target.protocols.push(by_kind);
             target.policies.push(policy);
+            target.sizes.push_block(sizes);
         }
 
         debug_assert_eq!(carrier_index, weights.len());

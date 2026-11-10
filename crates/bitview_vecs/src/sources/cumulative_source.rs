@@ -3,7 +3,7 @@ use std::ops::AddAssign;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, PcoVecValue, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode};
 
 use crate::{CachedSeries, CumulativeState, import_cached};
 
@@ -29,11 +29,7 @@ impl<T: PcoVecValue + AddAssign + Default> CumulativeSource<T> {
 
     #[inline(always)]
     pub fn push_block(&mut self, value: T) {
-        let height = Height::from(self.stored.len());
-        let cumulative = self
-            .last
-            .add_at(height, &self.stored, |total| *total += value);
-        self.stored.push(cumulative);
+        self.last.push(&mut self.stored, value);
     }
 
     /// A pure borrow: a length change reloads the cached total.

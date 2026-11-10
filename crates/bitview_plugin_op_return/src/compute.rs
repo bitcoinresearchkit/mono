@@ -33,7 +33,7 @@ impl ComputePlugin for Vecs {
             + fees.fee.tx.version();
 
         let skip = prepare_computed(
-            self.stored_mut().collect::<Vec<_>>(),
+            self.stored_mut(),
             version,
             starting_lengths.height.to_usize(),
             exit,

@@ -4,7 +4,11 @@ use brk_error::Result;
 use rayon::{join, prelude::*};
 
 use super::Vecs;
-use crate::{Dependencies, fees::Valued, flagged::TxValue};
+use crate::{
+    Dependencies,
+    fees::{Tallied, Valued},
+    flagged::TxValue,
+};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -29,6 +33,11 @@ impl ComputePlugin for Vecs {
             nonstandard,
             versions,
             transfer_volume,
+            payments,
+            timelocks,
+            spending,
+            ephemeral_dust,
+            same_block_spending,
             ..
         } = self;
         let exit = context.exit();
@@ -36,7 +45,7 @@ impl ComputePlugin for Vecs {
         let price = &price.spot.cents.height;
 
         // The counts, from the indexer's, apart from the values the fee pass gives the same kinds.
-        let (feature_counts, feature_values) = features.split_mut();
+        let (feature_counts, feature_values, shapes, bip69_expected) = features.split_mut();
         let (version_counts, version_values) = versions.split_mut();
 
         let (independent, fee_based) = join(
@@ -94,6 +103,17 @@ impl ComputePlugin for Vecs {
                     nonstandard_flag: &mut nonstandard.flag,
                     nonstandard_count: &mut nonstandard.count.count,
                     inscription_fees: &mut inscription.fees.cumulative.sats.height,
+                    vsize_total: &mut vsize.total,
+                    bip69_expected,
+                    tallied: Tallied {
+                        one_input_one_output: &mut shapes.one_input_one_output,
+                        one_input_two_output: &mut shapes.one_input_two_output,
+                        payment: &mut payments.count,
+                        segwit_payment: &mut payments.segwit_spending,
+                        rbf_payment: &mut payments.rbf_signaling,
+                        ephemeral_dust,
+                        same_block_spending,
+                    },
                 };
                 fees.compute(
                     indexer,
@@ -122,6 +142,13 @@ impl ComputePlugin for Vecs {
                 inscription.fees.compute_cents(start, price, exit)
             },
         );
-        independent.and(fee_based)
+        independent.and(fee_based)?;
+
+        let counters = &indexer.vecs().transactions.counters;
+        shapes
+            .bip69
+            .compute(start, &counters.bip69_tx_count, exit)?;
+        timelocks.compute(start, indexer, exit)?;
+        spending.compute(start, counters, exit)
     }
 }

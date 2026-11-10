@@ -60,6 +60,35 @@ scalar! {
 }
 
 scalar! {
+    /// A block header's version field, bit for bit.
+    int BlockVersion(u32)
+}
+
+impl BlockVersion {
+    /// Whether it signals with `bit` by BIP-9: its top three bits 001 and that bit set.
+    pub fn is_signalling_soft_fork(self, bit: u8) -> bool {
+        bitcoin::block::Version::from_consensus(u32::from(self) as i32).is_signalling_soft_fork(bit)
+    }
+}
+
+scalar! {
+    /// A transaction input's sequence field, bit for bit.
+    int RawSequence(u32)
+}
+
+impl RawSequence {
+    /// Whether it is final, the highest sequence.
+    pub fn is_final(self) -> bool {
+        bitcoin::Sequence(u32::from(self)).is_final()
+    }
+}
+
+scalar! {
+    /// Proof of work, in the hashes expected to find it.
+    float Work(f64)
+}
+
+scalar! {
     /// US dollars per PH/s of hash rate per day.
     float HashPrice(f32)
 }
@@ -152,6 +181,11 @@ scalar! {
 }
 
 scalar! {
+    /// A number of things expected from chance: a sum of probabilities.
+    float ExpectedCount(f64)
+}
+
+scalar! {
     /// A number of things.
     int Count(u64)
 }
@@ -184,6 +218,14 @@ scalar! {
 scalar! {
     /// A duration in seconds (at most about 136 years).
     int Seconds(u32)
+}
+
+/// A thing that is or isn't: one or none, for counting a predicate.
+impl From<bool> for Count {
+    #[inline]
+    fn from(value: bool) -> Self {
+        Self(u64::from(value))
+    }
 }
 
 impl From<Count32> for Count {

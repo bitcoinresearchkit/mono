@@ -105,7 +105,7 @@ impl<'a> BlockProcessor<'a> {
         } = self.stores.transaction_stores_mut();
         let txs = &txs;
 
-        join(
+        let (_, counters) = join(
             || {
                 txout::finalize_outputs(
                     txs,
@@ -135,7 +135,7 @@ impl<'a> BlockProcessor<'a> {
                 );
             },
             || {
-                Self::analyze_transactions(
+                let counters = Self::analyze_transactions(
                     height,
                     block_first_tx_index,
                     txs,
@@ -143,9 +143,11 @@ impl<'a> BlockProcessor<'a> {
                     analyzed_outputs,
                     analyses,
                 );
-                store_tx_metadata(height, txs, analyses, txid_prefixes, &mut tx_metadata)
+                store_tx_metadata(height, txs, analyses, txid_prefixes, &mut tx_metadata);
+                counters
             },
         );
+        self.vecs.transactions.counters.push(height, &counters);
     }
 }
 

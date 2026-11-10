@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ImportableVec, PcoVec, ReadableCloneableVec};
 
-use super::Vecs;
+use super::{Vecs, ranges::Ranges};
 use crate::{
     distribution::PerTxDistribution,
     flagged::{Classified, Totals},
@@ -55,6 +55,7 @@ impl Vecs {
             )?,
             cpfp_parent: cpfp_role("is_cpfp_parent", "cpfp_parent_tx")?,
             cpfp_child: cpfp_role("is_cpfp_child", "cpfp_child_tx")?,
+            ranges: Ranges::import(db, fee_version + CHUNK_VERSION, mappings, window_starts)?,
         })
     }
 }

@@ -1,5 +1,9 @@
+use std::ops::AddAssign;
+
 use brk_types::Height;
-use vecdb::{ReadableVec, VecValue};
+use vecdb::{AnyVec, PcoVecValue, ReadableVec, VecValue, WritableVec};
+
+use crate::CachedSeries;
 
 /// Writer-only running totals, reloaded from the source when the requested length differs from
 /// the cached one.
@@ -29,16 +33,16 @@ impl<R: Clone + Default> CumulativeState<R> {
         values
     }
 
-    /// The running total at `height`, continuing the totals `stored` holds below it.
+    /// The running total at `height`, `value` more than the total `stored` holds below it.
     #[inline]
     pub(crate) fn add_at(
         &mut self,
         height: Height,
         stored: &impl ReadableVec<Height, R>,
-        add: impl FnOnce(&mut R),
+        value: R,
     ) -> R
     where
-        R: VecValue,
+        R: VecValue + AddAssign,
     {
         self.accumulate(
             usize::from(height),
@@ -47,7 +51,17 @@ impl<R: Clone + Default> CumulativeState<R> {
                     .decremented()
                     .and_then(|height| stored.collect_one(height))
             },
-            add,
+            |total| *total += value,
         )
+    }
+
+    /// Appends to `stored` the running total through one more block of `value`.
+    #[inline(always)]
+    pub(crate) fn push(&mut self, stored: &mut CachedSeries<Height, R>, value: R)
+    where
+        R: PcoVecValue + AddAssign,
+    {
+        let total = self.add_at(Height::from(stored.len()), stored, value);
+        stored.push(total);
     }
 }

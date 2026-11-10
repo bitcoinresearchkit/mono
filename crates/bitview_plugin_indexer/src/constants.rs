@@ -3,7 +3,7 @@ use brk_types::{Height, Sats, TxIndex, Version};
 
 // One schema version for every data source: bump it when stored data changes or a source is
 // added.
-pub const VERSION: Version = Version::new(46);
+pub const VERSION: Version = Version::new(47);
 
 /// The newest blocks the first resume after a start reads back at their stored positions, about a
 /// day of them: back from a crash, Core writes what it fetched since its last block-index write

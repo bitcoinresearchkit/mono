@@ -30,8 +30,8 @@ use rollback_floor::RollbackFloor;
 use state::State;
 use stores::Stores;
 use vecs::{
-    AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionCounts,
-    TxFeatureFlags, TxMetadataVecs, Vecs,
+    AddrsVecs, BlockCounters, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs,
+    TransactionCounts, TxFeatureFlags, TxMetadataVecs, Vecs,
 };
 
 #[macro_use]
@@ -58,7 +58,7 @@ pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
 
 pub use safe_lengths::SafeLengths;
 pub use stores::UtxoKey;
-pub use vecs::{BlockCount, FeatureVecs, FlagView};
+pub use vecs::{BlockCount, BlockCounterVecs, FeatureVecs, FlagView};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_HEIGHT_INTERVAL: usize = 100;

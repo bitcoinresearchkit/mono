@@ -1,5 +1,6 @@
 mod by_type;
 mod compute;
+mod counts;
 mod dependencies;
 mod has;
 mod import;
@@ -16,6 +17,8 @@ use bitview_vecs::{LazyPerSecondWindows, PerBlockFullFromCumulative};
 use brk_types::Version;
 use statedb::Spends;
 use vecdb::{Database, Rw, StorageMode};
+
+use counts::Counts;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("inputs"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -39,4 +42,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transaction inputs by the locking-script type of the output they spend,
     /// excluding coinbase inputs and coinbase transactions.
     types: TypesVecs<M>,
+    #[traversable(flatten)]
+    counts: Counts<M>,
 }

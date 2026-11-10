@@ -3,7 +3,7 @@ mod import;
 mod vecs;
 
 pub(crate) use compute::FEATURES;
-pub use vecs::{Scripts, Signatures, Vecs};
+pub use vecs::{Scripts, Shapes, Signatures, Vecs};
 
 /// The features with a flag, by group, passed to `$callback`: each name is also its indexer
 /// feature's, and its count id is `<name>_tx_count`.

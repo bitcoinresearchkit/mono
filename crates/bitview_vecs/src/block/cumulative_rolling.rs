@@ -4,20 +4,17 @@
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_exit::Exit;
 use brk_types::{Height, Version};
+use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{
-    AnyStoredVec, AnyVec, ComputeVec, Database, DeltaOp, DeltaSub, ReadableCloneableVec,
-    ReadableVec, Rw, StorageMode, VecIndex, VecValue, WritableVec,
-};
+use vecdb::{Database, DeltaOp, DeltaSub, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{
-    CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock,
-    PricedSum, shapes::Windows,
+    IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlockCumulative, PricedSum,
+    shapes::Windows,
 };
 
-#[derive(Traversable)]
+#[derive(Deref, DerefMut, Traversable)]
 #[traversable(client = "Flow")]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw, Op = DeltaSub>
 where
@@ -26,11 +23,11 @@ where
 {
     /// Value for the represented block.
     pub block: LazyPreviousDeltaVec<Height, T>,
-    /// Cumulative value through the represented block. At time-period indexes,
-    /// the value is taken at the period's final block.
-    pub cumulative: PerBlock<T, M>,
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    running: PerBlockCumulative<T, M>,
     pub sum: LazyRollingSumsFromHeight<T, Op>,
-    last: M::WriteOnly<CumulativeState<T>>,
 }
 
 /// A flow valued in dollars: its window sums none until wholly priced (see [`crate::priced`]).
@@ -48,8 +45,8 @@ where
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
-        let cumulative = PerBlock::import(db, &format!("{name}_cumulative"), version, indexes)?;
-        let source = cumulative.resolutions.height_source();
+        let running = PerBlockCumulative::import(db, name, version, indexes)?;
+        let source = running.cumulative.resolutions.height_source();
         let block = LazyPreviousDeltaVec::new(name, version, source);
         let sum = LazyRollingSumsFromHeight::new(
             &format!("{name}_sum"),
@@ -61,76 +58,48 @@ where
 
         Ok(Self {
             block,
-            cumulative,
+            running,
             sum,
-            last: Default::default(),
         })
     }
+}
 
-    pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T> + use<T, Op>) {
-        self.cumulative.resolutions.height_source()
-    }
+/// A stored running total and its trailing-window sums, without a per-block value: for a count
+/// whose block value says nothing, zero or one a block (as a pool's blocks, see
+/// [`crate::LazyCumulativeRolling`]).
+#[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "CumulativeFlow")]
+pub struct CumulativeRolling<T, M: StorageMode = Rw>
+where
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
+{
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    running: PerBlockCumulative<T, M>,
+    pub sum: LazyRollingSumsFromHeight<T>,
+}
 
-    #[inline(always)]
-    pub fn push_block(&mut self, value: T) {
-        let height = Height::from(self.cumulative.height.len());
-        let cumulative = self
-            .last
-            .add_at(height, &self.cumulative.height, |total| *total += value);
-        self.cumulative.height.push(cumulative);
-    }
-
-    pub fn compute_cumulative_transformed<S>(
-        &mut self,
-        max_from: Height,
-        source: &impl ReadableVec<Height, S>,
-        mut transform: impl FnMut(S) -> T,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        S: VecValue,
-    {
-        let last = &mut self.last;
-        Ok(self.cumulative.height.compute_transform(
-            max_from,
-            source,
-            |(height, value, this)| {
-                let value = transform(value);
-                last.add_at(height, this, |total| *total += value)
-            },
-            exit,
-        )?)
-    }
-
-    pub fn compute_cumulative_sum_from_indexes<A, B, S>(
-        &mut self,
-        max_from: Height,
-        first_indexes: &impl ReadableVec<Height, A>,
-        indexes_count: &impl ReadableVec<Height, B>,
-        source: &impl ReadableVec<A, S>,
-        transform: impl FnMut(S) -> T,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecIndex + VecValue,
-        B: VecValue,
-        S: VecValue,
-        usize: From<B>,
-        T: Copy,
-    {
-        self.last = CumulativeState::default();
-        Ok(self.cumulative.height.compute_cumulative_sum_from_indexes(
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            transform,
-            exit,
-        )?)
-    }
-
-    /// A pure borrow: a length change reloads the cached total.
-    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
-        &mut self.cumulative.height
+impl<T> CumulativeRolling<T>
+where
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
+    DeltaSub: DeltaOp<T, T>,
+{
+    pub fn import(
+        db: &Database,
+        name: &str,
+        version: Version,
+        indexes: &IndexSources,
+        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+    ) -> Result<Self> {
+        let running = PerBlockCumulative::import(db, name, version, indexes)?;
+        let sum = LazyRollingSumsFromHeight::new(
+            &format!("{name}_sum"),
+            version,
+            running.cumulative.resolutions.height_source(),
+            window_starts,
+            indexes,
+        );
+        Ok(Self { running, sum })
     }
 }

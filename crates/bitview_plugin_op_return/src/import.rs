@@ -8,7 +8,7 @@ use brk_types::{Height, Sats};
 use vecdb::ReadableCloneableVec;
 
 use crate::{
-    STORAGE, Vecs,
+    STORAGE, Sizes, Vecs,
     breakdown::{BucketVecs, KindBreakdownVecs, PolicyBreakdownVecs},
 };
 
@@ -50,6 +50,7 @@ impl Vecs {
         )?;
 
         let flag = indexer.vecs().transactions.features.op_return.flag_view();
+        let sizes = Sizes::import(&db, version, mappings, window_starts)?;
 
         let this = Self {
             db,
@@ -57,6 +58,7 @@ impl Vecs {
             total,
             protocols,
             policies,
+            sizes,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

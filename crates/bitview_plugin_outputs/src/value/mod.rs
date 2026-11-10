@@ -1,3 +1,3 @@
 mod compute;
 
-pub(crate) use compute::compute_sats;
+pub(crate) use compute::{Targets, compute_sats};

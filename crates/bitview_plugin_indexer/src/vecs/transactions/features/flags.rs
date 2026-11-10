@@ -53,11 +53,6 @@ impl TxFeatureFlags {
     }
 
     #[inline]
-    pub fn contains_all(self, flags: u32) -> bool {
-        self.0 & flags == flags
-    }
-
-    #[inline]
     pub fn is_set(self, flag: u32) -> bool {
         self.0 & flag != 0
     }

@@ -1,10 +1,13 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::PerBlockCumulativeRolling;
+use bitview_vecs::{CumulativeRolling, PerBlockCumulativeRolling};
 use brk_error::Result;
 
-use super::{BlockRolling, DifficultyVecs, Fullness, HalvingVecs, IntervalVecs, STORAGE, Vecs, count};
+use super::{
+    BlockRolling, CoinbaseLocktime, DifficultyVecs, Fullness, HalvingVecs, IntervalVecs, STORAGE,
+    Vecs, count,
+};
 
 impl Vecs {
     pub fn import(
@@ -54,6 +57,28 @@ impl Vecs {
             fullness,
             difficulty: DifficultyVecs::new(version, indexer, mappings),
             halving: HalvingVecs::new(version, mappings),
+            empty_count: CumulativeRolling::import(
+                &db,
+                "empty_block_count",
+                version,
+                mappings,
+                &window_starts,
+            )?,
+            work: PerBlockCumulativeRolling::import(
+                &db,
+                "block_work",
+                version,
+                mappings,
+                &window_starts,
+            )?,
+            version_bit_4: CumulativeRolling::import(
+                &db,
+                "version_bit_4_block_count",
+                version,
+                mappings,
+                &window_starts,
+            )?,
+            coinbase_locktime: CoinbaseLocktime::import(&db, version, mappings, &window_starts)?,
             db,
         };
         STORAGE.finalize_database(&this.db)?;

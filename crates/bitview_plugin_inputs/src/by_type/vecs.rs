@@ -14,7 +14,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) tx_count_stored: SpendableType<CumulativeSource<Count, M>>,
 }
 
+/// Named in the clients for the shape it shares with an OP_RETURN output's: series of a type.
 #[derive(Clone, Traversable)]
+#[traversable(client = "TypeSeries")]
 pub struct InputTypeVecs {
     /// Number of inputs spending outputs of the type.
     #[traversable(lead = "Inputs spending this type.")]

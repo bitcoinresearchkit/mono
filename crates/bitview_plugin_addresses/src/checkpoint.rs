@@ -78,12 +78,14 @@ impl Vecs {
         Ok(())
     }
 
-    /// Every height-indexed vec the block loop writes: all the members' and bands' stored vecs.
+    /// Every height-indexed vec the block loop writes: all the members' and bands' stored vecs,
+    /// and the direct reuse total.
     pub(crate) fn loop_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         let Self {
             all,
             types,
             balances,
+            direct_reuse,
             ..
         } = self;
         let (zero, bands) = balances.bands.split_mut();
@@ -96,9 +98,10 @@ impl Vecs {
                     .flat_map_iter(|band| band.iter_any_stored_mut()),
             )
             .chain(zero.iter_any_stored_mut().collect::<Vec<_>>())
-            .chain(rayon::iter::once(
+            .chain([
                 &mut balances.capital as &mut dyn AnyStoredVec,
-            ))
+                direct_reuse.stored_mut(),
+            ])
     }
 
     /// Drops the address state an update that failed before publishing left staged.

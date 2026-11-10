@@ -57,8 +57,31 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `sats_per_dollar` is null while the spot price is zero (before block 74,641, August 2010), at every index: it
   read 0, as though a dollar bought nothing; the clients type it nullable (`Cents::sats_per_dollar()` returns an
   `Option`)
+- Clients (Rust, JavaScript, Python): three nodes that gained series have types of their own. `addresses.reused` is
+  `AddressesReused` (it adds `direct`; each address type's `reused` stays `Reused`); `transactions.vsize` is `Vsize`
+  (was `PerTxDistribution<VSize>`); outputs by type stay `OutputTypeSeries`, now with `value`, but OP_RETURN's, which
+  has no value, and inputs by spent type are `TypeSeries` (were `OutputTypeSeries`), so `ByType` takes both
+  (`ByType<OutputTypeSeries, TypeSeries>`). Paths and series ids are as they were
+- The indexer's data is version 47: a server indexes again from block 0 on its first start, and every dataset is
+  computed again (about 85 minutes on the benchmark Mac mini, the indexer about 60 of them)
 
 ### New Features
+
+- Every one of mainnet.observer's 127 charts and tables has its series (136 new ones, and BIP-47's own as an OP_RETURN
+  protocol), each with the forms of its family, all read from one stored running total: the block's own, the total
+  from block 0, and its sums over 24 hours, a week, a month and a year. A count that is 0 or 1 a block has no block's
+  own, as the pools' block counts don't; each spendable type's value is in bitcoin and dollars, as OP_RETURN's
+  is; pool concentration is a day's. Studio's Chain statistics presets chart them, and the Miners page shows the five
+  tables by pool. Inputs: ECDSA signatures (strict DER, low r and s, each length, each sighash type, their bytes),
+  Schnorr signatures and their bytes, compressed and uncompressed keys, ten opcodes, P2SH, nested and native multisig,
+  nested SegWit, taproot script paths, inscriptions, coinbase witnesses, and spends of outputs at most 1, 6, 144 and
+  2,016 blocks old or of their own block. Outputs: coinbase outputs by type, each spendable type's value, keys,
+  OP_RETURN sizes, and BIP-47 notifications as an OP_RETURN protocol. Transactions: payments (all, SegWit spending, RBF
+  signaling), legacy, SegWit and mixed spending, height, time, unenforced and relative timelocks, BIP-69 order (and how
+  many match it by chance), one-input shapes, ephemeral dust, transactions by fee rate, virtual size by effective fee
+  rate, and virtual size. Blocks: empty blocks, version bit 4, coinbase locktimes (nonzero, BIP-54), and work. Pools:
+  the blocks of a day's 2 to 6 largest pools, alone and with AntPool's group (the pools mining its templates) as one,
+  and that group's blocks. Addresses: outputs paying back to an address their transaction spends.
 
 - MCP: serves protocol versions `2025-06-18` and `2025-11-25` as well as `2026-07-28`, statelessly at each. Other
   versions are refused, and a request naming none is served as `2025-06-18`
@@ -120,6 +143,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- BIP-47 notifications are an OP_RETURN protocol of their own; VeriBlock, guessed from an 82-byte length, counted
+  them
+- A key in hybrid encoding (65 bytes opening 0x06 or 0x07), which consensus takes, is a key: a P2PK or P2MS output
+  locking to one no longer marks its transaction as holding a fake key
+- Transactions' sighash flags read signatures by the one rule their new counts do: a lax-DER ECDSA signature names
+  its sighash type in any input (only P2PKH's did), a 65-byte Schnorr signature ending in 0x00, which consensus
+  rejects, no longer reads as `SIGHASH_DEFAULT`, and pushes that hold no signature (a P2SH input's redeem script, a
+  P2WSH input's witness script, an unknown witness program's items) are no longer read as one
 - Projected blocks 2-8 pack as Core 31's block builder ranks: by modified fees (a node operator's
   `prioritisetransaction` deltas, polled each cycle, negative ones included; block 0 already had them), equal
   feerates in Core's chunk order (the shorter equal-feerate run within its cluster, then the lower greatest txid;

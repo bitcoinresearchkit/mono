@@ -4,12 +4,17 @@ use brk_error::Result;
 use brk_types::{
     BlkPosition, Height, RawLockTime, SigOps, SigOps32, TxIndex, Txid, Version, Weight, Weight32,
 };
-use vecdb::{AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, Budgeted, BytesVec, Database, ImportableVec, PcoVec, ReadableVec, Rw,
+    StorageMode, VecIndex,
+};
 
+pub mod counters;
 pub mod features;
 pub mod metadata;
 pub mod versions;
 
+pub use counters::{BlockCounterVecs, BlockCounters};
 pub use features::TransactionFeaturesVecs;
 pub use features::{BlockCount, FeatureVecs, FlagView, TransactionCounts, TxFeatureFlags};
 pub use metadata::TxMetadataVecs;
@@ -63,6 +68,9 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     // Stored in 5 bytes per transaction.
     pub first_txout_index: Compact<BytesVec<TxIndex, Index40<TxOutIndex>>, TxOutIndex, M>,
     pub features: TransactionFeaturesVecs<M>,
+    /// Each block's counts of what it holds: sources of cumulative series other plugins own.
+    #[traversable(hidden)]
+    pub counters: BlockCounterVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
     pub versions: VersionCountVecs<M>,
@@ -71,6 +79,16 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
 }
 
 impl TransactionsVecs {
+    /// Each block's coinbase, its first transaction, for heights `start..end`: positions in the
+    /// per-transaction columns, ascending, as `read_sorted_at` takes them.
+    pub fn coinbases(&self, start: usize, end: usize) -> Vec<usize> {
+        self.first_tx_index
+            .collect_range_at(start, end)
+            .iter()
+            .map(|tx| tx.to_usize())
+            .collect()
+    }
+
     pub fn split_for_finalize(
         &mut self,
     ) -> (
@@ -106,6 +124,7 @@ impl TransactionsVecs {
             first_txin_index,
             first_txout_index,
             features,
+            counters,
             versions,
             position,
         ) = parallel_import! {
@@ -119,6 +138,7 @@ impl TransactionsVecs {
             first_txin_index = PcoVec::import(db, "first_txin_index", version),
             first_txout_index = BytesVec::import(db, "first_txout_index", version).map(Compact::new),
             features = TransactionFeaturesVecs::import(db, version),
+            counters = BlockCounterVecs::import(db, version),
             versions = VersionCountVecs::import(db, version),
             position = PcoVec::import(db, "tx_position", version),
         };
@@ -133,6 +153,7 @@ impl TransactionsVecs {
             first_txin_index,
             first_txout_index,
             features,
+            counters,
             versions,
             position,
         })
@@ -153,6 +174,7 @@ impl TransactionsVecs {
         ]
         .into_iter()
         .chain(self.features.iter_any())
+        .chain(self.counters.iter_any())
         .chain(self.versions.iter_any())
     }
 }

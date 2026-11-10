@@ -393,6 +393,11 @@
  * @typedef {number} Count
  */
 /**
+ * A number of things that fits 32 bits, such as outputs per block.
+ *
+ * @typedef {number} Count32
+ */
+/**
  * A mean number of things.
  *
  * @typedef {number} CountFract
@@ -602,6 +607,11 @@
  * Always empty: prices are quoted in USD only.
  *
  * @typedef {Object} ExchangeRates
+ */
+/**
+ * A number of things expected from chance: a sum of probabilities.
+ *
+ * @typedef {number} ExpectedCount
  */
 /**
  * Fee rate stored in milli-sat/vB and exposed as sat/vB.
@@ -882,7 +892,7 @@
 /**
  * Protocol or format detected in an OP_RETURN output.
  *
- * @typedef {("runes"|"witness_commitment"|"veriblock"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coinspark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ * @typedef {("runes"|"witness_commitment"|"veriblock"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coinspark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bip47"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
  */
 /**
  * Index of an OP_RETURN output.
@@ -1622,6 +1632,11 @@
  * A mean weight in weight units.
  *
  * @typedef {number} WeightFract
+ */
+/**
+ * Proof of work, in the hashes expected to find it.
+ *
+ * @typedef {number} Work
  */
 /**
  * Index of a year.
@@ -3825,6 +3840,23 @@ const _UtxoSetSeries = _s({
 });
 
 /**
+ * @typedef {{
+ *   top2: SeriesPattern9<Count32>,
+ *   top3: SeriesPattern9<Count32>,
+ *   top4: SeriesPattern9<Count32>,
+ *   top5: SeriesPattern9<Count32>,
+ *   top6: SeriesPattern9<Count32>,
+ * }} Concentration
+ */
+const _Concentration = _s({
+  top2: [_i9, 'top_2_*'],
+  top3: [_i9, 'top_3_*'],
+  top4: [_i9, 'top_4_*'],
+  top5: [_i9, 'top_5_*'],
+  top6: [_i9, 'top_6_*'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   value: SeriesPattern1<A>,
@@ -4652,6 +4684,33 @@ const _Inscription = _s({
 
 /**
  * @typedef {{
+ *   tx: SeriesPattern20<VSize>,
+ *   min: SeriesPattern1<VSize>,
+ *   max: SeriesPattern1<VSize>,
+ *   p10: SeriesPattern1<VSize>,
+ *   p25: SeriesPattern1<VSize>,
+ *   median: SeriesPattern1<VSize>,
+ *   p75: SeriesPattern1<VSize>,
+ *   p90: SeriesPattern1<VSize>,
+ *   cumulative: SeriesPattern1<VSize>,
+ *   sum: Windows<VSize>,
+ * }} Vsize
+ */
+const _Vsize = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_min'],
+  max: [_i1, '*_max'],
+  p10: [_i1, '*_p10'],
+  p25: [_i1, '*_p25'],
+  median: [_i1, '*_median'],
+  p75: [_i1, '*_p75'],
+  p90: [_i1, '*_p90'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_Windows, '*_sum'],
+});
+
+/**
+ * @typedef {{
  *   flag: SeriesPattern20<Boolean>,
  *   block: SeriesPattern19<Count>,
  *   cumulative: SeriesPattern1<Count>,
@@ -4680,23 +4739,6 @@ const _Patterns = _s({
   coinjoin: [_TransactionsFlagged, '*'],
   consolidation: [_TransactionsFlagged, 'consolidation'],
   batchPayout: [_TransactionsFlagged, 'batch_payout'],
-});
-
-/**
- * @typedef {{
- *   fee: PerTxDistribution<Sats>,
- *   feeRate: SeriesPattern20<?FeeRate>,
- *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
- *   cpfpParent: TransactionsFlagged,
- *   cpfpChild: TransactionsFlagged,
- * }} Fees
- */
-const _Fees = _s({
-  fee: [_PerTxDistribution, '*_fee'],
-  feeRate: [_i20, '*_fee_rate'],
-  effectiveFeeRate: [_PerTxDistribution, '*_effective_fee_rate'],
-  cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
-  cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
 });
 
 /**
@@ -4783,29 +4825,6 @@ const _TransactionsScripts = _s({
   unknownScript: [_Flagged, 'unknown_*'],
   fakePubkey: [_Flagged, 'fake_pubkey'],
   fakeScripthash: [_Flagged, 'fake_scripthash'],
-});
-
-/**
- * @typedef {{
- *   scripts: TransactionsScripts,
- *   signatures: Signatures,
- *   segwit: TxCount,
- *   rbfSignaling: TransactionsFlagged,
- *   dustOutput: Flagged,
- *   epobc: TransactionsFlagged,
- *   oneInput: TxCount,
- *   oneOutput: TxCount,
- * }} Features
- */
-const _Features = _s({
-  scripts: [_TransactionsScripts, 'script'],
-  signatures: [_Signatures, 'sighash'],
-  segwit: [_TxCount, 'segwit_*'],
-  rbfSignaling: [_TransactionsFlagged, 'rbf_signaling'],
-  dustOutput: [_Flagged, 'dust_output'],
-  epobc: [_TransactionsFlagged, 'epobc'],
-  oneInput: [_TxCount, 'one_input_*'],
-  oneOutput: [_TxCount, 'one_output_*'],
 });
 
 /**
@@ -5450,6 +5469,28 @@ const _Age = _s({
 /**
  * @typedef {{
  *   outputCount: Flow<Count>,
+ * }} OutputCount
+ */
+const _OutputCount = _s({
+  outputCount: [_Flow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   over42Bytes: OutputCount,
+ *   over520Bytes: OutputCount,
+ *   over10kBytes: OutputCount,
+ * }} Sizes
+ */
+const _Sizes = _s({
+  over42Bytes: [_OutputCount, '*_42_bytes_output_count'],
+  over520Bytes: [_OutputCount, '*_520_bytes_output_count'],
+  over10kBytes: [_OutputCount, '*_10k_bytes_output_count'],
+});
+
+/**
+ * @typedef {{
+ *   outputCount: Flow<Count>,
  *   dataBytes: DataBytesSeries,
  *   txCount: Flow<Count>,
  *   txShare: Share,
@@ -5501,6 +5542,7 @@ const _Policy = _s({
  *   bitproof: Bucket,
  *   ascribe: Bucket,
  *   stampery: Bucket,
+ *   bip47: Bucket,
  *   bareHash: Bucket,
  *   text: Bucket,
  *   empty: Bucket,
@@ -5526,6 +5568,7 @@ const _ByKind = _s({
   bitproof: [_Bucket, '*_bitproof'],
   ascribe: [_Bucket, '*_ascribe'],
   stampery: [_Bucket, '*_stampery'],
+  bip47: [_Bucket, '*_bip47'],
   bareHash: [_Bucket, '*_bare_hash'],
   text: [_Bucket, '*_text'],
   empty: [_Bucket, '*_empty'],
@@ -5543,6 +5586,7 @@ const _ByKind = _s({
  *   fees: FeesSeries,
  *   protocols: ByKind,
  *   policies: Policy,
+ *   sizes: Sizes,
  * }} OpReturn
  */
 const _OpReturn = _s({
@@ -5555,6 +5599,223 @@ const _OpReturn = _s({
   fees: [_FeesSeries, '*'],
   protocols: [_ByKind, '*'],
   policies: [_Policy, '*'],
+  sizes: [_Sizes, '*_data_over'],
+});
+
+/**
+ * @typedef {{
+ *   onlySegwit: Flow<Count>,
+ *   onlyLegacy: Flow<Count>,
+ *   segwitAndLegacy: Flow<Count>,
+ * }} Spending
+ */
+const _Spending = _s({
+  onlySegwit: [_Flow, 'only_segwit_*'],
+  onlyLegacy: [_Flow, 'only_legacy_*'],
+  segwitAndLegacy: [_Flow, 'segwit_and_legacy_*'],
+});
+
+/**
+ * @typedef {{
+ *   height: Flow<Count>,
+ *   time: Flow<Count>,
+ *   unenforced: Flow<Count>,
+ *   relativeHeight: Flow<Count>,
+ *   relativeTime: Flow<Count>,
+ * }} Timelocks
+ */
+const _Timelocks = _s({
+  height: [_Flow, 'height_*'],
+  time: [_Flow, 'time_*'],
+  unenforced: [_Flow, 'unenforced_*'],
+  relativeHeight: [_Flow, 'relative_height_*'],
+  relativeTime: [_Flow, 'relative_time_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   segwitSpending: Flow<Count>,
+ *   rbfSignaling: Flow<Count>,
+ * }} Payments
+ */
+const _Payments = _s({
+  count: [_Flow, '*'],
+  segwitSpending: [_Flow, 'segwit_spending_*'],
+  rbfSignaling: [_Flow, 'rbf_signaling_*'],
+});
+
+/**
+ * @typedef {{
+ *   under0p1SatVb: Flow<VSize>,
+ *   _0p1To0p25SatVb: Flow<VSize>,
+ *   _0p25To0p5SatVb: Flow<VSize>,
+ *   _0p5To1SatVb: Flow<VSize>,
+ *   _1To2SatVb: Flow<VSize>,
+ *   _2To5SatVb: Flow<VSize>,
+ *   _5To10SatVb: Flow<VSize>,
+ *   _10To25SatVb: Flow<VSize>,
+ *   _25To50SatVb: Flow<VSize>,
+ *   _50To100SatVb: Flow<VSize>,
+ *   _100To250SatVb: Flow<VSize>,
+ *   _250To500SatVb: Flow<VSize>,
+ *   _500To1kSatVb: Flow<VSize>,
+ *   over1kSatVb: Flow<VSize>,
+ * }} VsizeByEffectiveFeeRate
+ */
+const _VsizeByEffectiveFeeRate = _s({
+  under0p1SatVb: [_Flow, 'effective_fee_rate_under_0p1_*'],
+  _0p1To0p25SatVb: [_Flow, 'effective_fee_rate_0p1_to_0p25_*'],
+  _0p25To0p5SatVb: [_Flow, 'effective_fee_rate_0p25_to_0p5_*'],
+  _0p5To1SatVb: [_Flow, 'effective_fee_rate_0p5_to_1_*'],
+  _1To2SatVb: [_Flow, 'effective_fee_rate_1_to_2_*'],
+  _2To5SatVb: [_Flow, 'effective_fee_rate_2_to_5_*'],
+  _5To10SatVb: [_Flow, 'effective_fee_rate_5_to_10_*'],
+  _10To25SatVb: [_Flow, 'effective_fee_rate_10_to_25_*'],
+  _25To50SatVb: [_Flow, 'effective_fee_rate_25_to_50_*'],
+  _50To100SatVb: [_Flow, 'effective_fee_rate_50_to_100_*'],
+  _100To250SatVb: [_Flow, 'effective_fee_rate_100_to_250_*'],
+  _250To500SatVb: [_Flow, 'effective_fee_rate_250_to_500_*'],
+  _500To1kSatVb: [_Flow, 'effective_fee_rate_500_to_1k_*'],
+  over1kSatVb: [_Flow, 'effective_fee_rate_over_1k_*'],
+});
+
+/**
+ * @typedef {{
+ *   under0p1SatVb: Flow<Count>,
+ *   _0p1To0p25SatVb: Flow<Count>,
+ *   _0p25To0p5SatVb: Flow<Count>,
+ *   _0p5To1SatVb: Flow<Count>,
+ *   _1To2SatVb: Flow<Count>,
+ *   _2To5SatVb: Flow<Count>,
+ *   _5To10SatVb: Flow<Count>,
+ *   _10To25SatVb: Flow<Count>,
+ *   _25To50SatVb: Flow<Count>,
+ *   _50To100SatVb: Flow<Count>,
+ *   _100To250SatVb: Flow<Count>,
+ *   _250To500SatVb: Flow<Count>,
+ *   _500To1kSatVb: Flow<Count>,
+ *   over1kSatVb: Flow<Count>,
+ * }} TxCountByFeeRate
+ */
+const _TxCountByFeeRate = _s({
+  under0p1SatVb: [_Flow, 'fee_rate_under_0p1_*'],
+  _0p1To0p25SatVb: [_Flow, 'fee_rate_0p1_to_0p25_*'],
+  _0p25To0p5SatVb: [_Flow, 'fee_rate_0p25_to_0p5_*'],
+  _0p5To1SatVb: [_Flow, 'fee_rate_0p5_to_1_*'],
+  _1To2SatVb: [_Flow, 'fee_rate_1_to_2_*'],
+  _2To5SatVb: [_Flow, 'fee_rate_2_to_5_*'],
+  _5To10SatVb: [_Flow, 'fee_rate_5_to_10_*'],
+  _10To25SatVb: [_Flow, 'fee_rate_10_to_25_*'],
+  _25To50SatVb: [_Flow, 'fee_rate_25_to_50_*'],
+  _50To100SatVb: [_Flow, 'fee_rate_50_to_100_*'],
+  _100To250SatVb: [_Flow, 'fee_rate_100_to_250_*'],
+  _250To500SatVb: [_Flow, 'fee_rate_250_to_500_*'],
+  _500To1kSatVb: [_Flow, 'fee_rate_500_to_1k_*'],
+  over1kSatVb: [_Flow, 'fee_rate_over_1k_*'],
+});
+
+/**
+ * @typedef {{
+ *   txCount: Flow<Count>,
+ * }} ZeroFee
+ */
+const _ZeroFee = _s({
+  txCount: [_Flow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   fee: PerTxDistribution<Sats>,
+ *   feeRate: SeriesPattern20<?FeeRate>,
+ *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
+ *   cpfpParent: TransactionsFlagged,
+ *   cpfpChild: TransactionsFlagged,
+ *   zeroFee: ZeroFee,
+ *   txCountByFeeRate: TxCountByFeeRate,
+ *   vsizeByEffectiveFeeRate: VsizeByEffectiveFeeRate,
+ * }} Fees
+ */
+const _Fees = _s({
+  fee: [_PerTxDistribution, '*_fee'],
+  feeRate: [_i20, '*_fee_rate'],
+  effectiveFeeRate: [_PerTxDistribution, '*_effective_fee_rate'],
+  cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
+  cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
+  zeroFee: [_ZeroFee, 'zero_fee_*_count'],
+  txCountByFeeRate: [_TxCountByFeeRate, 'sat_vb_*_count'],
+  vsizeByEffectiveFeeRate: [_VsizeByEffectiveFeeRate, 'sat_vb_*_vsize'],
+});
+
+/**
+ * @typedef {{
+ *   oneInputOneOutput: Flow<Count>,
+ *   oneInputTwoOutput: Flow<Count>,
+ *   bip69: Flow<Count>,
+ *   bip69ExpectedByChance: Flow<?ExpectedCount>,
+ *   scripts: TransactionsScripts,
+ *   signatures: Signatures,
+ *   segwit: TxCount,
+ *   rbfSignaling: TransactionsFlagged,
+ *   dustOutput: Flagged,
+ *   epobc: TransactionsFlagged,
+ *   oneInput: TxCount,
+ *   oneOutput: TxCount,
+ * }} Features
+ */
+const _Features = _s({
+  oneInputOneOutput: [_Flow, 'one_input_one_output_*_count'],
+  oneInputTwoOutput: [_Flow, 'one_input_two_output_*_count'],
+  bip69: [_Flow, 'bip69_*_count'],
+  bip69ExpectedByChance: [_Flow, 'bip69_expected_by_chance_*_count'],
+  scripts: [_TransactionsScripts, 'script'],
+  signatures: [_Signatures, 'sighash'],
+  segwit: [_TxCount, 'segwit_*'],
+  rbfSignaling: [_TransactionsFlagged, 'rbf_signaling'],
+  dustOutput: [_Flagged, 'dust_output'],
+  epobc: [_TransactionsFlagged, 'epobc'],
+  oneInput: [_TxCount, 'one_input_*'],
+  oneOutput: [_TxCount, 'one_output_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk: Flow<Count>,
+ *   p2pkh: Flow<Count>,
+ *   p2ms: Flow<Count>,
+ *   p2sh: Flow<Count>,
+ *   p2wpkh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ *   p2tr: Flow<Count>,
+ *   p2a: Flow<Count>,
+ *   emptyScript: Flow<Count>,
+ *   unknownScript: Flow<Count>,
+ *   opReturn: Flow<Count>,
+ * }} ByType
+ */
+const _ByType = _s({
+  p2pk: [_Flow, 'coinbase_p2pk_*'],
+  p2pkh: [_Flow, 'coinbase_p2pkh_*'],
+  p2ms: [_Flow, 'coinbase_p2ms_*'],
+  p2sh: [_Flow, 'coinbase_p2sh_*'],
+  p2wpkh: [_Flow, 'coinbase_p2wpkh_*'],
+  p2wsh: [_Flow, 'coinbase_p2wsh_*'],
+  p2tr: [_Flow, 'coinbase_p2tr_*'],
+  p2a: [_Flow, 'coinbase_p2a_*'],
+  emptyScript: [_Flow, 'coinbase_empty_script_*'],
+  unknownScript: [_Flow, 'coinbase_unknown_script_*'],
+  opReturn: [_Flow, 'coinbase_op_return_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   types: ByType,
+ * }} OutputsCoinbase
+ */
+const _OutputsCoinbase = _s({
+  count: [_Flow, 'coinbase_*'],
+  types: [_ByType, '*'],
 });
 
 /**
@@ -5563,9 +5824,186 @@ const _OpReturn = _s({
  *   share: Share,
  *   txCount: Flow<Count>,
  *   txShare: Share,
+ *   value: ValueFlow,
  * }} OutputTypeSeries
  */
 const _OutputTypeSeries = _s({
+  count: [_Flow, '*_count'],
+  share: [_Share, '*_share'],
+  txCount: [_Flow, '*_tx_count'],
+  txShare: [_Share, '*_tx_share'],
+  value: [_ValueFlow, '*_value'],
+});
+
+/**
+ * @typedef {{
+ *   _1Block: Flow<Count>,
+ *   _6Blocks: Flow<Count>,
+ *   _144Blocks: Flow<Count>,
+ *   _2016Blocks: Flow<Count>,
+ * }} SpentWithin
+ */
+const _SpentWithin = _s({
+  _1Block: [_Flow, 'within_1_block_*'],
+  _6Blocks: [_Flow, 'within_6_blocks_*'],
+  _144Blocks: [_Flow, 'within_144_blocks_*'],
+  _2016Blocks: [_Flow, 'within_2016_blocks_*'],
+});
+
+/**
+ * @typedef {{
+ *   checksig: Flow<Count>,
+ *   checksigverify: Flow<Count>,
+ *   checkmultisig: Flow<Count>,
+ *   checksigadd: Flow<Count>,
+ *   checklocktimeverify: Flow<Count>,
+ *   checksequenceverify: Flow<Count>,
+ *   hash160: Flow<Count>,
+ *   sha256: Flow<Count>,
+ *   if: Flow<Count>,
+ *   notif: Flow<Count>,
+ * }} Opcodes
+ */
+const _Opcodes = _s({
+  checksig: [_Flow, 'op_checksig_*'],
+  checksigverify: [_Flow, 'op_checksigverify_*'],
+  checkmultisig: [_Flow, 'op_checkmultisig_*'],
+  checksigadd: [_Flow, 'op_checksigadd_*'],
+  checklocktimeverify: [_Flow, 'op_checklocktimeverify_*'],
+  checksequenceverify: [_Flow, 'op_checksequenceverify_*'],
+  hash160: [_Flow, 'op_hash160_*'],
+  sha256: [_Flow, 'op_sha256_*'],
+  if: [_Flow, 'op_if_*'],
+  notif: [_Flow, 'op_notif_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2sh: Flow<Count>,
+ *   p2shP2wsh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ * }} Multisig
+ */
+const _Multisig = _s({
+  p2sh: [_Flow, 'p2sh_*'],
+  p2shP2wsh: [_Flow, 'p2sh_p2wsh_*'],
+  p2wsh: [_Flow, 'p2wsh_*'],
+});
+
+/**
+ * @typedef {{
+ *   p2wpkh: Flow<Count>,
+ *   p2wsh: Flow<Count>,
+ * }} NestedSegwit
+ */
+const _NestedSegwit = _s({
+  p2wpkh: [_Flow, 'p2sh_p2wpkh_*'],
+  p2wsh: [_Flow, 'p2sh_p2wsh_*'],
+});
+
+/**
+ * @typedef {{
+ *   compressed: Flow<Count>,
+ *   uncompressed: Flow<Count>,
+ * }} Pubkeys
+ */
+const _Pubkeys = _s({
+  compressed: [_Flow, 'compressed_*'],
+  uncompressed: [_Flow, 'uncompressed_*'],
+});
+
+/**
+ * @typedef {{
+ *   all: Flow<Count>,
+ *   none: Flow<Count>,
+ *   single: Flow<Count>,
+ *   allAnyoneCanPay: Flow<Count>,
+ *   noneAnyoneCanPay: Flow<Count>,
+ *   singleAnyoneCanPay: Flow<Count>,
+ * }} EcdsaSighashes
+ */
+const _EcdsaSighashes = _s({
+  all: [_Flow, 'sighash_all_*'],
+  none: [_Flow, 'sighash_none_*'],
+  single: [_Flow, 'sighash_single_*'],
+  allAnyoneCanPay: [_Flow, 'sighash_all_anyone_can_pay_*'],
+  noneAnyoneCanPay: [_Flow, 'sighash_none_anyone_can_pay_*'],
+  singleAnyoneCanPay: [_Flow, 'sighash_single_anyone_can_pay_*'],
+});
+
+/**
+ * @typedef {{
+ *   _70Bytes: Flow<Count>,
+ *   _71Bytes: Flow<Count>,
+ *   _72Bytes: Flow<Count>,
+ *   _73Bytes: Flow<Count>,
+ *   _74Bytes: Flow<Count>,
+ *   over74Bytes: Flow<Count>,
+ * }} EcdsaLengths
+ */
+const _EcdsaLengths = _s({
+  _70Bytes: [_Flow, 'ecdsa_70_*'],
+  _71Bytes: [_Flow, 'ecdsa_71_*'],
+  _72Bytes: [_Flow, 'ecdsa_72_*'],
+  _73Bytes: [_Flow, 'ecdsa_73_*'],
+  _74Bytes: [_Flow, 'ecdsa_74_*'],
+  over74Bytes: [_Flow, 'ecdsa_over_74_*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   bytes: Flow<Bytes>,
+ *   strictDer: Flow<Count>,
+ *   lowR: Flow<Count>,
+ *   lowS: Flow<Count>,
+ *   lowRLowS: Flow<Count>,
+ *   length: EcdsaLengths,
+ *   sighash: EcdsaSighashes,
+ * }} EcdsaSignatures
+ */
+const _EcdsaSignatures = _s({
+  count: [_Flow, 'ecdsa_*_count'],
+  bytes: [_Flow, 'ecdsa_*_bytes'],
+  strictDer: [_Flow, 'strict_der_ecdsa_*_count'],
+  lowR: [_Flow, 'low_r_ecdsa_*_count'],
+  lowS: [_Flow, 'low_s_ecdsa_*_count'],
+  lowRLowS: [_Flow, 'low_r_low_s_ecdsa_*_count'],
+  length: [_EcdsaLengths, 'bytes_*_count'],
+  sighash: [_EcdsaSighashes, 'ecdsa_*_count'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   bytes: Flow<Bytes>,
+ * }} SchnorrSignatures
+ */
+const _SchnorrSignatures = _s({
+  count: [_Flow, '*_count'],
+  bytes: [_Flow, '*_bytes'],
+});
+
+/**
+ * @typedef {{
+ *   schnorr: SchnorrSignatures,
+ *   ecdsa: EcdsaSignatures,
+ * }} InputSignatures
+ */
+const _InputSignatures = _s({
+  schnorr: [_SchnorrSignatures, 'schnorr_*'],
+  ecdsa: [_EcdsaSignatures, '*'],
+});
+
+/**
+ * @typedef {{
+ *   count: Flow<Count>,
+ *   share: Share,
+ *   txCount: Flow<Count>,
+ *   txShare: Share,
+ * }} TypeSeries
+ */
+const _TypeSeries = _s({
   count: [_Flow, '*_count'],
   share: [_Share, '*_share'],
   txCount: [_Flow, '*_tx_count'],
@@ -5584,10 +6022,10 @@ const _OutputTypeSeries = _s({
  *   p2a: OutputTypeSeries,
  *   emptyScript: OutputTypeSeries,
  *   unknownScript: OutputTypeSeries,
- *   opReturn: OutputTypeSeries,
- * }} ByType
+ *   opReturn: TypeSeries,
+ * }} Types
  */
-const _ByType = _s({
+const _Types = _s({
   p2pk: [_OutputTypeSeries, 'p2pk_*'],
   p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
   p2ms: [_OutputTypeSeries, 'p2ms_*'],
@@ -5598,34 +6036,34 @@ const _ByType = _s({
   p2a: [_OutputTypeSeries, 'p2a_*'],
   emptyScript: [_OutputTypeSeries, 'empty_script_*'],
   unknownScript: [_OutputTypeSeries, 'unknown_script_*'],
-  opReturn: [_OutputTypeSeries, 'op_return_*'],
+  opReturn: [_TypeSeries, 'op_return_*'],
 });
 
 /**
  * @typedef {{
- *   p2pk: OutputTypeSeries,
- *   p2pkh: OutputTypeSeries,
- *   p2ms: OutputTypeSeries,
- *   p2sh: OutputTypeSeries,
- *   p2wpkh: OutputTypeSeries,
- *   p2wsh: OutputTypeSeries,
- *   p2tr: OutputTypeSeries,
- *   p2a: OutputTypeSeries,
- *   emptyScript: OutputTypeSeries,
- *   unknownScript: OutputTypeSeries,
+ *   p2pk: TypeSeries,
+ *   p2pkh: TypeSeries,
+ *   p2ms: TypeSeries,
+ *   p2sh: TypeSeries,
+ *   p2wpkh: TypeSeries,
+ *   p2wsh: TypeSeries,
+ *   p2tr: TypeSeries,
+ *   p2a: TypeSeries,
+ *   emptyScript: TypeSeries,
+ *   unknownScript: TypeSeries,
  * }} SpendableType
  */
 const _SpendableType = _s({
-  p2pk: [_OutputTypeSeries, 'p2pk_*'],
-  p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
-  p2ms: [_OutputTypeSeries, 'p2ms_*'],
-  p2sh: [_OutputTypeSeries, 'p2sh_*'],
-  p2wpkh: [_OutputTypeSeries, 'p2wpkh_*'],
-  p2wsh: [_OutputTypeSeries, 'p2wsh_*'],
-  p2tr: [_OutputTypeSeries, 'p2tr_*'],
-  p2a: [_OutputTypeSeries, 'p2a_*'],
-  emptyScript: [_OutputTypeSeries, 'empty_script_*'],
-  unknownScript: [_OutputTypeSeries, 'unknown_script_*'],
+  p2pk: [_TypeSeries, 'p2pk_*'],
+  p2pkh: [_TypeSeries, 'p2pkh_*'],
+  p2ms: [_TypeSeries, 'p2ms_*'],
+  p2sh: [_TypeSeries, 'p2sh_*'],
+  p2wpkh: [_TypeSeries, 'p2wpkh_*'],
+  p2wsh: [_TypeSeries, 'p2wsh_*'],
+  p2tr: [_TypeSeries, 'p2tr_*'],
+  p2a: [_TypeSeries, 'p2a_*'],
+  emptyScript: [_TypeSeries, 'empty_script_*'],
+  unknownScript: [_TypeSeries, 'unknown_script_*'],
 });
 
 /**
@@ -5664,8 +6102,10 @@ const _FlowStats = _s({
  *   count: FlowStats<Count, ?CountFract>,
  *   perSecond: Windows<?PerSecond>,
  *   spendableCount: Flow<Count>,
- *   types: ByType,
+ *   types: Types,
  *   opReturnValue: ValueFlow,
+ *   coinbase: OutputsCoinbase,
+ *   pubkeys: Pubkeys,
  * }} Outputs
  */
 const _Outputs = _s({
@@ -5673,21 +6113,10 @@ const _Outputs = _s({
   count: [_FlowStats, '*_count'],
   perSecond: [_Windows, 'outputs_per_second'],
   spendableCount: [_Flow, 'spendable_*_count'],
-  types: [_ByType, '*'],
+  types: [_Types, '*'],
   opReturnValue: [_ValueFlow, 'op_return_value'],
-});
-
-/**
- * @typedef {{
- *   count: FlowStats<Count, ?CountFract>,
- *   perSecond: Windows<?PerSecond>,
- *   types: SpendableType,
- * }} Inputs
- */
-const _Inputs = _s({
-  count: [_FlowStats, '*_count'],
-  perSecond: [_Windows, 'inputs_per_second'],
-  types: [_SpendableType, '*'],
+  coinbase: [_OutputsCoinbase, '*_count'],
+  pubkeys: [_Pubkeys, 'pubkey_in_*_count'],
 });
 
 /**
@@ -5769,6 +6198,21 @@ const _Reused = _s({
 
 /**
  * @typedef {{
+ *   count: ReusedCount,
+ *   supply: PredicateSupply,
+ *   events: AddressesReuseEvents,
+ *   direct: OutputCount,
+ * }} AddressesReused
+ */
+const _AddressesReused = _s({
+  count: [_ReusedCount, ''],
+  supply: [_PredicateSupply, 'reused_*_supply'],
+  events: [_AddressesReuseEvents, ''],
+  direct: [_OutputCount, 'output_back_to_input_*_count'],
+});
+
+/**
+ * @typedef {{
  *   reactivated: Averaged<Count, ?CountFract>,
  *   sending: Averaged<Count, ?CountFract>,
  *   receiving: Averaged<Count, ?CountFract>,
@@ -5836,7 +6280,7 @@ const _AddressType = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: Reused,
+ *   reused: AddressesReused,
  *   respent: Respent,
  *   exposed: Exposed,
  *   supply: CohortSupply,
@@ -5852,7 +6296,7 @@ const _Addresses = _s({
   new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
   avgBalance: [_Value, '*_balance_avg'],
-  reused: [_Reused, ''],
+  reused: [_AddressesReused, '*'],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
   supply: [_CohortSupply, '*_supply'],
@@ -5870,6 +6314,24 @@ const _Addresses = _s({
 const _CumulativeFlow = _s({
   cumulative: [_i1, '*_cumulative'],
   sum: [_Windows, '*_sum'],
+});
+
+/**
+ * @typedef {{
+ *   blockCount: CumulativeFlow,
+ * }} Antpool
+ */
+const _Antpool = _s({
+  blockCount: [_CumulativeFlow, '*'],
+});
+
+/**
+ * @typedef {{
+ *   antpool: Antpool,
+ * }} Groups
+ */
+const _Groups = _s({
+  antpool: [_Antpool, '*'],
 });
 
 /**
@@ -6059,6 +6521,9 @@ const _Pool = _s({
  *   noderunners: Pool,
  *   dmnd: Pool,
  *   trustpool: Pool,
+ *   concentration: Concentration,
+ *   concentrationGrouped: Concentration,
+ *   groups: Groups,
  * }} Pools
  */
 const _Pools = _s({
@@ -6230,6 +6695,62 @@ const _Pools = _s({
   noderunners: [_Pool, '*_noderunners'],
   dmnd: [_Pool, '*_dmnd'],
   trustpool: [_Pool, '*_trustpool'],
+  concentration: [_Concentration, 'pools_block_count'],
+  concentrationGrouped: [_Concentration, 'pools_antpool_group_as_one_block_count'],
+  groups: [_Groups, '*_antpool_group_block_count'],
+});
+
+/**
+ * @typedef {{
+ *   count: FlowStats<Count, ?CountFract>,
+ *   perSecond: Windows<?PerSecond>,
+ *   types: SpendableType,
+ *   signatures: InputSignatures,
+ *   pubkeys: Pubkeys,
+ *   nestedSegwit: NestedSegwit,
+ *   multisig: Multisig,
+ *   opcodes: Opcodes,
+ *   p2trScriptPath: Flow<Count>,
+ *   inscriptions: Flow<Count>,
+ *   spentWithin: SpentWithin,
+ *   sameBlock: Flow<Count>,
+ *   coinbaseWitness: CumulativeFlow,
+ * }} Inputs
+ */
+const _Inputs = _s({
+  count: [_FlowStats, 'input_*'],
+  perSecond: [_Windows, 'inputs_per_second'],
+  types: [_SpendableType, 'input'],
+  signatures: [_InputSignatures, 'signature'],
+  pubkeys: [_Pubkeys, 'pubkey_in_input_*'],
+  nestedSegwit: [_NestedSegwit, 'input_*'],
+  multisig: [_Multisig, 'multisig_input_*'],
+  opcodes: [_Opcodes, 'in_input_*'],
+  p2trScriptPath: [_Flow, 'p2tr_script_path_input_*'],
+  inscriptions: [_Flow, 'inscription_input_*'],
+  spentWithin: [_SpentWithin, 'spent_utxo_*'],
+  sameBlock: [_Flow, 'same_block_spent_utxo_*'],
+  coinbaseWitness: [_CumulativeFlow, 'coinbase_witness_block_*'],
+});
+
+/**
+ * @typedef {{
+ *   nonzero: CumulativeFlow,
+ *   bip54: CumulativeFlow,
+ * }} CoinbaseLocktime
+ */
+const _CoinbaseLocktime = _s({
+  nonzero: [_CumulativeFlow, 'nonzero_*'],
+  bip54: [_CumulativeFlow, 'bip54_*'],
+});
+
+/**
+ * @typedef {{
+ *   bit4: CumulativeFlow,
+ * }} VersionBits
+ */
+const _VersionBits = _s({
+  bit4: [_CumulativeFlow, '*'],
 });
 
 /**
@@ -6242,6 +6763,10 @@ const _Pools = _s({
  *   fullness: Fullness,
  *   difficulty: BlocksDifficulty,
  *   halving: Halving,
+ *   emptyCount: CumulativeFlow,
+ *   work: Flow<?Work>,
+ *   versionBits: VersionBits,
+ *   coinbaseLocktime: CoinbaseLocktime,
  * }} Blocks
  */
 const _Blocks = _s({
@@ -6253,6 +6778,10 @@ const _Blocks = _s({
   fullness: [_Fullness, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_Halving, 'halving'],
+  emptyCount: [_CumulativeFlow, 'empty_*_count'],
+  work: [_Flow, '*_work'],
+  versionBits: [_VersionBits, 'version_bit_4_*_count'],
+  coinbaseLocktime: [_CoinbaseLocktime, 'coinbase_locktime_*_count'],
 });
 
 /**
@@ -6940,26 +7469,36 @@ const _VersionCount = (c, b, f0) => _n(c, b, {
  * @typedef {{
  *   count: FlowStats<Count, ?CountFract>,
  *   features: Features,
- *   vsize: PerTxDistribution<VSize>,
+ *   vsize: Vsize,
  *   fees: Fees,
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   nonstandard: TransactionsFlagged,
  *   versions: VersionCount<TxCount>,
  *   transferVolume: ValueFlow,
+ *   payments: Payments,
+ *   timelocks: Timelocks,
+ *   spending: Spending,
+ *   ephemeralDust: Flow<Count>,
+ *   sameBlockSpending: Flow<Count>,
  *   perSecond: Windows<?PerSecond>,
  * }} Transactions
  */
 const _Transactions = _s({
   count: [_FlowStats, '*_count'],
   features: [_Features, '*'],
-  vsize: [_PerTxDistribution, '*_vsize'],
+  vsize: [_Vsize, '*_vsize'],
   fees: [_Fees, '*'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
   nonstandard: [_TransactionsFlagged, 'nonstandard'],
   versions: [(c, b) => _VersionCount(c, b, _TxCount), '*'],
   transferVolume: [_ValueFlow, 'transfer_volume'],
+  payments: [_Payments, 'payment_count'],
+  timelocks: [_Timelocks, 'locktime_*_count'],
+  spending: [_Spending, 'spending_*_count'],
+  ephemeralDust: [_Flow, 'ephemeral_dust_spending_*_count'],
+  sameBlockSpending: [_Flow, 'same_block_spending_*_count'],
   perSecond: [_Windows, '*_per_second'],
 });
 
@@ -7149,7 +7688,7 @@ const _SeriesTree = _s({
   mappings: [_Mappings, 'date'],
   price: [_Price, 'price'],
   blocks: [_Blocks, 'block'],
-  inputs: [_Inputs, 'input'],
+  inputs: [_Inputs, 'count'],
   outputs: [_Outputs, 'output'],
   transactions: [_Transactions, 'tx'],
   mining: [_Mining, 'hash'],
@@ -7934,6 +8473,7 @@ class BitviewClient extends BitviewClientBase {
     "bitproof": "Bitproof",
     "ascribe": "Ascribe",
     "stampery": "Stampery",
+    "bip47": "BIP-47",
     "bareHash": "Bare hash",
     "text": "Text",
     "empty": "Empty",

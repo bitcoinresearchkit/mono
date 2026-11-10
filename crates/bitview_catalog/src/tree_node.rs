@@ -132,6 +132,14 @@ impl TreeNode {
         Self::branch(map)
     }
 
+    /// The node with `name` as its client name, if it is a branch.
+    pub fn with_client_name(mut self, name: Option<&'static str>) -> Self {
+        if let Self::Branch(branch) = &mut self {
+            branch.client_name = name;
+        }
+        self
+    }
+
     /// Merges all first-level branches into a single flattened structure.
     /// Direct leaves use their key (use #[traversable(rename = "...")] to control).
     /// Branch children are lifted with their keys.

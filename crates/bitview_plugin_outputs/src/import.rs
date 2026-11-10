@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_types::Version;
 use statedb::Creations;
 
-use super::{STORAGE, Vecs, by_type, spent};
+use super::{Coinbase, Pubkeys, STORAGE, Vecs, by_type, spent};
 
 impl Vecs {
     pub fn import(
@@ -45,6 +45,8 @@ impl Vecs {
             window_starts,
         )?;
 
+        let coinbase = Coinbase::import(&db, version, mappings, window_starts)?;
+        let pubkeys = Pubkeys::import(&db, version, mappings, window_starts)?;
         let creations = Creations::open(db.path())?;
         let this = Self {
             creations,
@@ -55,6 +57,8 @@ impl Vecs {
             spendable_count,
             types,
             op_return_value,
+            coinbase,
+            pubkeys,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

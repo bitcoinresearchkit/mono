@@ -1,12 +1,12 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Count;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ReadableCloneableVec};
 
-use super::{Scripts, Signatures, Vecs, with_flagged_features};
+use super::{Scripts, Shapes, Signatures, Vecs, with_flagged_features};
 use crate::flagged::{Flagged, Totals, TxCount};
 
 impl Vecs {
@@ -48,6 +48,18 @@ impl Vecs {
                 others: [$($other:ident),*]
             ) => {
                 Vecs {
+                    shapes: Shapes {
+                        one_input_one_output: PerBlockCumulativeRolling::import(db, "one_input_one_output_tx_count", version, mappings, window_starts)?,
+                        one_input_two_output: PerBlockCumulativeRolling::import(db, "one_input_two_output_tx_count", version, mappings, window_starts)?,
+                        bip69: PerBlockCumulativeRolling::import(db, "bip69_tx_count", version, mappings, window_starts)?,
+                    },
+                    bip69_expected_by_chance: PerBlockCumulativeRolling::import(
+                        db,
+                        "bip69_expected_by_chance_tx_count",
+                        version,
+                        mappings,
+                        window_starts,
+                    )?,
                     scripts: Scripts { $($script: flagged!($script),)* },
                     signatures: Signatures { $($signature: flagged!($signature),)* },
                     $($other: flagged!($other),)*

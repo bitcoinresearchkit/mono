@@ -1,6 +1,7 @@
 mod block_rolling;
 mod compute;
 mod count;
+mod counts;
 mod dependencies;
 mod difficulty;
 mod fullness;
@@ -14,13 +15,14 @@ pub use difficulty::Vecs as DifficultyVecs;
 pub use has::HasBlocks;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{Bytes32, Count};
+use bitview_primitives::{Bytes32, Count, Work};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyCumulativeRolling, PerBlockCumulativeRolling};
+use bitview_vecs::{CumulativeRolling, LazyCumulativeRolling, PerBlockCumulativeRolling};
 use brk_types::{SigOps, Version, Weight32};
 use vecdb::{Database, Rw, StorageMode};
 
 use block_rolling::BlockRolling;
+use counts::CoinbaseLocktime;
 use fullness::Fullness;
 use halving::Vecs as HalvingVecs;
 use interval::Vecs as IntervalVecs;
@@ -59,4 +61,21 @@ pub struct Vecs<M: StorageMode = Rw> {
     fullness: Fullness,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,
+    /// Blocks holding only their coinbase transaction.
+    #[traversable(lead = "Empty blocks: ones with nothing but the coinbase.")]
+    empty_count: CumulativeRolling<Count, M>,
+    /// Proof of work: each block's difficulty times 2^48 / 0xFFFF, the hashes expected to find
+    /// it. Its running total is the chain work, a floating-point sum rather than Bitcoin Core's
+    /// exact integer one.
+    #[traversable(lead = "Proof of work: the hashes expected to find the blocks.")]
+    work: PerBlockCumulativeRolling<Work, M>,
+    /// Blocks with bit 4 set in a BIP-9 version, the bit BIP-110 signals with (and BIP-91 did in
+    /// 2017): the top three version bits are 001 and bit 4 is 1.
+    #[traversable(
+        wrap = "version_bits",
+        rename = "bit4",
+        lead = "Blocks signaling bit 4, as BIP-110 does."
+    )]
+    version_bit_4: CumulativeRolling<Count, M>,
+    coinbase_locktime: CoinbaseLocktime<M>,
 }

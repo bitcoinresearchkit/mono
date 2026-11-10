@@ -1,7 +1,8 @@
-use bitview_compute::WRITE_INTERVAL;
+use bitview_compute::{WRITE_INTERVAL, prepare_computed};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::TxInIndex;
+use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::Height;
@@ -10,7 +11,7 @@ use statedb::{Amount, Spends};
 use tracing::info;
 use vecdb::{AnyVec, Bytes, ReadableVec, VecIndex};
 
-use crate::STORAGE;
+use crate::{STORAGE, counts::SpendAges};
 
 /// Groups each block's spends by the height of the output they spend, streaming the indexer's
 /// input values and spent outputs in order; creation heights come from the in-memory
@@ -21,6 +22,7 @@ pub(crate) fn compute(
     mappings: &Mappings,
     from: Height,
     end: Height,
+    ages: &mut SpendAges,
     exit: &Exit,
 ) -> Result<()> {
     let vecs = indexer.vecs();
@@ -31,7 +33,15 @@ pub(crate) fn compute(
         let _lock = exit.lock();
         prepare(spends, indexer, from)?;
     }
-    let start = spends.end();
+    // A block whose ages are missing is walked again, without being journaled twice.
+    let journaled = spends.end();
+    let version = vecs.inputs.txout_index.version() + vecs.inputs.first_txin_index.version();
+    let start = prepare_computed(
+        ages.iter_any_stored_mut().collect::<Vec<_>>(),
+        version,
+        journaled,
+        exit,
+    )?;
     let end = usize::from(end);
     if start == end {
         return Ok(());
@@ -65,10 +75,21 @@ pub(crate) fn compute(
         }
         let h = start + offset;
         let hash = hashes.next().unwrap();
-        let _lock = exit.lock();
-        debug_assert_eq!(h, spends.end());
-        spends.push(hash.to_bytes(), spent.iter().map(|(&h, &a)| (h, a)))?;
+        // Ages by origin height, from the spends grouped above.
+        ages.push_block(
+            h as u32,
+            spent.iter().map(|(&origin, amount)| (origin, amount.count)),
+        );
+        if h >= journaled {
+            let _lock = exit.lock();
+            debug_assert_eq!(h, spends.end());
+            spends.push(hash.to_bytes(), spent.iter().map(|(&h, &a)| (h, a)))?;
+        }
         if (h + 1).is_multiple_of(WRITE_INTERVAL) || h + 1 == end {
+            let _lock = exit.lock();
+            for column in ages.iter_any_stored_mut() {
+                column.write()?;
+            }
             spends.commit()?;
             if h + 1 < end {
                 info!(

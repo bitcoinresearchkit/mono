@@ -7,7 +7,8 @@ use bitview_cohort::{AddressType, AddressTypeId, AmountRange};
 use bitview_distribution::readers::{BatchColumns, BlockBounds, index_range};
 use bitview_plugin_indexer::{Indexer, overwritten_output};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{AddrTypeId, ByAddrType, TypeIndex};
+use bitview_primitives::{AddrTypeId, ByAddrType, Count, TypeIndex};
+use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, OutputType, Sats, TxIndex};
@@ -37,7 +38,8 @@ struct PendingApply {
     base: AddrMetricsState,
     ids: Vec<Option<AddressTypeId>>,
     processed: Vec<(CohortLog, Option<MemberState>)>,
-    block_count: usize,
+    /// Each block's outputs paying an address the same transaction spends from.
+    direct_reuse: Vec<Count>,
 }
 
 impl PendingApply {
@@ -47,6 +49,7 @@ impl PendingApply {
         all: &mut AddressVecs,
         types: &mut AddressType<AddressVecs>,
         balances: &mut Balances,
+        reuse_total: &mut PerBlockCumulativeRolling<Count>,
         amount_range: &mut AmountRange<AddrCohortState>,
         prices: &[Cents],
     ) {
@@ -55,10 +58,11 @@ impl PendingApply {
             base,
             ids,
             processed,
-            block_count,
+            direct_reuse,
         } = self;
+        let block_count = direct_reuse.len();
         let mut metrics = base.clone();
-        for offset in 0..block_count {
+        for (offset, direct_reuse) in direct_reuse.into_iter().enumerate() {
             let height = first_height + offset;
             if unlikely(height.is_multiple_of(100)) {
                 info!("Computing address metrics at block {height}...");
@@ -75,6 +79,7 @@ impl PendingApply {
                 member.push(member_state);
             }
             balances.push(amount_range, prices[height]);
+            reuse_total.push_block(direct_reuse);
             amount_range
                 .iter_mut()
                 .for_each(|state| state.inner.reset_block());
@@ -201,13 +206,18 @@ pub fn process_chunk(
         let first_addr_indexes = ByAddrType::from_fn(|id| id.select(&first_indexes)[offset]);
 
         let previous = pending.take();
-        let (all, types, balances) = (&mut vecs.all, &mut vecs.types, &mut vecs.balances);
+        let (all, types, balances, reuse_total) = (
+            &mut vecs.all,
+            &mut vecs.types,
+            &mut vecs.balances,
+            &mut vecs.direct_reuse,
+        );
         let amount_range = &mut addr_states.amount_range;
         let state = &vecs.state;
-        let (_, lanes) = rayon::join(
+        let (_, (lanes, direct_reuse)) = rayon::join(
             || {
                 if let Some(previous) = previous {
-                    previous.apply(all, types, balances, amount_range, prices);
+                    previous.apply(all, types, balances, reuse_total, amount_range, prices);
                 }
             },
             || {
@@ -246,13 +256,6 @@ pub fn process_chunk(
                         // Omit this block's coinbase, including coinbase-only blocks.
                         let input_range = batch.block_spends(height);
                         let mut blocks = ShardBlocks::default();
-                        process_outputs(
-                            &mut blocks,
-                            tx_indexes(first_tx, tx_len, tx_index_to_output_count),
-                            &output_values[output_range.clone()],
-                            &output_types[output_range.clone()],
-                            &output_indexes[output_range],
-                        );
                         process_inputs(
                             &mut blocks,
                             tx_indexes(first_tx, tx_len, tx_index_to_input_count).skip(1),
@@ -262,7 +265,14 @@ pub fn process_chunk(
                             &input_heights[input_range],
                             prices,
                         );
-                        blocks
+                        let direct_reuse = process_outputs(
+                            &mut blocks,
+                            tx_indexes(first_tx, tx_len, tx_index_to_output_count),
+                            &output_values[output_range.clone()],
+                            &output_types[output_range.clone()],
+                            &output_indexes[output_range],
+                        );
+                        (blocks, direct_reuse)
                     })
                     .collect::<Vec<_>>();
                 // Every shard of every type is a lane holding its blocks side by side, lanes in
@@ -273,13 +283,15 @@ pub fn process_chunk(
                     SHARDS * AddrTypeId::ALL.len() * block_count,
                     TypeBlock::default,
                 );
-                for (offset, blocks) in groups.into_iter().enumerate() {
+                let mut direct_reuse = Vec::with_capacity(block_count);
+                for (offset, (blocks, count)) in groups.into_iter().enumerate() {
                     let blocks = blocks.into_iter().flat_map(|shard| shard.into_iter());
                     for (lane, (_, block)) in blocks.enumerate() {
                         lanes[lane * block_count + offset] = block;
                     }
+                    direct_reuse.push(count);
                 }
-                lanes
+                (lanes, direct_reuse)
             },
         );
         let mut lanes = lanes;
@@ -331,7 +343,7 @@ pub fn process_chunk(
             base: base.clone(),
             ids,
             processed,
-            block_count,
+            direct_reuse,
         });
         if cache.len() >= MAX_CACHED_ADDRS {
             next = batch.blocks.end;
@@ -344,6 +356,7 @@ pub fn process_chunk(
             &mut vecs.all,
             &mut vecs.types,
             &mut vecs.balances,
+            &mut vecs.direct_reuse,
             &mut addr_states.amount_range,
             prices,
         );

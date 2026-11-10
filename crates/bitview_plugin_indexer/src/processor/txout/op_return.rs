@@ -65,6 +65,8 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
         OpReturnKind::Ascribe
     } else if is_stampery(prefix) {
         OpReturnKind::Stampery
+    } else if is_bip47_payment_code(data) {
+        OpReturnKind::Bip47
     } else if data.len() == 82 {
         OpReturnKind::Veriblock
     } else if (36..=38).contains(&data.len()) {
@@ -102,6 +104,20 @@ fn scan(script: &Script) -> (Option<&[u8]>, usize) {
 /// identifier, and a 32- or 64-byte hash.
 fn is_stampery(prefix: &[u8]) -> bool {
     matches!(prefix, [b'S', b'1'..=b'9', ..]) && matches!(prefix.len(), 34 | 36 | 66 | 68)
+}
+
+/// A BIP-47 notification: `OP_PUSHDATA1 80` and an 80-byte payment code, its reserved last 13
+/// bytes zero.
+fn is_bip47_payment_code(data: &[u8]) -> bool {
+    let [0x4c, 80, payload @ ..] = data else {
+        return false;
+    };
+    payload.len() == 80
+        && matches!(payload[0], 1 | 2)
+        && matches!(payload[2], 2 | 3)
+        && payload[3..35].iter().any(|&byte| byte != 0)
+        && payload[35..67].iter().any(|&byte| byte != 0)
+        && payload[67..].iter().all(|&byte| byte == 0)
 }
 
 fn is_memo(prefix: &[u8]) -> bool {
