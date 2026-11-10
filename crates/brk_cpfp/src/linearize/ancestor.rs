@@ -82,7 +82,7 @@ fn greedy(nodes: &[Node], parents: &[CpfpClusterTxIndex], scratch: &mut Scratch)
             count: 0,
         };
         for ancestor in members(row) {
-            totals.fee += nodes[ancestor].modified;
+            totals.fee += i128::from(nodes[ancestor].modified);
             totals.weight += nodes[ancestor].weight;
             totals.count += 1;
         }
@@ -126,7 +126,7 @@ fn greedy(nodes: &[Node], parents: &[CpfpClusterTxIndex], scratch: &mut Scratch)
             for &removed in group {
                 let removed = u32::from(removed) as usize;
                 if contains(row, removed) {
-                    set.fee -= nodes[removed].modified;
+                    set.fee -= i128::from(nodes[removed].modified);
                     set.weight -= nodes[removed].weight;
                     set.count -= 1;
                 }

@@ -3,7 +3,7 @@ pub mod fetched;
 use std::sync::Arc;
 
 use brk_error::Result;
-use brk_rpc::{BlockTemplateTx, Client};
+use brk_rpc::{BlockTemplateTx, Client, MempoolObservation};
 use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
 pub use fetched::Fetched;
 use rapidhash::{RapidHashMap, RapidHashSet};
@@ -43,8 +43,9 @@ pub fn fetch(
     client: &Client,
     mempool: &State,
     failing: &RapidHashMap<Txid, u32>,
+    previous_modified: &[(Txid, i64)],
 ) -> Result<Fetched> {
-    let (state, block_template) = client.fetch_mempool_state()?;
+    let MempoolObservation { state, block_template, modified_fees } = client.fetch_mempool_state_ranked(previous_modified)?;
     let mut template = block_template.is_some();
     let mut block_template = block_template.unwrap_or_default();
 
@@ -206,6 +207,7 @@ pub fn fetch(
 
     Ok(Fetched {
         state,
+        modified_fees,
         checked,
         new_entries,
         new_txs,

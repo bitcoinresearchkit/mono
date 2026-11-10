@@ -147,6 +147,7 @@ impl Mempool {
         let tip_before = self.client.get_best_block_hash()?;
         let Fetched {
             state: rpc,
+            modified_fees,
             new_entries,
             new_txs,
             block_template_txids,
@@ -154,7 +155,12 @@ impl Mempool {
             capped,
             requested,
             checked,
-        } = fetcher::fetch(&self.client, &self.state, &self.failing)?;
+        } = fetcher::fetch(
+            &self.client,
+            &self.state,
+            &self.failing,
+            &self.rebuilder.snapshot().modified_fees,
+        )?;
         // The first load fills the cap every cycle until the pool publishes; after it, a full
         // cycle means a flood of new transactions.
         if capped && self.read_only.load().tip().is_some() {
@@ -183,7 +189,7 @@ impl Mempool {
             &self.state,
             block_template_txids.as_deref(),
             rpc.min_fee,
-            &rpc.fee_deltas,
+            &modified_fees,
             &unloaded,
             publishable,
         );

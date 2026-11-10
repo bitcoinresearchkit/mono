@@ -222,3 +222,157 @@ fn every_tier_linearizes() {
     }
 }
 
+
+/// Exhaustive closure oracle for small signed graphs. It makes no assumptions about chunk
+/// connectivity, tie order or solver tier. Consecutive equal-rate chunks form one diagram edge.
+fn signed_brute(fees: &[i64], weights: &[u64], parents: &[Vec<usize>], mut remaining: u32) -> Vec<(i128, u64)> {
+    let mut result = Vec::new();
+    while remaining != 0 {
+        let mut best: Option<(i128, u64, u32)> = None;
+        let mut subset = remaining;
+        while subset != 0 {
+            if (0..fees.len()).all(|i| subset & (1 << i) == 0 || parents[i].iter().all(|&p| remaining & (1 << p) == 0 || subset & (1 << p) != 0)) {
+                let (fee, weight) = (0..fees.len()).filter(|&i| subset & (1 << i) != 0)
+                    .fold((0, 0), |(f, w), i| (f + i128::from(fees[i]), w + weights[i]));
+                if best.is_none_or(|(f, w, _)| fee * i128::from(w) > f * i128::from(weight)) {
+                    best = Some((fee, weight, subset));
+                }
+            }
+            subset = (subset - 1) & remaining;
+        }
+        let (fee, weight, subset) = best.unwrap();
+        result.push((fee, weight));
+        remaining &= !subset;
+    }
+    signed_diagram(&result)
+}
+
+fn signed_diagram(chunks: &[(i128, u64)]) -> Vec<(i128, u64)> {
+    let mut result: Vec<(i128, u64)> = Vec::new();
+    for &(fee, weight) in chunks {
+        match result.last_mut() {
+            Some((f, w)) if *f * i128::from(weight) == fee * i128::from(*w) => {
+                *f += fee;
+                *w += weight;
+            }
+            _ => result.push((fee, weight)),
+        }
+    }
+    result
+}
+
+fn signed_chunks(fees: &[i64], weights: &[u64], parents: &[Vec<usize>], heuristic: bool) -> Vec<(Vec<usize>, i128, u64)> {
+    let mut cluster = Cluster::default();
+    for i in 0..fees.len() {
+        cluster.push_ranked(Sats::from(1u64), fees[i], Weight::from(weights[i]), i as u32,
+            parents[i].iter().map(|&p| CpfpClusterTxIndex::from(p as u32)));
+    }
+    let mut chunks = Vec::new();
+    let mut placed = vec![false; fees.len()];
+    let mut emit = |members: &[CpfpClusterTxIndex], _: FeeRate| {
+        let members: Vec<usize> = members.iter().map(|&m| u32::from(m) as usize).collect();
+        for &i in &members {
+            assert!(!placed[i]);
+            assert!(parents[i].iter().all(|&p| placed[p]));
+            placed[i] = true;
+        }
+        let (fee, weight) = members.iter().fold((0, 0), |(f, w), &i| (f + i128::from(fees[i]), w + weights[i]));
+        if let Some((_, f, w)) = chunks.last() {
+            assert!(fee * i128::from(*w) <= f * i128::from(weight));
+        }
+        chunks.push((members, fee, weight));
+    };
+    if heuristic { cluster.linearize_ancestor_sets(&mut emit); } else { cluster.linearize(&mut emit); }
+    assert!(placed.into_iter().all(|p| p));
+    chunks
+}
+
+#[test]
+fn signed_diagrams_and_every_exact_suffix_match_closure_oracle() {
+    let mut state = 0x47b1_2de9_83a6_c057u64;
+    let mut next = |n: u64| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state % n
+    };
+    let amounts = [i64::MIN, i64::MAX, 0, -1, 1, -4_000_000_000_000_000, 4_000_000_000_000_000];
+    for round in 0..3_000 {
+        let n = 1 + next(9) as usize;
+        let fees: Vec<i64> = (0..n).map(|_| amounts[next(amounts.len() as u64) as usize]).collect();
+        let weights: Vec<u64> = (0..n).map(|_| 100 + next(900)).collect();
+        let tree = round % 2 == 0;
+        let parents: Vec<Vec<usize>> = (0..n).map(|i| {
+            if tree { if i == 0 { vec![] } else { vec![next(i as u64) as usize] } }
+            else { (0..i).filter(|_| next(3) == 0).collect() }
+        }).collect();
+        for heuristic in [false, true] {
+            let chunks = signed_chunks(&fees, &weights, &parents, heuristic);
+            if heuristic && !tree { continue; } // The heuristic promises optimality on trees.
+            let mut remaining = (1u32 << n) - 1;
+            for boundary in 0..chunks.len() {
+                let suffix: Vec<(i128, u64)> = chunks[boundary..].iter().map(|&(_, f, w)| (f, w)).collect();
+                assert_eq!(signed_diagram(&suffix), signed_brute(&fees, &weights, &parents, remaining), "round {round}, heuristic {heuristic}, boundary {boundary}");
+                for &i in &chunks[boundary].0 { remaining &= !(1 << i); }
+            }
+        }
+    }
+}
+
+#[test]
+fn wide_signed_chains_follow_the_prefix_reference_at_tier_boundaries() {
+    // Each negative/positive pair has zero fee. Every legal prefix has rate <= zero, so
+    // repeated two-member zero-rate chunks, followed by the final negative, are optimal.
+    for n in [64, 65, 130, 4_097] {
+        let fees: Vec<i64> = (0..n).map(|i| if i % 2 == 0 { -i64::MAX } else { i64::MAX }).collect();
+        let weights = vec![400; n];
+        let parents: Vec<Vec<usize>> = (0..n).map(|i| if i == 0 { vec![] } else { vec![i - 1] }).collect();
+        let chunks = signed_chunks(&fees, &weights, &parents, false);
+        let diagram = signed_diagram(&chunks.iter().map(|&(_, f, w)| (f, w)).collect::<Vec<_>>());
+        let mut expected = vec![(0, (n / 2 * 800) as u64)];
+        if n % 2 != 0 { expected.push((-i128::from(i64::MAX), 400)); }
+        assert_eq!(diagram, expected);
+        for fee in [i64::MIN, i64::MAX] {
+            let fees = vec![fee; n];
+            let weights: Vec<u64> = (0..n).map(|i| 400 + if fee < 0 { i } else { n - i } as u64).collect();
+            let chunks = signed_chunks(&fees, &weights, &parents, false);
+            assert_eq!(chunks.len(), 1);
+            assert_eq!(chunks[0].1, i128::from(fee) * n as i128);
+            assert_eq!(chunks[0].2, weights.iter().sum::<u64>());
+        }
+    }
+}
+
+#[test]
+fn signed_rate_comparison_handles_products_beyond_i128() {
+    use crate::compare_feerates;
+    // Scaling both numerators preserves the order. The small products fit i128; the
+    // scaled products deliberately overflow and exercise the continued-fraction fallback.
+    for i in 1..10_000u64 {
+        let a = (i128::from((i * 7919) % 2001) - 1000, Weight::from(u64::MAX - i * 47));
+        let b = (i128::from((i * 3797) % 2001) - 1000, Weight::from(u64::MAX / (i % 13 + 1)));
+        let scale = 1i128 << 100;
+        assert_eq!(compare_feerates(a, b), compare_feerates((a.0 * scale, a.1), (b.0 * scale, b.1)));
+    }
+    // Crossing the signed-64 boundary must preserve the same ratio order, including
+    // products near the signed-128 limit and cancellation across signs.
+    for fa in [i64::MIN, i64::MIN + 1, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+        for fb in [i64::MIN, i64::MIN + 1, -1, 0, 1, i64::MAX - 1, i64::MAX] {
+            for wa in [1, u64::MAX / 2, u64::MAX] {
+                for wb in [1, u64::MAX / 2, u64::MAX] {
+                    let a = (i128::from(fa), Weight::from(wa));
+                    let b = (i128::from(fb), Weight::from(wb));
+                    assert_eq!(compare_feerates(a, b), compare_feerates((a.0 * 2, a.1), (b.0 * 2, b.1)));
+                }
+            }
+        }
+    }
+    for fee in [i128::MIN, i128::MIN + 1, -1, 0, 1, i128::MAX - 1, i128::MAX] {
+        assert!(compare_feerates((fee, Weight::from(u64::MAX)), (fee, Weight::from(u64::MAX))).is_eq());
+        if fee > 0 {
+            assert!(compare_feerates((fee, Weight::from(u64::MAX - 1)), (fee, Weight::from(u64::MAX))).is_gt());
+        } else if fee < 0 {
+            assert!(compare_feerates((fee, Weight::from(u64::MAX - 1)), (fee, Weight::from(u64::MAX))).is_lt());
+        }
+    }
+}

@@ -25,7 +25,7 @@ mod post;
 
 use std::cmp::Ordering;
 
-use brk_types::{CpfpClusterTxIndex, FeeRate, Sats, Weight};
+use brk_types::{CpfpClusterTxIndex, FeeRate, Weight};
 
 pub(crate) use ancestor::ancestor_sets;
 use exact::exact;
@@ -36,7 +36,10 @@ use crate::cluster::Node;
 
 /// A ranked fee's published rate over `weight`: zero for one at or below zero.
 fn published_rate(fee: impl Into<i128>, weight: Weight) -> FeeRate {
-    FeeRate::from((Sats::from(u64::try_from(fee.into()).unwrap_or(0)), weight))
+    let fee = fee.into().max(0) as u128;
+    let milli = (fee * 4_000).div_ceil(u128::from(u64::from(weight)));
+    // Display saturation only; no rounded/published rate participates in mining order.
+    FeeRate::from_milli(u64::try_from(milli).unwrap_or(u64::MAX - 1).min(u64::MAX - 1))
 }
 
 /// Members a component may have for the exact linearization: Bitcoin Core's cluster limit,
@@ -65,7 +68,7 @@ pub(crate) struct Scratch {
 }
 
 struct Totals {
-    fee: i64,
+    fee: i128,
     weight: Weight,
     count: usize,
 }
@@ -78,11 +81,48 @@ struct Chunk {
     weight: Weight,
 }
 
-/// `a`'s feerate against `b`'s, exactly: fee_a / weight_a vs fee_b / weight_b (weights positive).
+/// Exact signed fee/weight comparison, shared with projection packing. Positive weights only.
+/// Products use the common fast path; unusually large aggregate fractions use Euclid's
+/// algorithm instead of overflowing or changing the ranking through saturation.
+#[inline]
+pub fn compare_feerates(a: (i128, Weight), b: (i128, Weight)) -> Ordering {
+    let (wa, wb) = (u64::from(a.1), u64::from(b.1));
+    assert!(wa > 0 && wb > 0, "positive ranking weights");
+    // A signed 64-bit numerator times any u64 weight fits i128. Most live chunks
+    // stay in that range; avoid checked 128-bit multiplication for those comparisons.
+    if let (Ok(fa), Ok(fb)) = (i64::try_from(a.0), i64::try_from(b.0)) {
+        return (i128::from(fa) * i128::from(wb)).cmp(&(i128::from(fb) * i128::from(wa)));
+    }
+    if let (Some(left), Some(right)) = (
+        a.0.checked_mul(i128::from(wb)),
+        b.0.checked_mul(i128::from(wa)),
+    ) {
+        return left.cmp(&right);
+    }
+    match a.0.signum().cmp(&b.0.signum()) {
+        Ordering::Equal => {}
+        order => return order,
+    }
+    let (mut na, mut da, mut nb, mut db) = (a.0.unsigned_abs(), u128::from(wa), b.0.unsigned_abs(), u128::from(wb));
+    let mut reverse = a.0 < 0;
+    loop {
+        let order = (na / da).cmp(&(nb / db));
+        let (ra, rb) = (na % da, nb % db);
+        let order = if order.is_ne() {
+            order
+        } else if ra == 0 || rb == 0 {
+            ra.cmp(&rb)
+        } else {
+            (na, da, nb, db) = (da, ra, db, rb);
+            reverse = !reverse;
+            continue;
+        };
+        return if reverse { order.reverse() } else { order };
+    }
+}
+
 fn compare_rates(a: (impl Into<i128>, Weight), b: (impl Into<i128>, Weight)) -> Ordering {
-    let (fee_a, weight_a) = (a.0.into(), i128::from(u64::from(a.1)));
-    let (fee_b, weight_b) = (b.0.into(), i128::from(u64::from(b.1)));
-    (fee_a * weight_b).cmp(&(fee_b * weight_a))
+    compare_feerates((a.0.into(), a.1), (b.0.into(), b.1))
 }
 
 fn contains(row: &[u64], index: usize) -> bool {
@@ -130,8 +170,8 @@ fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: i64, weight: Weight) {
     while let Some(last) = chunks.last()
         && compare_rates((chunk.fee, chunk.weight), (last.fee, last.weight)).is_gt()
     {
-        chunk.fee += last.fee;
-        chunk.weight += last.weight;
+        chunk.fee = chunk.fee.checked_add(last.fee).expect("bounded component fee sum");
+        chunk.weight = Weight::from(u64::from(chunk.weight).checked_add(u64::from(last.weight)).expect("bounded component weight sum"));
         chunks.pop();
     }
     chunks.push(chunk);

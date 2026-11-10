@@ -3,8 +3,8 @@
 //! only block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
 //! descending feerate, in dependency order, each block within Core's weight and sigop budgets.
 //! Equal feerates go as Core's chunk index orders them: the shorter run of equal-feerate chunks
-//! within its cluster first, then the chunk whose greatest txid is lower. What block 0 left of a
-//! component is split into the clusters it now forms, each linearized again. A chunk that
+//! within its cluster first, then the chunk whose greatest txid is lower. At every virtual block
+//! boundary, partially consumed components split and are linearized again. A chunk that
 //! doesn't fit waits for the next block, and so does the rest of its component (Core's block
 //! builder skips the cluster); a block closes once 1,000 chunks in a row failed with it within
 //! 4,000 WU of full (Core's `BlockAssembler`). As in Core 32, a candidate is tested at its actual
@@ -13,9 +13,7 @@
 //! trailing empty blocks are not made. The budgets are Core's defaults (`-blockreservedweight`,
 //! `-bytespersigop`).
 
-use std::mem;
-
-use brk_cpfp::Cluster;
+use brk_cpfp::{Cluster, compare_feerates};
 use brk_types::{FeeRate, SigOps, Txid, Weight};
 use rustc_hash::FxHashSet;
 
@@ -65,8 +63,8 @@ impl Chunks {
     /// The chunks of the component holding chunk `c`, in linearization order.
     pub fn component_chunks(&self, c: usize) -> std::ops::Range<usize> {
         let i = self.components.partition_point(|&end| end as usize <= c);
-        let start = i.checked_sub(1).map_or(0, |p| self.components[p] as usize);
-        start..self.components[i] as usize
+        let (start, end) = self.component(i);
+        start..end
     }
 
     /// Chunk `c`'s feerate.
@@ -82,12 +80,13 @@ impl Chunks {
 
     /// Each component's chunk range.
     fn components(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        let mut start = 0;
-        self.components.iter().map(move |&end| {
-            let range = (start, end as usize);
-            start = end as usize;
-            range
-        })
+        (0..self.components.len()).map(|index| self.component(index))
+    }
+
+    /// One component's chunk range, by component index.
+    fn component(&self, index: usize) -> (usize, usize) {
+        let start = index.checked_sub(1).map_or(0, |previous| self.components[previous] as usize);
+        (start, self.components[index] as usize)
     }
 
     /// The members of chunks `from..to`.
@@ -114,11 +113,29 @@ pub fn partition(
 ) -> Projection {
     debug_assert!(num_blocks > 0);
     debug_assert_eq!(txs.len(), excluded.len());
+    let mut kept = ChunkCache::default();
+    let left = residual(txs, chunks, excluded, cache, &mut kept);
+    let projection = pack(txs, left, excluded.to_vec(), num_blocks, cache, &mut kept);
+    *cache = kept;
+    #[cfg(debug_assertions)]
+    check_order(txs, excluded, &projection.blocks);
+    projection
+}
+
+/// One operation for GBT and all local virtual boundaries. Untouched components reuse their
+/// chunks. Partially consumed ones split and use the common solver, including its heuristic
+/// tiers; no assumption about a heuristic suffix being optimal or connected is needed.
+fn residual(
+    txs: &[SnapTx],
+    chunks: &Chunks,
+    excluded: &[bool],
+    cache: &mut ChunkCache,
+    kept: &mut ChunkCache,
+) -> Chunks {
     let mut left = Chunks::default();
     let mut graph = Cluster::default();
     let mut rest: Vec<TxIndex> = Vec::new();
     let mut ids = Vec::new();
-    let mut kept = ChunkCache::default();
     for component in chunks.components() {
         let members = chunks.span(component);
         let taken = members.iter().filter(|m| excluded[m.as_usize()]).count();
@@ -130,7 +147,7 @@ pub fn partition(
             rest.clear();
             rest.extend(members.iter().filter(|m| !excluded[m.as_usize()]));
             for piece in pieces(txs, &rest, excluded) {
-                let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, &mut kept);
+                let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, kept);
                 for positions in linearized.chunks() {
                     let chunk = positions.iter().map(|&p| ids[p as usize].1);
                     left.push_chunk(chunk.clone(), cluster::paid_rate(txs, chunk));
@@ -143,14 +160,10 @@ pub fn partition(
         }
         left.end_component();
     }
-    *cache = kept;
-    let projection = pack(txs, &left, num_blocks);
-    #[cfg(debug_assertions)]
-    check_order(txs, excluded, &projection.blocks);
-    projection
+    left
 }
 
-/// The clusters `rest` (what block 0 left of one component) forms without the excluded members,
+/// The clusters `rest` (what a virtual block left of one component) forms without the excluded members,
 /// each in txid order, as [`cluster::walk`] gives a component.
 fn pieces(txs: &[SnapTx], rest: &[TxIndex], excluded: &[bool]) -> Vec<Vec<TxIndex>> {
     let mut placed: FxHashSet<TxIndex> = FxHashSet::default();
@@ -194,24 +207,19 @@ impl Candidate {
     }
 }
 
-fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
-    let per_weight = |fee: i128, policy: Weight| (fee, i128::from(u64::from(policy)));
-    // `b`'s feerate against `a`'s, exactly (weights positive): the higher first.
-    let by_rate = |(fee_a, weight_a): (i128, i128), (fee_b, weight_b): (i128, i128)| {
-        (fee_b * weight_a).cmp(&(fee_a * weight_b))
-    };
+fn candidates(txs: &[SnapTx], chunks: &Chunks) -> Vec<Candidate> {
     let mut cands: Vec<Candidate> = Vec::with_capacity(chunks.chunks.len());
     for (component, range) in chunks.components().enumerate() {
-        let mut run: Option<(i128, i128)> = None;
+        let mut run: Option<(i128, Weight)> = None;
         let mut prefix = Weight::default();
         for c in range.0..range.1 {
             let members = || chunks.members(c).iter().map(|m| &txs[m.as_usize()]);
             let fee: i128 = members().map(|t| i128::from(t.modified)).sum();
             let policy: Weight = members().map(|t| t.sigops.adjust_weight(t.weight)).sum();
-            let rate = per_weight(fee, policy);
+            let rate = (fee, policy);
             // A component's chunk feerates never increase: an equal one extends the run.
             prefix = match run {
-                Some(previous) if by_rate(previous, rate).is_eq() => prefix + policy,
+                Some(previous) if compare_feerates(previous, rate).is_eq() => prefix + policy,
                 _ => policy,
             };
             run = Some(rate);
@@ -231,82 +239,115 @@ fn pack(txs: &[SnapTx], chunks: &Chunks, num_blocks: usize) -> Projection {
     // Core's mining order: feerate, then the equal-feerate run, then the greatest txid. A
     // component's chunks keep their order (an equal-feerate later one has the longer run).
     cands.sort_unstable_by(|a, b| {
-        by_rate(per_weight(a.fee, a.policy), per_weight(b.fee, b.policy))
+        compare_feerates((b.fee, b.policy), (a.fee, a.policy))
             .then(a.prefix.cmp(&b.prefix))
             .then_with(|| a.max_txid.cmp(&b.max_txid))
             .then(a.chunk.cmp(&b.chunk))
     });
 
-    // Core's block builder stops at the first chunk below `-blockmintxfee` (its default, 1 sat/kvB,
-    // over the chunk's vsize rounded up): only an operator's delta takes one there, and from it on
-    // nothing is mined; those go to the catch-all.
-    let mineable = cands
-        .iter()
-        .position(|cand| cand.fee * 1_000 < i128::from(u64::from(cand.policy).div_ceil(4)))
-        .unwrap_or(cands.len());
+    cands
+}
 
-    let mut blocks: Vec<Vec<(TxIndex, FeeRate)>> = Vec::new();
-    // The pass a component last missed a chunk in, plus one: its later chunks wait for the next.
-    let mut missed: Vec<u32> = vec![0; chunks.components.len()];
-    let mut pass = 0;
-    let mut pending: Vec<usize> = (0..mineable).collect();
-    let mut deferred: Vec<usize> = Vec::new();
-    // Set once nothing left fits a block: what's left goes to the last.
-    let mut stuck = false;
+/// The default mining floor: 1 sat/kvB over rounded-up policy vsize. Whole-component
+/// removal changes neither candidate rates nor this cutoff in their retained order.
+fn mineable_count(cands: &[Candidate]) -> usize {
+    cands.iter().position(|cand| {
+        compare_feerates(
+            (cand.fee, Weight::from(u64::from(cand.policy).div_ceil(4))),
+            (1, Weight::from(1_000u64)),
+        ).is_lt()
+    }).unwrap_or(cands.len())
+}
+
+fn pack(
+    txs: &[SnapTx],
+    mut chunks: Chunks,
+    mut consumed: Vec<bool>,
+    num_blocks: usize,
+    cache: &mut ChunkCache,
+    kept: &mut ChunkCache,
+) -> Projection {
+    let mut blocks = Vec::new();
     let mut overflow = false;
+    let mut cands = candidates(txs, &chunks);
+    let mut mineable = mineable_count(&cands);
+    let mut pending: Vec<usize> = (0..cands.len()).collect();
+    let mut deferred = Vec::new();
     while !pending.is_empty() {
-        let last = stuck || blocks.len() + 1 == num_blocks;
-        pass += 1;
-        let mut block: Vec<(TxIndex, FeeRate)> = Vec::new();
-        let (mut weight, mut sigops) = (Weight::default(), SigOps::ZERO);
+        let last = blocks.len() + 1 == num_blocks;
+        let mut block = Vec::new();
+        let mut missed = vec![false; chunks.components.len()];
+        let mut selected = vec![false; chunks.components.len()];
+        let mut selected_components = Vec::new();
+        let (mut weight, mut sigops) = (Weight::ZERO, SigOps::ZERO);
         let mut failures = 0;
-        for (i, &c) in pending.iter().enumerate() {
-            let cand = &cands[c];
-            // The rest of a component that missed waits without counting as a failure (Core's
-            // block builder skips the cluster; only attempted chunks count).
-            if missed[cand.component as usize] == pass {
-                deferred.push(c);
+        for (position, &index) in pending.iter().enumerate() {
+            if index >= mineable {
+                deferred.extend_from_slice(&pending[position..]);
+                break;
+            }
+            let cand = &cands[index];
+            if missed[cand.component as usize] {
+                deferred.push(index);
                 continue;
             }
             let fits = cand.fits(weight, sigops);
-            overflow |= last && !fits;
             if !(last || fits) {
-                missed[cand.component as usize] = pass;
-                deferred.push(c);
+                missed[cand.component as usize] = true;
+                deferred.push(index);
                 failures += 1;
                 if failures > MAX_CONSECUTIVE_FAILURES && weight > FULL_ENOUGH {
-                    deferred.extend_from_slice(&pending[i + 1..]);
+                    deferred.extend_from_slice(&pending[position + 1..]);
                     break;
                 }
                 continue;
             }
+            overflow |= last && !fits;
+            let component = cand.component as usize;
+            if !selected[component] {
+                selected[component] = true;
+                selected_components.push(component);
+            }
             failures = 0;
             weight += cand.weight;
             sigops += cand.sigops;
-            let members = chunks.members(cand.chunk as usize);
-            block.extend(members.iter().map(|&m| (m, cand.rate)));
+            for &member in chunks.members(cand.chunk as usize) {
+                consumed[member.as_usize()] = true;
+                block.push((member, cand.rate));
+            }
         }
-        if block.is_empty() {
-            stuck = true;
-        } else {
+        if last || block.is_empty() {
+            // The last slot, or a pool no finite block can take: preserve the backlog contract.
+            // Withheld members were already excluded before partition and remain omitted.
+            for &index in &pending {
+                let cand = &cands[index];
+                for &member in chunks.members(cand.chunk as usize) {
+                    if !consumed[member.as_usize()] {
+                        consumed[member.as_usize()] = true;
+                        block.push((member, cand.rate));
+                        overflow = true;
+                    }
+                }
+            }
             blocks.push(block);
+            break;
         }
-        pending.clear();
-        mem::swap(&mut pending, &mut deferred);
-    }
-    if mineable < cands.len() {
-        let unmined = cands[mineable..].iter().flat_map(|cand| {
-            chunks
-                .members(cand.chunk as usize)
-                .iter()
-                .map(|&m| (m, cand.rate))
+        blocks.push(block);
+        let partial = selected_components.into_iter().any(|component| {
+            chunks.span(chunks.component(component)).iter().any(|m| !consumed[m.as_usize()])
         });
-        let full = blocks.len() == num_blocks;
-        match blocks.last_mut() {
-            Some(last) if overflow || full => last.extend(unmined),
-            _ => blocks.push(unmined.collect()),
+        if partial {
+            // Split touched components and recompute equal-rate prefixes for the new graph.
+            chunks = residual(txs, &chunks, &consumed, cache, kept);
+            cands = candidates(txs, &chunks);
+            mineable = mineable_count(&cands);
+            pending = (0..cands.len()).collect();
+        } else {
+            // Only complete components were consumed. Surviving identities and tie prefixes are
+            // unchanged: keep their existing sorted order rather than solving/sorting again.
+            std::mem::swap(&mut pending, &mut deferred);
         }
-        overflow = true;
+        deferred.clear();
     }
     Projection { blocks, overflow }
 }

@@ -17,7 +17,7 @@ const NUM_BLOCKS: usize = 8;
 pub struct Rebuilder {
     snapshot: Arc<Snapshot>,
     chunks: ChunkCache,
-    /// The same for what block 0 leaves of a component.
+    /// The same for the residual components across virtual block boundaries.
     leftovers: ChunkCache,
 }
 
@@ -38,7 +38,7 @@ impl Rebuilder {
         state: &State,
         gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
-        fee_deltas: &[(Txid, i64)],
+        modified_fees: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         membership_ready: bool,
     ) {
@@ -47,7 +47,7 @@ impl Rebuilder {
         if snapshot.ensure_projection().is_ok()
             && snapshot.complete == complete
             && snapshot.min_fee == min_fee
-            && *snapshot.fee_deltas == *fee_deltas
+            && *snapshot.modified_fees == *modified_fees
             && snapshot
                 .template_only
                 .iter()
@@ -69,7 +69,7 @@ impl Rebuilder {
             state,
             gbt_txids,
             min_fee,
-            fee_deltas,
+            modified_fees,
             unloaded,
             (!complete).then_some(&self.snapshot.fees),
             &mut self.chunks,
@@ -84,7 +84,7 @@ impl Rebuilder {
         state: &State,
         gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
-        fee_deltas: &[(Txid, i64)],
+        modified_fees: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         held_fees: Option<&FeeView>,
         cache: &mut ChunkCache,
@@ -92,7 +92,7 @@ impl Rebuilder {
         previous: &Snapshot,
     ) -> Snapshot {
         let (txs, key_to_idx, chunks) =
-            Snapshot::build_txs(&state.txs, &state.template_only, fee_deltas, cache);
+            Snapshot::build_txs(&state.txs, &state.template_only, modified_fees, cache);
         let pooled = state.txs.len();
         let record_at = |i: usize| {
             if i < pooled {
@@ -172,7 +172,7 @@ impl Rebuilder {
             .map(|record| record.digest)
             .collect();
         snapshot.unloaded = unloaded.clone();
-        snapshot.fee_deltas = fee_deltas.into();
+        snapshot.modified_fees = modified_fees.into();
         snapshot
     }
 

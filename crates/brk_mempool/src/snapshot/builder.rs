@@ -4,7 +4,7 @@
 use std::mem;
 
 use brk_cpfp::Cluster;
-use brk_types::{Sats, Txid, Weight};
+use brk_types::{Txid, Weight};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
@@ -75,12 +75,12 @@ impl Linearized {
 impl Snapshot {
     /// The pool's transactions, then `template_only` (block 0's bodies the pool lacks), indexed
     /// in that order. A template-only one stands alone, linked to nothing: it left Core's pool,
-    /// so no pooled transaction's chunk or CPFP answer counts it. `fee_deltas`: the operator's
-    /// deltas, in txid byte order.
+    /// so no pooled transaction's chunk or CPFP answer counts it. `modified_fees`: authoritative
+    /// signed amounts, in txid byte order.
     pub(crate) fn build_txs(
         txs: &TxStore,
         template_only: &[TxRecord],
-        fee_deltas: &[(Txid, i64)],
+        modified_fees: &[(Txid, i64)],
         cache: &mut ChunkCache,
     ) -> (Vec<SnapTx>, KeyIndex, Chunks) {
         let records = || {
@@ -97,14 +97,16 @@ impl Snapshot {
             key_to_idx.entry(key).or_insert(TxIndex::from(i));
             keys.push(key);
         }
-        let delta_of = |txid: &Txid| {
-            fee_deltas
+        let modified_of = |txid: &Txid| {
+            modified_fees
                 .binary_search_by(|(other, _)| other.cmp(txid))
-                .map_or(0, |i| fee_deltas[i].1)
+                .ok()
+                .map(|i| modified_fees[i].1)
         };
-        let mut snap_txs: Vec<SnapTx> = records()
-            .map(|(_, record)| Self::live_tx(record, delta_of(&record.entry.txid)))
-            .collect();
+        let mut snap_txs = Vec::with_capacity(n);
+        snap_txs.extend(records().map(|(_, record)| {
+            Self::live_tx(record, modified_of(&record.entry.txid))
+        }));
         // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
         // return after its child arrived), each checked by its full txid.
         let pooled = txs.len();
@@ -127,15 +129,9 @@ impl Snapshot {
         (snap_txs, key_to_idx, chunks)
     }
 
-    fn live_tx(record: &TxRecord, fee_delta: i64) -> SnapTx {
+    fn live_tx(record: &TxRecord, modified: Option<i64>) -> SnapTx {
         let e = &record.entry;
-        // Within MAX_MONEY either way (an operator's delta can be any 64-bit amount): the one
-        // ranking fee linearization, packing and the block floor all read.
-        let max = i64::try_from(u64::from(Sats::MAX_MONEY)).unwrap();
-        let modified = i64::try_from(u64::from(e.fee))
-            .unwrap()
-            .saturating_add(fee_delta)
-            .clamp(-max, max);
+        let modified = modified.unwrap_or_else(|| i64::try_from(u64::from(e.fee)).expect("bounded base fee"));
         SnapTx {
             txid: e.txid,
             fee: e.fee,
