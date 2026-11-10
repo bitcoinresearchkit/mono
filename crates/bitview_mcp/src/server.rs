@@ -32,12 +32,12 @@ use rmcp::{
     },
 };
 use serde_json::{Value, from_slice, json};
-use tower_http::timeout::RequestBodyTimeoutLayer;
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
     time::timeout,
 };
+use tower_http::timeout::RequestBodyTimeoutLayer;
 use tracing::debug;
 
 use crate::{
@@ -139,16 +139,7 @@ impl BitviewMcp {
                     ])
                     .with_website_url(&self.state.public_url),
             )
-            .with_instructions(
-                "Live and historical Bitcoin data from Bitview, read from a full node: on-chain \
-                 metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, \
-                 transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD \
-                 price computed from the chain. Free and read-only, with no API key.\n\n\
-                 For a metric, `search_series` with plain words returns series ids, which \
-                 `get_series_latest` and `get_series` read; only ids it returned exist. Source of \
-                 this data: Bitview (https://bitview.space). Binary responses are returned as \
-                 embedded MCP resources.",
-            )
+            .with_instructions(self.state.catalog.instructions())
     }
 }
 

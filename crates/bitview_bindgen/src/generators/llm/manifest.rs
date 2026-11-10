@@ -9,14 +9,15 @@ use serde_json::{Map, Value, json, to_string_pretty};
 
 use crate::{Endpoint, Parameter, TypeSchemas, generators::write_if_changed};
 
-const MANIFEST_SCHEMA_VERSION: u32 = 1;
+const MANIFEST_SCHEMA_VERSION: u32 = 2;
 const JSON_SCHEMA_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
 const COMPONENT_REF_PREFIX: &str = "#/components/schemas/";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Manifest {
+struct Manifest<'a> {
     schema_version: u32,
+    instructions: &'a str,
     operations: Vec<ManifestOperation>,
 }
 
@@ -77,13 +78,18 @@ enum ParameterLocation {
 pub fn generate_tool_manifest(
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
+    instructions: &str,
     path: &Path,
 ) -> io::Result<()> {
-    let content = render_tool_manifest(endpoints, schemas)?;
+    let content = render_tool_manifest(endpoints, schemas, instructions)?;
     write_if_changed(path, &content)
 }
 
-fn render_tool_manifest(endpoints: &[Endpoint], schemas: &TypeSchemas) -> io::Result<String> {
+fn render_tool_manifest(
+    endpoints: &[Endpoint],
+    schemas: &TypeSchemas,
+    instructions: &str,
+) -> io::Result<String> {
     let mut names = BTreeSet::new();
     let mut operations = endpoints
         .iter()
@@ -95,6 +101,7 @@ fn render_tool_manifest(endpoints: &[Endpoint], schemas: &TypeSchemas) -> io::Re
 
     let manifest = Manifest {
         schema_version: MANIFEST_SCHEMA_VERSION,
+        instructions,
         operations,
     };
     let mut content = to_string_pretty(&manifest)

@@ -14,6 +14,8 @@ let paths = ClientOutputPaths::new()
     .javascript("modules/bitview-client/index.js")
     .python("packages/bitview_client/bitview_client/__init__.py")
     .llm("showcases")
+    .skill("showcases/skills/bitview/SKILL.md")
+    .skill("skills/bitview/SKILL.md")
     .llm_manifest("crates/bitview_mcp/generated/manifest.json");
 
 generate_clients(&catalog, &openapi_json, &paths)?;
@@ -30,7 +32,8 @@ Only outputs with a configured location are generated.
 | JavaScript | ES module with JSDoc types, series tree, fetch helpers |
 | Python | Typed client with `TypedDict` schemas, series tree |
 | LLM | `llms.txt` (discovery links) and `llms-full.txt` (endpoint and schema reference); both link to the live series catalog instead of listing it |
-| MCP | Tool manifest from the same OpenAPI operations |
+| Skill | Agent Skill `SKILL.md`: a pointer to `llms.txt` and the series flow |
+| MCP | Tool manifest from the same OpenAPI operations, with the server's instructions (the same series flow, naming tools) |
 
 ## Series tree
 

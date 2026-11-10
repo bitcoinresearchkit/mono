@@ -16,6 +16,26 @@ mod manifest;
 const BASE_URL: &str = "https://bitview.space";
 const MCP_URL: &str = "https://mcp.bitview.space/";
 const DEFINITION: &str = "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.";
+/// What an agent can ask Bitview: the skill's trigger and the MCP instructions' opening.
+const SCOPE: &str = "on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain";
+const ACCESS: &str = "Free and read-only, with no API key.";
+/// The series flow, written once: each step and the operations it calls, named as routes in
+/// llms.txt and the skill, as tools in the MCP instructions.
+const SERIES_FLOW: [(&str, &[&str]); 3] = [
+    (
+        "search by meaning with plain words; it returns series ids",
+        &["search_series"],
+    ),
+    (
+        "read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined)",
+        &["get_series_info"],
+    ),
+    (
+        "pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once",
+        &["get_series", "get_series_latest", "get_series_bulk"],
+    ),
+];
+const SERIES_RULE: &str = "Never invent a series id: only ids the API returned exist.";
 
 pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
@@ -23,9 +43,15 @@ pub(crate) fn generate_llm_clients(
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
     roots: &[PathBuf],
+    skills: &[PathBuf],
     manifest_path: Option<&Path>,
 ) -> io::Result<()> {
-    if !roots.is_empty() {
+    if !skills.is_empty() || !roots.is_empty() {
+        let flow = render_series_flow(endpoints, Endpoint::should_generate, route)?;
+        let skill = render_skill(&flow);
+        for path in skills {
+            write_if_changed(path, &skill)?;
+        }
         let metric_count = count_metrics(catalog);
         let generated = endpoints
             .iter()
@@ -36,6 +62,7 @@ pub(crate) fn generate_llm_clients(
             &spec.info.version,
             metric_count,
             &generated,
+            &flow,
         );
         let llms_full = render_llms_full(
             &spec.info.title,
@@ -50,7 +77,12 @@ pub(crate) fn generate_llm_clients(
         }
     }
     if let Some(path) = manifest_path {
-        manifest::generate_tool_manifest(endpoints, schemas, path)?;
+        manifest::generate_tool_manifest(
+            endpoints,
+            schemas,
+            &render_mcp_instructions(endpoints)?,
+            path,
+        )?;
     }
     Ok(())
 }
@@ -64,7 +96,87 @@ fn count_metrics(node: &TreeNode) -> usize {
     names.len()
 }
 
-fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&Endpoint]) -> String {
+/// The series flow as a numbered list, each step naming its operations through `name`; an
+/// operation renamed, removed or not `offered` fails generation.
+fn render_series_flow(
+    endpoints: &[Endpoint],
+    offered: fn(&Endpoint) -> bool,
+    name: fn(&Endpoint) -> String,
+) -> io::Result<String> {
+    let mut output = String::new();
+    for (step, (text, operations)) in SERIES_FLOW.iter().enumerate() {
+        let names = operations
+            .iter()
+            .map(|id| {
+                endpoints
+                    .iter()
+                    .find(|endpoint| endpoint.operation_id == *id && offered(endpoint))
+                    .map(|endpoint| format!("`{}`", name(endpoint)))
+                    .ok_or_else(|| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!("series flow names a missing operation: {id}"),
+                        )
+                    })
+            })
+            .collect::<io::Result<Vec<_>>>()?;
+        writeln!(output, "{}. {}: {text}.", step + 1, names.join(", ")).unwrap();
+    }
+    Ok(output)
+}
+
+/// `GET /api/series/search?q=<q>`: the route with its required query parameters.
+fn route(endpoint: &Endpoint) -> String {
+    let query = endpoint
+        .query_params
+        .iter()
+        .filter(|parameter| parameter.required)
+        .map(|parameter| format!("{0}=<{0}>", parameter.name))
+        .collect::<Vec<_>>();
+    if query.is_empty() {
+        format!("{} {}", endpoint.method, endpoint.path)
+    } else {
+        format!("{} {}?{}", endpoint.method, endpoint.path, query.join("&"))
+    }
+}
+
+/// The Agent Skill: a pointer to llms.txt and the series flow, for agents that don't know Bitview.
+fn render_skill(flow: &str) -> String {
+    format!(
+        "---\n\
+name: bitview\n\
+description: \"Fetches live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data.\"\n\
+---\n\n\
+# Bitview\n\n\
+Bitview is a Bitcoin data API read from a full node. {ACCESS} Start from {BASE_URL}/llms.txt; {BASE_URL}/llms-full.txt is the full API reference. Call the REST API at {BASE_URL} directly.\n\n\
+For a series:\n\n\
+{flow}\n\
+{SERIES_RULE}\n"
+    )
+}
+
+/// The MCP server's instructions: the skill's pointer, with tools in place of routes.
+fn render_mcp_instructions(endpoints: &[Endpoint]) -> io::Result<String> {
+    let flow = render_series_flow(
+        endpoints,
+        |endpoint| !endpoint.deprecated && !endpoint.mcp_ignored,
+        |endpoint| endpoint.operation_id.clone(),
+    )?;
+    Ok(format!(
+        "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS}\n\n\
+For a series:\n\n\
+{flow}\n\
+{SERIES_RULE} Source of this data: Bitview ({BASE_URL}). Binary responses are returned as embedded MCP resources."
+    ))
+}
+
+fn render_llms(
+    title: &str,
+    version: &str,
+    metric_count: usize,
+    endpoints: &[&Endpoint],
+    flow: &str,
+) -> String {
     format!(
         "# {title}\n\n\
 > {DEFINITION} {metric_count} on-chain time-series and {} API operations.\n\n\
@@ -80,11 +192,8 @@ fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&En
 - [Interactive documentation]({BASE_URL}/api)\n\n\
 Build tools from the full OpenAPI document; the compact summary is a smaller custom (non-OpenAPI) overview. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
 ## Series workflow\n\n\
-Never invent a series identifier.\n\n\
-1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n\
-3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
-4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
+{flow}\n\
+{SERIES_RULE}\n\n\
 ## MCP\n\n\
 - Endpoint: {MCP_URL}\n\
 - Transport: Streamable HTTP\n\
@@ -104,6 +213,8 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 - [JavaScript](https://www.npmjs.com/package/bitview-client)\n\
 - [Python](https://pypi.org/project/bitview-client/)\n\
 - [Rust](https://crates.io/crates/bitview_client)\n\n\
+## Agent Skill\n\n\
+- [SKILL.md]({BASE_URL}/skills/bitview/SKILL.md), also in the repository's `skills/bitview`\n\n\
 ## Source\n\n\
 - [GitHub](https://github.com/bitcoinresearchkit/mono)\n\
 - MIT licensed\n",

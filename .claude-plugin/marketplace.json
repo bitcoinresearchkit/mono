@@ -1,0 +1,14 @@
+{
+  "name": "bitview",
+  "description": "Bitview's Agent Skill: free Bitcoin data from a full node.",
+  "owner": {
+    "name": "Bitview"
+  },
+  "plugins": [
+    {
+      "name": "bitview",
+      "source": "./skills/bitview",
+      "description": "Bitcoin on-chain, market, mempool, fee, mining and holder-cohort data from Bitview's free API."
+    }
+  ]
+}

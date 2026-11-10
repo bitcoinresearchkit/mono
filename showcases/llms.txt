@@ -18,12 +18,11 @@ Build tools from the full OpenAPI document; the compact summary is a smaller cus
 
 ## Series workflow
 
-Never invent a series identifier.
+1. `GET /api/series/search?q=<q>`: search by meaning with plain words; it returns series ids.
+2. `GET /api/series/{series}`: read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).
+3. `GET /api/series/{series}/{index}`, `GET /api/series/{series}/{index}/latest`, `GET /api/series/bulk?series=<series>&index=<index>`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.
 
-1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.
-2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).
-3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.
-4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.
+Never invent a series id: only ids the API returned exist.
 
 ## MCP
 
@@ -51,6 +50,10 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 - [JavaScript](https://www.npmjs.com/package/bitview-client)
 - [Python](https://pypi.org/project/bitview-client/)
 - [Rust](https://crates.io/crates/bitview_client)
+
+## Agent Skill
+
+- [SKILL.md](https://bitview.space/skills/bitview/SKILL.md), also in the repository's `skills/bitview`
 
 ## Source
 

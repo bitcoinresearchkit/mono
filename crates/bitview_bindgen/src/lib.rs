@@ -9,7 +9,8 @@ use serde_json::Value;
 
 /// Where each output goes. Rust, CLI, JavaScript, Python and the MCP tool manifest
 /// (`llm_manifest`) take a file path; each `llm` call adds a root directory for `llms.txt` and
-/// `llms-full.txt`. Missing parent directories are created.
+/// `llms-full.txt`, each `skill` call a path for the Agent Skill's `SKILL.md`. Missing parent
+/// directories are created.
 #[derive(Debug, Clone, Default)]
 pub struct ClientOutputPaths {
     rust: Option<PathBuf>,
@@ -17,6 +18,7 @@ pub struct ClientOutputPaths {
     javascript: Option<PathBuf>,
     python: Option<PathBuf>,
     llm: Vec<PathBuf>,
+    skill: Vec<PathBuf>,
     llm_manifest: Option<PathBuf>,
 }
 
@@ -47,6 +49,11 @@ impl ClientOutputPaths {
 
     pub fn llm(mut self, root: impl Into<PathBuf>) -> Self {
         self.llm.push(root.into());
+        self
+    }
+
+    pub fn skill(mut self, path: impl Into<PathBuf>) -> Self {
+        self.skill.push(path.into());
         self
     }
 
@@ -251,6 +258,7 @@ pub fn generate_clients(
         &endpoints,
         &schemas,
         &output_paths.llm,
+        &output_paths.skill,
         output_paths.llm_manifest.as_deref(),
     )?;
 

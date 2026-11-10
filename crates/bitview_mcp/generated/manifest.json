@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "instructions": "Live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain. Free and read-only, with no API key.\n\nFor a series:\n\n1. `search_series`: search by meaning with plain words; it returns series ids.\n2. `get_series_info`: read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n3. `get_series`, `get_series_latest`, `get_series_bulk`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.\n\nNever invent a series id: only ids the API returned exist. Source of this data: Bitview (https://bitview.space). Binary responses are returned as embedded MCP resources.",
   "operations": [
     {
       "tool": {

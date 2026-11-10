@@ -31,6 +31,8 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "packages/bitview_client/bitview_client/__init__.py",
     "showcases/llms.txt",
     "showcases/llms-full.txt",
+    "showcases/skills/bitview/SKILL.md",
+    "skills/bitview/SKILL.md",
     "crates/bitview_mcp/generated/manifest.json",
 ];
 
@@ -144,6 +146,8 @@ fn output_paths(root: &Path, scope: OutputScope) -> ClientOutputPaths {
         .javascript(root.join("modules/bitview-client/index.js"))
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
         .llm(root.join("showcases"))
+        .skill(root.join("showcases/skills/bitview/SKILL.md"))
+        .skill(root.join("skills/bitview/SKILL.md"))
         .llm_manifest(root.join("crates/bitview_mcp/generated/manifest.json"))
 }
 

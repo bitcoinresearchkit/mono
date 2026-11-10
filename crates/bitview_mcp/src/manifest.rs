@@ -22,11 +22,13 @@ const MAX_PARAMETER_BYTES: usize = 8 * 1024;
 #[serde(rename_all = "camelCase")]
 struct Manifest {
     schema_version: u32,
+    instructions: String,
     operations: Vec<Operation>,
 }
 
 #[derive(Debug)]
 pub struct Catalog {
+    instructions: String,
     tools: Vec<Tool>,
     operations: BTreeMap<String, Operation>,
 }
@@ -36,7 +38,7 @@ impl Catalog {
     pub fn embedded() -> Self {
         let manifest: Manifest =
             from_str(MANIFEST_JSON).expect("generated LLM manifest is valid; run `cargo bindgen`");
-        debug_assert_eq!(manifest.schema_version, 1);
+        debug_assert_eq!(manifest.schema_version, 2);
         debug_assert!(!manifest.operations.is_empty());
 
         let tools = manifest
@@ -56,7 +58,16 @@ impl Catalog {
         );
         debug_assert!(tools.is_sorted_by(|left, right| left.name < right.name));
 
-        Self { tools, operations }
+        Self {
+            instructions: manifest.instructions,
+            tools,
+            operations,
+        }
+    }
+
+    /// The server's instructions, generated with the skill and llms.txt from one series flow.
+    pub fn instructions(&self) -> &str {
+        &self.instructions
     }
 
     pub fn tools(&self) -> &[Tool] {
