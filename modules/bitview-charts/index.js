@@ -44,8 +44,8 @@ export const LIGHT = { background: "#ffffff", text: "#6b6f76", grid: "rgba(0, 0,
 
 /** A touch held this long (ms) without moving shows the crosshair, the finger moving it then, not the chart (as Lightweight Charts' long tap). */
 const HOLD = 240;
-/** How near a separator between panes a pointer takes it (CSS pixels): a mouse's, a finger's; a pane's least height. */
-const NEAR_MOUSE = 4, NEAR_TOUCH = 12, LEAST = 32;
+/** How near a separator between panes a pointer takes it (CSS pixels): a mouse or pen's, a finger's; a pane's least height. */
+const NEAR_FINE = 4, NEAR_TOUCH = 12, LEAST = 32;
 
 /** An axis' least width (CSS pixels): a short label's, as "0". */
 const AXIS_LEAST = 28;
@@ -179,7 +179,7 @@ export class Chart {
   }
 
   /**
-   * A mouse dragging the view: its crosshair found again at the next frame where it is then (see render), its listeners
+   * A mouse or pen dragging the view: its crosshair found again at the next frame where it is then (see render), its listeners
    * told once the panes are fitted to the view it moved to (not on the scale before).
    * @param {PointerEvent} event
    */
@@ -516,7 +516,7 @@ export class Chart {
   // Pointers: one drags (a pan, gliding on once let go), two pinch (a zoom about their middle, and a pan as it moves);
   // the wheel zooms about the pointer, a trackpad's sideways scroll pans (a diagonal swipe both). On an axis, a drag scales it: a price axis
   // about its middle (its range then set by hand, fitted again by a double-click, its width too: see fitAxes), the time axis about the plot's right
-  // edge. The crosshair: where a mouse is; a finger
+  // edge. The crosshair: where a mouse or pen is; a finger
   // held still (HOLD) shows it, moving it then instead of the chart, till it's let go. A finger pans once it's moved
   // past a slop of 6 pixels (a hold, else, would move the chart a little).
   #input() {
@@ -533,14 +533,14 @@ export class Chart {
     let twoFingers = false;
     // (A separator dragged: the panes over and under it, the pointer dragging it (-1: none).)
     let sizing = /** @type {[Pane, Pane] | null} */ (null), sizer = -1;
-    /** Let go (`y`: a mouse's height in the chart, its separator lit still where it's over one). @param {number} [y] */
+    /** Let go (`y`: a mouse or pen's height in the chart, its separator lit still where it's over one). @param {number} [y] */
     const stopSizing = (y = NaN) => {
       (sizing = null), (sizer = -1), (this.resizing = false), (this.separatorLit = this.panes[separator(y, false)] ?? null);
       this.invalidate(true);
     };
     /** The separator under a height in the chart (the pane over it), or -1. @param {number} y @param {boolean} touch */
     const separator = (y, touch) => {
-      for (let k = 0; k < this.panes.length - 1; k++) if (Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_MOUSE)) return k;
+      for (let k = 0; k < this.panes.length - 1; k++) if (Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_FINE)) return k;
       return -1;
     };
     // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
@@ -551,7 +551,7 @@ export class Chart {
       if (this.recrossing) return void ((this.pointerX = x), (this.crosshair.y = event.clientY - box.top), this.invalidate());
       this.setCrosshair(over ? time.index(x) : NaN, event.clientY - box.top, true, over ? x : NaN);
     };
-    // (The axis a drag from a point would scale, found without making anything (a mouse's hover asks at each move): its
+    // (The axis a drag from a point would scale, found without making anything (a mouse or pen's hover asks at each move): its
     // pane (none: the time axis) and side.)
     let foundPane = /** @type {Pane | null} */ (null), foundSide = /** @type {"right" | "left"} */ ("right");
     /** Whether a drag from a point in the chart (CSS pixels from its corner) would scale an axis (see foundPane). @param {number} x @param {number} y */
@@ -656,10 +656,10 @@ export class Chart {
       // (Another pointer meanwhile (a mouse beside a finger): nothing while a separator's dragged.)
       if (this.resizing) return;
       const at = down.get(event.pointerId);
-      if (!at && event.pointerType === "mouse") {
+      if (!at && event.pointerType !== "touch") {
         // (Over a page's own element over it (a legend): no crosshair, as off the chart.)
         if (event.target !== element && !this.#owns(event.target)) return void (this.separatorLit && ((this.separatorLit = null), this.invalidate()), this.setCrosshair(NaN));
-        // (A mouse over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
+        // (A mouse or pen over a separator, or an axis: it shows it can be dragged, no crosshair over a separator.)
         const box = element.getBoundingClientRect(), y = event.clientY - box.top, lit = separator(y, false), over = lit >= 0, axis = !over && findAxis(event.clientX - box.left, y);
         element.style.cursor = over ? "row-resize" : axis ? (foundPane ? "ns-resize" : "ew-resize") : "";
         // (The separator pointed at in the theme's active color: it can be dragged.)
@@ -701,14 +701,14 @@ export class Chart {
         time.pan((event.clientX - at.x) / 2);
       }
       (at.x = event.clientX), (at.y = event.clientY);
-      // (A mouse's crosshair where it is now, the chart moved under it.)
+      // (A mouse or pen's crosshair where it is now, the chart moved under it.)
       // (Its listeners told once the panes are fitted to the view it moved to: see render.)
-      if (event.pointerType === "mouse") this.#follow(event);
+      if (event.pointerType !== "touch") this.#follow(event);
       this.invalidate();
     }, { signal });
-    element.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && !down.size && !this.resizing && ((this.separatorLit = null), this.setCrosshair(NaN)), { signal });
+    element.addEventListener("pointerleave", (event) => event.pointerType !== "touch" && !down.size && !this.resizing && ((this.separatorLit = null), this.setCrosshair(NaN)), { signal });
     const up = (/** @type {PointerEvent} */ event) => {
-      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing(event.pointerType === "mouse" ? event.clientY - element.getBoundingClientRect().top : NaN));
+      if (sizer === event.pointerId) return void ((tapAt = -Infinity), stopSizing(event.pointerType !== "touch" ? event.clientY - element.getBoundingClientRect().top : NaN));
       const at = down.get(event.pointerId);
       if (!at || !down.delete(event.pointerId)) return;
       const pinched = twoFingers;

@@ -42,7 +42,7 @@ chart.show(365);                                 // the last 365 points in view
   pointer).
 - Input: a drag pans (a finger's flick glides on, slowing as a list does, a little sooner; a mouse or pen's drag stops where it's
   let go), a pinch or the wheel zooms about that point (the point
-  there stays there), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse is; a
+  there stays there), a trackpad's sideways scroll pans (a diagonal swipe pans and zooms at once). The crosshair: where a mouse or pen is; a
   finger held still for 240 ms shows it, and moves it then; a finger pans once it's moved 6 pixels; none over a page's
   own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
   covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
