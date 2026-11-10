@@ -1,12 +1,16 @@
-use std::{borrow::Cow, future::ready, sync::Arc, time::Duration};
+use std::{
+    borrow::Cow,
+    future::ready,
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
 
 use axum::{
     Json, Router,
     body::{Body, Bytes},
-    extract::State,
     http::{
         HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, ORIGIN, RETRY_AFTER},
+        header::{ACCEPT, ORIGIN},
         request::Parts,
     },
     middleware::{self, Next},
@@ -19,9 +23,9 @@ use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
-        DiscoverResult, ErrorCode, Icon, Implementation,
-        ListToolsResult, MetaObject, PaginatedRequestParams, ProtocolVersion, ResourceContents,
-        ServerCapabilities, ServerConfig, Tool,
+        DiscoverResult, ErrorCode, Icon, Implementation, ListToolsResult, MetaObject,
+        PaginatedRequestParams, ProtocolVersion, ResourceContents, ServerCapabilities,
+        ServerConfig, Tool,
     },
     service::RequestContext,
     transport::{
@@ -31,7 +35,7 @@ use rmcp::{
         },
     },
 };
-use serde_json::{Value, from_slice, json};
+use serde_json::{Value, from_str, json};
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
@@ -41,14 +45,23 @@ use tower_http::timeout::RequestBodyTimeoutLayer;
 use tracing::debug;
 
 use crate::{
-    discovery, logo, manifest::Catalog, page, page::Pages, upstream::Upstream,
+    discovery, logo,
+    manifest::Catalog,
+    page,
+    page::Pages,
+    upstream::{MAX_RESPONSE_BYTES, Upstream},
     upstream_response::UpstreamResponse,
 };
 
 const CACHE_META_KEY: &str = "org.bitcoinresearchkit/upstreamCache";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
-const MAX_CONCURRENCY: usize = 16;
-const CONCURRENCY_WAIT: Duration = Duration::from_secs(5);
+/// Bytes of large upstream bodies that calls may hold at once, from reading the body until the response is written.
+/// Rendering peaks at about ten times the body (the parsed `Value` and the serialized response), so this bounds them
+/// near 1.3 GB, as 16 calls of the largest bodies did. Small bodies, which end within the first read, take none:
+/// their memory is bounded by the calls in flight.
+const BODY_BUDGET: u64 = 16 * MAX_RESPONSE_BYTES;
+/// The longest a call waits for its body's share of the budget.
+const BUDGET_WAIT: Duration = Duration::from_secs(5);
 const CATALOG_TTL_MS: u64 = 3_600_000;
 const MAX_UPSTREAM_ERROR_BYTES: usize = 2_048;
 /// The newest revision, back to the oldest one a real client still opens with: Codex and Gemini CLI
@@ -62,6 +75,7 @@ pub(crate) static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 3] = [
 struct AppState {
     catalog: Catalog,
     upstream: Upstream,
+    budget: Arc<Semaphore>,
     display_name: String,
     public_url: String,
     server_name: String,
@@ -94,6 +108,7 @@ pub fn router(
     let state = Arc::new(AppState {
         catalog,
         upstream: Upstream::new(api_url),
+        budget: Arc::new(Semaphore::new(BODY_BUDGET as usize)),
         display_name,
         public_url,
         server_name,
@@ -110,9 +125,8 @@ pub fn router(
     Router::new()
         .route(
             "/",
-            page::route(pages.home).merge(post_service(service).layer(
-                middleware::from_fn_with_state(Arc::new(Semaphore::new(MAX_CONCURRENCY)), admit),
-            )),
+            page::route(pages.home)
+                .merge(post_service(service).layer(middleware::from_fn(hold_charge))),
         )
         .route("/logo.png", get(logo::get))
         .route("/privacy", get(move || ready(privacy.clone())))
@@ -120,7 +134,7 @@ pub fn router(
         .route("/support", page::route(pages.support))
         .merge(discovery_routes)
         .layer(middleware::from_fn(gateway_guard))
-        // A POST's body may not stall: it would hold its admission permit.
+        // A POST's body may not stall: it would hold its connection.
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
 }
 
@@ -211,22 +225,54 @@ impl ServerHandler for BitviewMcp {
             .prepare(operation, &arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
 
-        let permit = context
+        let charge = context
             .extensions
             .get::<Parts>()
-            .and_then(|parts| parts.extensions.get::<Arc<OwnedSemaphorePermit>>())
+            .and_then(|parts| parts.extensions.get::<Charge>())
             .cloned();
-        debug_assert!(permit.is_some(), "MCP POSTs are admitted before dispatch");
+        debug_assert!(
+            charge.is_some(),
+            "MCP POSTs get a charge slot before dispatch"
+        );
         let state = Arc::clone(&self.state);
+        let fail = |message| Ok(tool_error(message, &self.state.server_name));
+
+        let fetched = {
+            let state = Arc::clone(&state);
+            spawn_blocking(move || state.upstream.fetch(url)).await
+        };
+        let partial = match fetched {
+            Ok(Ok(partial)) => partial,
+            Ok(Err(error)) => return fail(error),
+            Err(_) => return fail("Bitview API request task failed".to_string()),
+        };
+        // A large body reserves the most it can take before the rest is read, and waits for that room here, holding
+        // no thread.
+        let permit = if partial.is_large() {
+            let reserve = Arc::clone(&state.budget).acquire_many_owned(MAX_RESPONSE_BYTES as u32);
+            let Ok(Ok(permit)) = timeout(BUDGET_WAIT, reserve).await else {
+                return fail("Bitview MCP is busy with large responses; retry shortly".to_string());
+            };
+            Some(permit)
+        } else {
+            None
+        };
         Ok(spawn_blocking(move || {
-            let _permit = permit;
-            match state.upstream.fetch(url) {
-                Ok(response) => {
-                    log_cache_status(&name, &response);
-                    render(response, has_output_schema, &state.server_name)
-                }
-                Err(error) => tool_error(error, &state.server_name),
+            let response = match partial.finish() {
+                Ok(response) => response,
+                Err(error) => return tool_error(error, &state.server_name),
+            };
+            // The reservation shrinks to the body's length, held until the response is written.
+            let permit = permit.map(|mut permit| {
+                drop(permit.split(permit.num_permits() - response.body.len()));
+                permit
+            });
+            log_cache_status(&name, &response);
+            let result = render(response, has_output_schema, &state.server_name);
+            if let (Some(charge), Some(permit)) = (charge, permit) {
+                let _ = charge.set(permit);
             }
+            result
         })
         .await
         .unwrap_or_else(|_| tool_error("Bitview API request task failed", &self.state.server_name)))
@@ -237,44 +283,33 @@ impl ServerHandler for BitviewMcp {
     }
 }
 
-/// Admits each MCP POST under one of `MAX_CONCURRENCY` permits, held by the response body and by the request's
-/// blocking upstream work, so fetching, rendering, serialization and transmission stay bounded, cancelled requests
-/// included.
-async fn admit(
-    State(concurrency): State<Arc<Semaphore>>,
-    mut request: Request<Body>,
-    next: Next,
-) -> Response {
-    let Ok(Ok(permit)) = timeout(CONCURRENCY_WAIT, concurrency.acquire_owned()).await else {
-        return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            [(RETRY_AFTER, "1")],
-            "MCP proxy is temporarily busy; retry shortly",
-        )
-            .into_response();
-    };
-    let permit = Arc::new(permit);
-    request.extensions_mut().insert(permit.clone());
-    // Every data frame co-owns the permit: Hyper may still be writing the last one after the body is dropped.
+/// A call's share of `BODY_BUDGET`, set once its body is rendered.
+type Charge = Arc<OnceLock<OwnedSemaphorePermit>>;
+
+/// Gives each MCP POST a `Charge` slot, held by every data frame of its response: Hyper may still be writing the last
+/// one after the body is dropped, and the bytes it writes are what the charge pays for.
+async fn hold_charge(mut request: Request<Body>, next: Next) -> Response {
+    let charge = Charge::default();
+    request.extensions_mut().insert(charge.clone());
     next.run(request).await.map(|body| {
         Body::new(body.map_frame(move |frame| {
-            let permit = permit.clone();
+            let charge = charge.clone();
             frame.map_data(|bytes| {
-                Bytes::from_owner(PermitBytes {
+                Bytes::from_owner(ChargedBytes {
                     bytes,
-                    _permit: permit,
+                    _charge: charge,
                 })
             })
         }))
     })
 }
 
-struct PermitBytes {
+struct ChargedBytes {
     bytes: Bytes,
-    _permit: Arc<OwnedSemaphorePermit>,
+    _charge: Charge,
 }
 
-impl AsRef<[u8]> for PermitBytes {
+impl AsRef<[u8]> for ChargedBytes {
     fn as_ref(&self) -> &[u8] {
         &self.bytes
     }
@@ -324,24 +359,27 @@ fn render(
         .to_ascii_lowercase();
     let meta = Some(upstream_meta(&response, server_name));
 
-    if content_type == "application/json" || content_type.ends_with("+json") {
+    let is_json = content_type == "application/json" || content_type.ends_with("+json");
+    if is_json && has_output_schema {
         // The text content is the upstream body itself, so integers beyond u64 (u128 hashrates) stay
         // exact there. The structured `Value` holds those as f64: exact numbers would need serde_json's
         // arbitrary_precision, which feature unification would leak into every workspace build.
-        return match (
-            from_slice::<Value>(&response.body),
-            String::from_utf8(response.body),
-        ) {
-            (Ok(value), Ok(text)) => {
+        // Checked as UTF-8 once: parsing a `str` skips serde_json's own check of each string.
+        let parsed = String::from_utf8(response.body)
+            .ok()
+            .and_then(|text| Some((from_str::<Value>(&text).ok()?, text)));
+        return match parsed {
+            Some((value, text)) => {
                 let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
-                result.structured_content = has_output_schema.then_some(value);
+                result.structured_content = Some(value);
                 result.with_meta(meta).into()
             }
-            _ => tool_error("Bitview API returned invalid JSON", server_name),
+            None => tool_error("Bitview API returned invalid JSON", server_name),
         };
     }
 
-    if content_type.starts_with("text/") {
+    // JSON without an output schema is passed on as the text it is, unparsed.
+    if is_json || content_type.starts_with("text/") {
         return match String::from_utf8(response.body) {
             Ok(text) => CallToolResult::success(vec![ContentBlock::text(text)])
                 .with_meta(meta)

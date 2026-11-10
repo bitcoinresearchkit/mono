@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{io::Read, time::Duration};
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
 use serde_json::Value;
-use ureq::{Agent, Body, http::Response};
+use ureq::{Agent, BodyReader};
 
 use crate::{
     manifest::{Operation, ParameterLocation},
@@ -10,7 +10,9 @@ use crate::{
 };
 
 const MAX_UPSTREAM_URL_BYTES: usize = 32 * 1024;
-const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
+pub const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
+/// How much of a body `fetch` reads at once: most responses end within it.
+const HEAD_BYTES: u64 = 64 * 1024;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub struct Upstream {
@@ -25,6 +27,10 @@ impl Upstream {
             .http_status_as_error(false)
             .max_redirects(0)
             .user_agent(format!("brk-mcp/{}", env!("CARGO_PKG_VERSION")))
+            // Every call in flight holds a connection, which holds two of each buffer (TCP and TLS):
+            // one TLS record in, and the longest request out.
+            .input_buffer_size(16 * 1024)
+            .output_buffer_size(MAX_UPSTREAM_URL_BYTES + 1024)
             .build();
         Self {
             agent: Agent::new_with_config(config),
@@ -83,7 +89,8 @@ impl Upstream {
         Ok(url)
     }
 
-    pub fn fetch(&self, url: String) -> Result<UpstreamResponse, String> {
+    /// The response with up to `HEAD_BYTES` of its body read.
+    pub fn fetch(&self, url: String) -> Result<PartialResponse, String> {
         let response = self
             .agent
             .get(&url)
@@ -93,51 +100,67 @@ impl Upstream {
             )
             .call()
             .map_err(|error| format!("Bitview API request failed: {error}"))?;
-        self.read_response(url, response)
-    }
-
-    fn read_response(
-        &self,
-        url: String,
-        mut response: Response<Body>,
-    ) -> Result<UpstreamResponse, String> {
+        let header = |name| {
+            response
+                .headers()
+                .get(name)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string)
+        };
         let status = response.status().as_u16();
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or("application/octet-stream")
-            .to_string();
-        let cache_status = response
-            .headers()
-            .get("cf-cache-status")
-            .and_then(|value| value.to_str().ok())
-            .map(str::to_string);
-        let cache_age = response
-            .headers()
-            .get("age")
-            .and_then(|value| value.to_str().ok())
-            .map(str::to_string);
-        let body = response
-            .body_mut()
-            .with_config()
+        let content_type =
+            header("content-type").unwrap_or_else(|| "application/octet-stream".to_string());
+        let cache_status = header("cf-cache-status");
+        let cache_age = header("age");
+        let mut rest = response
+            .into_body()
+            .into_with_config()
             .limit(MAX_RESPONSE_BYTES)
-            .read_to_vec()
-            .map_err(|error| {
-                format!(
-                    "Bitview API response read failed (limit {MAX_RESPONSE_BYTES} bytes): {error}"
-                )
-            })?;
+            .reader();
+        let mut body = Vec::new();
+        (&mut rest)
+            .take(HEAD_BYTES)
+            .read_to_end(&mut body)
+            .map_err(read_error)?;
 
-        Ok(UpstreamResponse {
-            url,
-            status,
-            content_type,
-            body,
-            cache_status,
-            cache_age,
+        Ok(PartialResponse {
+            rest: (body.len() as u64 == HEAD_BYTES).then_some(rest),
+            response: UpstreamResponse {
+                url,
+                status,
+                content_type,
+                body,
+                cache_status,
+                cache_age,
+            },
         })
     }
+}
+
+/// A response whose body may not be fully read yet.
+pub struct PartialResponse {
+    response: UpstreamResponse,
+    rest: Option<BodyReader<'static>>,
+}
+
+impl PartialResponse {
+    /// Whether the body runs past `HEAD_BYTES`: up to `MAX_RESPONSE_BYTES` are left to read.
+    pub fn is_large(&self) -> bool {
+        self.rest.is_some()
+    }
+
+    /// The whole response, with the rest of a large body read.
+    pub fn finish(mut self) -> Result<UpstreamResponse, String> {
+        if let Some(mut rest) = self.rest {
+            rest.read_to_end(&mut self.response.body)
+                .map_err(read_error)?;
+        }
+        Ok(self.response)
+    }
+}
+
+fn read_error(error: std::io::Error) -> String {
+    format!("Bitview API response read failed (limit {MAX_RESPONSE_BYTES} bytes): {error}")
 }
 
 fn parameter_values(value: &Value) -> Result<Vec<String>, String> {
