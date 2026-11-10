@@ -4503,6 +4503,8 @@ class Outputs(_Node):
 
 class Averaged(_Node, Generic[A, B]):
     block: SeriesPattern19[A] = _at(SeriesPattern19, '*')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[A] = _at(Windows, '*_sum')
     avg: Windows[B] = _at(Windows, '*_avg')
 
 

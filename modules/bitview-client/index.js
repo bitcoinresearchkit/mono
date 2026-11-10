@@ -6123,11 +6123,15 @@ const _Outputs = _s({
  * @template A, B
  * @typedef {{
  *   block: SeriesPattern19<A>,
+ *   cumulative: SeriesPattern1<A>,
+ *   sum: Windows<A>,
  *   avg: Windows<B>,
  * }} Averaged
  */
 const _Averaged = _s({
   block: [_i19, '*'],
+  cumulative: [_i1, '*_cumulative'],
+  sum: [_Windows, '*_sum'],
   avg: [_Windows, '*_avg'],
 });
 
