@@ -33,8 +33,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Effective transaction fee rate in sat/vB after linearizing each same-block
     /// dependency component by ancestor set and chunking it so chunk feerates never
     /// increase. Every transaction in a chunk receives
-    /// the chunk's combined fees divided by combined virtual size, rounded
-    /// upward to the nearest 0.001 sat/vB. The statistics weight the block's
+    /// four times the chunk's combined fees divided by combined policy-adjusted weight:
+    /// each transaction contributes max(weight, 20 * sigop cost). Rates use the exact
+    /// quarter of that weight (no per-transaction vsize rounding), rounded upward to the
+    /// nearest 0.001 sat/vB. The statistics weight the block's
     /// non-coinbase transactions, zero rates included, by virtual size, with
     /// Bitcoin Core's `getblockstats` rank rule (the first rate whose cumulative
     /// vsize reaches the percentile); min is the lower of the 1st percentile and
@@ -43,19 +45,21 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// overlapping its first 2% (mempool.space's heuristic); null for a block
     /// without them. Time-period indexes take the period's final block.
     #[traversable(
-        lead = "Effective fee rate: what transactions paid per virtual byte, with the related transactions they confirm with."
+        lead = "Effective fee rate: what transactions paid per sigop-adjusted virtual byte, with the related transactions they confirm with."
     )]
     pub effective_fee_rate: PerTxDistribution<FeeRate, M>,
     /// Child-pays-for-parent (CPFP) parents: transactions whose effective (chunk) fee rate is
-    /// higher than their raw fee rate because same-block descendants raise the rate at which
-    /// their chunk is evaluated.
+    /// higher than their own rate over the same policy-adjusted weight because same-block
+    /// descendants raise their chunk's rate. This comparison uses 4 * fee / max(weight,
+    /// 20 * sigop cost), not the separately published raw fee / ceil(weight / 4).
     #[traversable(
         lead = "CPFP parents: transactions a later one paid to confirm (child pays for parent)."
     )]
     pub(crate) cpfp_parent: Classified<M>,
     /// Child-pays-for-parent (CPFP) children: transactions whose effective (chunk) fee rate is
-    /// lower than their raw fee rate because their fee raises the rate at which a same-block
-    /// chunk is evaluated.
+    /// lower than their own rate over the same policy-adjusted weight because their fee
+    /// raises a same-block chunk's rate. This comparison uses 4 * fee / max(weight,
+    /// 20 * sigop cost), not the separately published raw fee / ceil(weight / 4).
     #[traversable(
         lead = "CPFP children: transactions paying extra to confirm the ones before them (child pays for parent)."
     )]
