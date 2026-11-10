@@ -1,5 +1,7 @@
 //! The MCP Server Card and the AI Catalog that lists it: public, static, and rendered at startup.
 
+use std::net::Ipv6Addr;
+
 use axum::{
     Router,
     body::Bytes,
@@ -36,9 +38,9 @@ pub fn router(display_name: &str, public_url: &str) -> Router {
         .route(AI_CATALOG_PATH, document(&catalog, AI_CATALOG_MEDIA_TYPE))
 }
 
-/// The server's name, the card's and the one it gives at runtime: its host in reverse-DNS form.
+/// The server's shared identity in the card and at runtime, in reverse-DNS form.
 pub fn server_name(display_name: &str, public_url: &str) -> String {
-    format!("{}/{}", reverse_dns(&host(public_url)), slug(display_name))
+    format!("{}/{}", reverse_dns(&identity_domain(public_url)), slug(display_name))
 }
 
 fn document(value: &Value, media_type: &'static str) -> MethodRouter {
@@ -86,23 +88,29 @@ fn ai_catalog(display_name: &str, public_url: &str) -> Value {
     json!({
         "specVersion": "1.0",
         "entries": [{
-            "identifier": format!("urn:air:{}:mcp:{}", host(public_url), slug(display_name)),
+            "identifier": format!("urn:air:{}:mcp:{}", identity_domain(public_url), slug(display_name)),
             "type": SERVER_CARD_MEDIA_TYPE,
             "url": format!("{public_url}{SERVER_CARD_PATH}"),
         }],
     })
 }
 
-/// The host of a public URL, which is an absolute origin with a trailing slash.
-fn host(public_url: &str) -> String {
-    let authority = public_url
-        .split_once("://")
-        .map_or(public_url, |(_, rest)| rest)
-        .trim_end_matches('/');
-    authority
-        .split_once(':')
-        .map_or(authority, |(host, _)| host)
-        .to_owned()
+/// The origin's identity domain; IPv6 uses its reverse-pointer domain (RFC 3596 section 2.5).
+fn identity_domain(public_url: &str) -> String {
+    let uri = public_url
+        .parse::<axum::http::Uri>()
+        .expect("public URL is a validated HTTP(S) origin");
+    let host = uri.host().expect("public URL has a host");
+    let Ok(address) = host.trim_matches(['[', ']']).parse::<Ipv6Addr>() else {
+        return host.to_owned();
+    };
+    let mut domain = String::new();
+    for nibble in format!("{:032x}", u128::from(address)).chars().rev() {
+        domain.push(nibble);
+        domain.push('.');
+    }
+    domain.push_str("ip6.arpa");
+    domain
 }
 
 fn reverse_dns(host: &str) -> String {
