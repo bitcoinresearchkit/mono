@@ -69,11 +69,15 @@ pub struct Snapshot {
     blocks_json: OnceLock<JsonBody>,
 }
 
-/// A projected block's bodies in block order, frozen at publication, and its content identity.
+/// A projected block's bodies and complete identity: also all that diff history retains.
 #[derive(Clone)]
-pub(crate) struct ServedBlock {
+pub(crate) struct BlockContent {
     pub hash: MempoolBlockHash,
     pub bodies: Arc<[Arc<Transaction>]>,
+}
+
+pub(crate) struct ServedBlock {
+    pub content: BlockContent,
     /// The block served whole as JSON, built by the first request.
     pub json: OnceLock<Arc<[u8]>>,
 }
@@ -163,6 +167,7 @@ impl Snapshot {
         blocks: Vec<(Vec<Arc<Transaction>>, Vec<u64>)>,
         revision: u64,
         missing: bool,
+        previous: &[ServedBlock],
     ) {
         debug_assert!(!blocks.is_empty() && blocks.len() <= self.block_stats.len());
         self.served = blocks
@@ -175,10 +180,15 @@ impl Snapshot {
                 for digest in digests {
                     hasher.write_u64(digest);
                 }
+                let hash = MempoolBlockHash::new(hasher.finish());
+                let json = previous.get(index)
+                    .filter(|block| block.content.hash == hash)
+                    .and_then(|block| block.json.get())
+                    .cloned()
+                    .map_or_else(OnceLock::new, OnceLock::from);
                 ServedBlock {
-                    hash: MempoolBlockHash::new(hasher.finish()),
-                    bodies: bodies.into(),
-                    json: OnceLock::new(),
+                    content: BlockContent { hash, bodies: bodies.into() },
+                    json,
                 }
             })
             .collect();

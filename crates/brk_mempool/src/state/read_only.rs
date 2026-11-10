@@ -7,7 +7,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::{Snapshot, snapshot::ServedBlock};
+use crate::{Snapshot, snapshot::BlockContent};
 
 use super::{Pool, State};
 
@@ -29,7 +29,7 @@ pub struct ReadOnlyState {
     projection_tip: Option<BlockHash>,
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
-    history: VecDeque<(Instant, usize, ServedBlock)>,
+    history: VecDeque<(Instant, usize, BlockContent)>,
 }
 
 impl ReadOnlyState {
@@ -73,15 +73,15 @@ impl ReadOnlyState {
         for (at, index, past) in &mut self.history {
             if outgoing
                 .get(*index)
-                .is_some_and(|block| block.hash == past.hash)
+                .is_some_and(|block| block.content.hash == past.hash)
             {
                 *at = now;
             }
         }
         for (index, block) in graph.served_blocks().iter().enumerate() {
             self.history
-                .retain(|(_, i, past)| (*i, past.hash) != (index, block.hash));
-            self.history.push_back((now, index, block.clone()));
+                .retain(|(_, i, past)| (*i, past.hash) != (index, block.content.hash));
+            self.history.push_back((now, index, block.content.clone()));
         }
         self.history
             .retain(|(at, ..)| now.duration_since(*at) <= HISTORY_AGE);
@@ -137,5 +137,28 @@ impl ReadOnlyState {
             .iter()
             .find(|(_, i, past)| (*i, past.hash) == (index, hash))
             .map(|(.., past)| past.bodies.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn history_expires_replaced_content() {
+        let graph = |size| {
+            let mut graph = Snapshot::default();
+            graph.block_stats.push(crate::snapshot::BlockStats { total_size: size, ..Default::default() });
+            graph.set_served(vec![(Vec::new(), Vec::new())], 0, false, &[]);
+            Arc::new(graph)
+        };
+        let mut state = ReadOnlyState::default();
+        state.publish_projection(graph(1), BlockHash::default());
+        let hash = state.projection.served_blocks()[0].content.hash;
+        state.publish_projection(graph(2), BlockHash::default());
+        state.history[0].0 = Instant::now() - HISTORY_AGE - Duration::from_secs(1);
+        state.publish_projection(graph(3), BlockHash::default());
+        assert!(state.historical_block(0, hash).is_none());
+        assert_eq!(state.history.len(), 2);
     }
 }

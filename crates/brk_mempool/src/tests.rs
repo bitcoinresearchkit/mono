@@ -336,7 +336,7 @@ fn rebuilds_follow_the_view_gaps() {
         let snapshot = rebuilder.snapshot().clone();
         let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
             .iter()
-            .flat_map(|block| block.bodies.iter().map(|tx| tx.txid))
+            .flat_map(|block| block.content.bodies.iter().map(|tx| tx.txid))
             .collect();
         (snapshot, later)
     };
@@ -866,6 +866,10 @@ fn served(state: &ReadOnlyState, index: usize) -> MempoolBlockSource {
 
 /// A snapshot projecting `blocks` (block 0 first), block 0 and the `later` blocks after it served.
 fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
+    snapshot_after(blocks, later, &Snapshot::default())
+}
+
+fn snapshot_after(blocks: &[&[&Arc<Transaction>]], later: usize, previous: &Snapshot) -> Arc<Snapshot> {
     let mut txs: Vec<SnapTx> = Vec::new();
     let indexed: Vec<Vec<(TxIndex, FeeRate)>> = blocks
         .iter()
@@ -910,7 +914,7 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
                 .unzip()
         })
         .collect();
-    snapshot.set_served(bodies, 0, false);
+    snapshot.set_served(bodies, 0, false, previous.served_blocks());
     Arc::new(snapshot)
 }
 
@@ -953,3 +957,67 @@ fn body(seed: u8) -> Arc<Transaction> {
     })
 }
 
+
+/// Encoding follows complete content at the same index; history retains bodies alone.
+#[test]
+fn served_json_carries_only_complete_content_and_retires() {
+    let (a, b) = (body(1), body(2));
+    let tip = BlockHash::default();
+    let mut state = ReadOnlyState::default();
+    let first = snapshot(&[&[&a, &b]], 0);
+    state.publish_projection(first.clone(), tip);
+    let source = served(&state, 0);
+    let bytes = source.json();
+    let retired = Arc::downgrade(&bytes);
+    let next = snapshot_after(&[&[&a, &b]], 0, &first);
+    assert!(Arc::ptr_eq(next.served_blocks()[0].json.get().unwrap(), &bytes));
+    state.publish_projection(next.clone(), tip);
+    assert!(Arc::ptr_eq(&served(&state, 0).json(), &bytes));
+    let held = state.clone();
+    state.publish_projection(snapshot_after(&[&[&b, &a]], 0, &next), tip);
+    drop((source, first, next, bytes));
+    assert!(retired.upgrade().is_some(), "an old reader still owns its snapshot");
+    drop(held);
+    assert!(retired.upgrade().is_none(), "history never owns an encoding");
+
+    let cold = snapshot(&[&[&a]], 0);
+    let successor = snapshot_after(&[&[&a]], 0, &cold);
+    assert!(successor.served_blocks()[0].json.get().is_none());
+    state.publish_projection(cold.clone(), tip);
+    let late = served(&state, 0).json();
+    assert!(successor.served_blocks()[0].json.get().is_none(), "late encode may miss carry");
+    state.publish_projection(successor, tip);
+    assert_eq!(served(&state, 0).json().as_ref(), late.as_ref());
+
+    let old = snapshot(&[&[&a, &b], &[&a, &b]], 1);
+    state.publish_projection(old.clone(), tip);
+    let old_bytes = served(&state, 0).json();
+    for changed in [
+        Arc::new(Transaction { total_sigop_cost: SigOps::new(2), ..(*a).clone() }),
+        Arc::new(Transaction { input: vec![TxIn {
+            txid: b.txid, vout: Vout::from(0u32), prevout: None,
+            script_sig: ScriptBuf::new(), witness: Witness::from_slice(&[&[1u8][..]]),
+            is_coinbase: false, sequence: u32::MAX,
+        }], ..(*a).clone() }),
+        Arc::new(Transaction { input: vec![TxIn {
+            txid: b.txid, vout: Vout::from(0u32),
+            prevout: Some(TxOut::from((ScriptBuf::new(), Sats::from(100u64)))),
+            script_sig: ScriptBuf::new(), witness: Witness::new(),
+            is_coinbase: false, sequence: u32::MAX,
+        }], ..(*a).clone() }),
+    ] {
+        let new = snapshot_after(&[&[&changed, &b]], 0, &old);
+        assert_ne!(new.served_blocks()[0].content.hash, old.served_blocks()[0].content.hash);
+        assert!(new.served_blocks()[0].json.get().is_none(), "same txid is insufficient");
+    }
+    let reordered = snapshot_after(&[&[&b, &a]], 0, &old);
+    assert!(reordered.served_blocks()[0].json.get().is_none());
+    let mut stats = snapshot(&[&[&a, &b]], 0);
+    let stats = Arc::get_mut(&mut stats).unwrap();
+    stats.block_stats[0].total_fee += Sats::from(1u64);
+    stats.set_served(vec![(vec![a.clone(), b.clone()], vec![TxRecord::digest_of(&a), TxRecord::digest_of(&b)])], 0, false, old.served_blocks());
+    assert!(stats.served_blocks()[0].json.get().is_none(), "stats participate in identity");
+    assert_ne!(old.served_blocks()[0].content.hash, old.served_blocks()[1].content.hash);
+    assert!(old.served_blocks()[1].json.get().is_none(), "no carry from another index");
+    assert!(!old_bytes.is_empty());
+}
