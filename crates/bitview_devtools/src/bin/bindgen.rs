@@ -37,9 +37,13 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "showcases/llms-full.txt",
     "showcases/.well-known/agent-skills/index.json",
     "showcases/.well-known/agent-skills/bitview/SKILL.md",
+    "showcases/.well-known/agent-skills/bitview/references/endpoints.md",
+    "showcases/.well-known/agent-skills/bitview/references/series.md",
     "plugins/bitview/.claude-plugin/plugin.json",
     PLUGIN_ICON,
     "plugins/bitview/skills/bitview/SKILL.md",
+    "plugins/bitview/skills/bitview/references/endpoints.md",
+    "plugins/bitview/skills/bitview/references/series.md",
     "crates/bitview_mcp/generated/manifest.json",
 ];
 

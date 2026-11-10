@@ -1,0 +1,111 @@
+# Bitview endpoints
+
+Base URL: https://bitview.space. Every operation, with its query parameters (`*` required). Response schemas: https://bitview.space/llms-full.txt.
+
+- `GET /health` Health check
+- `GET /version` API version
+- `GET /api/server/sync` Sync status
+- `GET /api/server/logs` Logs. Query: `after`
+- `GET /api/server/disk` Disk usage
+- `GET /api/series` Series catalog
+- `GET /api/series/count` Series count
+- `GET /api/series/indexes` List available indexes
+- `GET /api/series/list` Series list. Query: `page`, `per_page`
+- `GET /api/series/search` Search series. Query: `q`*, `limit`
+- `GET /api/series/{series}` Get series info
+- `GET /api/series/{series}/{index}` Get series data. Query: `start`, `end`, `limit`, `format`
+- `GET /api/series/{series}/{index}/data` Get raw series data. Query: `start`, `end`, `limit`, `format`
+- `GET /api/series/{series}/{index}/latest` Get latest series value
+- `GET /api/series/{series}/{index}/len` Get series data length
+- `GET /api/series/{series}/{index}/version` Get series version
+- `GET /api/series/bulk` Bulk series data. Query: `series`*, `index`*, `start`, `end`, `limit`, `format`
+- `GET /api/urpd` Available URPD cohorts
+- `GET /api/urpd/{cohort}` Latest URPD. Query: `agg`, `weight`
+- `GET /api/urpd/{cohort}/{point}` URPD at block height or date. Query: `agg`, `weight`
+- `GET /api/v1/difficulty-adjustment` Difficulty adjustment
+- `GET /api/v1/prices` Current BTC price
+- `GET /api/v1/historical-price` Historical price. Query: `timestamp`, `currency`
+- `GET /api/address/hash-prefix/{address_type}/{prefix}` Address hash-prefix matches
+- `GET /api/address/{address}` Address information
+- `GET /api/address/{address}/txs` Address transactions. Query: `after_txid`, `max_txs`
+- `GET /api/address/{address}/txs/chain` Address confirmed transactions. Query: `max_txs`
+- `GET /api/address/{address}/txs/chain/{after_txid}` Address confirmed transactions (paginated). Query: `max_txs`
+- `GET /api/address/{address}/txs/mempool` Address mempool transactions. Query: `max_txs`
+- `GET /api/address/{address}/utxo` Address UTXOs
+- `GET /api/v1/validate-address/{address}` Validate address
+- `GET /api/block/{hash}` Block information
+- `GET /api/v1/block/{hash}` Block (v1)
+- `GET /api/block/{hash}/header` Block header
+- `GET /api/block-height/{height}` Block hash by height
+- `GET /api/v1/mining/blocks/timestamp/{timestamp}` Block by timestamp
+- `GET /api/block/{hash}/raw` Raw block
+- `GET /api/block/{hash}/status` Block status
+- `GET /api/blocks/tip/height` Block tip height
+- `GET /api/blocks/tip/hash` Block tip hash
+- `GET /api/block/{hash}/txid/{index}` Transaction ID at index
+- `GET /api/block/{hash}/txids` Block transaction IDs
+- `GET /api/block/{hash}/txs` Block transactions
+- `GET /api/block/{hash}/txs/{start_index}` Block transactions (paginated)
+- `GET /api/blocks` Recent blocks
+- `GET /api/blocks/{height}` Blocks from height
+- `GET /api/v1/blocks` Recent blocks with extras
+- `GET /api/v1/blocks/{height}` Blocks from height with extras
+- `GET /api/v1/mining/pools` List all mining pools
+- `GET /api/v1/mining/pools/{time_period}` Mining pool statistics
+- `GET /api/v1/mining/pool/{slug}` Mining pool details
+- `GET /api/v1/mining/hashrate/pools` All pools hashrate (all time)
+- `GET /api/v1/mining/hashrate/pools/{time_period}` All pools hashrate
+- `GET /api/v1/mining/pool/{slug}/hashrate` Mining pool hashrate
+- `GET /api/v1/mining/pool/{slug}/blocks` Mining pool blocks
+- `GET /api/v1/mining/pool/{slug}/blocks/{height}` Mining pool blocks before height
+- `GET /api/v1/mining/hashrate` Network hashrate (all time)
+- `GET /api/v1/mining/hashrate/{time_period}` Network hashrate
+- `GET /api/v1/mining/difficulty-adjustments` Difficulty adjustments (all time)
+- `GET /api/v1/mining/difficulty-adjustments/{time_period}` Difficulty adjustments
+- `GET /api/v1/mining/reward-stats/{block_count}` Mining reward statistics
+- `GET /api/v1/mining/blocks/fees/{time_period}` Block fees
+- `GET /api/v1/mining/blocks/rewards/{time_period}` Block rewards
+- `GET /api/v1/mining/blocks/fee-rates/{time_period}` Block fee rates
+- `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise` Block fee rates (precise)
+- `GET /api/v1/mining/blocks/sizes-weights/{time_period}` Block sizes and weights
+- `GET /api/v1/fees/mempool-blocks` Projected mempool blocks
+- `GET /api/v1/fees/recommended` Recommended fees
+- `GET /api/v1/fees/precise` Recommended fee rates (precise)
+- `GET /api/mempool` Mempool statistics
+- `GET /api/mempool/txids` Mempool transaction IDs
+- `GET /api/mempool/recent` Recent mempool transactions
+- `GET /api/v1/replacements` Recent RBF replacements
+- `GET /api/v1/fullrbf/replacements` Recent full-RBF replacements
+- `GET /api/mempool-blocks/{index}` Projected mempool block
+- `GET /api/mempool-blocks/{index}/diff/{since}` Projected mempool block changes
+- `GET /api/tx-index/{index}` Txid by index
+- `GET /api/v1/cpfp/{txid}` CPFP info
+- `GET /api/v1/tx/{txid}/rbf` RBF replacement history
+- `GET /api/tx/{txid}` Transaction information
+- `GET /api/tx/{txid}/hex` Transaction hex
+- `GET /api/tx/{txid}/merkleblock-proof` Transaction merkleblock proof
+- `GET /api/tx/{txid}/merkle-proof` Transaction merkle proof
+- `GET /api/tx/{txid}/outspend/{vout}` Output spend status
+- `GET /api/tx/{txid}/outspends` All output spend statuses
+- `GET /api/tx/{txid}/raw` Transaction raw
+- `GET /api/tx/{txid}/status` Transaction status
+- `GET /api/v1/transaction-times` Transaction first-seen times. Query: `txId[]`*
+- `POST /api/tx` Broadcast transaction
+- `GET /api/utxo-set` Latest UTXO set
+- `GET /api/utxo-set/{point}` UTXO set at block height or date
+- `GET /api/utxo-set/{point}/diff` UTXO set changes of a block or date
+- `GET /blindbit/mainnet/info` Server info
+- `GET /blindbit/mainnet/block-height` Last indexed block
+- `GET /blindbit/mainnet/block-hash/{height}` Block hash
+- `GET /blindbit/mainnet/tweak-index/{height}` Tweak index. Query: `dustLimit`*
+- `GET /blindbit/mainnet/tweaks/{height}` Cut-through tweaks. Query: `dustLimit`*
+- `GET /blindbit/mainnet/filter/{kind}/{height}` Block filter
+- `GET /blindbit/mainnet/spent-index/{height}` Spent index
+- `GET /blindbit/mainnet/utxos/{height}` Taproot outputs
+- `POST /blindbit/mainnet/forward-tx` Broadcast transaction
+- `GET /api/oracle/price` Live BTC/USD price
+- `GET /api/oracle/live` The oracle now
+- `GET /api/oracle/blocks/{height}` The oracle at a block
+- `GET /api/oracle/payments/{start}` The oracle's payments, 144 blocks at a time
+- `GET /openapi.json` OpenAPI specification
+- `GET /api.json` Compact API summary

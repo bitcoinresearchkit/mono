@@ -252,15 +252,7 @@ pub fn generate_clients(
         )?;
     }
 
-    generate_llm_clients(
-        catalog,
-        &spec,
-        &endpoints,
-        &schemas,
-        &output_paths.llm,
-        &output_paths.plugin,
-        output_paths.llm_manifest.as_deref(),
-    )?;
+    generate_llm_clients(catalog, &model, &spec, &endpoints, &schemas, output_paths)?;
 
     Ok(())
 }

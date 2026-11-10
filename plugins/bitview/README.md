@@ -11,7 +11,7 @@ claude plugin install bitview@bitview
 
 ## What it adds
 
-- **The `bitview` skill.** It tells Claude where Bitview's API reference is (`https://bitview.space/llms.txt`) and how to find a series: search, read the series, then pick an index.
+- **The `bitview` skill.** It shows Claude how to read a series (id, index, range, units) and the mistakes to avoid, and lists every endpoint. Two references load only when needed: every operation with its parameters, and a map of the series by topic.
 - **The `bitview` MCP server** at `https://mcp.bitview.space/`. It is remote, stateless and read-only, and offers one tool for each API operation.
 
 ## What it runs and sends
@@ -25,6 +25,6 @@ When Claude uses Bitview, it sends HTTPS GET requests to `bitview.space` or `mcp
 
 ## Source
 
-The skill and the plugin manifest are generated from Bitview's OpenAPI document by `crates/bitview_bindgen` in <https://github.com/bitcoinresearchkit/mono>. The project is MIT licensed.
+The skill and the plugin manifest are generated from Bitview's OpenAPI document and series catalog by `crates/bitview_bindgen` in <https://github.com/bitcoinresearchkit/mono>. The project is MIT licensed.
 
 Support: support@bitview.space

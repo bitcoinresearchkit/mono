@@ -162,6 +162,16 @@ pub(crate) struct Model {
     pub(crate) shape_params: Vec<Vec<usize>>,
 }
 
+/// Sibling branches of one shape, from [`Model::families`].
+pub(crate) struct Family {
+    /// The keys to the branch holding the members.
+    pub(crate) path: Vec<String>,
+    /// Each member's key and base, the part its series names share.
+    pub(crate) members: Vec<(String, String)>,
+    /// The series each member holds.
+    pub(crate) series: usize,
+}
+
 /// A branch flattened before naming.
 struct Flat {
     signature: Signature,
@@ -663,6 +673,53 @@ impl Model {
         let (order, stuck) = topological(self.shapes.len(), edges);
         debug_assert!(stuck.is_empty(), "shape dependencies form a cycle");
         order
+    }
+
+    /// Every family, outermost first: three or more sibling branches of one shape (the age
+    /// ranges, the mining pools), whose members hold the same series under their own bases.
+    pub(crate) fn families(&self) -> Vec<Family> {
+        let mut families = Vec::new();
+        let mut stack = vec![(self.root, Vec::new())];
+        while let Some((id, path)) = stack.pop() {
+            let Body::Branch { shape, children } = &self.nodes[id].body else {
+                continue;
+            };
+            let keys = &self.shapes[*shape].signature.0;
+            let mut by_shape = BTreeMap::<usize, Vec<usize>>::new();
+            for (position, &child) in children.iter().enumerate() {
+                if let Body::Branch { shape, .. } = self.nodes[child].body {
+                    by_shape.entry(shape).or_default().push(position);
+                }
+            }
+            let mut members = vec![false; children.len()];
+            for positions in by_shape.into_values().filter(|group| group.len() >= 3) {
+                families.push(Family {
+                    path: path.clone(),
+                    members: positions
+                        .iter()
+                        .map(|&p| (keys[p].0.clone(), self.nodes[children[p]].name.clone()))
+                        .collect(),
+                    series: self.leaf_count(children[positions[0]]),
+                });
+                positions.into_iter().for_each(|p| members[p] = true);
+            }
+            for (position, &child) in children.iter().enumerate().rev() {
+                if !members[position] {
+                    let mut path = path.clone();
+                    path.push(keys[position].0.clone());
+                    stack.push((child, path));
+                }
+            }
+        }
+        families.sort_by(|left, right| left.path.cmp(&right.path));
+        families
+    }
+
+    fn leaf_count(&self, id: usize) -> usize {
+        match &self.nodes[id].body {
+            Body::Leaf => 1,
+            Body::Branch { children, .. } => children.iter().map(|&c| self.leaf_count(c)).sum(),
+        }
     }
 
     /// Composing names from `base` down reproduces every catalog name.

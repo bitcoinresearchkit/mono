@@ -2,7 +2,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
     io,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use bitview_catalog::TreeNode;
@@ -10,9 +10,13 @@ use serde_json::{Value, json, to_string_pretty};
 use sha2::{Digest, Sha256};
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openapi::Spec};
+use crate::{
+    ClientOutputPaths, Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, model::Model,
+    openapi::Spec,
+};
 
 mod manifest;
+mod skill;
 
 const BASE_URL: &str = "https://bitview.space";
 const MCP_URL: &str = "https://mcp.bitview.space/";
@@ -37,6 +41,12 @@ const SERIES_FLOW: [(&str, &[&str]); 3] = [
     ),
 ];
 const SERIES_RULE: &str = "Never invent a series id: only ids the API returned exist.";
+/// What agents get wrong reading series, for the skill and the MCP instructions.
+const TRAPS: &str = "- Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.\n\
+- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02. The latest value is the newest one only, never a past one.\n\
+- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already times 100. Convert only as asked.\n\
+- Compute derived numbers at full precision; round only the final answer, if at all.\n\
+- `null` means undefined (before the data exists), never zero.\n";
 const SKILL: &str = "bitview";
 /// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
 const SKILLS_PATH: &str = ".well-known/agent-skills";
@@ -44,29 +54,27 @@ const REPOSITORY: &str = "https://github.com/bitcoinresearchkit/mono";
 
 pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
+    model: &Model,
     spec: &Spec,
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
-    roots: &[PathBuf],
-    plugins: &[PathBuf],
-    manifest_path: Option<&Path>,
+    paths: &ClientOutputPaths,
 ) -> io::Result<()> {
+    let (roots, plugins) = (&paths.llm, &paths.plugin);
     if !plugins.is_empty() || !roots.is_empty() {
-        let flow = render_series_flow(endpoints, Endpoint::should_generate, route)?;
-        let description = skill_description();
-        let skill = render_skill(&description, &flow);
-        let skill_path = format!("skills/{SKILL}/SKILL.md");
-        let plugin = render_plugin(&spec.info.version)?;
-        for root in plugins {
-            write_if_changed(&root.join(&skill_path), &skill)?;
-            write_if_changed(&root.join(".claude-plugin/plugin.json"), &plugin)?;
-        }
-        let index = render_skill_index(&description, &skill)?;
-        let metric_count = count_metrics(catalog);
         let generated = endpoints
             .iter()
             .filter(|endpoint| endpoint.should_generate())
             .collect::<Vec<_>>();
+        let flow = render_series_flow(&generated, route)?;
+        let metric_count = count_metrics(catalog);
+        let skill = skill::render(catalog, model, endpoints, metric_count, &flow)?;
+        let plugin = render_plugin(&spec.info.version)?;
+        for root in plugins {
+            write_skill(&root.join("skills").join(SKILL), &skill)?;
+            write_if_changed(&root.join(".claude-plugin/plugin.json"), &plugin)?;
+        }
+        let index = render_skill_index(&skill[0].1)?;
         let llms = render_llms(
             &spec.info.title,
             &spec.info.version,
@@ -86,10 +94,10 @@ pub(crate) fn generate_llm_clients(
             write_if_changed(&root.join("llms-full.txt"), &llms_full)?;
             let skills = root.join(SKILLS_PATH);
             write_if_changed(&skills.join("index.json"), &index)?;
-            write_if_changed(&skills.join(SKILL).join("SKILL.md"), &skill)?;
+            write_skill(&skills.join(SKILL), &skill)?;
         }
     }
-    if let Some(path) = manifest_path {
+    if let Some(path) = &paths.llm_manifest {
         manifest::generate_tool_manifest(
             endpoints,
             schemas,
@@ -109,29 +117,37 @@ fn count_metrics(node: &TreeNode) -> usize {
     names.len()
 }
 
-/// The series flow as a numbered list, each step naming its operations through `name`; an
-/// operation renamed, removed or not `offered` fails generation.
+fn write_skill(folder: &Path, files: &skill::Files) -> io::Result<()> {
+    for (path, content) in files {
+        write_if_changed(&folder.join(path), content)?;
+    }
+    Ok(())
+}
+
+/// The operation `id` among those offered: one renamed or removed fails generation.
+fn find<'a>(endpoints: &[&'a Endpoint], id: &str) -> io::Result<&'a Endpoint> {
+    endpoints
+        .iter()
+        .copied()
+        .find(|endpoint| endpoint.operation_id == id)
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("the LLM references name a missing operation: {id}"),
+            )
+        })
+}
+
+/// The series flow as a numbered list, each step naming its operations through `name`.
 fn render_series_flow(
-    endpoints: &[Endpoint],
-    offered: fn(&Endpoint) -> bool,
+    endpoints: &[&Endpoint],
     name: fn(&Endpoint) -> String,
 ) -> io::Result<String> {
     let mut output = String::new();
     for (step, (text, operations)) in SERIES_FLOW.iter().enumerate() {
         let names = operations
             .iter()
-            .map(|id| {
-                endpoints
-                    .iter()
-                    .find(|endpoint| endpoint.operation_id == *id && offered(endpoint))
-                    .map(|endpoint| format!("`{}`", name(endpoint)))
-                    .ok_or_else(|| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("series flow names a missing operation: {id}"),
-                        )
-                    })
-            })
+            .map(|id| Ok(format!("`{}`", name(find(endpoints, id)?))))
             .collect::<io::Result<Vec<_>>>()?;
         writeln!(output, "{}. {}: {text}.", step + 1, names.join(", ")).unwrap();
     }
@@ -153,31 +169,9 @@ fn route(endpoint: &Endpoint) -> String {
     }
 }
 
-/// The skill's trigger, in its frontmatter and the site's skill index.
-fn skill_description() -> String {
-    format!(
-        "Fetches live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data."
-    )
-}
-
-/// The Agent Skill: a pointer to llms.txt and the series flow, for agents that don't know Bitview.
-fn render_skill(description: &str, flow: &str) -> String {
-    format!(
-        "---\n\
-name: {SKILL}\n\
-description: \"{description}\"\n\
----\n\n\
-# Bitview\n\n\
-Bitview is a Bitcoin data API read from a full node. {ACCESS} Start from {BASE_URL}/llms.txt; {BASE_URL}/llms-full.txt is the full API reference. Call the REST API at {BASE_URL} directly.\n\n\
-For a series:\n\n\
-{flow}\n\
-{SERIES_RULE}\n"
-    )
-}
-
 /// The site's skill index, per the agent-skills discovery RFC v0.2.0: the digest is of the
 /// served SKILL.md's bytes, its url relative to the index.
-fn render_skill_index(description: &str, skill: &str) -> io::Result<String> {
+fn render_skill_index(skill: &str) -> io::Result<String> {
     let digest =
         Sha256::digest(skill.as_bytes())
             .iter()
@@ -190,7 +184,7 @@ fn render_skill_index(description: &str, skill: &str) -> io::Result<String> {
         "skills": [{
             "name": SKILL,
             "type": "skill-md",
-            "description": description,
+            "description": skill::description(),
             "url": format!("{SKILL}/SKILL.md"),
             "digest": digest,
         }],
@@ -223,16 +217,18 @@ fn pretty(value: &Value) -> io::Result<String> {
 
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
 fn render_mcp_instructions(endpoints: &[Endpoint]) -> io::Result<String> {
-    let flow = render_series_flow(
-        endpoints,
-        |endpoint| !endpoint.deprecated && !endpoint.mcp_ignored,
-        |endpoint| endpoint.operation_id.clone(),
-    )?;
+    let tools = endpoints
+        .iter()
+        .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
+        .collect::<Vec<_>>();
+    let flow = render_series_flow(&tools, |endpoint| endpoint.operation_id.clone())?;
     Ok(format!(
         "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS}\n\n\
 For a series:\n\n\
 {flow}\n\
-{SERIES_RULE} Source of this data: Bitview ({BASE_URL}). Binary responses are returned as embedded MCP resources."
+{SERIES_RULE}\n\n\
+{TRAPS}\n\
+Source of this data: Bitview ({BASE_URL}). Binary responses are returned as embedded MCP resources."
     ))
 }
 
@@ -349,11 +345,14 @@ fn render_llms_full(
 }
 
 fn endpoint_group(path: &str) -> String {
-    let segment = path
-        .split('/')
+    title_case(endpoint_segment(path))
+}
+
+/// The segment naming a path's group: the first past `api` and `v1`.
+fn endpoint_segment(path: &str) -> &str {
+    path.split('/')
         .find(|part| !part.is_empty() && *part != "api" && *part != "v1")
-        .unwrap_or("server");
-    title_case(segment)
+        .unwrap_or("server")
 }
 
 fn title_case(value: &str) -> String {

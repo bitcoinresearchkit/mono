@@ -31,7 +31,7 @@ Only outputs with a configured location are generated.
 | JavaScript | ES module with JSDoc types, series tree, fetch helpers |
 | Python | Typed client with `TypedDict` schemas, series tree |
 | LLM | `llms.txt` (discovery links) and `llms-full.txt` (endpoint and schema reference); both link to the live series catalog instead of listing it |
-| Skill | Agent Skill `SKILL.md` (a pointer to `llms.txt` and the series flow), served with its `.well-known/agent-skills/index.json` beside `llms.txt` and bundled in a Claude Code plugin with the MCP server |
+| Skill | Agent Skill: `SKILL.md` (series flow, indexes, traps, endpoint map) with `references/endpoints.md` and `references/series.md` (topic map and families), served with its `.well-known/agent-skills/index.json` beside `llms.txt` and bundled in a Claude Code plugin with the MCP server |
 | MCP | Tool manifest from the same OpenAPI operations, with the server's instructions (the same series flow, naming tools) |
 
 ## Series tree
