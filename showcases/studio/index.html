@@ -17162,10 +17162,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion && !buildAsked;
       /**
-       * What a chart's data depends on: its interval and what each layer reads (in any order); a heatmap's holders and
-       * measure (its result's: whether Bitview has them, its unit).
+       * What a chart's resolved values depend on: its interval, each pane's average, and what each layer reads and its
+       * pane (in any order); a heatmap's holders and measure (its result's: whether Bitview has them, its unit).
        */
-      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref, heatmap, profile, measure }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null, heatLike({ type }) ? [heatmap ?? "all", profile ?? null, measure ?? "supply"] : null]).sort()]);
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map(({ id, average }) => [id, average ?? ""]).sort(), doc.layers.map(({ id, pane, letter, series, formula, type, from, ref, heatmap, profile, measure }) => [id, pane, letter, series, formula, from ? type : null, from ?? null, ref ?? null, heatLike({ type }) ? [heatmap ?? "all", profile ?? null, measure ?? "supply"] : null]).sort()]);
 
       /**
        * Cached data keeps each edit's rebuild cheap (missing data fetched first).
