@@ -21,7 +21,7 @@ A link carries a whole chart: https://bitview.space/studio/#chart= followed by t
 - "title".
 - "index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).
 - "range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".
-- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.
+- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.
 - "halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).
 - "legend": "off": no legend over the panes.
 - "drawings" (see below).
@@ -135,9 +135,9 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Over an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
   - Under an amount (310): https://bitview.space/studio/presets/utxos/under-an-amount/
   - By type (249): https://bitview.space/studio/presets/utxos/by-type/
-- Addresses (1136): https://bitview.space/studio/presets/addresses/
+- Addresses (1138): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
-  - Reused (11): https://bitview.space/studio/presets/addresses/reused/
+  - Reused (13): https://bitview.space/studio/presets/addresses/reused/
   - Respent (11): https://bitview.space/studio/presets/addresses/respent/
   - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
@@ -146,18 +146,19 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - By balance (324): https://bitview.space/studio/presets/addresses/by-balance/
   - Over a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
   - Under a balance (296): https://bitview.space/studio/presets/addresses/under-a-balance/
-- Mining (977): https://bitview.space/studio/presets/mining/
-  - Hashing (4): https://bitview.space/studio/presets/mining/hashing/
+- Mining (988): https://bitview.space/studio/presets/mining/
+  - Hashing (6): https://bitview.space/studio/presets/mining/hashing/
   - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
   - Halvings (2): https://bitview.space/studio/presets/mining/halvings/
   - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
-  - Pools (956): https://bitview.space/studio/presets/mining/pools/
-- Network (639): https://bitview.space/studio/presets/network/
-  - Blocks (12): https://bitview.space/studio/presets/network/blocks/
-  - Transactions (200): https://bitview.space/studio/presets/network/transactions/
-  - Inputs (47): https://bitview.space/studio/presets/network/inputs/
-  - Outputs (49): https://bitview.space/studio/presets/network/outputs/
-  - OP_RETURN (331): https://bitview.space/studio/presets/network/op-return/
+  - Pools (965): https://bitview.space/studio/presets/mining/pools/
+- Network (1059): https://bitview.space/studio/presets/network/
+  - Blocks (20): https://bitview.space/studio/presets/network/blocks/
+  - Transactions (301): https://bitview.space/studio/presets/network/transactions/
+  - Inputs (150): https://bitview.space/studio/presets/network/inputs/
+  - Outputs (103): https://bitview.space/studio/presets/network/outputs/
+  - OP_RETURN (350): https://bitview.space/studio/presets/network/op-return/
+  - Chain statistics (135): https://bitview.space/studio/presets/network/chain-statistics/
 - Cointime (236): https://bitview.space/studio/presets/cointime/
   - Activity (8): https://bitview.space/studio/presets/cointime/activity/
   - Value (6): https://bitview.space/studio/presets/cointime/value/
