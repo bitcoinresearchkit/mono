@@ -10,7 +10,7 @@ use axum::{
     body::{Body, Bytes},
     http::{
         HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, CACHE_CONTROL, ORIGIN, VARY},
+        header::{ACCEPT, ALLOW, CACHE_CONTROL, ORIGIN, VARY},
         request::Parts,
     },
     middleware::{self, Next},
@@ -420,7 +420,11 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
     {
         return (
             StatusCode::METHOD_NOT_ALLOWED,
-            [(CACHE_CONTROL, "no-store")],
+            [
+                (CACHE_CONTROL, "no-store"),
+                (ALLOW, "POST"),
+                (VARY, "Accept"),
+            ],
         )
             .into_response();
     }

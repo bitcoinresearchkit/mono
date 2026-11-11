@@ -232,18 +232,6 @@ export function studioPresets(client, facts) {
   /** A chart's letter for its `i`th layer (fewer than 26). */
   // (Past Z, AA on, as Studio names layers.)
   const letter = (/** @type {number} */ i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
-  /** The schema marks cumulative totals by their containing role, independent of their series names. @type {Set<string>} */
-  const cumulative = new Set();
-  const collect = (/** @type {any} */ node) => {
-    if (!node || typeof node !== "object" || isLeaf(node)) return;
-    for (const [key, child] of entries(node)) {
-      if (key === "cumulative") {
-        const leaves = (/** @type {any} */ value) => isLeaf(value) ? cumulative.add(value.formula ?? value.name) : entries(value).forEach(([, each]) => leaves(each));
-        leaves(child);
-      } else collect(child);
-    }
-  };
-  collect(t);
   /** The price, as its candles: in one color, the page's ink (rising hollow, falling filled say which). @returns {Layer} */
   const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, priceLine: true });
   /**
@@ -913,7 +901,6 @@ export function studioPresets(client, facts) {
       unrealized: edge.unrealized && { profit: paperProfit, loss: paperLoss, netPnl: between(paperProfit, "-", paperLoss), nupl: between(sum("unrealized", "netPnl"), "/", coins?.usd, "ratio") },
       costBasis: edge.costBasis && realizedPrice && { byCoin: { realizedPrice, avg: { mvrv: made(`${t.price.close.name} / ${realizedPrice.name}`, realizedPrice, "ratio") } } },
     };
-    collect(result);
     return result;
   };
   /**
@@ -1808,10 +1795,6 @@ export function studioPresets(client, facts) {
         continue;
       }
       const c = twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place);
-      // Apply after the panes and visibility are final: a single running total includes its origin, comparisons do not.
-      const visible = new Map();
-      for (const layer of c.layers) if (!layer.hidden) visible.set(layer.pane ?? 1, (visible.get(layer.pane ?? 1) ?? 0) + 1);
-      c.layers = c.layers.map((layer) => !layer.hidden && cumulative.has(layer.series ?? layer.formula) && c.panes?.[(layer.pane ?? 1) - 1]?.mode === 0 && visible.get(layer.pane ?? 1) === 1 ? { ...layer, fit: "zero" } : layer);
       presets.push({ p: place, t: item.title, c, ...(icon ? { s: icon } : {}) });
       icon = "";
     }

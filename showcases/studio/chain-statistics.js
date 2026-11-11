@@ -19,9 +19,9 @@
  */
 export function chainStatistics({ t, facts, chart, section, ramp }) {
   /** A series' change over a span. @param {NamedSeries} series @param {string} span */
-  const change = (series, span) => `diff(${series.name}, ${span})`;
+  const flow = (series, span) => `flow(${series.name}, ${span})`;
   /** A series' change over a day. @param {NamedSeries} series */
-  const perDay = (series) => change(series, "1d");
+  const perDay = (series) => `diff(${series.name}, 1d)`;
   /** A running total's change over a day. @param {Cumulative} total */
   const daily = (total) => perDay(total.cumulative);
   /** `part` as a percentage of `whole`. @param {string} part @param {string} whole */
@@ -31,9 +31,9 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   /** Lines, each a label and a formula. @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[] }} [options] */
   const line = (title, lines, days, { format, log } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /** Event counts use whole totals over a week or month, including when events are sparse. */
-  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => line(title, totals.map(([label, total]) => [`${label}, ${days} days`, change(total.cumulative, `${days}d`)]), 1, options);
+  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => line(title, totals.map(([label, total]) => [`${label}, ${days} days`, flow(total.cumulative, `${days}d`)]), 1, options);
   /** A calendar year's flow, from the preceding year's end. */
-  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `coalesce(${change(total, "1y")}, ${total.name})`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
+  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: flow(total, "1y"), label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
   const percentLine = (title, lines, days) => line(title, lines, days, { format: "percent" });
   /** Areas stacked into shares of their sum. @param {string} title @param {string[][]} parts @param {number} days */
@@ -118,16 +118,16 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       line("Sigops per block", [["block sigops", perBlock(daily(t.blocks.sigopCost))]], 30),
       line("Block size", [["block size in bytes", perBlock(daily(t.blocks.size))]], 7),
       line("Block weight", [["block weight", perBlock(daily(t.blocks.weight))]], 7),
-      events("Empty blocks", [["empty blocks", t.blocks.emptyCount]], 7),
+      events("Empty blocks", [["empty blocks", t.blocks.emptyCount]]),
       line("Blocks per day", [["blocks per day", day.blocks]], 7),
-      events("BIP-110 signaling blocks", [["blocks signaling on bit 4 (BIP-91 in 2017)", t.blocks.versionBits.bit4]], 7),
+      events("BIP-110 signaling blocks", [["blocks signaling on bit 4 (BIP-91 in 2017)", t.blocks.versionBits.bit4]]),
       percentLine("Coinbases with a witness", [["coinbases with a witness", ofBlocks(daily(t.inputs.coinbaseWitness))]], 7),
       line("Cumulative unclaimed coins", [["unclaimed coins", t.mining.rewards.unclaimed.cumulative.btc.name]], 1, { format: "btc" }),
       chart("Coinbase output value", "Coinbase output value", (/** @type {const} */ ([["block subsidy", t.mining.rewards.subsidy], ["transaction fees", t.mining.rewards.fees]])).map(([name, node], i) => ({ formula: perBlock(perDay(node.cumulative.btc)), label: name, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" }, average: { 1: "7d" } }),
     ]),
     section("Fees", [
       percentLine("Sub 1 sat/vByte transactions", [["sub 1 sat/vbyte", percent(underOneSatVb, day.txs)]], 7),
-      events("Zero-Fee transactions", [["zero-fee transactions", fees.zeroFee.txCount]], 7),
+      events("Zero-Fee transactions", [["zero-fee transactions", fees.zeroFee.txCount]]),
       shareStack("Transaction fee rate distribution", [["zero fee", daily(fees.zeroFee.txCount)], ...feeRanges.map(([key, name]) => [name, daily(fees.txCountByFeeRate[key])])], 90),
       shareStack("Fee rates by block space", feeRanges.map(([key, name]) => [name, daily(fees.vsizeByEffectiveFeeRate[key])]), 30),
       line("Fee rate in dollars", [["median fee rate", `${fees.effectiveFeeRate.median.name} * ${t.price.spot.name} / 100000000`]], 7, { format: "usd" }),
@@ -135,8 +135,8 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
     section("Inputs", [
       line("Cumulative inputs", [["Inputs (cumulative)", t.inputs.count.cumulative.name]], 1),
       shareStack("Multisig input types", [["P2MS", daily(inputs.p2ms.count)], ["P2SH", daily(multisig.p2sh)], ["nested P2WSH", daily(multisig.p2shP2wsh)], ["P2WSH", daily(multisig.p2wsh)]], 30),
-      events("Nested P2WPKH inputs", [["nested P2WPKH inputs", nested.p2wpkh]], 7),
-      events("Nested P2WSH inputs", [["nested P2WSH inputs", nested.p2wsh]], 7),
+      events("Nested P2WPKH inputs", [["nested P2WPKH inputs", nested.p2wpkh]]),
+      events("Nested P2WSH inputs", [["nested P2WSH inputs", nested.p2wsh]]),
       shareStack("P2SH input type distribution", [["P2SH", plainP2sh], ["nested P2WPKH", daily(nested.p2wpkh)], ["nested P2WSH", daily(nested.p2wsh)]], 30),
       line("P2TR key-path spends", [["P2TR key-path inputs", keyPath]], 7),
       shareStack("P2TR key- and script-path spends", [["key-path", keyPath], ["script-path", scriptPath]], 30),
@@ -155,20 +155,20 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       const outputTypes = [...types.slice(0, 7), "opReturn", "p2a", "emptyScript", "unknownScript"];
       return [
         shareStack("Coinbase output types by count", coinbaseTypes.map((key) => [label(key), daily(coinbase.types[key])]), 30),
-        events("OP_RETURN outputs", [["OP_RETURN outputs", t.opReturn.outputCount]], 7),
+        events("OP_RETURN outputs", [["OP_RETURN outputs", t.opReturn.outputCount]]),
         shareStack("Output types by value", outputTypes.map((key) => [label(key), perDay((key === "opReturn" ? t.outputs.opReturnValue : outputs[key].value).cumulative.btc)]), 30),
         shareStack("Output types by count", outputTypes.map((key) => [label(key), daily(counted(key))]), 30),
         line("Cumulative BIP47 notifications", [["cumulative BIP47 notifications", t.opReturn.protocols.bip47.outputCount.cumulative.name]], 1),
         line("Cumulative OP_RETURN data bytes", [["OP_RETURN data bytes", t.opReturn.dataBytes.cumulative.name]], 1),
         line("Cumulative outputs", [["Outputs (cumulative)", t.outputs.count.cumulative.name]], 1),
         line("OP_RETURN data bytes", [["OP_RETURN data bytes", daily(t.opReturn.dataBytes)]], 1),
-        events("OmniLayer (OP_RETURN)", [["OmniLayer", t.opReturn.protocols.omni.outputCount]], 7),
-        events("Stacks block commit (OP_RETURN)", [["Stacks block commit", t.opReturn.protocols.stacks.outputCount]], 7),
-        events("P2TR outputs", [["P2TR outputs", outputs.p2tr.count]], 7),
+        events("OmniLayer (OP_RETURN)", [["OmniLayer", t.opReturn.protocols.omni.outputCount]]),
+        events("Stacks block commit (OP_RETURN)", [["Stacks block commit", t.opReturn.protocols.stacks.outputCount]]),
+        events("P2TR outputs", [["P2TR outputs", outputs.p2tr.count]]),
         line("Outputs per Coinbase transaction", [["Outputs", perBlock(daily(coinbase.count))]], 7),
         line("Outputs per transaction", [["Outputs", `${day.outputs} / ${day.txs}`]], 7),
         line("Cumulative Runestones (OP_RETURN)", [["cumulative runestones", t.opReturn.protocols.runes.outputCount.cumulative.name]], 1),
-        events("Runestone (OP_RETURN)", [["runestones", t.opReturn.protocols.runes.outputCount]], 7),
+        events("Runestone (OP_RETURN)", [["runestones", t.opReturn.protocols.runes.outputCount]]),
         line("Cumulative outputs by script type", types.map((key) => [label(key), outputs[key].count.cumulative.name]), 7),
         line("Cumulative OP_RETURN output values", [["BTC in OP_RETURN", t.outputs.opReturnValue.cumulative.btc.name]], 7, { format: "btc" }),
         events("OP_RETURN outputs by size", (/** @type {const} */ ([["over 42 bytes", "over42Bytes"], ["over 520 bytes", "over520Bytes"], ["over 10,000 bytes", "over10kBytes"]])).map(([name, key]) => [name, t.opReturn.sizes[key].outputCount]), 30, { log: [1] }),
@@ -187,7 +187,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       inAndOut("P2WSHv0 inputs and outputs", "p2wsh"),
       percentLine("Inputs spending UTXOs created in the same block", [["inputs spending newly created UTXOs", percent(daily(t.inputs.sameBlock), day.inputs)]], 7),
       line("Inputs and outputs", [["inputs", day.inputs], ["outputs", day.outputs]], 7),
-      events("Inputs revealing an Inscription", [["inscription inputs", t.inputs.inscriptions]], 7),
+      events("Inputs revealing an Inscription", [["inscription inputs", t.inputs.inscriptions]]),
       line("Inputs per outputs", [["Inputs per Outputs", `${day.inputs} / ${day.outputs}`]], 7),
     ]),
     section("Mining", [
@@ -232,7 +232,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       line("Cumulative transactions", [["Transactions (cumulative)", txs.count.cumulative.name]], 1),
       ofTxs("Height-based time locks", "lock-by-block-height", timelocks.height, 7),
       ofTxs("Share of transactions revealing an Inscription", "inscription transactions", txs.inscription, 7),
-      events("Transactions revealing inscriptions", [["inscription transactions", txs.inscription]], 7),
+      events("Transactions revealing inscriptions", [["inscription transactions", txs.inscription]]),
       ofTxs("Transactions with unenforced locktimes", "unenforced locktime", timelocks.unenforced, 7),
       line("Transactions per block", [["Transactions per block", perBlock(day.txs)]], 30),
       line("Transactions per day", [["Transactions per day", day.txs]], 7),
@@ -244,7 +244,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       ofTxs("Taproot spending transactions", "Transactions spending Taproot", inputs.p2tr.txCount, 7),
       ofTxs("Time-based time locks", "lock-by-block-time", timelocks.time, 1),
       shareStack("Transaction input/output distribution", [["1 in, 1 out", daily(features.oneInputOneOutput)], ["1 in, 2 out", daily(features.oneInputTwoOutput)], ["1 in, N out", `${daily(features.oneInput)} - ${daily(features.oneInputOneOutput)} - ${daily(features.oneInputTwoOutput)}`], ["N in, 1 out", `${daily(features.oneOutput)} - ${daily(features.oneInputOneOutput)}`], ["others", `${day.txs} - ${daily(features.oneInput)} - ${daily(features.oneOutput)} + ${daily(features.oneInputOneOutput)}`]], 7),
-      events("Ephemeral dust", [["transactions", txs.ephemeralDust]], 7),
+      events("Ephemeral dust", [["transactions", txs.ephemeralDust]]),
       percentLine("Coinbase locktime set", [["coinbase locktime set", ofBlocks(daily(t.blocks.coinbaseLocktime.nonzero))]], 30),
       percentLine("BIP-54 coinbase locktime set", [["BIP-54 locktime set", ofBlocks(daily(t.blocks.coinbaseLocktime.bip54))]], 7),
       percentLine("BIP-69 compliance and chance", [["BIP-69 compliant", percent(daily(features.bip69), day.txs)], ["expected by chance", percent(daily(features.bip69ExpectedByChance), day.txs)]], 7),

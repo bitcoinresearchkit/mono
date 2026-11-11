@@ -12,6 +12,18 @@ const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
 /** Its own extent, read before it widens the pane's. */
 const OWN = new Float64Array(2);
 
+/**
+ * A bar's footprint: a nonzero value grows from its base by at least one device pixel.
+ * @param {CanvasRenderingContext2D} g @param {number} x @param {number} width @param {number} y @param {number} baseY
+ * @param {number} value @param {number} base @param {number} dpr @param {number} pad @param {number} radius
+ */
+function barShape(g, x, width, y, baseY, value, base, dpr, pad, radius) {
+  const up = y <= baseY, height = Math.max(value === base ? 0 : 1 / dpr, Math.abs(baseY - y));
+  const top = (up ? baseY - height : baseY) - pad;
+  if (radius) g.roundRect(x, top, width, height + 2 * pad, up ? ROUND_UP : ROUND_DOWN);
+  else g.rect(x, top, width, height + 2 * pad);
+}
+
 export class Bars extends Line {
   /**
    * `radius`, its corners' at their value's end (a number, or one by the spacing of its points).
@@ -75,11 +87,10 @@ export class Bars extends Line {
       for (let i = a; i <= b; i++) {
         const v = values[i];
         if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
-        const x = time.x(i), y = scale.y(v), up = y < baseY;
+        const x = time.x(i), y = scale.y(v);
         // (Its edges on device pixels: bars side by side keep even gaps.)
-        const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad, top = (up ? y : baseY) - pad, height = Math.max(log || v !== this.base ? 1 / dpr : 0, Math.abs(baseY - y)) + 2 * pad;
-        if (radius) g.roundRect(left, top, right - left, height, up ? ROUND_UP : ROUND_DOWN);
-        else g.rect(left, top, right - left, height);
+        const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad;
+        barShape(g, left, right - left, y, baseY, v, this.base, dpr, pad, radius);
       }
       return;
     }
@@ -95,7 +106,7 @@ export class Bars extends Line {
       }
       if (far < 0 || (colors && colors[far] !== pass)) continue;
       const y = scale.y(values[far]);
-      g.rect(x - pad, Math.min(y, baseY) - pad, 1 + 2 * pad, Math.max(log || values[far] !== this.base ? 1 / dpr : 0, Math.abs(baseY - y)) + 2 * pad);
+      barShape(g, x - pad, 1 + 2 * pad, y, baseY, values[far], this.base, dpr, pad, 0);
     }
   }
 }
