@@ -48,7 +48,6 @@ use crate::{
     discovery, logo,
     manifest::Catalog,
     page,
-    page::Pages,
     upstream::{MAX_RESPONSE_BYTES, Upstream},
     upstream_response::UpstreamResponse,
 };
@@ -91,7 +90,7 @@ pub fn router(
     catalog: Catalog,
     display_name: String,
     public_url: String,
-    pages: Pages,
+    home: Bytes,
 ) -> Router {
     let transport_config = StreamableHttpServerConfig::default()
         .disable_allowed_hosts()
@@ -101,13 +100,14 @@ pub fn router(
         .with_json_response(true)
         .with_max_request_body_bytes(MAX_REQUEST_BYTES);
 
-    // One privacy policy and one set of terms cover every Bitview service: the website's, beside the
-    // API it calls.
-    let redirect = |page: &str| {
-        let to = Redirect::permanent(&format!("{api_url}/{page}/"));
-        get(move || ready(to.clone()))
-    };
-    let [privacy, terms] = ["privacy", "terms"].map(redirect);
+    // One privacy policy, one set of terms and one support page cover every Bitview service: the
+    // website's, beside the API it calls.
+    let site_pages = ["privacy", "terms", "support"]
+        .into_iter()
+        .fold(Router::new(), |router, page| {
+            let to = Redirect::permanent(&format!("{api_url}/{page}/"));
+            router.route(&format!("/{page}"), get(move || ready(to.clone())))
+        });
     let discovery_routes = discovery::router(&display_name, &public_url);
     let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
@@ -130,13 +130,11 @@ pub fn router(
     Router::new()
         .route(
             "/",
-            page::route(pages.home)
+            page::route(home)
                 .merge(post_service(service).layer(middleware::from_fn(hold_charge))),
         )
         .route("/logo.png", get(logo::get))
-        .route("/privacy", privacy)
-        .route("/terms", terms)
-        .route("/support", page::route(pages.support))
+        .merge(site_pages)
         .merge(discovery_routes)
         .layer(middleware::from_fn(gateway_guard))
         // A POST's body may not stall: it would hold its connection.

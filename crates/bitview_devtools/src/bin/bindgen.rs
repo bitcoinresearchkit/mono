@@ -7,7 +7,7 @@ use std::{
 };
 
 use aide::axum::ApiRouter;
-use bitview_bindgen::{ClientOutputPaths, generate_clients};
+use bitview_bindgen::{ClientOutputPaths, fill_site_pages, generate_clients};
 use bitview_devtools::import;
 use bitview_query::SeriesRegistry;
 use bitview_server::{ApiRoutes, finish_openapi};
@@ -20,6 +20,9 @@ use std::process::exit;
 
 /// The JavaScript package manifest: hand-written, only its version is generated.
 const PACKAGE_JSON: &str = "modules/bitview-client/package.json";
+const SUPPORT_PAGE: &str = "showcases/support/index.html";
+/// Hand-written site pages with blocks bindgen fills.
+const SITE_PAGES: &[&str] = &[SUPPORT_PAGE];
 
 /// The MCP server's logo, which the Claude Code plugin carries as its icon.
 const MCP_LOGO: &str = "crates/bitview_mcp/assets/logo.png";
@@ -32,6 +35,7 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_cli/src/generated.rs",
     "modules/bitview-client/index.js",
     PACKAGE_JSON,
+    SUPPORT_PAGE,
     "packages/bitview_client/bitview_client/__init__.py",
     "showcases/llms.txt",
     "showcases/llms-full.txt",
@@ -115,10 +119,12 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
 
     let output_root = if check {
         let root = imported.dir.path().join("generated");
-        // Generation only bumps the manifest's version, so the check starts from the committed one.
-        let package_json = root.join(PACKAGE_JSON);
-        fs::create_dir_all(package_json.parent().unwrap())?;
-        fs::copy(workspace_root.join(PACKAGE_JSON), package_json)?;
+        // Generation only updates these committed files, so the check starts from them.
+        for path in [PACKAGE_JSON].iter().chain(SITE_PAGES) {
+            let copy = root.join(path);
+            fs::create_dir_all(copy.parent().unwrap())?;
+            fs::copy(workspace_root.join(path), copy)?;
+        }
         root
     } else {
         workspace_root.clone()
@@ -127,6 +133,7 @@ fn generate(check: bool, scope: OutputScope) -> Result<()> {
 
     generate_clients(registry.catalog(), &to_string(&openapi)?, &output_paths)?;
     if matches!(scope, OutputScope::All) {
+        fill_site_pages(&SITE_PAGES.iter().map(|path| output_root.join(path)).collect::<Vec<_>>())?;
         generate_registry_manifest(&output_root)?;
         let icon = output_root.join(PLUGIN_ICON);
         let logo = fs::read(workspace_root.join(MCP_LOGO))?;

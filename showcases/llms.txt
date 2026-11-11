@@ -9,6 +9,8 @@
 - Authentication: None
 - Browser access: Permissive CORS
 - [Terms of use](https://bitview.space/terms/)
+- [Privacy policy](https://bitview.space/privacy/)
+- [Support](https://bitview.space/support/)
 - [Full plain-text reference](https://bitview.space/llms-full.txt)
 - [Compact API summary](https://bitview.space/api.json)
 - [Full OpenAPI](https://bitview.space/openapi.json)

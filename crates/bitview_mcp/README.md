@@ -9,10 +9,10 @@ Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, me
 The official public endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/); it requires no authentication.
 
-The server also serves an instance landing page, `/support`, `/logo.png`,
-`/privacy` and `/terms` (redirects to the REST origin's privacy and terms
-pages), and its discovery documents, an MCP Server Card at `/server-card` and an
-AI Catalog at `/.well-known/ai-catalog.json`. The icon is
+The server also serves an instance landing page, `/logo.png`, `/privacy`,
+`/terms` and `/support` (redirects to the REST origin's privacy, terms and
+support pages), and its discovery documents, an MCP Server Card at
+`/server-card` and an AI Catalog at `/.well-known/ai-catalog.json`. The icon is
 embedded in the binary and advertised in MCP discovery metadata.
 
 ## Caching model

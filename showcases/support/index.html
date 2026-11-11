@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <title>Support · Bitview</title>
+    <meta
+      name="description"
+      content="How to get help with Bitview: email for private questions and security problems, GitHub for public bug reports, where the docs are, and answers to common questions."
+    />
+    <link rel="canonical" href="https://bitview.space/support/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* How to get help with every Bitview service, in the terms and privacy pages' look: plain text on the page's
+         colours, system fonts, nothing loaded. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#ffffff, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#3c3f45, #c4c7cc);
+        --soft: light-dark(#5f636b, #8f949c);
+        --rule: light-dark(rgb(15 16 18 / 0.12), rgb(247 248 248 / 0.12));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 32px 16px 80px;
+      }
+
+      a {
+        color: var(--ink);
+        text-underline-offset: 0.2em;
+        text-decoration-color: var(--rule);
+
+        &:hover {
+          text-decoration-color: currentColor;
+        }
+      }
+
+      code {
+        font: 0.9em var(--mono);
+        overflow-wrap: anywhere;
+      }
+
+      .home {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      h1 {
+        margin: 48px 0 4px;
+        color: var(--ink);
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 36px 0 8px;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink);
+        font-size: 18px;
+      }
+
+      .updated {
+        margin: 0;
+        color: var(--soft);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+
+      <h1>Support</h1>
+      <p class="updated">Last updated November 11, 2026</p>
+
+      <p>
+        For help with <a href="https://bitview.space/">bitview.space</a> and
+        <a href="https://mcp.bitview.space/">mcp.bitview.space</a>, <a href="#email">email</a> or
+        <a href="#issues">open an issue</a>; <a href="#security">security problems</a> go by email only. A Bitview
+        server at another address is run by someone else: ask them, and report bugs in the software itself on GitHub.
+      </p>
+      <p>
+        Is bitview.space up and current? <a href="/health"><code>/health</code></a> and
+        <a href="/api/server/sync"><code>/api/server/sync</code></a> show its uptime and how far it is from the chain's
+        tip.
+      </p>
+
+      <h2 id="email">Email</h2>
+      <p>
+        Write to <a href="mailto:support@bitview.space">support@bitview.space</a> for questions, anything private,
+        rights notices and content reports. For a problem, include:
+      </p>
+      <ul>
+        <li>
+          what you used: a page and your browser, an API endpoint, or an MCP tool and your AI assistant's name and
+          version;
+        </li>
+        <li>the address you used: bitview.space, mcp.bitview.space or another;</li>
+        <li>what you did and what came back, with the exact error;</li>
+        <li>roughly when, with your time zone.</li>
+      </ul>
+      <p>
+        Never send a private key, seed phrase, wallet descriptor or extended public key, or anything private the
+        problem doesn't need. How email is kept is on the
+        <a href="/privacy/#email">privacy page</a>.
+      </p>
+
+      <h2 id="issues">Bug reports and feature requests</h2>
+      <p>
+        Open an issue on <a href="https://github.com/bitcoinresearchkit/mono/issues">GitHub</a>; for a bug, with the
+        same details as an email. It needs a GitHub account and is public, so keep private details to email.
+      </p>
+
+      <h2 id="security">Security problems</h2>
+      <p>
+        Email <a href="mailto:support@bitview.space">support@bitview.space</a> with what you found and how to
+        reproduce it. Good-faith reports are welcome, and the <a href="/terms/#use">terms</a> don't count them as an
+        attack. Run tests and load only against your own Bitview server, never against bitview.space or
+        mcp.bitview.space: the terms don't allow attacking or overloading them.
+      </p>
+
+      <h2 id="docs">Documentation</h2>
+      <ul>
+        <li>
+          <a href="/api/">API docs</a>: every endpoint, with examples, and the
+          <a href="/openapi.json">OpenAPI description</a>.
+        </li>
+        <li><a href="/catalog/">Catalog</a>: every series, what it is, and how to fetch it.</li>
+        <li>
+          Client libraries: <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>,
+          <a href="https://pypi.org/project/bitview-client/">Python</a> and
+          <a href="https://crates.io/crates/bitview_client">Rust</a>.
+        </li>
+        <li>
+          <a href="https://mcp.bitview.space/">MCP server</a>: the same data as tools for AI assistants, and how to
+          connect yours, with fixes for connection problems.
+        </li>
+        <li>
+          <a href="https://github.com/bitcoinresearchkit/mono/tree/prod/plugins/bitview">Claude Code plugin</a>: the
+          MCP server and the skill together.
+        </li>
+        <li>
+          For AI: <a href="/llms.txt">llms.txt</a>, an overview; <a href="/llms-full.txt">llms-full.txt</a>, the full
+          reference; and the <a href="/.well-known/agent-skills/bitview/SKILL.md">Agent Skill</a>, instructions for an
+          assistant.
+        </li>
+        <li>
+          <a href="/dev/">Run your own</a> beside your Bitcoin node, from the
+          <a href="https://github.com/bitcoinresearchkit/mono">source</a>.
+        </li>
+        <li><a href="/changes/">Changes</a>: what each release changed, and where renamed series went.</li>
+      </ul>
+
+      <h2 id="limits">Are there limits?</h2>
+      <p>There's no API key or payment, and no fixed request limit is published. Size caps you may meet:</p>
+      <ul>
+        <li>
+          <code>weight_exceeded</code>: a series request asked for too much at once. Ask for a shorter range
+          (<code>start</code>, <code>end</code>) or a less detailed index, such as daily (<code>day1</code>).
+        </li>
+        <li>
+          <code>too_many_utxos</code>: the address has more than 500 unspent outputs to list. On your own server, the
+          cap is a setting (<code>maxutxos</code>).
+        </li>
+        <li>Through the MCP server, an answer over 8 MiB fails: ask for a shorter range.</li>
+      </ul>
+      <p>
+        To protect the services, access may be slowed, limited or blocked, as the <a href="/terms/#use">terms</a>
+        say. For heavy or constant use, <a href="/dev/">run your own server</a>.
+      </p>
+
+      <h2 id="meaning">What does a series mean?</h2>
+      <p>
+        A series is one measurement over blocks or time, such as the realized price. The
+        <a href="/catalog/">Catalog</a> shows every series: what it is, the intervals it comes in and how to fetch it.
+      </p>
+      <p>
+        Through the API, a series' description is at <code>/api/series/{id}</code>, and
+        <a href="/api/series/search?q=realized+price"><code>/api/series/search?q=realized+price</code></a> finds one by
+        plain words. Through MCP, use the tools <code>get_series_info</code> and <code>search_series</code>.
+      </p>
+      <p>
+        A wrong id or index is refused with the nearest ids or the valid indexes, and <a href="/changes/">Changes</a>
+        lists every id renamed or removed.
+      </p>
+
+      <h2 id="wrong">Why does a number look wrong?</h2>
+      <p>In values from the API or MCP, check these first:</p>
+      <!-- Generated by bitview_bindgen: reading-rules -->
+      <ul>
+        <li><code>end</code> is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02.</li>
+        <li>A <code>Ratio</code> or <code>Multiple</code> is a plain number (0.55, not 55%); a <code>Percent</code> is already a percent (55 means 55%).</li>
+        <li><code>null</code> means missing or undefined (before the data exists, or a period with no block), never zero.</li>
+        <li><code>price</code> reads 0, not null, before block 74,641 (August 2010): there was no price yet.</li>
+      </ul>
+      <!-- End of bitview_bindgen: reading-rules -->
+      <p>
+        Bitview computes its on-chain data itself, so numbers can differ from other sites. Since block 340,000
+        (January 2015), the price is estimated from the chain, not taken from an exchange; the terms list the
+        <a href="/terms/#sources">earlier price sources</a>. A day's price is its last block's, so today's price changes
+        until the day ends. Past values can be revised when recent blocks are replaced, a method improves or a mistake
+        is fixed.
+      </p>
+      <p>
+        Still wrong? <a href="#email">Email</a> or <a href="#issues">open an issue</a> with the series id, the index,
+        the date or block height, the value you saw, and what you expected and from where.
+      </p>
+
+      <h2 id="policies">Terms and privacy</h2>
+      <p>
+        The rules for using Bitview, including its <a href="/terms/#licenses">licenses</a> and when to credit it, are
+        in the <a href="/terms/">terms</a>. What it receives and keeps is on the <a href="/privacy/">privacy page</a>.
+        This page's history is in the
+        <a href="https://github.com/bitcoinresearchkit/mono/commits/prod/showcases/support/index.html">source</a>.
+      </p>
+    </main>
+  </body>
+</html>

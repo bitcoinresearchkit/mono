@@ -9,7 +9,7 @@ use bitview_catalog::TreeNode;
 use serde_json::{Value, json, to_string_pretty};
 use sha2::{Digest, Sha256};
 
-use super::write_if_changed;
+use super::{reading_rules, write_if_changed};
 use crate::{
     ClientOutputPaths, Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, model::Model,
     openapi::{Info, Spec},
@@ -43,12 +43,13 @@ const SERIES_FLOW: [(&str, &[&str]); 3] = [
     ),
 ];
 const SERIES_RULE: &str = "Never invent a series id: only ids the API returned exist.";
-/// What agents get wrong reading series, for the skill and the MCP instructions.
-const TRAPS: &str = "- Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.\n\
-- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02. The latest value is the newest one only, never a past one.\n\
-- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already times 100. Convert only as asked.\n\
-- Compute derived numbers at full precision; round only the final answer, if at all.\n\
-- `null` means undefined (before the data exists), never zero.\n";
+/// What else agents get wrong reading series.
+const AGENT_RULES: [&str; 4] = [
+    "Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.",
+    "The latest value is the newest one only, never a past one.",
+    "Convert values only as asked.",
+    "Compute derived numbers at full precision; round only the final answer, if at all.",
+];
 const SKILL: &str = "bitview";
 /// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
 const SKILLS_PATH: &str = ".well-known/agent-skills";
@@ -62,8 +63,11 @@ pub(crate) fn generate_llm_clients(
     schemas: &TypeSchemas,
     paths: &ClientOutputPaths,
 ) -> io::Result<()> {
-    // The sentence the skill and the MCP instructions use to point at the terms page.
-    let terms = format!("Use of Bitview is under the terms at {}.", spec.info.terms);
+    // The sentence the skill and the MCP instructions use to point at the terms and support pages.
+    let terms_and_help = format!(
+        "Use of Bitview is under the terms at {}; help is at {}.",
+        spec.info.terms, spec.info.support
+    );
     let (roots, plugins) = (&paths.llm, &paths.plugin);
     if !plugins.is_empty() || !roots.is_empty() {
         let generated = endpoints
@@ -72,7 +76,14 @@ pub(crate) fn generate_llm_clients(
             .collect::<Vec<_>>();
         let flow = render_series_flow(&generated, route)?;
         let metric_count = count_metrics(catalog);
-        let skill = skill::render(catalog, model, endpoints, metric_count, &flow, &terms)?;
+        let skill = skill::render(
+            catalog,
+            model,
+            endpoints,
+            metric_count,
+            &flow,
+            &terms_and_help,
+        )?;
         let plugin = render_plugin(&spec.info)?;
         for root in plugins {
             write_skill(&root.join("skills").join(SKILL), &skill)?;
@@ -103,11 +114,18 @@ pub(crate) fn generate_llm_clients(
         manifest::generate_tool_manifest(
             endpoints,
             schemas,
-            &render_mcp_instructions(endpoints, &terms)?,
+            &render_mcp_instructions(endpoints, &terms_and_help)?,
             path,
         )?;
     }
     Ok(())
+}
+
+/// The traps for the skill and the MCP instructions: the reading rules, then the agents' own.
+pub(super) fn render_traps() -> String {
+    reading_rules::markdown()
+        .chain(AGENT_RULES.iter().map(|rule| format!("- {rule}\n")))
+        .collect()
 }
 
 /// Distinct series ids: a series reached through several typed paths counts once.
@@ -204,9 +222,9 @@ fn render_plugin(info: &Info) -> io::Result<String> {
         "homepage": BASE_URL,
         "repository": REPOSITORY,
         "license": "MIT",
-        "privacyPolicyUrl": format!("{BASE_URL}/privacy/"),
+        "privacyPolicyUrl": info.privacy,
         "termsOfServiceUrl": info.terms,
-        "supportUrl": format!("{REPOSITORY}/issues"),
+        "supportUrl": info.support,
         "documentationUrl": format!("{REPOSITORY}/tree/prod/plugins/{SKILL}"),
         "keywords": ["bitcoin", "blockchain", "on-chain", "mempool", "mining", "market-data"],
         "mcpServers": { "bitview": { "type": "http", "url": MCP_URL } },
@@ -221,18 +239,19 @@ fn pretty(value: &Value) -> io::Result<String> {
 }
 
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
-fn render_mcp_instructions(endpoints: &[Endpoint], terms: &str) -> io::Result<String> {
+fn render_mcp_instructions(endpoints: &[Endpoint], terms_and_help: &str) -> io::Result<String> {
+    let traps = render_traps();
     let tools = endpoints
         .iter()
         .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
         .collect::<Vec<_>>();
     let flow = render_series_flow(&tools, |endpoint| endpoint.operation_id.clone())?;
     Ok(format!(
-        "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS} {terms}\n\n\
+        "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS} {terms_and_help}\n\n\
 For a series:\n\n\
 {flow}\n\
 {SERIES_RULE}\n\n\
-{TRAPS}\n\
+{traps}\n\
 Source of this data: Bitview ({BASE_URL}). Binary responses are returned as embedded MCP resources."
     ))
 }
@@ -242,6 +261,8 @@ fn render_llms(
         title,
         version,
         terms,
+        privacy,
+        support,
     }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
@@ -256,6 +277,8 @@ fn render_llms(
 - Authentication: None\n\
 - Browser access: Permissive CORS\n\
 - [Terms of use]({terms})\n\
+- [Privacy policy]({privacy})\n\
+- [Support]({support})\n\
 - [Full plain-text reference]({BASE_URL}/llms-full.txt)\n\
 - [Compact API summary]({BASE_URL}/api.json)\n\
 - [Full OpenAPI]({BASE_URL}/openapi.json)\n\
@@ -290,6 +313,8 @@ fn render_llms_full(
         title,
         version,
         terms,
+        privacy,
+        support,
     }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
@@ -307,6 +332,8 @@ fn render_llms_full(
     writeln!(output, "- Base URL: {BASE_URL}").unwrap();
     writeln!(output, "- MCP endpoint: {MCP_URL}").unwrap();
     writeln!(output, "- Terms of use: {terms}").unwrap();
+    writeln!(output, "- Privacy policy: {privacy}").unwrap();
+    writeln!(output, "- Support: {support}").unwrap();
     writeln!(output, "- {LICENSES}").unwrap();
     writeln!(output, "- Metrics: {metric_count}").unwrap();
     writeln!(output, "- Operations: {}\n", endpoints.len()).unwrap();

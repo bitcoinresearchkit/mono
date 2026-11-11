@@ -18,51 +18,25 @@ use crate::server::SUPPORTED_PROTOCOL_VERSIONS;
 
 const HTML: &str = include_str!("../assets/index.html");
 
-pub struct Pages {
-    pub(crate) home: Bytes,
-    pub(crate) support: Bytes,
-}
-
-impl Pages {
-    pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: usize) -> Self {
-        let cursor_config = BASE64_STANDARD.encode(format!(r#"{{"url":"{public_url}"}}"#));
-        let [newest, .., oldest] = &SUPPORTED_PROTOCOL_VERSIONS;
-        let tool_count = tool_count.to_string();
-        let render = |page: &str, title: &str, description: &str| {
-            let canonical_url = match page {
-                "home" => public_url.to_owned(),
-                page => format!("{public_url}{page}"),
-            };
-            Bytes::from(render_template(&[
-                ("PAGE", &escape_html(page)),
-                ("PAGE_TITLE", &escape_html(title)),
-                ("PAGE_DESCRIPTION", &escape_html(description)),
-                ("CANONICAL_URL", &escape_html(&canonical_url)),
-                ("PUBLIC_URL", &escape_html(public_url)),
-                ("API_URL", &escape_html(api_url)),
-                ("DISPLAY_NAME", &escape_html(display_name)),
-                ("LOGO_PATH", &escape_html(crate::logo::PATH)),
-                ("CURSOR_CONFIG", &escape_html(&cursor_config)),
-                ("PROTOCOL_OLDEST", oldest.as_str()),
-                ("PROTOCOL_NEWEST", newest.as_str()),
-                ("TOOL_COUNT", &tool_count),
-            ]))
-        };
-        Self {
-            home: render(
-                "home",
-                &format!("{display_name} MCP — Bitcoin data for AI"),
-                &format!(
-                    "Free, read-only Bitcoin data for AI through the {display_name} MCP server."
-                ),
-            ),
-            support: render(
-                "support",
-                &format!("Support — {display_name} MCP"),
-                &format!("Support information for the {display_name} MCP server."),
-            ),
-        }
-    }
+/// The server's landing page, filled in for this instance.
+pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: usize) -> Bytes {
+    let cursor_config = BASE64_STANDARD.encode(format!(r#"{{"url":"{public_url}"}}"#));
+    let [newest, .., oldest] = &SUPPORTED_PROTOCOL_VERSIONS;
+    let title = format!("{display_name} MCP — Bitcoin data for AI");
+    let description =
+        format!("Free, read-only Bitcoin data for AI through the {display_name} MCP server.");
+    Bytes::from(render_template(&[
+        ("TITLE", &escape_html(&title)),
+        ("DESCRIPTION", &escape_html(&description)),
+        ("PUBLIC_URL", &escape_html(public_url)),
+        ("API_URL", &escape_html(api_url)),
+        ("DISPLAY_NAME", &escape_html(display_name)),
+        ("LOGO_PATH", &escape_html(crate::logo::PATH)),
+        ("CURSOR_CONFIG", &escape_html(&cursor_config)),
+        ("PROTOCOL_OLDEST", oldest.as_str()),
+        ("PROTOCOL_NEWEST", newest.as_str()),
+        ("TOOL_COUNT", &tool_count.to_string()),
+    ]))
 }
 
 /// Serves a rendered page: a second of reuse, then a cheap `304`.

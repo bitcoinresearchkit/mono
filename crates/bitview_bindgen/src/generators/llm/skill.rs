@@ -6,7 +6,7 @@ use std::{collections::BTreeSet, fmt::Write, io};
 use bitview_catalog::TreeNode;
 use bitview_primitives::{Calendar, Index};
 
-use super::{ACCESS, BASE_URL, SCOPE, SERIES_FLOW, SERIES_RULE, SKILL, SKILLS_PATH, TRAPS, find};
+use super::{ACCESS, BASE_URL, SCOPE, SERIES_FLOW, SERIES_RULE, SKILL, SKILLS_PATH, find, render_traps};
 use crate::{Endpoint, model::Model};
 
 /// The skill's files, by path inside its folder: `SKILL.md` first.
@@ -30,14 +30,17 @@ pub(super) fn render(
     endpoints: &[Endpoint],
     series_count: usize,
     flow: &str,
-    terms: &str,
+    terms_and_help: &str,
 ) -> io::Result<Files> {
     let offered = endpoints
         .iter()
         .filter(|endpoint| endpoint.should_generate())
         .collect::<Vec<_>>();
     Ok([
-        ("SKILL.md", render_skill(&offered, series_count, flow, terms)?),
+        (
+            "SKILL.md",
+            render_skill(&offered, series_count, flow, terms_and_help)?,
+        ),
         (ENDPOINTS, render_endpoints(&offered)),
         (SERIES, render_series(catalog, model, series_count)),
     ])
@@ -47,8 +50,9 @@ fn render_skill(
     endpoints: &[&Endpoint],
     series_count: usize,
     flow: &str,
-    terms: &str,
+    terms_and_help: &str,
 ) -> io::Result<String> {
+    let traps = render_traps();
     let data = find(endpoints, "get_series")?;
     let bulk = find(endpoints, "get_series_bulk")?;
     let range = data
@@ -84,7 +88,7 @@ name: {SKILL}\n\
 description: \"{description}\"\n\
 ---\n\n\
 # Bitview\n\n\
-Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON. {terms}\n\n\
+Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON. {terms_and_help}\n\n\
 ## Series\n\n\
 {series_count} time series, each read at an index: `GET {path}` returns the values in `data` and their unit in `type`. {range}\n\n\
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:\n\n\
@@ -97,7 +101,7 @@ python3 -c 'import json, urllib.request as r; q = r.Request(\"{BASE_URL}{bulk}?s
 Indexes:\n\n\
 {indexes}\n\
 Traps:\n\n\
-{TRAPS}\
+{traps}\
 - Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.\n\n\
 ## Other endpoints\n\n\
 {tree_paths}\n\

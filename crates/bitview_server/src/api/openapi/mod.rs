@@ -207,9 +207,13 @@ Errors use `application/problem+json`:
         // (The API's release, not the build's commit (/version's): the docs made from it stay as they are.)
         version: format!("v{}", env!("CARGO_PKG_VERSION")),
         terms_of_service: Some("https://bitview.space/terms/".to_string()),
+        // (OpenAPI has fields for terms and contact but none for a privacy policy.)
+        extensions: [("x-privacy-policy".to_string(), "https://bitview.space/privacy/".into())]
+            .into_iter()
+            .collect(),
         contact: Some(Contact {
             name: Some("Bitview".to_string()),
-            url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
+            url: Some("https://bitview.space/support/".to_string()),
             email: Some("support@bitview.space".to_string()),
             ..Contact::default()
         }),

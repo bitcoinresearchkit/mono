@@ -4,6 +4,7 @@ mod cli;
 pub(crate) mod javascript;
 mod llm;
 pub(crate) mod python;
+pub(crate) mod reading_rules;
 pub(crate) mod rust;
 
 pub(crate) use cli::generate_cli;

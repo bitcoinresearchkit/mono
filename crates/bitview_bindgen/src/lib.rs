@@ -68,12 +68,14 @@ mod constants;
 mod generators;
 mod model;
 mod openapi;
+mod site_pages;
 #[cfg(test)]
 mod tests;
 mod topological;
 mod types;
 
 pub use client_paths::*;
+pub use site_pages::fill_site_pages;
 pub(crate) use generators::*;
 pub(crate) use openapi::*;
 pub use types::*;

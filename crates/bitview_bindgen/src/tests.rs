@@ -61,7 +61,13 @@ fn javascript_methods_forward_their_keep_rules() {
     let series = json!({"$ref": "#/components/schemas/SeriesData"});
     let spec = json!({
         "openapi": "3.1.0",
-        "info": {"title": "test", "version": "1"},
+        "info": {
+            "title": "test",
+            "version": "1",
+            "termsOfService": "https://example.com/terms/",
+            "x-privacy-policy": "https://example.com/privacy/",
+            "contact": {"url": "https://example.com/support/"},
+        },
         "paths": {
             "/openapi.json": {"get": {"operationId": "get_openapi", "responses": ok(json!(true))}},
             "/api/series/one": {"get": {"operationId": "get_series", "responses": ok(series.clone())}},

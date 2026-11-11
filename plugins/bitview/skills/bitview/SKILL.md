@@ -5,7 +5,7 @@ description: "Fetches live and historical Bitcoin data from Bitview, read from a
 
 # Bitview
 
-Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Plain HTTPS GETs returning JSON. Use of Bitview is under the terms at https://bitview.space/terms/.
+Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Plain HTTPS GETs returning JSON. Use of Bitview is under the terms at https://bitview.space/terms/; help is at https://bitview.space/support/.
 
 ## Series
 
@@ -32,11 +32,14 @@ Indexes:
 
 Traps:
 
+- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02.
+- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already a percent (55 means 55%).
+- `null` means missing or undefined (before the data exists, or a period with no block), never zero.
+- `price` reads 0, not null, before block 74,641 (August 2010): there was no price yet.
 - Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.
-- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02. The latest value is the newest one only, never a past one.
-- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already times 100. Convert only as asked.
+- The latest value is the newest one only, never a past one.
+- Convert values only as asked.
 - Compute derived numbers at full precision; round only the final answer, if at all.
-- `null` means undefined (before the data exists), never zero.
 - Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.
 
 ## Other endpoints
