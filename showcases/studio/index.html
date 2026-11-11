@@ -14296,8 +14296,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * the chart whose step it is (none: the Library's); where it was done from and where it left you; what it said
        * (`label`, and `undone` as it's undone), how it joins the next (`coalesce`, `at`, `held`: typing, a drag), the tool
        * that made a drawing (see addDrawn), whether it's a view's alone (a range: nothing stamped, as it was done), the
-       * characters it holds, and when it was taken (see keepBudgets).
-       * @typedef {{ patch: Map<string, [string | null, string | null]>, timeline: Timeline, chart?: string, from: Spot, to: Spot, label: string, undone: string, coalesce?: string, at?: number, held?: number, drawn?: { kind: DrawingKind, picks: number }, view?: boolean, size: number, seq: number }} HistoryStep
+       * characters it holds, when it was taken (see keepChars), and how many older steps its taking let go of (`dropped`).
+       * @typedef {{ patch: Map<string, [string | null, string | null]>, timeline: Timeline, chart?: string, from: Spot, to: Spot, label: string, undone: string, coalesce?: string, at?: number, held?: number, dropped?: number, drawn?: { kind: DrawingKind, picks: number }, view?: boolean, size: number, seq: number }} HistoryStep
        * @typedef {{ past: HistoryStep[], future: HistoryStep[] }} Timeline
        * @typedef {string | (() => string)} Said What a step says: as it's known, or read once it's done.
        */
@@ -14389,9 +14389,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * back, the others' 50 each, the Library's 50 (the oldest anywhere let go of first past a budget for them all).
        * Kept here alone: what's done changes a chart through commit, act, an undo (see travel) and restate, nothing else.
        * What it asks of the page: `settle`, what's under way kept before an act reads what you have (a step of its own);
-       * `taken`, told of each step taken (the toasts, the buttons).
+       * `taken`, told of each step taken (the toasts, the buttons); `here`, where you are: how many times you've gone
+       * elsewhere (`at`), the page (the open chart's id; null, the Charts page) and the chart open (under the grid too).
        */
-      const undoHistory = ((/** @type {{ settle: () => void, taken: (step: HistoryStep | null) => void }} */ { settle, taken: told }) => {
+      const undoHistory = ((/** @type {{ settle: () => void, taken: (step: HistoryStep | null) => void, here: () => { at: number, page: string | null, open: string | undefined } }} */ { settle, taken: told, here }) => {
         /** The Library's timeline. */
         const libraryTimeline = /** @type {Timeline} */ ({ past: [], future: [] });
         /** Each chart's timeline, by its id: the open one's, and each other's with steps (see keepBudgets). @type {Map<string, Timeline>} */
@@ -14401,17 +14402,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!timeline) chartTimelines.set(id, (timeline = { past: [], future: [] }));
           return timeline;
         }
-        /** The timeline last stepped in (a step done, undone or redone), and on which page (see navigations). */
+        /** The timeline last stepped in (a step done, undone or redone), and on which page (see here). */
         let steppedIn = libraryTimeline, steppedAt = -1;
         /**
-         * The timeline ⌘Z walks here: the one last stepped in, while you're still where it was; else the page's, the
-         * Library's on the Charts page, the open chart's in it (none yet: an empty one, never kept).
+         * The timeline ⌘Z (`back`) or ⇧⌘Z walks here: the one last stepped in, while you're still where it was and it has
+         * a step that way; else the page's, the Library's on the Charts page, the open chart's in it (none yet: an empty
+         * one, never kept). @param {boolean} back
          */
-        const timelineHere = () => (steppedAt === navigations ? steppedIn : home || !chart ? libraryTimeline : chartTimelines.get(chart.id) ?? { past: [], future: [] });
+        function timelineHere(back) {
+          const { at, page } = here();
+          if (steppedAt === at && steppedIn[back ? "past" : "future"].length) return steppedIn;
+          return page === null ? libraryTimeline : (chartTimelines.get(page) ?? { past: [], future: [] });
+        }
         /** A step done, undone or redone in `timeline`: ⌘Z's till you go elsewhere. @param {Timeline} timeline */
         const stepped = (timeline) => {
           steppedIn = timeline;
-          steppedAt = navigations;
+          steppedAt = here().at;
         };
         /** The charts the Library's steps move (where they are), by id. */
         function libraryHolds() {
@@ -14441,7 +14447,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         function keepSteps(id) {
           const timeline = id === undefined ? libraryTimeline : chartTimelines.get(id);
           if (!timeline) return;
-          const most = id !== undefined && id === chart?.id ? 200 : 50, count = () => timeline.past.length + timeline.future.length;
+          const most = id !== undefined && id === here().open ? 200 : 50, count = () => timeline.past.length + timeline.future.length;
           while (count() > most && timeline.past.length > 1) heldAtMost -= /** @type {HistoryStep} */ (timeline.past.shift()).size;
           while (count() > most && timeline.future.length > 1) heldAtMost -= /** @type {HistoryStep} */ (timeline.future.shift()).size;
           if (id !== undefined && !count()) chartTimelines.delete(id);
@@ -14453,19 +14459,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          * emptied so, gone.
          */
         function keepChars() {
-          if (heldAtMost <= HISTORY_CHARS) return;
+          if (heldAtMost <= HISTORY_CHARS) return 0;
           const all = [libraryTimeline, ...chartTimelines.values()];
           let size = 0;
           for (const timeline of all) for (const step of [...timeline.past, ...timeline.future]) size += step.size;
           const age = (/** @type {Timeline} */ timeline, /** @type {HistoryStep[]} */ side) => /** @type {HistoryStep} */ (side === timeline.past ? side[0] : side.at(-1)).seq;
+          let dropped = 0;
           while (size > HISTORY_CHARS) {
             let oldest = /** @type {[Timeline, HistoryStep[]] | null} */ (null);
             for (const timeline of all) for (const side of [timeline.past, timeline.future]) if (side.length && side[0].seq !== stepsTaken && (!oldest || age(timeline, side) < age(...oldest))) oldest = [timeline, side];
             if (!oldest) break;
             size -= /** @type {HistoryStep} */ (oldest[1].shift()).size;
+            dropped++;
           }
-          for (const [other, { past, future }] of chartTimelines) if (!past.length && !future.length) chartTimelines.delete(other);
+          forgetEmpty();
           heldAtMost = size;
+          return dropped;
+        }
+        /** The charts' timelines left with no step, gone. */
+        function forgetEmpty() {
+          for (const [id, { past, future }] of chartTimelines) if (!past.length && !future.length) chartTimelines.delete(id);
+        }
+        /** A step over a quarter of HISTORY_CHARS: kept only while it's the last taken (see record). */
+        const OVERSIZED = HISTORY_CHARS / 4;
+        /** The one step held that's OVERSIZED, if any. @type {HistoryStep | null} */
+        let oversized = null;
+        /**
+         * The step OVERSIZED let go of once another's taken (it isn't kept beyond itself), with those beyond it on its side
+         * (a step undone or redone never skips one): how many.
+         */
+        function dropOversized() {
+          const step = /** @type {HistoryStep} */ (oversized), side = [step.timeline.past, step.timeline.future].find((steps) => steps.includes(step));
+          oversized = null;
+          if (!side) return 0;
+          const gone = side.splice(0, side.indexOf(step) + 1);
+          for (const each of gone) heldAtMost -= each.size;
+          forgetEmpty();
+          return gone.length;
         }
         /** The timelines of charts gone for good (not here, and no Library step to bring them back), let go of. */
         function forgetGone() {
@@ -14617,7 +14647,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           joinable = taken;
           stepped(timeline);
           keepSteps(step.chart);
-          keepChars();
+          // (Older ones let go of to make room: said with it, see undoToast.)
+          const dropped = (oversized && oversized !== taken ? dropOversized() : 0) + keepChars();
+          if (taken && taken.size > OVERSIZED) oversized = taken;
+          if (taken) taken.dropped = dropped;
           told(taken);
           return taken;
         }
@@ -14651,21 +14684,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         /**
          * `step` undone (`forth` false) or redone by `apply` (given the side it puts: 0, as things were; 1, as they became),
-         * only while it's next in its timeline and fits (see fits): then 0. Not next (something done since), -1. Not
-         * fitting, it and those next in line that don't fit either let go of: how many. `forget`: undone and let go of,
-         * nothing to redo (it was never wanted: a new folder's naming cancelled).
+         * only while it's next in its timeline and nothing blocks it (see blocker): then null. Not next (something done
+         * since): none cut. Blocked: it and those next in line that are too, let go of: how many, what blocked it (its key)
+         * and whether a step here did (`here`; else another tab, say). `forget`: undone and let go of, nothing to redo (it
+         * was never wanted: a new folder's naming cancelled).
          * @param {HistoryStep} step @param {boolean} forth @param {boolean} forget @param {(side: 0 | 1) => void} apply
+         * @returns {{ cut: number, key: string, here: boolean } | null}
          */
         function walk(step, forth, forget, apply) {
           const { timeline } = step, steps = forth ? timeline.future : timeline.past;
-          if (steps.at(-1) !== step) return -1;
-          if (!fits(step, forth)) {
+          if (steps.at(-1) !== step) return { cut: 0, key: "", here: true };
+          const key = blocker(step, forth);
+          if (key) {
+            // (A step here that left it as it is now (undone, as it found it): it did. Else another tab.)
+            const now = entity(key), all = [libraryTimeline, ...chartTimelines.values()];
+            const done = all.some(({ past, future }) => past.some((other) => other !== step && other.patch.get(key)?.[1] === now) || future.some((other) => other !== step && other.patch.get(key)?.[0] === now));
             let cut = 0;
             do {
               steps.pop();
               cut++;
-            } while (steps.length && !fits(/** @type {HistoryStep} */ (steps.at(-1)), forth));
-            return cut;
+            } while (steps.length && blocker(/** @type {HistoryStep} */ (steps.at(-1)), forth));
+            return { cut, key, here: done };
           }
           steps.pop();
           if (!forget) (forth ? timeline.past : timeline.future).push(step);
@@ -14678,7 +14717,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           // (Where it leaves you, ⌘Z goes on in its timeline.)
           stepped(timeline);
-          return 0;
+          return null;
         }
         /**
          * A chart opened, `left` left for it (none: the same, or the first): that one's timeline kept fewer steps (see
@@ -14693,7 +14732,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** The step ⌘Z (`back`) or ⇧⌘Z takes: `offered` (a toast's) while it's still next in its timeline, else the next where you're working (see timelineHere). @param {boolean} back @param {HistoryStep | null} offered */
         function next(back, offered) {
           const top = (/** @type {Timeline} */ timeline) => timeline[back ? "past" : "future"].at(-1);
-          return offered && top(offered.timeline) === offered ? offered : top(timelineHere());
+          return offered && top(offered.timeline) === offered ? offered : top(timelineHere(back));
         }
         /**
          * Chart `doc` made anew outside any step by `fix` (a series' path learned, a renamed series followed, a preset
@@ -14735,7 +14774,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return traveling;
           },
         };
-      })({ settle: keepInput, taken: stepTaken });
+      })({ settle: keepInput, taken: stepTaken, here: () => ({ at: navigations, page: home || !chart ? null : chart.id, open: chart?.id }) });
       /** Bumped by every change of the open chart, and opening one: what's drawn of it is that revision's. */
       let revision = 0;
       /** The sidebar's groups, in its order (Home's doors too), each its name and its page. @typedef {"recent" | "previews" | "library" | "presets"} Group */
@@ -15144,6 +15183,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!home && (replacePath() || placingPath())) return;
         travel(true);
       }
+      /**
+       * A thing a step holds, as said: a chart's or a folder's name, quoted (as it is, else as the step had it), an order's
+       * list. @param {string} key @param {HistoryStep} step
+       */
+      function thingIn(key, step) {
+        const [kind, id] = keyParts(key);
+        if (!id) return key === "order" ? "the sidebar's order" : key === "previews" ? "the previews' order" : "your charts' order";
+        const held = /** @type {[string | null, string | null] | undefined} */ (step.patch.get(kind === "f" ? key : `c:${id}`))?.find((value) => value !== null);
+        const name = kind === "f" ? (folderById(id)?.name ?? (held ? JSON.parse(held).name : "")) : ((doc) => (doc ? titleOf(doc) : held ? titleOf(JSON.parse(held)) : ""))(chartById(id));
+        return name ? `“${name}”` : "";
+      }
       /** What's under way kept, as a step of its own (what's typed where it shows, a formula left, a color picked and waiting for its frame), the field left as it is: before a step's read (see act, travel). */
       function keepInput() {
         flushEdits();
@@ -15172,7 +15222,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const taking = step ?? nextStep(!forth);
         if (!taking) return;
         const open = chart, range = open?.range;
-        const cut = undoHistory.walk(taking, forth, forget, (side) => {
+        const refused = undoHistory.walk(taking, forth, forget, (side) => {
           // What's being drawn or moved, of the chart as it is, goes.
           stopDrawing();
           pathResume = null;
@@ -15193,9 +15243,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (home) renderHome();
           }
         });
-        if (cut) {
+        if (refused) {
           hideToast();
-          return notice(cut < 0 ? "Something was done since: undo that first" : `Changed since, so ${cut > 1 ? `${cut} steps` : "that step"} can't be ${forth ? "redone" : "undone"}`);
+          const { cut, key, here } = refused, what = key && thingIn(key, taking);
+          return notice(!cut ? "Something was done since: undo that first" : `Changed since${what ? ` in ${what}` : ""}${here ? "" : " (another tab)"}, so ${cut > 1 ? `${cut} steps` : "that step"} can't be ${forth ? "redone" : "undone"}`);
         }
         // (The range is a view: one a step changed shown, the chart where it was.)
         if (chart === open && chart.range !== range) showRange();
@@ -15224,7 +15275,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const puts = (step, key, side) => step.chart === undefined || keyParts(key)[0] !== "w" || entity(key) === /** @type {[string | null, string | null]} */ (step.patch.get(key))[1 - side];
       /**
-       * Whether a step can be undone (`forth` false) or redone now. Each thing it checks as the step left it (or found it),
+       * What keeps a step from being undone (`forth` false) or redone now, by its key ("": nothing, it can be; the folder
+       * that would be left broken). Each thing it checks as the step left it (or found it),
        * exactly (a chart's content, however its keys are ordered: see sameContent): a chart's step, its content alone (its
        * place, only where it still stands: see puts); the Library's, each thing. The orders aren't checked: they're put
        * back for what the step knows (most steps change them, and in part by what's in them). For the Library, a chart
@@ -15233,35 +15285,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * puts in one, in one there then; no folder it takes away with something in it the step doesn't move; none in itself.
        * @param {HistoryStep} step @param {boolean} forth
        */
-      function fits(step, forth) {
+      function blocker(step, forth) {
         const found = forth ? 0 : 1, side = forth ? 1 : 0;
-        const stands = [...step.patch].every(([key, pair]) => {
+        const changed = [...step.patch].find(([key, pair]) => {
           const then = pair[found], [kind, id] = keyParts(key);
           // (The orders, and a chart's step's own place: never checked (see puts).)
-          if (!id || (kind === "w" && step.chart !== undefined)) return true;
-          if (kind === "f" || (kind === "w" && isMade(entity(key)))) return entity(key) === then;
-          if (kind === "c" && (step.chart !== undefined || isMade(entity(`w:${id}`)))) return sameContent(entity(key), then);
+          if (!id || (kind === "w" && step.chart !== undefined)) return false;
+          if (kind === "f" || (kind === "w" && isMade(entity(key)))) return entity(key) !== then;
+          if (kind === "c" && (step.chart !== undefined || isMade(entity(`w:${id}`)))) return !sameContent(entity(key), then);
           // (A place now (see whereOf): as the step had it, a place too, or nothing.)
           const where = step.patch.get(`w:${id}`);
-          return kind === "w" ? !isMade(then) : then === null || (where !== undefined && !isMade(where[found]));
+          return kind === "w" ? isMade(then) : then !== null && (where === undefined || isMade(where[found]));
         });
-        if (!stands) return false;
+        if (changed) return changed[0];
         // (The folders as it'd leave them, each by what it's in.)
         const parents = new Map(library.folders.map((folder) => [folder.id, folder.parent]));
         for (const [key, pair] of step.patch) {
           const [kind, id] = keyParts(key), value = pair[side];
           if (kind !== "f") continue;
           if (value !== null) parents.set(id, JSON.parse(value).parent);
-          else if (holdsOthers(id, step)) return false;
+          else if (holdsOthers(id, step)) return key;
           else parents.delete(id);
         }
         for (const [key, pair] of step.patch) {
           const [kind, id] = keyParts(key), value = pair[side];
           if (value === null || !puts(step, key, side)) continue;
-          if (kind === "w" && value.length > 1 && !parents.has(value.slice(1))) return false;
-          if (kind === "f") for (let at = parents.get(id), n = 0; at; at = parents.get(at)) if (at === id || !parents.has(at) || ++n > parents.size) return false;
+          if (kind === "w" && value.length > 1 && !parents.has(value.slice(1))) return `f:${value.slice(1)}`;
+          if (kind === "f") for (let at = parents.get(id), n = 0; at; at = parents.get(at)) if (at === id || !parents.has(at) || ++n > parents.size) return key;
         }
-        return true;
+        return "";
       }
       /**
        * Each thing a step changed, as it was (`side` 0) or as it became (1). A chart there changed in place (whatever holds
@@ -39190,7 +39242,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(text, action, false);
       }
       /** Something done, said with an Undo: its step's, while it's the last done (none: nothing changed, or done since, none offered). @param {string} text @param {HistoryStep | null} step */
-      const undoToast = (text, step) => toast(text, { label: "Undo", step: step && undoHistory.next(true, step) === step ? step : null });
+      const undoToast = (text, step) => toast(`${text}${step?.dropped ? `. Older steps let go of to make room` : ""}`, { label: "Undo", step: step && undoHistory.next(true, step) === step ? step : null });
       let toastTimer = 0;
       /**
        * Undo and Redo, each pressable or not (Redo beside it always: an undo, even long after, taken back at a glance;
