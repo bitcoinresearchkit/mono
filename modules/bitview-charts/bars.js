@@ -77,7 +77,7 @@ export class Bars extends Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | Uint16Array | null} colors @param {number} pass @param {number} pad
    */
   #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
-    const values = this.values, n = values.length, log = scale.mode === "log";
+    const values = this.values, n = values.length, log = scale.mode === "log", minimum = log ? (this.base > 0 ? Number.MIN_VALUE : scale.lo) : -Infinity;
     const spacing = time.spacing, wide = spacing >= 3, baseline = log && !(this.base > 0) ? scale.lo : this.base, baseY = scale.y(baseline), baseOffset = this.base - baseline;
     // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
     const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
@@ -87,7 +87,7 @@ export class Bars extends Line {
     if (wide) {
       for (let i = a; i <= b; i++) {
         const v = values[i];
-        if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
+        if (!(v >= minimum) || (colors && colors[i] !== pass)) continue;
         const x = time.x(i), y = scale.y(v);
         // (Its edges on device pixels: bars side by side keep even gaps.)
         const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad;
@@ -101,7 +101,7 @@ export class Bars extends Line {
       let far = -1, most = -1;
       for (let i = from; i <= to; i++) {
         const v = values[i];
-        if (!(log ? v > 0 : v === v)) continue;
+        if (!(v >= minimum)) continue;
         const off = Math.abs(v - this.base);
         if (off > most) (most = off), (far = i);
       }

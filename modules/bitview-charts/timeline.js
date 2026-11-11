@@ -53,6 +53,17 @@ export class Timeline {
     return Math.floor(this.to);
   }
 
+  /**
+   * The last finite reading in inclusive index bounds; -1, none. Defaults to point centers in view.
+   * A caller retaining older readings supplies `from` explicitly and labels their actual date.
+   * @param {ArrayLike<number>} values @param {number} [from] @param {number} [to]
+   */
+  lastIn(values, from = this.firstVisible, to = this.lastVisible) {
+    const first = Math.max(0, Math.ceil(from));
+    for (let i = Math.min(Math.floor(to), values.length - 1); i >= first; i--) if (Number.isFinite(values[i])) return i;
+    return -1;
+  }
+
   /** The last point a crosshair can be on: the last one with data, or past it, the last one whose center is in view. */
   get lastSlot() {
     return Math.max(this.length - 1, this.lastVisible);
@@ -115,6 +126,8 @@ export class Timeline {
   /** @param {number} from @param {number} to @param {{ exact?: boolean }} [options] */
   setRange(from, to, options) {
     const exact = options?.exact === true;
+    // A categorical window containing one sample still needs width, without admitting either neighbor.
+    if (exact && this.length && from === to) (from -= 0.5), (to += 0.5);
     this.from = from;
     this.to = to;
     // Explicit windows (including shared dates) keep their endpoints, even past the interactive zoom bound.

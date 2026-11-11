@@ -402,25 +402,28 @@ export function studioPresets(client, facts) {
   const FLOW_WINDOWS = /** @type {[string, number][]} */ ([["_24h", 1], ["_1w", 7], ["_1m", 30], ["_1y", 365]]);
   /** A computed catalog-shaped node, read by the usual series/windows helpers. @param {string} formula @param {any} like @param {string} [format] */
   const formulaNode = (formula, like, format = "percent") => ({ name: `(${formula})`, formula, format, indexes: () => like.indexes() });
-  /** Prefer the published sum, otherwise sum the daily series over the same fixed day count. @param {any} sums @param {string} key */
-  const flowWindow = (sums, key) => {
-    if (byDate(sums?.[key])) return sums[key];
+  /** A supplied dated window, without constructing a fallback. @param {any} sums @param {string} key */
+  const flowWindow = (sums, key) => byDate(sums?.[key]) ? sums[key] : undefined;
+  /** Prefer the supplied sum, otherwise sum the daily series over the same fixed day count. @param {any} sums @param {string} key */
+  const rollingWindow = (sums, key) => {
+    const node = flowWindow(sums, key);
+    if (node) return node;
     const daily = sums?._24h, days = FLOW_WINDOWS.find(([window]) => window === key)?.[1];
     return byDate(daily) && days ? formulaNode(`sum(${daily.name}, ${days}d)`, daily, daily.format ?? "number") : undefined;
   };
   /** Profit plus loss from the same two inputs the bounded profit share reads. @param {any} c @param {string} key */
   const realizedTotal = (c, key) => {
-    const p = flowWindow(c.realized?.profit?.sum, key), l = flowWindow(c.realized?.loss?.sum, key);
+    const p = rollingWindow(c.realized?.profit?.sum, key), l = rollingWindow(c.realized?.loss?.sum, key);
     return p && l ? formulaNode(`${p.name} + ${l.name}`, p, "usd") : undefined;
   };
   /** Prefer the published gross flow; families without it sum profit and loss. @param {any} c @param {string} key */
   const grossWindow = (c, key) => byDate(c.realized?.grossPnl?.sum?.[key]) ? c.realized.grossPnl.sum[key] : realizedTotal(c, key);
   /** One set of flow definitions for every comparison and individual cohort. */
   const FLOW_SHARES = [
-    { name: "Transfer volume share", compareName: "Transfer volume share", absoluteName: "Transfer volume", log: false, section: "Activity", pick: (/** @type {any} */ c, /** @type {string} */ key) => flowWindow(Object.fromEntries(FLOW_WINDOWS.map(([k]) => [k, btc(c.activity?.transferVolume?.sum?.[k])])), key) },
+    { name: "Transfer volume share", compareName: "Transfer volume share", absoluteName: "Transfer volume", log: false, section: "Activity", pick: (/** @type {any} */ c, /** @type {string} */ key) => rollingWindow(Object.fromEntries(FLOW_WINDOWS.map(([k]) => [k, btc(c.activity?.transferVolume?.sum?.[k])])), key) },
     { name: "Gross realized share", compareName: "Gross realized share", absoluteName: "Gross realized profit and loss", log: true, section: "Realized", pick: grossWindow },
-    { name: "Share of realized profit", compareName: "Realized profit share", absoluteName: "Realized profit", log: true, section: "Realized", pick: (/** @type {any} */ c, /** @type {string} */ key) => flowWindow(c.realized?.profit?.sum, key) },
-    { name: "Share of realized loss", compareName: "Realized loss share", absoluteName: "Realized loss", log: true, section: "Realized", pick: (/** @type {any} */ c, /** @type {string} */ key) => flowWindow(c.realized?.loss?.sum, key) },
+    { name: "Share of realized profit", compareName: "Realized profit share", absoluteName: "Realized profit", log: true, section: "Realized", pick: (/** @type {any} */ c, /** @type {string} */ key) => rollingWindow(c.realized?.profit?.sum, key) },
+    { name: "Share of realized loss", compareName: "Realized loss share", absoluteName: "Realized loss", log: true, section: "Realized", pick: (/** @type {any} */ c, /** @type {string} */ key) => rollingWindow(c.realized?.loss?.sum, key) },
   ];
   /** An amount implied by a public percentage of the same whole. @param {any} share @param {any} total @param {string} format */
   const shareAmount = (share, total, format) => formulaNode(`${share.name} * ${total.name} / 100`, total, format);
@@ -506,7 +509,7 @@ export function studioPresets(client, facts) {
         ], { log: [1] }),
         ...flowShares(c, "Share of realized profit", shareWho, color),
         ...flowShares(c, "Share of realized loss", shareWho, color),
-        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Profit share", titled("Realized profit share"), windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(flowWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } })),
+        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Profit share", titled("Realized profit share"), windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(rollingWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } })),
         realized.profit && chart("Profit and loss, all time", titled("Realized profit and loss, all time"), [
           series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
           ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
@@ -1279,8 +1282,8 @@ export function studioPresets(client, facts) {
         ]),
       ]),
       chainStatistics({ t, facts, chart, section, ramp, flowWindow: (sums, days) => {
-        const key = FLOW_WINDOWS.find(([, count]) => count === days)?.[0], node = key ? flowWindow(sums, key) : undefined;
-        return node && !node.formula ? node : undefined;
+        const key = FLOW_WINDOWS.find(([, count]) => count === days)?.[0];
+        return key ? flowWindow(sums, key) : undefined;
       } }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [

@@ -61,7 +61,7 @@ export class TimeAxis {
     // (Daily labels always include their month; January is named by its year among monthly ticks.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
     // (A time of day as hours and minutes; midnight, its day.)
-    const day = (/** @type {Date} */ d) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+    const day = (/** @type {Date} */ d) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${d.getUTCDate() === 1 && d.getUTCMonth() === 0 ? ` ${d.getUTCFullYear()}` : ""}`;
     const clock = kept((t) => {
       const d = date(t);
       return d.getUTCHours() || d.getUTCMinutes() ? `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}` : day(d);

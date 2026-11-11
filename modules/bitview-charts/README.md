@@ -32,7 +32,8 @@ chart.show(365);                                 // the last 365 points in view
   a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
   `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to, options?)` (logical indices,
   fractions allowed; stops a flick when the effective range changes; `{ exact: true }` restores explicit endpoints inside
-  the interactive maximum-spacing bound; ordinary calls keep that bound), `range`, `onRange(listener)`,
+  the interactive maximum-spacing bound; equal endpoints show just that sample, centered in a one-point window;
+  ordinary calls keep that bound), `range`, `onRange(listener)`,
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
   `setCrosshair(index, y)`,
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
@@ -41,6 +42,8 @@ chart.show(365);                                 // the last 365 points in view
   against its first value in view, and back; NaN where it has none),
   `time.firstVisible` and `time.lastVisible` (the first and last point whose centers are in view, for date captions and
   resting readings; geometry fitting includes connecting points beyond fractional edges),
+  `time.lastIn(values, from?, to?)` (last finite reading index within inclusive bounds, -1 if none; defaults to centers in
+  view; a consumer retaining older readings supplies its bounds and labels their actual date),
   `time.held(from, to)` (how far a view would move to keep its data's share in view, as the chart holds it: a page's
   glide aimed there ends where the chart stops it),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and

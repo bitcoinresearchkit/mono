@@ -11141,8 +11141,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Series classified by their catalog role, in the same walk as the index. @type {Set<string>} */
       let cumulativeSeries = new Set();
       const catalogReady = Promise.withResolvers();
-      // The Charts page may not ask for data until after a failed catalog load.
-      catalogReady.promise.catch(() => {});
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
@@ -12213,7 +12211,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** Calendar-total differences need aligned whole-year samples. */
-      const flowFits = (/** @type {number} */ days, /** @type {string} */ index) => (index === "year1" || index === "year10") && Number.isInteger(days / INTERVAL_DAYS[index]);
+      const flowFits = (/** @type {number} */ days, /** @type {string} */ index) => {
+        const periods = days / INTERVAL_DAYS[index], whole = Math.round(periods);
+        return (index === "year1" || index === "year10") && whole > 0 && Math.abs(periods - whole) < 1e-9;
+      };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
       const spanDays = (/** @type {string} */ span) => {
@@ -12464,7 +12465,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
         if (step > 0 && !Number.isInteger(value) && Math.round(abs) < 1e6 && abs < 999.95) {
           const text = abs.toFixed(Math.min(20, decimalsOf(step) + 1));
-          if (text.length <= PRECISE.length) return axisLabels.set(key, `${Number(text) ? sign : ""}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
+          if (Number(text) > 0 && text.length <= PRECISE.length) return axisLabels.set(key, `${sign}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
         }
         if (step > 0 && Math.round(abs) >= 1e6) {
           let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3));
@@ -12994,7 +12995,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         percentile: [3, "percentile(x, p, span?)", "rolling p-th percentile (p from 0 to 100; the median at 50; no span: of all so far)", (x, n, p, partial) => rollingPercentile(x, n, p, partial), true],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
-        flow: [2, "flow(x, span)", "calendar-year change in a cumulative total, from zero at history's start", (x, n, _p, partial) => x.map((value, i) => value - (i < n && partial ? 0 : x[i - n]))],
+        flow: [2, "flow(x, span)", "calendar-year change in a cumulative total; zero before the time axis, missing samples stay missing", (x, n, _p, partial) => x.map((value, i) => value - (i < n && partial ? 0 : x[i - n]))],
         shift: [2, "shift(x, by)", "x moved later by a span, earlier by a negative one (1y to the same date a year on, 1halving as far into the next halving cycle as into its own)", null],
         cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
         drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
@@ -14288,7 +14289,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const indexCatalog = (() => {
         const walk = catalogWalk(tree, INTERVAL_ORDER);
-        let watchdog = 0, failure, source = "";
+        let watchdog = 0, failure = false, source = "";
         let worker = /** @type {Worker | null} */ (null);
         let local = /** @type {MessageChannel | null} */ (null);
         const finish = () => {
@@ -14320,17 +14321,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         /** Walked here while `more` says (it's told how many nodes so far). */
         const run = (/** @type {(done: number) => boolean} */ more) => {
-          if (failure) throw failure;
+          if (failure) return;
           try {
             for (let done = 0; !catalogIndex && more(done); done++) {
               const step = walk.next();
               if (step.done) return take(step.value);
             }
           } catch (error) {
-            failure = new Error("Series catalog unavailable", { cause: error });
+            failure = true;
             finish();
-            catalogReady.reject(failure);
-            throw failure;
+            // Numeric data remains usable without inferred roles; explicit fitting still works.
+            catalogReady.resolve(undefined);
+            console.warn("Series catalog unavailable", error);
           }
         };
         // A failed or silent worker uses the same walk in small tasks. Message delivery keeps progressing in hidden
@@ -18027,7 +18029,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
         // library's own, on a first draw), and the change of their width held against it: the library holds the bars where
         // they are on screen as an axis widens.)
-        if (back && back.to - back.from >= 1) {
+        if (back && back.to >= back.from) {
           const target = within(back, "to");
           showSpan(target, EXACT_RANGE);
           engine.render(true);
@@ -18305,8 +18307,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function valuePointOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
         const values = resolved?.results.get(layer.id)?.values;
         if (!values || at < 0) return -1;
-        if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
-        return at;
+        return rest ? engine.time.lastIn(values, 0, at) : at;
       }
       /** A layer's value at a point (see valuePointOf). */
       function valueAt(layer, point) {
@@ -18314,23 +18315,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return at < 0 ? NaN : /** @type {Float64Array} */ (resolved?.results.get(layer.id)?.values)[at];
       }
       /**
-       * When a layer's value at rest is from, said where it's older than the view's end by more than a point (one behind is
-       * the live price's bar the others haven't yet): its point's date; else nothing.
+       * A retained older reading's date: always outside the view, inside it when more than one point behind its end
+       * (the live price can be one ahead of the other series).
        */
       function asOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const at = valuePointOf(layer, point), times = resolved?.times;
-        return point.rest && at >= 0 && at < point.at - 1 && times ? pointLabel(times[at]) : "";
+        return point.rest && at >= 0 && times && (at < point.at - 1 || at < engine.time.firstVisible) ? pointLabel(times[at]) : "";
       }
       /**
        * A cloud's range at a point, as its legend writes it: its lower to its higher (`lines`: its higher over its lower,
        * as the panel stacks them), from its value up (≥, to the top), or up to it (≤, from the bottom); a dash where
        * there's none (of its pane's two edges, all along).
        */
-      function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }, /** @type {string} */ unit, lines = false) {
-        const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low;
+      function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point, /** @type {string} */ unit, lines = false) {
+        const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low, at = valuePointOf(layer, point);
         // (To both its pane's edges: the pane, whatever its layers (its room, a dash's: see valueSlot).)
         if (!high || !low || at < 0 || edgesOf(layer).length > 1) return "—";
-        if (rest) while (at > 0 && !Number.isFinite(high[at])) at--;
         if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
         return layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : lines ? `${format(high[at], unit)}\n${format(low[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
       }
