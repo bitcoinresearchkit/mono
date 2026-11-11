@@ -1278,7 +1278,10 @@ export function studioPresets(client, facts) {
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${lowered(spanLabel(key))}`))),
         ]),
       ]),
-      chainStatistics({ t, facts, chart, section, ramp, flowWindow }),
+      chainStatistics({ t, facts, chart, section, ramp, flowWindow: (sums, days) => {
+        const key = FLOW_WINDOWS.find(([, count]) => count === days)?.[0], node = key ? flowWindow(sums, key) : undefined;
+        return node && !node.formula ? node : undefined;
+      } }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)

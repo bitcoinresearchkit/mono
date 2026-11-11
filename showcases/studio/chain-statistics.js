@@ -9,12 +9,12 @@
 /** @import { Facts, ChartBuilder, SectionBuilder, SectionNode } from "./presets.js" */
 /**
  * @typedef {Pick<SeriesPattern<unknown>, "name">} NamedSeries
- * @typedef {{ cumulative: NamedSeries, sum?: object }} Cumulative
+ * @typedef {{ cumulative: NamedSeries, sum?: Record<string, NamedSeries> }} Cumulative
  * @typedef {{ [K in keyof SeriesTree["pools"]]: SeriesTree["pools"][K] extends Pool ? K : never }[keyof SeriesTree["pools"]]} PoolKey
  */
 
 /**
- * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: any, key: string) => any }} parts
+ * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], days: number) => NamedSeries | undefined }} parts
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) {
@@ -33,9 +33,11 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
   /** Event counts use whole totals over a week or month, including when events are sparse. */
   const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => {
     const lines = totals.map(([label, total]) => {
-      const node = flowWindow(total.sum, days === 7 ? "_1w" : "_1m");
+      const node = flowWindow(total.sum, days);
       // Native trailing sums retain their meaning at every sampling interval; no client-derived substitute.
-      return node && !node.formula ? [`${label} per ${days} days`, node.name] : null;
+      if (node) return [`${label} per ${days} days`, node.name];
+      console.warn(`Missing published ${days}-day sum for ${title} (${total.cumulative.name})`);
+      return null;
     });
     return lines.every((line) => line !== null) ? line(title, /** @type {string[][]} */ (lines), 1, options) : null;
   };

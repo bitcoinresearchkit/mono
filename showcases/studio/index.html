@@ -11134,13 +11134,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return isLeaf(node) ? node.name : null;
       }
       /**
-       * Every name the client knows, to its path: built once, in a worker (else here, in idle slices), at once when needed
+       * Every name the client knows, to its path: built once, in a worker (else here, in small tasks), at once when needed
        * (see indexCatalog).
        */
       let catalogIndex = /** @type {Map<string, string> | null} */ (null);
       /** Series classified by their catalog role, in the same walk as the index. @type {Set<string>} */
-      const cumulativeSeries = new Set();
+      let cumulativeSeries = new Set();
       const catalogReady = Promise.withResolvers();
+      // The Charts page may not ask for data until after a failed catalog load.
+      catalogReady.promise.catch(() => {});
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
@@ -12035,10 +12037,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (cumulativeFormulas.size >= 500) cumulativeFormulas.clear();
             cumulativeFormulas.set(layer.formula, entry);
           }
-          if (!entry.refs.length && entry.key === "") return entry.value;
           let key = "";
-          const roles = new Map();
-          if (entry.refs.length) {
+          const roles = entry.refs.length ? new Map() : null;
+          if (roles) {
             const visiting = new Set(seen);
             visiting.add(layer.id);
             for (const letter of entry.refs) {
@@ -12054,7 +12055,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @param {Node} node @returns {boolean} */
           const total = (node) => {
             if (node.k === "series") return cumulativeSeries.has(node.v);
-            if (node.k === "ref") return roles.get(node.v) ?? false;
+            if (node.k === "ref") return roles?.get(node.v) ?? false;
             if (node.k === "neg") return total(node.a);
             if (node.k === "bin") {
               if (node.op === "+" || node.op === "-") return total(node.a) && total(node.b);
@@ -12211,9 +12212,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25, halving: (210_000 * 600) / 86400 };
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
-      /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       /** Calendar-total differences need aligned whole-year samples. */
       const flowFits = (/** @type {number} */ days, /** @type {string} */ index) => (index === "year1" || index === "year10") && Number.isInteger(days / INTERVAL_DAYS[index]);
+      /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
       const spanDays = (/** @type {string} */ span) => {
         const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
@@ -12443,6 +12444,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [, sign, digits, letter] = /^(−?)([\d.]+(?:e[-+]?\d+)?)([A-Z]?)/.exec(label) ?? [];
         return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
       }
+      const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
+      /** The width budget of an axis reading, sign and suffix aside. */
+      const PRECISE = "0.000000";
       /**
        * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
        * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
@@ -12486,9 +12490,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         axisLabels.set(key, label);
         return label;
       }
-      const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
-      /** The width budget of an axis reading, sign and suffix aside. */
-      const PRECISE = "0.000000";
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
         if (days * 24 < 1) return plural(Math.max(1, Math.round(days * 1440)), "minute");
@@ -14281,20 +14282,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
-       * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
-       * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
-       * series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are
-       * throttled (to one a minute, after five minutes hidden).
+       * its JIT: 180 ms of it, in a launch's first seconds); without one, it failing or silent for two seconds, here in
+       * small tasks. Then charts saved without paths get theirs (and survive renames). What needs it synchronously
+       * (a search, a series added) finishes the same walk here at once; data resolution waits for either answer.
        */
       const indexCatalog = (() => {
         const walk = catalogWalk(tree, INTERVAL_ORDER);
+        let watchdog = 0, failure, source = "";
+        let worker = /** @type {Worker | null} */ (null);
+        let local = /** @type {MessageChannel | null} */ (null);
+        const finish = () => {
+          clearTimeout(watchdog);
+          if (worker) worker.terminate(), (worker = null);
+          if (source) URL.revokeObjectURL(source), (source = "");
+          if (local) local.port1.close(), local.port2.close(), (local = null);
+        };
         /** What it found, the catalog's: the first to come, the worker's or the page's own. */
         const take = (/** @type {{ index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string>, cumulative: Set<string> }} */ found) => {
           if (catalogIndex) return;
           catalogIndex = found.index;
-          for (const name of found.cumulative) cumulativeSeries.add(name);
+          cumulativeSeries = found.cumulative;
+          cumulativeFormulas.clear();
           for (const name of found.byBlock) byBlock.add(name);
           for (const name of found.sharedTops) sharedTops.add(name);
+          finish();
           catalogReady.resolve(undefined);
           seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
@@ -14309,26 +14320,39 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         /** Walked here while `more` says (it's told how many nodes so far). */
         const run = (/** @type {(done: number) => boolean} */ more) => {
-          for (let done = 0; !catalogIndex && more(done); done++) {
-            const step = walk.next();
-            if (step.done) return take(step.value);
+          if (failure) throw failure;
+          try {
+            for (let done = 0; !catalogIndex && more(done); done++) {
+              const step = walk.next();
+              if (step.done) return take(step.value);
+            }
+          } catch (error) {
+            failure = new Error("Series catalog unavailable", { cause: error });
+            finish();
+            catalogReady.reject(failure);
+            throw failure;
           }
         };
+        // A failed or silent worker uses the same walk in small tasks. Message delivery keeps progressing in hidden
+        // tabs too, where idle callbacks can be suspended. Its ports and watchdog close as soon as either walk finishes.
         const here = () => {
-          const step = (/** @type {{ timeRemaining: () => number }} */ deadline) => {
-            // (At least a few hundred nodes a turn: an idle callback timed out has no time left, and would never go on.)
-            run((done) => deadline.timeRemaining() > 1 || done < 400);
-            if (!catalogIndex) whenIdle(step);
+          if (catalogIndex || local || failure) return;
+          const channel = local = new MessageChannel();
+          channel.port1.onmessage = () => {
+            const until = performance.now() + 8;
+            try { run((done) => done < 400 || performance.now() < until); } catch { return; }
+            if (local) channel.port2.postMessage(null);
           };
-          whenIdle(step, { timeout: 3000 });
+          channel.port2.postMessage(null);
         };
+        watchdog = setTimeout(here, 2000);
         const clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
-        const source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
+        source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
         try {
-          const worker = new Worker(source, { type: "module" }), done = () => (worker.terminate(), URL.revokeObjectURL(source));
+          worker = new Worker(source, { type: "module" });
           // (Its answer unread (an error, one that can't be delivered or read): walked here, as without one.)
           worker.onmessage = ({ data }) => {
-            done();
+            finish();
             let found = null;
             try {
               const [index, block, shared, cumulative] = JSON.parse(data.text);
@@ -14336,9 +14360,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             } catch {}
             found ? take(found) : here();
           };
-          worker.onerror = worker.onmessageerror = () => (done(), here());
+          worker.onerror = worker.onmessageerror = () => (finish(), here());
         } catch {
-          URL.revokeObjectURL(source);
+          finish();
           here();
         }
         return () => run(() => true);
@@ -16909,13 +16933,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
-      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span @param {{ exact?: boolean }} [options] */
       const EXACT_RANGE = { exact: true };
+      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span @param {{ exact?: boolean }} [options] */
       const showSpan = (span, options) => engine.setRange(span.from, span.to, options);
       /** The date at the left edge and the last point whose center is in view; none without data. */
       const shownDates = () => {
         const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
-        return n ? { from: at(engine.time.firstVisible), to: at(engine.time.lastVisible) } : null;
+        return n && engine.time.firstVisible <= engine.time.lastVisible ? { from: at(engine.time.firstVisible), to: at(engine.time.lastVisible) } : null;
       };
       /** The view moved to show the points from one date to another (the first at or after it, the last at or before). @param {{ from: number, to: number }} span */
       const showDates = (span) => {
@@ -37449,7 +37473,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The intervals every series the chart reads has (those known so far). */
       function supportedIntervals(/** @type {Chart} */ doc = chart) {
         const lists = seriesIn(doc).map((name) => known.get(name)?.indexes).filter(Boolean), formulas = doc.layers.flatMap((layer) => layer.formula ? [layer.formula] : []);
-        return (id) => lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => computableAt(formula, id));
+        return (id) => lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => windowsOf(formula).every(({ days, flow }) => !flow || flowFits(days, id)));
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
@@ -38694,7 +38718,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function viewDates() {
         const times = resolved?.times ?? [], span = shownDates();
-        if (!times.length) return { span: "", values: "" };
+        if (!times.length || !span) return { span: "", values: "" };
         const last = times[lastShown()], [from, to] = [pointLabel(Number(span?.from ?? times[0])), pointLabel(Number(span?.to ?? last))];
         return { span: from === to ? to : `${from} – ${to}`, values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
       }

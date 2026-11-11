@@ -741,8 +741,8 @@ export class Pane {
     if (moves || stretches) {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
-      const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      const first = Math.max(0, time.firstVisible);
+      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || first > this.tagsFrom || first <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -927,7 +927,7 @@ export class Pane {
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = time.lastVisible;
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), first = Math.max(0, time.firstVisible), lines = this.tagLines, end = time.lastVisible;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
@@ -936,8 +936,8 @@ export class Pane {
       // (On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1, i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view.)
-      if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
-      if (i < from || !base || base !== base) continue;
+      if (i >= 0 && i < first && i > this.tagsOut) this.tagsOut = i;
+      if (i < first || !base || base !== base) continue;
       if (i < this.tagsFrom) this.tagsFrom = i;
       // (Its color there see-through: no tag, nor its room.)
       if (!painted(line.colorAt(i))) continue;
