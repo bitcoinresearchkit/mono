@@ -203,6 +203,8 @@ fn render_plugin(version: &str) -> io::Result<String> {
         "repository": REPOSITORY,
         "license": "MIT",
         "privacyPolicyUrl": format!("{BASE_URL}/privacy/"),
+        "supportUrl": "mailto:support@bitview.space",
+        "documentationUrl": format!("{REPOSITORY}/tree/prod/plugins/{SKILL}"),
         "keywords": ["bitcoin", "blockchain", "on-chain", "mempool", "mining", "market-data"],
         "mcpServers": { "bitview": { "type": "http", "url": MCP_URL } },
     }))
