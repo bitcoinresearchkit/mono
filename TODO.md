@@ -198,3 +198,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   loss, UTXO-set age statistics, address concentration, USD balance thresholds, a spent-output price distribution;
   coin days destroyed summed in satoshi-seconds before converting, and the awake/mobile distributions' per-bucket
   rounding and grid-price dollar weights.
+
+- Inputs compute went 133→540 s in the from-zero bench of adc1881c8 while the whole run stayed flat (blocks, market, age
+  and profitability dropped by about as much): check whether plugin times count waiting before reading them as costs.
