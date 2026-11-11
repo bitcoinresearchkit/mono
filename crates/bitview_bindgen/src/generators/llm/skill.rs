@@ -78,22 +78,21 @@ name: {SKILL}\n\
 description: \"{description}\"\n\
 ---\n\n\
 # Bitview\n\n\
-Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Call it with curl.\n\n\
+Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON.\n\n\
 ## Series\n\n\
 {series_count} time series, each read at an index: `GET {path}` returns the values in `data` and their unit in `type`. {range}\n\n\
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:\n\n\
 {flow}\n\
 {SERIES_RULE} `{SERIES}` maps the series by topic, for browsing.\n\n\
-Fetch and compute in one command, the JSON piped into Python:\n\n\
+Fetch and compute in one command, Python reading the JSON:\n\n\
 ```sh\n\
-curl -s \"{BASE_URL}{bulk}?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03\" \\\n  \
-| python3 -c 'import json,sys; a,b=(s[\"data\"] for s in json.load(sys.stdin)); print(a, b, b[-1]/a[-1])'\n\
+python3 -c 'import json, urllib.request as r; q = r.Request(\"{BASE_URL}{bulk}?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03\", headers={{\"User-Agent\": \"bitview-skill\"}}); a, b = (s[\"data\"] for s in json.load(r.urlopen(q))); print(a, b, b[-1] / a[-1])'\n\
 ```\n\n\
 Indexes:\n\n\
 {indexes}\n\
 Traps:\n\n\
 {TRAPS}\
-- Answer in as few commands as you can: chain requests (with `sleep 1` between them) and pipe the JSON into `python3 -c` for any arithmetic.\n\n\
+- Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.\n\n\
 ## Other endpoints\n\n\
 {tree_paths}\n\
 What each returns and takes: `{ENDPOINTS}`. Files under `references/` are also at {BASE_URL}/{SKILLS_PATH}/{SKILL}/references/. The full reference with response schemas: {BASE_URL}/llms-full.txt.\n",
