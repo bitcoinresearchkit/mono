@@ -5,7 +5,7 @@ Live and historical Bitcoin data for Claude Code from [Bitview](https://bitview.
 ## Install
 
 ```
-claude plugin marketplace add bitcoinresearchkit/mono
+claude plugin marketplace add bitcoinresearchkit/mono#prod --sparse .claude-plugin plugins
 claude plugin install bitview@bitview
 ```
 
