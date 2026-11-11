@@ -2,7 +2,7 @@
   "name": "bitview",
   "displayName": "Bitview",
   "version": "0.13.0",
-  "description": "Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain. Free and read-only, with no API key.",
+  "description": "Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015. Free and read-only, with no API key.",
   "author": {
     "name": "Bitview"
   },

@@ -1,6 +1,6 @@
 ---
 name: bitview
-description: "Fetches live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data."
+description: "Fetches live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data."
 ---
 
 # Bitview

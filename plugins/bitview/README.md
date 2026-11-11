@@ -1,6 +1,6 @@
 # Bitview
 
-Live and historical Bitcoin data for Claude Code from [Bitview](https://bitview.space), a free, open-source data server read from a full node. It covers on-chain metrics such as MVRV, realized price, SOPR, holder cohorts and supply by age, as well as blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price computed from the chain.
+Live and historical Bitcoin data for Claude Code from [Bitview](https://bitview.space), a free, open-source data server read from a full node. It covers on-chain metrics such as MVRV, realized price, SOPR, holder cohorts and supply by age, as well as blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015.
 
 ## Install
 
