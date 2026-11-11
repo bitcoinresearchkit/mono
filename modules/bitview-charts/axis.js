@@ -116,9 +116,9 @@ export class TimeAxis {
     for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], page.at[k], this.height / 2, "center");
   }
 
-  /** Whether a label at `x` is under a page's tag (within its half, a label's half and 4 pixels). @param {number} x @param {Tags} page */
-  #covered(x, page) {
-    for (let k = 0; k < page.count; k++) if (Math.abs(page.at[k] - x) < this.halves[k] + 22) return true;
+  /** Whether a label at `x` overlaps a page's tag, with four pixels between them. @param {number} x @param {Tags} page @param {number} half */
+  #covered(x, page, half) {
+    for (let k = 0; k < page.count; k++) if (Math.abs(page.at[k] - x) < this.halves[k] + half + 4) return true;
     return false;
   }
 
@@ -173,11 +173,11 @@ export class TimeAxis {
           if (start !== t) { t = next; continue; }
         }
         const x = time.x(i);
-        // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
+        // Measure the final label: day/year text and page-supplied words have the same edge and overlap bounds.
         const when = calendar ? t : times[i], words = this.format ? this.format(when, kindOf(when)) : null;
-        if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
-          const text = words ?? label(when);
+        if (words !== "" && x - last >= ROOM) {
+          const text = words ?? label(when), half = g.measureText(text).width / 2;
+          if (x < half || x + half > plot || this.#covered(x, page, half)) { t = next; continue; }
           g.fillText(text, x, this.height / 2);
           if (this.drawnCount === this.drawnX.length) ((grown) => (grown.set(this.drawnX), (this.drawnX = grown)))(new Float64Array(this.drawnCount * 2));
           (this.drawnX[this.drawnCount] = x), (this.drawnWords[this.drawnCount++] = text), (last = x), drawn++;

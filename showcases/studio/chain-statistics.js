@@ -18,8 +18,6 @@
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) {
-  /** A series' change over a span. @param {NamedSeries} series @param {string} span */
-  const yearChange = (series, span) => `flow(${series.name}, ${span})`;
   /** A series' change over a day. @param {NamedSeries} series */
   const perDay = (series) => `diff(${series.name}, 1d)`;
   /** A running total's change over a day. @param {Cumulative} total */
@@ -40,9 +38,9 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
       return null;
     });
     return lines.every((line) => line !== null) ? line(name, /** @type {string[][]} */ (lines), 1, { ...options, maxInterval: span === 7 ? "week1" : "month1" }) : null;
-  });
+  }).filter(Boolean);
   /** A calendar year's flow, from the preceding year's end. */
-  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: yearChange(total, "1y"), label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
+  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `flow(${total.name}, 1y)`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
   const percentLine = (title, lines, days) => line(title, lines, days, { format: "percent" });
   /** Areas stacked into shares of their sum. @param {string} title @param {string[][]} parts @param {number} days */
