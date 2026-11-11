@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <title>Terms · Bitview</title>
+    <meta
+      name="description"
+      content="The terms for bitview.space and mcp.bitview.space: free, read-only, as is, not advice; MIT code, and data and charts under CC BY 4.0."
+    />
+    <link rel="canonical" href="https://bitview.space/terms/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* One set of terms for every Bitview service, in the privacy page's look: plain text on the page's colours,
+         system fonts, nothing loaded. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#ffffff, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#3c3f45, #c4c7cc);
+        --soft: light-dark(#5f636b, #8f949c);
+        --rule: light-dark(rgb(15 16 18 / 0.12), rgb(247 248 248 / 0.12));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 32px 16px 80px;
+      }
+
+      a {
+        color: var(--ink);
+        text-underline-offset: 0.2em;
+        text-decoration-color: var(--rule);
+
+        &:hover {
+          text-decoration-color: currentColor;
+        }
+      }
+
+      code {
+        font: 0.9em var(--mono);
+        overflow-wrap: anywhere;
+      }
+
+      .home {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      h1 {
+        margin: 48px 0 4px;
+        color: var(--ink);
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 36px 0 8px;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink);
+        font-size: 18px;
+      }
+
+      .updated {
+        margin: 0;
+        color: var(--soft);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+
+      <h1>Terms</h1>
+      <p class="updated">Last updated November 11, 2026</p>
+
+      <p>
+        By using the services below, you agree to these terms. If you don't agree, please don't use them. Here,
+        "Bitview" means these services and the people who run them. "The Bitview software" means the code they run,
+        and its "contributors" are the people who wrote it.
+      </p>
+
+      <h2 id="scope">What this covers</h2>
+      <p>Every Bitview service run at these two addresses:</p>
+      <ul>
+        <li>
+          <a href="https://bitview.space/">bitview.space</a>: the website and its apps, the REST API and its
+          <a href="/openapi.json">OpenAPI description</a>, <a href="/llms.txt">llms.txt</a> and
+          <a href="/llms-full.txt">llms-full.txt</a>, and the Agent Skill, which calls the API.
+        </li>
+        <li>
+          <a href="https://mcp.bitview.space/">mcp.bitview.space</a>: the MCP server, which the Claude Code plugin
+          uses together with the skill.
+        </li>
+      </ul>
+      <p>
+        The Bitview software is open source, and anyone can run it. A server someone else runs is theirs, under their
+        own terms: if you reached this page at another address, its operator's terms apply there, not these. The
+        software's own files are under the MIT license (see <a href="#licenses">Licenses</a>).
+      </p>
+
+      <h2 id="offer">What's offered</h2>
+      <p>
+        Bitcoin data, free and public: on-chain metrics, blocks, transactions, addresses, the mempool, mining and the
+        price, as pages, charts, an API and MCP tools. There is no account and no API key, and nothing to pay.
+      </p>
+      <p>
+        Everything is read-only. Bitview holds no Bitcoin private keys and no funds, and cannot sign, send or broadcast a transaction,
+        or move bitcoin for anyone.
+      </p>
+      <p>
+        Scripts, bots and AI agents are welcome, and you're responsible for what the ones you run do. If you use the
+        services for an organization, you accept these terms for it and confirm you can.
+      </p>
+
+      <h2 id="sources">Where the data comes from</h2>
+      <p>
+        Bitview's own code computes it from Bitview's own Bitcoin node: the blocks, and the pending transactions in
+        its mempool. Some of the data comes from elsewhere:
+      </p>
+      <ul>
+        <li>
+          Before August 2010 (block 74,641), there is no price, and it reads zero. From then until January 5, 2015,
+          the price comes from an older record of exchange prices, whose original source isn't documented; by its end
+          it followed Bitstamp. From January 5, 2015, it comes from Bitfinex's minute closing prices. From block 340,000 (later in
+          January 2015) on, it's estimated from the chain itself, not read from an exchange.
+        </li>
+        <li>
+          Mining pools are recognized with the public
+          <a href="https://github.com/mempool/mining-pools">list of pools</a> kept by the mempool.space project, and
+          their logos are copied from mempool.space.
+        </li>
+      </ul>
+
+      <h2 id="as-is">No warranty</h2>
+      <p>
+        <strong>
+          As far as the law allows, the services are provided "as is" and "as available". Bitview and the software's
+          contributors give no warranty of any kind, express or implied, including of accuracy, availability,
+          merchantability, fitness for a particular purpose or non-infringement.
+        </strong>
+        There is no promise of uptime. The services can be slow, down, changed or ended at any time, without notice,
+        and that includes API endpoints, series, response shapes and MCP tools.
+      </p>
+      <p>
+        Any of the data can be wrong, late or incomplete, and it can change after the fact: when recent blocks are
+        replaced in a chain reorganization, when the method behind a series is improved, or when a mistake is fixed.
+        Check anything important against another source before relying on it, and please report errors to
+        <a href="mailto:support@bitview.space">support@bitview.space</a>.
+      </p>
+
+      <h2 id="not-advice">Not advice</h2>
+      <p>
+        Nothing Bitview provides is financial, investment, trading, tax or legal advice, or a recommendation to buy,
+        sell or hold anything. Metrics, charts, estimates and model outputs describe Bitcoin as well as Bitview can
+        measure it; what to do with them is your decision.
+      </p>
+
+      <h2 id="use">Acceptable use</h2>
+      <p>Use the services lawfully, and in a way that leaves them working for everyone else. Don't:</p>
+      <ul>
+        <li>
+          attack them, or try to get around their security or any limit put in place (reporting a security problem
+          to support in good faith isn't an attack);
+        </li>
+        <li>send so many requests, or such heavy ones, that you slow or overload them, by scraping or otherwise;</li>
+        <li>claim Bitview endorses you, or pass off data you changed or made up as Bitview's.</li>
+      </ul>
+      <p>
+        No fixed request limit is published. To protect the services, or if someone breaks these terms, access may be
+        slowed, limited or blocked, for one client or for all, without notice. For heavy or constant use, run your own
+        Bitview server: the software is free and <a href="/dev/">runs beside your own node</a>.
+      </p>
+
+      <h2 id="licenses">Licenses</h2>
+      <p>
+        The code is MIT; the data and charts are CC BY 4.0, so republishing charts or substantial parts of the data
+        needs credit, and less needs none; a few pieces from others are under their own terms.
+      </p>
+      <p>
+        The code is open source under the MIT license, in the
+        <a href="https://github.com/bitcoinresearchkit/mono">repository</a>: the server, the website, the MCP server,
+        the client libraries, the API descriptions, the llms files, the skill and the plugin. You can use, change and
+        share it, keeping its copyright and license notice, as that license says.
+      </p>
+      <p>
+        The data the services return, series descriptions included, and the charts they draw are under
+        <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0</a> (CC BY 4.0), as
+        far as Bitview holds rights in them. The software's own files stay under MIT, and the pieces from others below
+        are under neither license.
+      </p>
+      <p>
+        You can copy, publish, change and build on the data and charts, for any purpose, commercial included, without
+        asking. Republishing charts, or substantial parts of the data in datasets, dashboards, apps or articles, needs
+        credit. The license requires you to credit "Bitview (bitview.space)", name the license (CC BY 4.0), link
+        to <a href="https://bitview.space/">bitview.space</a> and the license where the medium allows, say if you
+        changed anything, keep any notices that come with the material, and not add terms that stop others using it
+        as the license allows. The license itself is what counts. A license already given this way can't be taken
+        back by a later change to these terms.
+      </p>
+      <p>
+        As an extra permission on top of CC BY 4.0, anything short of republishing charts or substantial parts of the
+        data needs no credit, such as an AI assistant answering a question, or a person citing a few values in a post
+        or a conversation. Single facts like a block's height or a day's price aren't Bitview's to license anyway.
+        Credit in answers is still welcome, and this permission isn't taken back for use made before a change.
+      </p>
+      <p>
+        These pieces come from others: neither license covers them, Bitview claims no rights in them, and it can't
+        give you rights that others hold. For each, check its own terms where it has any.
+      </p>
+      <ul>
+        <li>
+          the exchange prices before block 340,000: the older record has no documented source or terms, and Bitfinex's
+          prices are under Bitfinex's terms. What Bitview computes from them is under CC BY 4.0 only as far as Bitview
+          holds rights in it;
+        </li>
+        <li>
+          the list of mining pools, under <a href="https://github.com/mempool/mining-pools">its own license</a>, and
+          the pools' names and logos, which belong to their owners;
+        </li>
+        <li>
+          text, images and other content people have written into the blockchain, which raw transactions carry.
+          Bitview doesn't review it, and it may be offensive or unlawful. Bitview can't remove anything from the
+          blockchain, but you can report content to
+          <a href="mailto:support@bitview.space">support@bitview.space</a>;
+        </li>
+        <li>
+          the fonts, Inter, Lilex and Instrument Serif, under the
+          <a href="https://openfontlicense.org/">SIL Open Font License 1.1</a>;
+        </li>
+        <li>
+          the Globe's map, from <a href="https://github.com/topojson/world-atlas">world-atlas</a>, under its ISC
+          license.
+        </li>
+      </ul>
+      <p>
+        Neither license covers the Bitview name and logo as a brand: use them to credit Bitview as above, not to
+        suggest Bitview endorses you.
+      </p>
+
+      <h2 id="third-parties">Third parties</h2>
+      <p>
+        Bitview relies on services it doesn't run or control. Both addresses are served through Cloudflare, which
+        handles every connection under its own <a href="https://www.cloudflare.com/privacypolicy/">privacy policy</a>.
+        The Benchmarks page reads its results from GitHub, and the MCP server's pages load their fonts from jsDelivr.
+        The code and client libraries are hosted on GitHub, npm, PyPI and crates.io. Those services, and any outside
+        site Bitview links to, have their own terms.
+      </p>
+      <p>
+        When you reach Bitview through an AI assistant, the assistant is between you and the data, under its maker's
+        terms. Bitview answers the assistant's requests, but doesn't control what it asks or what it tells you.
+      </p>
+
+      <h2 id="liability">Limitation of liability</h2>
+      <p>
+        <strong>
+          As far as the law allows, Bitview and the software's contributors aren't liable for any loss or damage from
+          using or relying on the services or their data, including answers an AI assistant passes on, or from being
+          unable to use them. That includes lost money, profits or data and any indirect or consequential loss, even
+          if such a loss was foreseeable.
+        </strong>
+        Since the services are free, if any liability can't be excluded, the total for all your claims is limited to
+        US$50, unless the law requires more. Nothing here limits liability the law doesn't allow to be limited, such as
+        for fraud, intentional wrongdoing, gross negligence, or death or personal injury.
+      </p>
+
+      <h2 id="changes">Changes</h2>
+      <p>
+        These terms can change, and the date at the top says when they last did. A change applies only to use after
+        it's published here. A change that takes away something you were allowed to do, or asks something new of you,
+        takes effect 30 days after it's published, and the page says that date. Until then, the earlier version (in
+        the page's history) still applies. This is about changes to these terms; the services themselves can change
+        at any time, as above. With no accounts, there's no way to email you: the date, and the
+        <a href="https://github.com/bitcoinresearchkit/mono/commits/prod/showcases/terms/index.html">page's history</a>
+        in the source, are how changes are announced.
+      </p>
+
+      <h2 id="general">General</h2>
+      <p>
+        These terms, the privacy page and the MIT and CC BY 4.0 licenses are the whole agreement about the services.
+        If a court finds part of these terms unenforceable, the rest still applies. Not enforcing a term at one time
+        doesn't give up the right to later. Bitview may end anyone's access at any time, and these terms pass to
+        whoever runs the services next. The sections on warranty, advice, liability and licenses keep applying after
+        your use ends.
+      </p>
+
+      <h2 id="contact">Contact</h2>
+      <p>
+        What Bitview receives and keeps is on the <a href="/privacy/">privacy page</a>. Questions, rights holders'
+        notices, or a problem to sort out: <a href="mailto:support@bitview.space">support@bitview.space</a>.
+      </p>
+    </main>
+  </body>
+</html>

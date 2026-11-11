@@ -5,7 +5,7 @@ description: "Fetches live and historical Bitcoin data from Bitview, read from a
 
 # Bitview
 
-Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Plain HTTPS GETs returning JSON.
+Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Plain HTTPS GETs returning JSON. Use of Bitview is under the terms at https://bitview.space/terms/.
 
 ## Series
 

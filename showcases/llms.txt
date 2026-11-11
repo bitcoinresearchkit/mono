@@ -8,6 +8,7 @@
 - Base URL: https://bitview.space
 - Authentication: None
 - Browser access: Permissive CORS
+- [Terms of use](https://bitview.space/terms/)
 - [Full plain-text reference](https://bitview.space/llms-full.txt)
 - [Compact API summary](https://bitview.space/api.json)
 - [Full OpenAPI](https://bitview.space/openapi.json)
@@ -44,7 +45,7 @@ The MCP server is stateless and read-only, with a tool for most of these operati
 - [SKILL.md](https://bitview.space/.well-known/agent-skills/bitview/SKILL.md), listed in the [skill index](https://bitview.space/.well-known/agent-skills/index.json)
 - [Claude Code plugin](https://mcp.bitview.space/#connect) with the skill and the MCP server
 
-## Source
+## Source and licenses
 
 - [GitHub](https://github.com/bitcoinresearchkit/mono)
-- MIT licensed
+- Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.

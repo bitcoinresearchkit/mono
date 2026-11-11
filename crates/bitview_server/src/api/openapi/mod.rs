@@ -206,6 +206,7 @@ Errors use `application/problem+json`:
         ),
         // (The API's release, not the build's commit (/version's): the docs made from it stay as they are.)
         version: format!("v{}", env!("CARGO_PKG_VERSION")),
+        terms_of_service: Some("https://bitview.space/terms/".to_string()),
         contact: Some(Contact {
             name: Some("Bitview".to_string()),
             url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
