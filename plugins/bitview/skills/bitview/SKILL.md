@@ -5,7 +5,7 @@ description: "Fetches live and historical Bitcoin data from Bitview, read from a
 
 # Bitview
 
-Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Call it with curl.
+Bitcoin data API at https://bitview.space, read from a full node. Free and read-only, with no API key. Plain HTTPS GETs returning JSON.
 
 ## Series
 
@@ -19,11 +19,10 @@ Ids are snake_case metric names: request a likely one directly, as an unknown id
 
 Never invent a series id: only ids the API returned exist. `references/series.md` maps the series by topic, for browsing.
 
-Fetch and compute in one command, the JSON piped into Python:
+Fetch and compute in one command, Python reading the JSON:
 
 ```sh
-curl -s "https://bitview.space/api/series/bulk?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03" \
-  | python3 -c 'import json,sys; a,b=(s["data"] for s in json.load(sys.stdin)); print(a, b, b[-1]/a[-1])'
+python3 -c 'import json, urllib.request as r; q = r.Request("https://bitview.space/api/series/bulk?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03", headers={"User-Agent": "bitview-skill"}); a, b = (s["data"] for s in json.load(r.urlopen(q))); print(a, b, b[-1] / a[-1])'
 ```
 
 Indexes:
@@ -38,7 +37,7 @@ Traps:
 - A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already times 100. Convert only as asked.
 - Compute derived numbers at full precision; round only the final answer, if at all.
 - `null` means undefined (before the data exists), never zero.
-- Answer in as few commands as you can: chain requests (with `sleep 1` between them) and pipe the JSON into `python3 -c` for any arithmetic.
+- Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.
 
 ## Other endpoints
 

@@ -10,6 +10,8 @@
   "repository": "https://github.com/bitcoinresearchkit/mono",
   "license": "MIT",
   "privacyPolicyUrl": "https://bitview.space/privacy/",
+  "supportUrl": "https://github.com/bitcoinresearchkit/mono/issues",
+  "documentationUrl": "https://github.com/bitcoinresearchkit/mono/tree/prod/plugins/bitview",
   "keywords": [
     "bitcoin",
     "blockchain",
