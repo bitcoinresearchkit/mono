@@ -10690,7 +10690,7 @@
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
-            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5.0% ₿1,690,123").</li>
+            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5% ₿1,690,123").</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -16623,7 +16623,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function axisWidth() {
         const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
         context.font = `11px ${chartSans}`;
-        return Math.ceil((Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width) + 16) / 4) * 4;
+        return Math.ceil((context.measureText(`−${"0".repeat(Math.max(AXIS_CHARS, FRACTION_WIDTH))}%`).width + 16) / 4) * 4;
       }
       /** The chart's colors, the theme's (set again when it changes). */
       /**
@@ -16661,8 +16661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * How a pane's values are written, its tags' and its ticks': as values, or a 100% stack's in percent, 0 to 100 (none
-       * past it: the margin over the top stays blank). (Its ticks short; its latest's tag and the crosshair's, a digit or
-       * so more: see precise.)
+       * past it: the margin over the top stays blank). Tags and crosshair readings use the same value writer.
        */
       const VALUE_FORMAT = { value: (/** @type {number} */ value) => precise(value), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
       const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
@@ -22758,11 +22757,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const sums = engine.sumsAt(at.y), price = Number(seriesValue(series, at.y)), from = engine.at;
           if (sums && price > 0 && from > 0) {
             const change = (price / from - 1) * 100, total = sums.reduce((sum, value) => sum + value, 0);
-            return { amount: `${change < 0 ? "−" : "+"}${Math.abs(change).toFixed(1)}% ${format(total, look.measure === "supply" ? "btc" : "usd")}`, at: "" };
+            return { amount: `${change < 0 ? "" : "+"}${format(change, "percent")} ${format(total, look.measure === "supply" ? "btc" : "usd")}`, at: "" };
           }
         }
         const close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
-        return share === null ? null : { amount: `${share}% in profit`, at: "" };
+        return share === null ? null : { amount: `${format(share, "percent")} in profit`, at: "" };
       }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
       let heatAt = null;
@@ -22898,7 +22897,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
       const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
       /**
-       * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent, rounded;
+       * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent;
        * none, no coins. Kept while its days, grid and close are the same: a crosshair reads the view's day too.
        * @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} close
        */
@@ -22918,7 +22917,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           for (let k = 0; k < rows.length; k++) (all += supply[k]), k < cut && (under += supply[k]);
         }
-        const share = all > 0 ? Math.round((100 * under) / all) : null;
+        const share = all > 0 ? (100 * under) / all : null;
         heat.profit = { grid, close, days: shown.map((item) => item?.day), share };
         return share;
       }
@@ -22993,8 +22992,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             axisTags: (on, add) => {
               const look = heatLooks.get(id), shares = look?.shares, y = shares && seriesY(series, shares.close);
               if (on !== side || series.engine.faint || !shares || y === null || y === undefined) return;
-              add(y - 19, `${100 - shares.share}%`, look.halo ?? "transparent", look.lose ?? "transparent");
-              add(y + 19, `${shares.share}%`, look.halo ?? "transparent", look.gain ?? "transparent");
+              add(y - 19, format(100 - shares.share, "percent"), look.halo ?? "transparent", look.lose ?? "transparent");
+              add(y + 19, format(shares.share, "percent"), look.halo ?? "transparent", look.gain ?? "transparent");
             },
           },
           { over: true },

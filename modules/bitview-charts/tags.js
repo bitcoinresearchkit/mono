@@ -11,13 +11,16 @@ export const PILL = 18;
 /**
  * A pill (every tag and badge the chart draws: its series' and a page's on the axes, the crosshair's): `words` on
  * `color` in `ink`, as wide as its words and 6 pixels each side, `height` tall (its corners 4, less where it's lower), its
- * middle at `y`; its left at `x` (`align` "left"), its right ("right") or its middle ("center"). Too low to read (under
+ * middle at `y`; its preferred left at `x` (`align` "left"), its right ("right") or its middle ("center"), kept within
+ * the canvas under its current translation and scale. Too low to read (under
  * 10 pixels: crowded tags), its color alone. With a `border`, edged in it (a pixel, inside). Its width returned.
  * @param {CanvasRenderingContext2D} g @param {string} words @param {string} color @param {string} ink @param {number} x
  * @param {number} y @param {"left" | "right" | "center"} align @param {number} [height] @param {string} [border]
  */
 export function pill(g, words, color, ink, x, y, align, height = PILL, border = "") {
-  const width = g.measureText(words).width + 12, left = align === "left" ? x : align === "right" ? x - width : x - width / 2, radius = Math.max(0, Math.min(4, height / 2));
+  const width = g.measureText(words).width + 12, at = align === "left" ? x : align === "right" ? x - width : x - width / 2, radius = Math.max(0, Math.min(4, height / 2));
+  const transform = g.getTransform(), from = -transform.e / transform.a, to = (g.canvas.width - transform.e) / transform.a;
+  const left = Math.max(from, Math.min(at, to - width));
   g.fillStyle = color;
   g.beginPath();
   g.roundRect(left, y - height / 2, width, height, radius);
