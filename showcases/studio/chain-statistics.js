@@ -18,8 +18,10 @@
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp }) {
+  /** A series' change over a span. @param {NamedSeries} series @param {string} span */
+  const change = (series, span) => `diff(${series.name}, ${span})`;
   /** A series' change over a day. @param {NamedSeries} series */
-  const perDay = (series) => `diff(${series.name}, 1d)`;
+  const perDay = (series) => change(series, "1d");
   /** A running total's change over a day. @param {Cumulative} total */
   const daily = (total) => perDay(total.cumulative);
   /** `part` as a percentage of `whole`. @param {string} part @param {string} whole */
@@ -29,9 +31,9 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   /** Lines, each a label and a formula. @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[] }} [options] */
   const line = (title, lines, days, { format, log } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /** Event counts use whole totals over a week or month, including when events are sparse. */
-  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => line(title, totals.map(([label, total]) => [`${label}, ${days} days`, `diff(${total.cumulative.name}, ${days}d)`]), 1, options);
+  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => line(title, totals.map(([label, total]) => [`${label}, ${days} days`, change(total.cumulative, `${days}d`)]), 1, options);
   /** A calendar year's flow, from the preceding year's end. */
-  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `coalesce(diff(${total.name}, 1y), ${total.name})`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
+  const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `coalesce(${change(total, "1y")}, ${total.name})`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
   const percentLine = (title, lines, days) => line(title, lines, days, { format: "percent" });
   /** Areas stacked into shares of their sum. @param {string} title @param {string[][]} parts @param {number} days */
@@ -52,7 +54,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   const lengths = (/** @type {const} */ ([70, 71, 72, 73, 74])).map((n) => [`${n} byte`, daily(ecdsa.length[`_${n}Bytes`])]).concat([["75 byte or more", daily(ecdsa.length.over74Bytes)]]);
   /** ECDSA signatures with and without a property. @param {string} title @param {Cumulative} total @param {string} yes @param {string} no */
   const ecdsaSplit = (title, total, yes, no) => shareStack(title, [[yes, daily(total)], [no, `${daily(ecdsa.count)} - ${daily(total)}`]], 30);
-  const sighash = (/** @type {string} */ title, /** @type {keyof typeof ecdsa.sighash} */ key, /** @type {number} */ days) => events(title, [["SigHashes", ecdsa.sighash[key]]], days);
+  const sighash = (/** @type {string} */ title, /** @type {keyof typeof ecdsa.sighash} */ key) => events(title, [["SigHashes", ecdsa.sighash[key]]]);
   const opcodes = (/** @type {string} */ title, /** @type {(keyof typeof t.inputs.opcodes)[]} */ keys) => events(title, keys.map((key) => [key.toUpperCase(), t.inputs.opcodes[key]]));
 
   const fees = t.transactions.fees;
@@ -79,7 +81,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   /** @type {[string, Cumulative][]} */
   const spendAge = [["same block", t.inputs.sameBlock], ["≤ 1 block", within._1Block], ["≤ 6 blocks", within._6Blocks], ["≤ 144 blocks", within._144Blocks], ["≤ 2016 blocks", within._2016Blocks]];
   const utxos = t.utxos.types;
-  const inAndOut = (/** @type {string} */ title, /** @type {keyof typeof inputs} */ key, /** @type {number} */ days) => events(title, [["inputs", inputs[key].count], ["outputs", outputs[key].count]], days);
+  const inAndOut = (/** @type {string} */ title, /** @type {keyof typeof inputs} */ key) => events(title, [["inputs", inputs[key].count], ["outputs", outputs[key].count]]);
 
   return section("Chain statistics", [
     section("Yearly", [
@@ -95,12 +97,12 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       ecdsaSplit("r-values in ECDSA signatures", ecdsa.lowR, "low r", "high r"),
       ecdsaSplit("DER encoded ECDSA signatures", ecdsa.strictDer, "DER encoded", "not DER encoded"),
       shareStack("Public key compression (ECDSA)", [["Uncompressed (input)", daily(t.inputs.pubkeys.uncompressed)], ["Compressed (input)", daily(t.inputs.pubkeys.compressed)], ["Compressed (output)", daily(t.outputs.pubkeys.compressed)], ["Uncompressed (output)", daily(t.outputs.pubkeys.uncompressed)]], 30),
-      sighash("SigHash ALL", "all", 7),
-      sighash("SigHash ALL | ACP", "allAnyoneCanPay", 7),
-      sighash("SigHash NONE | ACP", "noneAnyoneCanPay", 7),
-      sighash("SigHash SINGLE | ACP", "singleAnyoneCanPay", 7),
-      sighash("SigHash NONE", "none", 7),
-      sighash("SigHash SINGLE", "single", 7),
+      sighash("SigHash ALL", "all"),
+      sighash("SigHash ALL | ACP", "allAnyoneCanPay"),
+      sighash("SigHash NONE | ACP", "noneAnyoneCanPay"),
+      sighash("SigHash SINGLE | ACP", "singleAnyoneCanPay"),
+      sighash("SigHash NONE", "none"),
+      sighash("SigHash SINGLE", "single"),
       line("Total signature count", [["ECDSA", ecdsa.count.cumulative.name], ["Schnorr", schnorr.count.cumulative.name]], 1),
       line("Signature count per day", [["ECDSA", daily(ecdsa.count)], ["Schnorr", daily(schnorr.count)]], 7),
       line("Total ECDSA and Schnorr signature size", [["GB of ECDSA signatures", `${ecdsa.bytes.cumulative.name} / 1000000000`], ["GB of Schnorr signatures", `${schnorr.bytes.cumulative.name} / 1000000000`]], 1),
@@ -175,14 +177,14 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
     })()),
     section("Inputs and outputs", [
       line("Native SegWit v0 inputs and outputs", [["inputs", `${daily(inputs.p2wpkh.count)} + ${daily(inputs.p2wsh.count)}`], ["outputs", `${daily(outputs.p2wpkh.count)} + ${daily(outputs.p2wsh.count)}`]], 7),
-      inAndOut("P2A inputs and outputs", "p2a", 7),
-      inAndOut("P2MS inputs and outputs", "p2ms", 7),
-      inAndOut("P2PK inputs and outputs", "p2pk", 7),
-      inAndOut("P2PKH inputs and outputs", "p2pkh", 7),
+      inAndOut("P2A inputs and outputs", "p2a"),
+      inAndOut("P2MS inputs and outputs", "p2ms"),
+      inAndOut("P2PK inputs and outputs", "p2pk"),
+      inAndOut("P2PKH inputs and outputs", "p2pkh"),
       line("P2SH inputs and outputs (including nested SegWit)", [["P2SH inputs", plainP2sh], ["P2SH, nested P2WPKH, nested P2WSH inputs", daily(inputs.p2sh.count)], ["P2SH outputs", daily(outputs.p2sh.count)]], 7),
-      inAndOut("P2TR inputs and outputs", "p2tr", 7),
-      inAndOut("P2WPKHv0 inputs and outputs", "p2wpkh", 7),
-      inAndOut("P2WSHv0 inputs and outputs", "p2wsh", 7),
+      inAndOut("P2TR inputs and outputs", "p2tr"),
+      inAndOut("P2WPKHv0 inputs and outputs", "p2wpkh"),
+      inAndOut("P2WSHv0 inputs and outputs", "p2wsh"),
       percentLine("Inputs spending UTXOs created in the same block", [["inputs spending newly created UTXOs", percent(daily(t.inputs.sameBlock), day.inputs)]], 7),
       line("Inputs and outputs", [["inputs", day.inputs], ["outputs", day.outputs]], 7),
       events("Inputs revealing an Inscription", [["inscription inputs", t.inputs.inscriptions]], 7),

@@ -408,8 +408,9 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
         return unsupported_version(version);
     }
 
-    // `GET /` is the page. Asked for as an event stream it's the MCP endpoint, which has no stream.
-    let landing = request.method() == Method::GET && request.uri().path() == "/";
+    // `GET /` (and its `HEAD`) is the page. As an event stream it is MCP, which has no stream.
+    let landing =
+        matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
     if landing
         && request
             .headers()
@@ -417,12 +418,18 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
             .and_then(|accept| accept.to_str().ok())
             .is_some_and(|accept| accept.contains("text/event-stream"))
     {
-        return (StatusCode::METHOD_NOT_ALLOWED, [(CACHE_CONTROL, "no-store")]).into_response();
+        return (
+            StatusCode::METHOD_NOT_ALLOWED,
+            [(CACHE_CONTROL, "no-store")],
+        )
+            .into_response();
     }
 
     let mut response = next.run(request).await;
     if landing {
-        response.headers_mut().append(VARY, HeaderValue::from_static("Accept"));
+        response
+            .headers_mut()
+            .append(VARY, HeaderValue::from_static("Accept"));
     }
     response
 }

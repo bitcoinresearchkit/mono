@@ -12387,7 +12387,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
        * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
-       * room as the widest (PRECISE), with up to twelve characters for small decimal readings: thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
+       * room as the widest (PRECISE), with up to twelve characters for small decimal readings: thousands whole, grouped
+       * (82,156); under a thousand, four digits (123.4, 1.234,
        * 0.01234); millions and up, four digits and a letter (1.235M). On an axis (a tag, a level's, the crosshair's:
        * `step`, the step between its ticks around it), by them: a decimal past theirs, in its letter's unit (89% by ticks
        * 20% apart, 1.053 by 0.02, 20.1M by 2M), thousands whole as ever (77,546).
@@ -30822,12 +30823,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `<div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${at === undefined ? "mixed" : at + 1}"><span class="name">${name}</span>${CHEVRON}</button></div>`;
       };
       const FITS = [["on", "On", "The axis takes in its values"], ["zero", "From zero", "A linear axis includes zero and its values"], ["off", "Off", "The axis framed without it: drawn where it is, past the edge if it's far"]];
-      const fitOf = (/** @type {Layer} */ layer) => layer.fit === false ? "off" : layer.fit === "zero" ? "zero" : "on";
+      const fitChoices = (/** @type {Layer[]} */ layers) => FITS.filter(([key]) => key !== "zero" || layers.every((layer) => modeOf(chart, layer) === 0));
+      const fitOf = (/** @type {Layer} */ layer) => layer.fit === false ? "off" : layer.fit === "zero" && modeOf(chart, layer) === 0 ? "zero" : "on";
       const setFit = (/** @type {Layer} */ layer, /** @type {string} */ fit) => { if (fit === "on") delete layer.fit; else layer.fit = fit === "zero" ? "zero" : false; };
       const fitField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every(fittable)) return "";
         const now = sharedBy(layers, fitOf);
-        return `<div class="field switch"><span>Fit the axis</span><div class="tabs" role="group" aria-label="Fit the axis">${FITS.map(([on, text, tip]) => `<button type="button" data-fit="${on}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
+        return `<div class="field switch"><span>Fit the axis</span><div class="tabs" role="group" aria-label="Fit the axis">${fitChoices(layers).map(([on, text, tip]) => `<button type="button" data-fit="${on}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
       };
       const axisField = (/** @type {Layer[]} */ layers) => {
         if (layers.some(follows)) return "";
@@ -35919,7 +35921,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ]),
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
-            ...(fittable(layer) ? [{ key: "fit", icon: ICONS.axis, label: "Fit the axis", aside: FITS.find(([key]) => key === fitOf(layer))?.[1] ?? "On", group: "Layout", page: () => choicePage("Fit the axis", () => FITS.map(([key, label, aside]) => ({ key, label, aside, current: fitOf(now()) === key, run: set((item) => setFit(item, key)) }))) }] : []),
+            ...(fittable(layer) ? [{ key: "fit", icon: ICONS.axis, label: "Fit the axis", aside: FITS.find(([key]) => key === fitOf(layer))?.[1] ?? "On", group: "Layout", page: () => choicePage("Fit the axis", () => fitChoices([now()]).map(([key, label, aside]) => ({ key, label, aside, current: fitOf(now()) === key, run: set((item) => setFit(item, key)) }))) }] : []),
             ...panePage(layer.pane).rows().filter((row) => PANE_SETTINGS.has(row.key)).map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
@@ -37412,8 +37414,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
       });
       function stepInterval(delta) {
-        const ids = INTERVAL_ORDER.filter(supportedIntervals());
-        const next = ids[ids.indexOf(chart.index) + delta];
+        const at = INTERVAL_ORDER.indexOf(chart.index), ids = delta < 0 ? INTERVAL_ORDER.slice(0, at).reverse() : INTERVAL_ORDER.slice(at + 1);
+        const next = ids.find(supportedIntervals());
         if (!next) return;
         switchInterval(next);
         toast(`Interval: ${CADENCE[next]}`);
@@ -38668,13 +38670,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.textAlign = "right";
         context.fillText(said, canvas.width - pad, baseline);
         // At the scale asked for (a script's): the screen's density made that, smoothly.
-        if (!sized || !size.scale || (Math.abs(canvas.width - /** @type {number} */ (size.width) * size.scale) < 1 && Math.abs(canvas.height - /** @type {number} */ (size.height) * size.scale) < 1)) return canvas;
+        const density = size.scale ?? scale;
+        if (!sized || (Math.abs(canvas.width - /** @type {number} */ (size.width) * density) < 1 && Math.abs(canvas.height - /** @type {number} */ (size.height) * density) < 1)) return canvas;
         const out = document.createElement("canvas");
-        out.width = Math.round(/** @type {number} */ (size.width) * size.scale);
-        out.height = Math.round(/** @type {number} */ (size.height) * size.scale);
+        out.width = Math.round(/** @type {number} */ (size.width) * density);
+        out.height = Math.round(/** @type {number} */ (size.height) * density);
         const resampled = /** @type {CanvasRenderingContext2D} */ (out.getContext("2d"));
         resampled.imageSmoothingQuality = "high";
-        resampled.drawImage(canvas, 0, 0, out.width, out.height);
+        resampled.fillStyle = cardColor;
+        resampled.fillRect(0, 0, out.width, out.height);
+        const fit = Math.min(out.width / canvas.width, out.height / canvas.height), w = canvas.width * fit, h = canvas.height * fit;
+        resampled.drawImage(canvas, (out.width - w) / 2, (out.height - h) / 2, w, h);
         return out;
       }
       /**
@@ -39071,7 +39077,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
       /** Whether a chart has an adjacent Library step to keep when it has no edits of its own. */
       const libraryAnchored = (/** @type {string} */ id, /** @type {number} */ mark) => [libraryEdits.past, libraryEdits.future].some((steps) => steps.some((step) => step.chart !== undefined && chartNow(step.chart) === id && step.mark === mark));
-      /** A chart state revisited: only that chart's adjacent Library steps move with it. */
+      /**
+       * A Library step is eligible only at its chart's before/after state. Each mark names one such state;
+       * revision stays monotonic, so replay moves only that chart's matching anchors to the new revision.
+       */
       function reanchorHistory(/** @type {number | undefined} */ mark) {
         if (mark === undefined) return;
         for (const steps of [libraryEdits.past, libraryEdits.future]) for (const step of steps) {
