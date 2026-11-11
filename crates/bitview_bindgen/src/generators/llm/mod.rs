@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 use super::write_if_changed;
 use crate::{
     ClientOutputPaths, Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, model::Model,
-    openapi::Spec,
+    openapi::{Info, Spec},
 };
 
 mod manifest;
@@ -24,6 +24,8 @@ const DEFINITION: &str = "Bitview is a free, open-source Bitcoin data server: on
 /// What an agent can ask Bitview: the skill's trigger and the MCP instructions' opening.
 const SCOPE: &str = "on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015";
 const ACCESS: &str = "Free and read-only, with no API key.";
+/// What anyone may do with the data and the code, in one line; the terms page says it in full.
+const LICENSES: &str = "Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to \"Bitview (bitview.space)\", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.";
 /// The series flow, written once: each step and the operations it calls, named as routes in
 /// llms.txt and the skill, as tools in the MCP instructions.
 const SERIES_FLOW: [(&str, &[&str]); 3] = [
@@ -60,6 +62,8 @@ pub(crate) fn generate_llm_clients(
     schemas: &TypeSchemas,
     paths: &ClientOutputPaths,
 ) -> io::Result<()> {
+    // The sentence the skill and the MCP instructions use to point at the terms page.
+    let terms = format!("Use of Bitview is under the terms at {}.", spec.info.terms);
     let (roots, plugins) = (&paths.llm, &paths.plugin);
     if !plugins.is_empty() || !roots.is_empty() {
         let generated = endpoints
@@ -68,23 +72,21 @@ pub(crate) fn generate_llm_clients(
             .collect::<Vec<_>>();
         let flow = render_series_flow(&generated, route)?;
         let metric_count = count_metrics(catalog);
-        let skill = skill::render(catalog, model, endpoints, metric_count, &flow)?;
-        let plugin = render_plugin(&spec.info.version)?;
+        let skill = skill::render(catalog, model, endpoints, metric_count, &flow, &terms)?;
+        let plugin = render_plugin(&spec.info)?;
         for root in plugins {
             write_skill(&root.join("skills").join(SKILL), &skill)?;
             write_if_changed(&root.join(".claude-plugin/plugin.json"), &plugin)?;
         }
         let index = render_skill_index(&skill[0].1)?;
         let llms = render_llms(
-            &spec.info.title,
-            &spec.info.version,
+            &spec.info,
             metric_count,
             &generated,
             &flow,
         );
         let llms_full = render_llms_full(
-            &spec.info.title,
-            &spec.info.version,
+            &spec.info,
             metric_count,
             &generated,
             schemas,
@@ -101,7 +103,7 @@ pub(crate) fn generate_llm_clients(
         manifest::generate_tool_manifest(
             endpoints,
             schemas,
-            &render_mcp_instructions(endpoints)?,
+            &render_mcp_instructions(endpoints, &terms)?,
             path,
         )?;
     }
@@ -192,17 +194,18 @@ fn render_skill_index(skill: &str) -> io::Result<String> {
 }
 
 /// The Claude Code plugin: the skill beside the MCP server, versioned with the API.
-fn render_plugin(version: &str) -> io::Result<String> {
+fn render_plugin(info: &Info) -> io::Result<String> {
     pretty(&json!({
         "name": SKILL,
         "displayName": "Bitview",
-        "version": version.trim_start_matches('v'),
+        "version": info.version.trim_start_matches('v'),
         "description": format!("Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS}"),
         "author": { "name": "Bitview" },
         "homepage": BASE_URL,
         "repository": REPOSITORY,
         "license": "MIT",
         "privacyPolicyUrl": format!("{BASE_URL}/privacy/"),
+        "termsOfServiceUrl": info.terms,
         "supportUrl": format!("{REPOSITORY}/issues"),
         "documentationUrl": format!("{REPOSITORY}/tree/prod/plugins/{SKILL}"),
         "keywords": ["bitcoin", "blockchain", "on-chain", "mempool", "mining", "market-data"],
@@ -218,14 +221,14 @@ fn pretty(value: &Value) -> io::Result<String> {
 }
 
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
-fn render_mcp_instructions(endpoints: &[Endpoint]) -> io::Result<String> {
+fn render_mcp_instructions(endpoints: &[Endpoint], terms: &str) -> io::Result<String> {
     let tools = endpoints
         .iter()
         .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
         .collect::<Vec<_>>();
     let flow = render_series_flow(&tools, |endpoint| endpoint.operation_id.clone())?;
     Ok(format!(
-        "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS}\n\n\
+        "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS} {terms}\n\n\
 For a series:\n\n\
 {flow}\n\
 {SERIES_RULE}\n\n\
@@ -235,8 +238,11 @@ Source of this data: Bitview ({BASE_URL}). Binary responses are returned as embe
 }
 
 fn render_llms(
-    title: &str,
-    version: &str,
+    Info {
+        title,
+        version,
+        terms,
+    }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
     flow: &str,
@@ -249,6 +255,7 @@ fn render_llms(
 - Base URL: {BASE_URL}\n\
 - Authentication: None\n\
 - Browser access: Permissive CORS\n\
+- [Terms of use]({terms})\n\
 - [Full plain-text reference]({BASE_URL}/llms-full.txt)\n\
 - [Compact API summary]({BASE_URL}/api.json)\n\
 - [Full OpenAPI]({BASE_URL}/openapi.json)\n\
@@ -271,16 +278,19 @@ The MCP server is stateless and read-only, with a tool for most of these operati
 ## Agent Skill\n\n\
 - [SKILL.md]({BASE_URL}/{SKILLS_PATH}/{SKILL}/SKILL.md), listed in the [skill index]({BASE_URL}/{SKILLS_PATH}/index.json)\n\
 - [Claude Code plugin]({MCP_URL}#connect) with the skill and the MCP server\n\n\
-## Source\n\n\
+## Source and licenses\n\n\
 - [GitHub]({REPOSITORY})\n\
-- MIT licensed\n",
+- {LICENSES}\n",
         endpoints.len(),
     )
 }
 
 fn render_llms_full(
-    title: &str,
-    version: &str,
+    Info {
+        title,
+        version,
+        terms,
+    }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
@@ -296,6 +306,8 @@ fn render_llms_full(
     writeln!(output, "- Version: `{version}`").unwrap();
     writeln!(output, "- Base URL: {BASE_URL}").unwrap();
     writeln!(output, "- MCP endpoint: {MCP_URL}").unwrap();
+    writeln!(output, "- Terms of use: {terms}").unwrap();
+    writeln!(output, "- {LICENSES}").unwrap();
     writeln!(output, "- Metrics: {metric_count}").unwrap();
     writeln!(output, "- Operations: {}\n", endpoints.len()).unwrap();
     writeln!(

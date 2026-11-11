@@ -17,8 +17,8 @@ pub(crate) use response_kind::ResponseKind;
 /// Schemas by type name.
 pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
-/// What the generators read of the OpenAPI document: its title and version, and its paths, in
-/// the document's order.
+/// What the generators read of the OpenAPI document: its title, version and terms of service, and
+/// its paths, in the document's order.
 pub(crate) struct Spec {
     pub(crate) info: Info,
     paths: Map<String, Value>,
@@ -27,6 +27,7 @@ pub(crate) struct Spec {
 pub(crate) struct Info {
     pub(crate) title: String,
     pub(crate) version: String,
+    pub(crate) terms: String,
 }
 
 /// The HTTP methods an OpenAPI path item may hold, in the order endpoints are listed.
@@ -56,6 +57,7 @@ pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> 
     let info = Info {
         title: text("/info/title")?,
         version: text("/info/version")?,
+        terms: text("/info/termsOfService")?,
     };
     let paths = match value.get_mut("paths") {
         Some(Value::Object(paths)) => take(paths),

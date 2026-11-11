@@ -30,19 +30,25 @@ pub(super) fn render(
     endpoints: &[Endpoint],
     series_count: usize,
     flow: &str,
+    terms: &str,
 ) -> io::Result<Files> {
     let offered = endpoints
         .iter()
         .filter(|endpoint| endpoint.should_generate())
         .collect::<Vec<_>>();
     Ok([
-        ("SKILL.md", render_skill(&offered, series_count, flow)?),
+        ("SKILL.md", render_skill(&offered, series_count, flow, terms)?),
         (ENDPOINTS, render_endpoints(&offered)),
         (SERIES, render_series(catalog, model, series_count)),
     ])
 }
 
-fn render_skill(endpoints: &[&Endpoint], series_count: usize, flow: &str) -> io::Result<String> {
+fn render_skill(
+    endpoints: &[&Endpoint],
+    series_count: usize,
+    flow: &str,
+    terms: &str,
+) -> io::Result<String> {
     let data = find(endpoints, "get_series")?;
     let bulk = find(endpoints, "get_series_bulk")?;
     let range = data
@@ -78,7 +84,7 @@ name: {SKILL}\n\
 description: \"{description}\"\n\
 ---\n\n\
 # Bitview\n\n\
-Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON.\n\n\
+Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON. {terms}\n\n\
 ## Series\n\n\
 {series_count} time series, each read at an index: `GET {path}` returns the values in `data` and their unit in `type`. {range}\n\n\
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:\n\n\

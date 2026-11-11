@@ -7,6 +7,8 @@
 - Version: `v0.13.0`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
+- Terms of use: https://bitview.space/terms/
+- Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.
 - Metrics: 22901
 - Operations: 107
 

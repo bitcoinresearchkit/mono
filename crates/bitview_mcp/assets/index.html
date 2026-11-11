@@ -153,13 +153,11 @@
       }
 
       .home-view,
-      .terms-view,
       .support-view {
         display: none;
       }
 
       body[data-page="home"] .home-view,
-      body[data-page="terms"] .terms-view,
       body[data-page="support"] .support-view {
         display: block;
       }
@@ -805,126 +803,11 @@
             <a href="https://github.com/bitcoinresearchkit/mono">Source</a>
             <a href="{{PUBLIC_URL}}support">Support</a>
             <a href="{{API_URL}}/privacy/">Privacy</a>
-            <a href="{{PUBLIC_URL}}terms">Terms</a>
+            <a href="{{API_URL}}/terms/">Terms</a>
           </nav>
         </div>
         </section>
       </div>
-
-      <article class="terms-view policy shell" aria-labelledby="terms-title">
-        <header class="policy-header">
-          <p class="eyebrow">Policy</p>
-          <h1 id="terms-title">Terms.</h1>
-          <p class="policy-meta">Last updated October 23, 2026</p>
-        </header>
-
-        <div class="policy-body">
-          <section>
-            <h2>Acceptance and scope</h2>
-            <p>
-              These terms govern use of the {{DISPLAY_NAME}} Model Context
-              Protocol service at <a href="{{PUBLIC_URL}}">{{PUBLIC_URL}}</a>,
-              which {{DISPLAY_NAME}} publishes and operates. By using the
-              service, you agree to these terms. If you do not agree,
-              do not use the service. Independently operated deployments may
-              publish different terms.
-            </p>
-          </section>
-
-          <section>
-            <h2>The service</h2>
-            <p>
-              The service provides a read-only interface to public Bitcoin,
-              blockchain, mempool, mining, market, and on-chain data through the
-              Bitview REST API at <a href="{{API_URL}}">{{API_URL}}</a>. It cannot
-              sign or broadcast transactions, control wallets, trade, or transfer
-              bitcoin.
-            </p>
-          </section>
-
-          <section>
-            <h2>No financial advice</h2>
-            <p>
-              The service and all information it returns are provided for general
-              informational and research purposes only. Nothing provided is
-              financial, investment, trading, tax, accounting, or legal advice, or
-              a recommendation to buy, sell, or hold any asset.
-            </p>
-          </section>
-
-          <section>
-            <h2>Data and verification</h2>
-            <p>
-              Bitcoin and market data can be delayed, incomplete, unavailable, or
-              incorrect. Calculated metrics depend on their underlying data and
-              methodology. You are responsible for independently verifying
-              information before relying on it or making decisions.
-            </p>
-          </section>
-
-          <section>
-            <h2>Acceptable use</h2>
-            <p>You may use the service only for lawful purposes. You must not:</p>
-            <ul>
-              <li>interfere with or disrupt the service or its infrastructure;</li>
-              <li>attempt to bypass security or access controls;</li>
-              <li>misrepresent service output or its source; or</li>
-              <li>use the service in violation of applicable law or third-party rights.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>Availability and changes</h2>
-            <p>
-              The service is offered without a service-level commitment. Tools,
-              schemas, data, endpoints, and availability may change. The
-              service may be interrupted, restricted, or discontinued at any time.
-            </p>
-          </section>
-
-          <section>
-            <h2>Third-party dependencies</h2>
-            <p>
-              The service depends on the configured API, hosting infrastructure,
-              content-delivery networks, software libraries, and other external
-              services. Their availability and behavior are outside the MCP
-              application's control and may be governed by separate terms.
-            </p>
-          </section>
-
-          <section>
-            <h2>Disclaimer of warranties</h2>
-            <p>
-              To the fullest extent permitted by applicable law, the service is
-              provided “as is” and “as available,” without warranties of any kind,
-              express or implied, including warranties of accuracy, reliability,
-              availability, fitness for a particular purpose, and non-infringement.
-            </p>
-          </section>
-
-          <section>
-            <h2>Limitation of liability</h2>
-            <p>
-              To the fullest extent permitted by applicable law, the service's
-              contributors and operators will not be liable for indirect,
-              incidental, special, consequential, or punitive damages, loss of
-              profits or data, or losses arising from use of or inability to use
-              the service. Rights that cannot legally be limited remain unaffected.
-            </p>
-          </section>
-
-          <section>
-            <h2>Changes and contact</h2>
-            <p>
-              These terms may be updated when the service changes. The date above
-              identifies the current version. Questions can be sent to
-              <a href="mailto:support@bitview.space"
-                >support@bitview.space</a
-              >.
-            </p>
-          </section>
-        </div>
-      </article>
 
       <article class="support-view policy shell" aria-labelledby="support-title">
         <header class="policy-header">
@@ -991,7 +874,7 @@
             <h2>Policies</h2>
             <p>
               Review the <a href="{{API_URL}}/privacy/">privacy policy</a> and
-              <a href="{{PUBLIC_URL}}terms">terms of use</a> before using the
+              <a href="{{API_URL}}/terms/">terms of use</a> before using the
               service.
             </p>
           </section>

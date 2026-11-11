@@ -101,8 +101,13 @@ pub fn router(
         .with_json_response(true)
         .with_max_request_body_bytes(MAX_REQUEST_BYTES);
 
-    // One policy covers every Bitview service: the website's, beside the API it calls.
-    let privacy = Redirect::permanent(&format!("{api_url}/privacy/"));
+    // One privacy policy and one set of terms cover every Bitview service: the website's, beside the
+    // API it calls.
+    let redirect = |page: &str| {
+        let to = Redirect::permanent(&format!("{api_url}/{page}/"));
+        get(move || ready(to.clone()))
+    };
+    let [privacy, terms] = ["privacy", "terms"].map(redirect);
     let discovery_routes = discovery::router(&display_name, &public_url);
     let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
@@ -129,8 +134,8 @@ pub fn router(
                 .merge(post_service(service).layer(middleware::from_fn(hold_charge))),
         )
         .route("/logo.png", get(logo::get))
-        .route("/privacy", get(move || ready(privacy.clone())))
-        .route("/terms", page::route(pages.terms))
+        .route("/privacy", privacy)
+        .route("/terms", terms)
         .route("/support", page::route(pages.support))
         .merge(discovery_routes)
         .layer(middleware::from_fn(gateway_guard))
