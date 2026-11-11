@@ -65,7 +65,7 @@ export class Bars extends Line {
    */
   #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
     const values = this.values, n = values.length, log = scale.mode === "log";
-    const spacing = time.spacing, wide = spacing >= 3, baseY = log && !(this.base > 0) ? scale.height : scale.y(this.base);
+    const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
     // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
     const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide && corner > 0 ? Math.min(corner, half) + pad : 0;

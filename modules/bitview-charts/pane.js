@@ -590,7 +590,7 @@ export class Pane {
 
   /** Fitted to its series in the timeline's view (a relative scale's, each read against its first value in view). @param {import("./timeline.js").Timeline} time */
   fit(time) {
-    const n = this.series.length, a = Math.floor(time.from), b = time.lastVisible;
+    const n = this.series.length, a = Math.floor(time.from), b = Math.ceil(time.to);
     if (this.bases.length < n) (this.bases = new Float64Array(n * 2)), (this.drawnBases = new Float64Array(n * 2));
     this.basesSame = true;
     const state = this.fitting, bindings = state.bindings;

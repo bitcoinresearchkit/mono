@@ -58,7 +58,7 @@ export class TimeAxis {
     /** @type {string[]} */
     this.drawnWords = [];
     this.drawnCount = 0;
-    // (Each unit's labels: a month's start is its name among days, its year's among months.)
+    // (Daily labels always include their month; January is named by its year among monthly ticks.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
     // (A time of day as hours and minutes; midnight, its day.)
     const clock = kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : `${date(t).getUTCDate()} ${MONTHS[date(t).getUTCMonth()]}`));
@@ -160,11 +160,11 @@ export class TimeAxis {
     let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity;
     for (let guard = 0; guard < 400 && t <= times[b]; guard++) {
       const i = at(times, t), next = unit === "year" ? Date.UTC((y += size), 0, 1) / 1000 : unit === "month" ? Date.UTC(y, (m += size), 1) / 1000 : t + seconds;
-      if (i <= b && times[i] < next && (t >= times[0] || size === 1)) {
+      if (i <= b && times[i] < next && t >= times[0]) {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
         // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
-        const when = own || t < times[0] ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
+        const when = own ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
         if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
           const text = words ?? label(when);
           g.fillText(text, x, this.height / 2);

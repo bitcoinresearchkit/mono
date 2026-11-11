@@ -23,7 +23,7 @@
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], index?: string, range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
- * @typedef {(name: string, title: string, layers: Layer[], options?: { log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
+ * @typedef {(name: string, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {(name: string, items: (ChartNode | SectionNode | null | undefined | false)[], options?: { workings?: boolean, icon?: string }) => SectionNode} SectionBuilder
@@ -232,12 +232,13 @@ export function studioPresets(client, facts) {
   /** A chart's letter for its `i`th layer (fewer than 26). */
   // (Past Z, AA on, as Studio names layers.)
   const letter = (/** @type {number} */ i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+  /** The schema marks cumulative totals by their containing role, independent of their series names. @type {Set<string>} */
   const cumulative = new Set();
-  const collect = (node) => {
+  const collect = (/** @type {any} */ node) => {
     if (!node || typeof node !== "object" || isLeaf(node)) return;
     for (const [key, child] of entries(node)) {
       if (key === "cumulative") {
-        const leaves = (value) => isLeaf(value) ? cumulative.add(value.name) : entries(value).forEach(([, each]) => leaves(each));
+        const leaves = (/** @type {any} */ value) => isLeaf(value) ? cumulative.add(value.formula ?? value.name) : entries(value).forEach(([, each]) => leaves(each));
         leaves(child);
       } else collect(child);
     }
@@ -262,15 +263,13 @@ export function studioPresets(client, facts) {
       if (options.stack?.[pane - 1] === "stack") options = { ...options, stack: { ...options.stack, [pane]: "stack" } };
     }
     if (layers.some((layer) => layer.heatmap || layer.cloud)) layers = layers.map((layer) => (layer.series === t.price.ohlc.name ? { ...layer, outline: true } : layer));
-    // A cumulative total is an amount since genesis: a linear axis includes its origin.
-    layers = layers.map((layer) => cumulative.has(layer.series ?? layer.formula) && !options.log?.includes(layer.pane ?? 1) && layers.filter((other) => !other.hidden && (other.pane ?? 1) === (layer.pane ?? 1)).length === 1 ? { ...layer, fit: "zero" } : layer);
     const count = Math.max(1, ...layers.map((layer) => layer.pane ?? 1));
     const panes = Array.from({ length: count }, (_, i) => {
       const n = i + 1, withPrice = layers.some((layer) => (layer.pane ?? 1) === n && layer.type === "candles");
       const log = options.log?.includes(n) || withPrice;
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.average?.[n] ? { average: options.average[n] } : {}), ...(options.size?.[n] ? { size: options.size[n] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
+    return { name, title, c: { layers, panes, ...(options.index ? { index: options.index } : {}), ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
   /** @type {SectionBuilder} */
   const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}), ...(options.icon ? { icon: options.icon } : {}) });
@@ -895,7 +894,7 @@ export function studioPresets(client, facts) {
 
     const realizedPrice = between(cap, "/", coins?.btc, "usd");
 
-    return {
+    const result = {
       funded: edge.funded && { value: funded, delta: delta(funded, "funded") },
       supply: edge.supply && { total: coins, share: sum("supply", "share"), inProfit: coinsInProfit, inLoss: coinsInLoss, delta: delta(coins?.btc, "supply"), agedOut },
       capital: edge.capital && { realizedCap: cap, share: sum("capital", "share"), inProfit: capitalInProfit, inLoss: capitalInLoss, delta: delta(cap, "capital") },
@@ -914,6 +913,8 @@ export function studioPresets(client, facts) {
       unrealized: edge.unrealized && { profit: paperProfit, loss: paperLoss, netPnl: between(paperProfit, "-", paperLoss), nupl: between(sum("unrealized", "netPnl"), "/", coins?.usd, "ratio") },
       costBasis: edge.costBasis && realizedPrice && { byCoin: { realizedPrice, avg: { mvrv: made(`${t.price.close.name} / ${realizedPrice.name}`, realizedPrice, "ratio") } } },
     };
+    collect(result);
+    return result;
   };
   /**
    * One side's cutoffs, a folder of them with their comparisons: `edges`, each the band starting there and how it reads.
@@ -1806,7 +1807,12 @@ export function studioPresets(client, facts) {
         walk(item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
+      const c = twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place);
+      // Apply after the panes and visibility are final: a single running total includes its origin, comparisons do not.
+      const visible = new Map();
+      for (const layer of c.layers) if (!layer.hidden) visible.set(layer.pane ?? 1, (visible.get(layer.pane ?? 1) ?? 0) + 1);
+      c.layers = c.layers.map((layer) => !layer.hidden && cumulative.has(layer.series ?? layer.formula) && c.panes?.[(layer.pane ?? 1) - 1]?.mode === 0 && visible.get(layer.pane ?? 1) === 1 ? { ...layer, fit: "zero" } : layer);
+      presets.push({ p: place, t: item.title, c, ...(icon ? { s: icon } : {}) });
       icon = "";
     }
   };

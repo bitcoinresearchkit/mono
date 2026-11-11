@@ -12386,9 +12386,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
        * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
-       * room as the widest (PRECISE): thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
+       * room as the widest (PRECISE), with up to twelve characters for small decimal readings: thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
        * 0.01234); millions and up, four digits and a letter (1.235M). On an axis (a tag, a level's, the crosshair's:
-       * `step`, the step between its ticks around it), by them: a decimal past theirs, in its letter's unit (89.0% by ticks
+       * `step`, the step between its ticks around it), by them: a decimal past theirs, in its letter's unit (89% by ticks
        * 20% apart, 1.053 by 0.02, 20.1M by 2M), thousands whole as ever (77,546).
        * @param {number} value @param {string} [suffix] @param {number} [step]
        */
@@ -12418,14 +12418,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Each threshold by the value as written: 999,999.6 is a million.)
         const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
         // (Small fractions keep their decimal places; larger figures stay within PRECISE, sign and suffix aside.)
-        const fit = abs > 0 && abs < 1 ? text : text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
+        const fit = text.length <= (abs < 1 && !(step > 0) ? 12 : PRECISE.length) ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
         // (Past the last letter's thousands, a power of ten: 1.23e+30.)
-        const label = `${sign}${abs < 1 || fit.length <= PRECISE.length ? fit : abs.toExponential(2)}${suffix}`;
+        const label = `${sign}${fit.length <= (abs < 1 && !(step > 0) ? 12 : PRECISE.length) ? fit : abs.toExponential(2)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
-      /** The widest a precise figure is, its sign and suffix aside (0.001234, 1.234e-5, 123,456). */
       const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
+      /** The width budget of an axis reading, sign and suffix aside. */
       const PRECISE = "0.000000";
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
@@ -12958,6 +12958,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         under: [1, "under(x)", "the same series of every band below x's, summed: under(age_1y_to_18m_supply) is the coins under 1 year old, under(loss_0_to_10_percent_supply) those over 10% in loss", null],
         min: [2, "min(a, b)", "smaller of two", null],
         max: [2, "max(a, b)", "larger of two", null],
+        coalesce: [2, "coalesce(x, fallback)", "x where finite, the fallback where missing", null],
         when: [2, "when(x, condition)", "x where the condition holds (not 0), none elsewhere: when(A, date >= 2020-05-11)", null],
         halving: [3, "halving(x, n, at?)", "x over halving cycle n (0 the first, from the genesis block; 4 since 2024) from 1× at its start; with at, moved to start where cycle at starts (halving(A, 0, 2): the first cycle over the third's dates, day for day)", null, true],
         year: [3, "year(x, y, at?)", "x over year y (2021) from 1× at its start; with at, moved to start where year at starts (year(A, 2021, 2024): 2021 over 2024's dates, day for day)", null, true],
@@ -13210,7 +13211,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           case "call":
             if (isBandSum(node.f)) return unitOfNode(bandSum(node), unitOfRef);
-            if (node.f === "min" || node.f === "max") {
+            if (node.f === "min" || node.f === "max" || node.f === "coalesce") {
               const a = unitOfNode(node.args[0], unitOfRef), b = unitOfNode(node.args[1], unitOfRef);
               return a && b && a !== b ? "number" : a ?? b;
             }
@@ -13314,6 +13315,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             const args = node.args.map((arg, i) => sub(arg, spanned ? i === arity - 1 : inWindow));
             const compute = () => {
+              if (node.f === "coalesce") return lift(args[0], args[1], (x, fallback) => Number.isFinite(x) ? x : fallback);
               if (node.f === "when") return lift(args[0], args[1], (x, holds) => (holds && Number.isFinite(holds) ? x : NaN));
               // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
               if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
@@ -13335,6 +13337,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
                 if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
                 if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
+                const span = spanned ? node.args[arity - 1] : null;
+                if (span?.k === "num" && span.unit && days < 0.9 * INTERVAL_DAYS[index]) throw failing(`${node.f}: ${span.text} is less than a point at ${INTERVAL_LABEL[index]}: a longer span, or a finer interval`, "Span too short");
                 const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
                 if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
                 const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
@@ -13409,7 +13413,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   Bubbles): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
        *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
        *   (`colorBelow`, red unset; `colors` 1, its one).
-       *   `fit` false: its axis framed without it (see fittable), drawn where its values are, past the plot's edge if
+       *   `fit` "zero": a linear axis includes zero; false: its axis framed without it (see fittable), drawn where its values are, past the plot's edge if
        *   they're far: a spike, a far tail.
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
@@ -15162,7 +15166,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         layerPicks.clear();
         drawingsHidden = false;
         // (Its undo and redo, as left; the one before's kept for when it's back, if it has any.)
-        if (previous) {
+        if (previous && (edits.past.length || edits.future.length || libraryAnchored(previous.id, revision))) {
           const steps = { past: edits.past.slice(-50), future: edits.future.slice(-50), mark: revision };
           trimSteps(steps, KEPT_CHARS);
           histories.set(previous.id, steps);
@@ -17454,7 +17458,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
           // (A standard one's: kept, or made, fitted as its stack is.)
-          const fitting = shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 && (stack || layer.fit === "zero") ? "zero" : null;
+          const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : layer.fit === "zero" && modeOf(doc, layer) === 0 ? "zero" : null;
           const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting, unfitted(doc, layer));
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's whole height, faint, behind what's drawn (the library's Shade).
@@ -17468,7 +17472,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
             series = again ?? new Cloud(pane, layer.side, top && bottom && !cloudLayers(layer).length);
             series.engine.hidden = !shown;
-            series.engine.fit = unfitted(doc, layer) ? NOTHING : null;
+            fitSeries(series, fitting, unfitted(doc, layer));
             series.style({ color: paint.color, top, bottom, banded, bands: paint.bands });
           } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see Heat): no tag, no line across; nothing to its scale but
@@ -19177,7 +19181,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A series fitted as its stack is (`stack`: "shares", 0 to 100; "zero", its own range and zero), its edge not fitted
        * to then (its band's range is its range); none, by what it draws. `out`: not at all (its layer's `fit` false).
-       * @param {Standard} series @param {"shares" | "zero" | null} stack @param {boolean} out
+       * @template {Standard | Cloud} T
+       * @param {T} series @param {"shares" | "zero" | null} stack @param {boolean} out
        */
       function fitSeries(series, stack, out) {
         const own = series.engine;
@@ -19187,7 +19192,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!(SPAN[0] <= SPAN[1])) return;
           (out[0] = Math.min(out[0], SPAN[0], 0)), (out[1] = Math.max(out[1], SPAN[1], 0));
         } : null;
-        if (series.edge) series.edge.fit = own.fit ? NOTHING : null;
+        if ("edge" in series && series.edge) series.edge.fit = own.fit ? NOTHING : null;
         return series;
       }
       const fitShares = (/** @type {number} */ _a, /** @type {number} */ _b, /** @type {boolean} */ _positive, /** @type {Float64Array} */ out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
@@ -29158,9 +29163,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // missed one only said.)
             const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
             pendingRoute = "";
-            // (Its step let go of the address first: the step it leads to, after it, has none either.)
+            // (Only the pending marker goes; the destination owns the address.)
             const { route: _, ...state } = history.state ?? {};
-            if (here) history.replaceState(state, "", `${BASE}/${location.search}`);
+            if (here) history.replaceState(state, "");
             if (here && route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
             else if (here) missedRoute(asked);
             else if (!route) notice(missedSaid(asked));
@@ -29308,8 +29313,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
-       * the studio's. (The address bar isn't: an address of theirs is a way in, read and let go of as the page starts, as
-       * a chart's link is.)
+       * the studio's. A preset's or section's address stays in the address bar so it can be copied.
        */
       function showAddress() {
         // (Once what's being done is done: a step of the history pushed after the page's drawn has the address, not the
@@ -29323,7 +29327,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A link's picture being made: the page is its, not a place's; the page still starting, as it was asked for.)
         if (document.body.hasAttribute("data-picture") || !started) return;
         const address = addressNow(), i = !home && chart.preset !== undefined ? presetIndex(chart) : -1, path = home && "path" in homeAt ? homeAt.path : null;
-        if (ROUTED && address !== null && !location.hash && !pendingRoute) history.replaceState(history.state, "", `${BASE}${address}${location.search}`);
+        const url = address === null ? null : `${BASE}${address}${location.search}`;
+        if (ROUTED && url !== null && !location.hash && !pendingRoute && `${location.pathname}${location.search}` !== url) history.replaceState(history.state, "", url);
         const shown = (/** @type {Chart} */ doc) => doc.layers.filter((layer) => !layer.hidden).map(labelOf);
         const list = (/** @type {string[]} */ names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "");
         document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
@@ -38438,7 +38443,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let below = 0;
         /**
          * The chart laid out as its picture, `read` run on it at once (what it reads, given back), then put back exactly
-         * as it was. @template T @param {() => T} read @returns {T}
+         * as it was. @template T @param {(layout: ReturnType<typeof apartLayout>) => T} read @returns {T}
          */
         const asPicture = (read) => {
           // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
@@ -38447,8 +38452,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its resizes aren't the chart's: the view held as it is, see holdView. Its tags at rest, as its legends read:
           // a crosshair on it, a pinned one's too, read nowhere (put back after).)
           exporting = true;
-          const crossIndex = engine.crosshair.index;
+          const crossIndex = engine.crosshair.index, hovered = hoverTime;
           engine.crosshair.index = NaN;
+          hoverTime = null;
+          updateReadout();
           try {
             if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
             // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
@@ -38461,8 +38468,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Too small a picture to hold their block under a plot of 160 pixels: over it, as before.)
             const together = setApart();
             restoreLegends = () => (together(), presented());
-            below = apartHeight(width);
-            if (sized && below && height - below < 160) (together(), (below = 0));
+            const layout = apartLayout(width);
+            below = layout.height;
+            if (sized && below && height - below < 160) throw new Error("The image is too short for the full legend. Increase its height");
             const plot = sized ? height - below : height;
             if (sized) element.style.height = `${plot}px`;
             sizeChart(width, plot);
@@ -38476,7 +38484,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             marginsSet = "";
             fitMargins();
             sizeChart(width, plot);
-            return read();
+            return read(layout);
           } finally {
             engine.crosshair.index = crossIndex;
             restoreLegends();
@@ -38502,6 +38510,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
             engine.render(true);
             exporting = false;
+            hoverTime = hovered;
+            updateReadout();
             // (A profile's bar pointed at, lit again: the picture's drew none.)
             if (profileLit) drawn.get(profileLit.layer)?.redraw();
             lastBox = chartWidth();
@@ -38509,7 +38519,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (crossSet) holdCross();
           }
         };
-        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, apart: ReturnType<typeof apartItems>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
+        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, apart: ReturnType<typeof apartItems>, layout: ReturnType<typeof apartLayout>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
         let taken;
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
@@ -38534,7 +38544,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (shownAs() !== owner) throw new Error("The chart changed meanwhile");
           }
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
-          taken = asPicture(() => {
+          taken = asPicture((layout) => {
             capturing = true;
             repaintDrawings();
             let shot;
@@ -38545,38 +38555,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               repaintDrawings();
             }
             const scale = shot.width / width;
-            // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
-            const hovered = hoverTime;
-            hoverTime = null;
-            updateReadout();
-            let pieces, apart;
-            try {
-              pieces = measureLegends(scale);
-              apart = apartItems();
-            } finally {
-              hoverTime = hovered;
-              updateReadout();
-            }
+            const pieces = measureLegends(scale), apart = layout.groups;
             // (Its dates and its axes' size, as the shot has them.)
-            return { shot, scale, pieces, apart, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
+            return { shot, scale, pieces, apart, layout, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
           });
         } finally {
           heatExtras.delete(extra);
         }
-        const { shot, scale, pieces, apart, dates, axisHeight, leftWidth } = taken;
+        const { shot, scale, pieces, apart, layout, dates, axisHeight, leftWidth } = taken;
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
         // (The legends set apart, under the plot, in columns, read across: each its mark, its full name,
         // its value at its column's end; pane after pane.)
         if (apart.length) {
-          const layout = apartLayout(width, apart), row = APART.row * scale, [markWidth, markHeight] = [16 * scale, 12 * scale];
-          const nameFont = `510 ${12 * scale}px ${sans}`, valueFont = `590 ${12 * scale}px ${sans}`;
+          const row = APART.row * scale, [markWidth, markHeight] = [APART.mark * scale, APART.markHeight * scale];
+          const { name: nameFont, value: valueFont } = apartFonts(scale, sans);
           for (const item of layout.items) {
-            const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + 6 * scale : 0);
+            const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + APART.markGap * scale : 0);
             if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
             item.lines.forEach((text, i) => pieces.push({ x: nameAt, y: y + i * row, width: item.nameWidth * scale, height: row, faded: item.faded, text, font: nameFont, color: softColor, align: "left" }));
-            if (item.value) pieces.push({ x: (item.x + layout.column - 14 - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left" });
+            if (item.value) pieces.push({ x: (item.x + layout.column - APART.columnGap - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
           }
         }
         await drawMarks(pieces);
@@ -38741,7 +38740,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const key of /** @type {HTMLElement[]} */ (all$(":scope > .legend-key", legend))) if (key.offsetParent) keyPieces(key, false);
           for (const button of legend.querySelectorAll("button")) {
             // (Hidden, or past its edge.)
-            if (button.style.display === "none" || !button.offsetParent || button.getBoundingClientRect().right > edge + 1) continue;
+            if (legend.hasAttribute("data-apart") || button.style.display === "none" || !button.offsetParent || button.getBoundingClientRect().right > edge + 1) continue;
             const mark = button.querySelector(".series-mark"), faded = button.classList.contains("hidden");
             if (mark) pieces.push({ ...box(mark), svg: mark.outerHTML, faded });
             for (const element of /** @type {HTMLElement[]} */ ([button.querySelector(".name"), button.querySelector(".legend-value, .legend-error")])) {
@@ -38766,48 +38765,63 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A picture's long or truncated legends (as presentLegends wrote them, the panes at the picture's width): set apart,
-       * under the plot (see apartItems), the plot whole, none of it over its lines; a folded pane's kept (all it shows),
-       * and one with a key (a profile's groups, a cloud's colors: drawn as they show). Undone by what it returns.
+       * under the plot (see apartItems), the plot whole, none of it over its lines; a short folded legend stays in its pane,
+       * a key (profile groups or cloud colors) stays over the plot. Undone by what it returns.
        * @returns {() => void}
        */
       function setApart() {
         const folded = foldedPanes(chart);
         const apart = legends().filter((legend) => {
           const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
-          return row > 0 && !legend.querySelector(".legend-key") && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
+          return row > 0 && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
         }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
-        for (const [legend] of apart) (legend.dataset.apart = ""), (legend.style.display = "none");
+        const buttons = /** @type {[HTMLElement, string][]} */ ([]);
+        for (const [legend] of apart) {
+          legend.dataset.apart = "";
+          if (!legend.querySelector(".legend-key")) legend.style.display = "none";
+          else for (const button of all$("button", legend)) {
+            buttons.push([button, button.style.cssText]);
+            Object.assign(button.style, { position: "absolute", visibility: "hidden" });
+          }
+        }
         return () => {
           for (const [legend, display] of apart) delete legend.dataset.apart, (legend.style.display = display);
+          for (const [button, style] of buttons) button.style.cssText = style;
         };
       }
       /** A picture's legends set apart (see setApart): their rows, the space over, under and between them. */
-      const APART = { row: 20, top: 6, bottom: 10, gap: 8 };
+      const APART = { row: 20, top: 6, bottom: 10, gap: 8, columnGap: 14, textGap: 8, mark: 16, markHeight: 12, markGap: 6, size: 12, nameWeight: 510, valueWeight: 590 };
+      const apartFonts = (scale = 1, sans = css("--sans")) => ({ name: `${APART.nameWeight} ${APART.size * scale}px ${sans}`, value: `${APART.valueWeight} ${APART.size * scale}px ${sans}` });
       /** A picture's legend layout, measured in CSS pixels once for both its height and its words. */
       function apartLayout(/** @type {number} */ width, groups = apartItems()) {
-        const g = measure, sans = css("--sans");
+        const g = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d")), fonts = apartFonts();
         const itemWidth = (item) => {
-          g.font = `510 12px ${sans}`;
+          g.font = fonts.name;
           const name = g.measureText(item.name).width;
-          g.font = `590 12px ${sans}`;
-          return name + g.measureText(item.value).width + (item.mark ? 22 : 0) + 22;
+          g.font = fonts.value;
+          return name + g.measureText(item.value).width + (item.mark ? APART.mark + APART.markGap : 0) + APART.columnGap + APART.textGap;
         };
-        const cols = Math.max(1, Math.floor(width / Math.max(175, ...groups.flat().map(itemWidth)))), column = width / cols;
+        let widest = width < 500 ? 150 : 175;
+        for (const group of groups) for (const item of group) widest = Math.max(widest, itemWidth(item));
+        const cols = Math.max(1, Math.floor(width / widest)), column = width / cols;
         const items = [];
         let y = APART.top;
         for (const group of groups) {
           for (let start = 0; start < group.length; start += cols) {
             let rows = 1;
             group.slice(start, start + cols).forEach((item, i) => {
-              g.font = `590 12px ${sans}`;
-              const valueWidth = g.measureText(item.value).width, nameWidth = Math.max(1, column - 22 - valueWidth - (item.mark ? 22 : 0));
-              g.font = `510 12px ${sans}`;
+              g.font = fonts.value;
+              const mark = item.mark ? APART.mark + APART.markGap : 0, valueWidth = Math.min(g.measureText(item.value).width, Math.max(0, column - APART.columnGap - APART.textGap - mark - 48)), nameWidth = Math.max(1, column - APART.columnGap - APART.textGap - valueWidth - mark);
+              g.font = fonts.name;
               const lines = [""];
               // Break words first, and split a single word only when it cannot fit even on its own line.
               for (const word of item.name.split(/\s+/)) {
                 let at = lines.length - 1;
                 if (lines[at] && g.measureText(`${lines[at]} ${word}`).width > nameWidth) lines.push("");
-                if (lines.at(-1)) lines[lines.length - 1] += " ";
+                if (g.measureText(word).width <= nameWidth) {
+                  lines[lines.length - 1] += `${lines.at(-1) ? " " : ""}${word}`;
+                  continue;
+                }
                 for (const char of word) {
                   at = lines.length - 1;
                   if (lines[at] && g.measureText(lines[at] + char).width > nameWidth) lines.push("");
@@ -38821,7 +38835,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           y += APART.gap;
         }
-        return { items, column, height: groups.length ? y - APART.gap + APART.bottom : 0 };
+        return { items, column, groups, height: groups.length ? y - APART.gap + APART.bottom : 0 };
       }
       /** Each legend set apart, its items as they show (a hidden layer's left out, as over the plot), their values as read. */
       const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$("button", legend).filter((button) => button.style.display !== "none").map((button) => {
@@ -38830,8 +38844,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const asOf = value?.dataset.asOf && after && after.content !== "none" && after.display !== "none" ? ` · ${value.dataset.asOf}` : "";
         return { mark: button.querySelector(".series-mark")?.outerHTML ?? "", name: button.querySelector(".name")?.textContent?.trim() ?? "", value: `${value?.textContent?.trim() ?? ""}${asOf}`, faded: button.classList.contains("hidden") };
       })).filter((items) => items.length);
-      /** Their block's height under the plot of a picture `width` wide (none set apart, none). */
-      const apartHeight = (/** @type {number} */ width) => apartLayout(width).height;
       /**
        * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
        * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
@@ -39022,7 +39034,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A step of the Library's own (a chart or a folder deleted, moved, copied; one a toast offered to undo): what it
        * said, how it's undone (giving how it's done again, if it can be), and the revision it was done at.
        * (`folder`: the folder it made, whose first name is its own: see nameFolder.)
-       * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, mark: number, from?: number, folder?: string }} LibraryStep
+       * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, mark: number, from?: number, folder?: string, chart?: string }} LibraryStep
        */
       /**
        * The Library's steps, kept however long ago they were (the toast that said one gone or not): ⌘Z and ⌘⇧Z take
@@ -39058,10 +39070,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const keysNow = (/** @type {string[]} */ keys) => keys.map((key) => (key[0] === "f" ? `f:${folderNow(key.slice(2))}` : `c:${chartNow(key.slice(2))}`));
       /** Its refusal: the charts it'd let go of edited since, kept. @param {Chart[]} docs */
       const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
-      /** A chart state revisited: adjacent Library steps keep their place while revision stays monotonic. */
+      /** Whether a chart has an adjacent Library step to keep when it has no edits of its own. */
+      const libraryAnchored = (/** @type {string} */ id, /** @type {number} */ mark) => [libraryEdits.past, libraryEdits.future].some((steps) => steps.some((step) => step.chart !== undefined && chartNow(step.chart) === id && step.mark === mark));
+      /** A chart state revisited: only that chart's adjacent Library steps move with it. */
       function reanchorHistory(/** @type {number | undefined} */ mark) {
         if (mark === undefined) return;
         for (const steps of [libraryEdits.past, libraryEdits.future]) for (const step of steps) {
+          if (step.chart === undefined || chartNow(step.chart) !== chart.id) continue;
           if (step.mark === mark) step.mark = revision;
           if (step.from === mark) step.from = revision;
         }
@@ -39070,7 +39085,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined, /** @type {number | undefined} */ from = undefined) {
         if (undoing) return null;
         // (`from`: the revision it was begun at, where what it does moved it on (a chart opened): see undoLibrary.)
-        const step = { text, run, undone, mark: revision, from };
+        const step = { text, run, undone, mark: revision, from, ...(home ? {} : { chart: chart.id }) };
         libraryEdits.past.push(step);
         if (libraryEdits.past.length > 50) libraryEdits.past.shift();
         // (Something new done: nothing to redo, a toast offering it put away.)
@@ -39102,7 +39117,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const before = libraryEdits.past.at(-1);
         if (fresh && before && step.from !== undefined && before.mark === step.from) before.mark = revision;
         if (typeof again !== "function") return void (syncUndo(), toast(step.undone ?? "Undone"));
-        const back = { text: step.text, run: again, undone: step.undone, mark: revision };
+        const back = { text: step.text, run: again, undone: step.undone, mark: revision, chart: step.chart };
         libraryEdits.future.push(back);
         toast(step.undone ?? "Undone", { label: "Redo", run: redoLibrary });
       }
@@ -40286,8 +40301,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return linked(new RegExp(`(?:^|&)${key}=(.*)$`, "s").exec(hash)?.[1] ?? "", shared, run, at, key === "c");
       }
       /**
-       * The address bar, a link let go: nothing's ever written into it (a preset opened, a chart changed, it's as it
-       * was), and a link opened there goes once read, its chart open (a picture's link stays its own; one that couldn't
+       * The hash of a shared link goes once read, its chart open. Preset and section paths follow the place shown (a picture's link stays its own; one that couldn't
        * be read, as it is, to be put right, until another chart's opened).
        */
       function clearLink() {

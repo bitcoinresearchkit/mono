@@ -10,7 +10,7 @@ use axum::{
     body::{Body, Bytes},
     http::{
         HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, CACHE_CONTROL, ORIGIN},
+        header::{ACCEPT, CACHE_CONTROL, ORIGIN, VARY},
         request::Parts,
     },
     middleware::{self, Next},
@@ -409,8 +409,8 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
     }
 
     // `GET /` is the page. Asked for as an event stream it's the MCP endpoint, which has no stream.
-    if request.method() == Method::GET
-        && request.uri().path() == "/"
+    let landing = request.method() == Method::GET && request.uri().path() == "/";
+    if landing
         && request
             .headers()
             .get(ACCEPT)
@@ -420,7 +420,11 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
         return (StatusCode::METHOD_NOT_ALLOWED, [(CACHE_CONTROL, "no-store")]).into_response();
     }
 
-    next.run(request).await
+    let mut response = next.run(request).await;
+    if landing {
+        response.headers_mut().append(VARY, HeaderValue::from_static("Accept"));
+    }
+    response
 }
 
 fn is_supported(version: &HeaderValue) -> bool {
