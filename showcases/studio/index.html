@@ -12012,6 +12012,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Layer} layer
        */
       const fittable = (layer) => !placedOn(layer) && !heatLike(layer) && !(layer.type === "cloud" && edgesOf(layer).length === 2 && !cloudLayers(layer).length);
+      const zeroFit = (/** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero");
       /**
        * Whether a layer's out of its axis' fit as drawn (the chart's, the previews'): its `fit` false, where another shown
        * on its pane's side frames that axis (one fitted, or a heatmap: alone, on the price's closes). None: it is.
@@ -12418,9 +12419,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Each threshold by the value as written: 999,999.6 is a million.)
         const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
         // (Small fractions keep their decimal places; larger figures stay within PRECISE, sign and suffix aside.)
-        const fit = text.length <= (abs < 1 && !(step > 0) ? 12 : PRECISE.length) ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
+        const budget = abs < 1 && !(step > 0) ? 12 : PRECISE.length;
+        const fit = text.length <= budget ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
         // (Past the last letter's thousands, a power of ten: 1.23e+30.)
-        const label = `${sign}${fit.length <= (abs < 1 && !(step > 0) ? 12 : PRECISE.length) ? fit : abs.toExponential(2)}${suffix}`;
+        const label = `${sign}${fit.length <= budget ? fit : abs.toExponential(2)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
@@ -13337,8 +13339,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
                 if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
                 if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
-                const span = spanned ? node.args[arity - 1] : null;
-                if (span?.k === "num" && span.unit && days < 0.9 * INTERVAL_DAYS[index]) throw failing(`${node.f}: ${span.text} is less than a point at ${INTERVAL_LABEL[index]}: a longer span, or a finer interval`, "Span too short");
                 const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
                 if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
                 const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
@@ -16629,8 +16629,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
       /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
-      const showSpan = (span) => engine.setRange(span.from, span.to);
-      /** The dates of the first and last points at least partly in view; none without data. */
+      const showSpan = (span, exact = false) => exact ? engine.setRange(span.from, span.to, { exact: true }) : engine.setRange(span.from, span.to);
+      /** The date at the left edge and the last point whose center is in view; none without data. */
       const shownDates = () => {
         const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
         return n ? { from: at(Math.floor(engine.time.from)), to: at(engine.time.lastVisible) } : null;
@@ -17458,7 +17458,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
           // (A standard one's: kept, or made, fitted as its stack is.)
-          const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : layer.fit === "zero" && modeOf(doc, layer) === 0 ? "zero" : null;
+          const fitting = stack && shares.has(layer.pane) ? "shares" : zeroFit(layer, modeOf(doc, layer), Boolean(stack)) ? "zero" : null;
           const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting, unfitted(doc, layer));
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's whole height, faint, behind what's drawn (the library's Shade).
@@ -17723,9 +17723,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // they are on screen as an axis widens.)
         if (back && back.to - back.from >= 1) {
           const target = within(back, "to");
-          showSpan(target);
+          showSpan(target, true);
           engine.render(true);
-          showSpan(target);
+          showSpan(target, true);
           setPresetShown(false);
           if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         } else if (!visible || presetShown || onRange || linkOpen) {
@@ -20484,7 +20484,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return windows;
       }
       /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
-      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
+      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!days || days >= 0.9 * INTERVAL_DAYS[id]) && (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
       /**
        * Why formulas a click adds can't be computed at the chart's interval, if they can't: the intervals they can be
        * (the chart stays where it's put). @param {string[]} formulas
@@ -24093,7 +24093,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A stack's, its foot too, on a linear scale: one layer alone, a 100% one, is a line at its top.)
             // (Those out of the fit drawn on the others' scale: see unfitted.)
             const framing = on.filter(({ layer }) => !unfitted(doc, layer));
-            const bases = framing.filter(({ layer }) => (layer.type === "histogram" || pane.stack) && modeOf(doc, layer) === 0).map(({ layer, shape }) => shape.scale(pane.stack ? 0 : baseOf(layer))).filter(Number.isFinite);
+            const bases = framing.filter(({ layer }) => (layer.type === "histogram" && modeOf(doc, layer) === 0) || zeroFit(layer, modeOf(doc, layer), Boolean(pane.stack))).map(({ layer, shape }) => shape.scale(pane.stack || layer.fit === "zero" ? 0 : baseOf(layer))).filter(Number.isFinite);
             const lo = Math.min(...framing.map(({ shape }) => shape.lo), ...bases), hi = Math.max(...framing.map(({ shape }) => shape.hi), ...bases);
             if (!Number.isFinite(lo)) continue;
             for (const { layer, shape } of on) {
@@ -24670,7 +24670,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (unfitted(doc, layer)) continue;
               // (An unseen layer's values alone, where bubbles sit: its bars', its stack's floor, not drawn.)
               if (bars && !unseen) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
-              if ((stack || layer.fit === "zero") && mode === 0 && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
+              if (zeroFit(layer, mode, Boolean(stack)) && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             // (A layer bubbles ride, its values as they ride it, its line's breaks not theirs: the chart's scale reads them, see
@@ -37401,11 +37401,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
 
       /** Why an interval isn't offered for this chart (shown, disabled, wherever intervals are). */
-      const NO_INTERVAL = "Not every series in this chart has it";
+      const NO_INTERVAL = "Not every series or formula in this chart supports it";
       /** The intervals every series the chart reads has (those known so far). */
       function supportedIntervals(/** @type {Chart} */ doc = chart) {
-        const lists = seriesIn(doc).map((name) => known.get(name)?.indexes).filter(Boolean);
-        return (id) => lists.every((indexes) => indexes.includes(id));
+        const lists = seriesIn(doc).map((name) => known.get(name)?.indexes).filter(Boolean), formulas = doc.layers.flatMap((layer) => layer.formula ? [layer.formula] : []);
+        return (id) => lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => computableAt(formula, id));
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
@@ -38465,13 +38465,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (The panes at its width first, its legends wrapped there: then those past two rows set apart, and the plot's
             // height less their block, at a size asked for.)
             sizeChart(width, height);
-            // (Too small a picture to hold their block under a plot of 160 pixels: over it, as before.)
+            // (Reserve the complete legend; very small requested sizes fit the complete canvas at the final resampling.)
             const together = setApart();
             restoreLegends = () => (together(), presented());
             const layout = apartLayout(width);
             below = layout.height;
-            if (sized && below && height - below < 160) throw new Error("The image is too short for the full legend. Increase its height");
-            const plot = sized ? height - below : height;
+            const plot = sized ? Math.max(160, height - below) : height;
             if (sized) element.style.height = `${plot}px`;
             sizeChart(width, plot);
             chartHeight = plot;

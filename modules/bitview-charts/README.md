@@ -203,3 +203,5 @@ clears); avoid reflecting programmatic calls. A programmatic
 - Lines' ys on device pixels, a run at one y one segment; bevelled joins (half a round join's cost in Firefox).
 
 Its bench and its types: `showcases/_engine/` (`index.html`, `types.html`).
+
+`setRange(from, to, { exact: true })` restores explicit date endpoints even inside the interactive maximum-spacing bound; ordinary calls keep that bound. `time.lastVisible` is the last point whose center is in view, for resting values and tags. Geometry fitting still includes a connecting point beyond a fractional edge.

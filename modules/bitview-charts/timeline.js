@@ -45,7 +45,7 @@ export class Timeline {
 
   /** The last point whose center is in view. A value beyond the edge never becomes the resting readout. */
   get lastVisible() {
-    return Math.floor(this.to + NOISE);
+    return Math.floor(this.to);
   }
 
   /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
@@ -107,12 +107,13 @@ export class Timeline {
     this.limit();
   }
 
-  /** @param {number} from @param {number} to */
-  setRange(from, to) {
+  /** @param {number} from @param {number} to @param {{ exact?: boolean }} [options] */
+  setRange(from, to, options) {
+    const exact = options?.exact === true;
     this.from = from;
     this.to = to;
     // Explicit windows (including shared dates) keep their endpoints, even past the interactive zoom bound.
-    if (this.length && to > from && to - from < this.width / this.maxSpacing) this.kept = to - from;
+    if (exact && this.length && to > from && to - from < this.width / this.maxSpacing) this.kept = to - from;
     this.rest = 0;
     this.limit();
   }

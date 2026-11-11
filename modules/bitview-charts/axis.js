@@ -160,11 +160,18 @@ export class TimeAxis {
     let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity;
     for (let guard = 0; guard < 400 && t <= times[b]; guard++) {
       const i = at(times, t), next = unit === "year" ? Date.UTC((y += size), 0, 1) / 1000 : unit === "month" ? Date.UTC(y, (m += size), 1) / 1000 : t + seconds;
-      if (i <= b && times[i] < next && t >= times[0]) {
+      if (i <= b && times[i] < next) {
+        // A calendar label names its actual period, including a first partial year/month; a multi-year tick before
+        // the first point is skipped when it would name another year (2008 for January 2009).
+        if (calendar) {
+          civil(times[i]);
+          const start = Date.UTC(civilYear, unit === "year" ? 0 : civilMonth, 1) / 1000;
+          if (start !== t) { t = next; continue; }
+        }
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
         // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
-        const when = own ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
+        const when = own || !calendar ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
         if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
           const text = words ?? label(when);
           g.fillText(text, x, this.height / 2);
