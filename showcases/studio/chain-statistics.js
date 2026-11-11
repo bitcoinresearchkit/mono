@@ -26,19 +26,20 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
   /** What `all` holds beyond `parts`. @param {string} all @param {string[]} parts */
   const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
-  /** Lines, each a label and a formula. @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[], maxInterval?: string }} [options] */
-  const line = (title, lines, days, { format, log, maxInterval } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}), ...(maxInterval ? { maxInterval } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
-  /** Fixed native event windows: weekly and monthly charts, each sampled no coarser than its window. */
-  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => (days === 7 ? [7, 30] : [days]).map((span) => {
-    const name = span === days ? title : `${title}, per ${span} days`;
-    const lines = totals.map(([label, total]) => {
+  /** Lines, each a label and a formula. @param {string} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], maxInterval?: string }} [options] */
+  const line = (name, lines, days, { title = name, format, log, maxInterval } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}), ...(maxInterval ? { maxInterval } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
+  /** Fixed native event windows: separate charts, each sampled no coarser than its declared span. */
+  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, /** @type {(7 | 30)[]} */ spans = [7, 30], options = {}) => spans.flatMap((span, i) => {
+    const heading = `${title}, per ${span} days`, name = i ? heading : title;
+    /** @type {string[][]} */
+    const lines = [];
+    for (const [label, total] of totals) {
       const node = flowWindow(total.sum, span);
-      if (node) return [`${label} per ${span} days`, node.name];
-      console.warn(`Missing published ${span}-day sum for ${name} (${total.cumulative.name})`);
-      return null;
-    });
-    return lines.every((line) => line !== null) ? line(name, /** @type {string[][]} */ (lines), 1, { ...options, maxInterval: span === 7 ? "week1" : "month1" }) : null;
-  }).filter(Boolean);
+      if (node) lines.push([`${label} per ${span} days`, node.name]);
+      else console.warn(`Missing published ${span}-day sum for ${name} (${total.cumulative.name})`);
+    }
+    return lines.length === totals.length ? [line(name, lines, 1, { ...options, title: heading, maxInterval: span === 7 ? "week1" : "month1" })] : [];
+  });
   /** A calendar year's flow, from the preceding year's end. */
   const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `flow(${total.name}, 1y)`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
@@ -178,7 +179,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
         ...events("Runestone (OP_RETURN)", [["runestones", t.opReturn.protocols.runes.outputCount]]),
         line("Cumulative outputs by script type", types.map((key) => [label(key), outputs[key].count.cumulative.name]), 7),
         line("Cumulative OP_RETURN output values", [["BTC in OP_RETURN", t.outputs.opReturnValue.cumulative.btc.name]], 7, { format: "btc" }),
-        ...events("OP_RETURN outputs by size", (/** @type {const} */ ([["over 42 bytes", "over42Bytes"], ["over 520 bytes", "over520Bytes"], ["over 10,000 bytes", "over10kBytes"]])).map(([name, key]) => [name, t.opReturn.sizes[key].outputCount]), 30, { log: [1] }),
+        ...events("OP_RETURN outputs by size", (/** @type {const} */ ([["over 42 bytes", "over42Bytes"], ["over 520 bytes", "over520Bytes"], ["over 10,000 bytes", "over10kBytes"]])).map(([name, key]) => [name, t.opReturn.sizes[key].outputCount]), [30], { log: [1] }),
         line("Bytes saved by x-only keys", [["at least", outputs.p2tr.count.cumulative.name]], 1),
       ];
     })()),

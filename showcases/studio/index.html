@@ -12024,45 +12024,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fittable = (layer) => !placedOn(layer) && !heatLike(layer) && !(layer.type === "cloud" && edgesOf(layer).length === 2 && !cloudLayers(layer).length);
       /** A visible layer whose values participate in its pane's framing. @param {Layer} layer */
       const framesAxis = (layer) => !layer.hidden && layer.fit !== false && (heatLike(layer) || fittable(layer));
-      /** A running total, following each layer dependency once per query, with cycles left unclassified. @returns {boolean} */
+      /** A running total through affine arithmetic, following each dependency once per query. @returns {boolean} */
       function cumulativeLayer(/** @type {Chart} */ doc, /** @type {Layer} */ layer) {
         if (layer.series) return cumulativeSeries.has(layer.series);
+        if (!layer.formula) return false;
         const roles = new Map(), visiting = new Set();
-        /** @param {Node} node @returns {boolean} */
-        const constant = (node) => node.k === "num" || (node.k === "neg" ? constant(node.a) : node.k === "bin" && constant(node.a) && constant(node.b));
-        /** @param {Node} node @returns {boolean} */
-        const total = (node) => {
-          if (node.k === "series") return cumulativeSeries.has(node.v);
+        /** @param {Node} node @returns {"constant" | "total" | null} */
+        const kind = (node) => {
+          if (node.k === "num") return "constant";
+          if (node.k === "series") return cumulativeSeries.has(node.v) ? "total" : null;
           if (node.k === "ref") {
             const source = doc.layers.find((item) => item.letter === node.v);
-            return Boolean(source && role(source));
+            return source ? role(source) : null;
           }
-          if (node.k === "neg") return total(node.a);
+          if (node.k === "neg") return kind(node.a);
           if (node.k === "bin") {
-            if (node.op === "+" || node.op === "-") return total(node.a) && total(node.b);
-            if (node.op === "*") return (total(node.a) && constant(node.b)) || (constant(node.a) && total(node.b));
-            return node.op === "/" && total(node.a) && constant(node.b);
+            const a = kind(node.a), b = kind(node.b);
+            if (a === "constant" && b === "constant") return "constant";
+            if (node.op === "+" || node.op === "-") return a && b ? "total" : null;
+            if (node.op === "*") return (a === "total" && b === "constant") || (a === "constant" && b === "total") ? "total" : null;
+            return node.op === "/" && a === "total" && b === "constant" ? "total" : null;
           }
-          if (node.k === "call") return isBandSum(node.f) ? total(bandSum(node)) : node.f === "sum" && node.args.length === 1;
-          return false;
+          if (node.k === "call") return isBandSum(node.f) ? kind(bandSum(node)) : node.f === "sum" && node.args.length === 1 ? "total" : null;
+          return null;
         };
-        /** @param {Layer} item @returns {boolean} */
+        /** @param {Layer} item @returns {"constant" | "total" | null} */
         const role = (item) => {
-          if (item.series) return cumulativeSeries.has(item.series);
-          if (!item.formula || visiting.has(item.id)) return false;
+          if (item.series) return cumulativeSeries.has(item.series) ? "total" : null;
           const known = roles.get(item.id);
           if (known !== undefined) return known;
+          if (!item.formula || visiting.has(item.id)) return null;
           visiting.add(item.id);
-          let value = false;
-          try { value = total(parse(item.formula)); } catch {}
+          let value = null;
+          try { value = kind(parse(item.formula)); } catch {}
           visiting.delete(item.id);
           roles.set(item.id, value);
           return value;
         };
-        return role(layer);
+        return role(layer) === "total";
       }
       /** A sole automatic linear axis needs a series' role; explicit fitting and stacks already state their rule. */
-      const automaticZero = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && !stacked && layer.fit !== "zero" && framesAxis(layer) && doc.layers.every((other) => other.id === layer.id || !framesAxis(other) || other.pane !== layer.pane || other.side !== layer.side);
+      const automaticZero = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && !stacked && layer.fit !== "zero" && framesAxis(layer) && Boolean(layer.series || layer.formula) && doc.layers.every((other) => other.id === layer.id || !framesAxis(other) || other.pane !== layer.pane || other.side !== layer.side);
       /** One visible running total includes its origin; explicit fitting and stacks keep their own rule. */
       const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (automaticZero(doc, layer, mode, stacked) && cumulativeLayer(doc, layer)));
       /** Whether the roles needed by automatic linear framing are known; other framing is independent of the catalog. @param {Chart} doc */
@@ -12450,7 +12452,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
       /** The usual width budget of a numeric reading, sign and suffix aside. */
-      const PRECISE = "0.000000";
+      const PRECISE = "0.000000", FRACTION_WIDTH = 12;
       /**
        * One value, the same text everywhere (legend, panel, axis, crosshair and drawings), with its unit affixed by
        * format. Four significant digits, thousands whole and grouped, millions and up lettered. Small fractions have
@@ -12473,7 +12475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Each threshold by the value as written: 999,999.6 is a million.)
         const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
         // (Small fractions keep their decimal places; larger figures stay within PRECISE, sign and suffix aside.)
-        const budget = abs < 1 ? 12 : PRECISE.length;
+        const budget = abs < 1 ? FRACTION_WIDTH : PRECISE.length;
         const fit = text.length <= budget ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
         // (Past the last letter's thousands, a power of ten: 1.23e+30.)
         const label = `${sign}${fit.length <= budget ? fit : abs.toExponential(2)}${suffix}`;
@@ -14239,7 +14241,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The catalog walked, a node a step (a generator: the page goes on at its own pace): its names to their dotted paths
        * as the client has them (a name in several places, its first), those by block only (by date in none of them), and
-       * those under more than one top folder (a folder's place among them isn't theirs: see catalogTops). On its own, its
+       * those under more than one top folder (a folder's place among them isn't theirs: see catalogTops). A running total
+       * is a flow's cumulative member (with sum windows), not a Share's all-time percentage. On its own, its
        * source made a worker's (see indexCatalog): its leaves told as isLeaf tells them, read as `aside` reads them.
        * @param {any} tree @param {readonly string[]} dated
        * @returns {Generator<void, { index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string>, cumulative: Set<string> }>}
@@ -14260,7 +14263,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               index.set(node.name, path);
               if (!byDate) byBlock.add(node.name);
             }
-          } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([Reflect.get(node, key, {}), path ? `${path}.${key}` : key, total || key === "cumulative"]);
+          } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([Reflect.get(node, key, {}), path ? `${path}.${key}` : key, total || (key === "cumulative" && Object.hasOwn(node, "sum"))]);
           yield;
         }
         return { index, byBlock, sharedTops, cumulative };
@@ -24002,7 +24005,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const PRESET_MARKS = "bitview-studio:preset-marks";
       const THUMB_POINTS = 28;
       // Drawings are disposable; saved charts and preferences have separate storage.
-      const MARK_VERSION = "2:";
+      const MARK_VERSION = "3:";
+      const validDrawingKey = (key) => typeof key === "string" && key.startsWith(MARK_VERSION);
       const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
       const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
       const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
@@ -24017,7 +24021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const validChartMark = (/** @type {any} */ mark) => typeof mark === "object" && mark !== null && validLines(mark.lines)
         && Array.isArray(mark.washes) && mark.washes.length <= 1 && mark.washes.every((wash) => Array.isArray(wash) && Number.isInteger(wash[0]) && wash[0] >= 0 && wash[0] < mark.lines.length && isColor(wash[1]) && isColor(wash[2]) && validLevel(wash[3]) && validLevel(wash[4]))
         && Array.isArray(mark.dots) && mark.dots.length <= 4 && mark.dots.every((dot) => Array.isArray(dot) && isColor(dot[0]) && validLevel(dot[1]) && validLevel(dot[2]));
-      const validThumb = (thumb) => typeof thumb?.key === "string" && thumb.key.startsWith(MARK_VERSION) && validChartMark(thumb)
+      const validThumb = (thumb) => validDrawingKey(thumb?.key) && validChartMark(thumb)
         && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
         && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
       /**
@@ -24321,13 +24325,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         && (mark.up === undefined || typeof mark.up === "boolean") && (mark.f === undefined || (Array.isArray(mark.f) && mark.f.every(Number.isFinite))) && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
         && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)))
         && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
-      const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
+      const validPreview = (item) => validDrawingKey(item?.key) && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
       // (A heatmap's picture in its colors as the theme shows them: drawn again in the other. A profile shown, its bars and
       // its room after the latest (see previewShown): one kept from before them drawn again, others' as they were.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo, layer.byLayers]), openView(doc), FINE.has(doc.index) ? Math.round(engine.time.width / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
+      const previewKey = (doc) => MARK_VERSION + JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo, layer.byLayers]), openView(doc), FINE.has(doc.index) ? Math.round(engine.time.width / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -27450,7 +27454,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
       /** The presets' marks, as drawn (made as their rows come into sight; those of earlier visits, kept), by what each is of. @type {Map<string, Pick<Thumb, "lines" | "washes" | "dots">>} */
-      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([key, mark]) => key.startsWith(MARK_VERSION) && validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
+      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([key, mark]) => validDrawingKey(key) && validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
       const savePresetMarks = writeSoon(() => storage.set(PRESET_MARKS, Object.fromEntries([...presetMarks].slice(-KEPT_PRESET_MARKS))));
       /** Each preset's own tag, by what it is (its layers, its look): a mark kept of it as it was, not taken for it as it is now. @type {WeakMap<Preset, string>} */
       const presetTags = new WeakMap();

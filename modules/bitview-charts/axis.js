@@ -60,8 +60,8 @@ export class TimeAxis {
     this.drawnCount = 0;
     // (Daily labels always include their month; January is named by its year among monthly ticks.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
-    // (A time of day as hours and minutes; midnight, its day.)
     const day = (/** @type {Date} */ d) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${d.getUTCDate() === 1 && d.getUTCMonth() === 0 ? ` ${d.getUTCFullYear()}` : ""}`;
+    // (A time of day as hours and minutes; midnight, its day.)
     const clock = kept((t) => {
       const d = date(t);
       return d.getUTCHours() || d.getUTCMinutes() ? `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}` : day(d);
@@ -161,7 +161,7 @@ export class TimeAxis {
     civil(times[a]);
     const calendar = unit === "year" || unit === "month";
     let y = unit === "year" ? Math.floor(civilYear / size) * size : civilYear, m = unit === "month" ? Math.floor(civilMonth / size) * size : 0;
-    let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity;
+    let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity, lastRight = -Infinity;
     for (let guard = 0; guard < 400 && t <= times[b]; guard++) {
       const i = at(times, t), next = unit === "year" ? Date.UTC((y += size), 0, 1) / 1000 : unit === "month" ? Date.UTC(y, (m += size), 1) / 1000 : t + seconds;
       if (i <= b && times[i] < next) {
@@ -177,10 +177,10 @@ export class TimeAxis {
         const when = calendar ? t : times[i], words = this.format ? this.format(when, kindOf(when)) : null;
         if (words !== "" && x - last >= ROOM) {
           const text = words ?? label(when), half = g.measureText(text).width / 2;
-          if (x < half || x + half > plot || this.#covered(x, page, half)) { t = next; continue; }
+          if (x < half || x + half > plot || x - half < lastRight + 4 || this.#covered(x, page, half)) { t = next; continue; }
           g.fillText(text, x, this.height / 2);
           if (this.drawnCount === this.drawnX.length) ((grown) => (grown.set(this.drawnX), (this.drawnX = grown)))(new Float64Array(this.drawnCount * 2));
-          (this.drawnX[this.drawnCount] = x), (this.drawnWords[this.drawnCount++] = text), (last = x), drawn++;
+          (this.drawnX[this.drawnCount] = x), (this.drawnWords[this.drawnCount++] = text), (last = x), (lastRight = x + half), drawn++;
         }
       }
       t = next;
