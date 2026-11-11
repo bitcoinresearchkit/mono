@@ -19991,7 +19991,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // While the view moves (a pan, a zoom), its change only: its tip and its room, read and measured from the view,
           // are set once the view rests (each frame, they'd cost the move its smoothness).
           if (moving) continue;
-          const tip = change ? `Change from ${pointLabel(change.from)} to ${pointLabel(change.to)}` : undefined;
+          const tip = change ? `${viewName(chart, layer)}\nChange from ${pointLabel(change.from)} to ${pointLabel(change.to)}` : undefined;
           if (element.dataset.tip !== tip) {
             if (tip) element.dataset.tip = tip;
             else delete element.dataset.tip;
@@ -35437,11 +35437,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return listPage("Times marked", () => {
           const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null, own = on ? resolved?.results.get(on.id) : undefined;
           if (!layer || !values || !resolved) return [];
-          const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0), marked = new Set(marksOf(layer, values));
+          const times = resolved.times, measurements = own && measured(own), changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0), marked = new Set(marksOf(layer, values));
           return changes.flatMap((change) => {
             const i = change.at, result = layer.results && own ? stretchResult(change, own) : undefined;
             if (!marked.has(i)) return [];
-            const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${viewName(chart, on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
+            const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${labelOf(on)}${own?.measurement ? " (raw)" : ""} ${format(measurements?.[i] ?? NaN, unitFor(on, own))}` : ""].filter(Boolean);
             return [{ key: `at:${times[i]}`, icon: ICONS.calendar, label: pointLabel(times[i]), aside: said.join(" · ") || undefined, run: () => goToTime(times[i]) }];
           }).reverse();
         }, "Go");
