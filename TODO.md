@@ -148,6 +148,10 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   of the rewrite fixed (16 findings; one owner of the book at a time, refreshes after it). Left: listed when the user
   says. Turning by a real finger on the iPhone not yet tried (only emulated touch).
 
+## Front end
+
+- decide whether the minimum-window interval rule should cover every span function (diff, sma, ...): count the existing presets whose intervals it would restrict and check whether any of them are actually wrong today
+
 ## Back end
 
 - Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-08): BlindBit oracle v1's
