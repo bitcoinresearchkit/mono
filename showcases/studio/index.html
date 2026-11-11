@@ -2992,6 +2992,10 @@
         }
       }
 
+      .legend[data-apart] button {
+        position: absolute;
+        visibility: hidden;
+      }
       .legend {
         position: absolute;
         top: 4px;
@@ -11136,6 +11140,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let catalogIndex = /** @type {Map<string, string> | null} */ (null);
       /** Series classified by their catalog role, in the same walk as the index. @type {Set<string>} */
       const cumulativeSeries = new Set();
+      const catalogReady = Promise.withResolvers();
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
@@ -12014,41 +12019,63 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Layer} layer
        */
       const fittable = (layer) => !placedOn(layer) && !heatLike(layer) && !(layer.type === "cloud" && edgesOf(layer).length === 2 && !cloudLayers(layer).length);
+      /** A visible layer whose values participate in its pane's framing. @param {Layer} layer */
+      const framesAxis = (layer) => !layer.hidden && (heatLike(layer) || fittable(layer));
+      /** Formula roles depend only on the expression and the roles of its referenced layers. */
+      const cumulativeFormulas = new Map();
       /** A running total, including formulas that add totals or scale one by a constant. @returns {boolean} */
-      function cumulativeLayer(/** @type {Chart} */ doc, /** @type {Layer} */ layer, seen = /** @type {Set<string>} */ (new Set())) {
-        if (seen.has(layer.id)) return false;
-        seen.add(layer.id);
-        indexCatalog();
+      function cumulativeLayer(/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {Set<string> | undefined} */ seen) {
         if (layer.series) return cumulativeSeries.has(layer.series);
-        if (!layer.formula) return false;
-        /** @param {Node} node @returns {boolean} */
-        const constant = (node) => node.k === "num" || (node.k === "neg" ? constant(node.a) : node.k === "bin" && constant(node.a) && constant(node.b));
-        /** @param {Node} node @returns {boolean} */
-        const total = (node) => {
-          if (node.k === "series") return cumulativeSeries.has(node.v);
-          if (node.k === "ref") {
-            const source = doc.layers.find((item) => item.letter === node.v);
-            return Boolean(source && cumulativeLayer(doc, source, new Set(seen)));
+        if (!layer.formula || seen?.has(layer.id)) return false;
+        try {
+          let entry = cumulativeFormulas.get(layer.formula);
+          if (!entry) {
+            const node = parse(layer.formula);
+            entry = { node, refs: [...refsOf(node)], key: null, value: false };
+            if (cumulativeFormulas.size >= 500) cumulativeFormulas.clear();
+            cumulativeFormulas.set(layer.formula, entry);
           }
-          if (node.k === "neg") return total(node.a);
-          if (node.k === "bin") {
-            if (node.op === "+" || node.op === "-") return total(node.a) && total(node.b);
-            if (node.op === "*") return (total(node.a) && constant(node.b)) || (constant(node.a) && total(node.b));
-            return node.op === "/" && total(node.a) && constant(node.b);
+          if (!entry.refs.length && entry.key === "") return entry.value;
+          let key = "";
+          const roles = new Map();
+          if (entry.refs.length) {
+            const visiting = new Set(seen);
+            visiting.add(layer.id);
+            for (const letter of entry.refs) {
+              const source = doc.layers.find((item) => item.letter === letter);
+              const role = Boolean(source && cumulativeLayer(doc, source, visiting));
+              roles.set(letter, role);
+              key += role ? "1" : "0";
+            }
           }
-          if (node.k === "call") return isBandSum(node.f) ? total(bandSum(node)) : node.f === "sum" && node.args.length === 1;
-          return false;
-        };
-        try { return total(parse(layer.formula)); } catch { return false; }
+          if (entry.key === key) return entry.value;
+          /** @param {Node} node @returns {boolean} */
+          const constant = (node) => node.k === "num" || (node.k === "neg" ? constant(node.a) : node.k === "bin" && constant(node.a) && constant(node.b));
+          /** @param {Node} node @returns {boolean} */
+          const total = (node) => {
+            if (node.k === "series") return cumulativeSeries.has(node.v);
+            if (node.k === "ref") return roles.get(node.v) ?? false;
+            if (node.k === "neg") return total(node.a);
+            if (node.k === "bin") {
+              if (node.op === "+" || node.op === "-") return total(node.a) && total(node.b);
+              if (node.op === "*") return (total(node.a) && constant(node.b)) || (constant(node.a) && total(node.b));
+              return node.op === "/" && total(node.a) && constant(node.b);
+            }
+            if (node.k === "call") return isBandSum(node.f) ? total(bandSum(node)) : node.f === "sum" && node.args.length === 1;
+            return false;
+          };
+          entry.key = key;
+          return entry.value = total(entry.node);
+        } catch { return false; }
       }
       /** One visible running total includes its origin; explicit fitting and stacks keep their own rule. */
-      const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (layer.fit !== false && doc.layers.every((other) => other.id === layer.id || other.hidden || other.pane !== layer.pane) && cumulativeLayer(doc, layer)));
+      const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (layer.fit !== false && doc.layers.every((other) => other.id === layer.id || !framesAxis(other) || other.pane !== layer.pane) && cumulativeLayer(doc, layer, undefined)));
       /**
        * Whether a layer's out of its axis' fit as drawn (the chart's, the previews'): its `fit` false, where another shown
        * on its pane's side frames that axis (one fitted, or a heatmap: alone, on the price's closes). None: it is.
        * @param {Chart} doc @param {Layer} layer
        */
-      const unfitted = (doc, layer) => layer.fit === false && doc.layers.some((other) => other !== layer && !other.hidden && other.pane === layer.pane && other.side === layer.side && (heatLike(other) || (fittable(other) && other.fit !== false)));
+      const unfitted = (doc, layer) => layer.fit === false && doc.layers.some((other) => other !== layer && framesAxis(other) && other.pane === layer.pane && other.side === layer.side && other.fit !== false);
       /** Whether a layer has a series' look, its Type one of TYPES: none made from layers, placed on one, or a heatmap. @param {Layer} layer */
       const seriesLooked = (layer) => !layer.from && !placedOn(layer) && !heatLike(layer);
       /** A line's dashes (a layer's `dash`, a drawing's): solid, dotted, dashed, long dashes, sparse dots. */
@@ -12185,6 +12212,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
+      /** Calendar-total differences need aligned whole-year samples. */
+      const flowFits = (/** @type {number} */ days, /** @type {string} */ index) => (index === "year1" || index === "year10") && Number.isInteger(days / INTERVAL_DAYS[index]);
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
       const spanDays = (/** @type {string} */ span) => {
         const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
@@ -12964,7 +12993,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         percentile: [3, "percentile(x, p, span?)", "rolling p-th percentile (p from 0 to 100; the median at 50; no span: of all so far)", (x, n, p, partial) => rollingPercentile(x, n, p, partial), true],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
-        flow: [2, "flow(x, span)", "change in a cumulative total, from zero at history's start", (x, n, _p, partial) => x.map((value, i) => value - (i < n && partial ? 0 : x[i - n]))],
+        flow: [2, "flow(x, span)", "calendar-year change in a cumulative total, from zero at history's start", (x, n, _p, partial) => x.map((value, i) => value - (i < n && partial ? 0 : x[i - n]))],
         shift: [2, "shift(x, by)", "x moved later by a span, earlier by a negative one (1y to the same date a year on, 1halving as far into the next halving cycle as into its own)", null],
         cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
         drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
@@ -13368,6 +13397,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const days = spanned ? args[arity - 1] : usual ? usual * INTERVAL_DAYS[index] : Infinity, p = args[1];
                 if (days === Infinity && FINE.has(index)) throw failing(`${node.f} over all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it, or give it a span (like 2y)`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
                 if (typeof days !== "number" || !(days > 0)) throw new Error(`${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`);
+                if (node.f === "flow" && !flowFits(days, index)) throw failing("flow: calendar-year differences need a whole number of yearly samples", "Needs yearly samples");
                 if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
                 const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
                 if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
@@ -14272,6 +14302,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const name of found.cumulative) cumulativeSeries.add(name);
           for (const name of found.byBlock) byBlock.add(name);
           for (const name of found.sharedTops) sharedTops.add(name);
+          catalogReady.resolve(undefined);
           seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
           whenIdle(ranksSoon);
@@ -15046,11 +15077,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return i + (time - times[i]) / (times[i + 1] - times[i]);
         };
         // No further past the data than the chart's own room on the right (at the view's own spacing); only a few bars
-        // here (two days, at a week): thirty, ending where it did.
+        // here (two days, at a week): at least one bar, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
         const plot = engine.time.width, bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
         const room = plot > gap ? (gap * bars) / (plot - gap) : 0;
-        const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
+        const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 1);
         return { from, to };
       }
       /**
@@ -15404,7 +15435,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A chart of Recent's mark: a preset's as the sidebar draws it (asked for, see presetMarksAsked), else its own. @param {{ doc: Chart, preset: number }} item */
       // (An edited preset's, before the presets are read: its mark as kept, by its copy, as the presets' rows will have it.)
-      const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(presetMarkKey(preset)) || presetMarksAsked.add(preset), presetMark(preset)) : doc.preset !== undefined && presetMarks.has(`${doc.id}@${doc.updated}`) ? markOf(presetMarks.get(`${doc.id}@${doc.updated}`) ?? NO_MARK) : chartMark(doc));
+      const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(presetMarkKey(preset)) || presetMarksAsked.add(preset), presetMark(preset)) : doc.preset !== undefined && presetMarks.has(keptMarkKey(doc)) ? markOf(presetMarks.get(keptMarkKey(doc)) ?? NO_MARK) : chartMark(doc));
 
       // ── Sidebar ───────────────────────────────────────────────────────────────
 
@@ -16433,6 +16464,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             break;
           }
         }
+        await catalogReady.promise;
         const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
         if (first === 0 || first === length) return { times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
         // Trimmed once a result and a start: kept the same, as the chart keeps its series.
@@ -16654,17 +16686,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
-      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
-      const showSpan = (span, exact = false) => exact ? engine.setRange(span.from, span.to, { exact: true }) : engine.setRange(span.from, span.to);
+      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span @param {{ exact?: boolean }} [options] */
+      const EXACT_RANGE = { exact: true };
+      const showSpan = (span, options) => engine.setRange(span.from, span.to, options);
       /** The date at the left edge and the last point whose center is in view; none without data. */
       const shownDates = () => {
         const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
-        return n ? { from: at(Math.floor(engine.time.from)), to: at(engine.time.lastVisible) } : null;
+        return n ? { from: at(engine.time.firstVisible), to: at(engine.time.lastVisible) } : null;
       };
       /** The view moved to show the points from one date to another (the first at or after it, the last at or before). @param {{ from: number, to: number }} span */
       const showDates = (span) => {
         const times = engine.time.times, from = lowerBound(times, span.from), after = lowerBound(times, span.to);
-        engine.setRange(from, times[after] === span.to ? after : after - 1);
+        engine.setRange(from, times[after] === span.to ? after : after - 1, EXACT_RANGE);
       };
       /** A date's x across the plot (its point's); none where no point has it. @param {number} time */
       /**
@@ -17749,9 +17782,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // they are on screen as an axis widens.)
         if (back && back.to - back.from >= 1) {
           const target = within(back, "to");
-          showSpan(target, true);
+          showSpan(target, EXACT_RANGE);
           engine.render(true);
-          showSpan(target, true);
+          showSpan(target, EXACT_RANGE);
           setPresetShown(false);
           if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         } else if (!visible || presetShown || onRange || linkOpen) {
@@ -18013,7 +18046,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The last point in view, as the library's tags read it; never the next point beyond its edge.)
         return range ? clamp(engine.time.lastVisible, 0, n - 1) : n - 1;
       }
-      /** The view's first point (one partly in view counted, as the library reads a relative scale's base). */
+      /** The geometry's first point, including its connecting segment: also the engine's relative-scale base. Date captions use firstVisible instead. */
       function firstInView() {
         const n = resolved?.times.length ?? 0;
         const range = n ? shownSpan() : null;
@@ -19207,7 +19240,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A series fitted as its stack is (`stack`: "shares", 0 to 100; "zero", its own range and zero), its edge not fitted
        * to then (its band's range is its range); none, by what it draws. `out`: not at all (its layer's `fit` false).
-       * @template {Standard | Cloud} T
+       * @template {{ engine: Standard["engine"], edge?: Standard["edge"] }} T
        * @param {T} series @param {"shares" | "zero" | null} stack @param {boolean} out
        */
       function fitSeries(series, stack, out) {
@@ -19218,7 +19251,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!(SPAN[0] <= SPAN[1])) return;
           (out[0] = Math.min(out[0], SPAN[0], 0)), (out[1] = Math.max(out[1], SPAN[1], 0));
         } : null;
-        if ("edge" in series && series.edge) series.edge.fit = own.fit ? NOTHING : null;
+        if (series.edge) series.edge.fit = own.fit ? NOTHING : null;
         return series;
       }
       const fitShares = (/** @type {number} */ _a, /** @type {number} */ _b, /** @type {boolean} */ _positive, /** @type {Float64Array} */ out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
@@ -20479,12 +20512,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const a = spanDaysOf(node.a), b = spanDaysOf(node.b);
         return { "+": a + b, "-": a - b, "*": a * b, "/": a / b, "^": a ** b }[/** @type {string} */ (node.op)] ?? Infinity;
       };
-      /** Each formula's windows (its spans, in days), as an interval's fit weighs them: read once a formula. @type {Map<string, { days: number, two: boolean }[]>} */
+      /** Each formula's windows (its spans, in days), as an interval's fit weighs them: read once a formula. @type {Map<string, { days: number, two: boolean, flow?: boolean }[]>} */
       const windowsSeen = new Map();
       function windowsOf(/** @type {string} */ formula) {
         let windows = windowsSeen.get(formula);
         if (windows) return windows;
-        const found = /** @type {{ days: number, two: boolean }[]} */ ([]);
+        const found = /** @type {{ days: number, two: boolean, flow?: boolean }[]} */ ([]);
         /** @param {any} node */
         const walk = (node) => {
           if (!node || typeof node !== "object") return;
@@ -20493,7 +20526,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A usual span is in points, at any interval; one written, days; none, all of history.)
             if (arity >= 2 && run !== null) {
               const span = node.args.length === arity ? node.args[arity - 1] : null;
-              found.push({ days: span ? spanDaysOf(span) : usual ? 0 : Infinity, two: TWO_POINTS.has(node.f) && Boolean(span) });
+              found.push({ days: span ? spanDaysOf(span) : usual ? 0 : Infinity, two: TWO_POINTS.has(node.f) && Boolean(span), flow: node.f === "flow" });
             }
             // (A drawdown's from the highest of all history; a rebase, from each stretch's first value in it; a shift, its
             // span back (or on), by halvings each cycle from its first point.)
@@ -20510,7 +20543,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return windows;
       }
       /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
-      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!days || days >= 0.9 * INTERVAL_DAYS[id]) && (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
+      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two, flow }) => (!flow || flowFits(days, id)) && (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
       /**
        * Why formulas a click adds can't be computed at the chart's interval, if they can't: the intervals they can be
        * (the chart stays where it's put). @param {string[]} formulas
@@ -23952,6 +23985,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first (as a chart's, see THUMBS); let go of first, as the thumbs are, when storage is full. */
       const PRESET_MARKS = "bitview-studio:preset-marks";
       const THUMB_POINTS = 28;
+      // Drawings are disposable; saved charts and preferences have separate storage.
+      const MARK_VERSION = "1:";
       const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
       const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
       const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
@@ -23966,7 +24001,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const validChartMark = (/** @type {any} */ mark) => typeof mark === "object" && mark !== null && validLines(mark.lines)
         && Array.isArray(mark.washes) && mark.washes.length <= 1 && mark.washes.every((wash) => Array.isArray(wash) && Number.isInteger(wash[0]) && wash[0] >= 0 && wash[0] < mark.lines.length && isColor(wash[1]) && isColor(wash[2]) && validLevel(wash[3]) && validLevel(wash[4]))
         && Array.isArray(mark.dots) && mark.dots.length <= 4 && mark.dots.every((dot) => Array.isArray(dot) && isColor(dot[0]) && validLevel(dot[1]) && validLevel(dot[2]));
-      const validThumb = (thumb) => typeof thumb?.key === "string" && validChartMark(thumb)
+      const validThumb = (thumb) => typeof thumb?.key === "string" && thumb.key.startsWith(MARK_VERSION) && validChartMark(thumb)
         && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
         && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
       /**
@@ -23989,7 +24024,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse, pane.average]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.fit, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200, layer.cumulative] : null, layer.outline, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => MARK_VERSION + JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse, pane.average]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.fit, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200, layer.cumulative] : null, layer.outline, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -27397,12 +27432,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
       /** The presets' marks, as drawn (made as their rows come into sight; those of earlier visits, kept), by what each is of. @type {Map<string, Pick<Thumb, "lines" | "washes" | "dots">>} */
-      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([, mark]) => validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
+      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([key, mark]) => key.startsWith(MARK_VERSION) && validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
       const savePresetMarks = writeSoon(() => storage.set(PRESET_MARKS, Object.fromEntries([...presetMarks].slice(-KEPT_PRESET_MARKS))));
       /** Each preset's own tag, by what it is (its layers, its look): a mark kept of it as it was, not taken for it as it is now. @type {WeakMap<Preset, string>} */
       const presetTags = new WeakMap();
       // (By the preset, as made (as it is now); edited here, by its copy as it is: nothing else changes it.)
-      const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : ((preset) => `${presetKey(i)}#${presetTags.get(preset) ?? (presetTags.set(preset, hashOf(JSON.stringify(preset))), presetTags.get(preset))}`)(/** @type {Preset[]} */ (presets)[i])))(keptPreset(i));
+      const keptMarkKey = (/** @type {Chart} */ doc) => `${MARK_VERSION}${doc.id}@${doc.updated}`;
+      const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? keptMarkKey(doc) : ((preset) => `${MARK_VERSION}${presetKey(i)}#${presetTags.get(preset) ?? (presetTags.set(preset, hashOf(JSON.stringify(preset))), presetTags.get(preset))}`)(/** @type {Preset[]} */ (presets)[i])))(keptPreset(i));
       /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
       const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? NO_MARK).replace("<svg ", `<svg data-preset-mark="${i}" `);
       /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
@@ -38497,7 +38533,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) {
               fitSpacing(chart, resolved.times.length);
               if (presetShown) applyRange(chart, resolved);
-              else if (logical) showSpan(atLatest(logical, screen) ?? logical);
+              else if (logical) showSpan(atLatest(logical, screen) ?? logical, EXACT_RANGE);
             }
             updateReadout();
             // (Reserve the complete legend; very small requested sizes fit the complete canvas at the final resampling.)
@@ -38527,7 +38563,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
             if (sized) (engine.time.rightOffset = rightGap()), engine.invalidate(true);
-            if (sized && logical) showSpan(logical);
+            if (sized && logical) showSpan(logical, EXACT_RANGE);
             // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
             // picture).)
             if (sized && shown && resolved && drawnChart === chart.id) {
@@ -38592,7 +38628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           heatExtras.delete(extra);
         }
         const { shot, scale, pieces, layout, dates, axisHeight, leftWidth } = taken;
-        const apart = layout.groups;
+        const apart = layout.items;
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
@@ -38809,18 +38845,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
           return row > 0 && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
         }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
-        const buttons = /** @type {[HTMLElement, string][]} */ ([]);
         for (const [legend] of apart) {
           legend.dataset.apart = "";
           if (!legend.querySelector(".legend-key")) legend.style.display = "none";
-          else for (const button of all$("button", legend)) {
-            buttons.push([button, button.style.cssText]);
-            Object.assign(button.style, { position: "absolute", visibility: "hidden" });
-          }
         }
         return () => {
           for (const [legend, display] of apart) delete legend.dataset.apart, (legend.style.display = display);
-          for (const [button, style] of buttons) button.style.cssText = style;
         };
       }
       /** A picture's legends set apart (see setApart): their rows, the space over, under and between them. */
@@ -38870,7 +38900,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           y += APART.gap;
         }
-        return { items, column, groups, height: groups.length ? y - APART.gap + APART.bottom : 0 };
+        return { items, column, height: groups.length ? y - APART.gap + APART.bottom : 0 };
       }
       /** Each legend set apart, its items as they show (a hidden layer's left out, as over the plot), their values as read. */
       const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$("button", legend).filter((button) => button.style.display !== "none").map((button) => {

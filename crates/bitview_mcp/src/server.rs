@@ -409,8 +409,7 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
     }
 
     // `GET /` (and its `HEAD`) is the page. As an event stream it is MCP, which has no stream.
-    let landing =
-        matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
+    let landing = matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
     if landing
         && request
             .headers()
@@ -422,7 +421,7 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
             StatusCode::METHOD_NOT_ALLOWED,
             [
                 (CACHE_CONTROL, "no-store"),
-                (ALLOW, "POST"),
+                (ALLOW, "GET, HEAD, POST"),
                 (VARY, "Accept"),
             ],
         )
@@ -431,9 +430,7 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
 
     let mut response = next.run(request).await;
     if landing {
-        response
-            .headers_mut()
-            .append(VARY, HeaderValue::from_static("Accept"));
+        response.headers_mut().append(VARY, HeaderValue::from_static("Accept"));
     }
     response
 }

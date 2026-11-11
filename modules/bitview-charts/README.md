@@ -25,8 +25,7 @@ chart.show(365);                                 // the last 365 points in view
   and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
   then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
-  past the last point (24); `time.lastVisible`, the last point whose center is in view for resting values and tags (geometry
-  fitting still includes a connecting point past a fractional edge); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
+  past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
@@ -40,6 +39,8 @@ chart.show(365);                                 // the last 365 points in view
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
+  `time.firstVisible` and `time.lastVisible` (the first and last point whose centers are in view, for date captions and
+  resting readings; geometry fitting includes connecting points beyond fractional edges),
   `time.held(from, to)` (how far a view would move to keep its data's share in view, as the chart holds it: a page's
   glide aimed there ends where the chart stops it),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and

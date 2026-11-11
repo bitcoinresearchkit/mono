@@ -882,7 +882,7 @@ export function studioPresets(client, facts) {
 
     const realizedPrice = between(cap, "/", coins?.btc, "usd");
 
-    const result = {
+    return {
       funded: edge.funded && { value: funded, delta: delta(funded, "funded") },
       supply: edge.supply && { total: coins, share: sum("supply", "share"), inProfit: coinsInProfit, inLoss: coinsInLoss, delta: delta(coins?.btc, "supply"), agedOut },
       capital: edge.capital && { realizedCap: cap, share: sum("capital", "share"), inProfit: capitalInProfit, inLoss: capitalInLoss, delta: delta(cap, "capital") },
@@ -901,7 +901,6 @@ export function studioPresets(client, facts) {
       unrealized: edge.unrealized && { profit: paperProfit, loss: paperLoss, netPnl: between(paperProfit, "-", paperLoss), nupl: between(sum("unrealized", "netPnl"), "/", coins?.usd, "ratio") },
       costBasis: edge.costBasis && realizedPrice && { byCoin: { realizedPrice, avg: { mvrv: made(`${t.price.close.name} / ${realizedPrice.name}`, realizedPrice, "ratio") } } },
     };
-    return result;
   };
   /**
    * One side's cutoffs, a folder of them with their comparisons: `edges`, each the band starting there and how it reads.
@@ -1279,7 +1278,7 @@ export function studioPresets(client, facts) {
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${lowered(spanLabel(key))}`))),
         ]),
       ]),
-      chainStatistics({ t, facts, chart, section, ramp }),
+      chainStatistics({ t, facts, chart, section, ramp, flowWindow }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)
@@ -1794,8 +1793,7 @@ export function studioPresets(client, facts) {
         walk(item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      const c = twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place);
-      presets.push({ p: place, t: item.title, c, ...(icon ? { s: icon } : {}) });
+      presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
       icon = "";
     }
   };

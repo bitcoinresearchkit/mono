@@ -14,11 +14,12 @@ const OWN = new Float64Array(2);
 
 /**
  * A bar's footprint: a nonzero value grows from its base by at least one device pixel.
+ * `value` and `base` are offsets from the plotted baseline, including when log scale clips a zero base.
  * @param {CanvasRenderingContext2D} g @param {number} x @param {number} width @param {number} y @param {number} baseY
  * @param {number} value @param {number} base @param {number} dpr @param {number} pad @param {number} radius
  */
 function barShape(g, x, width, y, baseY, value, base, dpr, pad, radius) {
-  const up = y <= baseY, height = Math.max(value === base ? 0 : 1 / dpr, Math.abs(baseY - y));
+  const up = y < baseY || (y === baseY && value >= 0), height = Math.max(value === base ? 0 : 1 / dpr, Math.abs(baseY - y));
   const top = (up ? baseY - height : baseY) - pad;
   if (radius) g.roundRect(x, top, width, height + 2 * pad, up ? ROUND_UP : ROUND_DOWN);
   else g.rect(x, top, width, height + 2 * pad);
@@ -77,7 +78,7 @@ export class Bars extends Line {
    */
   #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
     const values = this.values, n = values.length, log = scale.mode === "log";
-    const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
+    const spacing = time.spacing, wide = spacing >= 3, baseline = log && !(this.base > 0) ? scale.lo : this.base, baseY = scale.y(baseline), baseOffset = this.base - baseline;
     // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
     const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide && corner > 0 ? Math.min(corner, half) + pad : 0;
@@ -90,7 +91,7 @@ export class Bars extends Line {
         const x = time.x(i), y = scale.y(v);
         // (Its edges on device pixels: bars side by side keep even gaps.)
         const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad;
-        barShape(g, left, right - left, y, baseY, v, this.base, dpr, pad, radius);
+        barShape(g, left, right - left, y, baseY, v - baseline, baseOffset, dpr, pad, radius);
       }
       return;
     }
@@ -106,7 +107,7 @@ export class Bars extends Line {
       }
       if (far < 0 || (colors && colors[far] !== pass)) continue;
       const y = scale.y(values[far]);
-      barShape(g, x - pad, 1 + 2 * pad, y, baseY, values[far], this.base, dpr, pad, 0);
+      barShape(g, x - pad, 1 + 2 * pad, y, baseY, values[far] - baseline, baseOffset, dpr, pad, 0);
     }
   }
 }

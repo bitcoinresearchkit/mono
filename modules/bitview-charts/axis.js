@@ -61,11 +61,15 @@ export class TimeAxis {
     // (Daily labels always include their month; January is named by its year among monthly ticks.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
     // (A time of day as hours and minutes; midnight, its day.)
-    const clock = kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : `${date(t).getUTCDate()} ${MONTHS[date(t).getUTCMonth()]}`));
+    const day = (/** @type {Date} */ d) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+    const clock = kept((t) => {
+      const d = date(t);
+      return d.getUTCHours() || d.getUTCMinutes() ? `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}` : day(d);
+    });
     this.labels = {
       year: kept((t) => String(date(t).getUTCFullYear())),
       month: kept((t) => (date(t).getUTCMonth() ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCFullYear()))),
-      day: kept((t) => `${date(t).getUTCDate()} ${MONTHS[date(t).getUTCMonth()]}`),
+      day: kept((t) => day(date(t))),
       hour: clock,
       minute: clock,
     };
@@ -147,7 +151,7 @@ export class TimeAxis {
    * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
    */
   #row(time, theme, plot, page, a, b, step) {
-    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit], own = unit === "hour" || unit === "minute";
+    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit];
     let drawn = 0;
     g.fillStyle = theme.text;
     g.textAlign = "center";
@@ -171,7 +175,7 @@ export class TimeAxis {
         const x = time.x(i);
         // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
         // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
-        const when = own || !calendar ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
+        const when = calendar ? t : times[i], words = this.format ? this.format(when, kindOf(when)) : null;
         if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
           const text = words ?? label(when);
           g.fillText(text, x, this.height / 2);

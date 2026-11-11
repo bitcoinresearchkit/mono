@@ -43,12 +43,17 @@ export class Timeline {
     this.kept = Infinity;
   }
 
+  /** The first point whose center is in view, allowing only floating-point noise at the boundary. */
+  get firstVisible() {
+    return Math.ceil(this.from - NOISE);
+  }
+
   /** The last point whose center is in view. A value beyond the edge never becomes the resting readout. */
   get lastVisible() {
     return Math.floor(this.to);
   }
 
-  /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
+  /** The last point a crosshair can be on: the last one with data, or past it, the last one whose center is in view. */
   get lastSlot() {
     return Math.max(this.length - 1, this.lastVisible);
   }

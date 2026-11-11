@@ -9,15 +9,15 @@
 /** @import { Facts, ChartBuilder, SectionBuilder, SectionNode } from "./presets.js" */
 /**
  * @typedef {Pick<SeriesPattern<unknown>, "name">} NamedSeries
- * @typedef {{ cumulative: NamedSeries }} Cumulative
+ * @typedef {{ cumulative: NamedSeries, sum?: object }} Cumulative
  * @typedef {{ [K in keyof SeriesTree["pools"]]: SeriesTree["pools"][K] extends Pool ? K : never }[keyof SeriesTree["pools"]]} PoolKey
  */
 
 /**
- * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[] }} parts
+ * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: any, key: string) => any }} parts
  * @returns {SectionNode}
  */
-export function chainStatistics({ t, facts, chart, section, ramp }) {
+export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) {
   /** A series' change over a span. @param {NamedSeries} series @param {string} span */
   const flow = (series, span) => `flow(${series.name}, ${span})`;
   /** A series' change over a day. @param {NamedSeries} series */
@@ -31,7 +31,14 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   /** Lines, each a label and a formula. @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[] }} [options] */
   const line = (title, lines, days, { format, log } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /** Event counts use whole totals over a week or month, including when events are sparse. */
-  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => line(title, totals.map(([label, total]) => [`${label}, ${days} days`, flow(total.cumulative, `${days}d`)]), 1, options);
+  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, days = 7, options = {}) => {
+    const lines = totals.map(([label, total]) => {
+      const node = flowWindow(total.sum, days === 7 ? "_1w" : "_1m");
+      // Native trailing sums retain their meaning at every sampling interval; no client-derived substitute.
+      return node && !node.formula ? [`${label} per ${days} days`, node.name] : null;
+    });
+    return lines.every((line) => line !== null) ? line(title, /** @type {string[][]} */ (lines), 1, options) : null;
+  };
   /** A calendar year's flow, from the preceding year's end. */
   const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: flow(total, "1y"), label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
