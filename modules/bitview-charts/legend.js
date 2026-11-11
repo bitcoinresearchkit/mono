@@ -26,6 +26,7 @@ function adopt() {
     :where(.bc-legend[data-chip]:not([data-named]) .bc-legend-name, .bc-legend[data-chip]:not([data-named]) .bc-legend-value) { display: none }
     :where(.bc-legend[data-named] > :not([data-pointed]), .bc-legend[data-named] > .bc-legend-count) { display: none }
     :where(.bc-legend-item) { display: flex; align-items: center; gap: 6px; padding: 2px 6px 2px 4px; color: inherit }
+    :where(.bc-legend-summary) { margin-left: 8px; padding-left: 8px; border-left: 1px solid currentColor }
     :where(.bc-legend-count) { margin-left: 6px; opacity: 0.7 }
   `);
   document.adoptedStyleSheets = [sheet, ...document.adoptedStyleSheets];
@@ -47,6 +48,8 @@ export class Legend {
     this.pointed = /** @type {string | null} */ (null);
     /** Every item named (a picture's). */
     this.whole = false;
+    /** Optional context kept visible beside the count when items fold. */
+    this.summary = Object.assign(document.createElement("span"), { className: "bc-legend-summary" });
     this.count = Object.assign(document.createElement("span"), { className: "bc-legend-count" });
     this.element.addEventListener("click", (event) => {
       if (!this.element.hasAttribute("data-chip") || !this.onPress) return;
@@ -55,12 +58,13 @@ export class Legend {
     });
   }
 
-  /** Its items (the page's elements put in it in their order, in place of what it held). @param {LegendItem[]} items */
-  set(items) {
+  /** Its items (the page's elements put in it in their order, in place of what it held). @param {LegendItem[]} items @param {string} [summary] context beside the folded count */
+  set(items, summary = "") {
     this.items = items;
+    if (this.summary.textContent !== summary) this.summary.textContent = summary;
     this.laid = items.map((item) => item.elements ?? [made(item)]);
-    const all = [...this.laid.flat(), this.count];
-    // (What it holds now, in order: the elements given, its count last; moved only where they're not so already (a
+    const all = [...this.laid.flat(), this.count, this.summary];
+    // (What it holds now, in order: the elements given, then its count and summary; moved only where they're not so already (a
     // move drops a focus in it).)
     for (const child of [...this.element.children]) if (!all.includes(/** @type {HTMLElement} */ (child))) child.remove();
     if (all.some((element, k) => this.element.children[k] !== element)) for (const element of all) this.element.append(element);
@@ -114,6 +118,7 @@ export class Legend {
     this.element.toggleAttribute("data-chip", chip);
     this.element.toggleAttribute("data-named", named);
     this.count.hidden = !chip;
+    this.summary.hidden = !chip || !this.summary.textContent;
     if (this.count.textContent !== String(shown.length)) this.count.textContent = String(shown.length);
     let refocus = false, k = 0;
     for (const [n, item] of this.items.entries()) {

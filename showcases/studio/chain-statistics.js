@@ -22,18 +22,16 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
   const perDay = (series) => `diff(${series.name}, 1d)`;
   /** A running total's change over a day. @param {Cumulative} total */
   const daily = (total) => perDay(total.cumulative);
-  /** `formula` averaged over the days given, none for one day. @param {string} formula @param {number} days */
-  const smoothed = (formula, days) => (days > 1 ? `sma(${formula}, ${days}d)` : formula);
   /** `part` as a percentage of `whole`. @param {string} part @param {string} whole */
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
   /** What `all` holds beyond `parts`. @param {string} all @param {string[]} parts */
   const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
   /** Lines, each a label and a formula. @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[] }} [options] */
-  const line = (title, lines, days, { format, log } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula: smoothed(formula, days), label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), log ? { log } : {});
+  const line = (title, lines, days, { format, log } = {}) => chart(title, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
   const percentLine = (title, lines, days) => line(title, lines, days, { format: "percent" });
   /** Areas stacked into shares of their sum. @param {string} title @param {string[][]} parts @param {number} days */
-  const shareStack = (title, parts, days) => chart(title, title, parts.map(([label, formula], i) => ({ formula: smoothed(formula, days), label, type: "area", color: ramp(parts.length)[i] })), { stack: { 1: "percent" } });
+  const shareStack = (title, parts, days) => chart(title, title, parts.map(([label, formula], i) => ({ formula, label, type: "area", color: ramp(parts.length)[i] })), { stack: { 1: "percent" }, ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
 
   const day = { blocks: daily(t.blocks.count), txs: daily(t.transactions.count), inputs: daily(t.inputs.count), outputs: daily(t.outputs.count) };
   /** Per block, over the day. @param {string} formula */
@@ -113,7 +111,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       line("BIP-110 signaling blocks", [["blocks signaling on bit 4 (BIP-91 in 2017)", daily(t.blocks.versionBits.bit4)]], 1),
       percentLine("Coinbases with a witness", [["coinbases with a witness", ofBlocks(daily(t.inputs.coinbaseWitness))]], 7),
       line("Cumulative unclaimed coins", [["unclaimed coins", t.mining.rewards.unclaimed.cumulative.btc.name]], 1, { format: "btc" }),
-      chart("Coinbase output value", "Coinbase output value", (/** @type {const} */ ([["block subsidy", t.mining.rewards.subsidy], ["transaction fees", t.mining.rewards.fees]])).map(([name, node], i) => ({ formula: smoothed(perBlock(perDay(node.cumulative.btc)), 7), label: name, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" } }),
+      chart("Coinbase output value", "Coinbase output value", (/** @type {const} */ ([["block subsidy", t.mining.rewards.subsidy], ["transaction fees", t.mining.rewards.fees]])).map(([name, node], i) => ({ formula: perBlock(perDay(node.cumulative.btc)), label: name, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" }, average: { 1: "7d" } }),
     ]),
     section("Fees", [
       percentLine("Sub 1 sat/vByte transactions", [["sub 1 sat/vbyte", percent(underOneSatVb, day.txs)]], 7),
@@ -185,7 +183,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
       line("Cumulative log2(work)", [["cumulative log2(work)", `ln(${work.name}) / ln(2)`]], 1),
       line("Cumulative work", [["cumulative work", work.name]], 1, { log: [1] }),
       line("Difficulty", [["difficulty", difficulty.name]], 7),
-      chart("Hashrate and difficulty", "Hashrate and difficulty", [{ formula: smoothed(hashrate.name, 7), label: "Hashrate", color: "orange" }, { formula: difficulty.name, label: "Difficulty", color: "sky", pane: 2 }], { log: [1, 2] }),
+      chart("Hashrate and difficulty", "Hashrate and difficulty", [{ formula: hashrate.name, label: "Hashrate", color: "orange" }, { formula: difficulty.name, label: "Difficulty", color: "sky", pane: 2 }], { log: [1, 2], average: { 1: "7d" } }),
       line("Hashrate", [["hashrate", hashrate.name]], 7),
       line("log2(work) per block", [["log2(work)", `ln(${workPerBlock}) / ln(2)`]], 1),
       line("Proof-of-Work equivalent days", [["PoW-equivalent days", `${work.name} / ${hashrate.name} / 86400`]], 7),
@@ -213,7 +211,7 @@ export function chainStatistics({ t, facts, chart, section, ramp }) {
         line("Payments per transaction", [["Payments per Transaction", `${daily(payments.count)} / ${day.txs}`]], 7),
         percentLine("Payments signaling RBF", [["RBF signaling", percent(daily(payments.rbfSignaling), daily(payments.count))]], 7),
         percentLine("SegWit spending payments", [["Payments spending SegWit", percent(daily(payments.segwitSpending), daily(payments.count))]], 7),
-        chart("Payments and block size", "Payments and block size", [{ formula: smoothed(daily(payments.count), 7), label: "Payments", color: "orange" }, { formula: smoothed(perBlock(daily(t.blocks.size)), 7), label: "Block size", format: "bytes", color: "sky", pane: 2 }]),
+        chart("Payments and block size", "Payments and block size", [{ formula: daily(payments.count), label: "Payments", color: "orange" }, { formula: perBlock(daily(t.blocks.size)), label: "Block size", format: "bytes", color: "sky", pane: 2 }], { average: { 1: "7d", 2: "7d" } }),
       ];
     })()),
     section("Transactions", [

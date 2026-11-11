@@ -81,11 +81,11 @@ clears); avoid reflecting programmatic calls. A programmatic
   that side's scale, a held one left held at its range: the fit's margins, bases, other side and overlays stay as it
   left them; nothing to fit, the range as it is), `setScale(side, { mode, top, bottom })` (a side's
   scale's look, now and a left one made later), `hit(time, index, x, y)` (the series nearest a point, within 6 pixels).
-- `setLegend({ onPress })`: its legend, over its plot's top left (made once, returned): `set(items)`, each
+- `setLegend({ onPress })`: its legend, over its plot's top left (made once, returned): `set(items, summary?)`, each
   `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;
   else made from its first series: a key of its color, its `label`, its value at the crosshair or its last in view, as
   its tag writes it). One shown, named; more, a chip (their first four keys and how many; a press on it told
-  `onPress`); the series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
+  `onPress`); an optional `summary` caption stays beside the folded count. The series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
   not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
   over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,

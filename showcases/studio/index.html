@@ -3049,9 +3049,10 @@
             }
           }
 
-          > .bc-legend-count {
+          > :is(.bc-legend-count, .bc-legend-summary) {
             margin-left: 6px;
-            color: var(--soft);
+            opacity: 1;
+            color: var(--dim);
             font: 510 12px/22px var(--sans);
             font-variant-numeric: tabular-nums;
           }
@@ -10672,7 +10673,7 @@
             <li>"title".</li>
             <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
             <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
-            <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
+            <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
             <li>"legend": "off": no legend over the panes.</li>
             <li>"drawings" (see below).</li>
@@ -11905,37 +11906,45 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Where a signal's marks are: each change to up or down (a condition's: where it turns true), and with its results,
        * each stretch ending off with one (its dot): counted, listed and stepped through as they're drawn. Its layer's
        * values, the chart's as drawn unless given (⌘K's preview, its own).
-       * @param {Layer} layer @param {ArrayLike<number> | undefined} values @param {ArrayLike<number> | null | undefined} [own] (null: none)
+       * @param {Layer} layer @param {ArrayLike<number> | undefined} values @param {Result | null | undefined} [reference] (null: none)
        */
-      const marksOf = (layer, values, own = resolved?.results.get(layer.ref ?? "")?.values) => {
+      const marksOf = (layer, values, reference = resolved?.results.get(layer.ref ?? "")) => {
+        const own = reference?.values;
         // (As markSignals draws them: only where its layer has a value (above 0 on a log scale).)
         const target = chart?.layers.find((item) => item.id === layer.ref), log = target ? modeOf(chart, target) === 1 : false;
         const drawn = (/** @type {number} */ i) => own != null && Number.isFinite(own[i]) && (!log || own[i] > 0);
         // (Shaded, its turns; with its results, their dots on its layer where each stretch ends.)
-        if (layer.place === "shade") return changesOf(values).flatMap((change) => (change.to || (layer.results && own && drawn(change.at) && stretchResult(change, own) !== undefined) ? [change.at] : []));
+        if (layer.place === "shade") return changesOf(values).flatMap((change) => (change.to || (layer.results && own && drawn(change.at) && stretchResult(change, reference) !== undefined) ? [change.at] : []));
         // (Its layer without values (not loaded, failed): none drawn.)
         if (!own) return [];
-        return changesOf(values).flatMap((change) => (drawn(change.at) && (change.to || (layer.results && stretchResult(change, own) !== undefined)) ? [change.at] : []));
+        return changesOf(values).flatMap((change) => (drawn(change.at) && (change.to || (layer.results && stretchResult(change, reference) !== undefined)) ? [change.at] : []));
       };
       /**
        * What a stretch a change ends made, by the layer it's marked on: that layer's change over it, up; the opposite, down
        * (the state was right: more); none for one of neither, one begun before a change, or a value there not above 0 (or
        * not finite: a formula's division by 0).
-       * @param {{ at: number, was: number, since: number }} change @param {ArrayLike<number>} own
+       * @param {{ at: number, was: number, since: number }} change @param {Result | null | undefined} reference
        */
-      const stretchResult = (change, own) => ((from, to) => (change.was && change.since >= 0 && from > 0 && to > 0 && Number.isFinite(from) && Number.isFinite(to) ? change.was * (to / from - 1) : undefined))(own[change.since], own[change.at]);
+      const stretchResult = (change, reference) => {
+        const values = reference && measured(reference);
+        if (!values) return undefined;
+        const from = values[change.since], to = values[change.at];
+        return change.was && change.since >= 0 && from > 0 && to > 0 && Number.isFinite(from) && Number.isFinite(to) ? change.was * (to / from - 1) : undefined;
+      };
+      /** Measurements belong to the result, even if its view shares a vector with another layer's formula. */
+      const measured = (/** @type {Result} */ result) => result.measurement ?? result.values;
       /** A stretch's result, said: +10.2%, −4.1%; ten times or more, as a growth reads: 840×. */
       const resultText = (/** @type {number} */ result) => (result >= 9 ? `${precise(1 + result)}×` : `${result < 0 ? "−" : "+"}${precise(Math.abs(result) * 100)}%`);
       /** A signal's stretches' results, compounded: what following it made, by its layer (none, none). @param {Layer} layer */
       const resultsOf = (layer) => {
-        const values = resolved?.results.get(layer.id)?.values, own = resolved?.results.get(layer.ref ?? "")?.values;
-        if (!values || !own) return undefined;
+        const values = resolved?.results.get(layer.id)?.values, own = resolved?.results.get(layer.ref ?? "");
+        if (!values || !own?.values) return undefined;
         const results = changesOf(values).flatMap((change) => ((result) => (result === undefined ? [] : [result]))(stretchResult(change, own)));
         // (A stretch losing all, or more (down, its layer more than doubled), leaves nothing: none to go on from.)
         return results.length ? results.reduce((total, result) => total * Math.max(0, 1 + result), 1) - 1 : undefined;
       };
       /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}${layer.results && resolved?.results.get(on.id)?.measurement ? " · Returns from raw values" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       /** A layer's type, by its name: every type's (those drawn from a series, from layers, a signal, bubbles, a heatmap). */
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"], ["profile", "Profile"]].find(([id]) => id === type)?.[1] ?? type;
       /**
@@ -12146,6 +12155,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
+      const spanDays = (/** @type {string} */ span) => {
+        const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
+        return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
+      };
+      /** Formula-picker spans; a third field also offers that span as a pane average. @type {[string, string, string?][]} */
+      const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week", "7-day average"], ["30d", "a month", "30-day average"], ["90d", "a quarter", "90-day average"], ["200d", "about six and a half months"], ["1y", "a year", "1-year average"], ["2y", "two years"], ["1halving", "a halving cycle"], ["4y", "four years"]];
+      const AVERAGES = Object.fromEntries(SPANS.flatMap(([span, , average]) => average ? [[span, average]] : []));
+      /** A distribution has many values per date, rather than a temporal measurement to average.
+       * @param {Chart} doc @param {Pane} pane
+       */
+      const averageBlocked = (doc, pane) => doc.layers.some((layer) => layer.pane === pane.id && heatLike(layer)) ? "This pane contains a heatmap or profile (including hidden layers): it needs raw values" : "";
       /** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
       const outreaches = (/** @type {Vector} */ x, /** @type {number} */ points) => {
         const first = x.findIndex(Number.isFinite), last = x.findLastIndex(Number.isFinite);
@@ -12168,6 +12188,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         beyond && FINE.has(index) && !(shift && days > (Date.now() / 1000 - timeAt("day1", 0)) / 86400)
           ? failing(`${f} over ${span}: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(days, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(days, index)]}+`)
           : new Error(`${f}: ${span} is longer than the data`);
+      /** One pane's average at an interval: shared by choices, drawing, labels and live updates.
+       * @param {Chart} doc @param {Pane | undefined} pane @param {string} [span]
+       */
+      function averageFor(doc, pane, span = pane?.average ?? "") {
+        if (!pane || !Object.hasOwn(AVERAGES, span)) return { span: "", active: "", name: "", points: 1, disabled: "" };
+        const days = spanDays(span), points = windowPoints(days, doc.index), blocked = averageBlocked(doc, pane);
+        const disabled = blocked || (points <= 1 ? `At ${INTERVAL_LABEL[doc.index]}, ${AVERAGES[span]} changes nothing: choose a longer span`
+          : FINE.has(doc.index) && points >= CHUNK ? windowTooLong("Average", span, days, doc.index, true, false).message : "");
+        return { span, active: disabled ? "" : span, name: disabled ? "" : AVERAGES[span], points, disabled };
+      }
       const CADENCE = { minute10: "Every 10 minutes", minute30: "Every 30 minutes", hour1: "Hourly", hour4: "Every 4 hours", hour12: "Every 12 hours", day1: "Daily", day3: "Every 3 days", week1: "Weekly", month1: "Monthly", month3: "Quarterly", month6: "Every 6 months", year1: "Yearly", year10: "By decade" };
 
       // ── Units and formatting ──────────────────────────────────────────────────
@@ -13401,7 +13431,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
        *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
        *   one too (`baseLine`: gray, in sparse dots).
-       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean }} Pane `reverse`:
+       * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean, average?: string }} Pane `reverse`:
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
        *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
@@ -13778,6 +13808,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (placedOn(layer)) ((on) => on && Object.assign(layer, { pane: on.pane, side: on.side }))(doc.layers.find((other) => other.id === layer.ref));
         // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
         for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
+        // Unknown saved settings are raw; known ones stay kept while an interval or a distribution blocks them.
+        for (const pane of doc.panes) if (pane.average && !Object.hasOwn(AVERAGES, pane.average)) delete pane.average;
         const used = new Set(doc.layers.map((layer) => layer.pane));
         doc.panes = doc.layers.length ? doc.panes.filter((pane) => used.has(pane.id)) : doc.panes.slice(0, 1);
         const seen = new Set();
@@ -16029,7 +16061,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null);
 
       /**
-       * @typedef {{ values?: Vector, ohlc?: (number[] | null)[], low?: Vector, members?: Vector[], memberIds?: string[], highest?: Int8Array, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector, heat?: true, closes?: Vector }} Result
+       * @typedef {{ values?: Vector, measurement?: Vector, ohlc?: (number[] | null)[], low?: Vector, members?: Vector[], memberIds?: string[], highest?: Int8Array, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector, heat?: true, closes?: Vector }} Result
        *   `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
        *   flips, a formula's restarts (each the point before: see restarts); `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
@@ -16348,6 +16380,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const name = layer.series;
           results.set(layer.id, { unit: units.get(name) ?? "number", info: known.get(name), ...(catalogIndex && !catalogIndex.has(name) ? { error: "Not on Bitview", missing: true } : {}) });
         }
+        // Formulas read raw measurements; a pane's average changes only the resolved view, never its inputs.
+        for (const pane of doc.panes) {
+          if (!pane.average) continue;
+          const average = averageFor(doc, pane);
+          for (const layer of layers.filter((layer) => layer.pane === pane.id)) {
+            const result = results.get(layer.id);
+            if (result?.values) results.set(layer.id, averageResult(result, average, doc.index, layer));
+          }
+        }
         let first = length;
         for (const { values } of results.values()) {
           if (!values) continue;
@@ -16366,13 +16407,58 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             results.set(id, trimmed.out);
             continue;
           }
-          // (Shown as they are, the values are copied once.)
-          const values = result.values?.slice(first);
-          const out = { ...result, values, ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.members ? { members: result.members.map((values) => values.slice(first)) } : {}), ...(result.highest ? { highest: result.highest.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}), ...(result.closes ? { closes: result.closes.slice(first) } : {}) };
+          // Source and view keep the same dates; each numeric column is copied once.
+          const out = mapResult(result, (values) => values.slice(first));
           trims.set(result, { first, out });
           results.set(id, out);
         }
         return { times: frame.trimmed.times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
+      }
+
+      /** Maps all numeric columns together, including a view's source, cloud members and candle rows.
+       * @param {Result} result @param {(values: any, field: string) => any} map @returns {Result}
+       */
+      function mapResult(result, map) {
+        const out = { ...result };
+        for (const [field, values] of Object.entries(result)) if (ArrayBuffer.isView(values)) out[field] = map(values, field);
+        if (result.members) out.members = result.members.map((values) => map(values, "members"));
+        if (result.ohlc) out.ohlc = map(result.ohlc, "ohlc");
+        return out;
+      }
+
+      /** Averaged results, by their raw result and window, kept only while the source is alive. */
+      const averagedResults = new WeakMap();
+      /** A view transform after formulas, before stacking: every temporal column uses formula SMA's rolling mean.
+       * @param {Result} result @param {ReturnType<typeof averageFor>} average @param {string} index @param {Layer} layer @returns {Result}
+       */
+      function averageResult(result, average, index, layer) {
+        const { points, span } = average, partial = !FINE.has(index);
+        if (!average.active || !result.values || result.error) return result;
+        const key = `${span}:${index}:${result.members ? `${edgesOf(layer).join()}:${cloudLayers(layer).length}` : ""}`, kept = averagedResults.get(result) ?? new Map();
+        if (kept.has(key)) return kept.get(key);
+        /** @type {Result} */
+        let out;
+        try {
+          const mean = (/** @type {Vector} */ values) => rolling(values, points, partial).mean;
+          const members = result.members?.map(mean);
+          const shape = members ? cloudOf(members, edgesOf(layer).includes("top"), edgesOf(layer).includes("bottom"), cloudLayers(layer).length === 2)
+            : { values: mean(result.values), ...(result.low ? { low: mean(result.low) } : {}) };
+          if (!partial && !shape.values.some(Number.isFinite) && outreaches(result.values, points)) throw windowTooLong("Average", span, spanDays(span), index, points > result.values.length, false);
+          let ohlc;
+          if (result.ohlc) {
+            const bars = result.ohlc;
+            const columns = Array.from({ length: 4 }, (_, k) => k === 3 ? shape.values : mean(Float64Array.from(bars, (bar) => bar?.[k] ?? NaN)));
+            ohlc = Array.from({ length: bars.length }, (_, i) => Number.isFinite(columns[3][i]) ? columns.map((column) => column[i]) : null);
+          }
+          // Rolling outputs may be shared with formula results: never write to them.
+          out = { ...result, ...shape, measurement: result.values, ...(ohlc ? { ohlc } : {}) };
+        } catch (thrown) {
+          const problem = /** @type {Error & { short?: string }} */ (thrown);
+          out = { unit: result.unit, info: result.info, measurement: result.values, error: problem.short ?? problem.message, detail: problem.message };
+        }
+        kept.set(key, out);
+        averagedResults.set(result, kept);
+        return out;
       }
 
       // ── The chart ─────────────────────────────────────────────────────────────
@@ -17195,7 +17281,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Shaded, no marks: its results alone, where its stretches end.)
           const shade = layer.place === "shade", on = layer.type === "signal" && !layer.hidden && (!shade || layer.results) && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.values;
           // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
-          const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.values, log = target ? modeOf(doc, target) === 1 : false;
+          const target = doc.layers.find((item) => item.id === layer.ref), reference = data.results.get(layer.ref ?? ""), own = reference?.values, log = target ? modeOf(doc, target) === 1 : false;
           if (!on || !values || !own) continue;
           // (Up, at its place; down, its mirror (above and below swapped), in its second color (red, unset). Its results asked for, each
           // stretch's on the mark that ends it: one ending in neither, a dot there.)
@@ -17206,7 +17292,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const list = marked.get(on)?.list ?? marked.set(on, { list: [], pane: doc.panes.findIndex((pane) => pane.id === target?.pane), side: target?.side === "left" ? "left" : "right", room: doc.panes.find((pane) => pane.id === target?.pane)?.stack !== "percent" }).get(on).list;
           for (const change of changesOf(values)) {
             // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark.)
-            const i = change.at, result = layer.results ? stretchResult(change, own) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
+            const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
             if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
             if (change.to > 0 && !shade) list.push({ at: i, position, shape, color, ...text });
             else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, shape: downShape, color: down, ...text });
@@ -17250,7 +17336,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnTimes.length && data.times.length ? Math.round((drawnTimes[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
         // Price scales stay as the person left them (a range set by hand, in any mode) while the panes and their modes
         // are the same: new data, a restyle. Otherwise they fit their data again.
-        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}:${pane.reverse ? 1 : ""}`).join();
+        const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}:${pane.reverse ? 1 : ""}:${pane.average ?? ""}`).join();
         const keep = sameView && panesShape === drawnPanes;
         // (A pane added or taken away, the chart's own: the chart as it was fades out over it laid out anew (its panes
         // cut to their new heights), as everything here changes, never a cut.)
@@ -18089,8 +18175,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a slot as wide as it gets (nothing moves as it's read): under the crosshair while hovering (the date shows on the
        * time axis), else at the view's end; a click selects. Laid by the library (one named, more a chip: see its legend.js).
        */
+      /** A displayed measurement names its view as well, on screen, in pictures, and in exported data.
+       * @param {Chart} doc @param {Layer} layer @param {string} [name]
+       */
+      const viewName = (doc, layer, name = labelOf(layer)) => ((average) => average.name ? `${name} · ${average.name}` : name)(averageFor(doc, doc.panes.find((pane) => pane.id === layer.pane)));
       /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
-      const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(name)}</span>`;
+      const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(viewName(chart, layer, name))}</span>`;
       /**
        * The layers folded into a cloud's legend item, by id (to the cloud's): a cloud by its layers' (byLayers), its lines
        * in its pane (what it's drawn from, Compass's percentiles and averages, many a group): listed as its key's colors,
@@ -18152,7 +18242,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const readOn = (/** @type {string} */ layer) => ((series, kept) => [series?.engine, series?.edge, kept?.series.engine, kept?.candles.engine])(drawn.get(layer), closes.get(layer));
             const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
             return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
-          }));
+          }), averageFor(chart, pane).name);
           // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
           restoreFocus(element, focus);
         }
@@ -19584,7 +19674,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const span = shown ? spanParts(Number(shown.from), Number(shown.to)).join(" to ").replace(/’(\d\d)/g, "20$1") : "";
         const panes = chart.panes.map((pane, i) => {
           const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden);
-          return layers.length ? capitalize(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${labelOf(layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
+          return layers.length ? capitalize(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${viewName(chart, layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
         }).filter(Boolean);
         return `${CADENCE[shownIndex()]}, ${span}. ${panes.join(". ")}.`;
       }
@@ -20978,7 +21068,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const relative = unit === "percent" ? null : growth(values[from], values[to]), sign = (/** @type {boolean} */ up) => (up ? "+" : "−");
         return {
           rising: relative ? relative.up : delta >= 0,
-          name: labelOf(layer),
+          name: viewName(chart, layer),
           figures: [...(relative ? [`${relative.text.endsWith("×") ? "" : sign(relative.up)}${relative.text}`] : []), `${sign(delta >= 0)}${amount(delta, unit)}`],
           span: duration(/** @type {Resolved} */ (resolved).times[to] - /** @type {Resolved} */ (resolved).times[from]),
         };
@@ -23862,7 +23952,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.fit, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200, layer.cumulative] : null, layer.outline, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse, pane.average]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.fit, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200, layer.cumulative] : null, layer.outline, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -24989,11 +25079,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
       /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot (a gradient's, its colors), its name. @param {Layer} layer */
-      const legendEntry = (layer, after = "") => `<span style="--c:${escape(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
+      const legendEntry = (doc, layer, after = "") => `<span style="--c:${escape(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escape(viewName(doc, layer))}${after}</span>`;
       /** A tile's interval, where it isn't a day's. @param {Chart} doc */
       const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
       /** A card's legend: its shown layers' entries. @param {Chart} doc */
-      const cardLegend = (doc) => doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
+      const cardLegend = (doc) => doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer)).join("");
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
@@ -29822,7 +29912,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A menu item's mark: a check on the current one, the same room on the others. */
       const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
       /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-      const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}`;
+      const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
       /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
       const editPane = (id, edit, look = false) => commit((doc) => {
         const pane = doc.panes.find((item) => item.id === id);
@@ -29831,6 +29921,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode), true);
       const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
       const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
+      const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
       /** A pane's two orders, named as it draws them: [reverse, its name]. @param {Pane} pane */
       const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front"], [true, pane.stack ? "Last at the foot" : "Last in front"]]);
       const toggleLog = (id) => {
@@ -29838,20 +29929,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (pane?.stack === "percent") notice("A 100% stack shows shares of the total, so there's no scale to choose");
         else if (pane) setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
       };
-      /** A pane's scale, stack and order, from its chip. */
+      const PANE_SETTINGS = new Set(["scale", "stack", "order", "average"]);
+      /** A pane's scale, stack, order and average, from its chip. */
       const scaleMenu = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id) => menuOf(anchor, scaleChoices(id), null, "", { heads: true });
       /**
-       * A pane's scale, stack and order as choices, those in effect ticked (its chip's menu, its ⌘K pages): a stack's
+       * A pane's scale, stack, order and average as choices, those in effect ticked (its chip's menu, its ⌘K pages): a stack's
        * Percent and Indexed saying why not; a 100% one, no scale to choose; an order only for several layers.
        * @param {string} id @returns {Action[]}
        */
       function scaleChoices(id) {
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return [];
+        const current = averageFor(chart, pane), ticking = chart.layers.some((layer) => layer.pane === id && !layer.hidden && LIVE.has(layer.series ?? ""));
         return [
           ...(pane.stack === "percent" ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a stacked pane (use linear or log)` }), run: () => setPaneMode(id, m) }))),
           ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, run: () => setPaneStack(id, stack) })),
           ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
+          ...["", ...Object.keys(AVERAGES)].map((span) => {
+            const choice = averageFor(chart, pane, span);
+            return { key: `average:${span || "raw"}`, group: "Average", label: span || "Raw", current: current.active === span,
+              aside: span ? `${plural(choice.points, "point")} at ${INTERVAL_LABEL[chart.index]}${ticking ? " · Updates each block" : ""}` : current.span && !current.active ? `Saved ${current.span} resumes when available` : "As measured",
+              disabled: choice.disabled ? `${choice.disabled}${span === current.span ? `; saved ${span} resumes when available` : ""}` : undefined, run: () => setPaneAverage(id, span) };
+          }),
         ];
       }
       /** One group of a pane's choices, as its ⌘K page has it (the page its name). */
@@ -30043,7 +30142,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layers = chart.layers.filter((layer) => layer.pane === pane.id);
           /** @type {[string, string][]} */
           const rows = [["head:pane", `<div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack and order">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack, order and average">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
@@ -30058,7 +30157,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
                   <span class="row-mark" style="--c:${escape(ink(layer.color))}">${seriesMark(layer)}</span>
-                  <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
+                  <span class="row-text"><span class="name">${escape(viewName(chart, layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
@@ -32192,12 +32291,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
           <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
-      /** Spans a window often takes, from the shortest, each in words. */
-      const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week"], ["30d", "a month"], ["90d", "a quarter"], ["200d", "about six and a half months"], ["1y", "a year"], ["2y", "two years"], ["1halving", "a halving cycle"], ["4y", "four years"]];
-      const spanDays = (/** @type {string} */ span) => {
-        const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
-        return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
-      };
       /**
        * The usual spans a function's span takes at this interval, each in words: a window's, two points at least (one is the
        * series itself); a shift's, a step at least; what's loaded holds them. In points where they aren't days.
@@ -34558,9 +34651,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markFor(doc, text)?.id }, doc)));
           else doc.layers.push((layer = makeLayer({ formula: text, pane: into ?? newPaneIn(doc).id, ...(into && side ? { side } : {}) }, doc)));
           const editing = palette.editing !== null;
-          const data = await resolve(doc).catch(() => null);
+          let data = await resolve(doc).catch(() => null);
           if (run !== formulaRun || palette.items[palette.active]?.key !== key) return;
-          const result = data?.results.get(layer.id);
+          let result = data?.results.get(layer.id);
+          const unit = unitFor(layer, result);
+          if (!recipe && !editing) formulaGoes = { text, chart: doc.id, unit };
+          const goes = into ?? (recipe || editing || palette.into === "new" || layer.type === "signal" ? null : formulaPane(text));
+          if (goes && !editing && layer.type !== "signal") {
+            const before = averageFor(doc, doc.panes.find((pane) => pane.id === layer.pane)).active;
+            layer.pane = goes;
+            layer.side = side ?? likeSide(goes) ?? "right";
+            if (before !== averageFor(doc, doc.panes.find((pane) => pane.id === goes)).active) {
+              // The discovered destination changes the view. Resolve reuses the raw computations and full history.
+              data = await resolve(doc).catch(() => null);
+              if (run !== formulaRun || palette.items[palette.active]?.key !== key) return;
+              result = data?.results.get(layer.id);
+            }
+          }
           if (!result || result.error) {
             const problem = result?.detail ?? result?.error ?? "It couldn't be computed";
             panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(problem)}.</div>`;
@@ -34576,12 +34683,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return;
           }
           if (formulaProblem.text === text) formulaProblem = { text: "", editing: null, problem: "" };
-          const uses = usesOf(node);
-          const unit = unitFor(layer, result);
-          // (No pane asked for, not a new one: a pane already showing its unit, as a series added goes; see formulaPane.
-          // Its row says it too, written before its unit was known.)
-          if (!recipe && !palette.editing) formulaGoes = { text, chart: doc.id, unit };
-          const goes = into ?? (recipe || palette.editing || palette.into === "new" || layer.type === "signal" ? null : formulaPane(text));
+          const uses = usesOf(node), average = averageFor(doc, doc.panes.find((pane) => pane.id === layer.pane));
           const meta = recipe || palette.editing || layer.type === "signal" ? null : $("palette-list").querySelector('[data-kind="formula"] .item-meta:not(.error)');
           if (meta) meta.textContent = formulaPlace(text);
           // (A signal: where its marks are, and how many; its 0s and 1s aren't a line to look at.)
@@ -34590,8 +34692,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return void (panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
               <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
               <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
-                <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
-                <div><dt>Times marked</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "")?.values ?? null).length)}</dd></div>
+                <div><dt>Marked on</dt><dd>${on ? escape(viewName(doc, on)) : "No layer"}</dd></div>
+                <div><dt>Times marked</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "") ?? null).length)}</dd></div>
+                <div><dt>Average</dt><dd>${escape(average.name || "Raw")}</dd></div>
                 <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
               </dl></div>`);
           }
@@ -34600,6 +34703,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
+              <div><dt>Average</dt><dd>${escape(average.name || "Raw")}</dd></div>
               <div><dt>Latest</dt><dd class="spark-caption"></dd></div>
               ${editing ? "" : `<div><dt>Goes in</dt><dd>${goesIn(goes)}</dd></div>`}
             </dl></div>`;
@@ -34611,9 +34715,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = item.layer ? layerById(item.layer) : null;
         if (!layer) return `<h4><code>${escape(item.title ?? "")}</code></h4><p class="description">${escape(capitalize(item.text ?? ""))}.</p>`;
         const unit = unitFor(layer, resolved?.results.get(layer.id));
-        const value = valueAt(layer, { at: (resolved?.times.length ?? 0) - 1, rest: true });
-        return `<h4 class="plain">${escape(labelOf(layer))}</h4><p class="description">Layer ${escape(layer.letter)} of this chart.</p>
-          <div class="info"><dl><div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div><div><dt>Latest</dt><dd>${escape(format(value, unit))}</dd></div></dl></div>`;
+        const result = resolved?.results.get(layer.id), values = result && measured(result);
+        const value = values?.findLast(Number.isFinite) ?? NaN;
+        return `<h4 class="plain">${escape(labelOf(layer))}</h4><p class="description">Layer ${escape(layer.letter)} of this chart. Formulas read its raw measurement.</p>
+          <div class="info"><dl><div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div><div><dt>Latest, raw</dt><dd>${escape(format(value, unit))}</dd></div></dl></div>`;
       }
       /**
        * A long series drawn small: its lowest and highest points in each of `columns` columns, in their order (its shape,
@@ -35330,13 +35435,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function timesPage(id) {
         return listPage("Times marked", () => {
-          const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null, own = on ? resolved?.results.get(on.id)?.values : undefined;
+          const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null, own = on ? resolved?.results.get(on.id) : undefined;
           if (!layer || !values || !resolved) return [];
           const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0), marked = new Set(marksOf(layer, values));
           return changes.flatMap((change) => {
             const i = change.at, result = layer.results && own ? stretchResult(change, own) : undefined;
             if (!marked.has(i)) return [];
-            const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
+            const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${viewName(chart, on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
             return [{ key: `at:${times[i]}`, icon: ICONS.calendar, label: pointLabel(times[i]), aside: said.join(" · ") || undefined, run: () => goToTime(times[i]) }];
           }).reverse();
         }, "Go");
@@ -35456,7 +35561,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {{ name: string, page: () => Page, only: string[] | null, not: string[] }[]} */
         const owners = [
           { name: "Chart", page: chartPage, only: ["title", "interval", "range"], not: [] },
-          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null, not: ["scale", "stack", "order"] })),
+          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null, not: [...PANE_SETTINGS] })),
           ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, page: () => panePage(pane.id), only: null, not: [] })),
           ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), page: () => drawingPage(drawing.id), only: null, not: [] })))(drawingNames()),
         ];
@@ -35800,7 +35905,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
             ...(fittable(layer) ? [{ key: "fit", icon: ICONS.axis, label: "Fit the axis", aside: layer.fit === false ? "Off: framed without it" : "On", verb: layer.fit === false ? "Turn on" : "Turn off", group: "Layout", stay: true, run: set((item) => (item.fit === false ? delete item.fit : (item.fit = false))) }] : []),
-            ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
+            ...panePage(layer.pane).rows().filter((row) => PANE_SETTINGS.has(row.key)).map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
               ...(mates.indexOf(layer) < mates.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) + 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, 1) }] : []),
@@ -35980,7 +36085,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layer) return void (panel.innerHTML = "");
         const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
         const about = layer.series ? known.get(layer.series)?.description : null;
-        panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
+        panel.innerHTML = `<h4 class="plain">${escape(viewName(chart, layer))}</h4>
           <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? (heatLike(layer) ? heatCode(layer) : ""))}</code>`}</p>
           ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
           ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || heatLike(layer) ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
@@ -36047,6 +36152,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
             { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
             ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
+            { key: "average", icon: ICONS.sliders, label: "Average", aside: averageFor(chart, pane).active || "Raw", group: "Pane", page: () => choicePage("Average", () => scaleGroup(id, "Average")) },
             ...paneRows(id, true).map((row) => ({ ...row, group: "Pane" })),
             ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
             { key: "add-series", icon: ICONS.plus, label: "Add a layer here", verb: "Add", group: "Layers", leads: true, stay: true, run: () => openPalette({ add: true, into: id }) },
@@ -36063,7 +36169,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
         if (share !== null) sizes[i] = (share * others) / (1 - share);
         panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
       }
@@ -37748,7 +37854,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function toSketch(doc) {
         const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
-        const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && pane.size === undefined);
+        const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && !pane.average && pane.size === undefined);
         const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
         if (doc === chart) saveView();
         const kept = doc === chart ? shownView() : openView(doc);
@@ -38048,7 +38154,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (input.halvings === true) doc.halvings = true;
         if (input.legend === "off") doc.legend = "off";
         const panes = input.panes.slice(0, MAX_PANES);
-        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}) }));
+        doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
         const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
         /** Each layer's id as read, to its own: its drawings follow it. */
         const layerIds = new Map();
@@ -38192,20 +38298,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function exportData(which) {
         // (Still loading, what's there may be what was before: nothing then.)
         if (!settled()) return notice("The chart is still loading");
-        const doc = structuredClone(chart);
+        const doc = structuredClone(chart), requested = new Set(which.map((layer) => layer.id));
         const data = await resolve({ ...doc, id: `${doc.id}:export`, layers: doc.layers.map(layer => ({ ...layer, hidden: false })) });
-        const layers = which.filter((layer) => data.results.get(layer.id)?.values);
+        const layers = doc.layers.filter((layer) => requested.has(layer.id) && data.results.get(layer.id)?.values);
         if (!layers.length) return notice("Its data isn't here yet");
         const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
         // (A cloud's columns: its low, its high, but for an edge.)
         const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
-        const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
+        const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${viewName(doc, layer)}${end ? ` (${end})` : ""}`)))].join(",");
         const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.values)))(data.results.get(layer.id)));
         const rows = data.times.map((time, i) => {
           const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
-          return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
+          return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(doc.index) ? 16 : 10), ...cells].join(",") : null;
         }).filter(Boolean);
-        download(which.length === 1 && chart.layers.length > 1 ? fileName("csv").replace(/\.csv$/, `-${labelOf(which[0]).trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "layer"}.csv`) : fileName("csv"), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
+        download(requested.size === 1 && doc.layers.length > 1 ? fileName("csv", doc).replace(/\.csv$/, `-${labelOf(layers[0]).trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "layer"}.csv`) : fileName("csv", doc), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
         return toast(`Downloaded ${grouped.format(rows.length)} rows`);
       }
       function exportAs(kind) {
@@ -39939,7 +40045,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {
         if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
-        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+        // Averaged measurements, like formula averages, update when a block supplies their source data.
+        return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !pane?.stack && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
       }
       /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
       const ownLive = new WeakSet();
@@ -39954,24 +40061,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let liveLast = "";
       /** Data with intervals added at its end, empty for now: every layer's, as copies (the data drawn stays as it was). */
       function widened(/** @type {Resolved} */ data, /** @type {number[]} */ added) {
-        const grown = (/** @type {any} */ values) => {
-          if (!values) return values;
-          const out = new Float64Array(values.length + added.length);
-          out.set(values);
-          out.fill(NaN, values.length);
+        const grown = (/** @type {any} */ values, /** @type {string} */ field) => {
+          const out = Array.isArray(values) ? values.concat(added.map(() => null)) : new values.constructor(values.length + added.length);
+          if (!Array.isArray(values)) {
+            out.set(values);
+            out.fill(field === "closes" ? livePrice || NaN : values instanceof Float64Array ? NaN : values instanceof Int8Array ? -1 : 0, values.length);
+          }
           ownLive.add(out);
           return out;
         };
-        const results = new Map([...data.results].map(([id, result]) => {
-          const values = grown(result.values);
-          const ohlc = result.ohlc && result.ohlc.concat(added.map(() => null));
-          if (ohlc) ownLive.add(ohlc);
-          // (A trend's breaks and sides too, a cloud's sides, none on the bars added.)
-          const more = (/** @type {Uint8Array | undefined} */ marks) => marks && ((out) => (out.set(marks), out))(new Uint8Array(marks.length + added.length));
-          // (A heatmap's closes, at the live price on the bars added: its rows there, see movePrice.)
-          const closes = result.closes && ((out) => (out.set(/** @type {Vector} */ (result.closes)), out.fill(livePrice || NaN, result.closes?.length), out))(new Float64Array(result.closes.length + added.length));
-          return [id, { ...result, values, ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks) } : {}), ...(result.sides ? { sides: more(result.sides) } : {}), ...(closes ? { closes } : {}) }];
-        }));
+        const results = new Map([...data.results].map(([id, result]) => [id, mapResult(result, grown)]));
         return { ...data, times: data.times.concat(added), results };
       }
       /**
@@ -40586,7 +40685,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const frame = $("quick-picture");
         frame.hidden = !look;
         if (look) {
-          const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer, `<b data-quick-value="${escape(layer.id)}"></b>`)).join("");
+          const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer, `<b data-quick-value="${escape(layer.id)}"></b>`)).join("");
           frame.innerHTML = `<div class="tile-legend quick-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</div><div class="quick-chart"><span class="tile-plot quick-plot ${doc.layers.length ? "pending" : "blank"}"></span><div class="quick-scales"></div></div><div class="quick-ticks"></div>`;
           // (Drawn where the highlight rests: rows passed by, held ↓, ask for nothing.)
           if (doc.layers.length) requestAnimationFrame(() => quick?.key === key && void quickPicture(doc).then((made) => {

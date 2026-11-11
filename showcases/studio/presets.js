@@ -23,7 +23,7 @@
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
- * @typedef {(name: string, title: string, layers: Layer[], options?: { log?: number[], stack?: Record<number, string>, range?: string, halvings?: boolean, priceHidden?: boolean, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
+ * @typedef {(name: string, title: string, layers: Layer[], options?: { log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {(name: string, items: (ChartNode | SectionNode | null | undefined | false)[], options?: { workings?: boolean, icon?: string }) => SectionNode} SectionBuilder
@@ -255,7 +255,7 @@ export function studioPresets(client, facts) {
     const panes = Array.from({ length: count }, (_, i) => {
       const n = i + 1, withPrice = layers.some((layer) => (layer.pane ?? 1) === n && layer.type === "candles");
       const log = options.log?.includes(n) || withPrice;
-      return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}) };
+      return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.average?.[n] ? { average: options.average[n] } : {}), ...(options.size?.[n] ? { size: options.size[n] } : {}) };
     });
     return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
@@ -1185,14 +1185,14 @@ export function studioPresets(client, facts) {
         chart("Per second", "Transactions per second", windows(tx.perSecond, "")),
         ...spread(tx.fees.effectiveFeeRate, "Fee rate", "Transaction fee rates", "orange"),
         // (Fees rise as blocks fill: the month's median fee rate over the month's average fullness.)
-        ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [((made) => ({ ...made, c: { ...made.c, panes: [{ mode: 1, size: 1 }, { mode: 1, size: 2 }, { mode: 0, size: 1.4 }] } }))(chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
+        ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
           { ...price(), hidden: true },
-          { formula: `sma(${tx.fees.effectiveFeeRate.p25.name}, 7d)`, label: "25th, 1-week average", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-          { formula: `sma(${tx.fees.effectiveFeeRate.median.name}, 7d)`, label: "Median fee rate, 1-week average", pane: 2, color: "orange", width: 2 },
-          { formula: `sma(${tx.fees.effectiveFeeRate.p75.name}, 7d)`, label: "75th, 1-week average", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
+          { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
+          { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", pane: 2, color: "orange", width: 2 },
+          { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
           { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
           series(blocks.fullness.avg._1m, "Block fullness, 1-month average", { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
-        ], { log: [2] }))] : []),
+        ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
         // (Each transaction by the fee rate it paid itself, the zero-fee ones apart; the block space they took by the
         // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest.)
         section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : spanLabel(key)), (key) => (key === "zeroFee" ? "Zero-fee transactions" : `Transactions paying ${lowered(spanLabel(key))}`), "fee rate", { disjoint: true })),
@@ -1354,7 +1354,7 @@ export function studioPresets(client, facts) {
    */
   function perBlockFan(node, name, title, log = true, pick = (/** @type {any} */ n) => n) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max", "avg"].filter((key) => isLeaf(pick(node?.[key]?._1m)));
-    return fan(name, `${title}: median and percentiles, by month`, keys.map((key) => [key, series(pick(node[key]._1m), `${statLabel(key)}, 1 month`, {})]), PER_BLOCK_COLOR, log);
+    return fan(name, `${title}: median and percentiles, by month`, keys.map((key) => [key, series(pick(node[key]._1m), `${statLabel(key)}, 1 month`, {})]), PER_BLOCK_COLOR, { log });
   }
   /**
    * A measure's spread over a day's transactions (its percentiles, lowest and highest: fee rates, fees, sizes), each a
@@ -1362,7 +1362,7 @@ export function studioPresets(client, facts) {
    */
   function spread(node, name, title, color) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node?.[key]));
-    return fan(name, `${title}: median and percentiles`, keys.map((key) => [key, { formula: `sma(${node[key].name}, 7d)`, label: `${statLabel(key)}, 1-week average`, pane: 2 }]), color);
+    return fan(name, `${title}: median and percentiles`, keys.map((key) => [key, series(node[key], statLabel(key), { pane: 2 })]), color, { average: "7d" });
   }
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
@@ -1373,15 +1373,14 @@ export function studioPresets(client, facts) {
    * The chain's workings: the price above it hidden, short (see priced).
    * @param {string} name @param {string} title @param {[string, Layer][]} lines its statistics' layers, by key @param {string} color
    */
-  function fan(name, title, lines, color, log = true) {
+  function fan(name, title, lines, color, { log = true, average = "" } = {}) {
     const keys = lines.map(([key]) => key);
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
     const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
     const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
-    const made = chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [] });
-    return [{ ...made, c: { ...made.c, panes: [{ mode: 1, size: 1.4 }, { mode: log ? 1 : 0, size: 3 }] } }];
+    return [chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [], ...(average ? { average: { 2: average } } : {}), size: { 1: 1.4, 2: 3 } })];
   }
   function statLabel(/** @type {string} */ key) {
     return key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key));
