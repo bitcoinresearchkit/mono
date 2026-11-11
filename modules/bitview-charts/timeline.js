@@ -43,9 +43,14 @@ export class Timeline {
     this.kept = Infinity;
   }
 
+  /** The last point whose center is in view. A value beyond the edge never becomes the resting readout. */
+  get lastVisible() {
+    return Math.floor(this.to + NOISE);
+  }
+
   /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
   get lastSlot() {
-    return Math.max(this.length - 1, Math.floor(this.to));
+    return Math.max(this.length - 1, this.lastVisible);
   }
 
   /**
@@ -106,6 +111,8 @@ export class Timeline {
   setRange(from, to) {
     this.from = from;
     this.to = to;
+    // Explicit windows (including shared dates) keep their endpoints, even past the interactive zoom bound.
+    if (this.length && to > from && to - from < this.width / this.maxSpacing) this.kept = to - from;
     this.rest = 0;
     this.limit();
   }
@@ -209,5 +216,10 @@ export class Timeline {
     // (Its last point at least its share of the view into it; its first at most that from the view's end.)
     const by = this.held(this.from, this.to);
     (this.from += by), (this.to += by);
+    // Layout and pan arithmetic can leave an exact endpoint a fraction past its bar. Every reader sees the same
+    // whole endpoint (tags, legends and date ranges), rather than rounding that noise onto the following day.
+    const from = Math.round(this.from), to = Math.round(this.to);
+    if (Math.abs(this.from - from) < NOISE) this.from = from;
+    if (Math.abs(this.to - to) < NOISE) this.to = to;
   }
 }

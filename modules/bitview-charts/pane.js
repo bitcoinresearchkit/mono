@@ -590,7 +590,7 @@ export class Pane {
 
   /** Fitted to its series in the timeline's view (a relative scale's, each read against its first value in view). @param {import("./timeline.js").Timeline} time */
   fit(time) {
-    const n = this.series.length, a = Math.floor(time.from), b = Math.ceil(time.to);
+    const n = this.series.length, a = Math.floor(time.from), b = time.lastVisible;
     if (this.bases.length < n) (this.bases = new Float64Array(n * 2)), (this.drawnBases = new Float64Array(n * 2));
     this.basesSame = true;
     const state = this.fitting, bindings = state.bindings;
@@ -742,7 +742,7 @@ export class Pane {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
       const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -775,7 +775,7 @@ export class Pane {
         this.drawnTags[1].lines.length = 0;
       }
     }
-    this.axesEnd = Math.ceil(time.to);
+    this.axesEnd = time.lastVisible;
   }
 
   /** Whether it has a tag shown that may read the view (a line's, with one; a page's own, asked each time: its axis tags). */
@@ -928,7 +928,7 @@ export class Pane {
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.ceil(time.to);
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = time.lastVisible;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;

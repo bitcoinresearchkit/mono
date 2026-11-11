@@ -10,7 +10,7 @@ use axum::{
     body::{Body, Bytes},
     http::{
         HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, ORIGIN},
+        header::{ACCEPT, CACHE_CONTROL, ORIGIN},
         request::Parts,
     },
     middleware::{self, Next},
@@ -417,7 +417,7 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
             .and_then(|accept| accept.to_str().ok())
             .is_some_and(|accept| accept.contains("text/event-stream"))
     {
-        return StatusCode::METHOD_NOT_ALLOWED.into_response();
+        return (StatusCode::METHOD_NOT_ALLOWED, [(CACHE_CONTROL, "no-store")]).into_response();
     }
 
     next.run(request).await

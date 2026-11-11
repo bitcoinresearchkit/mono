@@ -20,7 +20,7 @@
  *   else has them in a pane of their own above its own, shown short, or, about the chain's workings, not the market,
  *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
- * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
+ * @typedef {{ layers: Layer[], panes?: Record<string, any>[], index?: string, range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {(name: string, title: string, layers: Layer[], options?: { log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
@@ -232,6 +232,17 @@ export function studioPresets(client, facts) {
   /** A chart's letter for its `i`th layer (fewer than 26). */
   // (Past Z, AA on, as Studio names layers.)
   const letter = (/** @type {number} */ i) => (i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+  const cumulative = new Set();
+  const collect = (node) => {
+    if (!node || typeof node !== "object" || isLeaf(node)) return;
+    for (const [key, child] of entries(node)) {
+      if (key === "cumulative") {
+        const leaves = (value) => isLeaf(value) ? cumulative.add(value.name) : entries(value).forEach(([, each]) => leaves(each));
+        leaves(child);
+      } else collect(child);
+    }
+  };
+  collect(t);
   /** The price, as its candles: in one color, the page's ink (rising hollow, falling filled say which). @returns {Layer} */
   const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, priceLine: true });
   /**
@@ -251,6 +262,8 @@ export function studioPresets(client, facts) {
       if (options.stack?.[pane - 1] === "stack") options = { ...options, stack: { ...options.stack, [pane]: "stack" } };
     }
     if (layers.some((layer) => layer.heatmap || layer.cloud)) layers = layers.map((layer) => (layer.series === t.price.ohlc.name ? { ...layer, outline: true } : layer));
+    // A cumulative total is an amount since genesis: a linear axis includes its origin.
+    layers = layers.map((layer) => cumulative.has(layer.series ?? layer.formula) && !options.log?.includes(layer.pane ?? 1) && layers.filter((other) => !other.hidden && (other.pane ?? 1) === (layer.pane ?? 1)).length === 1 ? { ...layer, fit: "zero" } : layer);
     const count = Math.max(1, ...layers.map((layer) => layer.pane ?? 1));
     const panes = Array.from({ length: count }, (_, i) => {
       const n = i + 1, withPrice = layers.some((layer) => (layer.pane ?? 1) === n && layer.type === "candles");

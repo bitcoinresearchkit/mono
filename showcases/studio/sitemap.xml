@@ -2059,6 +2059,7 @@
 <url><loc>https://bitview.space/studio/presets/network/op-return/sizes/over-520-bytes/</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/op-return/sizes/over-10-000-bytes/</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/chain-statistics/yearly/</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/bitcoin-script/</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/blocks/</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/fees/</loc></url>
@@ -10773,6 +10774,10 @@
 <url><loc>https://bitview.space/studio/presets/network/op-return/sizes/over-520-bytes/outputs-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/op-return/sizes/over-10-000-bytes/outputs</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/op-return/sizes/over-10-000-bytes/outputs-all-time</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/chain-statistics/yearly/transaction-fees-per-year</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/chain-statistics/yearly/empty-blocks-per-year</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/chain-statistics/yearly/blocks-per-year</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/chain-statistics/yearly/transactions-per-year</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/bitcoin-script/s-values-in-ecdsa-signatures</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/bitcoin-script/length-of-ecdsa-signatures</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/chain-statistics/bitcoin-script/r-and-s-values-in-bitcoin-ecdsa-signatures</loc></url>

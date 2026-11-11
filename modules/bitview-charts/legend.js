@@ -103,7 +103,7 @@ export class Legend {
       const series = item.series?.[0], value = /** @type {HTMLElement | null} */ (this.laid[k][0].querySelector(".bc-legend-value"));
       if (!series?.values || !value) continue;
       // (Past its last point (the crosshair after the data), read as at rest: its last in view.)
-      const past = !(index === index && index < series.values.length), i = past ? Math.min(Math.ceil(time.to), series.values.length - 1) : index;
+      const past = !(index === index && index < series.values.length), i = past ? Math.min(time.lastVisible, series.values.length - 1) : index;
       let at = i;
       while (past && at > 0 && !(series.values[at] === series.values[at])) at--;
       const v = series.values[at], text = v === v && v !== undefined ? write(series, v) : "";

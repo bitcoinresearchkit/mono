@@ -10703,7 +10703,7 @@
             <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
-            <li>"fit": false: the axis framed without it (not a heatmap's, a signal's or bubbles'): it's drawn where its values are, past the edge if they're far (a spike, a far tail).</li>
+            <li>"fit": "zero": include zero on a linear axis; "fit": false: the axis framed without it (not a heatmap's, a signal's or bubbles'): it's drawn where its values are, past the edge if they're far (a spike, a far tail).</li>
             <li>{"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 8 to 48 pixels by 4 (24 if none); "hide": the share of the largest under which none is drawn, 0 to 0.25 by 0.01 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).</li>
             <li>"outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.</li>
             <li>"format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.</li>
@@ -12397,7 +12397,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (known !== undefined) return known;
         if (axisLabels.size > 4000) axisLabels.clear();
         const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
-        if (step > 0 && Math.round(abs) < 1e6 && abs < 999.95) {
+        if (step > 0 && !Number.isInteger(value) && Math.round(abs) < 1e6 && abs < 999.95) {
           const text = abs.toFixed(Math.min(20, decimalsOf(step) + 1));
           if (text.length <= PRECISE.length) return axisLabels.set(key, `${Number(text) ? sign : ""}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
         }
@@ -12408,7 +12408,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (text.length <= PRECISE.length) return axisLabels.set(key, `${sign}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
         }
         // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
-        const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
+        const digits = (/** @type {number} */ n) => n < 1 ? fractions.format(n) : String(Number(n.toPrecision(4)));
         // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
         const lettered = (/** @type {number} */ n) => {
           let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), value = n / 1000 ** tier;
@@ -12417,15 +12417,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (Each threshold by the value as written: 999,999.6 is a million.)
         const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
-        // (Never wider than PRECISE, its sign and suffix aside (the same figure wherever it's written: −123,456 as
-        // 123,456): a longer one (0.0001234) said shorter, its four digits kept (1.234e-4).)
-        const fit = text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
+        // (Small fractions keep their decimal places; larger figures stay within PRECISE, sign and suffix aside.)
+        const fit = abs > 0 && abs < 1 ? text : text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
         // (Past the last letter's thousands, a power of ten: 1.23e+30.)
-        const label = `${sign}${fit.length <= PRECISE.length ? fit : abs.toExponential(2)}${suffix}`;
+        const label = `${sign}${abs < 1 || fit.length <= PRECISE.length ? fit : abs.toExponential(2)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
       /** The widest a precise figure is, its sign and suffix aside (0.001234, 1.234e-5, 123,456). */
+      const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
       const PRECISE = "0.000000";
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
@@ -13390,7 +13390,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
-       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, fit?: false, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
+       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, fit?: false | "zero", size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
        *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cumulative?: true, cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
@@ -13788,7 +13788,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (layer.place === "above" || !MARK_PLACES.some(([place]) => place === layer.place)) delete layer.place;
         }
         // (Out of its axis' fit where it can be.)
-        for (const layer of doc.layers) if (layer.fit !== false || !fittable(layer)) delete layer.fit;
+        for (const layer of doc.layers) if ((layer.fit !== false && layer.fit !== "zero") || !fittable(layer)) delete layer.fit;
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
         for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
@@ -14296,23 +14296,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let layerPickLast = "", pickHead = "";
       /** The layer last open (its settings left): where a ⇧-click's run starts, nothing being picked or open (once). */
       let lastOpen = "";
-      const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0, held: 0 };
+      /** @typedef {{ state: string, mark: number }} HistoryState */
+      const edits = { past: /** @type {HistoryState[]} */ ([]), future: /** @type {HistoryState[]} */ ([]), key: "", at: 0, held: 0 };
       /** The drag under way (a slider's, a color surface's: see track), counted; none, 0. Its edits undo as one. */
       let holding = 0, holds = 0;
       /** Each chart's undo and redo, kept while others are open (the last few charts'), for as long as the page is. */
-      const histories = /** @type {Map<string, { past: string[], future: string[] }>} */ (new Map());
+      const histories = /** @type {Map<string, { past: HistoryState[], future: HistoryState[], mark?: number }>} */ (new Map());
       /**
        * Undo budgets count JSON characters (two bytes each); kept charts get less, or a large chart's history could
        * hold hundreds of MB.
        */
       const UNDO_CHARS = 8e6, KEPT_CHARS = 2e6;
       /** Steps within a budget: the farthest go first (the oldest undo, then the farthest redo), the nearest of each stays. */
-      function trimSteps(/** @type {{ past: string[], future: string[] }} */ steps, /** @type {number} */ budget) {
+      function trimSteps(/** @type {{ past: HistoryState[], future: HistoryState[] }} */ steps, /** @type {number} */ budget) {
         let size = 0;
-        for (const state of steps.past) size += state.length;
-        for (const state of steps.future) size += state.length;
-        while (size > budget && steps.past.length > 1) size -= /** @type {string} */ (steps.past.shift()).length;
-        while (size > budget && steps.future.length > 1) size -= /** @type {string} */ (steps.future.shift()).length;
+        for (const state of steps.past) size += state.state.length;
+        for (const state of steps.future) size += state.state.length;
+        while (size > budget && steps.past.length > 1) size -= /** @type {HistoryState} */ (steps.past.shift()).state.length;
+        while (size > budget && steps.future.length > 1) size -= /** @type {HistoryState} */ (steps.future.shift()).state.length;
       }
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
@@ -14697,7 +14698,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart. (Joining
         // only a step there's still: the history let go meanwhile (another tab's edit taken in), it starts one anew.)
         const joins = coalesce && edits.past.length > 0 && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
-        if (!joins) edits.past.push(before);
+        if (!joins) edits.past.push({ state: before, mark: revision });
         const steps = edits.past.length;
         if (edits.past.length > 200) edits.past.shift();
         edits.future = [];
@@ -14742,8 +14743,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stopDrawing();
         pathResume = null;
         const from = edits[back], to = edits[forth];
-        const state = /** @type {string} */ (from.pop());
-        to.push(JSON.stringify(chart));
+        const target = /** @type {HistoryState} */ (from.pop()), state = target.state;
+        to.push({ state: JSON.stringify(chart), mark: revision });
         // (A drawing's step a tool made once (see drawnSteps), its own the other way too: undone, redone, undone again.)
         const drawn = drawnSteps.get(state);
         drawnSteps.delete(state);
@@ -14753,7 +14754,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A step of the range alone (see setRange): its range back, shown; any other keeps the view as it is.)
         // (Compared as undo leaves the rest: its folder, id and blank, kept as they are now.)
         const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank"].includes(key)).sort().map((key) => [key, doc[key]]));
-        const ranged = was.range !== chart.range && bare(was) === bare(JSON.parse(/** @type {string} */ (to.at(-1))));
+        const ranged = was.range !== chart.range && bare(was) === bare(JSON.parse(/** @type {HistoryState} */ (to.at(-1)).state));
         for (const key of Object.keys(chart)) if (!(key in was)) delete chart[key];
         // (The range is a view, as a pan is; its folder, the library's; its id, the chart's own (kept again, it may have
         // a new one): all stay as they are.)
@@ -14786,12 +14787,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           clearLink();
         } else if (keptAt !== undefined && back === "future" && edits.past.length === keptAt && isPreview(chart)) keepPreview(false);
         changed(true);
+        // Replaying a chart state returns to the library step adjacent to it (Reset, Save, a load).
+        // revision itself stays monotonic for async work; only the history's anchors move with the replay.
+        reanchorHistory(target.mark);
+        syncUndo();
         if (ranged) showRange();
         // (A drawing a tool made once (it was put down then), undone: that tool in hand again, to try again, unless one's
         // been picked since; redone, down again if an undo took it up.)
         if (drawn && back === "past" && (undoTook || picks === drawn.picks)) (takeUp(drawn.kind, false, true), (undoTook = drawn.kind));
         else if (drawn && back === "future" && undoTook === drawn.kind && tool === drawn.kind) takeUp("", false, true);
-        if (drawn) noteDrawn(/** @type {string} */ (to.at(-1)), drawn);
+        if (drawn) noteDrawn(/** @type {HistoryState} */ (to.at(-1)).state, drawn);
         // (Said, for a screen reader: nothing else on screen says it.)
         say(back === "past" ? "Undone" : "Redone");
       }
@@ -15157,8 +15162,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         layerPicks.clear();
         drawingsHidden = false;
         // (Its undo and redo, as left; the one before's kept for when it's back, if it has any.)
-        if (previous && (edits.past.length || edits.future.length)) {
-          const steps = { past: edits.past.slice(-50), future: edits.future.slice(-50) };
+        if (previous) {
+          const steps = { past: edits.past.slice(-50), future: edits.future.slice(-50), mark: revision };
           trimSteps(steps, KEPT_CHARS);
           histories.set(previous.id, steps);
         }
@@ -15170,6 +15175,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edits.key = "";
         edits.held = 0;
         revision++;
+        reanchorHistory(kept?.mark);
         hideMenu();
         putDown();
         save();
@@ -16623,7 +16629,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The dates of the first and last points at least partly in view; none without data. */
       const shownDates = () => {
         const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
-        return n ? { from: at(Math.floor(engine.time.from)), to: at(Math.ceil(engine.time.to)) } : null;
+        return n ? { from: at(Math.floor(engine.time.from)), to: at(engine.time.lastVisible) } : null;
       };
       /** The view moved to show the points from one date to another (the first at or after it, the last at or before). @param {{ from: number, to: number }} span */
       const showDates = (span) => {
@@ -17448,7 +17454,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
           // (A standard one's: kept, or made, fitted as its stack is.)
-          const fitting = stack ? (shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 ? "zero" : null) : null;
+          const fitting = shares.has(layer.pane) ? "shares" : modeOf(doc, layer) === 0 && (stack || layer.fit === "zero") ? "zero" : null;
           const standard = (/** @type {"line" | "band" | "bars" | "candles"} */ kind, /** @type {Standard | undefined} */ kept) => fitSeries(kept ?? new Standard(kind, pane, layer.side), fitting, unfitted(doc, layer));
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's whole height, faint, behind what's drawn (the library's Shade).
@@ -17974,8 +17980,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function lastShown() {
         const n = resolved?.times.length ?? 0;
         const range = n ? shownSpan() : null;
-        // (A point partly in view counted, as the library's tags read it: the same point.)
-        return range ? clamp(Math.ceil(range.to), 0, n - 1) : n - 1;
+        // (The last point in view, as the library's tags read it; never the next point beyond its edge.)
+        return range ? clamp(engine.time.lastVisible, 0, n - 1) : n - 1;
       }
       /** The view's first point (one partly in view counted, as the library reads a relative scale's base). */
       function firstInView() {
@@ -23248,7 +23254,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A drawing its tool just made, added: its tool put down with it (not kept), the step it made noted, to take it up again if it's undone. */
       function addDrawn(/** @type {Drawing} */ drawing) {
         addDrawing(drawing);
-        if (!toolKept && drawingById(drawing.id) && edits.past.length) noteDrawn(/** @type {string} */ (edits.past.at(-1)), { kind: drawing.kind, picks });
+        if (!toolKept && drawingById(drawing.id) && edits.past.length) noteDrawn(/** @type {HistoryState} */ (edits.past.at(-1)).state, { kind: drawing.kind, picks });
       }
       /** A drawn step noted by its state (moved, not copied, as its state is written anew: see travel, swapSteps); the oldest let go past as many as a chart's steps kept (see commit). */
       function noteDrawn(/** @type {string} */ state, /** @type {{ kind: DrawingKind, picks: number }} */ drawn) {
@@ -24659,7 +24665,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (unfitted(doc, layer)) continue;
               // (An unseen layer's values alone, where bubbles sit: its bars', its stack's floor, not drawn.)
               if (bars && !unseen) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
-              if (stack && mode === 0 && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
+              if ((stack || layer.fit === "zero") && mode === 0 && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             // (A layer bubbles ride, its values as they ride it, its line's breaks not theirs: the chart's scale reads them, see
@@ -26139,7 +26145,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart's own steps (its undo's and redo's states, open or kept: see histories). */
       const stepsOf = (/** @type {Chart} */ doc) => (doc === chart ? edits : histories.get(doc.id));
       /** Its own steps' states, all of them. */
-      const statesOf = (/** @type {Chart} */ doc) => ((steps) => (steps ? [...steps.past, ...steps.future] : []))(stepsOf(doc));
+      const statesOf = (/** @type {Chart} */ doc) => ((steps) => (steps ? [...steps.past, ...steps.future].map((step) => step.state) : []))(stepsOf(doc));
       /**
        * Its own steps' states that have the name `from` (but those in `skip`), each as it'd be named `to` (a rename that
        * isn't one of them). @returns {Map<string, string>}
@@ -26161,8 +26167,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const steps = stepsOf(doc), done = new Map();
         if (!steps) return done;
         const one = (/** @type {string} */ state) => (swap.has(state) ? (done.set(state, swap.get(state)), /** @type {string} */ (swap.get(state))) : state);
-        steps.past = steps.past.map(one);
-        steps.future = steps.future.map(one);
+        steps.past = steps.past.map((step) => ({ ...step, state: one(step.state) }));
+        steps.future = steps.future.map((step) => ({ ...step, state: one(step.state) }));
         // (A drawing's step keeps its tool, written anew.)
         for (const [from, to] of done) {
           const drawn = drawnSteps.get(from);
@@ -29317,6 +29323,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A link's picture being made: the page is its, not a place's; the page still starting, as it was asked for.)
         if (document.body.hasAttribute("data-picture") || !started) return;
         const address = addressNow(), i = !home && chart.preset !== undefined ? presetIndex(chart) : -1, path = home && "path" in homeAt ? homeAt.path : null;
+        if (ROUTED && address !== null && !location.hash && !pendingRoute) history.replaceState(history.state, "", `${BASE}${address}${location.search}`);
         const shown = (/** @type {Chart} */ doc) => doc.layers.filter((layer) => !layer.hidden).map(labelOf);
         const list = (/** @type {string[]} */ names) => (names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "");
         document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
@@ -30809,10 +30816,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = sharedBy(layers, (layer) => chart.panes.findIndex((pane) => pane.id === layer.pane)), name = at === undefined ? "Mixed" : `Pane ${at + 1}`;
         return `<div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${at === undefined ? "mixed" : at + 1}"><span class="name">${name}</span>${CHEVRON}</button></div>`;
       };
+      const FITS = [["on", "On", "The axis takes in its values"], ["zero", "From zero", "A linear axis includes zero and its values"], ["off", "Off", "The axis framed without it: drawn where it is, past the edge if it's far"]];
+      const fitOf = (/** @type {Layer} */ layer) => layer.fit === false ? "off" : layer.fit === "zero" ? "zero" : "on";
+      const setFit = (/** @type {Layer} */ layer, /** @type {string} */ fit) => { if (fit === "on") delete layer.fit; else layer.fit = fit === "zero" ? "zero" : false; };
       const fitField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every(fittable)) return "";
-        const now = sharedBy(layers, (layer) => layer.fit !== false);
-        return `<div class="field switch"><span>Fit the axis</span><div class="tabs" role="group" aria-label="Fit the axis">${[[true, "On", "The axis takes in its values"], [false, "Off", "The axis framed without it: drawn where it is, past the edge if it's far"]].map(([on, text, tip]) => `<button type="button" data-fit="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
+        const now = sharedBy(layers, fitOf);
+        return `<div class="field switch"><span>Fit the axis</span><div class="tabs" role="group" aria-label="Fit the axis">${FITS.map(([on, text, tip]) => `<button type="button" data-fit="${on}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
       };
       const axisField = (/** @type {Layer[]} */ layers) => {
         if (layers.some(follows)) return "";
@@ -32768,7 +32778,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (side) editLayer((layer) => (layer.side = side));
         else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
         else if (outline) editLayer((layer) => (layer.outline = outline === "1" || undefined));
-        else if (fit) editLayer((layer) => (fit === "1" ? delete layer.fit : (layer.fit = false)));
+        else if (fit) editLayer((layer) => setFit(layer, fit));
         else if (results) editLayer((layer) => (layer.results = results === "1" || undefined));
         else if (insert) insertAtCaret(insert);
         else if (reset) {
@@ -35904,7 +35914,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ]),
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
-            ...(fittable(layer) ? [{ key: "fit", icon: ICONS.axis, label: "Fit the axis", aside: layer.fit === false ? "Off: framed without it" : "On", verb: layer.fit === false ? "Turn on" : "Turn off", group: "Layout", stay: true, run: set((item) => (item.fit === false ? delete item.fit : (item.fit = false))) }] : []),
+            ...(fittable(layer) ? [{ key: "fit", icon: ICONS.axis, label: "Fit the axis", aside: FITS.find(([key]) => key === fitOf(layer))?.[1] ?? "On", group: "Layout", page: () => choicePage("Fit the axis", () => FITS.map(([key, label, aside]) => ({ key, label, aside, current: fitOf(now()) === key, run: set((item) => setFit(item, key)) }))) }] : []),
             ...panePage(layer.pane).rows().filter((row) => PANE_SETTINGS.has(row.key)).map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
@@ -38184,7 +38194,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             hidden: layer.hidden === true || undefined,
             priceLine: layer.priceLine === true || undefined,
             outline: layer.outline === true || undefined,
-            fit: layer.fit === false ? false : undefined,
+            fit: layer.fit === false || layer.fit === "zero" ? layer.fit : undefined,
             colorBelow: isColor(layer.colorBelow) ? layer.colorBelow : undefined,
             colors: layer.colors === 1 || layer.colors === 4 ? layer.colors : undefined,
             colorFading: isColor(layer.colorFading) ? layer.colorFading : undefined,
@@ -38557,22 +38567,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
-        // (The legends set apart, under the plot, in columns, read across: each its mark, its name (cut where it's long),
+        // (The legends set apart, under the plot, in columns, read across: each its mark, its full name,
         // its value at its column's end; pane after pane.)
         if (apart.length) {
-          const cols = apartColumns(width), column = (width / cols) * scale, row = APART.row * scale, gap = 14 * scale, [markWidth, markHeight] = [16 * scale, 12 * scale];
-          const nameFont = `510 ${12 * scale}px ${sans}`, valueFont = `590 ${12 * scale}px ${sans}`, measure = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-          measure.font = valueFont;
-          let top = shot.height + APART.top * scale;
-          for (const items of apart) {
-            items.forEach((item, i) => {
-              // (Its value cut where it's longer than its column holds beside a short name, so it can't cross into the next.)
-              const x = (i % cols) * column, y = top + Math.floor(i / cols) * row, end = x + column - gap, nameAt = x + (item.mark ? markWidth + 6 * scale : 0), valueWidth = Math.min(measure.measureText(item.value).width, Math.max(0, end - nameAt - 48 * scale));
-              if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
-              pieces.push({ x: nameAt, y, width: Math.max(0, end - valueWidth - 8 * scale - nameAt), height: row, faded: item.faded, text: item.name, font: nameFont, color: softColor, align: "left", cut: true });
-              if (item.value) pieces.push({ x: end - valueWidth, y, width: valueWidth, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
-            });
-            top += Math.ceil(items.length / cols) * row + APART.gap * scale;
+          const layout = apartLayout(width, apart), row = APART.row * scale, [markWidth, markHeight] = [16 * scale, 12 * scale];
+          const nameFont = `510 ${12 * scale}px ${sans}`, valueFont = `590 ${12 * scale}px ${sans}`;
+          for (const item of layout.items) {
+            const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + 6 * scale : 0);
+            if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
+            item.lines.forEach((text, i) => pieces.push({ x: nameAt, y: y + i * row, width: item.nameWidth * scale, height: row, faded: item.faded, text, font: nameFont, color: softColor, align: "left" }));
+            if (item.value) pieces.push({ x: (item.x + layout.column - 14 - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left" });
           }
         }
         await drawMarks(pieces);
@@ -38761,7 +38765,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return pieces;
       }
       /**
-       * A picture's legends past two rows (as presentLegends wrote them, the panes at the picture's width): set apart,
+       * A picture's long or truncated legends (as presentLegends wrote them, the panes at the picture's width): set apart,
        * under the plot (see apartItems), the plot whole, none of it over its lines; a folded pane's kept (all it shows),
        * and one with a key (a profile's groups, a cloud's colors: drawn as they show). Undone by what it returns.
        * @returns {() => void}
@@ -38770,7 +38774,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folded = foldedPanes(chart);
         const apart = legends().filter((legend) => {
           const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
-          return row > 0 && !folded.has(legend.dataset.pane ?? "") && !legend.querySelector(".legend-key") && legend.offsetHeight > row * 2 + 6;
+          return row > 0 && !legend.querySelector(".legend-key") && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
         }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
         for (const [legend] of apart) (legend.dataset.apart = ""), (legend.style.display = "none");
         return () => {
@@ -38779,8 +38783,46 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A picture's legends set apart (see setApart): their rows, the space over, under and between them. */
       const APART = { row: 20, top: 6, bottom: 10, gap: 8 };
-      /** The columns a picture `width` wide sets them in: each as wide as a name and its value. */
-      const apartColumns = (/** @type {number} */ width) => Math.max(1, Math.floor(width / (width < 500 ? 150 : 175)));
+      /** A picture's legend layout, measured in CSS pixels once for both its height and its words. */
+      function apartLayout(/** @type {number} */ width, groups = apartItems()) {
+        const g = measure, sans = css("--sans");
+        const itemWidth = (item) => {
+          g.font = `510 12px ${sans}`;
+          const name = g.measureText(item.name).width;
+          g.font = `590 12px ${sans}`;
+          return name + g.measureText(item.value).width + (item.mark ? 22 : 0) + 22;
+        };
+        const cols = Math.max(1, Math.floor(width / Math.max(175, ...groups.flat().map(itemWidth)))), column = width / cols;
+        const items = [];
+        let y = APART.top;
+        for (const group of groups) {
+          for (let start = 0; start < group.length; start += cols) {
+            let rows = 1;
+            group.slice(start, start + cols).forEach((item, i) => {
+              g.font = `590 12px ${sans}`;
+              const valueWidth = g.measureText(item.value).width, nameWidth = Math.max(1, column - 22 - valueWidth - (item.mark ? 22 : 0));
+              g.font = `510 12px ${sans}`;
+              const lines = [""];
+              // Break words first, and split a single word only when it cannot fit even on its own line.
+              for (const word of item.name.split(/\s+/)) {
+                let at = lines.length - 1;
+                if (lines[at] && g.measureText(`${lines[at]} ${word}`).width > nameWidth) lines.push("");
+                if (lines.at(-1)) lines[lines.length - 1] += " ";
+                for (const char of word) {
+                  at = lines.length - 1;
+                  if (lines[at] && g.measureText(lines[at] + char).width > nameWidth) lines.push("");
+                  lines[lines.length - 1] += char;
+                }
+              }
+              rows = Math.max(rows, lines.length);
+              items.push({ ...item, lines, nameWidth, valueWidth, x: i * column, y });
+            });
+            y += rows * APART.row;
+          }
+          y += APART.gap;
+        }
+        return { items, column, height: groups.length ? y - APART.gap + APART.bottom : 0 };
+      }
       /** Each legend set apart, its items as they show (a hidden layer's left out, as over the plot), their values as read. */
       const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$("button", legend).filter((button) => button.style.display !== "none").map((button) => {
         const value = /** @type {HTMLElement | null} */ (button.querySelector(".legend-value, .legend-error")), after = value ? getComputedStyle(value, "::after") : null;
@@ -38789,7 +38831,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { mark: button.querySelector(".series-mark")?.outerHTML ?? "", name: button.querySelector(".name")?.textContent?.trim() ?? "", value: `${value?.textContent?.trim() ?? ""}${asOf}`, faded: button.classList.contains("hidden") };
       })).filter((items) => items.length);
       /** Their block's height under the plot of a picture `width` wide (none set apart, none). */
-      const apartHeight = (/** @type {number} */ width) => ((groups) => (groups.length ? APART.top + groups.reduce((sum, items) => sum + Math.ceil(items.length / apartColumns(width)) * APART.row, 0) + (groups.length - 1) * APART.gap + APART.bottom : 0))(apartItems());
+      const apartHeight = (/** @type {number} */ width) => apartLayout(width).height;
       /**
        * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
        * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
@@ -39016,6 +39058,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const keysNow = (/** @type {string[]} */ keys) => keys.map((key) => (key[0] === "f" ? `f:${folderNow(key.slice(2))}` : `c:${chartNow(key.slice(2))}`));
       /** Its refusal: the charts it'd let go of edited since, kept. @param {Chart[]} docs */
       const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
+      /** A chart state revisited: adjacent Library steps keep their place while revision stays monotonic. */
+      function reanchorHistory(/** @type {number | undefined} */ mark) {
+        if (mark === undefined) return;
+        for (const steps of [libraryEdits.past, libraryEdits.future]) for (const step of steps) {
+          if (step.mark === mark) step.mark = revision;
+          if (step.from === mark) step.from = revision;
+        }
+      }
       /** A Library step kept (see libraryEdits): said by a toast's Undo, or by nothing (a rename, a reorder). @returns {LibraryStep | null} */
       function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined, /** @type {number | undefined} */ from = undefined) {
         if (undoing) return null;
@@ -40793,8 +40843,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("home").inert = !home;
         // (Asked by an address, its step is where it led (one waiting for the presets says so: a reload waits again).)
         if (!there || asked) history.replaceState({ ...(home ? homeState() : { chart: chart.id }), ...(pendingRoute ? { route: true } : {}) }, "");
-        // (The address it was opened at, read: let go of, as a chart's link is (one waiting for the presets, once read).)
-        if (asked && !pendingRoute) history.replaceState(history.state, "", `${BASE}/${location.search}`);
         library.active = chart.id;
         rememberViewed(chart.id);
         normalize(chart);

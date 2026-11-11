@@ -65,7 +65,7 @@ export class Bars extends Line {
    */
   #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
     const values = this.values, n = values.length, log = scale.mode === "log";
-    const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(this.base > 0) ? scale.lo : this.base);
+    const spacing = time.spacing, wide = spacing >= 3, baseY = log && !(this.base > 0) ? scale.height : scale.y(this.base);
     // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
     const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
     const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide && corner > 0 ? Math.min(corner, half) + pad : 0;
@@ -77,7 +77,7 @@ export class Bars extends Line {
         if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
         const x = time.x(i), y = scale.y(v), up = y < baseY;
         // (Its edges on device pixels: bars side by side keep even gaps.)
-        const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad, top = (up ? y : baseY) - pad, height = Math.abs(baseY - y) + 2 * pad;
+        const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad, top = (up ? y : baseY) - pad, height = Math.max(1 / dpr, Math.abs(baseY - y)) + 2 * pad;
         if (radius) g.roundRect(left, top, right - left, height, up ? ROUND_UP : ROUND_DOWN);
         else g.rect(left, top, right - left, height);
       }
