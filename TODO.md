@@ -4,6 +4,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Waiting on you
 
+- Try the new tap areas on the showcase pages on a real phone (`f578274ff`, 2026-11-08). From the same work, left as they
+  are: Studio's open animation can show a chart small for a moment before snapping to full size (fixing it means changing
+  the chart library), and on trail's 2D view the "100K BTC" axis label still runs past the "3D" toggle.
 - Test Studio on a real phone by hand: its touch gestures (a finger's pan, pinch, fling) can't be driven from here.
   Measured on the iPhone (2026-10-29, Lockdown), the view moved by script a bar or more a frame: 60 fps at p90 on
   Sats per Dollar (2012–13, 2011–15, the latest bar) and the Bubbles chart (8Y, Max), 2-4 frames over 20 ms in 120.
@@ -16,12 +19,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   Mullvad and Chromium, then loaded (later: 0.37 s; the API 30–60 ms). Not the server: locally, straight after a
   restart, the price answers in 2 ms and the preset opens in 0.54 s. Most likely a request caught on a server
   restarting behind the tunnel (fleet restarts them one at a time) hanging till the client's 30 s timeout
-  (modules/bitview-client/index.js ~2164, the download included), then retried. To confirm during the next deploy
-  (watch a page's requests as each server restarts); then either fleet drains a server's tunnel before stopping it,
-  or the client gives a series request less time to start answering (not to finish).
-
-- Next deploy (you, 2026-11-02): one, once the chip rule and Studio's heatmaps/profiles/stacks on the library are
-  built and checked, with the line under the pointer (c34e6dd14); watched for the stall above.
+  (modules/bitview-client/index.js ~2164, the download included), then retried. Not seen in the 2026-11-09 rollout: a
+  Chromium page open through the flip (331 preset opens, 0 stalls, 0 failed, none over 8 s); it wasn't watched in
+  Mullvad or through the later hand-over onto the m4s. If it comes back: either fleet drains a server's tunnel before
+  stopping it, or the client gives a series request less time to start answering (not to finish).
 
 ## bitview-charts: raised by you, still open
 
@@ -33,6 +34,11 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## In progress (my own work, picked up from here)
 
+- Showcases hill climb 2 (2026-11-06; state in `_notes/showcases-hill-climb-2/STATE.md`): in the sandbox worktree
+  `~/Developer/mono-sandbox` (branch sandbox/showcases-2), all 14 pages, up to 6 rounds each, target #1 and 9+ for
+  Sol and Opus or a plateau. Paused while the skills were reworked (hill-climb, ui-capture, ui-checks; mono's config
+  in `_notes/ui/`). Next: the shot lists, each page's data recorded, new baselines and checks, then trail's
+  redesign (Sol's proposal) as its round 1. Ends with one before/after sheet for you; the sandbox removed after.
 - bitview-charts, Codex's review of the whole library (2026-11-01): done in two commits (b8f0aa256, then the
   second: Bars.distance gone, one firstFrom, stale comments).
 - Left from the 2026-11-01 chart review, in `modules/bitview-charts`: the curve control points' four writes on one
@@ -47,8 +53,12 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - Consider one window selector for every windowed stack, replacing separate 24h/1w/1m/1y presets tree-wide. The cohort-share draft exposes 60 multi-window stack groups (about 180 presets saved); preserve old preset addresses and carry the selected window through shared links, saved charts, previews and history. Keep this out of the share additions.
 
-- Deployed 673a0d69 (2026-11-02): prod checked in Chromium (79 presets, 0 errors) and Mullvad; the phone not
-  connected then: check it on prod once it is.
+- Share on an unchanged preset gives a `#chart=` link that opens as a preview, on some presets and not others (2026-11-09,
+  "Supply: Coins over 1 year old" > Total). Any unchanged preset should share its preset address and open as the preset;
+  a modified one stays a `#chart=` link; existing `#chart=` links keep opening as they do. Redesigned on
+  `sandbox/share-preset-url` (readable link fields, address bar follows; /Users/k/Developer/mono/_notes/studio-links/sheet.html):
+  decided, final checks running, lands on `next` once it's unfrozen after the prod rollout.
+
 - Presets review (you, 2026-11-02: "the best presets tree possible, that shows in the best way everything, uses the
   best layer type, the best colors, the best combos, variants… the most intuitive and comprehensive", "the best names
   and titles", "slight chart duplicates are fine if that makes sense", "use common sense", "deploy once it's all
@@ -116,6 +126,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   area (2026-10-29: sidebar to dialogs and a phone's touch targets, see the system's notes); titles 15 (2026-10-29: from 18, you), ⌘K's rows 14,
   their asides 14, its preview titles 14 semibold: fine for now, to tweak later. Body kept at 13 (you: "I think I agree for
   13").
+- ⌘K and the presets gallery miss a word typed without its hyphen: "bip69" finds nothing named "BIP-69" (the same for
+  "p2shp2wpkh", "heightbased"). Both search paths, `fitScore` and `presetsMatching`, compare words as written. The fix
+  compares the text and what's typed with hyphens dropped, in one helper both use. The typo suggestions keep the words
+  as shown, so they never offer "heightbased". It needs speed checks on a phone, as each keystroke goes through it.
 
 ## Studio on the new server
 
@@ -154,6 +168,8 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 - Prod logs (`_notes/prod-logs-1112/report.md`): pool logos our pages request that don't exist in `showcases/assets/pools/`: `carbonnegative.svg` 175, `solock.svg` 46, `futurebitapollosolo.svg` 5 (404s from `showcases/index.html:2682` and `calendar/index.html:953`); 60 files for about 170 pools.
 - Prod logs (`_notes/prod-logs-1112/report.md`): `/apple-touch-icon.png` and `-precomposed.png` 404 at the root, 132 in a week; no static head links the icon (`showcases/assets/launch/launch.js:40` adds it by script).
 - decide whether the minimum-window interval rule should cover every span function (diff, sma, ...): count the existing presets whose intervals it would restrict and check whether any of them are actually wrong today
+- Studio pane averaging, waste on the cache-miss path (nightly code review 2026-11-12, Sol, source-traced, not timed): averaged clouds compute `cloudOf` twice (raw at ~16359, then averaged at ~16444); candle averaging turns OHLC columns into a 4-element array per candle that drawing unpacks back into columns (~16450, `candleColumns`); hidden dependencies used only by formulas get an averaged view nobody reads (~16387); the pane mean calls `rolling`, which allocates and fills mean, variance, count and total for N points when only the mean is used (~12538). Measure averaging on a cache miss (interval change on a 7-layer stack, phone and Mullvad) before and after folding these.
+- `showcases/terms/` and `showcases/support/` may not be classified for `showcases/home.mjs`'s front-page row check (~99–103), which would make the checker report each as an app missing from the rows (nightly code review 2026-11-12, not run): run the checker; if it fails, give informational pages one generic class.
 
 ## Back end
 
@@ -162,6 +178,86 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 - Prod logs (`_notes/prod-logs-1112/report.md`): one 503 in 6.46M requests, `/api/address/…` on m4-2, 11-08 08:18:09, mid block update; `StateUpdating` at `crates/bitview_query/src/api/addr/stats.rs:20,23-24` is the likely source (a guess). rust-rules has block updates always answer.
 - Prod logs (`_notes/prod-logs-1112/report.md`): third parties still hit removed or renamed API: 105,000 requests to `/api/vecs/*`, `/api/mempool/price`, `/api/metric/*` and `/api/series/cost-basis/*`, 161,325 (+17,300 bulk) to old series ids, 86,551 with index `day`/`1d`/`date`, 22,731 with `from=`. The 404 for a removed route doesn't name its replacement, and a mistyped index doesn't suggest `day1`; ids `puell_multiple`, `nvt`, `rhodl_ratio` are polled every minute (about 25k each with bulk), a product call for Master.
 - Prod logs (`_notes/prod-logs-1112/report.md`): 186 requests to `bitview.space/mcp` (129 answered 405, 57 404) by clients that should use `mcp.bitview.space`; decide whether `/mcp` answers or points there.
+- From the nightly code audit of 2026-11-11 (blind Opus read of 288b517de, 50da72bad, 215b72216, 7750181a8, a5061fb3a,
+  8d59b89bf; claims are the reviewer's, verify each before fixing):
+  - Mempool, hot path, no numbers anywhere: 50da72bad and 215b72216 changed the snapshot rebuild with no before and
+    after timing. Measure a rebuild at a busy mempool before and after; the reviewer says `snapshot/partition.rs`
+    (`residual`, `candidates`) copies every untouched cluster's chunks and re-sorts all candidates after each virtual
+    block that leaves a cluster partly used (up to 7 per rebuild), where only the touched clusters changed.
+  - `brk_cpfp/src/cluster.rs:83` and `linearize/mod.rs:90`: release `assert!`s on every member and comparison, one on a
+    weight that comes from the node; rust-rules has invariants as `debug_assert!` (checked: the asserts are there).
+  - `MempoolState.fee_deltas` is still computed every cycle but nothing reads it since 50da72bad.
+  - `bitview_mcp/src/server.rs` (7750181a8): every call makes two `spawn_blocking` trips where only large bodies need
+    the wait between them; the upstream wait still holds a blocking thread, so Tokio's 512 is the real, silent cap.
+- Ephemeral dust is counted from the block files: the transactions plugin's fee pass reads each fee-less
+  transaction flagged with a dust output back through `Indexer::dust_outputs`, as the indexer keeps no script for
+  P2MS and unknown outputs (`crates/bitview_plugin_indexer/src/confirmed.rs`). Recording it in the indexer instead
+  needs fees there (the parent's spent values) or a dust position per transaction; worth it only with a measured
+  cost per block.
+- The transaction analysis' parsers (`analysis/input/{script_sig,witness,redeem,revealed}.rs`) call `TxScan` as they
+  walk; returning what they find (signatures, keys, opcodes) for the scan to count would separate parsing from
+  counting, if it costs no allocation per input on the indexer's hot path.
+- At the next release, set the GitHub repository's description to the project sentence (`DEFINITION` in
+  `crates/bitview_bindgen/src/generators/llm/mod.rs`) and its homepage to `https://bitview.space`.
+- From the prod release checks (2026-11-09, at c2ce71b03): the committed `Cargo.lock` lacks `lz4_flex` under
+  `brk_mempool`, so a `--locked` build at the workspace root fails (the working copy has the line; fleet's installs
+  aren't affected); Hawk's 35 visibility findings (3 dead, 20 unnecessary public, 12 unnecessary restricted) await
+  a look, run with `cargo +1.99.0 visibility` on a minimal 1.99.0 toolchain. Headless Chromium's Studio tab crashed
+  after exactly 331 full page loads, in both runs and on different presets (3 s and 10 s apart): the count, not time
+  or a preset. Untested whether it's Studio's or the headless shell's.
+
+- Worktree tooling (untangle, 2026-11-09): `_notes/tools/minibuild.sh` needs a stub `git init` commit made first, since
+  `bitviewd_bench`'s build script refuses to build without one; `scripts/tests/studio-smoke.py` serves only `/studio/*`
+  from the checkout, so a change under `modules/` is tested against the running server's copy (needs a `--root`).
+- Bugs found by the untangle surveys (2026-11-09, read from the code, not yet reproduced), each its own fix:
+  - `crates/bitview_server/src/api/blocks.rs` (`respond_exact_block`): `/api/block/{hash}/txs/1` with
+    `If-None-Match: *` answers 304, as the multiple-of-25 check runs only in the body callback; without it, a 400.
+  - `crates/bitview_website/src/website.rs:131-142`: a file that exists but fails to read is answered 404 (and may be
+    cached as one) instead of an internal error.
+  - `crates/vecdb/src/variants/mutable/importable.rs:18-38`: a holes region whose length isn't a whole number of
+    entries is taken for a schema change and dropped, while the base keeps its rows: deleted rows come back.
+  - `crates/vecdb/src/base/rollback.rs:239`: `entry.ok()?` turns a filesystem error into a missing stamp and caches
+    the short inventory, so a rollback can rebuild when its history is unreadable rather than absent.
+  - `crates/bitview_primitives/src/ohlc.rs:112` and `supply_state.rs:98`: the decoders slice before checking the
+    length: short bytes panic, long bytes are cut silently (the other decoders return `WrongLength`).
+  - `crates/bitviewd_bench/src/main.rs:48-51`: the soft-quit cleanup discards `abort()`'s result, so a failed final
+    report write after an interrupted run leaves no message.
+  - `crates/brk_mempool/src/steps/fetcher/mod.rs:131`: restored records are marked checked before the results come
+    back, so a failed body fetch leaves a record with the wrong witness unverified for good.
+- Bugs from the same surveys that need your decision first:
+  - `crates/vecdb/src/variants/overflow/vec.rs:261`: the two halves import on their own; a reset of the full-width
+    sidecar can leave compact rows pointing into discarded storage. Needs a recovery policy for the pair.
+  - `crates/bitview_server/src/params/addr_txs_query.rs:37`: `max_txs=51`, `52` and any larger value all answer the
+    same capped page under different URLs (chain form at 25): reject or redirect to the cap?
+  - `crates/bitview_query/src/api/urpd/mod.rs:129`: a conditional URPD request can get 304 before the history and
+    weight are checked (those errors come only in the body, `:212-232`).
+  - `crates/bitview_query/src/api/utxo_set.rs:174`: every `InvalidData` reads as "updating" (503), corrupt stored
+    rows included, where only a chain mismatch mid-rewind is temporary.
+  - `crates/bitview_distribution/src/state/cost_basis/price_index.rs:50,107` vs `crates/bitview_urpd/src/origin_urpd.rs`:
+    at the compact ceiling (4,294,967,294 cents) the price index picks a bucket above what URPD rounds to, so the two
+    publish different percentile prices; the fix bumps a computed-data version.
+  - `crates/bitview_plugin_indexer/src/processor/txout/mod.rs:43-49`: outputs with scripts over 10,000 bytes are
+    counted as spendable UTXOs (Core excludes them); fixing it changes stored facts and supply.
+  - `crates/bitview_plugin_transactions/src/fees/vecs.rs:32-56`: the effective fee rate and CPFP role descriptions
+    name plain vsize, but the computation uses sigop-adjusted weight: published text to correct.
+  - `crates/bitview_bindgen/src/generators/javascript/runtime.js:532-615`: the parsed-value cache is keyed by URL
+    alone, so two readers of one URL with different parse options share one parsed value.
+  - `crates/bitview_types/src/series_list.rs:64-70`: non-string members of a series array are dropped silently
+    (`["price_close", 123]` reads as `["price_close"]`) rather than refused.
+- Mempool, best of all four (you, 2026-11-06: "check all code that touch mempool logic and co to compare with the
+  others and make sure we have the best possible implementation, then do the concile skill and try to hill climb all
+  to make them even better"): climb in `_notes/mempool-climb-20261106/` (log.md has scores and what's left). Round 3,
+  judged against the pre-climb code: every area up (+0.5 to +1.6), first in 4 of 7 (blocks, fees, addresses, api),
+  second to Core in sync, clusters and RBF. Commits 00af0c9e8, 0b0d82fa1, d9e408e7a, 977b54df1, e6604278f. Waiting on
+  you: ZMQ sequence feed (needs `-zmqpubsequence` on the nodes). Left: copy-free publication, incremental snapshot,
+  persistence across restarts, push API (yours to decide), the rest in log.md.
+- Fees: Bitview's own estimator, the best of all (you, 2026-11-06: "We just want what's best everywhere"). Today's is
+  a port of mempool.space's (the current queue only); rbitcoin's flow-aware one (queue + measured inflow + similar
+  past moments + a recent-blocks floor) is the best design of the three, Core's the most robust (learns only from
+  confirmations, so it lags spikes). The goal: a quote that keeps its stated confidence of confirming within N
+  blocks, checked over months and spikes, at the least overpay; random block timing instead of rbitcoin's fixed
+  10-minute clock; miners' deviations from the template; whole packages for CPFP; Core's history as fallback and
+  guard. The fee-estimates session designs it from its scoreboard after its 16:30 report.
 - Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-08): BlindBit oracle v1's
   HTTP API under `/blindbit/mainnet/` (the public oracle's paths; spdk/Dana, Bull Bitcoin, blindbitd), a
   600-sat dust floor everywhere (`DUST_FLOOR`), off the series tree. Stored: each kept tx's tweak (x + parity
@@ -171,6 +267,12 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   tip, tagged by the block of the latest spend of the block's Taproot outputs; stable CDN tier once none can
   change. `dustLimit` is required, from 600 to 10,000 (anything else is refused). Left: the draft
   index-server spec's `compute-index` only once it settles.
+- Silent payments, a real wallet payment (yours, when you have time): point Dana or Bull Bitcoin at
+  `https://next.bitview.space/blindbit/mainnet`, send 600 sats or more from Sparrow, and note whether it shows up and
+  how long the scan took. spdk's real scanner passed an automated check against next on 2026-11-09, but only a real
+  payment proves a wallet's own send, receive and spend end to end.
+- Projected blocks 2-8 honour a node's `prioritisetransaction` deltas, as block 0 (Core's template) does: they are
+  packed from base fees today.
 - Series Studio's presets find dead (2026-11-03 deep pass, _notes/deep-pass-20261103.md): zero by construction, better
   not produced (the 2009 vintage's dollar series, no price before July 2010; P2PK and P2TR exposed supply shares,
   always 100%; witness commitment fees, the coinbase pays none); shares rounded to 0 (1-10 and 10-100 sats' shares of
@@ -178,9 +280,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   years (50BTC, DMND, Noderunners, Phoenix, SoloPool.com: the last value carried, not none). And a fact per series
   for the presets, as the pools' 3-year set: which haven't changed in the default 8 years (the empty output type,
   Ascribe, the far profit bands), so their charts open on Max.
-
-- Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
-  `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
 
 - Esplora routes mempool.space serves and Bitview doesn't (API.md), each only if it answers as fast as the address
   routes (no rate limit here, unlike mempool.space): `/api/scripthash/{hash}` with `/txs`,
@@ -210,6 +309,14 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   loss, UTXO-set age statistics, address concentration, USD balance thresholds, a spent-output price distribution;
   coin days destroyed summed in satoshi-seconds before converting, and the awake/mobile distributions' per-bucket
   rounding and grid-price dollar weights.
+- MCP, from the nightly code audit (2026-11-10, blind review of `ddfbd9bae`, checked against the source, not reproduced):
+  - `crates/bitview_mcp/src/server.rs:177`: `initialize` errors on an unsupported requested version, where MCP's
+    negotiation has the server answer with a version it supports and let the client decide. Refusing old versions was
+    decided on purpose; check the spec's wording and whether any client falls back on an error before keeping it.
+  - `crates/bitview_mcp/src/server.rs:88`: a request with no version header gets rmcp's 2025-03-26 default, while the
+    README promises 2025-06-18 and 2025-03-26 isn't in the supported set.
+  - `crates/bitview_mcp/src/discovery.rs:103` (`host`): splitting at the first colon turns an IPv6 origin such as
+    `https://[::1]/` into host `[`. Only matters for self-hosters with an IPv6 public URL.
 
 - Inputs compute went 133→540 s in the from-zero bench of adc1881c8 while the whole run stayed flat (blocks, market, age
   and profitability dropped by about as much): check whether plugin times count waiting before reading them as costs.
