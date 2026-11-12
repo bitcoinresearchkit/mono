@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "./addresses.js";
+import { addressesOf, placeShown } from "./addresses.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
@@ -19,7 +19,7 @@ const ORIGIN = "https://bitview.space/studio";
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
-const { studioPresets, chainFacts, placeShown } = await import(pathToFileURL(join(HERE, "presets.js")).href);
+const { studioPresets, chainFacts } = await import(pathToFileURL(join(HERE, "presets.js")).href);
 // (Without the chain's facts the presets would hold what never happened: stopped, not written.)
 const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);

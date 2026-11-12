@@ -11108,7 +11108,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Studio's chart library: bitview-charts.)
       import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid, Profile } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-      import { addressSteps } from "/studio/addresses.js";
+      import { addressSteps, placeShown } from "/studio/addresses.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -27354,13 +27354,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let node = presetTree() ?? undefined;
         for (const name of path) node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name));
         return node;
-      }
-      /**
-       * A preset's place as shown: its sections and its own name, each by its label where it has one (`l`: worded as the
-       * titles are, its place, `p`, kept as it was, and so its address and key).
-       */
-      function placeShown(/** @type {Preset} */ preset) {
-        return preset.l ?? preset.p;
       }
       /** A place's steps as shown (see placeShown); their names till the presets are read. @param {string[]} path */
       function placeNames(path) {
