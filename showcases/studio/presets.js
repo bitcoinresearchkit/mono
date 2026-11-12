@@ -854,8 +854,10 @@ export function studioPresets(client, facts) {
     // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
     const looks = members.map(([key]) => options.lookOf?.(key));
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
+    // (Each member named once, however many of its comparisons draw it.)
+    const names = members.map(([key]) => naming(key)), shown = new Map(members.map(([key], i) => [key, names[i].label ?? names[i].name]));
     /** A member's name as shown. @param {string} key */
-    const shownName = (key) => ((n) => n.label ?? n.name)(naming(key));
+    const shownName = (key) => /** @type {string} */ (shown.get(key));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
     const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownName(key), { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
@@ -924,7 +926,7 @@ export function studioPresets(client, facts) {
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
       // (Each member in its color, as its comparisons draw it; all coins, the chain's own series, each its own.)
-      ...members.map(([key, c], i) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who, key === "all" ? undefined : colors[i]) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key), key === "all" ? undefined : colors[i], options.weight, n.shareWho ?? n.who), n.label))(naming(key))),
+      ...members.map(([key, c], i) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who, key === "all" ? undefined : colors[i]) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key), key === "all" ? undefined : colors[i], options.weight, n.shareWho ?? n.who), n.label))(names[i])),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
