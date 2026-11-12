@@ -11,11 +11,12 @@
 // amounts summed from the close outward (upward over it, downward under it), each group's stacked on the one before as
 // its bars are, filled in its colors to the edge, as long as the longer side's whole; read at a height (`sumsAt`).
 // Held at the plot's edge, drawn whole when its view or data changes; the page told before each draw (`viewed`, its groups' day then). Fitted as
-// the page says (`fit`); a bar under a point found as drawn (`hit`).
+// the page says (`fit`); its column, what a bin holds at a height and a bar under a point found as drawn (`covers`,
+// `readAt`, `hit`).
 
 /**
  * @typedef {{ id: string, rows: Int32Array, values: ArrayLike<number>, gain: string, loss: string, dimGain: string, dimLoss: string }} ProfileGroup
- * @typedef {{ edges: number[], starts: number[], sums: Float64Array, count: number, most: number, width: number, right: number, ids: string[] }} ProfileBars
+ * @typedef {{ edges: number[], starts: number[], sums: Float64Array, signed: Float64Array, count: number, most: number, width: number, right: number, ids: string[], cumulative: boolean }} ProfileBars
  */
 
 export class Profile {
@@ -95,21 +96,56 @@ export class Profile {
     this.onViewed?.(time);
   }
 
+  /** Whether `x` (CSS pixels into the plot) is in its column, as last drawn: from the column's left edge to the plot's. @param {number} x */
+  covers(x) {
+    const bars = this.bars;
+    return bars !== null && x >= bars.right - bars.width && x <= bars.right;
+  }
+
+  /**
+   * What its bars hold at a height (CSS pixels in its pane), as last drawn: the bin there (its prices span it, the pixel
+   * under its bar its own), its rows (`from` to `to`, that one not in it) and its sum, signed (a loss less): its groups',
+   * or `group`'s alone; an empty bin's, 0. No bin there, or cumulative (see sumsAt), null.
+   * @param {number} y @param {string} [group] @returns {{ from: number, to: number, sum: number } | null}
+   */
+  readAt(y, group) {
+    const bars = this.bars, bin = this.#binAt(y);
+    if (!bars || bin < 0) return null;
+    const { starts, signed, count, ids } = bars, at = bin * count;
+    let sum = 0;
+    for (let c = 0; c < count; c++) if (group === undefined || ids[c] === group) sum += signed[at + c];
+    return { from: starts[bin], to: starts[bin + 1], sum };
+  }
+
+  /** The bin at a height, as last drawn (see readAt): its index; none, or cumulative, -1. @param {number} y */
+  #binAt(y) {
+    const bars = this.bars;
+    if (!bars || bars.cumulative) return -1;
+    const edges = bars.edges;
+    // (The edges falling as prices rise: the one at or under it, and the next over it.)
+    let lo = 0, hi = edges.length - 1;
+    if (!(y <= edges[lo] && y > edges[hi])) return -1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (edges[mid] >= y) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  }
+
   /**
    * The bar under a point (CSS pixels: `x` into the plot, `y` in its pane), as last drawn: its group, its bin's rows
-   * (`from` to `to`, that one not in it); none between them or left of them. (The first group's to the plot's edge.)
+   * (see readAt); none between them or left of them, or cumulative. (The first group's to the plot's edge.)
    * @param {number} x @param {number} y @returns {{ group: string, from: number, to: number } | null}
    */
   hit(x, y) {
-    const bars = this.bars;
-    if (!bars) return null;
-    const { edges, starts, sums, count, most, width, right } = bars;
-    let bin = 0;
-    while (bin < edges.length - 1 && !(y <= edges[bin] && y > edges[bin + 1])) bin++;
-    for (let c = 0, at = right; bin < edges.length - 1 && c < count; c++) {
-      const length = (sums[bin * count + c] / most) * width, group = bars.ids[c];
-      if (length && group && x >= at - length && (!c || x <= at)) return { group, from: starts[bin], to: starts[bin + 1] };
-      at -= length;
+    const bars = this.bars, bin = this.#binAt(y);
+    if (!bars || bin < 0) return null;
+    const { starts, sums, count, most, width, right, ids } = bars;
+    for (let c = 0, edge = right; c < count; c++) {
+      const length = (sums[bin * count + c] / most) * width, group = ids[c];
+      if (length && group && x >= edge - length && (!c || x <= edge)) return { group, from: starts[bin], to: starts[bin + 1] };
+      edge -= length;
     }
     return null;
   }
@@ -221,7 +257,7 @@ export class Profile {
    */
   draw(g, time, scale, _x0, _x1, dpr) {
     (this.bars = null), (this.summed = null);
-    const groups = this.groups, edge = this.edge, plot = time.width, height = scale.height, width = this.width(plot), right = plot - 2, even = scale.mode === "log";
+    const groups = this.groups, edge = this.edge, plot = time.width, height = scale.height, width = this.width(plot), right = plot, even = scale.mode === "log";
     let low = Infinity, high = -Infinity;
     for (const group of groups) if (group.rows.length) (low = Math.min(low, group.rows[0])), (high = Math.max(high, group.rows[group.rows.length - 1]));
     if (!(low <= high)) return;
@@ -272,24 +308,25 @@ export class Profile {
       binAt[k] = edges.length - 1;
     }
     edges.push(yOf(hi + 1)), starts.push(hi + 1);
-    // (Each group's amount a bin, by its size; its signed sum too, summed (a loss counted as one).)
-    const bins = edges.length - 1, count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins), signed = summing ? new Float64Array(bins * count) : sums;
+    // (Each group's amount a bin, by its size; its signed sum too (a loss less): a bin's reading (see readAt), and what the
+    // cumulative one sums outward.)
+    const bins = edges.length - 1, count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins), signed = new Float64Array(bins * count);
     groups.forEach((group, c) => {
       const rows = group.rows, values = group.values;
       for (let k = lowerBound(rows, lo); k < rows.length && rows[k] <= hi; k++) {
         const b = binAt[rows[k] - lo], amount = Math.abs(values[k]);
         sums[b * count + c] += amount;
-        if (summing) signed[b * count + c] += values[k];
+        signed[b * count + c] += values[k];
         totals[b] += amount;
       }
     });
     let most = 0;
     for (let b = 0; b < bins; b++) most = Math.max(most, totals[b]);
     if (!(most > 0)) return;
-    this.bars = { edges, starts, sums, count, most, width, right, ids: groups.map((group) => group.id) };
-    const line = this.at === this.at ? scale.y(this.at) : -Infinity;
-    // (Cumulative: read by height (sumsAt), no bars to point at.)
-    if (summing && line === line && line > -Infinity) (this.bars = null), this.#cumulative(g, edges, sums, signed, count, line, right, width, height);
+    const line = this.at === this.at ? scale.y(this.at) : -Infinity, cumulative = summing && line === line && line > -Infinity;
+    // (Cumulative: its column as the bars', read by height (sumsAt), no bars to point at.)
+    this.bars = { edges, starts, sums, signed, count, most, width, right, ids: groups.map((group) => group.id), cumulative };
+    if (cumulative) this.#cumulative(g, edges, sums, signed, count, line, right, width, height);
     else this.#bars(g, edges, sums, totals, count, most, line, right, width, dpr);
     // (A close not the latest's: dashed across its bars.)
     if (this.closeLine && line === line && line > -Infinity) {
