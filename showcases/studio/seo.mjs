@@ -19,7 +19,7 @@ const ORIGIN = "https://bitview.space/studio";
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
-const { studioPresets, chainFacts } = await import(pathToFileURL(join(HERE, "presets.js")).href);
+const { studioPresets, chainFacts, placeShown } = await import(pathToFileURL(join(HERE, "presets.js")).href);
 // (Without the chain's facts the presets would hold what never happened: stopped, not written.)
 const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
@@ -47,7 +47,7 @@ const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)
 // asking for one; the charts themselves, in the sitemap.)
 // (Each by its name as shown: its label, where it has one; see presets.js.)
 const held = new Map(), shown = new Map();
-for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => (held.set(key, (held.get(key) ?? 0) + 1), shown.set(key, (preset.l ?? preset.p)[depth - 1])))(JSON.stringify(preset.p.slice(0, depth)));
+for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => (held.set(key, (held.get(key) ?? 0) + 1), shown.set(key, placeShown(preset)[depth - 1])))(JSON.stringify(preset.p.slice(0, depth)));
 const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${shown.get(key)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');

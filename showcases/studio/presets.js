@@ -70,13 +70,27 @@ const windowAdjective = (/** @type {string} */ key) => spanLabel(key).replace(/^
 /** A window's key, short (axis-like): `_24h` "24h", `_200d` "200d", `_1m` "1m". */
 const windowShort = (/** @type {string} */ key) => key.replace(/^_/, "");
 /**
- * A band's name with its edges said as it counts them: its low edge in, its high one out ("1–10 sats" "1 to under 10
- * sats"; "100K+ BTC" "at least 100K BTC"; from 0, from nothing: "0–10% in loss" "under 10% in loss"); `through`, its
- * high edge in and its low one out ("10–20% in profit" "over 10% through 20% in profit"; from 0, "up to 10% in profit").
- * @param {string} name @param {boolean} [through]
+ * How a family's bands count their edges (see their descriptions): `from`, its low edge in and its high one out
+ * (amounts, balances, losses: "1 to under 10 sats", from 0 "under 10%"); `through`, its high edge in and its low one
+ * out (profits: "over 10% through 20%", from 0 "up to 10%"). `over`: what's past an edge, as said (the open last band,
+ * the over side of a cutoff: "at least 100K BTC", "over 1000% in profit").
+ * @type {Record<"from" | "through", { over: string, band: (low: string, high: string) => string }>}
  */
-const bounded = (name, through = false) => name.replace(/^([\d.]+[KM]?)(?:–([\d.]+[KM]?)|(\+))(%?)/, (_, low, high, plus, unit) =>
-  plus ? `at least ${low}${unit}` : low === "0" ? `${through ? "up to" : "under"} ${high}${unit}` : through ? `over ${low}${unit} through ${high}${unit}` : `${low}${unit} to under ${high}${unit}`);
+const EDGES = {
+  from: { over: "at least", band: (low, high) => (parseFloat(low) ? `${low} to under ${high}` : `under ${high}`) },
+  through: { over: "over", band: (low, high) => (parseFloat(low) ? `over ${low} through ${high}` : `up to ${high}`) },
+};
+/**
+ * A band's name with its edges said as its family counts them (see EDGES): "1–10 sats" "1 to under 10 sats", "100K+
+ * BTC" "at least 100K BTC", "Over 1000% in profit" "over 1000% in profit"; one value alone ("0 sats") as it is.
+ * @param {string} name @param {typeof EDGES.from} edges
+ */
+const bounded = (name, edges) => {
+  const match = /^(Over )?([\d.]+[KM]?)(?:–([\d.]+[KM]?)|(\+))?(%?)/.exec(name);
+  if (!match) throw new Error(`No edges in ${name}`);
+  const [said, over, low, high, plus, unit] = match;
+  return `${over || plus ? `${edges.over} ${low}${unit}` : high ? edges.band(`${low}${unit}`, `${high}${unit}`) : said}${name.slice(said.length)}`;
+};
 /** A percentile's key as a number, its decimal point an underscore: `p5` 5, `p0_1` 0.1, `p99_5` 99.5, `median` 50. */
 function percentile(/** @type {string} */ key) {
   if (key === "median") return 50;
@@ -231,8 +245,11 @@ function notYet(t, facts) {
  */
 const ADDRESS_KINDS = [
   { key: "reused", name: "Reused", them: (addresses) => `reused ${addresses}`, ones: "reused ones", are: "are reused" },
-  { key: "respent", name: "Respent", label: "Spent from more than once", them: (addresses) => `${addresses} spent from more than once`, ones: "ones spent from more than once", are: "have been spent from more than once" },
+  { key: "respent", name: "Respent", label: "Spent from more than once", them: (addresses) => `${addresses} spent from more than once`, ones: "those spent from more than once", are: "have been spent from more than once" },
+  { key: "exposed", name: "Exposed", label: "With exposed keys or scripts", them: (addresses) => `${addresses} with exposed keys or scripts`, ones: "those with exposed keys or scripts", are: "have exposed keys or scripts" },
 ];
+/** A preset's place as shown: each step by its label where it has one (see Preset). @param {Preset} preset */
+export const placeShown = (preset) => preset.l ?? preset.p;
 /**
  * Every preset, made from a client (its series tree and its tables of names) and the chain's facts (see notYet).
  * @param {any} client @param {Facts} [facts]
@@ -346,11 +363,11 @@ export function studioPresets(client, facts) {
    * Bitcoin orange (or `color`, a cohort's own), its dollars green, as an amount's, shown window and sum alike (the
    * hidden windows in their own). Dollars on a log scale (they
    * move with the price, decades over the years: on a linear one the early years lie flat): the bitcoin's, below, and
-   * a flow in dollars alone (`dollars`).
-   * @param {any} node @param {string} name @param {string} title @param {string} [color] @param {boolean} [dollars]
+   * a flow in dollars alone (`dollars`). `label`: its name as shown, where not its name (see chart).
+   * @param {any} node @param {string} name @param {string} title @param {{ color?: string, dollars?: boolean, label?: string }} [options]
    * @returns {ChartNode[]}
    */
-  const flow = (node, name, title, color = undefined, dollars = false) => {
+  const flow = (node, name, title, { color, dollars = false, label } = {}) => {
     if (!node) return [];
     const titled = (/** @type {string} */ after) => title.replace(/^([^:]*)(:|$)/, `$1${after}$2`);
     const sums = node.sum ?? node;
@@ -358,10 +375,10 @@ export function studioPresets(client, facts) {
     if (!pair) {
       const layers = windows(sums, "", { color });
       const scale = dollars ? { log: [1] } : {};
-      return [...(layers.length ? [chart(name, titled(""), layers, scale)] : []), ...(byDate(node.cumulative) ? [chart(`${name}, all time`, titled(", all time"), [series(node.cumulative, "All time", { color: color ?? SUM_COLOR })], scale)] : [])];
+      return [...(layers.length ? [chart(name, titled(""), layers, { ...scale, label })] : []), ...(byDate(node.cumulative) ? [chart(`${name}, all time`, titled(", all time"), [series(node.cumulative, "All time", { color: color ?? SUM_COLOR })], { ...scale, label: label && `${label}, all time` })] : [])];
     }
-    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc, color: color ?? "orange" }), ...windows(sums, "Dollars", { pick: usd, pane: 2, color: "green" })], { log: [2] })];
-    if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "Bitcoin", { color: color ?? "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])], { log: [2] }));
+    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc, color: color ?? "orange" }), ...windows(sums, "Dollars", { pick: usd, pane: 2, color: "green" })], { log: [2], label })];
+    if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "Bitcoin", { color: color ?? "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])], { log: [2], label: label && `${label}, all time` }));
     return charts;
   };
   /**
@@ -390,8 +407,8 @@ export function studioPresets(client, facts) {
    * share of transaction volume. @param {any} value @param {string} title @returns {ChartNode[]}
    */
   const valued = (value, title) => [
-    ...flow(value, "Value", `Value moved by ${lowered(title)}`),
-    chart("Value share", `Share of all transfer volume moved by ${lowered(title)}`, sharesOf(value.share, "Share")),
+    ...flow(value, "Value", `Transfer volume moved by ${lowered(title)}`, { label: "Transfer volume" }),
+    chart("Value share", `Share of all transfer volume moved by ${lowered(title)}`, sharesOf(value.share, "Share"), { label: "Share of all transfer volume" }),
   ];
   /** A kind of transaction's charts: its count, then its value. @param {any} node @param {string} title */
   const kindCharts = (node, title) => [...counted(node, "Count", title), ...valued(node.value, title)];
@@ -403,17 +420,18 @@ export function studioPresets(client, facts) {
    * shares of it; others as lines, on a log scale (one may be thousands of times another).
    * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title
    * @param {string} by what sorts them, in the comparisons' titles ("feature"; "" none: what they are says it)
-   * @param {{ what?: string, disjoint?: boolean }} [options] `what`: what they are, as a title says it ("ECDSA signatures")
+   * @param {{ what?: string, says?: string, disjoint?: boolean }} [options] `what`: what they are, as a title says it
+   * ("ECDSA signatures"); `says`, where its comparisons' names (kept: steps of their places) say it otherwise
    */
-  const kinds = (list, name, title, by, { what = "transactions", disjoint = false } = {}) => {
+  const kinds = (list, name, title, by, { what = "transactions", says = what, disjoint = false } = {}) => {
     const lines = (/** @type {[string, any][]} */ some, /** @type {(node: any) => any} */ pick) => some.map(([key, node], i) => series(pick(node), name(key), { color: ramp(some.length)[i] }));
-    const shared = list.filter(([, node]) => node.share), sorted = by ? ` by ${by}` : "", What = capitalized(what);
+    const shared = list.filter(([, node]) => node.share), sorted = by ? ` by ${by}` : "", What = capitalized(what), Says = capitalized(says);
     return [
       ...(shared.length
-        ? [chart("Compare", `Share of ${what}${sorted}, 1 month`, lines(shared, (node) => node.share._1m), { absolute: lines(shared, (node) => node.sum._1m) }), chart("Compare value", `Share of all transfer volume${sorted}, 1 month`, lines(shared, (node) => node.value.share._1m), { absolute: lines(shared, (node) => btc(node.value.sum._1m)) })]
+        ? [chart("Compare", `Share of ${says}${sorted}, 1 month`, lines(shared, (node) => node.share._1m), { absolute: lines(shared, (node) => node.sum._1m) }), chart("Compare value", `Share of all transfer volume${sorted}, 1 month`, lines(shared, (node) => node.value.share._1m), { absolute: lines(shared, (node) => btc(node.value.sum._1m)) })]
         : disjoint
-          ? [section("Compare", parts([`${What}, 1 month`, `${What}${sorted}, 1 month`], ["Share, 1 month", `Share of ${what}${sorted}, 1 month`], lines(list, (node) => node.sum._1m)))]
-          : [chart("Compare", `${What}${sorted}, 1 month`, lines(list, (node) => node.sum._1m), { log: [1] })]),
+          ? [section("Compare", parts([`${What}, 1 month`, `${Says}${sorted}, 1 month`, `${Says}, 1 month`], ["Share, 1 month", `Share of ${says}${sorted}, 1 month`], lines(list, (node) => node.sum._1m)))]
+          : [chart("Compare", `${Says}${sorted}, 1 month`, lines(list, (node) => node.sum._1m), { log: [1] })]),
       ...list.flatMap(([key, node]) => /** @type {(ChartNode | SectionNode)[]} */ (node.share ? [section(name(key), kindCharts(node, title(key)))] : flow(node, name(key), title(key)))),
     ];
   };
@@ -509,7 +527,7 @@ export function studioPresets(client, facts) {
         inProfit?.share && chart("Share in profit", titled("Share of supply in profit"), [series(inProfit.share, "In profit", { color: "green", type: "area" }), series(inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }),
         supply.share && !whole && chart(`Share of ${of.name} coins`, titled(coinShare), [series(supply.share, `Of ${of.of("coins")}`, { color: color ?? "orange" })], { label: coinShare }),
         ...change(supply.delta, "Change", titled("Supply change")),
-        ...flow(supply.agedOut, "Aged out", titled("Supply aging out"), color),
+        ...flow(supply.agedOut, "Aged out", titled("Supply aging out"), { color }),
       ]),
       c.funded && section("Addresses", [
         chart("Count", titled("Funded address count"), [series(own(c.funded), "Addresses", { color: color ?? "sky" })], { log: [1] }),
@@ -529,10 +547,10 @@ export function studioPresets(client, facts) {
         // (All coins' count is UTXOs › Count itself: its one home.)
         utxos.count && !whole && chart("Count", titled("UTXO count"), [series(own(utxos.count), "UTXOs", { color: color ?? "sky" })], { log: [1] }),
         ...change(utxos.count?.delta, "Change", titled("UTXO count change")),
-        ...flow(utxos.spentCount, "Spent", titled("UTXOs spent"), color),
+        ...flow(utxos.spentCount, "Spent", titled("UTXOs spent"), { color }),
       ]),
       activity && section("Activity", [
-        ...flow(activity.transferVolume, "Transfer volume", titled("Transfer volume"), color),
+        ...flow(activity.transferVolume, "Transfer volume", titled("Transfer volume"), { color }),
         ...flowShares(c, "Transfer volume share", who, color),
         ...(activity.transferVolume?.inProfit ? [
           chart("Volume in profit and loss", titled("Transfer volume in profit and loss"), [
@@ -544,8 +562,8 @@ export function studioPresets(client, facts) {
             series(usd(activity.transferVolume.inProfit.cumulative), "In profit, value", { color: "green", pane: 2 }), series(usd(activity.transferVolume.inLoss.cumulative), "In loss, value", { color: "red", pane: 2 }),
           ]),
         ] : []),
-        ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), color),
-        ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), color),
+        ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), { color }),
+        ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), { color }),
         activity.dormancy && chart("Dormancy", titled("Dormancy"), windows(activity.dormancy, "", { color })),
       ]),
       realized && section("Realized", [
@@ -555,7 +573,7 @@ export function studioPresets(client, facts) {
         ], { log: [1] }),
         ...flowShares(c, "Share of realized profit", who, color),
         ...flowShares(c, "Share of realized loss", who, color),
-        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Profit share", titled("Realized profit as a share of gross realized profit and loss"), windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(flowWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } }), { label: "Profit's share of profit and loss" }),
+        realized.profit?.sum?._24h && realized.loss?.sum?._24h && chart("Profit share", titled("Realized profit's share of gross realized profit and loss"), windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(flowWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } }), { label: "Realized profit's share of gross realized profit and loss" }),
         realized.profit && chart("Profit and loss, all time", titled("Realized profit and loss, all time"), [
           series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
           ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
@@ -568,11 +586,11 @@ export function studioPresets(client, facts) {
           price(), series(realized.profit.sum._24h, "Profit", { type: "bubbles", ref: "A", color: "green", colors: 1 }), series(realized.loss.sum._24h, "Loss", { type: "bubbles", ref: "A", color: "red", colors: 1 }),
           { heatmap: urpd, measure: "pnl" },
         ]),
-        ...flow(realized.grossPnl ?? { sum: Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, grossWindow(c, key)])) }, "Gross profit and loss", titled("Gross realized profit and loss"), color, true),
+        ...flow(realized.grossPnl ?? { sum: Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, grossWindow(c, key)])) }, "Gross profit and loss", titled("Gross realized profit and loss"), { color, dollars: true }),
         ...flowShares(c, "Gross realized share", who, color),
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
-        ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), color, true),
-        ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), color, true),
+        ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed"), { color, dollars: true }),
+        ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), { color, dollars: true }),
         // (Ratios around 1, on a log scale as every ratio: 0.5× as far under as 2× over, an old group's spikes to 20× not
         // flattening the rest.)
         realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: ["_1w"], around: 1 }), { log: [1] }),
@@ -780,10 +798,10 @@ export function studioPresets(client, facts) {
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
-    // (What its shares divide; what a comparison is by, as titled: with the group its members lie within, unless what
-    // it's of (`ofWhole`) says it.)
-    const of = options.of ?? ALL;
-    const by = (ofWhole = false) => (options.among && !ofWhole ? `${options.by} among ${options.among}` : options.by);
+    // (What its shares divide; what a comparison is by, as titled: with the group its members lie within, `among`.)
+    const of = options.of ?? ALL, among = options.among ? `${options.by} among ${options.among}` : options.by;
+    /** A member's name as shown (see naming). @param {string} key */
+    const shown = (key) => ((said) => said.label ?? said.name)(naming(key));
     // (Its URPDs weighted as its members are: see cohort.)
     const weighed = options.weight ? { weight: options.weight } : {};
     // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
@@ -791,7 +809,7 @@ export function studioPresets(client, facts) {
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shown(key), { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison of `measure` (its name; its window's, `window`, after it: "Coin days destroyed, 1 month"): every
      * member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked, then as their shares of
@@ -807,13 +825,16 @@ export function studioPresets(client, facts) {
       // (Read against a reference, its level across: a ratio's 1, a net's 0; the members stay lines, each its color.)
       const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] });
       if (!layers.length) return [];
-      const window = o.window ? `, ${spanLabel(o.window)}` : "", shared = o.of && `Share of ${of.of(o.of)}`;
-      const says = o.says ?? (o.additive ? undefined : shared) ?? measure, title = `${says} by ${by(!o.additive && Boolean(shared))}${window}`;
-      const name = `${measure}${window}`, label = `${says}${window}`;
+      const window = o.window ? `, ${spanLabel(o.window)}` : "";
+      // (A share as said and what it's by: of the family's whole, which, its own, names the group its members lie
+      // within; else after what it's by.)
+      const shareOf = o.of ? { says: `Share of ${of.of(o.of)}`, by: options.of ? options.by : among } : o.share ? { says: o.share, by: among } : undefined;
+      const said = !o.additive && shareOf ? shareOf : { says: o.says ?? measure, by: among };
+      const name = `${measure}${window}`, title = `${said.says} by ${said.by}${window}`, label = `${said.says}${window}`;
       if (options.disjoint && o.additive) {
-        const known = options.known?.[measure], share = o.shares === false ? undefined : shared ?? o.share;
-        if (o.shares !== false && share === undefined) throw new Error(`No wording for the shares of ${measure}`);
-        return parts([name, title, label], share === undefined ? undefined : [`${measure} share${window}`, `${share} by ${by(Boolean(shared))}${window}${known ? ` (${known})` : ""}`, `${share}${window}`], layers);
+        const known = options.known?.[measure] ? ` (${options.known[measure]})` : "", share = o.shares === false ? undefined : shareOf;
+        if (o.shares !== false && !share) throw new Error(`No wording for the shares of ${measure}`);
+        return parts([name, title, label], share && [`${measure} share${window}`, `${share.says} by ${share.by}${window}${known}`, `${share.says}${window}`], layers);
       }
       if (o.price) return [chart(name, title, [price(), ...layers], { label })];
       return [chart(name, title, layers, { label, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
@@ -826,10 +847,10 @@ export function studioPresets(client, facts) {
     const shareComparisons = (where) => !splits ? [] : FLOW_SHARES.flatMap(({ compareName, absoluteName, says, log, section: place, pick }) => place !== where ? [] : FLOW_WINDOWS.flatMap(([window]) => {
       const total = pick(t.holders.all, window), parts = members.filter(([key, c]) => key !== "all" && byDate(pick(c, window)));
       if (!byDate(total) || parts.length < 2) return [];
-      const layers = parts.map(([key, c]) => ({ ...series(flowShare(pick(c, window), total), naming(key).name, { color: colors[members.findIndex(([k]) => k === key)], type: "area" }) }));
+      const layers = parts.map(([key, c]) => ({ ...series(flowShare(pick(c, window), total), shown(key), { color: colors[members.findIndex(([k]) => k === key)], type: "area" }) }));
       // (Of all coins' flow, not the family's whole: the group the members lie within said after what it's by.)
       const span = spanLabel(window);
-      return [...compare(absoluteName, (c) => pick(c, window), { window, additive: true, shares: false, log }), chart(`${compareName}, ${span}`, `${says} by ${by()}, ${span}`, layers, { stack: { 1: "stack" }, label: `${says}, ${span}` })];
+      return [...compare(absoluteName, (c) => pick(c, window), { window, additive: true, shares: false, log }), chart(`${compareName}, ${span}`, `${says} by ${among}, ${span}`, layers, { stack: { 1: "stack" }, label: `${says}, ${span}` })];
     }));
     const comparisons = [
       ...compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true, of: "coins" }),
@@ -841,15 +862,15 @@ export function studioPresets(client, facts) {
       // (Stacked as they are, beside all coins' history (its heatmap: today's split by member, against how it came to
       // be), then summed from the price outward: how much each holds between it and any price.)
       ...(options.profile && groups.length > 1 ? [
-        chart("Profile", `Supply profile by ${by()}`, [price(), { profile: groups, ...weighed }]),
-        ...(whole ? [chart("Profile on the heatmap", `Supply profile by ${by()}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, { profile: groups, ...weighed }])] : []),
-        chart("Cumulative profile", `Supply profile by ${by()}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }]),
+        chart("Profile", `Supply profile by ${among}`, [price(), { profile: groups, ...weighed }]),
+        ...(whole ? [chart("Profile on the heatmap", `Supply profile by ${among}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, { profile: groups, ...weighed }])] : []),
+        chart("Cumulative profile", `Supply profile by ${among}, cumulative from the price`, [price(), { profile: groups, cumulative: true, ...weighed }]),
       ] : []),
       // (Each member's realized price over all coins' supply by cost basis: where each sits in what last moved where.)
-      ...(whole && members.length > 1 && members.some(([key]) => key === "all") && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${by()}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []),
-      ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
+      ...(whole && members.length > 1 && members.some(([key]) => key === "all") && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", `Realized price by ${among}, on the supply by cost basis`, [price(), { heatmap: whole, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []),
+      ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { says: "Market value to realized value (MVRV)", level: 1, log: true }),
       ...compare("Share in profit", (c) => c.supply?.inProfit?.share, { says: "Share of each group's supply in profit", absolute: (c) => btc(c.supply?.inProfit), absoluteLog: true }),
-      ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0, absolute: (c) => c.unrealized?.netPnl }),
+      ...compare("NUPL", (c) => c.unrealized?.nupl, { says: "Net unrealized profit and loss (NUPL)", level: 0, absolute: (c) => c.unrealized?.netPnl }),
       ...compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true, of: "UTXOs" }),
       ...compare("Address count", (c) => own(c.funded), { says: "Funded address count", share: "Share of funded addresses", log: true, additive: true }),
       ...(splits ? [] : compare("Transfer volume", (c) => btc(c.activity?.transferVolume?.sum?._1m), { window: "_1m", additive: true, shares: false })),
@@ -859,7 +880,7 @@ export function studioPresets(client, facts) {
       ...(splits ? [] : compare("Realized loss", (c) => c.realized?.loss?.sum?._1m, { window: "_1m", additive: true, log: true, shares: false })),
       ...shareComparisons("Realized"),
       ...compare("Net realized profit and loss", (c) => c.realized?.netPnl?.sum?._1m, { window: "_1m", level: 0 }),
-      ...compare("SOPR", (c) => c.realized?.sopr?._1w, { window: "_1w", level: 1, log: true }),
+      ...compare("SOPR", (c) => c.realized?.sopr?._1w, { says: "Spent output profit ratio (SOPR)", window: "_1w", level: 1, log: true }),
     ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
@@ -898,7 +919,7 @@ export function studioPresets(client, facts) {
    * default, neither). @param {string} key @returns {{ name: string, who: string, of: (coins: string) => string, within: { of?: Whole, among?: string } }}
    */
   const holderName = (key) => {
-    const name = HOLDERS[key]?.[0] ?? key, who = HOLDERS[key]?.[1] ?? key, among = who.toLowerCase();
+    const name = HOLDERS[key]?.[0] ?? key, who = HOLDERS[key]?.[1] ?? key, among = lowered(who);
     return { name, who, of: (coins) => `${coins}${HOLDERS[key]?.[2] ?? `, ${key}`}`, within: key === "all" ? {} : { of: groupWhole(among), among } };
   };
 
@@ -980,10 +1001,12 @@ export function studioPresets(client, facts) {
   };
   /**
    * One side's cutoffs, a folder of them with their comparisons: `edges`, each the band starting there and how it reads.
+   * `side`: which, as its place says it ("Over", "Under"), `said` as it reads (see EDGES: "at least"); `noun`: what it
+   * cuts by ("an amount": its folder, "Over an amount", shown "At least an amount"); `by`: in its comparisons' titles
+   * ("UTXO amount": "by UTXO amount cutoff (at least)"); `name` (given its side, and as said for its label) and `who`
+   * (given it as said): a member's, by its edge (see family); `of`, `among`, `lookOf`: as a family's.
    * @param {[string, any][]} list the bands, low to high @param {[string, string][]} edges @param {boolean} over
-   * @param {{ folder: string, by: string, name: (edge: string) => string, label?: (edge: string) => string, who: (edge: string) => string, of?: Whole, among?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} o
-   * `by`: what its comparisons are by; `name`, `label` (where not its name), `who`: a member's, by its edge (see family);
-   * `of`, `among`, `lookOf`: as a family's.
+   * @param {{ side: string, said: string, noun: string, by: string, name: (side: string, edge: string) => string, who: (said: string, edge: string) => string, of?: Whole, among?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} o
    * @returns {SectionNode}
    */
   const cutoffFolder = (list, edges, over, o) => {
@@ -992,36 +1015,31 @@ export function studioPresets(client, facts) {
       if (at(key) < 0) throw new Error(`No band ${key}`);
       return /** @type {[string, any]} */ ([key, cutoffCohort(nodes, at(key), over)]);
     });
-    const naming = (/** @type {string} */ key) => ((edge) => ({ name: o.name(edge), who: o.who(edge), label: o.label?.(edge) }))(/** @type {string} */ (read.get(key)));
-    return section(o.folder, family(members, naming, { by: o.by, ...(o.of ? { of: o.of } : {}), ...(o.among ? { among: o.among } : {}), ...(o.lookOf ? { lookOf: o.lookOf } : {}) }));
+    const naming = (/** @type {string} */ key) => ((edge) => ({ name: o.name(o.side, edge), label: o.name(capitalized(o.said), edge), who: o.who(o.said, edge) }))(/** @type {string} */ (read.get(key)));
+    return section(`${o.side} ${o.noun}`, family(members, naming, { by: `${o.by} cutoff (${o.said})`, ...(o.of ? { of: o.of } : {}), ...(o.among ? { among: o.among } : {}), ...(o.lookOf ? { lookOf: o.lookOf } : {}) }), { label: `${capitalized(o.said)} ${o.noun}` });
   };
   /**
    * The bands' cutoffs, the coins (or addresses) over each edge and those under it: `edges`, low to high (a side of one
-   * band alone isn't one: it's that band's own page).
+   * band alone isn't one: it's that band's own page). `noun`, `by`, `name`, `who`, `of`: as cutoffFolder's; `counts`:
+   * how its bands count their edges, its over side said by it (see EDGES), else "over".
    * @param {any} bands @param {[string, string][]} edges
-   * @param {{ noun: string, by: string, name: (side: string, edge: string) => string, who: (side: string, edge: string) => string, of?: Whole, counted?: boolean }} o
-   * `noun`: what it cuts by, in its folders' names; `by`: in its comparisons' ("minimum age"; under, "age under each
-   * cutoff": its edge left out); `who`, and `name` for its label, are given its side as said ("over", "under");
-   * `counted`: its edges are counts (sats), each the first of its band: its over side said "at least".
+   * @param {{ noun: string, by: string, name: (side: string, edge: string) => string, who: (said: string, edge: string) => string, of?: Whole, counts?: typeof EDGES.from }} o
    * @returns {SectionNode[]}
    */
   const cutoffs = (bands, edges, o) => {
     const list = entries(bands), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
-    return /** @type {[string, boolean][]} */ ([["Over", true], ["Under", false]]).map(([side, over]) => {
-      const said = over && o.counted ? "at least" : side.toLowerCase();
-      return cutoffFolder(list, edges.filter(([key]) => (over ? list.length - at(key) : at(key)) > 1), over, { folder: `${side} ${o.noun}`, by: over ? `minimum ${o.by}` : `${o.by} under each cutoff`, name: (edge) => o.name(side, edge), label: (edge) => o.name(capitalized(said), edge), who: (edge) => o.who(said, edge), of: o.of });
-    });
+    return /** @type {[string, boolean][]} */ ([["Over", true], ["Under", false]]).map(([side, over]) => cutoffFolder(list, edges.filter(([key]) => (over ? list.length - at(key) : at(key)) > 1), over, { ...o, side, said: over ? o.counts?.over ?? "over" : "under" }));
   };
   /**
    * A holder group's coins over each profit and over each loss, from its profit bands (the deepest loss the lowest:
-   * over a profit, its band and up; over a loss, the bands under it). Each by the band of its edge's look.
+   * over a profit, its band and up; over a loss, the bands under it), each said as its side counts it (see PROFIT_SIDES).
+   * Each by the band of its edge's look.
    * @param {string} key the group's @param {any} bands
    * @returns {SectionNode[]}
    */
   const profitCutoffs = (key, bands) => {
     const list = entries(bands).reverse(), { who, within } = holderName(key);
-    // (A profit band leaves its low edge out, a loss band has it in (see their descriptions): over a profit, at least a loss.)
-    return /** @type {[string, boolean, [string, string][], string, string][]} */ ([["profit", true, PROFIT_EDGES, "in profit", "over"], ["loss", false, LOSS_EDGES, "in loss", "at least"]]).map(([what, over, edges, state, said]) => cutoffFolder(list, edges, over, { folder: `Over a ${what}`, by: `minimum ${what}`, ...within, name: (edge) => `Over ${edge} ${state}`, label: (edge) => `${capitalized(said)} ${edge} ${state}`, who: (edge) => `${who}, ${said} ${edge} ${state}`, lookOf: profitBandLook }));
+    return Object.entries(PROFIT_SIDES).map(([what, { counts, cuts, over, state }]) => cutoffFolder(list, cuts, over, { side: "Over", said: counts.over, noun: `a ${what}`, by: what, ...within, name: (side, edge) => `${side} ${edge} ${state}`, who: (said, edge) => `${who}, ${said} ${edge} ${state}`, lookOf: profitBandLook }));
   };
   /** Where the age bands can be cut. (Not 4 and 6 months: those are stored, Holders' age cutoffs.) @type {[string, string][]} */
   const AGE_EDGES = [["_1dTo1w", "1 day"], ["_1wTo1m", "1 week"], ["_1mTo2m", "1 month"], ["_2mTo3m", "2 months"], ["_3mTo4m", "3 months"], ["_5mTo6m", "5 months"], ["_9mTo1y", "9 months"], ["_1yTo18m", "1 year"], ["_18mTo2y", "18 months"], ["_2yTo3y", "2 years"], ["_3yTo4y", "3 years"], ["_4yTo5y", "4 years"], ["_5yTo6y", "5 years"], ["_6yTo7y", "6 years"], ["_7yTo8y", "7 years"], ["_8yTo10y", "8 years"], ["_10yTo12y", "10 years"], ["_12yTo15y", "12 years"], ["over15y", "15 years"]];
@@ -1029,6 +1047,27 @@ export function studioPresets(client, facts) {
   const PROFIT_EDGES = [["profit10To20Percent", "10%"], ["profit20To30Percent", "20%"], ["profit30To40Percent", "30%"], ["profit40To50Percent", "40%"], ["profit50To60Percent", "50%"], ["profit60To70Percent", "60%"], ["profit70To80Percent", "70%"], ["profit80To90Percent", "80%"], ["profit90To100Percent", "90%"], ["profit100To200Percent", "100%"], ["profit200To300Percent", "200%"], ["profit300To500Percent", "300%"], ["profit500To1000Percent", "500%"]];
   /** And for "over a loss", each by the band just short of it: those under that one are at least so far in loss. @type {[string, string][]} */
   const LOSS_EDGES = [["loss0To10Percent", "10%"], ["loss10To20Percent", "20%"], ["loss20To30Percent", "30%"], ["loss30To40Percent", "40%"], ["loss40To50Percent", "50%"], ["loss50To60Percent", "60%"], ["loss60To70Percent", "70%"], ["loss70To80Percent", "80%"]];
+  /**
+   * The profit bands' two sides, by their keys' first word: how each counts its edges (see EDGES; a profit band leaves
+   * its low edge out, a loss band has it in), where its cutoffs can be (`cuts`, from the bands' deepest loss up: over a
+   * profit, its band and up; over a loss, the bands under it), and its state as said.
+   */
+  const PROFIT_SIDES = { profit: { counts: EDGES.through, cuts: PROFIT_EDGES, over: true, state: "in profit" }, loss: { counts: EDGES.from, cuts: LOSS_EDGES, over: false, state: "in loss" } };
+  /** A profit band's side (see PROFIT_SIDES), by its key ("profit10To20Percent", "loss0To10Percent"). @param {string} band */
+  const profitSide = (band) => {
+    const side = PROFIT_SIDES[/** @type {keyof typeof PROFIT_SIDES} */ (/^[a-z]+/.exec(band)?.[0])];
+    if (!side) throw new Error(`No side for ${band}`);
+    return side;
+  };
+  /**
+   * A family's members by band: each its table's name (kept), and as said (see bounded), its label and its title's
+   * (`who`), its edges counted as `counts` says (by its key). @param {Record<string, { long: string }>} table
+   * @param {(key: string) => typeof EDGES.from} counts @param {(said: string) => string} who
+   */
+  const banded = (table, counts, who) => (/** @type {string} */ key) => {
+    const name = named(table, key), said = bounded(name, counts(key));
+    return { name, label: capitalized(said), who: who(said) };
+  };
   /** Where the amount and balance bands can be cut. @type {[string, string][]} */
   const AMOUNT_EDGES = [["_1To10Sats", "1 sat"], ["_10To100Sats", "10 sats"], ["_100To1kSats", "100 sats"], ["_1kTo10kSats", "1K sats"], ["_10kTo100kSats", "10K sats"], ["_100kTo1mSats", "100K sats"], ["_1mTo10mSats", "1M sats"], ["_10mTo100mSats", "10M sats"], ["_1To10Btc", "1 BTC"], ["_10To100Btc", "10 BTC"], ["_100To1kBtc", "100 BTC"], ["_1kTo10kBtc", "1K BTC"], ["_10kTo100kBtc", "10K BTC"], ["over100kBtc", "100K BTC"]];
 
@@ -1126,7 +1165,7 @@ export function studioPresets(client, facts) {
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", PRICE_COLORS.active, PRICE_COLORS.vaulted, PRICE_COLORS.cointime][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.value, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       // (By its short name, as MVRV and NUPL are, the long one in its title: long, it and its all-time twin read alike, cut short.)
-      ...flow(ct.reserveRisk.vocdd, "VOCDD", "Value of coin days destroyed (VOCDD)", undefined, true),
+      ...flow(ct.reserveRisk.vocdd, "VOCDD", "Value of coin days destroyed (VOCDD)", { dollars: true }),
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => series(ct.prices[key].value, label, { color: PRICE_COLORS[key] })), series(ct.prices.trueMarketMean.value, "True market mean", { color: PRICE_COLORS.trueMarketMean })]),
         ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].value, label, { color: PRICE_COLORS[key] }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
@@ -1169,15 +1208,15 @@ export function studioPresets(client, facts) {
       // (The bands young to old, the oldest with no upper edge: nothing ages out of it, its aged-out series zeros by
       // construction, so no such charts.)
       section("Age bands", family(entries(t.age.ranges).map(([key, c], i, all) => /** @type {[string, any]} */ (i === all.length - 1 ? [key, { ...c, supply: { ...c.supply, agedOut: undefined } }] : [key, c])), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `Coins ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
-      ...cutoffs(t.age.ranges, AGE_EDGES, { noun: "an age", by: "age", name: (side, edge) => `${side} ${edge} old`, who: (side, edge) => `Coins ${side} ${edge} old` }),
+      ...cutoffs(t.age.ranges, AGE_EDGES, { noun: "an age", by: "age", name: (side, edge) => `${side} ${edge} old`, who: (said, edge) => `Coins ${said} ${edge} old` }),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, [...profitCutoffs(key, bands), ...family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${bounded(named(client.PROFITABILITY_RANGE_NAMES, band), band.startsWith("profit")).toLowerCase()}` }), { by: "profit band", ...holderName(key).within, disjoint: true, lookOf: profitBandLook })]))), { icon: "percent" }),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, [...profitCutoffs(key, bands), ...family(entries(bands), banded(client.PROFITABILITY_RANGE_NAMES, (band) => profitSide(band).counts, (said) => `${holderName(key).who}, ${said}`), { by: "profit band", ...holderName(key).within, disjoint: true, lookOf: profitBandLook })]))), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
-      section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${bounded(named(client.AMOUNT_RANGE_NAMES, key))}` }), { by: "UTXO amount", disjoint: true })),
-      ...cutoffs(t.utxos.amounts, AMOUNT_EDGES, { noun: "an amount", by: "UTXO amount", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `UTXOs of ${side} ${edge}`, counted: true }),
+      section("By amount", family(entries(t.utxos.amounts), banded(client.AMOUNT_RANGE_NAMES, () => EDGES.from, (said) => `UTXOs of ${said}`), { by: "UTXO amount", disjoint: true })),
+      ...cutoffs(t.utxos.amounts, AMOUNT_EDGES, { noun: "an amount", by: "UTXO amount", name: (side, edge) => `${side} ${edge}`, who: (said, edge) => `UTXOs of ${said} ${edge}`, counts: EDGES.from }),
       section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { by: "output type", disjoint: true })),
     ], { icon: "cube" }),
     section("Addresses", [
@@ -1188,8 +1227,8 @@ export function studioPresets(client, facts) {
         ]),
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, client.SPENDABLE_TYPE_NAMES[key]?.short ?? key))),
       ]),
-      section("By balance", family(entries(t.addresses.balances), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `Addresses holding ${bounded(named(client.AMOUNT_RANGE_NAMES, key))}` }), { by: "address balance", disjoint: true, of: IN_ADDRESSES })),
-      ...cutoffs(t.addresses.balances, AMOUNT_EDGES, { noun: "a balance", by: "address balance", name: (side, edge) => `${side} ${edge}`, who: (side, edge) => `Addresses holding ${side} ${edge}`, of: IN_ADDRESSES, counted: true }),
+      section("By balance", family(entries(t.addresses.balances), banded(client.AMOUNT_RANGE_NAMES, () => EDGES.from, (said) => `Addresses holding ${said}`), { by: "address balance", disjoint: true, of: IN_ADDRESSES })),
+      ...cutoffs(t.addresses.balances, AMOUNT_EDGES, { noun: "a balance", by: "address balance", name: (side, edge) => `${side} ${edge}`, who: (said, edge) => `Addresses holding ${said} ${edge}`, of: IN_ADDRESSES, counts: EDGES.from }),
     ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
@@ -1272,7 +1311,7 @@ export function studioPresets(client, facts) {
         ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Median effective fee rate and block fullness, 7-day and 1-month averages", [
           { ...price(), hidden: true },
           { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-          { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate, weighted by virtual size", pane: 2, color: "orange", width: 2 },
+          { formula: tx.fees.effectiveFeeRate.median.name, label: "Median effective fee rate", pane: 2, color: "orange", width: 2 },
           { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
           { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
           series(blocks.fullness.avg._1m, "Block fullness, 1-month average", { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
@@ -1280,10 +1319,10 @@ export function studioPresets(client, facts) {
         // (Each transaction by the fee rate it paid itself, the zero-fee ones apart; the block space they took by the
         // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest.)
         section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : spanLabel(key)), (key) => (key === "zeroFee" ? "Zero-fee transactions" : `Transactions paying ${lowered(spanLabel(key))}`), "fee rate", { disjoint: true })),
-        section("Block space by effective fee rate", kinds(entries(tx.fees.vsizeByEffectiveFeeRate), spanLabel, (key) => `Block space (vsize) at effective fee rates ${spanLabel(key, true)}`, "effective fee rate", { what: "block space (vsize)", disjoint: true })),
+        section("Block space by effective fee rate", kinds(entries(tx.fees.vsizeByEffectiveFeeRate), spanLabel, (key) => `Block space in virtual bytes at effective fee rates ${spanLabel(key, true)}`, "effective fee rate", { what: "block space (vsize)", says: "block space in virtual bytes", disjoint: true })),
         ...spread(tx.fees.fee, "Fee", "Transaction fees", "amber"),
         ...spread(tx.vsize, "Size", "Transaction sizes in virtual bytes", "sky"),
-        ...flow(tx.vsize, "Total size", "Total transaction size (vsize)"),
+        ...flow(tx.vsize, "Total size", "Total transaction size in virtual bytes"),
         ...flow(tx.transferVolume, "Volume", "Transfer volume"),
         section("Payments", [
           ...flow(tx.payments.count, "Count", "Payments, estimated from transaction outputs"),
@@ -1303,7 +1342,7 @@ export function studioPresets(client, facts) {
         section("Versions", [
           section("Compare", [
             ...parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] }))),
-            ...parts(["Value, 1 month", "Value moved by version, 1 month"], ["Value share, 1 month", "Share of all transfer volume by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.value.sum._1m.btc, versionName(key), { color: ramp(all.length)[i] }))),
+            ...parts(["Value, 1 month", "Transfer volume by version, 1 month", "Transfer volume, 1 month"], ["Value share, 1 month", "Share of all transfer volume by version, 1 month", "Share of all transfer volume, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.value.sum._1m.btc, versionName(key), { color: ramp(all.length)[i] }))),
           ]),
           ...entries(tx.versions).map(([key, node]) => section(versionName(key), kindCharts(node, key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`))),
         ]),
@@ -1681,7 +1720,7 @@ export function studioPresets(client, facts) {
       ...flow(node.dataBytes, "Data", titled("data")),
       ...(node.dataBytes?.chainShare ? [chart("Data share", titled("data's share of block bytes"), sharesOf(node.dataBytes.chainShare, "Share"))] : []),
       // (Their transactions' whole vsize, summed over each window: not the data's, nor a typical transaction's.)
-      ...flow(node.txVsize, "Transaction vsize", titled("transactions' vsize")),
+      ...flow(node.txVsize, "Transaction vsize", titled("transactions' size in virtual bytes")),
       ...flow(node.fees, "Transaction fees", titled("transactions' fees")),
       ...(node.fees?.chainShare ? [chart("Fee share", titled("transactions' share of all fees"), sharesOf(node.fees.chainShare, "Share"))] : []),
     ];
@@ -1711,25 +1750,24 @@ export function studioPresets(client, facts) {
         ...change(a.funded.delta, "Change", `Funded ${address} count change`),
         ...flow(a.new, "New", `New ${addresses}`),
         // (Each block's distinct addresses, averaged over a window: not the distinct addresses of the window.)
-        chart("Active per block", `${capitalized(addresses)} active per block`, entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
+        chart("Active per block", `Average ${addresses} active per block`, entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
       ]),
+      // (Exposed: their public key or spending script seen on chain, P2PK and P2TR once funded, the hashed types once
+      // spent; counted and held only, no events.)
       ...ADDRESS_KINDS.filter(({ key }) => a[key]).map(({ key, name, label, them, ones, are }) => section(name, [
         chart("Count", capitalized(them(addresses)), [series(a[key].count.funded, "Funded", { color: "orange" }), series(a[key].count.total, "Total", { color: "sky" })], { log: [1] }),
         ...heldSupply(a[key].supply, them(addresses), ones),
-        ...flow(a[key].events.outputs.count, "Outputs to them", `Outputs to ${them(addresses)}`),
-        chart("Output share", `Share of outputs to ${addresses} that go to ${ones}`, sharesOf(a[key].events.outputs.share, "Share")),
-        // (Reuse at its most direct, where counted: an output paying an address its own transaction spends from.)
-        ...(a[key].direct ? flow(a[key].direct.outputCount, "Direct reuse", `Outputs paying ${type ? `a ${address}` : "an address"} the same transaction spends from`) : []),
-        ...flow(a[key].events.inputs.count, "Inputs from them", `Inputs from ${them(addresses)}`),
-        chart("Input share", `Share of inputs from ${addresses} that come from ${ones}`, sharesOf(a[key].events.inputs.share, "Share")),
-        chart("Active per block", `${capitalized(addresses)} active per block that ${are}`, windows(a[key].events.active.count.avg, "")),
-        chart("Active share", `Share of ${addresses} active per block that ${are}`, sharesOf(a[key].events.active.share, "Share"), { absolute: sharesOf(a[key].events.active.count, "Address appearances"), absoluteLog: true }),
+        ...(a[key].events ? [
+          ...flow(a[key].events.outputs.count, "Outputs to them", `Outputs to ${them(addresses)}`),
+          chart("Output share", `Share of outputs to ${addresses} that go to ${ones}`, sharesOf(a[key].events.outputs.share, "Share")),
+          // (Reuse at its most direct, where counted: an output paying an address its own transaction spends from.)
+          ...(a[key].direct ? flow(a[key].direct.outputCount, "Direct reuse", `Outputs paying ${type ? `a ${address}` : "an address"} the same transaction spends from`) : []),
+          ...flow(a[key].events.inputs.count, "Inputs from them", `Inputs from ${them(addresses)}`),
+          chart("Input share", `Share of inputs from ${addresses} that come from ${ones}`, sharesOf(a[key].events.inputs.share, "Share")),
+          chart("Active per block", `Average ${addresses} active per block that ${are}`, windows(a[key].events.active.count.avg, "")),
+          chart("Active share", `Share of ${addresses} active per block that ${are}`, sharesOf(a[key].events.active.share, "Share"), { absolute: sharesOf(a[key].events.active.count, "Address appearances"), absoluteLog: true }),
+        ] : []),
       ], { label })),
-      a.exposed && section("Exposed", [
-        // (Their public key or spending script seen on chain: P2PK and P2TR once funded, the hashed types once spent.)
-        chart("Count", `${capitalized(addresses)} with exposed keys or scripts`, [series(a.exposed.count.funded, "Funded", { color: "orange" }), series(a.exposed.count.total, "Total", { color: "sky" })], { log: [1] }),
-        ...heldSupply(a.exposed.supply, `${addresses} with exposed keys or scripts`, "ones with exposed keys or scripts"),
-      ]),
       ...(a.supply ? cohort({ supply: a.supply, capital: a.capital }, `Coins in ${addresses}`) : []),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   }
@@ -1787,7 +1825,7 @@ export function studioPresets(client, facts) {
    */
   function weighted(on, off, { who, group, onLabel, offLabel, color, urpd, weight }) {
     return [
-      chart("Supply", `${onLabel} and ${offLabel.toLowerCase()} supply: ${group}`, [series(on.supply.total.btc, onLabel, { color: color ?? "orange", type: "area" }), series(btc(off.supply), offLabel, { color: "gray", type: "area" }), series(on.supply.total.usd, `${onLabel}, value`, { color: "green", type: "area", pane: 2 }), series(usd(off.supply), `${offLabel}, value`, { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
+      chart("Supply", `${onLabel} and ${lowered(offLabel)} supply: ${group}`, [series(on.supply.total.btc, onLabel, { color: color ?? "orange", type: "area" }), series(btc(off.supply), offLabel, { color: "gray", type: "area" }), series(on.supply.total.usd, `${onLabel}, value`, { color: "green", type: "area", pane: 2 }), series(usd(off.supply), `${offLabel}, value`, { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
       chart("Share in loss", `Share of supply in loss: ${who}`, [series(on.supply.inLoss.share, `${onLabel}, share in loss`, { color: "red" })], { absolute: [series(shareAmount(on.supply.inLoss.share, on.supply.total.btc, "btc"), `${onLabel}, in loss`, { color: "red" })] }),
       chart("Realized cap", `Realized cap: ${who}`, [series(on.capital.realizedCap, "Realized cap", { color: color ?? "orange" })], { log: [1] }),
       section("Cost basis", costCharts(on, who, urpd, color, weight)),
@@ -1800,7 +1838,7 @@ export function studioPresets(client, facts) {
    */
   function weightedSets(cohorts, on, off, onLabel, offLabel, weight) {
     const naming = (/** @type {string} */ key) => ({ name: holderName(key).name, who: holderName(key).of(holderName(on).name) });
-    return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by: `${by}, ${holderName(on).name.toLowerCase()}`, urpd: (key) => URPD_HOLDERS[key], weight, profile: by === "holder group", charts: (key, c, who, color) => weighted(c, cohorts[key][off], { who, group: holderName(key).who, onLabel, offLabel, color, urpd: URPD_HOLDERS[key], weight }) }));
+    return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by, among: lowered(holderName(on).name), urpd: (key) => URPD_HOLDERS[key], weight, profile: by === "holder group", charts: (key, c, who, color) => weighted(c, cohorts[key][off], { who, group: holderName(key).who, onLabel, offLabel, color, urpd: URPD_HOLDERS[key], weight }) }));
   }
   /** Cointime by age band: coin days consumed, wakefulness, awake and dormant supply. @param {any} ranges */
   function cointimeBands(ranges) {
@@ -1880,19 +1918,20 @@ export function studioPresets(client, facts) {
   let icon = "";
   // (By index, each place made once: thousands of presets, an engine without a JIT stepping an iterator for each. Its
   // place as shown (`shown`) kept where a step's labeled.)
-  const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, /** @type {string[]} */ shown, relabeled = false, workings = false) => {
+  const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, /** @type {string[] | undefined} */ shown, workings = false) => {
     for (let k = 0; k < items.length; k++) {
-      const item = items[k], place = path.concat(item.name), said = shown.concat(item.label ?? item.name), relabels = relabeled || item.label !== undefined;
+      // (Its place as shown, made only from its first label down: above that, its place.)
+      const item = items[k], place = path.concat(item.name), said = shown || item.label !== undefined ? (shown ?? path).concat(item.label ?? item.name) : undefined;
       if ("items" in item) {
         if (!path.length) icon = item.icon ?? "";
-        walk(item.items, place, said, relabels, workings || Boolean(item.workings));
+        walk(item.items, place, said, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: place, ...(relabels ? { l: said } : {}), t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
+      presets.push({ p: place, ...(said ? { l: said } : {}), t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
       icon = "";
     }
   };
-  walk(tree, [], []);
+  walk(tree, [], undefined);
   return presets;
 }
 

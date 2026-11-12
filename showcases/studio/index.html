@@ -27364,8 +27364,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A place's steps as shown (see placeShown); their names till the presets are read. @param {string[]} path */
       function placeNames(path) {
-        let node = presetTree() ?? undefined;
-        return path.map((name) => (node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name)))?.name ?? name);
+        return path.map((name, k) => presetNodeAt(path.slice(0, k + 1))?.name ?? name);
       }
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
@@ -29117,7 +29116,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
           await aFrame();
           presets = list;
-          presetWords = list.map((preset) => `${preset.t} ${placeShown(preset).join(" ")}`.toLowerCase());
+          presetWords = list.map((preset) => [preset.t, ...preset.p, ...(preset.l ?? [])].join(" ").toLowerCase());
           // (Their words each once, for a slip in a search (see slipsOf), and their charts' ids (see presetById), gathered
           // meanwhile: no keystroke, no way back to the grid, waits for them.)
           whenIdle(vocabNow);
@@ -29895,15 +29894,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
             const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
             if (words.length) return presetsMatching(words, 300, under).map((i) => presetRow(i, true));
-            const rows = [], counts = new Map();
-            list.forEach((preset, i) => {
-              if (!under(i)) return;
-              if (preset.p.length === path.length + 1) return void rows.push(presetRow(i));
-              const name = preset.p[path.length];
-              if (!counts.has(name)) rows.push({ kind: "row", key: `group:${name}`, icon: sectionMark(presetNodeAt([...path, name])), label: name, verb: "Open", page: () => presetsPage([...path, name]) });
-              counts.set(name, (counts.get(name) ?? 0) + 1);
-            });
-            for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
+            // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
+            const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.count, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
             // screen of them.)
             return [viewRow({ path }), ...(path.length ? [] : [{ kind: "row", key: "group:recommended", icon: ICONS.folder, label: "Recommended", aside: plural(recommendedPresets().length, "chart"), verb: "Open", page: recommendedPage }]), ...rows];

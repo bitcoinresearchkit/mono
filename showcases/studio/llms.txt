@@ -132,19 +132,19 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/
 - UTXOs (1207): https://bitview.space/studio/presets/utxos/
   - By amount (337): https://bitview.space/studio/presets/utxos/by-amount/
-  - Over an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
+  - At least an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
   - Under an amount (310): https://bitview.space/studio/presets/utxos/under-an-amount/
   - By type (249): https://bitview.space/studio/presets/utxos/by-type/
 - Addresses (1138): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
   - Reused (13): https://bitview.space/studio/presets/addresses/reused/
   - Spent from more than once (11): https://bitview.space/studio/presets/addresses/respent/
-  - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
+  - With exposed keys or scripts (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/
   - By balance (324): https://bitview.space/studio/presets/addresses/by-balance/
-  - Over a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
+  - At least a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
   - Under a balance (296): https://bitview.space/studio/presets/addresses/under-a-balance/
 - Mining (988): https://bitview.space/studio/presets/mining/
   - Hashing (6): https://bitview.space/studio/presets/mining/hashing/
