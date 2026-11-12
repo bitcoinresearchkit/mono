@@ -150,10 +150,18 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Front end
 
+- Prod logs (`_notes/prod-logs-1112/report.md`): `docs/README.md:54` still tells readers to `curl https://bitview.space/api/mempool/price`, removed in the changelog (13,962 404s in a week, one poller or more); the replacement is `/api/oracle/price`.
+- Prod logs (`_notes/prod-logs-1112/report.md`): pool logos our pages request that don't exist in `showcases/assets/pools/`: `carbonnegative.svg` 175, `solock.svg` 46, `futurebitapollosolo.svg` 5 (404s from `showcases/index.html:2682` and `calendar/index.html:953`); 60 files for about 170 pools.
+- Prod logs (`_notes/prod-logs-1112/report.md`): `/apple-touch-icon.png` and `-precomposed.png` 404 at the root, 132 in a week; no static head links the icon (`showcases/assets/launch/launch.js:40` adds it by script).
 - decide whether the minimum-window interval rule should cover every span function (diff, sma, ...): count the existing presets whose intervals it would restrict and check whether any of them are actually wrong today
 
 ## Back end
 
+- Prod logs 11-06 to 11-12 (`_notes/prod-logs-1112/report.md`): `/api/urpd/{cohort}/{date|height}` is 81% of all handler time on 5.1% of requests (333,492; p50 58 to 67 ms, p95 197 ms with `agg`, 543 to 686 ms without). Studio's heatmap asks a day per column, and scripts sweep all 22 age cohorts per date; days older than 30 are the slow part (p50 102 ms). Measure where the time goes before touching it.
+- Prod logs (`_notes/prod-logs-1112/report.md`): 181,774 requests in a week (2.8% of all, 404 every one) go to `/address/…`, `/tx/…` and `/block/…` at the site root, 116k distinct addresses, never a 200; the explorer lives under `/explorer/…`. 308 them there in the server batch, beside `/charts`.
+- Prod logs (`_notes/prod-logs-1112/report.md`): one 503 in 6.46M requests, `/api/address/…` on m4-2, 11-08 08:18:09, mid block update; `StateUpdating` at `crates/bitview_query/src/api/addr/stats.rs:20,23-24` is the likely source (a guess). rust-rules has block updates always answer.
+- Prod logs (`_notes/prod-logs-1112/report.md`): third parties still hit removed or renamed API: 105,000 requests to `/api/vecs/*`, `/api/mempool/price`, `/api/metric/*` and `/api/series/cost-basis/*`, 161,325 (+17,300 bulk) to old series ids, 86,551 with index `day`/`1d`/`date`, 22,731 with `from=`. The 404 for a removed route doesn't name its replacement, and a mistyped index doesn't suggest `day1`; ids `puell_multiple`, `nvt`, `rhodl_ratio` are polled every minute (about 25k each with bulk), a product call for Master.
+- Prod logs (`_notes/prod-logs-1112/report.md`): 186 requests to `bitview.space/mcp` (129 answered 405, 57 404) by clients that should use `mcp.bitview.space`; decide whether `/mcp` answers or points there.
 - Silent payments (BIP352), its own plugin `bitview_plugin_silent_payments` (2026-11-08): BlindBit oracle v1's
   HTTP API under `/blindbit/mainnet/` (the public oracle's paths; spdk/Dana, Bull Bitcoin, blindbitd), a
   600-sat dust floor everywhere (`DUST_FLOOR`), off the series tree. Stored: each kept tx's tweak (x + parity
