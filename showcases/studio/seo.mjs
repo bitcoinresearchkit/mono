@@ -48,10 +48,13 @@ const TITLE_RULES = [
   ["a month that isn't an age", (text) => /\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
   ["all addresses", (text) => /\ball addresses\b/i.test(text)],
 ];
-/** Every name shown, each with whether it's a title and its place: titles, legends, the tree's labels. @type {[string, boolean, string[]][]} */
+/** Every step of every place, once, by its key. @type {Map<string, string[]>} */
+const steps = new Map();
+for (const preset of presets) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
+/** Every name shown, each with whether it's a title and its place: titles, legends, the tree's steps as shown. @type {[string, boolean, string[]][]} */
 const shown = [
   ...presets.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
-  ...Object.entries(labels).map(([path, label]) => [label, false, JSON.parse(path)]),
+  ...[...steps.values()].map((path) => [shownStep(labels, path), false, path]),
 ];
 const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
 if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);

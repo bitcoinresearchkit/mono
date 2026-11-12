@@ -145,13 +145,13 @@ export const HOLDERS = Object.freeze({
 /**
  * A holder group's names, all from its phrase (see HOLDERS): `who` in titles ("Short-term holders", "Coins under 4
  * months old"); `shown` in the tree and legends (its qualifier where it follows its noun: "Under 4 months old"); `brief`
- * in a list that says what they are (holders by their term, "Short-term"; coins as shown, "All coins"); `coins`, its coins ("short-term holders' coins"; all coins narrowed,
- * "coins"); `of(kind)`, its coins of a kind ("short-term holders' awake coins"); `place`, its places' name. A key it
- * doesn't know: by its key.
+ * in a list that says what they are (holders by their term, "Short-term"; coins as shown, "All coins"); `coins`, its
+ * coins ("short-term holders' coins"; all coins narrowed, "coins"); `of(kind)`, its coins of a kind ("short-term
+ * holders' awake coins"); `place`, its places' name. A key it doesn't know: by its key, its place the key itself.
  * @param {string} key
  */
 export function holderName(key) {
-  const h = HOLDERS[key] ?? { noun: "coins", after: key };
+  const h = HOLDERS[key] ?? { noun: "coins", after: key, place: key };
   const phrase = [h.before, h.noun, h.after].filter(Boolean).join(" "), who = capitalized(phrase);
   const shown = h.after && !h.before ? capitalized(h.after) : who;
   const of = (/** @type {string} */ kind) => (h.noun === "holders" ? `${phrase}' ${kind}${kind ? " " : ""}coins` : [key === "all" ? "" : h.before, kind, "coins", h.after].filter(Boolean).join(" "));

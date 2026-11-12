@@ -219,6 +219,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const shownOf = (name) => (typeof name === "string" ? name : name.shown);
   /** A name with words after it, its place's and as shown ("Supply" "Supply, all time"). @param {Name} name @param {string} words @param {string} [said] */
   const extended = (name, words, said = words) => shownAs(placeOf(name) + words, shownOf(name) + said);
+  /** A window's own name: its place as its key spells it ("1 month"), shown as said ("30 days"). @param {string} key */
+  const windowNamed = (key) => shownAs(spanLabel(key), windowSaid(key));
   /** A name over one window, its place keeping it as its key spells it (", 1 month"), shown as said (", 30 days"). @param {Name} name @param {string} key */
   const windowed = (name, key) => extended(name, `, ${spanLabel(key)}`, `, ${windowSaid(key)}`);
 
@@ -883,13 +885,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const named = (table, key) => sentence(table[key]?.long ?? key);
   /**
    * A band family's member, as a family's `naming` reads it: its place, the client's name for it (`table`'s, less what
-   * its folder already says, `trim`: an age band's " old"); shown, its band as its dimension says it, and in titles
+   * its folder already says, `trim`, if any: an age band's " old"); shown, its band as its dimension says it, and in titles
    * whose (see dimensionBand: "Coins 1 day to under 1 week old"). One it can't read, reported and left out (see reported).
    * @param {Record<string, { long: string }>} table @param {Bands} d @param {RegExp} [trim] @returns {(key: string) => Naming | undefined}
    */
-  const bandMember = (table, d, trim = /$^/) => (key) => {
+  const bandMember = (table, d, trim = undefined) => (key) => {
     const read = reported(key, dimensionBand(key, d));
-    return read && { name: shownAs(named(table, key).replace(trim, ""), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said), said: read.said };
+    return read && { name: shownAs(trim ? named(table, key).replace(trim, "") : named(table, key), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said), said: read.said };
   };
   /** An age band's naming: its place without the " old" its folder says. */
   const ageBand = bandMember(client.AGE_RANGE_NAMES, AGES, / old$/);
@@ -910,12 +912,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const cutoffs = pick(["under4m", "over4m", "under6m", "over6m"]);
     return [...build(pick(["all", "sth", "lth"]), "by holder group"), ...(cutoffs.length ? [section("Age cutoffs", build(cutoffs, "by age cutoff"))] : [])];
   };
-  /** A holder group's name, its place's and as shown (see holderName). @param {string} key @returns {Name} */
-  const holderNamed = (key) => ((h) => shownAs(h.place, h.shown))(holderName(key));
-  /** A holder group's naming, as a family's `naming` reads it. @param {string} key @returns {Naming} */
-  const holder = (key) => ({ name: holderNamed(key), who: holderName(key).who });
+  /** A holder group's naming, as a family's `naming` reads it: its name, its place's and as shown (see holderName). @param {string} key @returns {Naming} */
+  const holder = (key) => {
+    const h = holderName(key);
+    return { name: shownAs(h.place, h.shown), who: h.who };
+  };
   /** A holder group's section. @param {string} key @param {(ChartNode | SectionNode | null | undefined | false)[]} items @param {{ icon?: string }} [options] */
-  const holderSection = (key, items, options = {}) => section(holderNamed(key), items, options);
+  const holderSection = (key, items, options = {}) => section(holder(key).name, items, options);
 
   // ── Cutoffs: everything over or under an age, an amount, a balance ──────────
 
@@ -1046,9 +1049,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const profits = { noun: "profit level", article: "a profit", family: EDGES.through, end: "low", after: " in profit", who: (said) => capitalized(`${g.coins} ${said}`), inWhole: (said) => capitalized(`coins ${said}`), lookOf: profitBandLook, ...mine };
     return { bands: { ...profits, after: "" }, profits, losses: { ...profits, noun: "loss level", article: "a loss", family: EDGES.from, end: "high", after: " in loss", against: true } };
   };
-  /** A holder group's profit cutoffs, then its loss cutoffs (see profitsOf). @param {string} key @param {any} bands @returns {SectionNode[]} */
-  const profitCutoffs = (key, bands) => {
-    const list = entries(bands).reverse(), { profits, losses } = profitsOf(key);
+  /** A holder group's profit cutoffs, then its loss cutoffs (see profitsOf). @param {any} bands @param {ReturnType<typeof profitsOf>} sides @returns {SectionNode[]} */
+  const profitCutoffs = (bands, { profits, losses }) => {
+    const list = entries(bands).reverse();
     return [...cutoffs(list, PROFIT_EDGES, profits, [true]), ...cutoffs(list, LOSS_EDGES, losses, [true])];
   };
   /**
@@ -1073,7 +1076,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
     return section(kind, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
-      ...list.map(([key, value], i) => chart(shownAs(spanLabel(key), windowSaid(key)), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
+      ...list.map(([key, value], i) => chart(windowNamed(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
         value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
@@ -1099,8 +1102,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
         // (Each its own, as in the two above: up to a year as a percent, over years as a growth multiple, on a log scale.)
         ...windowsOf(m.returns).map(([key, value]) => (/y$/.test(key) && key !== "_1y"
-          ? chart(shownAs(spanLabel(key), windowSaid(key)), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
-          : chart(shownAs(spanLabel(key), windowSaid(key)), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
+          ? chart(windowNamed(key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
+          : chart(windowNamed(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
@@ -1206,7 +1209,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { each: "by halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { each: "by vintage", disjoint: true, inTime: true })),
     ], { icon: "hourglass" }),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => ((d) => holderSection(key, [...profitCutoffs(key, bands), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...(d.within ? { within: d.within } : {}), ...(d.of ? { of: d.of } : {}), lookOf: profitBandLook })]))(profitsOf(key).bands))), { icon: "percent" }),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => {
+      const sides = profitsOf(key), d = sides.bands;
+      return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...(d.within ? { within: d.within } : {}), ...(d.of ? { of: d.of } : {}), lookOf: profitBandLook })]);
+    })), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), bandMember(client.AMOUNT_RANGE_NAMES, UTXO_AMOUNTS), { each: "by UTXO amount", disjoint: true })),
@@ -1743,7 +1749,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
      * and one phrase, an adjective (`reused`) or what they have (`having`, "more than one spent output"); as a set of
      * these, `set` ("reused P2PKH addresses", "addresses with more than one spent output"), its section shown by it.
      */
-    const kinds = [
+    const addressKinds = [
       { key: "reused", name: "Reused", adjective: "reused" },
       { key: "respent", name: "Respent", having: "more than one spent output" },
       { key: "exposed", name: "Exposed", having: "exposed keys or scripts" },
@@ -1759,7 +1765,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
       ]),
       // (Each kind its count, its coins and their share of these addresses'; what they did, where it's counted.)
-      ...kinds.map((kind) => ((k, who) => section(shownAs(kind.name, who), [
+      ...addressKinds.map((kind) => ((k, who) => section(shownAs(kind.name, who), [
         // (Exposed: their public key or spending script seen on chain, P2PK and P2TR once funded, the hashed types once spent.)
         chart("Count", numberOf(kind.set), [series(k.count.funded, "Funded", { color: "orange" }), series(k.count.total, "Total", { color: "sky" })], { log: [1] }),
         measure("Supply", who, amount(k.supply, "Supply")),
@@ -1842,7 +1848,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
    */
   function weightedSets(cohorts, on, off, onLabel, offLabel, weight) {
     // (Each group's weighted coins, its kind before its coins: "Short-term holders' awake coins".)
-    const naming = (/** @type {string} */ key) => ({ name: holderNamed(key), who: capitalized(holderName(key).of(on)) });
+    const naming = (/** @type {string} */ key) => ({ name: holder(key).name, who: capitalized(holderName(key).of(on)) });
     return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, each) => family(members, naming, { each, within: holderName(on).who, urpd: (key) => holderName(key).urpd, weight, profile: each === "by holder group", charts: (key, c, who, color) => weighted(c, cohorts[key][off], who, onLabel, offLabel, color, holderName(key).urpd, weight) }));
   }
   /** Cointime by age band: coin days consumed, wakefulness, awake and dormant supply. @param {any} ranges */

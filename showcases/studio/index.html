@@ -29031,7 +29031,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       async function presetsKept() {
         const presetsUrl = new URL("/studio/presets.js", location.origin).href, clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
-        // (The chain's facts from this server; without them, every preset, those of what never happened too.)
+        // (What keys them, read together: the chain's facts from this server (without them, every preset, those of what
+        // never happened too), and what made them.)
+        const sources = typeof caches === "undefined" ? null : Promise.all([new URL("/studio/presets.hash", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
+        sources?.catch(() => {});
         const facts = await chainFacts(location.origin).catch(() => undefined);
         const here = async () => (await import("/studio/presets.js")).studioPresets(client, facts);
         /** Made in a worker, as JSON (the facts sent it: a Set and a Map, as they are). @returns {Promise<string>} */
@@ -29053,8 +29056,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Nothing to keep them in: made in the worker, but here while the page waits for them (an address or a link
           // being read, see presetsWaited): ~150 ms sooner on a phone in Lockdown Mode, the client here already read.)
           if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse(await made());
-          const store = await caches.open("bitview-studio:presets");
-          const texts = await Promise.all([new URL("/studio/presets.hash", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
+          const [store, texts] = await Promise.all([caches.open("bitview-studio:presets"), /** @type {Promise<string[]>} */ (sources)]);
           const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode([...texts, factsKey(facts)].join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
           const key = new URL(`presets-${hash}.json`, location.origin).href, kept = await store.match(key);
           if (kept) {
@@ -29077,7 +29079,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * sent it (none, null). Posts them as JSON. @param {string} presetsUrl @param {string} clientUrl @param {string} origin
        */
       function presetsMaker(presetsUrl, clientUrl, origin) {
-        // (Its modules read while the facts come.)
+        // (Its modules read as it starts, its facts' message waited for beside them.)
         const modules = Promise.all([import(presetsUrl), import(clientUrl)]);
         modules.catch(() => {});
         onmessage = async ({ data: facts }) => {
