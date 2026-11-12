@@ -43,9 +43,30 @@ export class Timeline {
     this.kept = Infinity;
   }
 
-  /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
+  /** The first point whose center is in view, allowing only floating-point noise at the boundary. */
+  get firstVisible() {
+    return Math.ceil(this.from - NOISE);
+  }
+
+  /** The last point whose center is in view, allowing only floating-point noise at the boundary. A value beyond the edge never becomes the resting readout. */
+  get lastVisible() {
+    return Math.floor(this.to + NOISE);
+  }
+
+  /**
+   * The last finite reading in inclusive index bounds; -1, none. Defaults to point centers in view.
+   * A caller retaining older readings supplies `from` explicitly and labels their actual date.
+   * @param {ArrayLike<number>} values @param {number} [from] @param {number} [to]
+   */
+  lastIn(values, from = this.firstVisible, to = this.lastVisible) {
+    const first = Math.max(0, Math.ceil(from));
+    for (let i = Math.min(Math.floor(to), values.length - 1); i >= first; i--) if (Number.isFinite(values[i])) return i;
+    return -1;
+  }
+
+  /** The last point a crosshair can be on: the last one with data, or past it, the last one whose center is in view. */
   get lastSlot() {
-    return Math.max(this.length - 1, Math.floor(this.to));
+    return Math.max(this.length - 1, this.lastVisible);
   }
 
   /**
@@ -102,10 +123,15 @@ export class Timeline {
     this.limit();
   }
 
-  /** @param {number} from @param {number} to */
-  setRange(from, to) {
+  /** @param {number} from @param {number} to @param {{ exact?: boolean }} [options] */
+  setRange(from, to, options) {
+    const exact = options?.exact === true;
+    // A categorical window containing one sample still needs width, without admitting either neighbor.
+    if (exact && this.length && from === to) (from -= 0.5), (to += 0.5);
     this.from = from;
     this.to = to;
+    // Explicit windows (including shared dates) keep their endpoints, even past the interactive zoom bound.
+    if (exact && this.length && to > from && to - from < this.width / this.maxSpacing) this.kept = to - from;
     this.rest = 0;
     this.limit();
   }
@@ -209,5 +235,10 @@ export class Timeline {
     // (Its last point at least its share of the view into it; its first at most that from the view's end.)
     const by = this.held(this.from, this.to);
     (this.from += by), (this.to += by);
+    // Layout and pan arithmetic can leave an exact endpoint a fraction past its bar. Every reader sees the same
+    // whole endpoint (tags, legends and date ranges), rather than rounding that noise onto the following day.
+    // (Never to nothing: a span narrower than that noise keeps its own endpoints.)
+    const snap = (/** @type {number} */ x) => (Math.abs(x - Math.round(x)) < NOISE ? Math.round(x) : x), from = snap(this.from), to = snap(this.to);
+    if (to > from) (this.from = from), (this.to = to);
   }
 }
