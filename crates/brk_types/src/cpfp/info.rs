@@ -20,7 +20,8 @@ pub struct CpfpInfo {
     /// rate Core/mempool.space would surface for this tx.
     pub effective_fee_per_vsize: FeeRate,
     /// BIP-141 sigop cost for the seed tx (witness sigops count as 1,
-    /// legacy and P2SH-redeem sigops count as 4).
+    /// legacy and P2SH-redeem sigops count as 4), counted from its body:
+    /// at most a block's sigop budget.
     pub sigops: SigOps,
     /// Transaction fee (sats).
     pub fee: Sats,

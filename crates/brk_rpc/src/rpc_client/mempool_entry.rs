@@ -29,12 +29,16 @@ impl TryFrom<WireEntry> for MempoolEntry {
     type Error = &'static str;
 
     fn try_from(wire: WireEntry) -> Result<Self, Self::Error> {
+        let vsize = wire
+            .vsize_adjusted
+            .or(wire.vsize)
+            .ok_or("a mempool entry without a virtual size")?;
+        if !vsize.bounds_entry(wire.weight) {
+            return Err("a mempool entry empty or larger than a block");
+        }
         Ok(Self {
             wtxid: wire.wtxid,
-            vsize: wire
-                .vsize_adjusted
-                .or(wire.vsize)
-                .ok_or("a mempool entry without a virtual size")?,
+            vsize,
             weight: wire.weight,
             time: wire.time,
             fees: wire.fees,

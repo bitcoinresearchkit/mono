@@ -27,14 +27,15 @@ impl TxRecord {
     }
 
     /// Its sigop cost as Core's policy sees it: counted from the body once every prevout is
-    /// resolved; before, the count misses their P2SH and witness parts, so the most Core's vsize
+    /// resolved, within a block's budget (the body comes from the node, and nothing valid counts
+    /// more); before, the count misses their P2SH and witness parts, so the most Core's vsize
     /// allows stands in (a block's sigop budget never undercounts; the policy weight it gives is
-    /// within 3 WU of the true one).
+    /// within 3 WU of the true one), the vsize bounded where the node's entry is read.
     pub fn policy_sigops(&self) -> SigOps {
-        if !self.tx.is_resolved() {
-            SigOps::bound(self.entry.vsize)
+        if self.tx.is_resolved() {
+            self.tx.total_sigop_cost.min(SigOps::MAX_BLOCK)
         } else {
-            self.tx.total_sigop_cost
+            SigOps::bound(self.entry.vsize)
         }
     }
 

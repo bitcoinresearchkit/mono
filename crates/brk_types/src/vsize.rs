@@ -53,6 +53,14 @@ impl VSize {
     pub fn saturating_sub(self, rhs: Self) -> Self {
         Self(self.0.saturating_sub(rhs.0))
     }
+
+    /// Whether a mempool entry's weight and this, its sigop-adjusted vsize, as the node or a saved
+    /// pool gives them, are something and no more than a block: the policy weight and the CPFP
+    /// linearization rely on both.
+    pub fn bounds_entry(self, weight: Weight) -> bool {
+        (Weight::new(1)..=Weight::MAX_BLOCK).contains(&weight)
+            && (Self::new(1)..=Self::MAX_BLOCK).contains(&self)
+    }
 }
 
 impl From<u32> for VSize {

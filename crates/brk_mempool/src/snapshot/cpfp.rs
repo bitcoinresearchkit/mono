@@ -8,7 +8,7 @@
 
 use brk_cpfp::Cluster;
 use brk_error::{Error, Result};
-use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, SigOps, Txid};
+use brk_types::{CpfpClusterChunk, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, Txid};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{SnapTx, Snapshot, TxIndex, cluster};
@@ -37,17 +37,17 @@ impl ReadOnlyState {
         if !view.settles_nothing() {
             let pending = |member: TxIndex| view.pending(&snapshot.txs[member.as_usize()].txid);
             if !cluster::walk(&snapshot.txs, index).into_iter().all(pending) {
-                return Ok(Some(snapshot.cpfp_info_within(index, tx.total_sigop_cost, pending)));
+                return Ok(Some(snapshot.cpfp_info_within(index, pending)));
             }
         }
-        Ok(Some(snapshot.cpfp_info_at(index, tx.total_sigop_cost)))
+        Ok(Some(snapshot.cpfp_info_at(index)))
     }
 }
 
 impl Snapshot {
     /// From this snapshot's linearization of the seed's component: a request maps its chunks
     /// onto the members' order, never linearizing again.
-    pub(crate) fn cpfp_info_at(&self, seed_idx: TxIndex, sigops: SigOps) -> CpfpInfo {
+    pub(crate) fn cpfp_info_at(&self, seed_idx: TxIndex) -> CpfpInfo {
         let seed = &self.txs[seed_idx.as_usize()];
         let mut graph = Cluster::default();
         let members = cluster::load(&self.txs, &cluster::walk(&self.txs, seed_idx), &mut graph);
@@ -79,7 +79,7 @@ impl Snapshot {
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children, |_| true),
             seed.fee,
             seed.weight,
-            sigops,
+            seed.sigops,
             graph.project_from(
                 CpfpClusterTxIndex::from(seed_local),
                 |local| {
@@ -96,7 +96,6 @@ impl Snapshot {
     pub(crate) fn cpfp_info_within(
         &self,
         seed_idx: TxIndex,
-        sigops: SigOps,
         keep: impl Fn(TxIndex) -> bool,
     ) -> CpfpInfo {
         let seed = &self.txs[seed_idx.as_usize()];
@@ -124,7 +123,7 @@ impl Snapshot {
             Self::collect_cpfp_entries(&self.txs, seed_idx, |t| &t.children, &keep),
             seed.fee,
             seed.weight,
-            sigops,
+            seed.sigops,
             graph.project_from(
                 CpfpClusterTxIndex::from(seed_local as u32),
                 |local| {

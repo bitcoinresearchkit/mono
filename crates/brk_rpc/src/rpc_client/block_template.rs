@@ -20,10 +20,8 @@ struct AuditRow {
 }
 
 impl AuditRow {
-    /// Decoded as corepc-types' model was: the body, both ids, and each dependency and the
-    /// sigops count within `u32`.
+    /// Decoded as corepc-types' model was: the body, both ids, and each dependency within `u32`.
     fn decode(raw: &BlockTemplateTransaction) -> Option<Self> {
-        u32::try_from(raw.sigops).ok()?;
         Some(Self {
             data: encode::deserialize_hex::<Transaction>(&raw.data).ok()?,
             txid: raw.txid.parse().ok()?,
@@ -44,27 +42,34 @@ impl ClientInner {
     /// the transactions they don't already hold.
     pub fn build_gbt(transactions: Vec<BlockTemplateTransaction>) -> Result<Vec<BlockTemplateTx>> {
         let invalid = |reason| Error::Parse(format!("invalid block template: {reason}"));
-        // Bound the decoded work before trusting a reported weight. Serialized
-        // transaction bytes (half the hex length) never exceed weight.
-        let max_weight = BitcoinWeight::MAX_BLOCK.to_wu();
-        let mut total_weight = 0u64;
-        for tx in &transactions {
-            if tx.weight == 0 || tx.data.len() as u64 > tx.weight.saturating_mul(2) {
-                return Err(invalid("transaction length/weight"));
-            }
-            total_weight = total_weight
-                .checked_add(tx.weight)
-                .filter(|weight| *weight <= max_weight)
-                .ok_or_else(|| invalid("aggregate weight"))?;
-        }
         // Debug builds re-derive Core's invariants: a template failing them is set aside, as one
-        // that doesn't decode is in any build.
+        // that doesn't decode or exceeds a block is in any build. From the response as received,
+        // before the bounds: they read its dependency lists, which the converted rows don't keep.
         if cfg!(debug_assertions) {
             Self::audit_gbt(&transactions).map_err(invalid)?;
         }
-
+        // Bound the work callers decode before trusting a reported weight: serialized transaction
+        // bytes (half the hex length) never exceed weight. Sigops are bounded as weights are, by
+        // a block's: the policy weight is made of both.
+        let max_weight = BitcoinWeight::MAX_BLOCK.to_wu();
+        let max_sigops = u64::from(SigOps::MAX_BLOCK);
+        let mut total_weight = 0u64;
+        let mut total_sigops = 0u64;
         let mut result: Vec<BlockTemplateTx> = Vec::with_capacity(transactions.len());
         for raw in transactions {
+            if raw.weight == 0 || raw.data.len() as u64 > raw.weight.saturating_mul(2) {
+                return Err(invalid("transaction length/weight"));
+            }
+            total_weight = total_weight
+                .checked_add(raw.weight)
+                .filter(|weight| *weight <= max_weight)
+                .ok_or_else(|| invalid("aggregate weight"))?;
+            let sigops = u64::try_from(raw.sigops).map_err(|_| invalid("negative sigops"))?;
+            total_sigops = total_sigops
+                .checked_add(sigops)
+                .filter(|total| *total <= max_sigops)
+                .ok_or_else(|| invalid("aggregate sigops"))?;
+            let fee = u64::try_from(raw.fee).map_err(|_| invalid("negative fee"))?;
             let txid = raw
                 .txid
                 .parse::<BitcoinTxid>()
@@ -73,8 +78,6 @@ impl ClientInner {
                 .hash
                 .parse::<Wtxid>()
                 .map_err(|e| Error::Parse(format!("gbt wtxid: {e}")))?;
-            let fee = u64::try_from(raw.fee).map_err(|_| invalid("negative fee"))?;
-            let sigops = u64::try_from(raw.sigops).map_err(|_| invalid("negative sigops"))?;
             result.push(BlockTemplateTx {
                 txid: Txid::from(txid),
                 wtxid,

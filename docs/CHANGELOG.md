@@ -64,6 +64,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   (`ByType<OutputTypeSeries, TypeSeries>`). Paths and series ids are as they were
 - The indexer's data is version 47: a server indexes again from block 0 on its first start, and every dataset is
   computed again (about 85 minutes on the benchmark Mac mini, the indexer about 60 of them)
+- `brk_rpc`: `Client::fetch_mempool_state` takes the previous modified fees and returns the `MempoolObservation`, with
+  the modified fees it reads (it was `fetch_mempool_state_ranked`; the form that read them only to drop them is gone)
 
 ### New Features
 

@@ -45,7 +45,7 @@ pub fn fetch(
     failing: &RapidHashMap<Txid, u32>,
     previous_modified: &[(Txid, i64)],
 ) -> Result<Fetched> {
-    let MempoolObservation { state, block_template, modified_fees } = client.fetch_mempool_state_ranked(previous_modified)?;
+    let MempoolObservation { state, block_template, modified_fees } = client.fetch_mempool_state(previous_modified)?;
     let mut template = block_template.is_some();
     let mut block_template = block_template.unwrap_or_default();
 

@@ -1137,7 +1137,7 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
     Attributes:
         bestDescendant: Best (highest fee rate) descendant, if any.
         effectiveFeePerVsize: Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
-        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
+        sigops: BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4), counted from its body: at most a block's sigop budget.
         fee: Transaction fee (sats).
         vsize: Virtual size of the seed tx (vbytes).
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.

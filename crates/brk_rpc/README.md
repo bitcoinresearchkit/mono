@@ -15,7 +15,7 @@ let client = ConnectArgs::default().client()?;
 let height = client.get_last_height()?;
 let tip = client.get_best_block_hash()?;
 let header = client.get_block_header_info(&tip)?;
-let (state, template) = client.fetch_mempool_state()?;
+let observation = client.fetch_mempool_state(&[])?;
 ```
 
 ## Failures and retries

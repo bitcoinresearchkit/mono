@@ -37,6 +37,8 @@ pub struct SigOps(u64);
 
 impl SigOps {
     pub const ZERO: Self = Self(0);
+    /// A block's sigop budget: no valid transaction counts more.
+    pub const MAX_BLOCK: Self = Self(bitcoin::constants::MAX_BLOCK_SIGOPS_COST as u64);
 
     /// Vbytes per sigop under BIP-141 policy.
     const VBYTES_PER_SIGOP: u64 = 5;

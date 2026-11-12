@@ -43,6 +43,11 @@ pub fn walk_within(txs: &[SnapTx], seed: TxIndex, keep: impl Fn(TxIndex) -> bool
 /// Load the connected component into `graph` in topological order, parent
 /// edges remapped to local indices, and return the members: `graph`'s
 /// local index `i` is `members[i]`.
+///
+/// `graph` checks its members' weights only in debug builds: they are bounded
+/// where the node's data enters, a mempool entry's weight and sigop-adjusted
+/// size in `MempoolEntry`'s conversion, a body's sigops by
+/// `TxRecord::policy_sigops`. A new source of `SnapTx`s bounds its own.
 pub fn load(txs: &[SnapTx], component: &[TxIndex], graph: &mut Cluster) -> Vec<TxIndex> {
     let position: FxHashMap<TxIndex, usize> = component
         .iter()

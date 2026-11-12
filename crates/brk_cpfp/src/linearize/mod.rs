@@ -81,13 +81,14 @@ struct Chunk {
     weight: Weight,
 }
 
-/// Exact signed fee/weight comparison, shared with projection packing. Positive weights only.
+/// Exact signed fee/weight comparison, shared with projection packing. Positive weights only:
+/// checked in debug builds alone, so a caller bounds its weights where they're read.
 /// Products use the common fast path; unusually large aggregate fractions use Euclid's
 /// algorithm instead of overflowing or changing the ranking through saturation.
 #[inline]
 pub fn compare_feerates(a: (i128, Weight), b: (i128, Weight)) -> Ordering {
     let (wa, wb) = (u64::from(a.1), u64::from(b.1));
-    assert!(wa > 0 && wb > 0, "positive ranking weights");
+    debug_assert!(wa > 0 && wb > 0, "positive ranking weights");
     // A signed 64-bit numerator times any u64 weight fits i128. Most live chunks
     // stay in that range; avoid checked 128-bit multiplication for those comparisons.
     if let (Ok(fa), Ok(fb)) = (i64::try_from(a.0), i64::try_from(b.0)) {
@@ -170,8 +171,9 @@ fn push_group(chunks: &mut Vec<Chunk>, end: usize, fee: i64, weight: Weight) {
     while let Some(last) = chunks.last()
         && compare_rates((chunk.fee, chunk.weight), (last.fee, last.weight)).is_gt()
     {
-        chunk.fee = chunk.fee.checked_add(last.fee).expect("bounded component fee sum");
-        chunk.weight = Weight::from(u64::from(chunk.weight).checked_add(u64::from(last.weight)).expect("bounded component weight sum"));
+        // At most u32 members of i64 fees and u32 weights: neither sum can overflow.
+        chunk.fee += last.fee;
+        chunk.weight += last.weight;
         chunks.pop();
     }
     chunks.push(chunk);

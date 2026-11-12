@@ -1502,7 +1502,7 @@ Returns: JSON `ServerVersion`
 - `bestDescendant`: `CpfpEntry | null` — Best (highest fee rate) descendant, if any.
 - `descendants`: `CpfpEntry[]` (required)
 - `effectiveFeePerVsize`: `FeeRate` (required) — Effective fee rate considering CPFP relationships (sat/vB). This is the seed's chunk feerate after lift-merging, i.e. the rate Core/mempool.space would surface for this tx.
-- `sigops`: `SigOps` (required) — BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4).
+- `sigops`: `SigOps` (required) — BIP-141 sigop cost for the seed tx (witness sigops count as 1, legacy and P2SH-redeem sigops count as 4), counted from its body: at most a block's sigop budget.
 - `fee`: `Sats` (required) — Transaction fee (sats).
 - `vsize`: `VSize` (required) — Virtual size of the seed tx (vbytes).
 - `adjustedVsize`: `VSize` (required) — Policy-adjusted virtual size: `max(vsize, sigops * 5)`.

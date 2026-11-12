@@ -38,7 +38,8 @@ impl Cluster {
 
     /// `weight` is what feerates are measured over (the mempool's sigop-adjusted, as Core's);
     /// `parents` must be local indices of earlier members. It ranks by what it pays.
-    /// A member weight must be positive and fit u32; a component holds at most u32::MAX members.
+    /// A member weight must be positive and fit u32 (the node's are checked where they're read);
+    /// a component holds at most u32::MAX members.
     pub fn push(
         &mut self,
         fee: Sats,
@@ -69,9 +70,9 @@ impl Cluster {
     ) {
         let start = self.parents.len();
         self.parents.extend(parents);
-        // Every tier relies on it (the ancestor rows index by parent): checked in release too,
-        // so a caller's mistake fails here and every tier alike, never as a wrong linearization.
-        assert!(
+        // Every tier relies on it (the ancestor rows index by parent): in dev builds a caller's
+        // mistake fails here, not as a wrong linearization.
+        debug_assert!(
             self.parents[start..]
                 .iter()
                 .all(|&parent| (u32::from(parent) as usize) < self.nodes.len()),
@@ -79,8 +80,11 @@ impl Cluster {
         );
         // At most u32 members, each at most u32 weight: sums fit u64, signed fee sums
         // fit i128. The exact tier's <=64-member flow capacities then stay below 2^114.
-        assert!(self.nodes.len() < u32::MAX as usize, "bounded component membership");
-        assert!(u64::from(weight) > 0 && u32::try_from(u64::from(weight)).is_ok(), "bounded positive member weight");
+        debug_assert!(self.nodes.len() < u32::MAX as usize, "bounded component membership");
+        debug_assert!(
+            u64::from(weight) > 0 && u32::try_from(u64::from(weight)).is_ok(),
+            "bounded positive member weight"
+        );
         self.nodes.push(Node {
             fee,
             modified,

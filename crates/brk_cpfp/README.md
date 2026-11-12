@@ -5,8 +5,8 @@ Linearization and chunking of child-pays-for-parent transaction clusters.
 ## What it provides
 
 - `Cluster` is a topologically ordered dependency component: callers `push` each member's `(fee, weight)` (the
-  mempool's sigop-adjusted, as Core measures) and its parents as local indices of earlier members (every build
-  checks that order), `push_ranked` with Core's modified fee and a fallback place (Core's: by txid). `linearize`
+  mempool's sigop-adjusted, as Core measures) and its parents as local indices of earlier members (dev builds
+  check that order), `push_ranked` with Core's modified fee and a fallback place (Core's: by txid). `linearize`
   orders it and chunks that order so chunk feerates never increase, passing each chunk's members (in order) and
   feerate (fee over the weight's exact quarter) to a callback:
   - up to 64 members (Bitcoin Core's cluster limit), optimally: the best feerate diagram, as Core's cluster

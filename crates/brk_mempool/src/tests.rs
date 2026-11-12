@@ -143,7 +143,7 @@ fn cpfp_answers_match_a_fresh_linearization() {
     );
     for i in 0..txs.len() {
         let seed = TxIndex::from(i);
-        let ours = snapshot.cpfp_info_at(seed, txs[i].sigops);
+        let ours = snapshot.cpfp_info_at(seed);
         let mut graph = Cluster::default();
         let members = cluster::load(&txs, &cluster::walk(&txs, seed), &mut graph);
         let local = members.iter().position(|&m| m == seed).unwrap() as u32;

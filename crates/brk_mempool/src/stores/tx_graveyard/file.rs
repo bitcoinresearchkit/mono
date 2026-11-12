@@ -307,16 +307,17 @@ fn read_record(input: &mut Reader) -> Result<TxRecord> {
         status: TxStatus::UNCONFIRMED,
     };
     tx.refresh_sigops();
-    // Never below what its weight and the sigops its body shows make it.
-    let least = tx.total_sigop_cost.adjust_vsize(VSize::from(weight));
-    if vsize < u64::from(least) {
-        return Err(Error::Parse(format!("vsize {vsize}")));
+    // As bounded as the node's entries, and never below what its weight and the sigops its body
+    // shows make it.
+    let vsize = VSize::new(vsize);
+    if !vsize.bounds_entry(weight) || vsize < tx.total_sigop_cost.adjust_vsize(VSize::from(weight)) {
+        return Err(Error::Parse(format!("vsize {vsize}, weight {weight}")));
     }
     let entry = TxEntry {
         txid,
         wtxid,
         fee,
-        vsize: VSize::from(vsize),
+        vsize,
         weight,
         size: size as u64,
         first_seen,
