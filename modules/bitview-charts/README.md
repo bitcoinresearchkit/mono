@@ -143,8 +143,8 @@ clears); avoid reflecting programmatic calls. A programmatic
   (`width(plot)` pixels at most); rows gathered into bins `bin` pixels tall at least, on whole multiples of a row (the
   same at any pan), a pixel of `backdrop` between two; split at `at` (a close), a group's `gain` under it and `loss` over
   it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Held at the plot's
-  edge; an unchanged view keeps its picture and bins. The page is told before each render (`viewed`); `set(...)` its groups and the rest; `hit(x, y)`, the bar under a point (its
-  group, its bin's rows). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
+  edge; an unchanged view keeps its picture and bins. The page is told before each render (`viewed`); `set(...)` its groups and the rest; `binAt(y)`, the bin at a height (its rows);
+  `hit(x, y)`, the bar under a point (its group, its bin's rows). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
