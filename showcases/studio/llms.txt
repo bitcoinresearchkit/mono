@@ -138,7 +138,7 @@ Each section's page lists its charts; each chart's own address is in https://bit
 - Addresses (1138): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
   - Reused (13): https://bitview.space/studio/presets/addresses/reused/
-  - Respent (11): https://bitview.space/studio/presets/addresses/respent/
+  - Spent from more than once (11): https://bitview.space/studio/presets/addresses/respent/
   - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
