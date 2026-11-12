@@ -3136,10 +3136,13 @@
           }
         }
 
-        /* An item: its mark and name, its value beside them in a slot as wide as it gets (nothing moves as it's read). */
+        /* An item: its mark and name, its value beside them in a slot as wide as it gets (nothing moves as it's read).
+           Never wider than its line (a phone's): past that, its name cut short, never its value; what's beside it (a
+           key) cut off at the line's end. */
         button {
           display: flex;
           flex-shrink: 0;
+          max-width: 100%;
           align-items: center;
           gap: 6px;
           border: 0;
@@ -3187,6 +3190,7 @@
 
           .legend-name {
             display: flex;
+            min-width: 0;
             align-items: center;
             gap: 6px;
             max-width: 16rem;
@@ -3255,6 +3259,7 @@
           /* As large as its name: the weight and the ink set it apart, not the size. */
           .legend-error,
           .legend-value {
+            flex-shrink: 0;
             min-height: 18px;
             font: 510 12px/18px var(--sans);
             font-variant-numeric: tabular-nums;
@@ -10686,7 +10691,7 @@
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
-            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5.0% ₿1,690,123").</li>
+            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's. "cumulative": true, its amounts summed from the close outward in place of its bars (over it upward, under it downward), each group's stacked, its legend reading the sum from the close to the pointer's price and how far that price is from it ("+5% ₿1,690,123").</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -11739,6 +11744,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** A holder group's URPD: a heatmap (its days as columns) or a profile (a day's, at the chart's right edge). @param {{ type?: string }} layer */
       const heatLike = (layer) => layer.type === "heatmap" || layer.type === "profile";
+      /** A binned layer's amounts' unit, by its measure: coins (its default), else dollars. @param {string | undefined} measure */
+      const measureUnit = (measure) => ((measure ?? "supply") === "supply" ? "btc" : "usd");
       const twoSided = (layer) => layer.type === "baseline" || (layer.type === "heatmap" && layer.measure === "pnl");
       /**
        * A heatmap of an amount's steps, as the website drew heat: inferno, its 4 colors that mixed (see gradientTable)
@@ -11981,8 +11988,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
       /** A profile's views: its bars, or its amounts summed from the close outward. */
       const PROFILE_VIEWS = /** @type {[string, string][]} */ ([["bars", "Bars"], ["cumulative", "Cumulative"]]);
-      /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one. */
-      const HEAT_ROWS = [100, 200, 500];
+      /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one; one unsaid, the default's. */
+      const HEAT_ROWS = [100, 200, 500], DEFAULT_ROWS = 200;
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
       const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
       /**
@@ -16231,7 +16238,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // price's closes, its scale's (see Heat).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
         // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
-        for (const layer of layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
+        for (const layer of layers) if (heatLike(layer)) results.set(layer.id, { unit: measureUnit(layer.measure), heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
         for (const name of named) {
@@ -17983,8 +17990,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const range = n ? shownSpan() : null;
         return range ? clamp(Math.floor(range.from), 0, n - 1) : 0;
       }
-      /** The point the readout describes: the one under the crosshair, else the view's last (`rest`). */
-      const readPoint = () => (hoverTime === null ? { at: lastShown(), rest: true } : { at: indexOfTime(hoverTime), rest: false });
+      /**
+       * A point read: its index, the view's last at rest (`rest`); `cross`, the crosshair's place on the chart while it
+       * follows it (a binned layer reads the price there, see hoveredIn), past the data too.
+       * @typedef {{ at: number, rest: boolean, cross?: { pane: number, y: number } | null }} ReadPoint
+       */
+      /** The point the readout describes: the one under the crosshair, else the view's last (`rest`); a picture's, at rest. @returns {ReadPoint} */
+      function readPoint() {
+        // (The crosshair's place even at rest: one set at a price, or the pointer past the data, is still a price asked
+        // about, a binned layer's read there; none (nothing over the chart, a picture), their own at rest.)
+        const cross = exporting || capturing ? null : crossAt();
+        return hoverTime === null ? { at: lastShown(), rest: true, cross } : { at: indexOfTime(hoverTime), rest: false, cross };
+      }
       /** The point a layer's value is from: the one asked; at rest, its last up to there (a series can end before the others). */
       function valuePointOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
         const values = resolved?.results.get(layer.id)?.values;
@@ -18554,7 +18571,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A named band's value: its name, in its color.)
           // (A heatmap's: its amount, the price it's at beside it in a legend, under it in a row.)
           const inRow = element.classList.contains("row-value"), heat = result.heat ? heatReading(layer, point, !inRow) : null;
-          const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow || !heat.at ? heat.amount : `${heat.amount} at ${heat.at}`) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow ? heat.amount : readingLine(heat)) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
           // (Older than the rest: when it's from, after it.)
           const since = Number.isFinite(value) || result.low ? asOf(layer, point) : "";
@@ -19287,13 +19304,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const measure = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
       let figuresFont = "";
-      /**
-       * The widest of some texts as the page sets them, at a weight and size, in whole pixels: figures (`figures`, Inter's
-       * tabular ones: each a zero's width), or words as they're written.
-       */
-      function widest(texts, weight, size, figures = true) {
+      /** The widest of some texts as the page sets them, at a weight and size, in whole pixels, figures as Inter's tabular ones (each a zero's width). */
+      function widest(texts, weight, size) {
         measure.font = `${weight} ${size}px ${(figuresFont ||= css("--sans"))}`;
-        return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(figures ? text.replace(/[0-9]/g, "0") : text).width)));
+        return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(text.replace(/[0-9]/g, "0")).width)));
       }
       /** The widest a run of values can be written: its lowest, highest, last and a sample across it. */
       function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @type {number} */ size) {
@@ -19310,16 +19324,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return widest([...texts].sort((x, y) => y.length - x.length).slice(0, 5), 510, size);
       }
       /**
+       * A binned layer's place at its widest, as far as its prices go (figures read as zeros, see widest): from its rows'
+       * first (a cent, see logRows: four digits under a dollar) to thousands grouped (a price's letter is narrower); a
+       * heatmap's cell's price, a profile's bin's two. @param {Layer} layer
+       */
+      const binnedAt = (layer) => [0.01234, 888_888].map((value) => format(value, "usd")).map((price) => (layer.type === "profile" ? `${price}–${price}` : price));
+      /**
        * The width a layer's value can take: its lowest, highest, latest and a sample across its history written out,
        * the longest of them measured at a size in semibold tabular figures, in whole pixels. The legend and the panel
        * keep that room, so values change on hover without moving anything.
        */
       function valueSlot(layer, size, lines = false) {
-        // (A heatmap's reading: a cell's amount, at its price beside it (a row's, `lines`, under it: its amount alone),
-        // each as wide as it's written, see heatReading. A profile's: its share in profit, see profileReading.)
-        // (A cumulative one's, its reading too: how far the pointer's price is and the sum to it.)
-        if (layer.type === "profile") return widest(["100% in profit", ...(layer.cumulative ? [`+100.0% ${format(layer.measure === "capital" || layer.measure === "pnl" ? 2e12 : 2e7, layer.measure === "capital" || layer.measure === "pnl" ? "usd" : "btc")}`] : [])], 510, size, false);
-        if (heatLike(layer)) return widest([8.888e6, 888_888, 88_888].flatMap((amount) => ((written) => (lines ? [written] : [888_888, 88_888].map((price) => `${written} at ${format(price, "usd")}`)))(format(amount, (layer.measure ?? "supply") === "supply" ? "btc" : "usd"))), 510, size);
+        // (A binned layer's reading (see hoveredIn): an amount, where it's at beside it (a row's, `lines`, under it: its
+        // amount alone): a heatmap's cell's price, a profile's bin's prices, see heatReading, profileReading; a profile's
+        // at rest, its share in profit, a cumulative one's hovered, how far the price is and the sum to it.)
+        if (heatLike(layer)) {
+          // (Its amounts as far as they go, each of precise's forms (figures read as zeros, see widest): a fraction as
+          // wide as PRECISE up to all coins (₿20.99M, the widest of 21M's form) or their worth (a letter's), both signs
+          // where they can be (a P&L's); a bin's or a cell's with its place, a cumulative profile's after how far its price
+          // is from the close (from near nothing to a hundredfold, as far as a pane's prices are from its close).)
+          const unit = measureUnit(layer.measure), amounts = [0.001234, 888_888, unit === "btc" ? 20.99e6 : 888.8e9].flatMap((value) => (layer.measure === "pnl" ? [value, -value] : [value])).map((value) => format(value, unit));
+          const hovered = layer.cumulative ? ["−99.99%", "+8,888%"].flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => readingLine({ amount, at })));
+          return widest([...hovered, ...(layer.type === "profile" ? ["100% in profit"] : [])], 510, size);
+        }
         const result = resolved?.results.get(layer.id), values = result?.values;
         if (!values) return 0;
         const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.from ? edgesOf(layer).join() : ""}:${lines ? "lines" : ""}:${named(layer) ? JSON.stringify([layer.underName, layer.levels?.map((level) => level.name)]) : ""}`;
@@ -19487,7 +19514,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         lightBubble(time, seriesPane(series));
-        // (A heatmap reads its price on its line: see heatReading.)
+        // (A binned layer reads the price there: see hoveredIn.)
         if (heatLooks.size) valuesSoon();
         crossOn(price, time, series);
       }
@@ -19540,8 +19567,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // legend names it (its pane's others fade only as its item, or its row, is pointed at: see spotlight). On the
         // legend over the plot, the one it was.)
         crossIn = Boolean(param.point);
-        // (Where it is in its pane: a heatmap reads the price there, see heatReading.)
-        // (Gone too, read again: a cumulative profile's legend back at rest.)
+        // (Where it is in its pane: a binned layer reads the price there, see hoveredIn; gone, read again, back at rest.)
         const wasAt = heatAt;
         heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
         if (heatLooks.size && (heatAt || wasAt)) valuesSoon();
@@ -20028,11 +20054,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function figuresRoom(/** @type {Layer} */ layer, /** @type {Result} */ result) {
         if (layer.hidden || result.error) return { value: 0, change: 0, date: 0, dated: false };
-        // (A heatmap's: its amount over the price it's at, see heatReading. A profile's: its share, one line.)
-        if (layer.type === "profile") return { value: valueSlot(layer, rowSizes.value) + 10, change: 0, date: 0, dated: false };
+        // (A binned layer's: its amount over where it's at, see heatReading; a cumulative profile's, its one line.)
         if (heatLike(layer)) {
           const value = valueSlot(layer, rowSizes.value, true) + 10;
-          return { value, change: 0, date: Math.max(0, widest([`at ${format(888_888, "usd")}`], 400, 11) + 10 - value), dated: false };
+          return { value, change: 0, date: layer.cumulative ? 0 : Math.max(0, widest(binnedAt(layer).map((at) => `at ${at}`), 400, 11) + 10 - value), dated: false };
         }
         const lines = layer.type === "cloud" && Boolean(result.low), value = valueSlot(layer, rowSizes.value, lines);
         // (Its date where the values' loop writes one: a value, or a cloud's; measured once a view, as the slots are.)
@@ -22365,7 +22390,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: measureName(layer), group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: weightName(layer), group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
-            ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: kind, page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
+            ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${rowsOf(layer)} rows per ×10`, group: kind, page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => rowsOf(item), (item, n) => (item.rows = n === DEFAULT_ROWS ? undefined : n)) }
             : { key: "density", icon: ICONS.layers, label: "Density", aside: "Not on this scale", disabled: "On a log or linear scale", group: kind },
         ];
       }
@@ -22406,10 +22431,32 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc @param {Layer} layer
        */
       function heatGrid(doc, layer) {
-        const mode = modeOf(doc, layer), n = layer.rows ?? 200;
+        const mode = modeOf(doc, layer), n = rowsOf(layer);
         if (mode > 1) return null;
-        return { agg: `log${n}`, even: mode === 1, cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100 };
+        return { agg: `log${n}`, even: mode === 1, ...logRows(n) };
       }
+      /** A heatmap's or a profile's rows a ×10 in price, as it's drawn (see heatGrid). @param {Layer} layer */
+      const rowsOf = (layer) => layer.rows ?? DEFAULT_ROWS;
+      /** Rows `n` a ×10 in price, each the same share of its price: the row a price is in (`cell`) and a row's floor price. @param {number} n */
+      const logRows = (n) => ({ cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100 });
+      /**
+       * A heatmap day's cell at a price, its rows cut as `grid` cuts them (see logRows): its row and its amount, by a
+       * measure; none there, null.
+       * @param {HeatDay & { rows: Int32Array }} day @param {ReturnType<typeof logRows>} grid @param {number} price @param {string} measure
+       */
+      function dayCell(day, grid, price, measure) {
+        const row = grid.cell(price), k = lowerBound(day.rows, row);
+        return day.rows[k] === row ? { row, amount: /** @type {Float32Array} */ (amountsOf(day, measure))[k] } : null;
+      }
+      /** A heatmap day at rest: its close's cell (it has none there: zero, at its close's row); no close, none. @param {HeatDay & { rows: Int32Array }} day @param {ReturnType<typeof logRows>} grid @param {string} measure */
+      function closeCell(day, grid, measure) {
+        const close = Number(day.close);
+        return close > 0 ? dayCell(day, grid, close, measure) ?? { row: grid.cell(close), amount: 0 } : null;
+      }
+      /** A heatmap's cell as it's read: its amount ("₿412K") and the price it's at, its floor ("$62,034"). @param {{ row: number, amount: number }} cell @param {ReturnType<typeof logRows>} grid @param {string} measure */
+      const cellText = (cell, grid, measure) => ({ amount: format(cell.amount, measureUnit(measure)), at: format(grid.price(cell.row), "usd") });
+      /** A binned layer's reading on one line: its amount, the price it's at after it ("₿412K at $62,034"). @param {{ amount: string, at: string }} reading */
+      const readingLine = (reading) => (reading.at ? `${reading.amount} at ${reading.at}` : reading.amount);
       /**
        * Each URPD day asked for, by cohort, weight, `agg` and day ("latest", the open one): its rows (each bucket's, low to
        * high) and their supply, capital and unrealized P&L, once come; `pending` while asked; `failed` (missing, for
@@ -22646,99 +22693,118 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return null;
       }
       /**
-       * A profile's reading, on the day it shows (see profilePoint): the share of its holder groups' coins in profit, under
-       * that day's close ("65% in profit"), as it draws it (each group's day, else the one it showed before, see
-       * viewProfile); a legend's, a bar of it pointed at (`pointed`), that bar's group's amount and its prices ("₿412,345"
-       * at "$84.1K–$85.1K"); none in, none. @param {HeatLook} look @returns {{ amount: string, at: string } | null}
+       * A profile's reading, on the day it shows (see profilePoint), as it draws it (each group's day, else the one it
+       * showed before, see viewProfile), by the binned layers' rule (see hoveredIn): hovered, what's at the pointer's
+       * price, its bin's amount and prices ("₿412,345" at "$84,120–$85,130"; a legend's, `pointed`, the group of a bar
+       * pointed at alone, as its item names it), cumulative, the sum from the close to that price and how far it is
+       * ("+5% ₿1,690,123"); else the share of its holder groups' coins in profit, under that day's close ("65% in
+       * profit"): hovered where no bin is, too. None in, none.
+       * @param {HeatLook} look @param {Layer} layer @param {ReadPoint} point @returns {{ amount: string, at: string } | null}
        */
-      function profileReading(look, pointed = false) {
+      function profileReading(look, layer, point, pointed = false) {
         Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved).times));
-        const point = profilePoint();
-        if (point.at < 0 || point.at >= look.g.length || !look.grid) return null;
-        const grid = look.grid, shown = profileDays(look, look.g[point.at]);
-        const bar = pointed && litCohort(look.id) ? profileLit : null, item = bar && shown.find((one) => one?.cohort.id === bar.cohort);
-        if (bar && item) {
-          const { rows } = item.day, values = amountsOf(item.day, look.measure);
-          let amount = 0;
-          for (let k = lowerBound(rows, bar.from); k < rows.length && rows[k] < bar.to; k++) amount += values[k];
-          return { amount: format(amount, look.measure === "supply" ? "btc" : "usd"), at: `$${compact(grid.price(bar.from))}–$${compact(grid.price(bar.to))}` };
-        }
-        // (Cumulative, the pointer in its pane: the sum from the close to its price, and how far that price is from it.)
-        const series = drawn.get(look.id), engine = series?.engine, pane = chart.panes.findIndex((item) => item.id === layerById(look.id)?.pane), at = crossAt();
-        if (look.cumulative && engine instanceof Profile && at?.pane === pane && !exporting && !capturing) {
-          const sums = engine.sumsAt(at.y), price = Number(seriesValue(series, at.y)), from = engine.at;
-          if (sums && price > 0 && from > 0) {
-            const change = (price / from - 1) * 100, total = sums.reduce((sum, value) => sum + value, 0);
-            return { amount: `${change < 0 ? "−" : "+"}${Math.abs(change).toFixed(1)}% ${format(total, look.measure === "supply" ? "btc" : "usd")}`, at: "" };
-          }
-        }
-        const close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
+        const day = profilePoint().at;
+        if (day < 0 || day >= look.g.length || !look.grid) return null;
+        const at = hoveredIn(layer, point), hovered = at && profileAt(look, at.y, pointed);
+        if (hovered) return hovered;
+        const shown = profileDays(look, look.g[day]), close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
         return share === null ? null : { amount: `${share}% in profit`, at: "" };
+      }
+      /**
+       * What a profile reads at a height in its pane (see profileReading), as it's drawn: the bin there, its amount (its
+       * groups' sums, `pointed`, a lit group's alone; an empty bin's, zero) and its prices; drawn cumulative, how far that
+       * price is from the close and the sum to it. None where no bin is. @param {HeatLook} look @param {number} y @param {boolean} pointed
+       */
+      function profileAt(look, y, pointed) {
+        const series = drawn.get(look.id), engine = series?.engine, grid = look.grid, unit = measureUnit(look.measure);
+        if (!(engine instanceof Profile) || !grid) return null;
+        const sums = engine.sumsAt(y);
+        if (sums) {
+          const price = Number(seriesValue(series, y)), from = engine.at;
+          if (!(price > 0) || !(from > 0)) return null;
+          const change = (price / from - 1) * 100, total = sums.reduce((sum, value) => sum + value, 0);
+          return { amount: `${change < 0 ? "" : "+"}${format(change, "percent")} ${format(total, unit)}`, at: "" };
+        }
+        const read = engine.readAt(y, (pointed && litCohort(look.id)) || undefined);
+        return read && { amount: format(read.sum, unit), at: `${format(grid.price(read.from), "usd")}–${format(grid.price(read.to), "usd")}` };
       }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
       let heatAt = null;
       /**
-       * The profile bar pointed at (see profileHit): its layer, its group, its rows (from, up to `to`); its group's bars
-       * drawn full, the others faint, its legend item the group's (see paintProfileItems).
-       * @type {{ layer: string, cohort: string, from: number, to: number } | null}
+       * The profile bar pointed at (see profileHit): its layer and its group; its group's bars drawn full, the others
+       * faint, its legend item the group's (see paintProfileItems).
+       * @type {{ layer: string, cohort: string } | null}
        */
       let profileLit = null;
       /**
-       * The profiles whose bars the pointer's among (on their pane, at the plot's right edge, as wide as they're drawn: see
-       * profileWidth), the frontmost first (its first layer, else its last: see Pane): a pointer's or a finger's, not the
+       * The profiles whose bars the pointer's among (on their pane, in the column each drew at the plot's right edge: see
+       * Profile.covers), the frontmost first (its first layer, else its last: see Pane): a pointer's or a finger's, not the
        * keys'. @param {ChartPoint} param @returns {Layer[]}
        */
       function profilesUnder(param) {
         if (keyTime !== null || !param.point || param.pane === undefined) return [];
-        const width = engine.time.width, pane = chart.panes[param.pane];
-        if (param.point.x < width - 2 - profileWidth(width)) return [];
-        const mine = chart.layers.filter((layer) => layer.type === "profile" && !layer.hidden && layer.pane === pane?.id);
+        const pane = chart.panes[param.pane], x = param.point.x, plot = engine.time.width;
+        // (Left of the widest a profile's column is, none: no layer asked.)
+        if (x < plot - profileWidth(plot)) return [];
+        const mine = [];
+        for (const layer of chart.layers) {
+          const profile = layer.type === "profile" && !layer.hidden && layer.pane === pane?.id ? drawn.get(layer.id)?.engine : null;
+          if (profile instanceof Profile && profile.covers(x)) mine.push(layer);
+        }
         return pane?.reverse ? mine.reverse() : mine;
       }
       /**
-       * A profile's bar under a point (its pane's pixels), as last drawn: its group, its bin's rows (the library's
-       * Profile.hit); none between them or left of them. @param {Layer} layer @param {{ x: number, y: number }} point
+       * A profile's bar under a point (its pane's pixels), as last drawn: its group (the library's Profile.hit); none
+       * between them or left of them. @param {Layer} layer @param {{ x: number, y: number }} point
        */
       function profileHit(layer, point) {
         const engine = drawn.get(layer.id)?.engine, hit = engine instanceof Profile ? engine.hit(point.x, point.y) : null;
-        return hit && { layer: layer.id, cohort: hit.group, from: hit.from, to: hit.to };
+        return hit && { layer: layer.id, cohort: hit.group };
       }
       /** The group of a profile's bar pointed at, if it's still in it and shown (none: ""). @param {string} id */
       const litCohort = (id) => ((layer) => (profileLit?.layer === id && layer && !layer.hidden && layer.profile?.includes(profileLit.cohort) ? profileLit.cohort : ""))(layerById(id));
-      /** A bar pointed at (or none): lit (its profile drawn again as its group changes), its legend item and value. @param {{ layer: string, cohort: string, from: number, to: number } | null} hit */
+      /** A bar pointed at (or none), as its group changes: lit (its profile drawn again), its legend item and value. @param {{ layer: string, cohort: string } | null} hit */
       function pointProfile(hit) {
         const was = profileLit;
-        if (was?.layer === hit?.layer && was?.cohort === hit?.cohort && was?.from === hit?.from && was?.to === hit?.to) return;
+        if (was?.layer === hit?.layer && was?.cohort === hit?.cohort) return;
         profileLit = hit;
-        if (was?.layer !== hit?.layer || was?.cohort !== hit?.cohort) for (const id of new Set([was?.layer, hit?.layer])) if (id) drawn.get(id)?.redraw();
+        for (const id of new Set([was?.layer, hit?.layer])) if (id) drawn.get(id)?.redraw();
         paintProfileItems();
         valuesSoon();
       }
-      /**
-       * A heatmap's reading at a point: the cell at the price pointed at (in its pane; elsewhere, or at rest, the day's
-       * close), on the day drawn there (see heatShown): its amount ("₿412K") and the price it's at ("$62,034", its
-       * cell's floor), the legend's on one line, a row's on two (a profile's, see profileReading). None drawn, none.
-       * @param {Layer} layer @param {{ at: number, rest: boolean }} point @returns {{ amount: string, at: string } | null}
-       */
       /** Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer. */
       function crossAt() {
         const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
         return crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
       }
+      /**
+       * The binned layers' (by price: heatmaps, profiles) one rule for what they read: the crosshair's place, while a point
+       * read follows it in a layer's pane (see readPoint), what's at its price read; else none, their own at rest (a
+       * heatmap's day's close, a profile's summary). @param {Layer} layer @param {ReadPoint} point
+       */
+      function hoveredIn(layer, point) {
+        const at = point.cross;
+        return at && at.pane === seriesPane(drawn.get(layer.id)) ? at : null;
+      }
+      /**
+       * A heatmap's reading at a point, on the day drawn there (see heatShown): the cell at the price hovered (see
+       * hoveredIn), else the day's close's; its amount ("₿412K") and the price it's at ("$62,034", its cell's floor),
+       * the legend's on one line, a row's on two (a profile's, see profileReading). A row the day holds nothing in reads
+       * zero; under the rows (a cent, see logRows), none. None drawn, none.
+       * @param {Layer} layer @param {ReadPoint} point @returns {{ amount: string, at: string } | null}
+       */
       function heatReading(layer, point, pointed = false) {
         const look = heatLooks.get(layer.id), grid = look?.grid;
         if (!look || !grid || !resolved) return null;
-        // (A profile's: its own day's, whatever's pointed at.)
-        if (look.kind === "profile") return profileReading(look, pointed);
+        // (A profile's: its own day's, whatever day's pointed at.)
+        if (look.kind === "profile") return profileReading(look, layer, point, pointed);
         Object.assign(look, heatCalendar(resolved.times));
         if (point.at < 0 || point.at >= look.g.length) return null;
         const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
         if (!day?.rows) return null;
-        const at = crossAt(), pane = chart.panes.findIndex((item) => item.id === layer.pane), price = at?.pane === pane && !point.rest ? seriesValue(drawn.get(layer.id), at.y) : day.close;
-        if (!(Number(price) > 0)) return null;
-        const row = grid.cell(Number(price)), rows = day.rows, values = amountsOf(day, look.measure);
-        const k = lowerBound(rows, row), value = rows[k] === row ? /** @type {Float32Array} */ (values)[k] : 0;
-        return { amount: format(value, look.measure === "supply" ? "btc" : "usd"), at: format(grid.price(row), "usd") };
+        const at = hoveredIn(layer, point), hovered = at ? Number(seriesValue(drawn.get(layer.id), at.y)) : NaN, row = hovered > 0 ? grid.cell(hovered) : -1;
+        const cell = !at ? closeCell(day, grid, look.measure) : row >= 0 ? dayCell(day, grid, hovered, look.measure) ?? { row, amount: 0 } : null;
+        return cell && cellText(cell, grid, look.measure);
       }
       /**
        * A heatmap's blocks in view, as its grid finds them before each draw (see Heat): each block of `step` days
@@ -24286,7 +24352,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The density a picture's heatmaps are sampled at: 50 rows a ×10 (a tile's few hundred pixels tall); their days, a
        * tile's (32: about 10 pixels a day) and Quick Look's (96).
        */
-      const HEAT_PICTURE_AGG = "log50", HEAT_TILE_COLUMNS = 32, HEAT_QUICK_COLUMNS = 96;
+      const HEAT_PICTURE_ROWS = 50, HEAT_PICTURE_AGG = `log${HEAT_PICTURE_ROWS}`, HEAT_TILE_COLUMNS = 32, HEAT_QUICK_COLUMNS = 96;
       /**
        * Bubbles' values for a picture drawn at a coarser interval than its chart's (weeks for years, months for a mark): at
        * each of its points, the largest by size (its sign kept) of the chart's own over its span, as the chart's buckets
@@ -24380,7 +24446,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ days: any[], open: any, fine: any } | undefined} sample @param {(y: number) => number} priceAt @param {number} top @param {number} bottom
        */
       function heatPicture(doc, layer, data, sample, priceAt, top, bottom) {
-        const look = heatLook(doc, layer, /** @type {Resolved} */ (data), opacityOf(layer)), k = Number(HEAT_PICTURE_AGG.slice(3)), rows = Number(heatGrid(doc, layer)?.agg.slice(3) ?? k);
+        const look = heatLook(doc, layer, /** @type {Resolved} */ (data), opacityOf(layer)), k = HEAT_PICTURE_ROWS, grid = logRows(k), rows = heatGrid(doc, layer) ? rowsOf(layer) : k;
         // (A cell as so many of the chart's rows: the reference as large as they'd all be at it.)
         const most = sample?.fine?.rows ? heatMost(sample.fine, look.measure) * (rows / k) : sample?.open?.rows ? heatMost(sample.open, look.measure) : 0;
         if (!sample || !most || !(bottom > top)) return null;
@@ -24393,7 +24459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const cells = new Float64Array(height);
         for (let p = 0; p < height; p++) {
           const price = priceAt(top + (p + 0.5) / 2);
-          cells[p] = price > 0 ? Math.floor(k * Math.log10(price * 100)) : NaN;
+          cells[p] = price > 0 ? grid.cell(price) : NaN;
         }
         for (let c = 0; c < columns; c++) {
           const day = sample.days[c];
@@ -24700,7 +24766,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // over it, a group a mark of each (see previewSvg); in the pane's order, as a series. Cumulative, each side's
             // amounts summed from the close outward, the groups stacked, an area each (see the library's Profile).)
             for (const layer of heats) {
-              const sample = heat.get(layer.id), scaled = onScale(modeOf(doc, layer), NaN), rows = Number(HEAT_PICTURE_AGG.slice(3)), measure = layer.measure ?? "supply";
+              const sample = heat.get(layer.id), scaled = onScale(modeOf(doc, layer), NaN), grid = logRows(HEAT_PICTURE_ROWS), measure = layer.measure ?? "supply";
               const groups = layer.type === "profile" && range ? (layer.profile ?? []).map((cohort, c) => ({ cohort, day: sample?.days[c] })).filter((item) => item.day?.rows) : [];
               if (!groups.length) continue;
               const BIN = 4, bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
@@ -24709,7 +24775,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               groups.forEach(({ day }, c) => {
                 const values = amountsOf(day, measure);
                 for (let k = 0; k < day.rows.length; k++) {
-                  const at = y(scaled(10 ** ((day.rows[k] + 0.5) / rows) / 100));
+                  const at = y(scaled(grid.price(day.rows[k] + 0.5)));
                   if (at < paneTop && split < at) under[c] += Math.abs(values[k]);
                   else if (at >= paneBottom && at < split) over[c] += Math.abs(values[k]);
                   if (!(at >= paneTop && at < paneBottom)) continue;
@@ -36076,7 +36142,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function latestSaid(layer, result, unit) {
         const last = (resolved?.times.length ?? 0) - 1;
         if (layer.type === "cloud" && result?.values) return rangeAt(layer, { at: result.values.length - 1, rest: true }, unit);
-        if (heatLike(layer) && last >= 0) return ((reading) => (reading ? (reading.at ? `${reading.amount} at ${reading.at}` : reading.amount) : "—"))(heatReading(layer, { at: last, rest: true }));
+        if (heatLike(layer) && last >= 0) return ((reading) => (reading ? readingLine(reading) : "—"))(heatReading(layer, { at: last, rest: true }));
         return "—";
       }
       /** A layer: what it shows, its line as drawn now (in its color, or `color`), its type, unit, place, latest value. */
@@ -40640,11 +40706,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading; at the
             // chart's own density (the picture's coarser cells hold several), else the picture's.)
             if (heatLike(layer)) return ((sample) => {
-              const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, k = fine ? Number(heatGrid(copy, layer)?.agg.slice(3) ?? 200) : Number(HEAT_PICTURE_AGG.slice(3)), close = day?.close;
-              if (!day?.rows || !(Number(close) > 0)) return [];
-              const row = Math.floor(k * Math.log10(Number(close) * 100)), at = lowerBound(day.rows, row), measure = layer.measure ?? "supply";
-              const amount = day.rows[at] === row ? amountsOf(day, measure)[at] : 0;
-              return [[layer.id, `${format(amount, measure === "supply" ? "btc" : "usd")} at ${format(10 ** (row / k) / 100, "usd")}`]];
+              const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, measure = layer.measure ?? "supply";
+              const grid = logRows(fine ? rowsOf(layer) : HEAT_PICTURE_ROWS), cell = day?.rows ? closeCell(day, grid, measure) : null;
+              return cell ? [[layer.id, readingLine(cellText(cell, grid, measure))]] : [];
             })(heat.get(layer.id));
             if (!high || result.error) return [];
             let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
