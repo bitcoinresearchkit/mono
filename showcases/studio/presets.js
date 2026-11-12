@@ -103,8 +103,8 @@ function words(/** @type {string} */ key) {
 }
 /** A phrase as a title starts it: its first letter capitalized ("addresses" "Addresses", "reused P2TR addresses" "Reused P2TR addresses"). */
 const capitalized = (/** @type {string} */ text) => `${text[0].toUpperCase()}${text.slice(1)}`;
-/** A name as it reads inside a sentence: a plain capitalized word lowercased ("Unknown" "unknown"), a name kept ("P2TR"). */
-const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+$/.test(name) ? name.toLowerCase() : name);
+/** A name as it reads inside a sentence: a plain capitalized word lowercased ("Unknown" "unknown", "Sell-side" "sell-side"), a name kept ("P2TR"). */
+const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+(?:-[a-z]+)*$/.test(name) ? name.toLowerCase() : name);
 
 /** Transaction features as said (the client's keys spell them as words), their timelocks and what they spend too. */
 const FEATURES = {
@@ -1085,7 +1085,8 @@ export function studioPresets(client, facts) {
         // (Each extreme against its bands: the median and its rare side's tail shown, the others a click away.)
         section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).map(([key, node]) => {
           const label = EXTREMES[key]?.label ?? words(key), low = EXTREMES[key]?.low;
-          return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1] });
+          // (Its window in the sentence, as a title says it: "…of realized profit, 24 hours".)
+          return chart(label, `Rarity meter extremes of ${lowered(label).replace(/, (\d+[hdwmy])$/, (_, window) => `, ${spanLabel(`_${window}`)}`)}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1] });
         })]),
       ]),
     ], { icon: "scale" }),
