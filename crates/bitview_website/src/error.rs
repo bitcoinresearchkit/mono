@@ -8,8 +8,13 @@ use axum::{
 pub struct Error(StatusCode, String);
 
 impl Error {
-    pub(crate) fn not_found(msg: impl Into<String>) -> Self {
-        Self(StatusCode::NOT_FOUND, msg.into())
+    /// Nothing at the address.
+    pub(crate) fn not_found() -> Self {
+        Self(StatusCode::NOT_FOUND, "File not found".into())
+    }
+
+    pub(crate) fn is_not_found(&self) -> bool {
+        self.0 == StatusCode::NOT_FOUND
     }
 
     pub(crate) fn internal(msg: impl Into<String>) -> Self {

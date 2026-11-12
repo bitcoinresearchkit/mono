@@ -44,7 +44,7 @@ pub fn route(html: Bytes) -> MethodRouter {
     document(
         html,
         "text/html; charset=utf-8",
-        "public, max-age=1, must-revalidate",
+        bitview_http::REVALIDATE,
         &[(
             "content-security-policy",
             "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",

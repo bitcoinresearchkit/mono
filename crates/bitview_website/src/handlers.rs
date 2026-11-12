@@ -1,11 +1,12 @@
 use std::{borrow::Cow, path::Path};
 
 use axum::{
-    body::Body,
-    extract::{Path as ExtractPath, State},
-    http::{HeaderMap, HeaderName, HeaderValue, Response, Uri, header},
+    body::{Body, Bytes},
+    extract::State,
+    http::{HeaderMap, HeaderName, HeaderValue, Response, StatusCode, Uri, header},
     response::{IntoResponse, Redirect},
 };
+use bitview_http::{CachePolicy, REVALIDATE};
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
@@ -13,76 +14,136 @@ use crate::{
     website::{File, hash},
 };
 
-/// Pages that moved, each old folder with its new one: a link or a search result to the old address still arrives.
-const MOVED: &[(&str, &str)] = &[("series", "catalog"), ("api-changes", "changes")];
+/// Pages that moved, each old folder with where its addresses go now: a link or a search result to the old address
+/// still arrives.
+const MOVED: &[(&str, To)] = &[
+    ("series", To::Under("catalog")),
+    ("api-changes", To::Under("changes")),
+    // The old charts' addresses name nothing in Studio, which replaced them.
+    ("charts", To::Page("studio")),
+];
 
+/// Where a moved folder's addresses go.
+enum To {
+    /// The same place under the new folder, the query kept.
+    Under(&'static str),
+    /// The new folder's page.
+    Page(&'static str),
+}
+
+/// The site's page for an address that names nothing.
+const NOT_FOUND_PAGE: &str = "404.html";
+
+/// Any address on the site, `/` included.
 pub async fn file_handler(
     State(website): State<Website>,
     headers: HeaderMap,
     uri: Uri,
-    ExtractPath(path): ExtractPath<String>,
-) -> Result<Response<Body>, Error> {
-    if !is_one_address(uri.path()) {
-        return Err(not_found());
-    }
+) -> Response<Body> {
     if let Some(to) = moved(uri.path(), uri.query()) {
-        return Ok(Redirect::permanent(&to).into_response());
+        return Redirect::permanent(&to).into_response();
     }
-    serve(website, path, uri, headers).await
+    serve(website, uri, headers).await
 }
 
-/// Where a request under a moved page's old folder goes now: the same place under the new one, its query kept.
+/// Where a request under a moved page's old folder goes now: the new page whatever follows the folder, or the same
+/// place under the new folder when the address is written the one way (no other spelling names anything there).
 /// From the path as sent (still percent-encoded), so what it encodes stays encoded in `Location`.
-pub(crate) fn moved(path: &str, query: Option<&str>) -> Option<String> {
-    let path = path.trim_start_matches('/');
-    let (folder, rest) = path.split_once('/').unwrap_or((path, ""));
+fn moved(path: &str, query: Option<&str>) -> Option<String> {
+    let trimmed = path.trim_start_matches('/');
+    let (folder, rest) = trimmed.split_once('/').unwrap_or((trimmed, ""));
     let (_, to) = MOVED.iter().find(|(from, _)| *from == folder)?;
-    let query = query.map(|query| format!("?{query}")).unwrap_or_default();
-    Some(format!("/{to}/{rest}{query}"))
-}
-
-pub async fn index_handler(
-    State(website): State<Website>,
-    headers: HeaderMap,
-    uri: Uri,
-) -> Result<Response<Body>, Error> {
-    serve(website, String::new(), uri, headers).await
+    match to {
+        To::Under(to) => is_one_address(path).then(|| {
+            let query = query.map(|query| format!("?{query}")).unwrap_or_default();
+            format!("/{to}/{rest}{query}")
+        }),
+        To::Page(to) => Some(format!("/{to}/")),
+    }
 }
 
 /// A file's version, its content hash.
 const VERSION: HeaderName = HeaderName::from_static("bitview-version");
 
-/// Concurrent filesystem responses.
-static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
-
-/// Filesystem reads block, so they leave the executor, each holding a permit until its job ends.
-async fn serve(
-    website: Website,
-    path: String,
-    uri: Uri,
-    headers: HeaderMap,
-) -> Result<Response<Body>, Error> {
-    if website.filesystem_path().is_none() {
-        return respond(&website, &path, &uri, &headers);
-    }
-    let permit = FILESYSTEM_READS
-        .acquire()
-        .await
-        .map_err(|e| Error::internal(e.to_string()))?;
-    spawn_blocking(move || {
-        let _permit = permit;
-        respond(&website, &path, &uri, &headers)
+/// The file a request names, or the not-found answer, in one job on the website's files.
+async fn serve(website: Website, uri: Uri, headers: HeaderMap) -> Response<Body> {
+    read(website, move |website| match respond(website, &uri, &headers) {
+        Err(error) if error.is_not_found() => not_found(website, &headers),
+        answer => answer.into_response(),
     })
     .await
-    .map_err(|e| Error::internal(e.to_string()))?
 }
 
-fn respond(
-    website: &Website,
-    path: &str,
-    uri: &Uri,
-    request_headers: &HeaderMap,
-) -> Result<Response<Body>, Error> {
+/// For an address that names nothing: the site's page for it to a browser, with 404, else the plain message (made a
+/// problem document by the API server's error layer). Neither is stored: which one comes depends on `Accept`, which a
+/// CDN's cache key leaves out.
+fn not_found(website: &Website, headers: &HeaderMap) -> Response<Body> {
+    let page = if wants_page(headers) {
+        website.get_file(NOT_FOUND_PAGE).ok()
+    } else {
+        None
+    };
+    let mut response = match page {
+        Some(page) => {
+            let mut response = file_response(page.contents, page.content_type);
+            *response.status_mut() = StatusCode::NOT_FOUND;
+            response
+        }
+        None => Error::not_found().into_response(),
+    };
+    CachePolicy::NoStore.mark(&mut response);
+    response
+}
+
+fn file_response(contents: Bytes, content_type: &'static str) -> Response<Body> {
+    let mut response = Response::new(Body::from(contents));
+    response
+        .headers_mut()
+        .insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+    response
+}
+
+/// Whether a request asks for a page: a browser's navigation lists `text/html` in `Accept`.
+fn wants_page(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(header::ACCEPT)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|value| value.split(','))
+        .any(|range| bitview_http::media_type(range).eq_ignore_ascii_case("text/html"))
+}
+
+/// Concurrent filesystem jobs.
+static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
+
+/// Runs a job on the website's files. Filesystem reads block, so there it leaves the executor, holding a permit until it
+/// ends.
+async fn read(
+    website: Website,
+    job: impl FnOnce(&Website) -> Response<Body> + Send + 'static,
+) -> Response<Body> {
+    if website.filesystem_path().is_none() {
+        return job(&website);
+    }
+    let permit = match FILESYSTEM_READS.acquire().await {
+        Ok(permit) => permit,
+        Err(e) => return Error::internal(e.to_string()).into_response(),
+    };
+    spawn_blocking(move || {
+        let _permit = permit;
+        job(&website)
+    })
+    .await
+    .unwrap_or_else(|e| Error::internal(e.to_string()).into_response())
+}
+
+fn respond(website: &Website, uri: &Uri, request_headers: &HeaderMap) -> Result<Response<Body>, Error> {
+    // The path as sent: written the one way, it has no escape to decode. The not-found page is
+    // the answer to other addresses, not one of its own.
+    let path = uri.path().strip_prefix('/').unwrap_or_default();
+    if !is_one_address(uri.path()) || path == NOT_FOUND_PAGE {
+        return Err(Error::not_found());
+    }
     let File {
         path: file,
         contents,
@@ -99,7 +160,7 @@ fn respond(
     if (has_slash && file.ends_with(Path::new(path)))
         || (uri.query().is_some() && content_type != "text/html")
     {
-        return Err(not_found());
+        return Err(Error::not_found());
     }
     // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
     let etag = (!cfg!(debug_assertions))
@@ -110,11 +171,8 @@ fn respond(
         insert_caching(response.headers_mut(), etag);
         return Ok(response);
     }
-    let mut response = Response::new(Body::from(contents));
-    let headers = response.headers_mut();
-    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-    insert_caching(headers, etag);
-
+    let mut response = file_response(contents, content_type);
+    insert_caching(response.headers_mut(), etag);
     Ok(response)
 }
 
@@ -127,10 +185,7 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
         // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
-    headers.insert(
-        header::CACHE_CONTROL,
-        HeaderValue::from_static("public, max-age=1, must-revalidate"),
-    );
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(REVALIDATE));
 }
 
 /// Whether the path as sent is written the one way: no escape, no empty, `.` or `..` segment, which
@@ -140,12 +195,6 @@ fn is_one_address(path: &str) -> bool {
     let path = path.trim_prefix('/');
     !path.contains('%')
         && path
-            .strip_suffix('/')
-            .unwrap_or(path)
-            .split('/')
+            .split_terminator('/')
             .all(|segment| !matches!(segment, "" | "." | ".." | "index.html"))
-}
-
-fn not_found() -> Error {
-    Error::not_found("File not found")
 }

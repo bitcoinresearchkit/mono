@@ -148,7 +148,7 @@ impl Website {
                 None
             }
         };
-        file.ok_or_else(|| Error::not_found("File not found"))
+        file.ok_or_else(Error::not_found)
     }
 
     /// Log which website source is being used (call once at startup)

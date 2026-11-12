@@ -90,7 +90,9 @@ Errors deliberately have no ETag: a conditional request must receive the error
 status again rather than `304`. Client errors (`400`, `404`), invalid addresses
 included, use a one-second, must-revalidate policy, since a release can change
 even a permanent verdict and browsers are never purged; service-unavailable and
-server errors use `no-store`. Server errors carry a generic message; the detail goes to the log.
+server errors use `no-store`. With the website served, the 404 for an address no route or website file names is
+`no-store` too: the website answers a browser with its not-found page there, so the answer depends on `Accept`,
+which a CDN's cache key leaves out; the error layer keeps a cache policy its handler marked (`CachePolicy::mark`). Server errors carry a generic message; the detail goes to the log.
 
 `POST /api/tx` is an action: every response is `no-store`, with no validator.
 It accepts at most 8,000,000 bytes of hexadecimal text including surrounding

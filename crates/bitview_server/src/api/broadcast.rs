@@ -8,10 +8,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitcoin::Weight as BitcoinWeight;
+use bitview_http::CachePolicy;
 use brk_types::Txid;
 use tokio::sync::OwnedSemaphorePermit;
 
-use crate::{AppState, Error, error::Result, extended::HeaderMapExtended, params::Empty};
+use crate::{AppState, Error, error::Result, params::Empty};
 
 // Serialized transaction bytes cannot exceed the block weight, and hex doubles them. The bound
 // includes surrounding whitespace, which is trimmed before validation.
@@ -68,8 +69,6 @@ pub async fn serve(
 ) -> Result<Response> {
     // A submission's answer is never reused, like its errors.
     let mut response = submit(permit, &state, &body).await?.to_string().into_response();
-    let headers = response.headers_mut();
-    headers.insert_cache_control("no-store");
-    headers.insert_cdn_cache_control("no-store");
+    CachePolicy::NoStore.apply(response.headers_mut());
     Ok(response)
 }

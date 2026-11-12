@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <meta name="robots" content="noindex" />
+    <title>Not found · Bitview</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* The page a browser gets for an address that names nothing (bitview_website answers it with a 404), in the
+         support, terms and privacy pages' look: plain text on the page's colours, system fonts, nothing loaded. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#ffffff, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#3c3f45, #c4c7cc);
+        --rule: light-dark(rgb(15 16 18 / 0.12), rgb(247 248 248 / 0.12));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 32px 16px 80px;
+      }
+
+      a {
+        color: var(--ink);
+        text-underline-offset: 0.2em;
+        text-decoration-color: var(--rule);
+
+        &:hover {
+          text-decoration-color: currentColor;
+        }
+      }
+
+      .home {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      h1 {
+        margin: 48px 0 4px;
+        color: var(--ink);
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+
+      <h1>Page not found</h1>
+      <p>Nothing is at this address. It may have been mistyped, or the page moved.</p>
+      <ul>
+        <li><a href="/">Bitview's front page</a>: every app and page.</li>
+        <li>
+          <a href="/studio/">Studio</a>: chart any series, or start from a ready-made chart. Its search finds any series
+          by plain words.
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

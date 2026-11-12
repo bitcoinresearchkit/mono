@@ -7,6 +7,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use bitview_http::CachePolicy;
 use bitview_types::{DiskUsage, Health, HealthStatus, Logs, ServerVersion, SyncStatus};
 use jiff::Timestamp;
 
@@ -15,7 +16,7 @@ use crate::{
     CacheParams, VERSION,
     api::tags,
     error::Result,
-    extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
+    extended::{ResponseExtended, TransformResponseExtended},
     params::Empty,
     request_state::RequestState,
 };
@@ -43,9 +44,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     sync,
                 })
                 .into_response();
-                let h = response.headers_mut();
-                h.insert_cache_control("no-store");
-                h.insert_cdn_cache_control("no-store");
+                CachePolicy::NoStore.apply(response.headers_mut());
                 Ok(response)
             },
             |op| {

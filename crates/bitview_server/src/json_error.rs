@@ -7,17 +7,20 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
+use bitview_http::CachePolicy;
 use bitview_types::ErrorCode;
 
 use crate::error::Error;
 
 const MAX_ERROR_BODY_BYTES: usize = 4096;
 
-/// Matches `application/json` and `application/...+json`, ignoring parameters
-/// like `; charset=utf-8`. Used to skip JSON-error rewriting for already-JSON bodies.
-fn is_json_content_type(s: &str) -> bool {
-    let mime = s.split(';').next().unwrap().trim();
-    mime == "application/json" || (mime.starts_with("application/") && mime.ends_with("+json"))
+/// Whether an error body is a document already, left as it is: JSON (`application/json`,
+/// `application/...+json`) or a page (`text/html`), ignoring parameters like `; charset=utf-8`.
+fn is_document(content_type: &str) -> bool {
+    let mime = bitview_http::media_type(content_type);
+    mime == "application/json"
+        || mime == "text/html"
+        || (mime.starts_with("application/") && mime.ends_with("+json"))
 }
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
@@ -29,7 +32,7 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         || response
             .headers()
             .get(CONTENT_TYPE)
-            .is_some_and(|v| v.to_str().is_ok_and(is_json_content_type))
+            .is_some_and(|v| v.to_str().is_ok_and(is_document))
     {
         return response;
     }
@@ -71,9 +74,13 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
     };
     let msg = msg.into_owned();
     let mut response = Error::new(parts.status, code, msg).into_response();
-    response.extensions_mut().extend(parts.extensions);
+    // The rewrite changes the body, not the methods allowed or a cache policy its handler marked.
+    if let Some(policy) = parts.extensions.get::<CachePolicy>() {
+        policy.apply(response.headers_mut());
+    }
     if let Some(allow) = parts.headers.get(ALLOW) {
         response.headers_mut().insert(ALLOW, allow.clone());
     }
+    response.extensions_mut().extend(parts.extensions);
     response
 }

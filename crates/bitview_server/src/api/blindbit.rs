@@ -12,6 +12,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use bitview_http::CachePolicy;
 use bitview_query::{BlindbitBlock, Query, Result as QueryResult};
 use bitview_types::{
     BlindbitBlockHash, BlindbitBlockHeight, BlindbitFilter, BlindbitInfo, BlindbitSpentIndex,
@@ -27,7 +28,7 @@ use crate::{
     AppState, CacheParams,
     api::tags,
     error::Result,
-    extended::{HeaderMapExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{BlindbitFilterParam, DustLimitQuery, Empty, ForwardTx, HeightParam},
     request_state::RequestState,
 };
@@ -122,9 +123,7 @@ async fn forward_tx(
 ) -> Result<Response> {
     let txid = broadcast::submit(permit, &state, &body.data).await?;
     let mut response = Json(txid).into_response();
-    let headers = response.headers_mut();
-    headers.insert_cache_control("no-store");
-    headers.insert_cdn_cache_control("no-store");
+    CachePolicy::NoStore.apply(response.headers_mut());
     Ok(response)
 }
 

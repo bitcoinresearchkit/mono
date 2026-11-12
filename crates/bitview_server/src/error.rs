@@ -5,13 +5,12 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
+use bitview_http::CachePolicy;
 use bitview_query::Error as QueryError;
 use bitview_types::{ErrorBody, ErrorCode, ErrorType};
 use brk_error::Error as BrkError;
 use serde_json::to_vec;
 use tracing::error;
-
-use crate::cache::{CacheParams, ErrorCachePolicy};
 
 const DOC_URL: &str = "/api";
 
@@ -114,10 +113,10 @@ impl Error {
         Self::new(StatusCode::SERVICE_UNAVAILABLE, ErrorCode::Overloaded, msg)
     }
 
-    fn cache_policy(&self) -> ErrorCachePolicy {
+    fn cache_policy(&self) -> CachePolicy {
         match self.status {
-            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
-            _ => ErrorCachePolicy::NoStore,
+            StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => CachePolicy::Revalidate,
+            _ => CachePolicy::NoStore,
         }
     }
 }
@@ -177,7 +176,7 @@ impl IntoResponse for Error {
                 .headers_mut()
                 .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
         }
-        CacheParams::apply_error_cache_control(response.headers_mut(), policy);
+        policy.apply(response.headers_mut());
         response
     }
 }

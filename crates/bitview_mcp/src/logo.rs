@@ -18,9 +18,9 @@ pub async fn get(uri: Uri) -> Response {
         .headers_mut()
         .insert("content-type", HeaderValue::from_static("image/png"));
     let cache_control = if uri.query() == Some(VERSION_QUERY) {
-        "public, max-age=31536000, immutable"
+        bitview_http::IMMUTABLE
     } else {
-        "public, max-age=1, must-revalidate"
+        bitview_http::REVALIDATE
     };
     response
         .headers_mut()
