@@ -48,9 +48,9 @@ export class Timeline {
     return Math.ceil(this.from - NOISE);
   }
 
-  /** The last point whose center is in view. A value beyond the edge never becomes the resting readout. */
+  /** The last point whose center is in view, allowing only floating-point noise at the boundary. A value beyond the edge never becomes the resting readout. */
   get lastVisible() {
-    return Math.floor(this.to);
+    return Math.floor(this.to + NOISE);
   }
 
   /**

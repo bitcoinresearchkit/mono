@@ -927,6 +927,8 @@ export class Pane {
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
+    // (Two questions, two points: a relative scale's base, the first point drawn, partly in view as its line runs in
+    // (see #from, as the fit and the ticks read it); a tag's reading, the last whose center is in view (see lastVisible).)
     const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), first = Math.max(0, time.firstVisible), lines = this.tagLines, end = time.lastVisible;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {

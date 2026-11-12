@@ -11141,9 +11141,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let catalogIndex = /** @type {Map<string, string> | null} */ (null);
       /** Series classified by their catalog role, in the same walk as the index. @type {Set<string>} */
       let cumulativeSeries = new Set();
-      const catalogReady = Promise.withResolvers();
-      /** The open chart built before the roles its framing reads were in: built again once they are (see indexCatalog). */
-      let framedBlind = false;
+      /**
+       * What's put off for the series' roles (automatic linear framing reads them, see framingKnown), done again once
+       * they're in (see indexCatalog): the open chart built without them, drawn again from its data (its view as it is);
+       * the background pictures not drawn without them (they'd be kept). None ever, nothing put off is drawn.
+       * @type {Set<() => void>}
+       */
+      const rolesWanted = new Set();
+      /** The open chart drawn again from its data, as it is (see rolesWanted). */
+      const reframe = () => redrawChart(true);
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
@@ -12058,7 +12064,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!item.formula || visiting.has(item.id)) return null;
           visiting.add(item.id);
           let value = null;
-          try { value = kind(parse(item.formula)); } catch {}
+          try {
+            value = kind(parse(item.formula));
+          } catch {
+            // (One that can't be read has no role: its own error says why, as it's evaluated.)
+          }
           visiting.delete(item.id);
           roles.set(item.id, value);
           return value;
@@ -12071,11 +12081,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (automaticZero(doc, layer, mode, stacked) && cumulativeLayer(doc, layer)));
       /** Whether the roles needed by automatic linear framing are known; other framing is independent of the catalog. @param {Chart} doc */
       const framingKnown = (doc) => catalogIndex !== null || !doc.layers.some((layer) => automaticZero(doc, layer, modeOf(doc, layer), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.stack)));
-      /** A background picture's wait for the roles its framing reads: whether they're known (a failed walk: never, kept out of caches). @param {Chart} doc */
-      async function framingReady(doc) {
-        if (!framingKnown(doc)) await catalogReady.promise;
-        return framingKnown(doc);
-      }
       /**
        * Whether a layer's out of its axis' fit as drawn (the chart's, the previews'): its `fit` false, where another shown
        * on its pane's side frames that axis (one fitted, or a heatmap: alone, on the price's closes). None: it is.
@@ -12222,6 +12227,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const periods = days / INTERVAL_DAYS[index], whole = Math.round(periods);
         return (index === "year1" || index === "year10") && whole > 0 && Math.abs(periods - whole) < 1e-9;
       };
+      /** Whether a formula's calendar-total differences (flow) can be read at an interval (see flowFits). @param {string} formula @param {string} index */
+      const flowsAt = (formula, index) => windowsOf(formula).every(({ days, flow }) => !flow || flowFits(days, index));
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
       const spanDays = (/** @type {string} */ span) => {
@@ -12452,7 +12459,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [, sign, digits, letter] = /^(−?)([\d.]+(?:e[-+]?\d+)?)([A-Z]?)/.exec(label) ?? [];
         return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
       }
-      const fractions = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
+      /** Four significant digits, as written (decimal rounding: 823.05 is 823.1), no grouping: precise's figures under a thousand. */
+      const figures = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
       /** The usual width budget of a numeric reading, sign and suffix aside. */
       const PRECISE = "0.000000", FRACTION_WIDTH = 12;
       /**
@@ -12466,16 +12474,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (known !== undefined) return known;
         if (axisLabels.size > 4000) axisLabels.clear();
         const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
-        // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
-        const digits = (/** @type {number} */ n) => n < 1 ? fractions.format(n) : String(Number(n.toPrecision(4)));
         // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
         const lettered = (/** @type {number} */ n) => {
           let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), value = n / 1000 ** tier;
-          if (Number(value.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (value /= 1000);
-          return `${digits(value)}${SI[tier]}`;
+          if (Number(figures.format(value)) >= 1000 && tier < SI.length - 1) (tier++), (value /= 1000);
+          return `${figures.format(value)}${SI[tier]}`;
         };
         // (Each threshold by the value as written: 999,999.6 is a million.)
-        const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
+        const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : figures.format(abs);
         // (Small fractions keep their decimal places; larger figures stay within PRECISE, sign and suffix aside.)
         const budget = abs < 1 ? FRACTION_WIDTH : PRECISE.length;
         const fit = text.length <= budget ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
@@ -14288,23 +14294,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
-       * its JIT: 180 ms of it, in a launch's first seconds); without one, it failing or silent for two seconds, here in
-       * small tasks. Then charts saved without paths get theirs (and survive renames). What needs it synchronously
-       * (a search, a series added) finishes the same walk here at once. The open chart draws without waiting: one framed
-       * without the roles it reads is built again once they're in (see framedBlind); background pictures wait for either
-       * answer (see framingReady).
+       * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
+       * page is idle. Then charts saved without paths get theirs (and survive renames), and what waited for the series'
+       * roles is done again (see rolesWanted). What needs it before (a search, a series added) has the rest done here at
+       * once, never waiting on the worker or an idle moment: a hidden tab's are throttled (to one a minute, after five
+       * minutes hidden).
        */
       const indexCatalog = (() => {
         const walk = catalogWalk(tree, INTERVAL_ORDER);
-        let watchdog = 0, failure = false, source = "";
-        let worker = /** @type {Worker | null} */ (null);
-        let local = /** @type {MessageChannel | null} */ (null);
-        const finish = () => {
-          clearTimeout(watchdog);
-          if (worker) worker.terminate(), (worker = null);
-          if (source) URL.revokeObjectURL(source), (source = "");
-          if (local) local.port1.close(), local.port2.close(), (local = null);
-        };
         /** What it found, the catalog's: the first to come, the worker's or the page's own. */
         const take = (/** @type {{ index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string>, cumulative: Set<string> }} */ found) => {
           if (catalogIndex) return;
@@ -14312,12 +14309,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           cumulativeSeries = found.cumulative;
           for (const name of found.byBlock) byBlock.add(name);
           for (const name of found.sharedTops) sharedTops.add(name);
-          finish();
-          catalogReady.resolve(undefined);
-          if (framedBlind) (framedBlind = false), redrawChart(true);
           seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
           whenIdle(ranksSoon);
+          // (What waited for its roles, done again with them.)
+          const wanted = [...rolesWanted];
+          rolesWanted.clear();
+          for (const again of wanted) again();
           // (After what asked for it: its work isn't held up, nor failed, by this.)
           queueMicrotask(() => {
             // (Saved if that learned anything: a series' path, a formula's.)
@@ -14328,40 +14326,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         /** Walked here while `more` says (it's told how many nodes so far). */
         const run = (/** @type {(done: number) => boolean} */ more) => {
-          if (failure) return;
-          try {
-            for (let done = 0; !catalogIndex && more(done); done++) {
-              const step = walk.next();
-              if (step.done) return take(step.value);
-            }
-          } catch (error) {
-            failure = true;
-            finish();
-            // Numeric data remains usable without inferred roles; explicit fitting still works.
-            catalogReady.resolve(undefined);
-            console.warn("Series catalog unavailable", error);
+          for (let done = 0; !catalogIndex && more(done); done++) {
+            const step = walk.next();
+            if (step.done) return take(step.value);
           }
         };
-        // A failed or silent worker uses the same walk in small tasks. Message delivery keeps progressing in hidden
-        // tabs too, where idle callbacks can be suspended. Its ports and watchdog close as soon as either walk finishes.
         const here = () => {
-          if (catalogIndex || local || failure) return;
-          const channel = local = new MessageChannel();
-          channel.port1.onmessage = () => {
-            const until = performance.now() + 8;
-            run((done) => done < 400 || performance.now() < until);
-            if (local) channel.port2.postMessage(null);
+          const step = (/** @type {{ timeRemaining: () => number }} */ deadline) => {
+            // (At least a few hundred nodes a turn: an idle callback timed out has no time left, and would never go on.)
+            run((done) => deadline.timeRemaining() > 1 || done < 400);
+            if (!catalogIndex) whenIdle(step);
           };
-          channel.port2.postMessage(null);
+          whenIdle(step, { timeout: 3000 });
         };
-        watchdog = setTimeout(here, 2000);
         const clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
-        source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
+        const source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
         try {
-          worker = new Worker(source, { type: "module" });
+          const worker = new Worker(source, { type: "module" }), done = () => (worker.terminate(), URL.revokeObjectURL(source));
           // (Its answer unread (an error, one that can't be delivered or read): walked here, as without one.)
           worker.onmessage = ({ data }) => {
-            finish();
+            done();
             let found = null;
             try {
               const [index, block, shared, cumulative] = JSON.parse(data.text);
@@ -14369,9 +14353,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             } catch {}
             found ? take(found) : here();
           };
-          worker.onerror = worker.onmessageerror = () => (finish(), here());
+          worker.onerror = worker.onmessageerror = () => (done(), here());
         } catch {
-          finish();
+          URL.revokeObjectURL(source);
           here();
         }
         return () => run(() => true);
@@ -17417,7 +17401,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         endScaleGlide();
         // (What the live price paints its colors from: this, whatever builds it, a restyle and a preview too.)
         drawnDoc = doc;
-        framedBlind = !framingKnown(doc);
+        if (!framingKnown(doc)) rolesWanted.add(reframe);
         // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
         if (drawnChart !== doc.id || drawnIndex !== doc.index) crossSet ? dropCross() : keyAway();
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
@@ -20575,7 +20559,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return windows;
       }
       /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
-      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two, flow }) => (!flow || flowFits(days, id)) && (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
+      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => flowsAt(formula, id) && windowsOf(formula).every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
       /**
        * Why formulas a click adds can't be computed at the chart's interval, if they can't: the intervals they can be
        * (the chart stays where it's put). @param {string[]} formulas
@@ -24297,7 +24281,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** A chart's mini chart drawn again where it's out of date, its marks with it (its row's, its legends'): whether it was. @param {Chart} doc */
       async function freshThumb(doc) {
-        if (!await framingReady(doc)) return false;
+        if (!framingKnown(doc)) return rolesWanted.add(drawThumbs), false;
         // A background card must not load hidden data while its chart is open. The library draws it on return.
         if (doc.id === chart?.id && !home && seriesIn(doc).some(name => !asked(name, doc))) return false;
         const key = thumbKey(doc), failed = thumbsFailed.get(doc.id);
@@ -27533,7 +27517,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetMarksAsked.delete(i);
           if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
           const doc = presetDoc(i);
-          if (!await framingReady(doc)) continue;
+          if (!framingKnown(doc)) {
+            rolesWanted.add(() => (presetMarksAsked.add(i), drawPresetMarks()));
+            continue;
+          }
           const key = presetMarkKey(i);
           const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : NO_MARK;
           if (!drawing) continue;
@@ -37522,7 +37509,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The intervals every series the chart reads has (those known so far). */
       function supportedIntervals(/** @type {Chart} */ doc = chart) {
         const lists = seriesIn(doc).map((name) => known.get(name)?.indexes).filter(Boolean), formulas = doc.layers.flatMap((layer) => layer.formula ? [layer.formula] : []);
-        return (id) => doc.layers.every((layer) => intervalFits(layer.maxInterval, id)) && lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => windowsOf(formula).every(({ days, flow }) => !flow || flowFits(days, id)));
+        return (id) => doc.layers.every((layer) => intervalFits(layer.maxInterval, id)) && lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => flowsAt(formula, id));
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
