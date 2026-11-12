@@ -11108,7 +11108,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Studio's chart library: bitview-charts.)
       import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid, Profile } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-      import { addressSteps } from "/studio/addresses.js";
+      import { addressSteps, placeShown } from "/studio/addresses.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -25201,7 +25201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderSideNav();
       }
       /** The page's name, where it is: a folder's, the Library's, the previews', Recent's, a section's, the presets'; at the top, Home. */
-      const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? "Library" : "previews" in homeAt ? "Previews" : "recent" in homeAt ? "Recent" : "path" in homeAt ? homeAt.path.at(-1) ?? "Presets" : "Home");
+      const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? "Library" : "previews" in homeAt ? "Previews" : "recent" in homeAt ? "Recent" : "path" in homeAt ? placeNames(homeAt.path).at(-1) ?? "Presets" : "Home");
       /** @typedef {{ name: string, at: Place }} Step */
       /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
       function crumbsHtml(steps) {
@@ -25216,7 +25216,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const group = (/** @type {Group} */ name) => ({ name: GROUP_OF[name][0], at: GROUP_OF[name][1] });
         if ("previews" in place) return [group("previews")];
         if ("recent" in place) return [group("recent")];
-        if ("path" in place) return [group("presets"), ...place.path.map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
+        if ("path" in place) return [group("presets"), ...placeNames(place.path).map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
         if (!("folder" in place)) return [];
         const folder = folderById(place.folder);
         return [group("library"), ...(folder ? [...foldersAbove(folder), folder] : []).map((step) => ({ name: step.name, at: { folder: step.id } }))];
@@ -25271,7 +25271,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const inside = "path" in place
           ? (presetNodeAt(place.path)?.items ?? []).map((item) => (typeof item === "number"
             ? { group: at, icon: presetMark(item), label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(keptPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
-            : { group: at, ...page({ name: /** @type {string} */ (item.path.at(-1)), at: { path: item.path } }) }))
+            : { group: at, ...page({ name: item.name, at: { path: item.path } }) }))
           : "folder" in place ? childrenOf(place.folder || undefined).map((item) => ("layers" in item ? doc(item) : { group: at, ...page({ name: item.name, at: { folder: item.id } }) }))
           : listedPreviews().map(doc);
         // (Its presets' marks not drawn yet, drawn now, as the sidebar's rows in sight are.)
@@ -25713,7 +25713,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           galleryFound = count;
           // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
           const elsewhere = count || !path.length ? 0 : (presetsMatching(words, 0), presetsCounted);
-          $("gallery").innerHTML = (count ? presetGridHtml(found, count) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
+          $("gallery").innerHTML = (count ? presetGridHtml(found, count) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (placeNames(path).at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
         } else if (again) {
           // (Kept, not written again: at its shelves' starts, as a page come to is (Back puts them where they were, see
           // popstate).)
@@ -25732,7 +25732,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("gallery").innerHTML = [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
             ...(own.length ? [presetGridHtml(own)] : []),
-            ...[...groups].map(([name, list]) => shelfHtml(name, list, [...path, name])),
+            ...[...groups].map(([name, list]) => shelfHtml(/** @type {string} */ (placeNames([...path, name]).at(-1)), list, [...path, name])),
           ].join("");
         }
         if (kept) placeGallery(kept);
@@ -27315,8 +27315,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
-       * own presets, in the presets' order), how many it holds at any depth, its key (its path, as kept).
-       * @typedef {{ path: string[], key: string, items: (PresetNode | number)[], count: number, icon?: string }} PresetNode
+       * own presets, in the presets' order), how many it holds at any depth, its key (its path, as kept), its name as
+       * shown (see placeShown).
+       * @typedef {{ path: string[], key: string, name: string, items: (PresetNode | number)[], count: number, icon?: string }} PresetNode
        */
       let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
       /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
@@ -27327,7 +27328,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTree() {
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
-        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", items: [], count: 0 }), byKey = new Map([[root.key, root]]);
+        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", items: [], count: 0 }), byKey = new Map([[root.key, root]]);
         presets.forEach((preset, i) => {
           let node = root;
           node.count++;
@@ -27336,7 +27337,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             let next = byKey.get(key);
             if (!next) {
               // (A top section's icon, on its first preset: see presets.js.)
-              next = { path, key, items: [], count: 0, ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
+              next = { path, key, name: placeShown(preset)[depth], items: [], count: 0, ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
               byKey.set(key, next);
               node.items.push(next);
             }
@@ -27353,6 +27354,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let node = presetTree() ?? undefined;
         for (const name of path) node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name));
         return node;
+      }
+      /** A place's steps as shown (see placeShown); their names till the presets are read. @param {string[]} path */
+      function placeNames(path) {
+        return path.map((name, k) => presetNodeAt(path.slice(0, k + 1))?.name ?? name);
       }
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
@@ -27442,11 +27447,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!depth) continue;
               // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
               const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-              const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (preset.p.at(-1)));
+              const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (placeShown(preset).at(-1)));
               parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
               continue;
             }
-            const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
+            const section = item, shown = open.has(section.key), name = section.name, key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.count)}</span></button>
               <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ path: section.path }))}" aria-label="View ${escape(name)}" data-tip="View">${ICONS.arrowRight}</button>
@@ -28954,7 +28959,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A preset (presets.js makes them): `p` its place in their tree (its sections, then its own name), `t` its title, `c`
        * its chart as a link writes it.
-       * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], range?: string }, s?: string }} Preset
+       * @typedef {{ p: string[], l?: string[], t: string, c: { layers: any[], panes?: any[], range?: string }, s?: string }} Preset
        */
       /** The presets the empty chart offers first, by their place (seo.mjs checks each is one). */
       const RECOMMENDED = [
@@ -29104,12 +29109,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
           await aFrame();
           presets = list;
-          presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          presetWords = list.map((preset) => [preset.t, ...preset.p, ...(preset.l ?? [])].join(" ").toLowerCase());
           // (Their words each once, for a slip in a search (see slipsOf), and their charts' ids (see presetById), gathered
           // meanwhile: no keystroke, no way back to the grid, waits for them.)
           whenIdle(vocabNow);
           whenIdle(idsNow);
-          presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
+          presetTitles = list.map((preset) => ((title) => ({ title, name: placeShown(preset).at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
           presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
           const starts = new Int32Array(Math.max(0, ...presetRank) + 2);
@@ -29322,9 +29327,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
         const as = `${address}|${home}|${i >= 0 ? chart.updated : ""}|${presets?.length ?? 0}`;
         const said = as === saidFor ? saidThen : i >= 0 && presets
-          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
+          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${placeShown(presets[i]).slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
           : path && !path.length ? "Thousands of ready-made charts of Bitcoin's on-chain data: market, network, mining, distribution, investing and more. Open one, change it and share it in Bitview Studio, free in the browser."
-          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${path.join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((at) => [...at.groups.keys(), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
+          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${placeNames(path).join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((at) => [...[...at.groups.keys()].map((name) => /** @type {string} */ (placeNames([...path, name]).at(-1))), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
           : DESCRIPTION;
         saidFor = as;
         saidThen = said;
@@ -29850,12 +29855,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
           // (Its mark as the sidebar's, drawn once its row's in sight (see paletteMarksSeen); the presets' icon till then.)
-          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: placeShown(preset).slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
             const doc = presetDoc(i);
-            panel.innerHTML = `<h4 class="plain">${escape(title)}</h4><p class="description">${escape(preset.p.slice(0, -1).join(" › "))}</p>
+            panel.innerHTML = `<h4 class="plain">${escape(title)}</h4><p class="description">${escape(placeShown(preset).slice(0, -1).join(" › "))}</p>
               ${plotIn(doc, previewIndex(doc))}<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers)}</dl></div>`;
           },
         };
@@ -29870,11 +29875,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         void loadPresets().catch(() => {});
         /** @type {Page} */
         const page = {
-          title: path.at(-1) ?? "Presets",
+          title: placeNames(path).at(-1) ?? "Presets",
           // (Its rows are its search's, best first. Of no chart: ⌘K comes back to it whichever's open.)
           searches: true,
           global: true,
-          placeholder: path.length ? `Search in ${path.at(-1)}` : "Search the presets",
+          placeholder: path.length ? `Search in ${placeNames(path).at(-1)}` : "Search the presets",
           rows: () => {
             if (!presets) return [presetsFailed
               ? { kind: "row", key: "presets-retry", icon: ICONS.recent, label: "The presets couldn't be read", aside: "Try again", verb: "Retry", stay: true, run: retryPresets }
@@ -29882,15 +29887,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
             const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
             if (words.length) return presetsMatching(words, 300, under).map((i) => presetRow(i, true));
-            const rows = [], counts = new Map();
-            list.forEach((preset, i) => {
-              if (!under(i)) return;
-              if (preset.p.length === path.length + 1) return void rows.push(presetRow(i));
-              const name = preset.p[path.length];
-              if (!counts.has(name)) rows.push({ kind: "row", key: `group:${name}`, icon: sectionMark(presetNodeAt([...path, name])), label: name, verb: "Open", page: () => presetsPage([...path, name]) });
-              counts.set(name, (counts.get(name) ?? 0) + 1);
-            });
-            for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
+            // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
+            const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.count, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
             // screen of them.)
             return [viewRow({ path }), ...(path.length ? [] : [{ kind: "row", key: "group:recommended", icon: ICONS.folder, label: "Recommended", aside: plural(recommendedPresets().length, "chart"), verb: "Open", page: recommendedPage }]), ...rows];
@@ -35369,7 +35367,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function previewChart(panel, doc) {
         if (!doc) return void (panel.innerHTML = "");
         // (Its edit's time; a preset not edited, where it is.)
-        const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${/** @type {Preset[]} */ (presets)[at].p.slice(0, -1).join(" › ")}` : "";
+        const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${placeShown(/** @type {Preset[]} */ (presets)[at]).slice(0, -1).join(" › ")}` : "";
         panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${[plural(doc.layers.length, "layer"), CADENCE[doc.index], where].filter(Boolean).map(escape).join(" · ")}</p>
           ${plotIn(doc)}${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers.slice(0, 10))}</dl></div>` : ""}`;
       }
@@ -39490,8 +39488,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           ...node.items.map((each) => (typeof each === "number"
             // (By its own name, as its row: retitled here, by that.)
-            ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : /** @type {string} */ (all[each].p.at(-1))))(keptPreset(each)), run: () => pickPreset(each) }
-            : { key: each.key, icon: sectionMark(each), label: /** @type {string} */ (each.path.at(-1)), aside: shortCount(each.count), marked: holding.includes(each.key), page: () => ({ title: /** @type {string} */ (each.path.at(-1)), heading: true, rows: () => sectionFlyout(each.key) }) })),
+            ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : /** @type {string} */ (placeShown(all[each]).at(-1))))(keptPreset(each)), run: () => pickPreset(each) }
+            : { key: each.key, icon: sectionMark(each), label: each.name, aside: shortCount(each.count), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
           { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
         ];
       }
@@ -40679,7 +40677,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (quick?.key === key && $("quick").matches(":popover-open")) return;
         quick = { key };
         $("quick-name").textContent = look ? titleOf(look.doc) : "";
-        $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${/** @type {Preset[]} */ (presets)[look.i].p.slice(0, -1).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${folderPath(look.doc.folder)}` : "Library";
+        $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${placeShown(/** @type {Preset[]} */ (presets)[look.i]).slice(0, -1).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${folderPath(look.doc.folder)}` : "Library";
         $("quick-none").hidden = Boolean(look);
         /** @type {HTMLElement} */ ($("quick").querySelector("[data-quick-open]")).hidden = !look;
         const frame = $("quick-picture");

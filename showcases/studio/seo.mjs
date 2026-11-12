@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "./addresses.js";
+import { addressesOf, placeShown } from "./addresses.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
@@ -45,9 +45,10 @@ const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)
   .replace(/\n\n(?=- )/g, "\n");
 // (Its presets' sections, two levels down, each at its address with how many charts it holds: where to send someone
 // asking for one; the charts themselves, in the sitemap.)
-const held = new Map();
-for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => held.set(key, (held.get(key) ?? 0) + 1))(JSON.stringify(preset.p.slice(0, depth)));
-const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${JSON.parse(key).at(-1)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
+// (Each by its name as shown: its label, where it has one; see presets.js.)
+const held = new Map(), shown = new Map();
+for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => (held.set(key, (held.get(key) ?? 0) + 1), shown.set(key, placeShown(preset)[depth - 1])))(JSON.stringify(preset.p.slice(0, depth)));
+const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${shown.get(key)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const urls = ["/", ...book.sections.values(), ...book.presets];

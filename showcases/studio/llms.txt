@@ -122,7 +122,7 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Entry price (100): https://bitview.space/studio/presets/holders/entry-price/
 - Coin age (3078): https://bitview.space/studio/presets/coin-age/
   - Age bands (963): https://bitview.space/studio/presets/coin-age/age-bands/
-  - Over an age (645): https://bitview.space/studio/presets/coin-age/over-an-age/
+  - At least an age (645): https://bitview.space/studio/presets/coin-age/over-an-age/
   - Under an age (718): https://bitview.space/studio/presets/coin-age/under-an-age/
   - Halving epochs (187): https://bitview.space/studio/presets/coin-age/halving-epochs/
   - Vintages (564): https://bitview.space/studio/presets/coin-age/vintages/
@@ -132,7 +132,7 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/
 - UTXOs (1207): https://bitview.space/studio/presets/utxos/
   - By amount (337): https://bitview.space/studio/presets/utxos/by-amount/
-  - Over an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
+  - At least an amount (310): https://bitview.space/studio/presets/utxos/over-an-amount/
   - Under an amount (310): https://bitview.space/studio/presets/utxos/under-an-amount/
   - By type (249): https://bitview.space/studio/presets/utxos/by-type/
 - Addresses (1138): https://bitview.space/studio/presets/addresses/
@@ -144,7 +144,7 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/
   - By balance (324): https://bitview.space/studio/presets/addresses/by-balance/
-  - Over a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
+  - At least a balance (296): https://bitview.space/studio/presets/addresses/over-a-balance/
   - Under a balance (296): https://bitview.space/studio/presets/addresses/under-a-balance/
 - Mining (988): https://bitview.space/studio/presets/mining/
   - Hashing (6): https://bitview.space/studio/presets/mining/hashing/
