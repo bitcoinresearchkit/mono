@@ -244,13 +244,13 @@ export class Chart {
   /**
    * The view: logical indices, fractions allowed. As wide as it is (a page's own pan: its glide, its navigator's drag),
    * moved as a pan is, by whole pixels (the rest kept): the panes' pictures moved, not drawn again. An effective change stops momentum.
-   * @param {number} from @param {number} to
+   * @param {number} from @param {number} to @param {{ exact?: boolean }} [options]
    */
-  setRange(from, to) {
-    const time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
+  setRange(from, to, options) {
+    const exact = options?.exact === true, time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
     // (From where it truly is: its kept part of a pixel counted once.)
-    if (time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
-    else time.setRange(from, to);
+    if (!exact && time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
+    else time.setRange(from, to, options);
     this.#stopIfChanged(wasFrom, wasTo);
     if (this.placed) this.placed = "range";
     this.invalidate();

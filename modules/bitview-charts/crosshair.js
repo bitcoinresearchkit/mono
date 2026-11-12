@@ -7,7 +7,7 @@
 import { kept } from "./format.js";
 import { Line, FAINT } from "./line.js";
 import { inkOn, painted } from "./color.js";
-import { pill } from "./tags.js";
+import { pill, PILL } from "./tags.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -155,28 +155,31 @@ export class Crosshair {
     }
     g.font = theme.font;
     g.textBaseline = "middle";
+    // (Its badges kept on its canvas, read once a draw: a long one slid in, not cut at an edge.)
+    const t = g.getTransform(), within = /** @type {const} */ ([-t.e / t.a, (g.canvas.width - t.e) / t.a]);
     // (Its value on its pane's axis, over its tags (none hidden by it: each still read beside it). Written as nothing (a
     // page's writer for a pane showing nothing): no badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       const value = pane.scale.value(this.y - pane.top), words = pane.axisLabel(value, pane.scale, pane.stepAt(value));
-      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left");
+      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left", PILL, "", within);
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
-      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right");
+      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, "", within);
     }
     // (Its date on the time axis, its point's; past the last, as the points' step goes on.)
     const times = time.times, k = Math.round(i), at = time.timeAt(k);
     if (at === at && x >= 0 && x <= plot) {
       // (Points less than a day apart (the last one's from the one before it): its time too.)
       const n = times.length, fine = n > 1 && (k < n - 1 ? times[k + 1] - times[k] : times[n - 1] - times[n - 2]) < DAY;
-      const words = (fine ? this.fine : this.day)(at), half = g.measureText(words).width / 2 + 6;
+      // (Its middle where it's drawn: at the point, slid in from an edge.)
+      const words = (fine ? this.fine : this.day)(at), half = g.measureText(words).width / 2 + 6, middle = Math.max(within[0] + half, Math.min(x, within[1] - half));
       // (The time axis' labels it touches covered with the ground: none shows cut beside it, as none shows under a tag.)
       g.fillStyle = theme.background;
       for (let n = 0; n < axis.drawnCount; n++) {
         const at = axis.drawnX[n], reach = g.measureText(axis.drawnWords[n]).width / 2 + 2;
-        if (Math.abs(at - x) < half + reach) g.fillRect(at - reach, room, 2 * reach, axis.height);
+        if (Math.abs(at - middle) < half + reach) g.fillRect(at - reach, room, 2 * reach, axis.height);
       }
-      pill(g, words, theme.badge, inkOn(theme.badge), x, room + 13, "center");
+      pill(g, words, theme.badge, inkOn(theme.badge), middle, room + 13, "center");
     }
   }
 }

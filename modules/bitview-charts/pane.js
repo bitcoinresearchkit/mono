@@ -741,8 +741,8 @@ export class Pane {
     if (moves || stretches) {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
-      const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      const first = Math.max(0, time.firstVisible);
+      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || first > this.tagsFrom || first <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -775,7 +775,7 @@ export class Pane {
         this.drawnTags[1].lines.length = 0;
       }
     }
-    this.axesEnd = Math.ceil(time.to);
+    this.axesEnd = time.lastVisible;
   }
 
   /** Whether it has a tag shown that may read the view (a line's, with one; a page's own, asked each time: its axis tags). */
@@ -919,16 +919,17 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it counted (as the chart library's were:
-   * they read the view's end, its strict range's, as a pan moves it (a price line's tag too: its line alone at its last
-   * of all); one with nothing in view, none),
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view
+   * (a price line's tag too: its line alone at its last of all); one with nothing in view, none,
    * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
    * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
    * the pane; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.ceil(time.to);
+    // (Two questions, two points: a relative scale's base, the first point drawn, partly in view as its line runs in
+    // (see #from, as the fit and the ticks read it); a tag's reading, the last whose center is in view (see lastVisible).)
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), first = Math.max(0, time.firstVisible), lines = this.tagLines, end = time.lastVisible;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
@@ -937,8 +938,8 @@ export class Pane {
       // (On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1, i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view.)
-      if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
-      if (i < from || !base || base !== base) continue;
+      if (i >= 0 && i < first && i > this.tagsOut) this.tagsOut = i;
+      if (i < first || !base || base !== base) continue;
       if (i < this.tagsFrom) this.tagsFrom = i;
       // (Its color there see-through: no tag, nor its room.)
       if (!painted(line.colorAt(i))) continue;
