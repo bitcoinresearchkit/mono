@@ -137,9 +137,9 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - By type (249): https://bitview.space/studio/presets/utxos/by-type/
 - Addresses (1138): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
-  - Reused (13): https://bitview.space/studio/presets/addresses/reused/
-  - Respent (11): https://bitview.space/studio/presets/addresses/respent/
-  - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
+  - Reused addresses (13): https://bitview.space/studio/presets/addresses/reused/
+  - Addresses with more than one spent output (11): https://bitview.space/studio/presets/addresses/respent/
+  - Addresses with exposed keys or scripts (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/

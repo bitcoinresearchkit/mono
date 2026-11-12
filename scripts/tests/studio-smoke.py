@@ -32,7 +32,9 @@ SERVED = {
     "/studio/index.html": "index.html",
     "/studio/presets.js": "presets.js",
     "/studio/palette.js": "palette.js",
-    "/studio/holders.js": "holders.js",
+    "/studio/words.js": "words.js",
+    "/studio/facts.js": "facts.js",
+    "/studio/presets.hash": "presets.hash",
     "/studio/chain-statistics.js": "chain-statistics.js",
     "/studio/addresses.js": "addresses.js",
 }
