@@ -1,10 +1,11 @@
 #![doc = include_str!("../README.md")]
 
-use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
+use std::{backtrace::Backtrace, env, io, panic, path::Path};
 
 use format::Formatter;
 use hook::HookLayer;
 use rate_limit::RateLimitedFile;
+use retention::delete_old_daily;
 pub use rate_limit::{LEVEL_NAMES, log_file_date};
 use tail::TailLayer;
 pub use tail::{Line, Recent, recent, started};
@@ -19,16 +20,15 @@ use tracing_subscriber::{
 mod format;
 mod hook;
 mod rate_limit;
+mod retention;
 mod tail;
-
-const MAX_LOG_AGE_DAYS: u64 = 7;
 
 /// Initialize the global tracing subscriber with a colorized console layer.
 ///
 /// If `dir` is `Some`, also writes daily log files to that directory:
 /// `YYYY-MM-DD.txt` for the combined log and `YYYY-MM-DD_<level>.txt` for each
 /// tracing level. The directory is created if it does not exist, and those
-/// files older than 7 days are pruned on startup.
+/// files older than 7 days are deleted at start, then once a day.
 pub fn init(dir: Option<&Path>) -> io::Result<()> {
     init_with_default_level(
         dir,
@@ -93,9 +93,6 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
 
     if let Some(dir) = dir {
         let writer = RateLimitedFile::new(dir)?;
-
-        cleanup_old_logs(dir);
-
         registry
             .with(
                 fmt::layer()
@@ -103,6 +100,7 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
                     .with_writer(writer),
             )
             .init();
+        delete_old_daily(dir);
     } else {
         registry.init();
     }
@@ -132,29 +130,4 @@ where
     F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,
 {
     hook::register(hook)
-}
-
-fn cleanup_old_logs(dir: &Path) {
-    let max_age = Duration::from_secs(MAX_LOG_AGE_DAYS * 24 * 60 * 60);
-    let Ok(entries) = fs::read_dir(dir) else {
-        return;
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if log_file_date(name).is_none() {
-            continue;
-        }
-
-        if let Ok(meta) = path.metadata()
-            && let Ok(modified) = meta.modified()
-            && let Ok(age) = modified.elapsed()
-            && age > max_age
-        {
-            let _ = fs::remove_file(&path);
-        }
-    }
 }

@@ -4,8 +4,9 @@ Tracing setup: colorized console output with local timestamps, plus optional dai
 
 With a directory, `init` also writes `YYYY-MM-DD.txt` (combined) and `YYYY-MM-DD_<level>.txt`
 files into it. Each level admits at most 100 writes per second, so a chatty level cannot starve
-the others; the combined file gets exactly the admitted writes. On startup, log files modified more
-than seven days ago are removed.
+the others; the combined file gets exactly the admitted writes. Log files modified more than seven
+days ago are removed at start, then once a day by a thread of their own, so however long a process
+runs, busy or quiet, it keeps about a week of them.
 
 Default filters turn off bitcoin, corepc, tracing, aide, fjall, lsm_tree and tower_http, and limit
 rmcp to warnings. `register_hook` installs the process's single hook, which receives every event

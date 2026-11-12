@@ -102,7 +102,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - A build from the repository reports the commit it was built from (`/version`, `/health`, ETags; was the crate's
   version), a crates.io release its version; the OpenAPI document keeps the release's version
 - The website answers a page's old address with a permanent redirect to its new one, the query kept
-  (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`)
+  (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`); `/charts` and every address under it
+  go to `/studio/`
+- An address nothing names stays a 404 for every caller, and a browser (`Accept` listing `text/html`) now gets a
+  not-found page linking the front page and Studio, where it got the API's JSON problem; other callers get the problem
+  as before. Both answers are `no-store`, as they depend on `Accept`
 - MCP: the server's icon is Bitview's app icon, and a link to its pages previews them, each named and described
 - A block's `orphans` list the stale blocks at its height that the server's node knows (`getchaintips`, every block of
   each fork, refreshed with each new block), as mempool.space does; `status` is `valid-fork` or `valid-headers`
@@ -143,6 +147,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Log files older than seven days are deleted every day while the server runs, not only when it starts
 - BIP-47 notifications are an OP_RETURN protocol of their own; VeriBlock, guessed from an 82-byte length, counted
   them
 - A key in hybrid encoding (65 bytes opening 0x06 or 0x07), which consensus takes, is a key: a P2PK or P2MS output
