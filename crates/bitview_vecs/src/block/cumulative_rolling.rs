@@ -22,6 +22,7 @@ where
     Op: Clone + 'static,
 {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyPreviousDeltaVec<Height, T>,
     #[deref]
     #[deref_mut]

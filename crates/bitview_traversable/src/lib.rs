@@ -30,7 +30,7 @@ use vecdb::ZstdVec;
 mod compact;
 
 pub use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeBranch, TreeNode};
-pub use bitview_primitives::Index;
+pub use bitview_primitives::{Accumulation, Index};
 pub use compact::Compact;
 pub use indexmap::IndexMap;
 pub use vecdb::{AnyExportableVec, AnyStoredVec, ReadOnlyClone, Ro, Rw, StorageMode};
@@ -44,6 +44,35 @@ pub use bitview_traversable_derive::Traversable;
 pub enum Fragment {
     Lead(&'static str),
     Detail(&'static str),
+}
+
+/// A piece of a series' metadata, from a field on its path: a piece of its description, or an
+/// accumulation (`#[traversable(accumulation = Flow)]`), the nearest one on its path the
+/// series' own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MetadataFragment {
+    Description(Fragment),
+    Accumulation(Accumulation),
+}
+
+/// A series' metadata fragments, apart: its description's, in path order, and its accumulation,
+/// the one declared nearest it ([`Accumulation::UNDECLARED`] if none is).
+pub fn split_metadata(fragments: &[MetadataFragment]) -> (Vec<Fragment>, Accumulation) {
+    let mut description = Vec::with_capacity(fragments.len());
+    let mut accumulation = Accumulation::UNDECLARED;
+    for &fragment in fragments {
+        match fragment {
+            MetadataFragment::Description(fragment) => description.push(fragment),
+            MetadataFragment::Accumulation(declared) => accumulation = declared,
+        }
+    }
+    (description, accumulation)
+}
+
+/// Whether two paths give a series the same metadata: the same accumulation may be declared at
+/// another depth, or be the undeclared one by name.
+pub fn same_metadata(a: &[MetadataFragment], b: &[MetadataFragment]) -> bool {
+    split_metadata(a) == split_metadata(b)
 }
 
 /// Whether Markdown text starts a block of its own (a list's item, a quote, a table's row, a
@@ -105,26 +134,26 @@ pub trait Traversable {
         iter::empty()
     }
 
-    /// Collects public series description fragments from documented field paths.
-    fn collect_series_descriptions<'a>(
+    /// Collects each public series' metadata fragments (its description's and accumulation) from
+    /// its field path.
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
+        path_fragments: &mut Vec<MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<MetadataFragment>>,
     ) {
-        if description_fragments.is_empty() {
+        if path_fragments.is_empty() {
             return;
         }
 
         for vec in self.iter_any_visible() {
-            match descriptions.entry(vec.name()) {
+            match metadata.entry(vec.name()) {
                 Entry::Vacant(entry) => {
-                    entry.insert(description_fragments.clone());
+                    entry.insert(path_fragments.clone());
                 }
                 Entry::Occupied(entry) => {
-                    debug_assert_eq!(
-                        entry.get(),
-                        description_fragments,
-                        "Conflicting descriptions for series {}",
+                    debug_assert!(
+                        same_metadata(entry.get(), path_fragments),
+                        "Conflicting metadata for series {}",
                         entry.key()
                     );
                 }
@@ -309,12 +338,12 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
         (**self).iter_any_stored_mut()
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
+        path_fragments: &mut Vec<MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<MetadataFragment>>,
     ) {
-        (**self).collect_series_descriptions(description_fragments, descriptions);
+        (**self).collect_series_metadata(path_fragments, metadata);
     }
 }
 
@@ -340,13 +369,13 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
             .flat_map(|value| value.iter_any_stored_mut())
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
+        path_fragments: &mut Vec<MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<MetadataFragment>>,
     ) {
         for value in self.values() {
-            value.collect_series_descriptions(description_fragments, descriptions);
+            value.collect_series_metadata(path_fragments, metadata);
         }
     }
 }

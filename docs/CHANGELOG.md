@@ -10,6 +10,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- `bitview_traversable`: `Traversable::collect_series_descriptions` is `collect_series_metadata`, and
+  `bitview_plugin`'s `PluginData::collect_descriptions` is `collect_metadata`: they collect `MetadataFragment`s, a
+  description's `Fragment` or a series' accumulation, which `split_metadata` sets apart
 - MCP: a tool that can answer with anything but a JSON object no longer declares an output schema or returns
   `structuredContent`; it answers as text. Before protocol `2026-07-28` an output schema must be an object, and strict
   clients rejected the whole tool list
@@ -69,6 +72,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- Series metadata has an `accumulation`, how values combine over time: a `flow` sums over a window, a `level` is read
+  at a point, and a `cumulative` series is already a running total, its flow the difference. `GET /api/series/{series}`,
+  the MCP's `get_series_info` and the clients' `SeriesInfo` carry it, so a reader no longer guesses it from the id.
+  Each series' accumulation is declared where it is defined (`#[traversable(accumulation = Flow)]` on its
+  field)
 - Every one of mainnet.observer's 127 charts and tables has its series (136 new ones, and BIP-47's own as an OP_RETURN
   protocol), each with the forms of its family, all read from one stored running total: the block's own, the total
   from block 0, and its sums over 24 hours, a week, a month and a year. A count that is 0 or 1 a block has no block's

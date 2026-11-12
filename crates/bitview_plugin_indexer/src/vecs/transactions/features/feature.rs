@@ -13,6 +13,7 @@ pub struct FeatureVecs<M: StorageMode = Rw> {
     /// Whether the transaction is one of them.
     pub flag: M::Stored<PcoVec<TxIndex, Boolean>>,
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: BlockCount<M>,
 }
 
@@ -36,6 +37,7 @@ impl FeatureVecs {
 #[derive(Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: BlockCount<M>,
 }
 

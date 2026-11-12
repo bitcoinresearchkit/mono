@@ -2,6 +2,11 @@
 // Do not edit manually
 
 /**
+ * How a series' values combine over time.
+ *
+ * @typedef {(("flow")|("level")|("cumulative"))} Accumulation
+ */
+/**
  * Bitcoin address, or the hex public key of a P2PK output.
  *
  * @typedef {string} Address
@@ -1324,6 +1329,7 @@
  *   undefined one (e.g. NaN)
  * @property {string} type - Value type (e.g. "Ratio", "Sats", "Cents")
  * @property {?string=} unit - What the value type measures, when documented (e.g. "A duration in days.")
+ * @property {Accumulation} accumulation - How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
  */
 /**
  * Series leaf with JSON Schema for client generation.
@@ -8707,7 +8713,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Get series info
    *
-   * Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+   * Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
    *
    * Endpoint: `GET /api/series/{series}`
    *

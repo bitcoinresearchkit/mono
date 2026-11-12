@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "instructions": "Live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015. Free and read-only, with no API key. Use of Bitview is under the terms at https://bitview.space/terms/; help is at https://bitview.space/support/.\n\nFor a series:\n\n1. `search_series`: search by meaning with plain words; it returns series ids.\n2. `get_series_info`: read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).\n3. `get_series`, `get_series_latest`, `get_series_bulk`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.\n\nNever invent a series id: only ids the API returned exist.\n\n- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02.\n- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already a percent (55 means 55%).\n- `null` means missing or undefined (before the data exists, or a period with no block), never zero.\n- `price` reads 0, not null, before block 74,641 (August 2010): there was no price yet.\n- Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.\n- The latest value is the newest one only, never a past one.\n- Convert values only as asked.\n- Compute derived numbers at full precision; round only the final answer, if at all.\n\nSource of this data: Bitview (https://bitview.space). Binary responses are returned as embedded MCP resources.",
+  "instructions": "Live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015. Free and read-only, with no API key. Use of Bitview is under the terms at https://bitview.space/terms/; help is at https://bitview.space/support/.\n\nFor a series:\n\n1. `search_series`: search by meaning with plain words; it returns series ids.\n2. `get_series_info`: read a returned id's description, supported indexes, value type, unit (what the value type measures), accumulation (how its values combine over time), and the indexes whose values can be null (missing or undefined).\n3. `get_series`, `get_series_latest`, `get_series_bulk`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.\n\nNever invent a series id: only ids the API returned exist.\n\n- `end` is exclusive: one block is start 900000, end 900001; one day is start 2025-01-01, end 2025-01-02.\n- A `Ratio` or `Multiple` is a plain number (0.55, not 55%); a `Percent` is already a percent (55 means 55%).\n- `null` means missing or undefined (before the data exists, or a period with no block), never zero.\n- `price` reads 0, not null, before block 74,641 (August 2010): there was no price yet.\n- Index names are exact (`day1`, not `day`); a wrong one is rejected with the valid list.\n- The latest value is the newest one only, never a past one.\n- Convert values only as asked.\n- Compute derived numbers at full precision; round only the final answer, if at all.\n\nSource of this data: Bitview (https://bitview.space). Binary responses are returned as embedded MCP resources.",
   "operations": [
     {
       "tool": {
@@ -6186,7 +6186,7 @@
       "tool": {
         "name": "get_series_info",
         "title": "Get series info",
-        "description": "Bitcoin: Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
+        "description": "Bitcoin: Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -6208,6 +6208,22 @@
         },
         "outputSchema": {
           "$defs": {
+            "Accumulation": {
+              "oneOf": [
+                {
+                  "const": "flow",
+                  "type": "string"
+                },
+                {
+                  "const": "level",
+                  "type": "string"
+                },
+                {
+                  "const": "cumulative",
+                  "type": "string"
+                }
+              ]
+            },
             "Index": {
               "enum": [
                 "minute10",
@@ -6273,12 +6289,20 @@
                     "string",
                     "null"
                   ]
+                },
+                "accumulation": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Accumulation"
+                    }
+                  ]
                 }
               },
               "required": [
                 "indexes",
                 "nullable",
-                "type"
+                "type",
+                "accumulation"
               ]
             }
           },
@@ -6311,12 +6335,20 @@
                 "string",
                 "null"
               ]
+            },
+            "accumulation": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/Accumulation"
+                }
+              ]
             }
           },
           "required": [
             "indexes",
             "nullable",
-            "type"
+            "type",
+            "accumulation"
           ]
         },
         "annotations": {
@@ -9106,24 +9138,24 @@
             "page": {
               "description": "Zero-based page number (default: 0)",
               "type": "integer",
-              "default": 0,
-              "minimum": 0,
               "examples": [
                 0,
                 1,
                 2
-              ]
+              ],
+              "minimum": 0,
+              "default": 0
             },
             "per_page": {
               "description": "Results per page, 1 to 1,000 (default: 1000)",
               "type": "integer",
-              "default": 1000,
-              "minimum": 1,
-              "maximum": 1000,
               "examples": [
                 100,
                 1000
-              ]
+              ],
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 1000
             }
           },
           "additionalProperties": false,
@@ -9280,13 +9312,13 @@
             "limit": {
               "description": "Maximum number of results, 1 to 1,000 (default: 100)",
               "type": "integer",
-              "default": 100,
-              "minimum": 1,
-              "maximum": 1000,
               "examples": [
                 10,
                 100
-              ]
+              ],
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
             }
           },
           "additionalProperties": false,

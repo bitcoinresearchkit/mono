@@ -23,6 +23,7 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     cumulative: PerBlock<T::Sum, M>,
     #[traversable(flatten)]
     rolling: RollingComplete<T, M>,

@@ -14,7 +14,7 @@ Bitcoin data API at https://bitview.space, read from a full node. Free and read-
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:
 
 1. `GET /api/series/search?q=<q>`: search by meaning with plain words; it returns series ids.
-2. `GET /api/series/{series}`: read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined).
+2. `GET /api/series/{series}`: read a returned id's description, supported indexes, value type, unit (what the value type measures), accumulation (how its values combine over time), and the indexes whose values can be null (missing or undefined).
 3. `GET /api/series/{series}/{index}`, `GET /api/series/{series}/{index}/latest`, `GET /api/series/bulk?series=<series>&index=<index>`: pick one of those indexes and fetch its values (`start` inclusive, `end` exclusive), the latest value alone, or several comma-separated series at once.
 
 Never invent a series id: only ids the API returned exist. `references/series.md` maps the series by topic, for browsing.

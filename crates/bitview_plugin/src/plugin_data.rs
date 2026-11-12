@@ -11,8 +11,8 @@ pub trait PluginData {
     /// traversal skips (`#[traversable(skip)]`, write-only state) are not visited.
     fn for_each_exportable<'a>(&'a self, visit: &mut dyn FnMut(&'a dyn AnyExportableVec));
 
-    /// Adds each public series' documentation fragments, keyed by series id.
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>);
+    /// Adds each public series' metadata fragments (its description's and accumulation), keyed by series id.
+    fn collect_metadata<'a>(&'a self, metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>);
 }
 
 impl<T> PluginData for T
@@ -27,12 +27,12 @@ where
         self.iter_any_exportable().for_each(visit);
     }
 
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>) {
+    fn collect_metadata<'a>(&'a self, metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>) {
         let mut fragments = Vec::new();
-        self.collect_series_descriptions(&mut fragments, descriptions);
+        self.collect_series_metadata(&mut fragments, metadata);
         debug_assert!(
             fragments.is_empty(),
-            "description fragments left after traversal"
+            "metadata fragments left after traversal"
         );
     }
 }

@@ -857,7 +857,7 @@ Returns: JSON `SeriesName[]`
 
 Get series info
 
-Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
 Parameters:
 - `series` (path, SeriesName, required)
@@ -1188,6 +1188,10 @@ API version
 Returns: JSON `ServerVersion`
 
 ## Schemas
+
+### `Accumulation`
+
+`flow | level | cumulative`
 
 ### `Address`
 
@@ -1939,6 +1943,7 @@ Returns: JSON `ServerVersion`
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
 - `type`: `string` (required) — Value type (e.g. "Ratio", "Sats", "Cents")
 - `unit`: `string | null` — What the value type measures, when documented (e.g. "A duration in days.")
+- `accumulation`: `Accumulation` (required) — How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
 
 ### `SeriesLeafWithSchema`
 

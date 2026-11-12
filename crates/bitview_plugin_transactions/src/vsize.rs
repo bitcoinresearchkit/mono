@@ -10,6 +10,7 @@ use crate::distribution::TxDistribution;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(accumulation = Flow)]
     pub tx: LazyVec<TxIndex, VSize, Weight32>,
     // Filled by the fee pass, from the vsizes it reads.
     #[traversable(flatten)]

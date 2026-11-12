@@ -6,7 +6,7 @@ use std::{
 
 use bitview_catalog::TreeNode;
 use bitview_plugin::PluginSet;
-use bitview_primitives::{Index, SeriesName};
+use bitview_primitives::{Accumulation, Index, SeriesName};
 use bitview_traversable::Traversable;
 use bitview_types::{DetailedSeriesCount, PaginatedSeries, Pagination, SeriesCount, SeriesInfo};
 use quickmatch::QuickMatch;
@@ -72,24 +72,24 @@ impl<'a> SeriesRegistry<'a> {
         P: PluginSet + Traversable,
     {
         let mut builder = Builder::default();
-        let mut descriptions = Vec::new();
+        let mut metadata = Vec::new();
         plugins.for_each_plugin(&mut |plugin| {
             let db = plugin.id().as_str();
             plugin.for_each_visible(&mut |vec| builder.push(vec, db));
-            let mut plugin_descriptions = BTreeMap::new();
-            plugin.collect_descriptions(&mut plugin_descriptions);
-            descriptions.push((db, plugin_descriptions));
+            let mut plugin_metadata = BTreeMap::new();
+            plugin.collect_metadata(&mut plugin_metadata);
+            metadata.push((db, plugin_metadata));
         });
 
-        Self::finish_build(builder, plugins.to_tree_node(), descriptions)
+        Self::finish_build(builder, plugins.to_tree_node(), metadata)
     }
 
     fn finish_build(
         mut builder: Builder<'a>,
         mut catalog: TreeNode,
-        descriptions_by_plugin: Vec<(
+        metadata_by_plugin: Vec<(
             &'a str,
-            BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+            BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
         )>,
     ) -> Self {
         let Resolution {
@@ -98,22 +98,24 @@ impl<'a> SeriesRegistry<'a> {
             excluded,
             value_type_conflicts,
         } = builder.resolve();
-        // A shared id keeps its serving plugin's description, a copy left out documents nothing,
-        // and an id spanning plugins through different indexes must be described alike.
-        let mut series_to_description = BTreeMap::new();
-        for (db, plugin_descriptions) in descriptions_by_plugin {
-            for (series, fragments) in plugin_descriptions {
-                if excluded.contains(&(series, db)) {
+        // An id two plugins publish at one index takes its metadata (description and
+        // accumulation) from the plugin serving it alone, its fields saying nothing included: a
+        // copy elsewhere documents nothing. An id spanning plugins through different indexes must
+        // carry the same.
+        let mut series_metadata = BTreeMap::new();
+        for (db, plugin_metadata) in metadata_by_plugin {
+            for (series, fragments) in plugin_metadata {
+                if collided.get(series).is_some_and(|&served_by| served_by != db) {
                     continue;
                 }
-                match series_to_description.entry(series) {
+                match series_metadata.entry(series) {
                     btree_map::Entry::Vacant(entry) => {
                         entry.insert(fragments);
                     }
                     btree_map::Entry::Occupied(entry) => {
                         debug_assert!(
-                            collided.contains(series) || *entry.get() == fragments,
-                            "Conflicting descriptions for series {series}"
+                            bitview_traversable::same_metadata(entry.get(), &fragments),
+                            "Conflicting descriptions or accumulations for series {series}"
                         );
                     }
                 }
@@ -121,11 +123,17 @@ impl<'a> SeriesRegistry<'a> {
         }
         let mut interned_descriptions = BTreeMap::<_, Arc<str>>::new();
         let mut descriptions = BTreeMap::new();
-        for (series, fragments) in series_to_description {
-            debug_assert!(
-                builder.by_series.contains_key(series),
-                "Description references unknown series: {series}"
-            );
+        for (series, fragments) in series_metadata {
+            let Some(entry) = builder.by_series.get_mut(series) else {
+                debug_assert!(false, "Metadata references unknown series: {series}");
+                continue;
+            };
+            let (fragments, accumulation) = bitview_traversable::split_metadata(&fragments);
+            entry.accumulation = accumulation;
+            if fragments.is_empty() {
+                continue;
+            }
+            // Equal texts share one string.
             let description = interned_descriptions
                 .entry(fragments)
                 .or_insert_with_key(|fragments| Arc::from(bitview_traversable::describe(fragments)))
@@ -262,6 +270,11 @@ impl<'a> SeriesRegistry<'a> {
             .map(ResolvedSeriesInfo::into_info)
     }
 
+    /// How a series' values combine over time, if it exists.
+    pub fn accumulation(&self, series: &str) -> Option<Accumulation> {
+        self.by_series.get(series).map(|series| series.accumulation)
+    }
+
     pub fn catalog(&self) -> &TreeNode {
         &self.catalog
     }
@@ -325,8 +338,8 @@ struct Builder<'a> {
 #[derive(Default)]
 struct Resolution<'a> {
     shared: Vec<SharedSeries>,
-    /// Ids two plugins publish at the same index.
-    collided: FxHashSet<&'a str>,
+    /// Ids two plugins publish at the same index, each with the plugin serving it.
+    collided: FxHashMap<&'a str, &'a str>,
     /// Plugins that lost an id: (id, plugin).
     excluded: FxHashSet<(&'a str, &'a str)>,
     value_type_conflicts: Vec<&'a str>,
@@ -411,7 +424,7 @@ impl<'a> Builder<'a> {
                 resolution.value_type_conflicts.push(name);
             }
             if !others.is_empty() {
-                resolution.collided.insert(name);
+                resolution.collided.insert(name, served_by);
                 resolution.shared.push(SharedSeries {
                     name: name.to_string(),
                     served_by: served_by.to_string(),

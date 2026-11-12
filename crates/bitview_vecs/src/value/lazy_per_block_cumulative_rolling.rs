@@ -11,9 +11,11 @@ use crate::{
 #[traversable(client = "ValueFlow")]
 pub struct LazyValuePerBlockCumulativeRolling {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyValueBlock,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: LazyCumulativeValuePerBlock,
     pub sum: LazyRollingSumsAmountFromHeight,
 }

@@ -34,7 +34,7 @@ const SERIES_FLOW: [(&str, &[&str]); 3] = [
         &["search_series"],
     ),
     (
-        "read a returned id's description, supported indexes, value type, unit (what the value type measures), and the indexes whose values can be null (missing or undefined)",
+        "read a returned id's description, supported indexes, value type, unit (what the value type measures), accumulation (how its values combine over time), and the indexes whose values can be null (missing or undefined)",
         &["get_series_info"],
     ),
     (

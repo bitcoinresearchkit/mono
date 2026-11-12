@@ -17,19 +17,19 @@ use vecdb::{
 #[derive(Traversable)]
 pub(crate) struct Concentration<M: StorageMode = Rw> {
     /// Blocks found that day by its 2 largest pools.
-    #[traversable(lead = "The day's blocks found by its 2 largest pools.")]
+    #[traversable(lead = "The day's blocks found by its 2 largest pools.", accumulation = Flow)]
     top2: M::Stored<PcoVec<Day1, Count32>>,
     /// Blocks found that day by its 3 largest pools.
-    #[traversable(lead = "The day's blocks found by its 3 largest pools.")]
+    #[traversable(lead = "The day's blocks found by its 3 largest pools.", accumulation = Flow)]
     top3: M::Stored<PcoVec<Day1, Count32>>,
     /// Blocks found that day by its 4 largest pools.
-    #[traversable(lead = "The day's blocks found by its 4 largest pools.")]
+    #[traversable(lead = "The day's blocks found by its 4 largest pools.", accumulation = Flow)]
     top4: M::Stored<PcoVec<Day1, Count32>>,
     /// Blocks found that day by its 5 largest pools.
-    #[traversable(lead = "The day's blocks found by its 5 largest pools.")]
+    #[traversable(lead = "The day's blocks found by its 5 largest pools.", accumulation = Flow)]
     top5: M::Stored<PcoVec<Day1, Count32>>,
     /// Blocks found that day by its 6 largest pools.
-    #[traversable(lead = "The day's blocks found by its 6 largest pools.")]
+    #[traversable(lead = "The day's blocks found by its 6 largest pools.", accumulation = Flow)]
     top6: M::Stored<PcoVec<Day1, Count32>>,
 }
 

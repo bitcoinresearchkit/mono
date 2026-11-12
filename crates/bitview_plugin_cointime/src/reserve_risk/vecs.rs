@@ -17,7 +17,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// median, each block weighted by the time since the previous block in days
     /// (on monotonic timestamps). It represents the model's accumulated holder
     /// reserve and is the denominator of Reserve Risk.
-    #[traversable(lead = "HODL bank: what long-term holders have given up, in all, by not spending.")]
+    #[traversable(
+        lead = "HODL bank: what long-term holders have given up, in all, by not spending.",
+        accumulation = Cumulative
+    )]
     pub hodl_bank: LazyPerBlock<Float, Float64>,
     /// The HODL bank's running sum at double precision, continued block after block.
     #[traversable(hidden)]

@@ -36,6 +36,7 @@ impl ResolvedSeriesInfo<'_> {
             nullable: self.series.nullable().collect(),
             value_type: self.value_type.into(),
             unit: self.unit.cloned(),
+            accumulation: self.series.accumulation,
         }
     }
 }

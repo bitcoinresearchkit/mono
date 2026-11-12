@@ -22,6 +22,7 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: PerBlock<T, M>,
     last: M::WriteOnly<CumulativeState<T>>,
 }

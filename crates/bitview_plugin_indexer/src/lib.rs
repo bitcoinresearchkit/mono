@@ -189,13 +189,13 @@ where
         self.vecs.iter_any_visible()
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<bitview_traversable::Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        path_fragments: &mut Vec<bitview_traversable::MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
     ) {
         self.vecs
-            .collect_series_descriptions(description_fragments, descriptions);
+            .collect_series_metadata(path_fragments, metadata);
     }
 }
 

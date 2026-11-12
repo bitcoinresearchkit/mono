@@ -22,6 +22,7 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     pub kind: M::Stored<PcoVec<OpReturnOutputIndex, OpReturnKind>>,
     /// Number of serialized locking-script bytes after the initial
     /// `OP_RETURN` opcode, including push opcodes and push-length prefixes.
+    #[traversable(accumulation = Flow)]
     pub post_op_return_bytes: Compact<PcoVec<OpReturnOutputIndex, Bytes32>, Bytes, M>,
 }
 

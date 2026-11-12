@@ -13,8 +13,8 @@ use brk_error::{Error, Result};
 
 use crate::{Snapshot, errors::render_errors};
 
-/// The series tree as clients see it: one line per leaf (with a schema id), descriptions and
-/// value schemas; the typed path of every leaf in each generated client; the OpenAPI document;
+/// The series tree as clients see it: one line per leaf (with a schema id), descriptions,
+/// accumulations and value schemas; the typed path of every leaf in each generated client; the OpenAPI document;
 /// the HTTP responses of client-visible error scenarios.
 pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
     let registry = SeriesRegistry::build(plugins);
@@ -50,6 +50,16 @@ pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
             .iter()
             // (One line each: a description's line breaks, Markdown's, written as `\n`.)
             .map(|(series, description)| format!("{series}\t{}", description.replace('\n', "\\n"))),
+    );
+    section(
+        &mut out,
+        "Accumulations: series, accumulation",
+        registry.series_names().iter().map(|&series| {
+            let accumulation = registry.accumulation(series).expect("a listed series exists");
+            // As clients read it.
+            let accumulation = serde_json::to_value(accumulation).expect("a unit variant");
+            format!("{series}\t{}", accumulation.as_str().expect("a unit variant"))
+        }),
     );
     section(
         &mut out,

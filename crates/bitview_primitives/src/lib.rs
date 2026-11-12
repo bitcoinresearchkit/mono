@@ -2,6 +2,7 @@
 
 use hints::unlikely;
 
+mod accumulation;
 mod addr_hash;
 mod blockhash_prefix;
 mod boolean;
@@ -50,6 +51,7 @@ mod year10;
 #[cfg(test)]
 mod tests;
 
+pub use accumulation::*;
 pub use addr_hash::*;
 pub use blockhash_prefix::*;
 pub use boolean::*;

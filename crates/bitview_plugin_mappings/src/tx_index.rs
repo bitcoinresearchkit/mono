@@ -13,8 +13,10 @@ pub struct Vecs {
     pub identity: IndexVec<TxIndex, TxIndex, ReadableBoxedVec<TxIndex, Txid>>,
     /// Number of inputs in the indexed transaction, including the coinbase
     /// transaction's single input.
+    #[traversable(accumulation = Flow)]
     pub input_count: LazyIndexCountVec<TxIndex, TxInIndex>,
     /// Number of outputs in the indexed transaction.
+    #[traversable(accumulation = Flow)]
     pub output_count: LazyIndexCountVec<TxIndex, Index40<TxOutIndex>>,
 }
 

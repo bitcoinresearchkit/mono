@@ -10,7 +10,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// spot price, of the derived subsidy component equal to coinbase output
     /// value minus transaction fees, floored at zero. It estimates the historical value assigned
     /// to miners through issuance, rather than valuing subsidies at current spot.
-    #[traversable(lead = "Thermo cap: what miners were paid in new coins, each at the price of its day.")]
+    #[traversable(
+        lead = "Thermo cap: what miners were paid in new coins, each at the price of its day.",
+        accumulation = Cumulative
+    )]
     pub thermo: LazyFiatPerBlock<Cents>,
     /// Investor capitalization: realized capitalization minus thermo
     /// capitalization. It estimates the creation-date capital left after

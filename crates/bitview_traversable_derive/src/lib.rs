@@ -5,8 +5,9 @@ use proc_macro2::{Group, Spacing, Span, TokenStream as ProcMacro2TokenStream, To
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, ExprLit, Field, Fields, GenericArgument,
-    GenericParam, Generics, Ident, Index, Lit, LitStr, Member, Meta, PathArguments, Result, Token,
-    Type, TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
+    GenericParam, Generics, Ident, Index, Lit, LitStr, Member, Meta, MetaNameValue, PathArguments,
+    Result, Token, Type, TypeParam, WherePredicate, parse_macro_input, parse_quote,
+    punctuated::Punctuated,
 };
 
 struct FieldModel<'a> {
@@ -24,6 +25,8 @@ struct FieldModel<'a> {
     client: Option<LitStr>,
     /// A few plain words for anyone, opening the description of every series under the field.
     lead: Option<String>,
+    /// The accumulation of every series under the field, unless one nearer them declares its own.
+    accumulation: Option<Ident>,
     description: Option<String>,
 }
 
@@ -73,6 +76,33 @@ fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
     Ok((merge, client))
 }
 
+/// Sets a field's option, declared once: a second declaration of it is an error, not a silent
+/// override.
+fn set_once<T>(slot: &mut Option<T>, value: T, declared: &MetaNameValue) -> Result<()> {
+    if slot.is_some() {
+        return Err(Error::new_spanned(&declared.path, "declared twice"));
+    }
+    *slot = Some(value);
+    Ok(())
+}
+
+/// An option's value, out of the invisible groups a declarative macro passing it wraps it in.
+fn ungrouped(mut value: &Expr) -> &Expr {
+    while let Expr::Group(group) = value {
+        value = &group.expr;
+    }
+    value
+}
+
+/// A declared accumulation: an `Accumulation` variant by its name, which the compiler checks.
+fn declared_accumulation(value: &Expr) -> Result<Ident> {
+    match ungrouped(value) {
+        Expr::Path(path) if path.qself.is_none() => path.path.get_ident().cloned(),
+        _ => None,
+    }
+    .ok_or_else(|| Error::new_spanned(value, "expected an `Accumulation` variant, such as `Flow`"))
+}
+
 /// ASCII letters and digits, an uppercase first: valid in every client language, and clear of
 /// their keywords, which are lowercase.
 fn is_type_name(name: &str) -> bool {
@@ -106,6 +136,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         wrap: None,
         client: None,
         lead: None,
+        accumulation: None,
         description: doc_comment(field),
     };
     for meta in traversable_metas(&field.attrs)? {
@@ -113,6 +144,9 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             Meta::Path(path) if path.is_ident("skip") => model.skipped = true,
             Meta::Path(path) if path.is_ident("flatten") => model.flatten = true,
             Meta::Path(path) if path.is_ident("hidden") => model.hidden = true,
+            Meta::NameValue(name_value) if name_value.path.is_ident("accumulation") => {
+                set_once(&mut model.accumulation, declared_accumulation(&name_value.value)?, name_value)?;
+            }
             Meta::NameValue(name_value) if name_value.path.is_ident("client") => {
                 let Expr::Lit(ExprLit {
                     lit: Lit::Str(value),
@@ -121,22 +155,17 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
-                model.client = Some(declared_client(value)?);
+                set_once(&mut model.client, declared_client(value)?, name_value)?;
             }
             Meta::NameValue(name_value)
                 if name_value.path.is_ident("rename")
                     || name_value.path.is_ident("wrap")
                     || name_value.path.is_ident("lead") =>
             {
-                // (A string a declarative macro passed in arrives in an invisible group.)
-                let mut value = &name_value.value;
-                while let Expr::Group(group) = value {
-                    value = &group.expr;
-                }
                 let Expr::Lit(ExprLit {
                     lit: Lit::Str(value),
                     ..
-                }) = value
+                }) = ungrouped(&name_value.value)
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
@@ -147,12 +176,12 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
                 } else {
                     &mut model.lead
                 };
-                *slot = Some(value.value());
+                set_once(slot, value.value(), name_value)?;
             }
             _ => {
                 return Err(Error::new_spanned(
                     meta,
-                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"` or `lead = \"..\"`",
+                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"`, `lead = \"..\"` or `accumulation = Variant`",
                 ));
             }
         }
@@ -270,15 +299,21 @@ fn starts_block(text: &str) -> bool {
     ordered || ["- ", "* ", "+ ", "> ", "|", "#"].iter().any(|start| text.starts_with(start))
 }
 
-/// `collect` with the field's description fragments on the path, its lead's and its doc
-/// comment's, as long as it runs.
-fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
+/// `collect` with the field's metadata fragments on the path, its lead's, its doc comment's
+/// and its accumulation's, as long as it runs.
+fn with_metadata_fragments(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
     let fragments = field
         .lead
         .as_deref()
         .map(|lead| quote! { ::bitview_traversable::Fragment::Lead(#lead) })
         .into_iter()
         .chain(field.description.as_deref().map(|detail| quote! { ::bitview_traversable::Fragment::Detail(#detail) }))
+        .map(|fragment| quote! { ::bitview_traversable::MetadataFragment::Description(#fragment) })
+        .chain(field.accumulation.as_ref().map(|accumulation| {
+            quote! {
+                ::bitview_traversable::MetadataFragment::Accumulation(::bitview_traversable::Accumulation::#accumulation)
+            }
+        }))
         .collect::<Vec<_>>();
     if fragments.is_empty() {
         return collect;
@@ -286,10 +321,10 @@ fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream)
     let expected = fragments.iter().rev();
 
     quote! {{
-        #(description_fragments.push(#fragments);)*
+        #(path_fragments.push(#fragments);)*
         #collect
         #(
-            let popped = description_fragments.pop();
+            let popped = path_fragments.pop();
             ::std::debug_assert_eq!(popped, ::std::option::Option::Some(#expected));
         )*
     }}
@@ -529,10 +564,10 @@ fn gen_traversable(
         && let Member::Unnamed(_) = field.member
     {
         let where_clause = build_where_clause(generics, &[field.ty]);
-        let collect_description = with_description_fragment(
+        let collect_metadata = with_metadata_fragments(
             field,
             quote! {
-                self.0.collect_series_descriptions(description_fragments, descriptions);
+                self.0.collect_series_metadata(path_fragments, metadata);
             },
         );
         return quote! {
@@ -553,12 +588,12 @@ fn gen_traversable(
                     self.0.iter_any_stored_mut()
                 }
 
-                fn collect_series_descriptions<'__series>(
+                fn collect_series_metadata<'__series>(
                     &'__series self,
-                    description_fragments: &mut ::std::vec::Vec<::bitview_traversable::Fragment>,
-                    descriptions: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::Fragment>>,
+                    path_fragments: &mut ::std::vec::Vec<::bitview_traversable::MetadataFragment>,
+                    metadata: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::MetadataFragment>>,
                 ) {
-                    #collect_description
+                    #collect_metadata
                 }
             }
         };
@@ -579,7 +614,7 @@ fn gen_traversable(
         "iter_any_stored_mut",
         &quote! { &mut dyn ::bitview_traversable::AnyStoredVec },
     );
-    let description_impl = generate_description_impl(&visible);
+    let metadata_impl = generate_metadata_impl(&visible);
 
     quote! {
         impl #impl_generics ::bitview_traversable::Traversable for #name #ty_generics #where_clause {
@@ -599,7 +634,7 @@ fn gen_traversable(
                 #stored
             }
 
-            #description_impl
+            #metadata_impl
         }
     }
 }
@@ -740,28 +775,28 @@ fn generate_field_traversals(
     }
 }
 
-/// Collects each visible field's descriptions under its doc comment. Without visible fields
+/// Collects each visible field's series metadata under its own fragments. Without visible fields
 /// the trait's default (which visits no vec) applies.
-fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
+fn generate_metadata_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     if visible.is_empty() {
         return quote! {};
     }
 
     let fields = visible.iter().map(|field| {
         let member = &field.member;
-        with_description_fragment(
+        with_metadata_fragments(
             field,
             quote! {
-                self.#member.collect_series_descriptions(description_fragments, descriptions);
+                self.#member.collect_series_metadata(path_fragments, metadata);
             },
         )
     });
 
     quote! {
-        fn collect_series_descriptions<'__series>(
+        fn collect_series_metadata<'__series>(
             &'__series self,
-            description_fragments: &mut ::std::vec::Vec<::bitview_traversable::Fragment>,
-            descriptions: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::Fragment>>,
+            path_fragments: &mut ::std::vec::Vec<::bitview_traversable::MetadataFragment>,
+            metadata: &mut ::std::collections::BTreeMap<&'__series str, ::std::vec::Vec<::bitview_traversable::MetadataFragment>>,
         ) {
             #(#fields)*
         }

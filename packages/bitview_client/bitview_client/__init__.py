@@ -321,6 +321,8 @@ Address = str
 # - `New(tx)` serializes as a transaction object: a body that was new or changed since the
 #   prior block and takes this position.
 MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
+# How a series' values combine over time.
+Accumulation = Union[Literal["flow"], Literal["level"], Literal["cumulative"]]
 class OutPoint(TypedDict):
     """
     The output a transaction input spends: its transaction index and output position, written as
@@ -619,22 +621,6 @@ class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
         type: What the values are on the wire.
     """
     description: Optional[str]
-
-class _SeriesInfoRequired(TypedDict):
-    indexes: List[Index]
-    nullable: List[Index]
-    type: str
-
-class SeriesInfo(_SeriesInfoRequired, total=False):
-    """
-    Attributes:
-        description: Human-readable metric definition, when documented
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
-        type: Value type (e.g. "Ratio", "Sats", "Cents")
-        unit: What the value type measures, when documented (e.g. "A duration in days.")
-    """
-    description: Optional[str]
-    unit: Optional[str]
 
 class SyncStatus(TypedDict):
     """
@@ -1758,6 +1744,24 @@ class AddressHashPrefixMatches(TypedDict):
     prefix: str
     truncated: bool
     addresses: List[Address]
+
+class _SeriesInfoRequired(TypedDict):
+    indexes: List[Index]
+    nullable: List[Index]
+    type: str
+    accumulation: Accumulation
+
+class SeriesInfo(_SeriesInfoRequired, total=False):
+    """
+    Attributes:
+        description: Human-readable metric definition, when documented
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN)
+        type: Value type (e.g. "Ratio", "Sats", "Cents")
+        unit: What the value type measures, when documented (e.g. "A duration in days.")
+        accumulation: How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
+    """
+    description: Optional[str]
+    unit: Optional[str]
 
 
 # Each date-based index's buckets as (unit, size, phase): bucket i starts i * size - phase units
@@ -6152,7 +6156,7 @@ class BitviewClient(BitviewClientBase):
     def get_series_info(self, series: SeriesName) -> SeriesInfo:
         """Get series info.
 
-        Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+        Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
         Endpoint: `GET /api/series/{series}`"""
         return self.get_json(f'/api/series/{_segment(series)}')

@@ -43,17 +43,18 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     pub raw_locktime: M::Stored<PcoVec<TxIndex, RawLockTime>>,
     /// BIP-141 transaction weight in weight units: non-witness bytes count as
     /// four weight units and witness bytes count as one.
+    #[traversable(accumulation = Flow)]
     pub weight: Compact<PcoVec<TxIndex, Weight32>, Weight, M>,
     /// Serialized size in bytes, including witness data: the byte length of the
     /// transaction's consensus serialization.
-    #[traversable(rename = "size")]
+    #[traversable(rename = "size", accumulation = Flow)]
     pub total_size: Compact<PcoVec<TxIndex, Bytes32>, Bytes, M>,
     /// BIP-141 signature-operation cost: legacy scriptPubKey, scriptSig, and
     /// P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost
     /// one. This is a static count, not the number of signatures executed.
     /// Tapscript sigops are excluded because BIP-342 uses a separate per-input
     /// budget.
-    #[traversable(rename = "sigop_cost")]
+    #[traversable(rename = "sigop_cost", accumulation = Flow)]
     pub total_sigop_cost: Compact<PcoVec<TxIndex, SigOps32>, SigOps, M>,
     /// Global zero-based transaction-input index in canonical blockchain order.
     /// At `height`, this is where the block begins and equals the number of

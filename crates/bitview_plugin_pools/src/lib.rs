@@ -87,17 +87,19 @@ impl Traversable for BySlug {
         self.0.iter_any_stored_mut()
     }
 
-    fn collect_series_descriptions<'a>(
+    fn collect_series_metadata<'a>(
         &'a self,
-        description_fragments: &mut Vec<bitview_traversable::Fragment>,
-        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
+        path_fragments: &mut Vec<bitview_traversable::MetadataFragment>,
+        metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
     ) {
         let pools = bitview_primitives::pools();
         for (slug, vecs) in &self.0 {
-            let lead = bitview_traversable::Fragment::Lead(pools.get(*slug).lead);
-            description_fragments.push(lead);
-            vecs.collect_series_descriptions(description_fragments, descriptions);
-            let popped = description_fragments.pop();
+            let lead = bitview_traversable::MetadataFragment::Description(
+                bitview_traversable::Fragment::Lead(pools.get(*slug).lead),
+            );
+            path_fragments.push(lead);
+            vecs.collect_series_metadata(path_fragments, metadata);
+            let popped = path_fragments.pop();
             debug_assert_eq!(popped, Some(lead));
         }
     }

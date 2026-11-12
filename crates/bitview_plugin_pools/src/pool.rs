@@ -45,6 +45,7 @@ pub struct BlockShare {
 #[derive(Clone, Traversable)]
 pub struct Coinbase {
     /// Through the represented block, from genesis.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: LazyCumulativeValuePerBlock,
     pub sum: LazyRollingSumsAmountFromHeight,
 }

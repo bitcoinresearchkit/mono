@@ -69,6 +69,7 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     /// Value of the output the input spends, in satoshis; 0 for a coinbase input, which
     /// spends none.
     // Stored as `Sats::MAX` for a coinbase input, which the stored vec's readers rely on.
+    #[traversable(accumulation = Flow)]
     pub value: Compact<PcoVec<TxInIndex, Sats>, Sats, M>,
 }
 

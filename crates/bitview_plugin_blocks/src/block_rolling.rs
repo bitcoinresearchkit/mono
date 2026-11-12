@@ -13,6 +13,7 @@ pub struct BlockRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity,
 {
+    #[traversable(accumulation = Flow)]
     pub block: LazyVec<Height, T::Sum, T>,
     #[deref]
     #[deref_mut]

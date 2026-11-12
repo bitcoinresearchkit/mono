@@ -14,6 +14,7 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex, Budgeted>>,
     /// Value of the output, in satoshis.
+    #[traversable(accumulation = Flow)]
     pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// Bitview's locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the

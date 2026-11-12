@@ -15,9 +15,11 @@ where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
 {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyPreviousDeltaVec<Height, T>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: LazyPerBlock<T>,
     pub sum: LazyRollingSumsFromHeight<T>,
 }
@@ -32,6 +34,7 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: LazyPerBlock<T>,
     pub sum: LazyRollingSumsFromHeight<T>,
 }

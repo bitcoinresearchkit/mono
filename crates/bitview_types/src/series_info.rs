@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use bitview_primitives::Index;
+use bitview_primitives::{Accumulation, Index};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,4 +19,6 @@ pub struct SeriesInfo {
     /// What the value type measures, when documented (e.g. "A duration in days.")
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unit: Option<Arc<str>>,
+    /// How values combine over time: a `flow` sums over a window, a `level` is read at a point, and a `cumulative` series is already a running total, its flow the difference.
+    pub accumulation: Accumulation,
 }

@@ -37,7 +37,7 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     #[traversable(lead = "Empty addresses: used before, holding nothing now.")]
     pub empty: StoredCount<M>,
     /// All previously seen addresses, funded or empty.
-    #[traversable(lead = "Addresses: all ever used, funded or empty.")]
+    #[traversable(lead = "Addresses: all ever used, funded or empty.", accumulation = Cumulative)]
     pub total: LazyPerBlock<Count>,
     /// Addresses first observed in each block: the increase in the total address
     /// count.
@@ -86,6 +86,7 @@ pub struct StoredCount<M: StorageMode = Rw> {
 #[derive(Clone, Traversable)]
 pub struct NewAddressCount {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyPreviousDeltaVec<Height, Count>,
     pub sum: LazyRollingSumsFromHeight<Count>,
 }
@@ -151,6 +152,7 @@ pub struct FundedTotal<M: StorageMode = Rw> {
     pub funded: StoredCount<M>,
     /// Addresses that have ever met the predicate, whether or not they hold
     /// unspent outputs at the represented block.
+    #[traversable(accumulation = Cumulative)]
     pub total: StoredCount<M>,
 }
 

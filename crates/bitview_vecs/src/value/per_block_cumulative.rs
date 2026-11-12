@@ -9,9 +9,11 @@ use crate::{CumulativeState, IndexSources, LazyValueBlock, ValuePerBlock};
 #[derive(Traversable)]
 pub struct ValuePerBlockCumulative<M: StorageMode = Rw> {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     pub block: LazyValueBlock,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     pub cumulative: ValuePerBlock<M>,
     last_sats: M::WriteOnly<CumulativeState<Sats>>,
     last_cents: M::WriteOnly<CumulativeState<Cents>>,

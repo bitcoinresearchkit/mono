@@ -16,7 +16,8 @@ where
     T: ComputedVecValue + PartialOrd + JsonSchema,
 {
     pub tx: M::Stored<PcoVec<TxIndex, T>>,
-    #[traversable(flatten)]
+    // A block's statistics are read at a point, whatever the transactions' own values are.
+    #[traversable(flatten, accumulation = Level)]
     pub distribution: TxDistribution<T, M>,
 }
 

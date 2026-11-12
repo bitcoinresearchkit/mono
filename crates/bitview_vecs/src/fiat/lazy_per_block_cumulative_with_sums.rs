@@ -11,9 +11,11 @@ use crate::{
 #[traversable(client = "Flow")]
 pub struct LazyFiatPerBlockCumulativeWithSums<C: FiatType> {
     /// Value for the represented block.
+    #[traversable(accumulation = Flow)]
     block: LazyFiatBlock<C>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
+    #[traversable(accumulation = Cumulative)]
     cumulative: LazyFiatPerBlock<C>,
     pub sum: LazyRollingSumsFiatFromHeight<C>,
 }

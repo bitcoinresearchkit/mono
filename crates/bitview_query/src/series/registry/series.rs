@@ -1,13 +1,25 @@
 use std::sync::Arc;
 
-use bitview_primitives::Index;
+use bitview_primitives::{Accumulation, Index};
 
 use super::SeriesEntry;
 
-#[derive(Default)]
 pub(super) struct Series<'a> {
     entries: Vec<SeriesEntry<'a>>,
     pub(super) description: Option<Arc<str>>,
+    /// Its metadata's, set at the registry's build.
+    pub(super) accumulation: Accumulation,
+}
+
+impl Default for Series<'_> {
+    /// Before its metadata, which a series may not have: the undeclared accumulation.
+    fn default() -> Self {
+        Self {
+            entries: Vec::new(),
+            description: None,
+            accumulation: Accumulation::UNDECLARED,
+        }
+    }
 }
 
 impl<'a> Series<'a> {

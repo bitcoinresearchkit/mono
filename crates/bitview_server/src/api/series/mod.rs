@@ -309,7 +309,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .id("get_series_info")
                 .tag(tags::SERIES)
                 .summary("Get series info")
-                .description(&format!("Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
+                .description(&format!("Returns the optional description, supported indexes, the indexes whose values can be null, the value type, the optional unit (what the value type measures), and the accumulation (how its values combine over time) of the specified series. The decoded series name is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
                 .json_response::<SeriesInfo>()
                 .not_modified()
                 .not_found(),

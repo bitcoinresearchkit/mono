@@ -16,7 +16,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// min the first, max the last and percentile `p` at
     /// `sorted[max(0, floor(n * p) - 1)]`; zero for a block without them.
     /// Time-period indexes take the period's final block.
-    #[traversable(lead = "Transaction fee: what each transaction paid miners.")]
+    #[traversable(
+        lead = "Transaction fee: what each transaction paid miners.",
+        accumulation = Flow
+    )]
     pub fee: PerTxDistribution<Sats, M>,
     /// Canonical block fee total: the sum of the block's transaction fees.
     #[traversable(hidden)]
