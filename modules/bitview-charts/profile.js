@@ -11,7 +11,7 @@
 // amounts summed from the close outward (upward over it, downward under it), each group's stacked on the one before as
 // its bars are, filled in its colors to the edge, as long as the longer side's whole; read at a height (`sumsAt`).
 // Held at the plot's edge, drawn whole when its view or data changes; the page told before each draw (`viewed`, its groups' day then). Fitted as
-// the page says (`fit`); a bar under a point found as drawn (`hit`).
+// the page says (`fit`); its column, the bin at a height and a bar under a point found as drawn (`covers`, `binAt`, `hit`).
 
 /**
  * @typedef {{ id: string, rows: Int32Array, values: ArrayLike<number>, gain: string, loss: string, dimGain: string, dimLoss: string }} ProfileGroup
@@ -95,21 +95,41 @@ export class Profile {
     this.onViewed?.(time);
   }
 
+  /** Whether `x` (CSS pixels into the plot) is in its column, as last drawn: from its bars' reach to the plot's edge. @param {number} x */
+  covers(x) {
+    return this.bars !== null && x >= this.bars.right - this.bars.width;
+  }
+
+  /**
+   * The bin at a height (CSS pixels in its pane), as last drawn: its index and its rows (`from` to `to`, that one not in
+   * it); none drawn there (no bin, or an empty one), or cumulative (see sumsAt), null.
+   * @param {number} y @returns {{ bin: number, from: number, to: number } | null}
+   */
+  binAt(y) {
+    const bars = this.bars;
+    if (!bars) return null;
+    const { edges, starts, sums, count } = bars;
+    for (let bin = 0; bin < edges.length - 1; bin++) {
+      if (!(y <= edges[bin] && y > edges[bin + 1])) continue;
+      for (let c = 0; c < count; c++) if (sums[bin * count + c]) return { bin, from: starts[bin], to: starts[bin + 1] };
+      return null;
+    }
+    return null;
+  }
+
   /**
    * The bar under a point (CSS pixels: `x` into the plot, `y` in its pane), as last drawn: its group, its bin's rows
-   * (`from` to `to`, that one not in it); none between them or left of them. (The first group's to the plot's edge.)
+   * (see binAt); none between them or left of them. (The first group's to the plot's edge.)
    * @param {number} x @param {number} y @returns {{ group: string, from: number, to: number } | null}
    */
   hit(x, y) {
-    const bars = this.bars;
-    if (!bars) return null;
-    const { edges, starts, sums, count, most, width, right } = bars;
-    let bin = 0;
-    while (bin < edges.length - 1 && !(y <= edges[bin] && y > edges[bin + 1])) bin++;
-    for (let c = 0, at = right; bin < edges.length - 1 && c < count; c++) {
-      const length = (sums[bin * count + c] / most) * width, group = bars.ids[c];
-      if (length && group && x >= at - length && (!c || x <= at)) return { group, from: starts[bin], to: starts[bin + 1] };
-      at -= length;
+    const bars = this.bars, at = this.binAt(y);
+    if (!bars || !at) return null;
+    const { sums, count, most, width, right, ids } = bars;
+    for (let c = 0, edge = right; c < count; c++) {
+      const length = (sums[at.bin * count + c] / most) * width, group = ids[c];
+      if (length && group && x >= edge - length && (!c || x <= edge)) return { group, from: at.from, to: at.to };
+      edge -= length;
     }
     return null;
   }
@@ -221,7 +241,7 @@ export class Profile {
    */
   draw(g, time, scale, _x0, _x1, dpr) {
     (this.bars = null), (this.summed = null);
-    const groups = this.groups, edge = this.edge, plot = time.width, height = scale.height, width = this.width(plot), right = plot - 2, even = scale.mode === "log";
+    const groups = this.groups, edge = this.edge, plot = time.width, height = scale.height, width = this.width(plot), right = plot, even = scale.mode === "log";
     let low = Infinity, high = -Infinity;
     for (const group of groups) if (group.rows.length) (low = Math.min(low, group.rows[0])), (high = Math.max(high, group.rows[group.rows.length - 1]));
     if (!(low <= high)) return;

@@ -13,12 +13,12 @@
 // Dragged, a pane pans (a finger's flick glides on, slowing as a list does, a little sooner); pinched or wheeled, it zooms about that point;
 // a trackpad's sideways scroll pans (a diagonal swipe both at once).
 
-import { Timeline } from "./timeline.js";
+import { Timeline, NOISE } from "./timeline.js";
 import { Pane } from "./pane.js";
 import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
-export { Timeline, Pane, TimeAxis };
+export { Timeline, NOISE, Pane, TimeAxis };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars } from "./bars.js";
