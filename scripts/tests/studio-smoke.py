@@ -11,6 +11,7 @@ Run before a Studio commit: uv run --script scripts/tests/studio-smoke.py [--bas
 import argparse
 import base64
 import json
+import mimetypes
 import os
 import sys
 import time
@@ -19,21 +20,17 @@ import urllib.error
 import urllib.request
 import zlib
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
-# The page under test is the one in this checkout, read from disk at each request; everything else is the server's.
-STUDIO = Path(__file__).resolve().parents[2] / "showcases" / "studio"
-SERVED = {
-    "/studio": "index.html",
-    "/studio/": "index.html",
-    "/studio/index.html": "index.html",
-    "/studio/presets.js": "presets.js",
-    "/studio/palette.js": "palette.js",
-    "/studio/addresses.js": "addresses.js",
-}
+# The page under test is the one in this checkout, read from disk at each request: Studio's files and the modules it
+# loads, by the directories they're served from (see local); everything else is the server's.
+ROOT = Path(__file__).resolve().parents[2]
+PAGE = (ROOT / "showcases" / "studio" / "index.html").resolve()
+OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve()}
+mimetypes.add_type("text/javascript", ".mjs")
 STORE = "bitview-studio:v2"
 PREFS = "bitview-studio:prefs"
 VIEWPORT = {"width": 1400, "height": 900}
@@ -53,6 +50,20 @@ CHARTS = [
     ("Smoke realized", [{"series": "realized_price"}], None),
 ]
 FOLDER = "Smoke folder"
+
+
+def local(path):
+    """
+    Whether a path is the checkout's (under a directory in OWNED; one ending in a slash, a directory's index.html), and
+    its file there, resolved and inside it: (False, None), the server's; (True, None), the checkout has none: missing.
+    """
+    path = unquote(path)
+    for prefix, root in OWNED.items():
+        if path == prefix.rstrip("/") or path.startswith(prefix):
+            rest = path.removeprefix(prefix.rstrip("/"))
+            file = (root / rest.lstrip("/") / ("index.html" if rest.endswith("/") or not rest else "")).resolve()
+            return True, (file if file.is_file() and file.is_relative_to(root) else None)
+    return False, None
 
 
 def layers_of(chart):
@@ -194,18 +205,22 @@ class Run:
             ctx.problems.append(f"{request.method} {url.path} blocked: the checks only read")
             ctx.aborted.add(request)
             return route.abort()
-        name = SERVED.get(url.path)
-        if name:
-            body = (STUDIO / name).read_text(encoding="utf-8")
-            if "source" in ctx.broken and name == "index.html":
-                body = ctx.broken["source"](body)
-            kind = "text/html; charset=utf-8" if name.endswith(".html") else "text/javascript; charset=utf-8"
-            return route.fulfill(status=200, body=body, headers={"content-type": kind, "cache-control": "no-store"})
         if "fail" in ctx.broken and url.path.startswith(ctx.broken["fail"]):
             return route.abort("failed")  # (a network failure, not ours: not in ctx.aborted)
         if "api" in ctx.broken and url.path.startswith("/api/"):
             return route.fulfill(status=ctx.broken["api"], body="down")
-        route.continue_()
+        ours, file = local(url.path)
+        if not ours:
+            return route.continue_()
+        if not file:
+            # (Not in the checkout: missing, never the server's copy.)
+            return route.fulfill(status=404, body="not in this checkout")
+        body = file.read_bytes()
+        if "source" in ctx.broken and file == PAGE:
+            body = ctx.broken["source"](body.decode("utf-8"))
+        kind = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
+        kind += "; charset=utf-8" if kind.startswith("text/") else ""
+        return route.fulfill(status=200, body=body, headers={"content-type": kind, "cache-control": "no-store"})
 
     def watch(self, ctx, page):
         problems = ctx.problems
