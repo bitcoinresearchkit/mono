@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "./addresses.js";
+import { addressesOf, placeShown } from "./addresses.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
@@ -24,7 +24,13 @@ const { studioPresets, chainFacts } = await import(pathToFileURL(join(HERE, "pre
 const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
+// (What the presets report while they're made, a band the client renamed (see band in presets.js), stops them here:
+// the page goes on without it, so a preset quietly gone breaks this, never only a line in a console.)
+const reported = [], report = console.error;
+console.error = (...args) => (reported.push(args.join(" ")), report(...args));
 const presets = studioPresets(new BitviewClient({ baseUrl: SERVER }), facts);
+console.error = report;
+if (reported.length) throw new Error(`The presets reported ${reported.length} problem${reported.length === 1 ? "" : "s"}: fix them, then write these again`);
 // The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
 const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
 if (!recommended) throw new Error("No RECOMMENDED in the page");
@@ -45,9 +51,10 @@ const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)
   .replace(/\n\n(?=- )/g, "\n");
 // (Its presets' sections, two levels down, each at its address with how many charts it holds: where to send someone
 // asking for one; the charts themselves, in the sitemap.)
-const held = new Map();
-for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => held.set(key, (held.get(key) ?? 0) + 1))(JSON.stringify(preset.p.slice(0, depth)));
-const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${JSON.parse(key).at(-1)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
+// (Each by its name as shown: its label, where it has one; see presets.js.)
+const held = new Map(), shown = new Map();
+for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => (held.set(key, (held.get(key) ?? 0) + 1), shown.set(key, placeShown(preset)[depth - 1])))(JSON.stringify(preset.p.slice(0, depth)));
+const sections = [...held].map(([key, count]) => `${JSON.parse(key).length > 1 ? "  " : ""}- ${shown.get(key)} (${count}): ${ORIGIN}${book.sections.get(key)}`);
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const urls = ["/", ...book.sections.values(), ...book.presets];

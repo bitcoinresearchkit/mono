@@ -32,6 +32,8 @@ SERVED = {
     "/studio/index.html": "index.html",
     "/studio/presets.js": "presets.js",
     "/studio/palette.js": "palette.js",
+    "/studio/holders.js": "holders.js",
+    "/studio/chain-statistics.js": "chain-statistics.js",
     "/studio/addresses.js": "addresses.js",
 }
 STORE = "bitview-studio:v2"

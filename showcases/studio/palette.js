@@ -18,7 +18,7 @@ export const OKLCH = {
 
 /**
  * Each holder group's color: all coins green, short-term holders orange, long-term blue; the age cutoffs around them, the
- * younger warm (under 4 months yellow, under 6 red), the older cool (over 4 months cyan, over 6 violet).
+ * younger warm (under 4 months yellow, under 6 red), the older cool (at least 4 months cyan, at least 6 violet).
  * @type {Readonly<Record<string, string>>}
  */
 export const HOLDER_COLORS = Object.freeze({ all: "green", sth: "orange", lth: "blue", under4m: "yellow", under6m: "red", over4m: "cyan", over6m: "violet" });

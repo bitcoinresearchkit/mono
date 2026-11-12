@@ -5,6 +5,12 @@
  */
 
 /**
+ * A preset's place as shown: each step by its label where it has one (`l`, worded as its titles are), else its place
+ * (`p`, kept as it was: its address, key and links). @param {{ p: string[], l?: string[] }} preset
+ */
+export const placeShown = (preset) => preset.l ?? preset.p;
+
+/**
  * Each place of the presets' an address of its own, for search engines and links: their page /presets/, a section
  * /presets/valuation/, a preset /presets/valuation/mvrv (a section's ending in a slash, as a folder's does: the page
  * knows which before they're read). Names as an address writes them: lowercase words joined by dashes, signs as words
