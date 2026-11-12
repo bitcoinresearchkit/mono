@@ -29,7 +29,7 @@ const { chainFacts } = await import(pathToFileURL(join(HERE, "facts.js")).href);
 const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
-// (What the presets report while they're made, a band the client renamed (see bandOf in presets.js), stops them here:
+// (What the presets report while they're made, a band the client renamed (see reported in presets.js), stops them here:
 // the page goes on without it, so a preset quietly gone breaks this, never only a line in a console.)
 const reported = /** @type {string[]} */ ([]);
 const { presets, labels } = studioPresets(new BitviewClient({ baseUrl: SERVER }), facts, (problem) => reported.push(problem));
@@ -38,17 +38,23 @@ if (reported.length) throw new Error(`The presets reported ${reported.length} pr
  * What every title keeps, each a rule and the titles that break it: one colon at most, the group whose it is after
  * it; a share names its whole ("Share of all coins", "Supply share", never "Share in profit"); a window's days, never
  * months (a window counts fixed days: an age says months, "1 month to under 2 months old"); never "all addresses"
- * (the addresses tracked aren't all outputs').
- * @type {[string, (title: string) => boolean][]}
+ * (the addresses tracked aren't all outputs'). The last two, every name shown too (legends, the tree's): `titles`, a
+ * title's alone.
+ * @type {[string, (text: string) => boolean, titles?: boolean][]}
  */
 const TITLE_RULES = [
-  ["more than one colon", (title) => (title.match(/:/g) ?? []).length > 1],
-  ["a share that names no whole", (title) => [...title.matchAll(/\bshare\b/gi)].some((m) => !/^ of /i.test(title.slice(m.index + 5)) && !/[a-z)] $/i.test(title.slice(0, m.index)))],
-  ["a month that isn't an age", (title) => /\bmonths?\b(?![^,:]*\bold\b)/.test(title)],
-  ["all addresses", (title) => /\ball addresses\b/i.test(title)],
+  ["more than one colon", (title) => (title.match(/:/g) ?? []).length > 1, true],
+  ["a share that names no whole", (title) => [...title.matchAll(/\bshare\b/gi)].some((m) => !/^ of /i.test(title.slice(m.index + 5)) && !/[a-z)] $/i.test(title.slice(0, m.index))), true],
+  ["a month that isn't an age", (text) => /\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
+  ["all addresses", (text) => /\ball addresses\b/i.test(text)],
 ];
-const broken = presets.flatMap((preset) => TITLE_RULES.flatMap(([rule, breaks]) => (breaks(preset.t) ? [`${rule}: "${preset.t}" (${preset.p.join(" › ")})`] : [])));
-if (broken.length) throw new Error(`${broken.length} title${broken.length === 1 ? "" : "s"} break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
+/** Every name shown, each with whether it's a title and its place: titles, legends, the tree's labels. @type {[string, boolean, string[]][]} */
+const shown = [
+  ...presets.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
+  ...Object.entries(labels).map(([path, label]) => [label, false, JSON.parse(path)]),
+];
+const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
+if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
 // The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
 const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
 if (!recommended) throw new Error("No RECOMMENDED in the page");
@@ -110,4 +116,4 @@ if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
-console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), presets.hash (${sources.size} modules), from ${SERVER}'s chain; ${presets.length} titles keep the rules`);
+console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), presets.hash (${sources.size} modules), from ${SERVER}'s chain; ${shown.length} names shown keep the rules`);

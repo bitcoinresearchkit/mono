@@ -30,9 +30,10 @@
  * than its charts or is false, how it's shown (see shownAs)
  * @typedef {{ name: string, place: string }} Whole whose coins a cohort's shares divide, as said ("short-term holders'"),
  * and as its charts' places keep it (see wholeOf)
- * @typedef {{ name: Name, who: string, inWhole?: string }} Naming a family member's: its name, whose its charts are in
- * titles (`who`, "Short-term holders' coins over 10% in profit"), and, as its shares of its family's whole name it
- * (`inWhole`, "Coins over 10% in profit", see cohort), where that's another
+ * @typedef {{ name: Name, who: string, inWhole?: string, said?: string }} Naming a family member's: its name, whose its
+ * charts are in titles (`who`, "Short-term holders' coins over 10% in profit"), and, as its shares of its family's whole
+ * name it (`inWhole`, "Coins over 10% in profit", see cohort), where that's another; a band's, its band inside a
+ * sentence (`said`, "1 day to under 1 week old")
  * @typedef {import("./words.js").Dimension & { against?: boolean, inWhole?: (said: string) => string, within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Bands
  * a band dimension as its families and cutoffs read it (see Dimension), and: `against`, its bands run against its words
  * (a group's losses, its bands from the deepest loss up: at least a loss is the bands under its edge); `inWhole`, its
@@ -199,15 +200,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const t = client.series, absent = notYet(t, facts);
   /** A node's members that have been, by key. @param {any} n */
   const members = (n) => entries(n).filter(([, node]) => !absent.has(node));
-  /** A band read from its key (see band), or, one it can't read, reported and undefined (its user left out). @param {string} key @param {import("./words.js").Edges} [family] */
-  const bandOf = (key, family) => {
-    const read = band(key, family);
-    if (!read) report(`band ${key} has no edges it can read; left out`);
-    return read;
-  };
-  /** A band of a dimension as said and named (see dimensionBand), or reported and undefined (see bandOf). @param {string} key @param {import("./words.js").Dimension} d */
-  const dimensionOf = (key, d) => {
-    const read = dimensionBand(key, d);
+  /**
+   * A band as read from its key (see band, dimensionBand), or, one it can't read, reported and undefined (its user left
+   * out). @template T @param {string} key @param {T | undefined} read @returns {T | undefined}
+   */
+  const reported = (key, read) => {
     if (!read) report(`band ${key} has no edges it can read; left out`);
     return read;
   };
@@ -411,6 +408,22 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ];
   };
   /**
+   * Fee-rate bands as kinds (see kinds), each read from its key once (see band; one it can't read reported and left
+   * out), shown by its band ("Under 1 sat/vB") and said in sentences by `things` ("transactions paying under 1 sat/vB").
+   * `first`: kinds before them, each with its own name and words.
+   * @param {any} node @param {(said: string) => string} things @param {string} by @param {Parameters<typeof kinds>[4]} options
+   * @param {[string, any, Name, string][]} [first]
+   */
+  const feeRates = (node, things, by, options, first = []) => {
+    const list = [...first, ...entries(node).flatMap(([key, n]) => {
+      const read = reported(key, band(key));
+      return read ? [/** @type {[string, any, Name, string]} */ ([key, n, shownAs(spanLabel(key), capitalized(read.said)), things(read.said)])] : [];
+    })];
+    const byKey = new Map(list.map(([key, , name, said]) => [key, { name, said }]));
+    const at = (/** @type {string} */ key) => /** @type {{ name: Name, said: string }} */ (byKey.get(key));
+    return kinds(list.map(([key, n]) => [key, n]), (key) => at(key).name, (key) => at(key).said, by, options);
+  };
+  /**
    * A change over windows (`absolute` and `rate`): the amount (its windows) and, below, the rate.
    * @param {any} delta @param {string} name @param {string} title
    */
@@ -477,9 +490,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * single lines of what it has (its supply, counts, realized cap, prices) in it; those with a meaning of their own (profit
    * green, loss red, a ratio around 1) as they are. None (all coins: the chain's own series), each its own. `weight`: its
    * URPD's ("wakefulness", "mobility"), a weighted cohort's (awake coins, mobile coins: each coin by its age band's share).
-   * @param {any} c @param {string} who @param {boolean} [whole] @param {Whole} [of] @param {string} [urpd] @param {string} [color] @param {string} [weight] @param {string} [inWhole] @returns {(ChartNode | SectionNode)[]}
+   * @param {any} c @param {string} who
+   * @param {{ whole?: boolean, of?: Whole, urpd?: string, color?: string, weight?: string, inWhole?: string }} [options]
+   * @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who, whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who) => {
+  const cohort = (c, who, { whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who } = {}) => {
     const titled = (/** @type {string} */ what) => `${what}: ${who}`;
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
@@ -750,9 +765,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
 
   /**
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
-   * @param {[string, any][]} members its members' keys and nodes
-   * @param {(key: string) => Naming | undefined} naming each member's (see Naming); none, a member it can't name
-   * (reported by its reader, see bandOf), left out
+   * @param {[string, any][]} all its members' keys and nodes
+   * @param {(key: string) => Naming | undefined} naming each member's (see Naming); none, a member it can't name (left out)
+   * (reported by its reader, see reported), left out
    * @param {{ each: string, within?: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: Whole, known?: Record<string, string>, charts?: (key: string, c: any, who: string, color?: string) => (ChartNode | SectionNode)[], weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
    * `each`: how its members differ, in its comparisons' titles ("by age band", "at or above each age"); `within`: the
    * group its members lie within, as a title names it after its colon ("Short-term holders"); `disjoint`: the members
@@ -765,10 +780,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * `lookOf`: a member's color (and opacity) by what it is (a profit band's, by how far in profit or loss), else as said above
    * @returns {(ChartNode | SectionNode)[]}
    */
-  const family = (members, naming, options) => {
-    // (Each member named once, however many of its comparisons draw it.)
-    const names = new Map(/** @type {[string, Naming][]} */ (members.flatMap(([key]) => ((n) => (n ? [[key, n]] : []))(naming(key)))));
-    members = members.filter(([key]) => names.has(key));
+  const family = (all, naming, options) => {
+    // (Each member named once, however many of its comparisons draw it; one with no name, left out.)
+    const names = /** @type {Map<string, Naming>} */ (new Map());
+    for (const [key] of all) {
+      const n = naming(key);
+      if (n) names.set(key, n);
+    }
+    const members = all.filter(([key]) => names.has(key));
     /** A member's naming. @param {string} key */
     const nameOf = (key) => /** @type {Naming} */ (names.get(key));
     /**
@@ -854,7 +873,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
       // (Each member in its color, as its comparisons draw it; all coins, the chain's own series, each its own.)
-      ...members.map(([key, c], i) => ((n, color) => member(n.name, options.charts ? options.charts(key, c, n.who, color) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key), color, options.weight, n.inWhole)))(nameOf(key), key === "all" ? undefined : colors[i])),
+      ...members.map(([key, c], i) => {
+        const n = nameOf(key), color = key === "all" ? undefined : colors[i];
+        return member(n.name, options.charts ? options.charts(key, c, n.who, color) : cohort(c, n.who, { whole: key === "all", of: options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole }));
+      }),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
@@ -862,17 +884,20 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /**
    * A band family's member, as a family's `naming` reads it: its place, the client's name for it (`table`'s, less what
    * its folder already says, `trim`: an age band's " old"); shown, its band as its dimension says it, and in titles
-   * whose (see dimensionBand: "Coins 1 day to under 1 week old"). One it can't read, reported and left out (see bandOf).
+   * whose (see dimensionBand: "Coins 1 day to under 1 week old"). One it can't read, reported and left out (see reported).
    * @param {Record<string, { long: string }>} table @param {Bands} d @param {RegExp} [trim] @returns {(key: string) => Naming | undefined}
    */
   const bandMember = (table, d, trim = /$^/) => (key) => {
-    const read = dimensionOf(key, d);
-    return read && { name: shownAs(named(table, key).replace(trim, ""), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said) };
+    const read = reported(key, dimensionBand(key, d));
+    return read && { name: shownAs(named(table, key).replace(trim, ""), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said), said: read.said };
   };
   /** An age band's naming: its place without the " old" its folder says. */
   const ageBand = bandMember(client.AGE_RANGE_NAMES, AGES, / old$/);
   /** The age bands that can be named (see ageBand), each with its naming. @param {any} ranges @returns {[string, any, Naming][]} */
-  const ageBands = (ranges) => entries(ranges).flatMap(([key, node]) => ((n) => (n ? [/** @type {[string, any, Naming]} */ ([key, node, n])] : []))(ageBand(key)));
+  const ageBands = (ranges) => entries(ranges).flatMap(([key, node]) => {
+    const n = ageBand(key);
+    return n ? [/** @type {[string, any, Naming]} */ ([key, node, n])] : [];
+  });
   /** The holder groups (by their URPD's) with no upper age: the chain's oldest coins in them, unmoved since they were mined. */
   const OLDEST = new Set(["all", "lth", "age_over_4m", "age_over_6m"]);
   /**
@@ -972,19 +997,18 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * One side's cutoffs, a folder of them with their comparisons: `edges`, each the band starting there and its edge as
    * its place keeps it. Each member's place says its side and that edge ("Over 1 day old"); shown and in titles, its
    * side and edge as its dimension counts them, the edge read from its band's key (see Bands: "at least 1 day old").
-   * `over`: the side its words say; its bands, those from its edge up, else under it (the other way where its bands run
-   * against its words, `against`).
-   * @param {[string, any][]} list the bands, low to high @param {[string, string][]} edges @param {boolean} over @param {Bands} d
+   * `over`: the side its words say; `up`, its bands', those from its edge up, else under it (see cutoffs).
+   * @param {[string, any][]} list the bands, low to high @param {[string, string][]} edges @param {boolean} over @param {boolean} up @param {Bands} d
    * @returns {SectionNode}
    */
-  const cutoffFolder = (list, edges, over, d) => {
+  const cutoffFolder = (list, edges, over, up, d) => {
     const nodes = list.map(([, node]) => node), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const [side, each, place] = over ? [d.family.over, d.family.each, "Over"] : [d.family.under, d.family.eachUnder, "Under"];
     const members = edges.flatMap(([key, edge]) => {
-      const low = bandOf(key, d.family)?.[d.end];
+      const low = reported(key, band(key, d.family))?.[d.end];
       if (low === undefined) return [];
       const said = `${side} ${low}${d.after}`;
-      return [{ key, c: cutoffCohort(nodes, at(key), over !== Boolean(d.against)), naming: { name: shownAs(`${place} ${edge}${d.after}`, capitalized(said)), who: d.who(said), inWhole: d.inWhole?.(said) } }];
+      return [{ key, c: cutoffCohort(nodes, at(key), up), naming: { name: shownAs(`${place} ${edge}${d.after}`, capitalized(said)), who: d.who(said), inWhole: d.inWhole?.(said) } }];
     });
     const naming = new Map(members.map((m) => [m.key, m.naming]));
     return section(shownAs(`${place} ${d.article}`, capitalized(`${each} each ${d.noun}`)), family(members.map((m) => [m.key, m.c]), (key) => naming.get(key), { each: `${each} each ${d.noun}`, ...(d.within ? { within: d.within } : {}), ...(d.of ? { of: d.of } : {}), ...(d.lookOf ? { lookOf: d.lookOf } : {}) }));
@@ -998,8 +1022,15 @@ export function studioPresets(client, facts, report = (problem) => console.error
    */
   const cutoffs = (list, edges, d, sides = [true, false]) => {
     const at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
-    const known = edges.filter(([key]) => at(key) >= 0 || (report(`no band ${key} to cut at; its cutoffs left out`), false));
-    return sides.map((over) => cutoffFolder(list, known.filter(([key]) => (over !== Boolean(d.against) ? list.length - at(key) : at(key)) > 1), over, d));
+    const known = edges.filter(([key]) => {
+      if (at(key) < 0) report(`no band ${key} to cut at; its cutoffs left out`);
+      return at(key) >= 0;
+    });
+    return sides.map((over) => {
+      // (Its bands from its edge up, or those under it: its words' side, the other where its bands run against them.)
+      const up = over !== Boolean(d.against);
+      return cutoffFolder(list, known.filter(([key]) => (up ? list.length - at(key) : at(key)) > 1), over, up, d);
+    });
   };
   /**
    * A holder group's profits and losses, as its profit bands and cutoffs read them (see Bands), its coins named by its
@@ -1237,10 +1268,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
         // (Two parts of one whole: stacked, the fees under (their spikes from the floor), the subsidy over them; since the
         // start, a pane of their own below, lines.)
         // (The month's alone: two windows in one stack would add up to two wholes.)
-        ((parts) => chart("Subsidy and fee shares", `Subsidy's and fees' shares of rewards, ${windowSaid("_1m")}`, [
+        ((parts) => chart("Subsidy and fee shares", "Subsidy's and fees' shares of rewards", [
           ...parts.map(([share, what, color]) => series(share._1m, `${what}, ${windowSaid("_1m")}`, { color, type: "area" })),
           ...parts.map(([share, what, color]) => series(share.cumulative, `${what}, all time`, { color, pane: 2 })),
-        ], { stack: { 1: "stack" } }))(/** @type {[any, string, string][]} */ ([[mining.rewards.fees.share, "Fees", "green"], [mining.rewards.subsidy.share, "Subsidy", "orange"]])),
+        ], { stack: { 1: "stack" }, window: "_1m" }))(/** @type {[any, string, string][]} */ ([[mining.rewards.fees.share, "Fees", "green"], [mining.rewards.subsidy.share, "Subsidy", "orange"]])),
         // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
         // miners' income high or low for the time.)
         ((day, year) => chart("Puell multiple", "Puell multiple", [price(), { formula: `365 * ${day} / ${year}`, label: "Puell multiple", format: "ratio", pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] }], { log: [2] }))(mining.rewards.subsidy.sum._24h.usd.name, mining.rewards.subsidy.sum._1y.usd.name),
@@ -1281,8 +1312,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
         // (Each transaction by the fee rate it paid itself, the zero-fee ones apart; the block space they took by the
         // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest.)
-        section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : ((read) => shownAs(spanLabel(key), read ? capitalized(read.said) : spanLabel(key)))(bandOf(key))), (key) => (key === "zeroFee" ? "zero-fee transactions" : `transactions paying ${bandOf(key)?.said}`), "fee rate", { disjoint: true })),
-        section("Block space by effective fee rate", kinds(entries(tx.fees.vsizeByEffectiveFeeRate), (key) => ((read) => shownAs(spanLabel(key), read ? capitalized(read.said) : spanLabel(key)))(bandOf(key)), (key) => `block space (vsize) at effective fee rates ${bandOf(key)?.said}`, "effective fee rate", { what: "block space (vsize)", disjoint: true, count: false })),
+        section("By fee rate", feeRates(tx.fees.txCountByFeeRate, (said) => `transactions paying ${said}`, "fee rate", { disjoint: true }, [["zeroFee", tx.fees.zeroFee.txCount, "Zero fee", "zero-fee transactions"]])),
+        section("Block space by effective fee rate", feeRates(tx.fees.vsizeByEffectiveFeeRate, (said) => `block space (vsize) at effective fee rates ${said}`, "effective fee rate", { what: "block space (vsize)", disjoint: true, count: false })),
         ...spread(tx.fees.fee, "Fee", "transactions' fees", "amber"),
         ...spread(tx.vsize, "Size", "transactions' sizes (vsize)", "sky"),
         ...flow(tx.vsize, "Total size", "Total transaction size (vsize)"),
@@ -1360,7 +1391,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ]),
         // (Each the larger ones' too: lines.)
         section("Sizes", [
-          chart("Compare", `Number of OP_RETURN outputs over each data size, ${windowSaid("_1m")}`, entries(t.opReturn.sizes).map(([key, node], i, all) => series(node.outputCount.sum._1m, spanLabel(key), { color: ramp(all.length)[i] })), { log: [1] }),
+          chart("Compare", "Number of OP_RETURN outputs over each data size", entries(t.opReturn.sizes).map(([key, node], i, all) => series(node.outputCount.sum._1m, spanLabel(key), { color: ramp(all.length)[i] })), { log: [1], window: "_1m" }),
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${spanLabel(key, true)}`))),
         ]),
       ]),
@@ -1443,13 +1474,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
     return fan(name, `${title}, median and percentiles`, keys.map((key) => [key, series(pick(node[key]._1m), `${statLabel(key)}, ${windowSaid("_1m")}`, {})]), PER_BLOCK_COLOR, { log, window: "_1m" });
   }
   /**
-   * A measure's spread over a day's transactions (its percentiles, lowest and highest: fee rates, fees, sizes), each a
-   * week's average (a day's jump about), as a fan (see fan). `what`: the transactions' measure, as said inside a
+   * A measure's spread over each block's transactions (its percentiles, lowest and highest: fee rates, fees, sizes),
+   * each a week's average (one block's jumps about), as a fan (see fan). `what`: the transactions' measure, as said inside a
    * sentence ("transactions' effective fee rates"). @param {any} node @param {string} name @param {string} what @param {string} color
    */
   function spread(node, name, what, color) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node?.[key]));
-    return fan(name, `Daily median and percentiles of ${what}, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key), { pane: 2 })]), color, { average: "7d" });
+    return fan(name, `Median and percentiles of ${what} in each block, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key), { pane: 2 })]), color, { average: "7d" });
   }
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
@@ -1564,7 +1595,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
     // (Each its first band's color, as the age bands draw it: older, cooler.)
     const bands = entries(t.age.ranges), ages = ramp(bands.length), colorOf = (/** @type {string} */ key) => ages[bands.findIndex(([k]) => k === key)];
     // (Each from its band's low edge, as its key says it (see band), read as when they last moved: "At least 1 year ago".)
-    const atLeast = ["_1yTo18m", "_2yTo3y", "_5yTo6y", "_10yTo12y"].flatMap((key) => ((low) => (low ? [[key, `${capitalized(AGES.family.over)} ${low} ago`]] : []))(bandOf(key, AGES.family)?.low));
+    const atLeast = ["_1yTo18m", "_2yTo3y", "_5yTo6y", "_10yTo12y"].flatMap((key) => {
+      const low = reported(key, band(key, AGES.family))?.low;
+      return low ? [[key, `${capitalized(AGES.family.over)} ${low} ago`]] : [];
+    });
     return chart("Last moved", "Supply last moved at least 1, 2, 5 and 10 years ago", [
       ...atLeast.map(([key, said]) => ({ formula: `over(${t.age.ranges[key].supply.total.btc.name})`, label: said, format: "btc", color: colorOf(key) })),
       ...atLeast.map(([key, said]) => ({ formula: `over(${t.age.ranges[key].supply.share.name})`, label: `${said}, share`, format: "percent", color: colorOf(key), pane: 2 })),
@@ -1820,9 +1854,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...parts(["Awake supply", "Awake supply by age band"], ["Awake supply share", "Awake supply share by age band"], list.map(([, node, n], i) => series(node.awake.supply.btc, shownOf(n.name), { color: colors[i] }))),
         ...parts(["Dormant supply", "Dormant supply by age band"], ["Dormant supply share", "Dormant supply share by age band"], list.map(([, node, n], i) => series(node.dormant.supply.btc, shownOf(n.name), { color: colors[i] }))),
       ]),
-      ...list.map(([key, node, n]) => section(n.name, [
+      ...list.map(([, node, n]) => section(n.name, [
         // (The coin days spent outputs had built up while in this band, whatever their age when spent.)
-        ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed that built up while coins were ${dimensionBand(key, AGES)?.said}`),
+        ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed that built up while coins were ${n.said}`),
         chart("Wakefulness", `Wakefulness: ${n.who}`, [series(node.wakefulness, "Wakefulness", { color: "orange" }), series(node.awakeToDormant, "Awake to dormant", { color: "sky", pane: 2 })]),
         chart("Awake and dormant", `Awake and dormant supply: ${n.who}`, [series(node.awake.supply.btc, "Awake", { color: "orange", type: "area" }), series(node.dormant.supply.btc, "Dormant", { color: "gray", type: "area" }), series(node.awake.supply.usd, "Awake, value", { color: "green", type: "area", pane: 2 }), series(node.dormant.supply.usd, "Dormant, value", { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
       ])),

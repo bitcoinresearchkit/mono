@@ -127,14 +127,14 @@ export const dimensionBand = (key, d) => {
  * complementary pair: the terms, under 4 months and at least 4, under 6 and at least 6). Each one phrase, kept as its
  * parts: its head noun (`coins`, a set of coins; `holders`, the holders of them) and its qualifier, before it or after;
  * `place`, where its places keep an older name (the groups at least 4 and 6 months old, from when they said "over");
- * `short`, its abbreviation; `urpd`, its URPD cohort, where it has one (the weighted ones don't). See holderName.
- * @typedef {{ before?: string, noun: "coins" | "holders", after?: string, place?: string, short?: string, urpd?: string }} Holder
+ * `urpd`, its URPD cohort, where it has one (the weighted ones don't). See holderName.
+ * @typedef {{ before?: string, noun: "coins" | "holders", after?: string, place?: string, urpd?: string }} Holder
  * @type {Readonly<Record<string, Holder>>}
  */
 export const HOLDERS = Object.freeze({
   all: { before: "all", noun: "coins", urpd: "all" },
-  sth: { before: "short-term", noun: "holders", short: "STH", urpd: "sth" },
-  lth: { before: "long-term", noun: "holders", short: "LTH", urpd: "lth" },
+  sth: { before: "short-term", noun: "holders", urpd: "sth" },
+  lth: { before: "long-term", noun: "holders", urpd: "lth" },
   under4m: { noun: "coins", after: "under 4 months old", urpd: "age_under_4m" },
   over4m: { noun: "coins", after: "at least 4 months old", place: "Over 4 months old", urpd: "age_over_4m" },
   under6m: { noun: "coins", after: "under 6 months old", urpd: "age_under_6m" },
@@ -145,7 +145,7 @@ export const HOLDERS = Object.freeze({
 /**
  * A holder group's names, all from its phrase (see HOLDERS): `who` in titles ("Short-term holders", "Coins under 4
  * months old"); `shown` in the tree and legends (its qualifier where it follows its noun: "Under 4 months old"); `brief`
- * in a list that says what they are ("Short-term"); `coins`, its coins ("short-term holders' coins"; all coins narrowed,
+ * in a list that says what they are (holders by their term, "Short-term"; coins as shown, "All coins"); `coins`, its coins ("short-term holders' coins"; all coins narrowed,
  * "coins"); `of(kind)`, its coins of a kind ("short-term holders' awake coins"); `place`, its places' name. A key it
  * doesn't know: by its key.
  * @param {string} key
@@ -155,7 +155,7 @@ export function holderName(key) {
   const phrase = [h.before, h.noun, h.after].filter(Boolean).join(" "), who = capitalized(phrase);
   const shown = h.after && !h.before ? capitalized(h.after) : who;
   const of = (/** @type {string} */ kind) => (h.noun === "holders" ? `${phrase}' ${kind}${kind ? " " : ""}coins` : [key === "all" ? "" : h.before, kind, "coins", h.after].filter(Boolean).join(" "));
-  return { who, shown, brief: capitalized(h.before ?? h.after ?? key), coins: of(""), of, place: h.place ?? shown, short: h.short, urpd: h.urpd };
+  return { who, shown, brief: h.noun === "holders" && h.before ? capitalized(h.before) : shown, coins: of(""), of, place: h.place ?? shown, urpd: h.urpd };
 }
 
 /** A place's last step as shown: its label, where it has one (see studioPresets). @param {Record<string, string>} labels @param {string[]} path */

@@ -11955,16 +11955,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shown, its short name (where its list says what it is) and its name in titles. All coins, then each complementary
        * pair (the terms, under 4 months and at least 4, under 6 and at least 6), as holderName names them; then the age
        * bands from the youngest, each read from its key (see dimensionBand: "1 day to under 1 week old"), short as the
-       * client's (an abbreviation its key's reader doesn't make: "1d–1w"); one it can't read, left out.
+       * client's (an abbreviation its key's reader doesn't make: "1d–1w"); one it can't read, reported and left out.
        */
-      const HEAT_COHORTS = /** @type {[string, string, string, string][]} */ ([
-        ...Object.keys(HOLDERS).flatMap((key) => ((h) => (h.urpd ? [/** @type {[string, string, string, string]} */ ([h.urpd, h.shown, h.brief, h.who])] : []))(holderName(key))),
-        ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => ((band) => (band ? [/** @type {[string, string, string, string]} */ ([`age_${id}`, capitalized(band.said), short.replace("-", "–"), band.who])] : []))(dimensionBand(key, AGES))),
+      /** @typedef {{ id: string, shown: string, brief: string, who: string, age: boolean }} HeatCohort */
+      const HEAT_COHORTS = /** @type {HeatCohort[]} */ ([
+        ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
+        ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => {
+          const band = dimensionBand(key, AGES);
+          if (!band) console.error(`Studio: age band ${key} has no edges it can read; left out`);
+          return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
+        }),
       ]);
-      /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
-      const heatKnown = (layer) => ((known) => (layer.type === "profile" ? (layer.profile ?? []).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
-      /** The URPD's age bands, the youngest first (after all coins and the age cutoffs). */
-      const HEAT_AGES = HEAT_COHORTS.slice(7).map(([id]) => id);
+      /** A URPD cohort, by its id (one Bitview doesn't have, a link's typo or one renamed: undefined). */
+      const HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c])), heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
+      /** Whether Bitview has a heatmap's holder group (see heatCohort). @param {Layer} layer */
+      const heatKnown = (layer) => (layer.type === "profile" ? (layer.profile ?? []).every((id) => heatCohort(id)) : Boolean(heatCohort(layer.heatmap ?? "all")));
+      /** The URPD's holder groups (all coins and the age cutoffs), then its age bands, the youngest first. */
+      const HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id), HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
       /**
        * Each holder group's color, one palette wherever it's drawn (see palette.js, the presets' too): its own (all coins
        * green, short-term holders orange, long-term blue, the age cutoffs around them; the URPD's age_under_4m is the
@@ -11974,11 +11981,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A profile's color for one of its holder groups: its own, else the group's (see cohortColor). @param {Layer} layer @param {string} cohort */
       const profileColor = (layer, cohort) => (layer.cohortColors && Object.hasOwn(layer.cohortColors, cohort) ? layer.cohortColors[cohort] : cohortColor(cohort));
       /** A cohort's name (one not listed: its id). */
-      const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
+      const cohortName = (/** @type {string} */ id) => heatCohort(id)?.shown ?? id;
       /** A cohort's name in titles, whose coins they are ("Short-term holders", "Coins 1 day to under 1 week old"; one not listed: its id). */
-      const cohortWho = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[3] ?? id;
+      const cohortWho = (/** @type {string} */ id) => heatCohort(id)?.who ?? id;
       /** A holder group's short name, where its list says what it is (a profile's, under Holders or Age bands: "Short-term", "1h–1d"). @param {string} id */
-      const cohortShort = (id) => HEAT_COHORTS.find(([one]) => one === id)?.[2] ?? id;
+      const cohortShort = (id) => heatCohort(id)?.brief ?? id;
       /** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again). */
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
@@ -22335,7 +22342,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's settings' two lists: its holder groups (all coins, the terms, the age cutoffs; then its groups Bitview
        * doesn't have, to take out) and the age bands, the youngest first. @param {Layer} layer
        */
-      const profileLists = (layer) => ({ holders: [...HEAT_COHORTS.slice(0, 7).map(([id]) => id), ...(layer.profile ?? []).filter((id) => !HEAT_COHORTS.some(([one]) => one === id))], ages: HEAT_AGES });
+      const profileLists = (layer) => ({ holders: [...HEAT_HOLDERS, ...(layer.profile ?? []).filter((id) => !heatCohort(id))], ages: HEAT_AGES });
       /**
        * A profile's list (see profileLists) all in (those not in yet, after the others, in its order) or all out. The button
        * pressed keeps the focus. @param {string} id @param {"holders" | "ages"} list @param {boolean} on
@@ -22343,7 +22350,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function setCohorts(id, list, on) {
         const layer = layerById(id);
         if (layer?.type !== "profile") return;
-        const ids = profileLists(layer)[list].filter((cohort) => !on || HEAT_COHORTS.some(([one]) => one === cohort));
+        const ids = profileLists(layer)[list].filter((cohort) => !on || heatCohort(cohort));
         editById(id, (item) => (item.profile = on ? [...(item.profile ?? []), ...ids.filter((cohort) => !item.profile?.includes(cohort))] : (item.profile ?? []).filter((cohort) => !ids.includes(cohort))));
         refocus(`#inspector [data-cohorts-${on ? "in" : "out"}="${list}"]`);
       }
@@ -22351,7 +22358,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder groups", rows: () => {
         const layer = layerById(id), groups = layer?.profile ?? [];
         // (Its groups Bitview doesn't have (a link's typo) last, to take out.)
-        return [...HEAT_COHORTS, ...groups.filter((cohort) => !HEAT_COHORTS.some(([one]) => one === cohort)).map((cohort) => /** @type {[string, string]} */ ([cohort, `${cohort}: not on Bitview`]))].map(([cohort, name], i) => ((on) => ({ kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group: i < 7 ? "Holder groups" : i < HEAT_COHORTS.length ? "Age bands" : "Not on Bitview", run: () => toggleCohort(id, cohort) }))(groups.includes(cohort)));
+        const rows = [...HEAT_COHORTS.map((c) => [c.id, c.shown, c.age ? "Age bands" : "Holder groups"]), ...groups.filter((cohort) => !heatCohort(cohort)).map((cohort) => [cohort, `${cohort}: not on Bitview`, "Not on Bitview"])];
+        return rows.map(([cohort, name, group]) => {
+          const on = groups.includes(cohort);
+          return { kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group, run: () => toggleCohort(id, cohort) };
+        });
       } });
       /**
        * A heatmap's rows in its page (see layerPage) and its inspector's menus: its holders, measure, weight and density,
@@ -22364,7 +22375,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A profile's, its groups pressed in or out; a heatmap's, its one.)
           layer.type === "profile"
             ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
-            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map(([id, name]) => /** @type {[string, string]} */ ([id, name])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
+            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map((c) => /** @type {[string, string]} */ ([c.id, c.shown])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
           ...(layer.type === "profile" ? [{ key: "view", icon: ICONS.layers, label: "View", aside: layer.cumulative ? "Cumulative" : "Bars", group: kind, page: choices("View", PROFILE_VIEWS, (item) => (item.cumulative ? "cumulative" : "bars"), (item, view) => (item.cumulative = view === "cumulative" || undefined), (view) => HEAT_SAYS[view]) }] : []),
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: measureName(layer), group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: weightName(layer), group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
@@ -22387,8 +22398,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // betweenField), each in its color; the first pressed at the edge.)
         // (Each list in a grid, each by its short name (its whole one its tip), all of it in or out at once: All, None.)
         const groups = layer.profile ?? [], lists = profileLists(layer);
-        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
-        const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !HEAT_COHORTS.some(([one]) => one === id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
+        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(Boolean(heatCohort(id)))).join("")}</div>`;
+        const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !heatCohort(id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
         // (A profile's holder groups and age bands, a heatmap's holder group; then their measure, weight and density alike.)
         return `<section>
               <h3>${layer.type === "profile" ? "Profile" : "Heatmap"}</h3>
@@ -25714,7 +25725,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("gallery").innerHTML = [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
             ...(own.length ? [presetGridHtml(own)] : []),
-            ...items.flatMap((item) => (typeof item === "number" ? [] : [shelfHtml(item.name, presetsUnder(item), item.path)])),
+            ...items.flatMap((item) => (typeof item === "number" ? [] : [shelfHtml(item.name, item.under, item.path)])),
           ].join("");
         }
         if (kept) placeGallery(kept);
@@ -27297,11 +27308,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
-       * own presets, in the presets' order), how many it holds at any depth, its key (its path, as kept), its name as
-       * shown (see shownStep). Each preset's search words gathered in the same walk (see presetWords).
-       * @typedef {{ path: string[], key: string, name: string, items: (PresetNode | number)[], count: number, icon?: string }} PresetNode
+       * own presets, in the presets' order), every preset it holds at any depth (`under`, in their order), its key (its path, as kept), its name as
+       * shown (see shownStep); and each preset's words for the search (its title, its place and its places' steps as shown,
+       * lowercased), gathered in the same walk (see presetWordList).
+       * @typedef {{ path: string[], key: string, name: string, items: (PresetNode | number)[], under: number[], icon?: string }} PresetNode
        */
-      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode> }} */ ({ for: null, node: null, byKey: new Map() });
+      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode>, words: string[] }} */ ({ for: null, node: null, byKey: new Map(), words: [] });
       /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
       function sectionKeys(/** @type {number} */ i) {
         const path = /** @type {Preset[]} */ (presets)[i].p;
@@ -27310,34 +27322,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTree() {
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
-        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", items: [], count: 0 }), byKey = new Map([[root.key, root]]);
-        presetWords = presets.map((preset, i) => {
-          let node = root, words = `${preset.t} ${preset.p.join(" ")}`;
-          node.count++;
+        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", items: [], under: [] }), byKey = new Map([[root.key, root]]);
+        const words = presets.map((preset, i) => {
+          let node = root, said = `${preset.t} ${preset.p.join(" ")}`;
+          node.under.push(i);
           for (let depth = 0; depth < preset.p.length - 1; depth++) {
             const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
             let next = byKey.get(key);
             if (!next) {
               // (A top section's icon, on its first preset: see presets.js.)
-              next = { path, key, name: shownStep(presetLabels, path), items: [], count: 0, ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
+              next = { path, key, name: shownStep(presetLabels, path), items: [], under: [], ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
               byKey.set(key, next);
               node.items.push(next);
             }
             node = next;
-            node.count++;
-            if (node.name !== path[depth]) words += ` ${node.name}`;
+            node.under.push(i);
+            if (node.name !== path[depth]) said += ` ${node.name}`;
           }
           node.items.push(i);
           const own = presetLabels[JSON.stringify(preset.p)];
-          return (own ? `${words} ${own}` : words).toLowerCase();
+          return (own ? `${said} ${own}` : said).toLowerCase();
         });
-        presetRoot = { for: presets, node: root, byKey };
+        presetRoot = { for: presets, node: root, byKey, words };
         return root;
       }
+      /** Each preset's words for the search (see presetTree): none till they're read. */
+      const presetWordList = () => (presetTree() ? presetRoot.words : []);
       /** A preset's name as shown (see shownStep). @param {Preset} preset */
       const presetName = (preset) => shownStep(presetLabels, preset.p);
-      /** Every preset under a section (see presetTree), at any depth, in the presets' order. @param {PresetNode} node @returns {number[]} */
-      const presetsUnder = (node) => node.items.flatMap((item) => (typeof item === "number" ? [item] : presetsUnder(item)));
       /** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
       function presetNodeAt(/** @type {string[]} */ path) {
         return presetTree() ? presetRoot.byKey.get(JSON.stringify(path)) : undefined;
@@ -27440,7 +27452,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             const section = item, shown = open.has(section.key), name = section.name, key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.count)}</span></button>
+              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
               <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ path: section.path }))}" aria-label="View ${escape(name)}" data-tip="View">${ICONS.arrowRight}</button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
@@ -28976,8 +28988,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let presetLooks = /** @type {Map<string, Partial<Layer>>} */ (new Map());
       /** Their places' steps shown otherwise than their places say, by key (see shownStep): none till they're read. */
       let presetLabels = /** @type {Record<string, string>} */ ({});
-      /** The presets, once read; each one's words (its title and place, lowercased) for the search. */
-      let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
+      /** The presets, once read. */
+      let presets = /** @type {Preset[] | null} */ (null), presetsFailed = false;
       /** Each preset's title, name and subject (its title before ": "), lowercased, as a search compares them. @type {{ title: string, name: string, subject: string }[]} */
       let presetTitles = [];
       /**
@@ -29052,8 +29064,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return JSON.parse(text);
           }
           const text = await made();
-          // (Kept alone: those made from anything else, gone.)
-          void Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(text, { headers: { "content-type": "application/json" } }))]).catch(() => {});
+          // (Kept alone: those made from anything else, gone. Made without the facts (they didn't come), not kept, nor
+          // anything gone: their next start asks for them again.)
+          if (facts) void Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(text, { headers: { "content-type": "application/json" } }))]).catch(() => {});
           return JSON.parse(text);
         } catch {
           return here();
@@ -29717,7 +29730,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The presets' words (see presetVocab), at once; in an idle moment (`deadline`), as far as it goes, then the next. */
       function vocabNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
-        if (presetVocab.of !== presetWords) presetVocab = { of: presetWords, counts: new Map(), making: vocabMaking(presetWords) };
+        const words = presetWordList();
+        if (presetVocab.of !== words) presetVocab = { of: words, counts: new Map(), making: vocabMaking(words) };
         inSlices(deadline, () => ((step) => (step?.done && ((presetVocab.counts = step.value), (presetVocab.making = null)), !step || Boolean(step.done)))(presetVocab.making?.next()), vocabNow);
         return presetVocab.counts;
       }
@@ -29736,7 +29750,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return near.sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([each]) => each);
       }
       /** A preset's words for a search: its title as made, and as edited here, and where it is. */
-      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(keptPreset(i));
+      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWordList()[i]} ${titleOf(edited).toLowerCase()}` : presetWordList()[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /** How many the last search found, all of them (what it returns, the best few). */
@@ -29747,7 +29761,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`.
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
-        const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
+        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), presetWords = presetWordList();
         // (Typed on from the last search, every match is among its matches.)
         const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
         // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
@@ -29873,7 +29887,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
             if (words.length) return presetsMatching(words, 300, under).map((i) => presetRow(i, true));
             // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
-            const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.count, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
+            const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.under.length, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
             // screen of them.)
             return [viewRow({ path }), ...(path.length ? [] : [{ kind: "row", key: "group:recommended", icon: ICONS.folder, label: "Recommended", aside: plural(recommendedPresets().length, "chart"), verb: "Open", page: recommendedPage }]), ...rows];
@@ -35728,11 +35742,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { key: "add-profile", icon: ICONS.profile, label: "Add a profile", aside: PROFILE_SHORT, under: true, page: profileAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
       /** ⌘K's page for a heatmap: a holder group to add one of (its supply by cost basis; the rest, its own to change). @returns {Page} */
-      const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
+      const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
       /** Adding a profile: long-term and short-term holders together first (the coins' two sides, each its color), then one group; more pressed in its settings. */
       const profileAddPage = () => choicePage("Add a profile", () => [
         { key: "lth+sth", icon: ICONS.profile, label: "Long-term and short-term holders", aside: "Each its color", verb: "Add", run: () => addHeatmap("lth", ["lth", "sth"]) },
-        ...HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
+        ...HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
       ]);
       /** @returns {Page} */
       function chartPage() {
@@ -39474,7 +39488,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...node.items.map((each) => (typeof each === "number"
             // (By its own name, as its row: retitled here, by that.)
             ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : presetName(all[each])))(keptPreset(each)), run: () => pickPreset(each) }
-            : { key: each.key, icon: sectionMark(each), label: each.name, aside: shortCount(each.count), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
+            : { key: each.key, icon: sectionMark(each), label: each.name, aside: shortCount(each.under.length), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
           { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
         ];
       }
