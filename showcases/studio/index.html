@@ -11106,7 +11106,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid, Profile } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid, Profile, columnWidth } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { addressSteps } from "/studio/addresses.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
@@ -16482,8 +16482,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A baseline's or bars' base: its own, else zero (as the website's). @param {Layer} layer */
       const baseOf = (layer) => layer.base ?? 0;
 
-      /** A profile's width (see viewProfile): a fifth of the plot's, 72 at least, 200 at most. */
-      const profileWidth = (/** @type {number} */ width) => Math.round(clamp(width * 0.2, 72, 200));
       /** A profile's bins' least height (pixels, a gap's in it): its rows, thinner, binned to it (see the library's Profile). */
       const PROFILE_BIN = 3;
       /** How strong a profile's groups are drawn but the one a bar's pointed at of (see profileHit). */
@@ -16495,7 +16493,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * share of the chart's width, a phone's narrower, a large screen's no wider than 48; with a heatmap's profile, its
        * width more, the latest day clear of it (the chart drawn: ⌘K's preview, while it shows). Any chart's (a preview's too).
        */
-      const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? profileWidth(width) : 0);
+      const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? columnWidth(width) : 0);
       /** The farthest the chart zooms out: four points a pixel, still smooth to pan. */
       const MIN_BAR_SPACING = 0.25;
       /**
@@ -18090,7 +18088,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const span = range ? range.to - range.from : 0, end = (/** @type {number} */ px) => last + (px * span) / width;
           // (The room it was placed with another chart's: none to move from, as it's placed for this one.)
           // (The room as it was at this width: a resize places the view with it, see holdView.)
-          const on = room > 0, moves = !lookShown && roomPlaced.id === chart.id && on !== roomPlaced.on && range && last > 0 && range.to >= last - 0.5 && (Math.abs(range.to - end(base + (roomPlaced.on ? profileWidth(width) : 0))) <= 0.5 || range.to < end(gap));
+          const on = room > 0, moves = !lookShown && roomPlaced.id === chart.id && on !== roomPlaced.on && range && last > 0 && range.to >= last - 0.5 && (Math.abs(range.to - end(base + (roomPlaced.on ? columnWidth(width) : 0))) <= 0.5 || range.to < end(gap));
           if (moves) showSpan({ from: end(gap) - span, to: end(gap) });
           else if (range && gap !== was) showSpan(range);
           if (!lookShown) roomPlaced = { id: chart.id, on };
@@ -19131,7 +19129,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           this.engine = this.grid ?? new Profile({
             edge: (row) => /** @type {NonNullable<HeatLook["grid"]>} */ (look().grid).price(row),
             cell: (value) => /** @type {NonNullable<HeatLook["grid"]>} */ (look().grid).cell(value),
-            width: profileWidth,
             bin: PROFILE_BIN,
             // (No look (a holder group Bitview doesn't have): nothing drawn.)
             viewed: () => void (this.engine instanceof Profile && (look() ? viewProfile(look(), this.engine) : this.engine.groups.length && this.engine.set({ groups: [] }))),
@@ -22684,15 +22681,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let profileLit = null;
       /**
-       * The profiles whose bars the pointer's among (on their pane, at the plot's right edge, as wide as they're drawn: see
-       * profileWidth), the frontmost first (its first layer, else its last: see Pane): a pointer's or a finger's, not the
-       * keys'. @param {ChartPoint} param @returns {Layer[]}
+       * The profiles whose bars the pointer's among (on their pane, in the column each drew at the plot's right edge: see
+       * the library's Profile.covers; one that drew nothing, none), the frontmost first (its first layer, else its last:
+       * see Pane): a pointer's or a finger's, not the keys'. @param {ChartPoint} param @returns {Layer[]}
        */
       function profilesUnder(param) {
         if (keyTime !== null || !param.point || param.pane === undefined) return [];
-        const width = engine.time.width, pane = chart.panes[param.pane];
-        if (param.point.x < width - 2 - profileWidth(width)) return [];
-        const mine = chart.layers.filter((layer) => layer.type === "profile" && !layer.hidden && layer.pane === pane?.id);
+        // (Left of the widest column a profile draws (a pixel's slack: its bars' edge on the device's pixels, its curves'
+        // stroke), none asked.)
+        const pane = chart.panes[param.pane], x = param.point.x, plot = engine.time.width;
+        if (x < plot - columnWidth(plot) - 1) return [];
+        const mine = chart.layers.filter((layer) => {
+          if (layer.type !== "profile" || layer.hidden || layer.pane !== pane?.id) return false;
+          const profile = drawn.get(layer.id)?.engine;
+          return profile instanceof Profile && profile.covers(x);
+        });
         return pane?.reverse ? mine.reverse() : mine;
       }
       /**
@@ -24696,14 +24699,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               drawn.marks.push(mark), ranks.set(mark, (zOf.get(layer.id) ?? 0) - doc.layers.length - 1);
             }
             // (Each profile's day (the last shown, as the chart's), its groups' bars from the right edge as the chart draws
-            // them (see profileBars): a fifth of the width at the most, binned by a few units, strong under the close, faint
+            // them (see the library's columnWidth): that wide at the most, binned by a few units, strong under the close, faint
             // over it, a group a mark of each (see previewSvg); in the pane's order, as a series. Cumulative, each side's
             // amounts summed from the close outward, the groups stacked, an area each (see the library's Profile).)
             for (const layer of heats) {
               const sample = heat.get(layer.id), scaled = onScale(modeOf(doc, layer), NaN), rows = Number(HEAT_PICTURE_AGG.slice(3)), measure = layer.measure ?? "supply";
               const groups = layer.type === "profile" && range ? (layer.profile ?? []).map((cohort, c) => ({ cohort, day: sample?.days[c] })).filter((item) => item.day?.rows) : [];
               if (!groups.length) continue;
-              const BIN = 4, bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
+              const BIN = 4, reach = columnWidth(W), bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
               // (Cumulative: the amounts between the close and the pane's edge, out of view, each side's start.)
               const split = y(scaled(Number(groups[0].day.close))), over = new Float64Array(count), under = new Float64Array(count);
               groups.forEach(({ day }, c) => {
@@ -24736,7 +24739,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const whole = Math.max(...sides.map(({ runs }) => runs[runs.length - 1].reduce((a, b) => a + b, 0)));
                 if (!(whole > 0)) continue;
                 for (const { down, ys, runs } of sides) {
-                  const x = (v) => round(W - (v / whole) * W * 0.2), stacked = new Float64Array(ys.length);
+                  const x = (v) => round(W - (v / whole) * reach), stacked = new Float64Array(ys.length);
                   for (let c = 0; c < count; c++) {
                     const out = ys.map((at, k) => `${x(stacked[k] + runs[k][c])} ${round(at)}`), back = ys.map((at, k) => `${x(stacked[k])} ${round(at)}`).reverse();
                     if (runs[runs.length - 1][c]) paths[c][down ? 0 : 1] += `M${out.join("L")}L${back.join("L")}Z`;
@@ -24747,7 +24750,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (!totals[b]) continue;
                 const top = round(paneTop + b * BIN), bottom = round(Math.min(paneBottom, paneTop + (b + 1) * BIN - 1)), faint = (top + bottom) / 2 > split ? 0 : 1;
                 for (let c = 0, x = W; c < count; c++) {
-                  const length = (sums[b * count + c] / most) * W * 0.2;
+                  const length = (sums[b * count + c] / most) * reach;
                   if (length) paths[c][faint] += `M${round(x - length)} ${top}H${round(x)}V${bottom}H${round(x - length)}Z`;
                   x -= length;
                 }

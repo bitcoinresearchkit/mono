@@ -26,7 +26,7 @@ export { Candles, BODIES_FROM } from "./candles.js";
 export { Bubbles } from "./bubbles.js";
 export { Shade } from "./shade.js";
 export { Grid } from "./grid.js";
-export { Profile } from "./profile.js";
+export { Profile, columnWidth } from "./profile.js";
 export { stack } from "./stack.js";
 export { Custom } from "./custom.js";
 export { Marks } from "./marks.js";
