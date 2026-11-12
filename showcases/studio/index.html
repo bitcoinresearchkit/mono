@@ -11956,7 +11956,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const HEAT_COHORTS = /** @type {[string, string, string][]} */ ([
         ["all", "All coins", "All coins"], ["sth", "Short-term holders", "Short-term"], ["lth", "Long-term holders", "Long-term"],
-        ["age_under_4m", "Under 4 months old", "Under 4 months"], ["age_over_4m", "Over 4 months old", "Over 4 months"], ["age_under_6m", "Under 6 months old", "Under 6 months"], ["age_over_6m", "Over 6 months old", "Over 6 months"],
+        ["age_under_4m", "Under 4 months old", "Under 4 months"], ["age_over_4m", "At least 4 months old", "At least 4 months"], ["age_under_6m", "Under 6 months old", "Under 6 months"], ["age_over_6m", "At least 6 months old", "At least 6 months"],
         ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long, short }) => /** @type {[string, string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, ""), short.replace("-", "–")])),
       ]);
       /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
@@ -27319,7 +27319,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shown (see placeShown).
        * @typedef {{ path: string[], key: string, name: string, items: (PresetNode | number)[], count: number, icon?: string }} PresetNode
        */
-      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
+      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode> }} */ ({ for: null, node: null, byKey: new Map() });
       /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
       function sectionKeys(/** @type {number} */ i) {
         const path = /** @type {Preset[]} */ (presets)[i].p;
@@ -27346,14 +27346,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           node.items.push(i);
         });
-        presetRoot = { for: presets, node: root };
+        presetRoot = { for: presets, node: root, byKey };
         return root;
       }
       /** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
       function presetNodeAt(/** @type {string[]} */ path) {
-        let node = presetTree() ?? undefined;
-        for (const name of path) node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name));
-        return node;
+        return presetTree() ? presetRoot.byKey.get(JSON.stringify(path)) : undefined;
       }
       /** A place's steps as shown (see placeShown); their names till the presets are read. @param {string[]} path */
       function placeNames(path) {
