@@ -38575,12 +38575,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               else if (logical) showSpan(atLatest(logical, screen) ?? logical, EXACT_RANGE);
             }
             updateReadout();
-            // (Reserve the complete legend; very small requested sizes fit the complete canvas at the final resampling.)
+            // (Their block under the plot, out of its height at a size asked for: see chartImage for one too small.)
             const together = setApart();
             restoreLegends = () => (together(), presented());
             const layout = apartLayout(width);
             below = layout.height;
-            const plot = sized ? Math.max(160, height - below) : height;
+            const plot = sized ? height - below : height;
             if (sized) element.style.height = `${plot}px`;
             sizeChart(width, plot);
             chartHeight = plot;
@@ -38629,6 +38629,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const extra = { wants: [], keys: new Set() };
         heatExtras.add(extra);
         try {
+          // (Too small a size to hold its legends under a plot of 160 pixels: laid out larger, its shape the same, and
+          // drawn down to the size asked for (see the resampling at its end): every name whole, nothing over the lines.)
+          const small = asPicture((layout) => sized && height - layout.height < 160);
+          if (small) return chartImage({ width: /** @type {number} */ (size.width) * 1.25, height: /** @type {number} */ (size.height) * 1.25, scale: (size.scale ?? devicePixelRatio) / 1.25 }, wait);
           // (`wait`, a script's at a size not the screen's: a heatmap's days there, asked for by a draw at it (the chart
           // laid out so only while it's drawn), waited for with the page as it is, a few rounds while a draw asks for more
           // (a coarser day's columns, then their own); still missing after them, no picture: why. Not a tap's: a share
@@ -38781,10 +38785,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         out.height = Math.round(/** @type {number} */ (size.height) * density);
         const resampled = /** @type {CanvasRenderingContext2D} */ (out.getContext("2d"));
         resampled.imageSmoothingQuality = "high";
-        resampled.fillStyle = cardColor;
-        resampled.fillRect(0, 0, out.width, out.height);
-        const fit = Math.min(out.width / canvas.width, out.height / canvas.height), w = canvas.width * fit, h = canvas.height * fit;
-        resampled.drawImage(canvas, (out.width - w) / 2, (out.height - h) / 2, w, h);
+        resampled.drawImage(canvas, 0, 0, out.width, out.height);
         return out;
       }
       /**
@@ -38899,9 +38900,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function apartLayout(/** @type {number} */ width) {
         const groups = apartItems();
         const g = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d")), fonts = apartFonts();
+        // (A column as wide as an item's longest word and its value: its name wraps, one long name no reason for one column.)
         const itemWidth = (item) => {
           g.font = fonts.name;
-          const name = g.measureText(item.name).width;
+          const name = Math.max(0, ...item.name.split(/\s+/).map((word) => g.measureText(word).width));
           g.font = fonts.value;
           return name + g.measureText(item.value).width + (item.mark ? APART.mark + APART.markGap : 0) + APART.columnGap + APART.textGap;
         };
