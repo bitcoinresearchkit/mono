@@ -11142,6 +11142,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Series classified by their catalog role, in the same walk as the index. @type {Set<string>} */
       let cumulativeSeries = new Set();
       const catalogReady = Promise.withResolvers();
+      /** The open chart built before the roles its framing reads were in: built again once they are (see indexCatalog). */
+      let framedBlind = false;
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
@@ -12069,7 +12071,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (automaticZero(doc, layer, mode, stacked) && cumulativeLayer(doc, layer)));
       /** Whether the roles needed by automatic linear framing are known; other framing is independent of the catalog. @param {Chart} doc */
       const framingKnown = (doc) => catalogIndex !== null || !doc.layers.some((layer) => automaticZero(doc, layer, modeOf(doc, layer), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.stack)));
-      /** Numeric data stays usable if role discovery fails; dependent drawings stay out of persistent caches. @param {Chart} doc */
+      /** A background picture's wait for the roles its framing reads: whether they're known (a failed walk: never, kept out of caches). @param {Chart} doc */
       async function framingReady(doc) {
         if (!framingKnown(doc)) await catalogReady.promise;
         return framingKnown(doc);
@@ -14288,7 +14290,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
        * its JIT: 180 ms of it, in a launch's first seconds); without one, it failing or silent for two seconds, here in
        * small tasks. Then charts saved without paths get theirs (and survive renames). What needs it synchronously
-       * (a search, a series added) finishes the same walk here at once; automatic linear framing waits for either answer.
+       * (a search, a series added) finishes the same walk here at once. The open chart draws without waiting: one framed
+       * without the roles it reads is built again once they're in (see framedBlind); background pictures wait for either
+       * answer (see framingReady).
        */
       const indexCatalog = (() => {
         const walk = catalogWalk(tree, INTERVAL_ORDER);
@@ -14310,6 +14314,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const name of found.sharedTops) sharedTops.add(name);
           finish();
           catalogReady.resolve(undefined);
+          if (framedBlind) (framedBlind = false), redrawChart(true);
           seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
           whenIdle(ranksSoon);
@@ -16485,7 +16490,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             break;
           }
         }
-        await framingReady(doc);
         const failed = [...fetched].filter(([, { error }]) => error && !error.unavailable && error.status !== 404).map(([name]) => name);
         if (first === 0 || first === length) return { times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
         // Trimmed once a result and a start: kept the same, as the chart keeps its series.
@@ -17413,6 +17417,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         endScaleGlide();
         // (What the live price paints its colors from: this, whatever builds it, a restyle and a preview too.)
         drawnDoc = doc;
+        framedBlind = !framingKnown(doc);
         // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
         if (drawnChart !== doc.id || drawnIndex !== doc.index) crossSet ? dropCross() : keyAway();
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
