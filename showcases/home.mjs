@@ -96,7 +96,7 @@ if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().
 const folders = new TextDecoder().decode(git.stdout).split("\n").filter(Boolean).map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
 // (On it: in its rows, APPS or DEV, the footer's links not counting; or unlisted, in UNLISTED: served at its address,
 // with its icon, but off the front page and the sitemap, until it's ready to be listed.)
-const UNLISTED = ["/ledger/"];
+const UNLISTED = ["/ledger/", "/triangle/"];
 for (const href of UNLISTED) if ([...apps, ...dev].includes(href)) problems.push(`${href}: in the front page's rows and in UNLISTED (take it out of UNLISTED)`);
 for (const name of folders)
   if (![...apps, ...dev, ...UNLISTED].includes(`/${name}/`))

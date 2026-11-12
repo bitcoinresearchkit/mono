@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Triangle" data-color="#a0285a" data-wait></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf9f5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0b0d" />
+    <title>Triangle · Bitview</title>
+    <meta name="description" content="Every bitcoin block's coins over the whole history: what's left of each block, week by week, from the genesis block to today." />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Instrument Serif";
+        src: url("/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      /* One graphic, pinned: the triangle from the genesis block, bottom left, to today, the right edge. Scrolling
+         tells it in steps, each lighting one part and dimming the rest, its words in the empty half above the edge.
+         After it, the set by year, and how it's made. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#fbf9f5, #0b0b0d);
+        --ink: light-dark(#17130f, #f3f1ec);
+        --text: light-dark(#3a342d, #cfccc5);
+        --soft: light-dark(#5f5850, #9c9890);
+        --faint: light-dark(#7d756b, #6e6b65);
+        --hover: light-dark(rgb(23 19 15 / 0.06), rgb(243 241 236 / 0.08));
+        --line: light-dark(rgb(23 19 15 / 0.12), rgb(243 241 236 / 0.1));
+        --focus: light-dark(rgb(23 19 15 / 0.6), rgb(243 241 236 / 0.6));
+        --left: light-dark(#a0285a, #f5a524);
+        /* (Room off the edge for its years' labels: the words never touch them.) */
+        --edge: 58px;
+        --gutter: max(18px, env(safe-area-inset-left), env(safe-area-inset-right));
+        --big: clamp(40px, 3.6vw + 18px, 84px);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-snap-type: y proximity;
+      }
+
+      body {
+        margin: 0;
+        background: var(--app);
+        color: var(--soft);
+        font: 14px/1.5 Inter, system-ui, sans-serif;
+        font-feature-settings: "tnum", "cv11";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .num {
+        font-family: Lilex, ui-monospace, monospace;
+        font-size: 0.9em;
+        letter-spacing: -0.02em;
+      }
+
+      .caps {
+        color: var(--faint);
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* ---- The story: as tall as its steps, the triangle pinned while they pass. */
+
+      .story {
+        position: relative;
+        height: calc(var(--steps, 7) * 100svh);
+
+        /* (A resting place for each step.) */
+        > .snap {
+          position: absolute;
+          left: 0;
+          width: 1px;
+          height: 100svh;
+          scroll-snap-align: start;
+        }
+      }
+
+      .stage {
+        position: sticky;
+        top: 0;
+        height: 100svh;
+        overflow: hidden;
+
+        > canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          /* (A finger scrolls the story up and down; held, it reads the triangle.) */
+          touch-action: pan-y;
+        }
+
+        > canvas.dim {
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.5s ease;
+
+          @media (prefers-reduced-motion: reduce) {
+            transition: none;
+          }
+        }
+      }
+
+      /* The words: in the empty half, never over the data; only what they hold takes the pointer. */
+      .ui {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        padding-left: var(--gutter);
+
+        /* (The triangle's shape, for the lines to wrap along its edge. Plain lines only: a box of its own, a flex or
+           an overflow, wouldn't wrap, only sit beside it.) */
+        .edge {
+          float: right;
+          width: 100%;
+          height: 100%;
+          shape-outside: polygon(100% 0, 100% 100%, 0 100%);
+          shape-margin: var(--edge);
+        }
+
+        a,
+        button {
+          pointer-events: auto;
+        }
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: max(16px, env(safe-area-inset-top));
+        height: 28px;
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      /* Where the story is: a bar a step, the one shown in ink, those passed softer; each goes to its step. */
+      .progress {
+        margin: clamp(18px, 3.5vh, 40px) 0 0;
+        height: 14px;
+        line-height: 14px;
+
+        button {
+          display: inline-block;
+          width: 22px;
+          height: 14px;
+          margin-right: 4px;
+          padding: 0;
+          border: 0;
+          background: none;
+          cursor: pointer;
+          vertical-align: top;
+          -webkit-tap-highlight-color: transparent;
+
+          &::before {
+            content: "";
+            display: block;
+            height: 2px;
+            margin-top: 6px;
+            border-radius: 1px;
+            background: var(--line);
+            transition: background 0.3s ease;
+          }
+
+          &.passed::before {
+            background: var(--faint);
+          }
+
+          &[aria-current="step"]::before {
+            background: var(--ink);
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+            border-radius: 3px;
+          }
+        }
+      }
+
+      .kicker {
+        margin: clamp(14px, 2.5vh, 28px) 0 0;
+        height: 16px;
+        color: var(--left);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.09em;
+        line-height: 16px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .ui h1 {
+        margin: 4px 0 0;
+        height: var(--big);
+        color: var(--ink);
+        font: 400 var(--big) / 1 "Instrument Serif", Georgia, serif;
+        letter-spacing: -0.015em;
+        white-space: nowrap;
+
+        small {
+          margin-left: 0.18em;
+          color: var(--soft);
+          font-size: 0.5em;
+          letter-spacing: 0;
+        }
+      }
+
+      .text {
+        margin: 14px 0 0;
+        max-width: 27em;
+        color: var(--text);
+        font-size: clamp(15px, 0.3vw + 12.5px, 18px);
+        line-height: 1.55;
+        text-wrap: pretty;
+
+        b {
+          color: var(--ink);
+          font-weight: 600;
+        }
+      }
+
+      .key {
+        margin: 8px 0 0;
+        color: var(--faint);
+        font-size: 11.5px;
+        line-height: 34px;
+
+        > * {
+          vertical-align: middle;
+          margin-right: 14px;
+        }
+
+        .cue {
+          color: var(--soft);
+          white-space: nowrap;
+        }
+      }
+
+      .day {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+        padding: 0 4px 0 12px;
+        border-radius: 10px;
+        background: var(--hover);
+        color: var(--soft);
+        font-size: 12px;
+        pointer-events: auto;
+        white-space: nowrap;
+
+        &[hidden] {
+          display: none;
+        }
+
+        input {
+          height: 26px;
+          border: 0;
+          background: none;
+          color: var(--ink);
+          font: 550 12.5px Inter, system-ui, sans-serif;
+          color-scheme: light dark;
+        }
+
+        button {
+          width: 24px;
+          height: 24px;
+          border: 0;
+          border-radius: 6px;
+          background: none;
+          color: var(--soft);
+          cursor: pointer;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
+      .ramp {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+
+        i {
+          display: inline-block;
+          width: 72px;
+          height: 8px;
+          border-radius: 2px;
+        }
+      }
+
+      .seg {
+        display: inline-flex;
+        padding: 2px;
+        border-radius: 10px;
+        background: var(--hover);
+
+        button {
+          height: 26px;
+          padding: 0 11px;
+          border: 0;
+          border-radius: 8px;
+          background: none;
+          color: var(--soft);
+          font: inherit;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+
+          &[aria-pressed="true"] {
+            background: var(--app);
+            color: var(--ink);
+            font-weight: 550;
+            box-shadow: 0 0 0 0.5px var(--line), 0 1px 2px rgb(0 0 0 / 0.1);
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--focus);
+            outline-offset: 2px;
+          }
+        }
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
+      /* A life, drawn small: only for a step about one, or what's pointed at. */
+      .peek {
+        margin: 10px 0 0;
+        line-height: 1;
+
+        canvas {
+          display: inline-block;
+          height: 40px;
+          margin-top: 6px;
+          vertical-align: top;
+        }
+
+        &:not(.on) {
+          visibility: hidden;
+        }
+      }
+
+      .loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+      }
+
+      /* ---- After it: the set by year, how it's made. */
+
+      .after {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 96px var(--gutter) max(56px, env(safe-area-inset-bottom));
+        color: var(--text);
+        font-size: 15px;
+        scroll-snap-align: start;
+
+        h2 {
+          margin: 0 0 6px;
+          color: var(--ink);
+          font-size: 26px;
+          font-weight: 650;
+          letter-spacing: -0.02em;
+        }
+
+        .lede {
+          max-width: 600px;
+          margin: 0 0 32px;
+          color: var(--soft);
+        }
+
+        section + section {
+          margin-top: 96px;
+        }
+      }
+
+      .years {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+
+        th {
+          padding: 0 14px 10px 0;
+          text-align: left;
+          white-space: nowrap;
+        }
+
+        td {
+          padding: 10px 14px 10px 0;
+          border-top: 1px solid var(--line);
+          white-space: nowrap;
+          vertical-align: middle;
+        }
+
+        td:first-child {
+          color: var(--ink);
+          font-weight: 600;
+        }
+
+        td:last-child {
+          width: 100%;
+          padding-right: 0;
+        }
+
+        .r {
+          text-align: right;
+        }
+
+        .when {
+          color: var(--faint);
+        }
+
+        canvas {
+          display: block;
+          width: 100%;
+          min-width: 90px;
+          height: 26px;
+        }
+      }
+
+      .method {
+        max-width: 640px;
+        color: var(--soft);
+        font-size: 14px;
+
+        p {
+          margin: 0 0 12px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        :root {
+          --edge: 50px;
+        }
+
+        .after {
+          padding-top: 72px;
+        }
+
+        .years .wide {
+          display: none;
+        }
+
+        .ramp i {
+          width: 52px;
+        }
+
+        .progress button {
+          width: 18px;
+        }
+
+        .key > * {
+          margin-right: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="story" id="story">
+      <div class="stage" id="stage">
+        <canvas id="heat" aria-hidden="true"></canvas>
+        <canvas class="dim" id="dim-a" aria-hidden="true"></canvas>
+        <canvas class="dim" id="dim-b" aria-hidden="true"></canvas>
+        <canvas id="over" aria-hidden="true"></canvas>
+        <div class="ui">
+          <div class="edge" aria-hidden="true"></div>
+          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+          <p class="progress" id="progress" aria-label="The story's steps"></p>
+          <p class="key">
+            <label class="day" id="day" hidden>Your day <input type="date" id="pick" /><button type="button" id="unpick" aria-label="Clear the day" hidden>✕</button></label>
+            <span class="ramp"><span id="ramp-lo"></span><i id="ramp"></i><span id="ramp-hi"></span></span>
+            <span class="seg" id="heat-switch" role="group" aria-label="Colour by" hidden>
+              <button type="button" data-heat="share" aria-pressed="true" title="What's left, as a share of the most it held">Share left</button>
+              <button type="button" data-heat="btc" aria-pressed="false">BTC left</button>
+            </span>
+            <span class="cue" id="cue">Scroll to read it ↓</span>
+          </p>
+          <div aria-live="polite">
+            <p class="kicker" id="label"></p>
+            <h1 id="big"><span class="sr">Triangle: </span>…</h1>
+            <p class="text" id="text"></p>
+          </div>
+          <p class="peek" id="peek" aria-hidden="true"><span class="caps" id="peek-label">Their life, share left</span><br /><canvas id="life"></canvas></p>
+        </div>
+        <div class="loading" id="loading">Reading the history…</div>
+      </div>
+    </div>
+
+    <main class="after">
+      <section aria-labelledby="years-title">
+        <h2 id="years-title">Today, by the year coins last moved</h2>
+        <p class="lede">What's left of the coins that moved in each year, against the most those blocks held at any week's end; each line its share, week by week, on one time axis.</p>
+        <table class="years">
+          <thead>
+            <tr class="caps"><th>Moved</th><th class="r">Left today</th><th class="r">Of its most</th><th class="r wide">Its most</th><th>2009 to today</th></tr>
+          </thead>
+          <tbody id="years"></tbody>
+        </table>
+      </section>
+
+      <section class="method" aria-labelledby="method-title">
+        <h2 id="method-title">How it's made</h2>
+        <p>From the UTXO set at the end of every week since 2009, each output counted at the block that made it: where its coins last moved. The blocks are cut into 1,200 equal stretches, about 800 each; a point is what's left, in BTC, of one stretch at one week's end. Both axes are blocks, so the edge, where blocks are made, is the diagonal; the marks on it, <span style="color: var(--left)">◆</span>, are the halvings.</p>
+        <p>A stretch's most is its largest at a week's end, so coins made and spent within one week never show. The table's years are exact, block for block.</p>
+        <p id="stand-in"></p>
+      </section>
+    </main>
+
+    <script type="module">
+      // @ts-check
+      // The whole history as a triangle: time left to right, the blocks bottom to top by when they were made (both by
+      // height, so the edge where blocks are made is the diagonal). Each point is what's left of its blocks' coins
+      // then: a column up is the whole UTXO set at a time, today the right edge; a row across, one stretch of blocks'
+      // life, fading as its coins are spent. Scrolling tells it in steps; pointing reads any point.
+      //
+      // Its grid is a stand-in, made from /api/utxo-set's weekly sets by a script (an endpoint's job, for the real
+      // page): what's left of each 1/C of the blocks, and of each year's, at the end of each week, in satoshis.
+
+      const SATS = 1e8, HALVING = 210_000, DAY0 = Date.UTC(2009, 0, 1), YEAR_WEEKS = 52;
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const canvasOf = (/** @type {string} */ id) => /** @type {HTMLCanvasElement} */ ($(id));
+      const longDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+      const monthYear = new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
+      const grouped = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+      const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
+      const dateOfDay = (/** @type {number} */ day) => new Date(DAY0 + day * 864e5);
+
+      /** BTC from satoshis, as precise as its size asks. */
+      function btc(/** @type {number} */ sats) {
+        const v = sats / SATS;
+        if (v === 0) return "0";
+        if (v >= 100) return grouped.format(v);
+        if (v >= 1) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+        return v.toLocaleString("en-US", { maximumSignificantDigits: 3 });
+      }
+
+      const pct = (/** @type {number} */ part, /** @type {number} */ whole) => {
+        const p = whole ? (part / whole) * 100 : 0;
+        return `${p >= 10 ? p.toFixed(0) : p >= 0.1 ? p.toFixed(1) : p > 0 ? "<0.1" : "0"}%`;
+      };
+
+      async function json(/** @type {string} */ url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`${response.status} ${url}`);
+        return response.json();
+      }
+
+      // ---- The data.
+
+      const [years, days, prices, file] = await Promise.all([
+        json("/api/series/first_height/year1?start=0").then((r) => /** @type {number[]} */ (r.data)),
+        json("/api/series/first_height/day1?start=0").then((r) => /** @type {number[]} */ (r.data)),
+        json("/api/series/price/day1?start=0").then((r) => /** @type {number[]} */ (r.data)),
+        fetch("history.bin").then((r) => {
+          if (!r.ok) throw new Error(`${r.status} history.bin`);
+          return r.arrayBuffer();
+        }),
+      ]).catch((e) => {
+        $("loading").textContent = "The history couldn't be read. Is the server up?";
+        throw e;
+      });
+
+      /** File: u32 R, C, N, Y; f64 ends[R], each week's last height (the last, today's tip); f64 sats[R][C], by
+       * stretch; f64 sats[R][Y], by year made. */
+      const grid = (() => {
+        const [R, C, N, Y] = new Uint32Array(file.slice(0, 16));
+        let at = 16;
+        const take = (/** @type {number} */ n) => new Float64Array(file.slice(at, (at += n * 8)));
+        const ends = Int32Array.from(take(R)), v = take(R * C), yv = take(R * Y);
+        const start = Int32Array.from({ length: C + 1 }, (_, c) => Math.ceil((c * N) / C)); // (start[C] = N)
+        const most = new Float64Array(C), peak = new Int32Array(C), total = new Float64Array(R);
+        for (let r = 0; r < R; r++) {
+          for (let c = 0; c < C; c++) {
+            const x = v[r * C + c];
+            total[r] += x;
+            if (x > most[c]) {
+              most[c] = x;
+              peak[c] = r;
+            }
+          }
+        }
+        // (BTC left spreads its colours over the cells' own range, the 2nd to the 99.5th percentile, log.)
+        const logs = [];
+        for (let i = 0; i < v.length; i += 7) if (v[i] > 0) logs.push(Math.log10(v[i]));
+        logs.sort((a, b) => a - b);
+        return { R, C, N, Y, ends, v, yv, start, most, peak, total, lo: logs[Math.floor(logs.length * 0.02)], hi: logs[Math.floor(logs.length * 0.995)] };
+      })();
+      const { R, C, N, Y } = grid;
+
+      /** The day a block is in. */
+      function dayOfHeight(/** @type {number} */ height) {
+        let lo = 0, hi = days.length - 1;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (days[mid] <= height) lo = mid;
+          else hi = mid - 1;
+        }
+        return lo;
+      }
+
+      /** The week a height is seen in: the first ending at or after it. */
+      function weekOfHeight(/** @type {number} */ h) {
+        let lo = 0, hi = R - 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (grid.ends[mid] >= h) hi = mid;
+          else lo = mid + 1;
+        }
+        return lo;
+      }
+
+      const dateOfHeight = (/** @type {number} */ h) => dateOfDay(dayOfHeight(h));
+      /** The price the day a block was made: none before the first exchange's (Aug 2010). */
+      const priceAt = (/** @type {number} */ h) => prices[Math.min(prices.length - 1, dayOfHeight(h))] ?? 0;
+      const usd = (/** @type {number} */ v) => `$${v >= 100 ? grouped.format(v) : v.toLocaleString("en-US", { minimumFractionDigits: v < 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+      /** ", at about $140", or before there was a price. */
+      const atPrice = (/** @type {number} */ h) => (priceAt(h) > 0 ? `, at about ${usd(priceAt(h))}` : ", before bitcoin had a price");
+      const weekDate = (/** @type {number} */ r) => longDate.format(dateOfHeight(grid.ends[r]));
+      const weekMonth = (/** @type {number} */ r) => monthYear.format(dateOfHeight(grid.ends[r]));
+
+      // ---- Facts the story tells, from the data.
+
+      /** A year's coins: left today, the most they held, and when. */
+      function yearLife(/** @type {number} */ y) {
+        let most = 0, at = 0;
+        for (let r = 0; r < R; r++) {
+          const x = grid.yv[r * Y + y];
+          if (x > most) {
+            most = x;
+            at = r;
+          }
+        }
+        return { today: grid.yv[(R - 1) * Y + y], most, at };
+      }
+
+      /** A run of stretches [c0, c1), week by week, as one. */
+      function bandLife(/** @type {number} */ c0, /** @type {number} */ c1) {
+        const s = new Float64Array(R);
+        let most = 0, at = 0;
+        for (let r = 0; r < R; r++) {
+          for (let c = c0; c < c1; c++) s[r] += grid.v[r * C + c];
+          if (s[r] > most) {
+            most = s[r];
+            at = r;
+          }
+        }
+        return { s, most, at, today: s[R - 1], from: weekOfHeight(grid.start[c0]) };
+      }
+
+      /** Coins over a year old that moved, each week: what the stretches made a year before lost. */
+      const oldMoved = (() => {
+        const out = new Float64Array(R);
+        for (let r = 1; r < R; r++) {
+          const cut = grid.ends[Math.max(0, r - YEAR_WEEKS)];
+          for (let c = 0; c < C && grid.start[c + 1] - 1 <= cut; c++) out[r] += Math.max(0, grid.v[(r - 1) * C + c] - grid.v[r * C + c]);
+        }
+        return out;
+      })();
+
+      /** The weeks a stretch made since `since` takes to lose half its most, the median. */
+      function halfLife(/** @type {number} */ since) {
+        const weeks = [];
+        for (let c = 0; c < C; c++) {
+          if (grid.start[c] < since || grid.peak[c] > R - 1 - 26) continue;
+          for (let r = grid.peak[c] + 1; r < R; r++) {
+            if (grid.v[r * C + c] < grid.most[c] / 2) {
+              weeks.push(r - grid.peak[c]);
+              break;
+            }
+          }
+        }
+        weeks.sort((a, b) => a - b);
+        return { weeks: weeks[weeks.length >> 1] ?? 0, of: weeks.length };
+      }
+
+      // ---- The story: each step's words, what it lights (in heights: [time, made] corners, kept under the edge),
+      // its dates on the edge, and a life to draw.
+
+      /**
+       * @typedef {{ label: string, big: string, text: string, light?: number[][], tags?: { h: number, text: string }[], band?: [number, number], explore?: boolean }} Step
+       */
+      const STEPS = /** @type {Step[]} */ ((() => {
+        const total = btc(grid.total[R - 1]);
+        // (The blocks of the first halving's weeks: a few stretches, to be seen.)
+        const ch = Math.floor((HALVING / N) * C), band = /** @type {[number, number]} */ ([ch - 2, ch + 3]), life = bandLife(...band);
+        const y9 = yearLife(0), y10 = yearLife(1), since = years[Y - 3], settle = halfLife(since), lastWeeks = grid.ends[R - 14]; // (The last quarter: a column wide enough to see.)
+        const reach = 26 * 1008; // (About half a year of blocks off the edge.)
+        const pre = years[6], top = [...oldMoved.keys()].sort((a, b) => oldMoved[b] - oldMoved[a]), picked = /** @type {number[]} */ ([]);
+        for (const r of top) {
+          if (picked.every((p) => Math.abs(p - r) > 8)) picked.push(r);
+          if (picked.length === 3) break;
+        }
+        // (Half of today's set, counted up from the bottom: the stretch it reaches, and the month it moved in.)
+        let acc = 0, mid = 0;
+        while (mid < C - 1 && (acc += grid.v[(R - 1) * C + mid]) < grid.total[R - 1] / 2) mid++;
+        const half = grid.start[mid + 1];
+        const idle = (/** @type {number} */ k) => {
+          const cut = grid.ends[Math.max(0, R - 1 - YEAR_WEEKS * k)];
+          let sum = 0;
+          for (let c = 0; c < C && grid.start[c + 1] - 1 <= cut; c++) sum += grid.v[(R - 1) * C + c];
+          return pct(sum, grid.total[R - 1]);
+        };
+        return [
+          {
+            label: "The UTXO set, block by block",
+            big: `${total} BTC`,
+            text: "Every bitcoin unspent today, and every week since 2009, placed by the block it last moved in.",
+          },
+          {
+            label: "A column is the set at one time",
+            big: `${total} BTC`,
+            text: "Up the right edge is today’s set, the coins that moved longest ago at the bottom. Each column to its left is the set as it stood one week.",
+            light: [[lastWeeks, 0], [N, 0], [N, N], [lastWeeks, N]],
+            tags: [{ h: N, text: "Today" }],
+          },
+          {
+            label: "Half of it",
+            big: monthYear.format(dateOfHeight(half)),
+            text: `Half of today’s ${total} BTC hasn’t moved since then. <b>${idle(1)}</b> hasn’t in a year, <b>${idle(5)}</b> in five, <b>${idle(10)}</b> in ten.`,
+            light: [[lastWeeks, 0], [N, 0], [N, half], [lastWeeks, half]],
+            tags: [{ h: half, text: monthYear.format(dateOfHeight(half)) }],
+          },
+          {
+            label: "A row is some coins’ life",
+            big: `${pct(life.today, life.most)} left`,
+            text: `At most <b class="num">${btc(life.most)}</b> BTC sat in the blocks of the first halving, ${monthYear.format(dateOfHeight(grid.start[band[0]]))}. Followed right: <b class="num">${btc(life.today)}</b> BTC of it has never moved again.`,
+            light: [[0, grid.start[band[0]]], [N, grid.start[band[0]]], [N, grid.start[band[1]]], [0, grid.start[band[1]]]],
+            tags: [{ h: HALVING, text: `Moved ${monthYear.format(dateOfHeight(HALVING))}` }],
+            band,
+          },
+          {
+            label: "The first two years",
+            big: `${btc(y9.today)} BTC`,
+            text: `hasn’t moved since 2009, ${pct(y9.today, y9.most)} of the most that year’s blocks held; <b class="num">${btc(y10.today)}</b> BTC hasn’t since 2010, ${pct(y10.today, y10.most)}.`,
+            light: [[0, 0], [N, 0], [N, years[2]], [0, years[2]]],
+          },
+          {
+            label: "The edge",
+            big: `${settle.weeks} week${settle.weeks === 1 ? "" : "s"}`,
+            text: `Since ${2009 + Y - 3}, half of what a block takes in moves again within ${settle.weeks} weeks, the median of ${grouped.format(settle.of)} stretches of blocks. Only along the edge do coins sit still.`,
+            light: [[since, since], [N, N], [N, N - reach], [since, since - reach]],
+          },
+          {
+            label: "Old coins wake in waves",
+            big: `${btc(oldMoved[picked[0]])} BTC`,
+            text: `idle for over a year moved in the week to ${weekDate(picked[0])}, the most of any week; next ${picked
+              .slice(1)
+              .map((r) => `${weekMonth(r)} (<b class="num">${btc(oldMoved[r])}</b>)`)
+              .join(" and ")}. Last week, <b class="num">${btc(oldMoved[R - 2])}</b> BTC. Each is a dark run across the old rows.`,
+            light: [[pre, 0], [N, 0], [N, pre], [pre, pre]],
+            tags: picked.map((r) => ({ h: grid.ends[r], text: weekMonth(r) })),
+          },
+          {
+            label: "Yours to read",
+            big: `${total} BTC`,
+            text: "Point at any spot, or pick a day you moved coins: what’s left of everything that moved that day.",
+            explore: true,
+          },
+        ];
+      })());
+      $("story").style.setProperty("--steps", String(STEPS.length));
+      for (let i = 0; i < STEPS.length; i++) {
+        const snap = document.createElement("div");
+        snap.className = "snap";
+        snap.style.top = `${i * 100}svh`;
+        $("story").append(snap);
+      }
+
+      // ---- Colours: a heat ramp per theme, little to much. By night inferno's, black through red to pale yellow;
+      // by day the same walk the other way up, cream through amber and crimson to ink, so much reads as dark on paper.
+
+      const RAMPS = {
+        dark: [[8, 6, 18], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]],
+        light: [[243, 236, 222], [248, 216, 146], [244, 166, 78], [226, 98, 66], [178, 45, 84], [110, 22, 96], [52, 14, 78], [22, 10, 40]],
+      };
+      const dark = matchMedia("(prefers-color-scheme: dark)");
+      const ramp = new Uint8ClampedArray(1024);
+      /** @type {Record<string, string>} */
+      const tokens = {};
+      function readColors() {
+        const stops = dark.matches ? RAMPS.dark : RAMPS.light;
+        for (let i = 0; i < 256; i++) {
+          const t = (i / 255) * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(t)), f = t - k;
+          for (let c = 0; c < 3; c++) ramp[i * 4 + c] = stops[k][c] + (stops[k + 1][c] - stops[k][c]) * f;
+          ramp[i * 4 + 3] = 255;
+        }
+        $("ramp").style.background = `linear-gradient(90deg, ${stops.map(([r, g, b]) => `rgb(${r} ${g} ${b})`).join(", ")})`;
+        // (A canvas can't read light-dark(): the theme's colours, resolved.)
+        const probe = document.createElement("i");
+        probe.style.display = "none";
+        document.body.append(probe);
+        for (const name of ["ink", "soft", "faint", "line", "left", "app"]) {
+          probe.style.color = `var(--${name})`;
+          tokens[name] = getComputedStyle(probe).color;
+        }
+        probe.remove();
+      }
+
+      let heat = /** @type {"share" | "btc"} */ ("share");
+
+      /** A point's colour, 0 to 1, on log scales: shares from 0.1% (most coins leave within weeks, the rest is in the
+       * small shares); amounts over the cells' range. */
+      function heatOf(/** @type {number} */ r, /** @type {number} */ c) {
+        const value = grid.v[r * C + c];
+        if (!(value > 0)) return 0;
+        const t = heat === "share" ? 1 + Math.log10(value / grid.most[c]) / 3 : (Math.log10(value) - grid.lo) / (grid.hi - grid.lo);
+        return Math.max(0.02, Math.min(1, t));
+      }
+
+      /** A canvas at its CSS size, its context scaled to it. */
+      function fit(/** @type {HTMLCanvasElement} */ canvas) {
+        const dpr = devicePixelRatio, w = canvas.clientWidth, h = canvas.clientHeight;
+        if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+        }
+        const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        return { ctx, w, h };
+      }
+
+      // ---- The triangle.
+
+      const stage = $("stage"), heatCanvas = canvasOf("heat"), over = canvasOf("over"), dims = [canvasOf("dim-a"), canvasOf("dim-b")];
+      let W = 0, H = 0;
+      const xOf = (/** @type {number} */ h) => (h / N) * W, yOf = (/** @type {number} */ h) => H - (h / N) * H;
+
+      function paint() {
+        fit(heatCanvas);
+        const BW = heatCanvas.width, BH = heatCanvas.height, ctx = /** @type {CanvasRenderingContext2D} */ (heatCanvas.getContext("2d"));
+        const image = ctx.createImageData(BW, BH), px = image.data;
+        const colOf = Int32Array.from({ length: BH }, (_, y) => Math.min(C - 1, Math.floor((1 - (y + 0.5) / BH) * C)));
+        for (let x = 0; x < BW; x++) {
+          const seen = ((x + 0.5) / BW) * N, r = weekOfHeight(seen), top = Math.max(0, Math.floor((1 - seen / N) * BH));
+          // (Up each column from the bottom to the edge: only the blocks made by then.)
+          for (let y = BH - 1; y >= top; y--) {
+            const k = Math.round(heatOf(r, colOf[y]) * 255) * 4, i = (y * BW + x) * 4;
+            px[i] = ramp[k];
+            px[i + 1] = ramp[k + 1];
+            px[i + 2] = ramp[k + 2];
+            px[i + 3] = 255;
+          }
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.putImageData(image, 0, 0);
+      }
+
+      /** A polygon of [time, made] heights, kept under the edge (made by then), on the screen. */
+      function underEdge(/** @type {number[][]} */ poly) {
+        const out = [];
+        for (let i = 0; i < poly.length; i++) {
+          const p = poly[i], q = poly[(i + 1) % poly.length], inP = p[1] <= p[0], inQ = q[1] <= q[0];
+          if (inP) out.push(p);
+          if (inP !== inQ) {
+            const f = (p[1] - p[0]) / (p[1] - p[0] - (q[1] - q[0]));
+            out.push([p[0] + f * (q[0] - p[0]), p[1] + f * (q[1] - p[1])]);
+          }
+        }
+        return out.map(([t, m]) => [xOf(t), yOf(m)]);
+      }
+
+      // The dimming: all but what a step lights, a veil of the page's colour, crossfading between two canvases.
+      let front = 0, stepAt = -1;
+      function drawDim(/** @type {Step} */ step, /** @type {boolean} */ fade) {
+        const back = dims[1 - front], { ctx, w, h } = fit(back);
+        if (step.light) {
+          ctx.fillStyle = tokens.app;
+          ctx.globalAlpha = dark.matches ? 0.8 : 0.84;
+          ctx.beginPath();
+          // (The whole triangle, and the lit part cut out of it.)
+          ctx.moveTo(0, h);
+          ctx.lineTo(w, 0);
+          ctx.lineTo(w, h);
+          ctx.closePath();
+          let light = step.light;
+          if (step.band) {
+            const m0 = grid.start[step.band[0]], m1 = grid.start[step.band[1]], least = (6 / h) * N, mid = (m0 + m1) / 2, half = Math.max(m1 - m0, least) / 2;
+            light = [[0, mid - half], [N, mid - half], [N, mid + half], [0, mid + half]];
+          }
+          const hole = underEdge(light);
+          hole.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+          ctx.closePath();
+          ctx.fill("evenodd");
+          ctx.globalAlpha = 1;
+        }
+        for (const c of dims) c.style.transition = fade ? "" : "none";
+        back.style.opacity = "1";
+        dims[front].style.opacity = "0";
+        front = 1 - front;
+      }
+
+      /** @type {{ c: number, r: number, x: number, y: number } | null} */
+      let cell = null;
+
+      /** What the words cover, on the stage: a step's tags keep off it. */
+      function wordsBoxes() {
+        const top = stage.getBoundingClientRect().top;
+        const range = document.createRange();
+        return [...document.querySelectorAll("#label, #big, #text, .key, #peek.on")].flatMap((e) => {
+          range.selectNodeContents(e);
+          return [...range.getClientRects()].map((b) => ({ left: b.left, right: b.right, top: b.top - top, bottom: b.bottom - top }));
+        });
+      }
+
+      /** A date on the edge at height h, out in the empty half: the page's ink, kept on the screen; not drawn where
+       * it would cover any of `avoid`. */
+      function tag(/** @type {CanvasRenderingContext2D} */ ctx, /** @type {number} */ x, /** @type {number} */ y, /** @type {string} */ text, /** @type {{ left: number, right: number, top: number, bottom: number }[]} */ avoid = []) {
+        const len = Math.hypot(W, H), nx = -H / len, ny = -W / len;
+        ctx.font = "600 11.5px Inter, system-ui, sans-serif";
+        const w = ctx.measureText(text).width + 14, h = 22, right = Math.max(w + 4, x + nx * 9), bottom = Math.max(h + 4, y + ny * 9 + 4);
+        if (avoid.some((b) => right - w < b.right + 6 && right > b.left - 6 && bottom - h < b.bottom + 6 && bottom > b.top - 6)) return;
+        ctx.fillStyle = tokens.ink;
+        ctx.beginPath();
+        ctx.roundRect(right - w, bottom - h, w, h, 6);
+        ctx.fill();
+        ctx.fillStyle = tokens.app;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, right - w / 2, bottom - h / 2 + 0.5);
+      }
+
+      function drawOver() {
+        const { ctx } = fit(over), len = Math.hypot(W, H), nx = -H / len, ny = -W / len; // (The edge's normal, out.)
+
+        // Halvings: a mark on the edge.
+        ctx.fillStyle = tokens.left;
+        for (let e = 1; e * HALVING < N; e++) {
+          const x = xOf(e * HALVING) + nx * 4, y = yOf(e * HALVING) + ny * 4;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 3.5);
+          ctx.lineTo(x + 3.5, y);
+          ctx.lineTo(x, y + 3.5);
+          ctx.lineTo(x - 3.5, y);
+          ctx.fill();
+        }
+
+        // The years along the edge, both ways at once: the blocks made then, and the set as it stood then.
+        ctx.font = "10.5px Lilex, ui-monospace, monospace";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.strokeStyle = ctx.fillStyle = tokens.faint;
+        ctx.lineWidth = 1;
+        let last = -Infinity;
+        for (let i = 0; i < years.length; i++) {
+          const x = xOf(years[i]), y = yOf(years[i]), along = (years[i] / N) * len;
+          if (along - last < 52 || along < 24) continue;
+          last = along;
+          ctx.beginPath();
+          ctx.moveTo(x + nx * 3, y + ny * 3);
+          ctx.lineTo(x + nx * 8, y + ny * 8);
+          ctx.stroke();
+          ctx.fillText(String(2009 + i), x + nx * 10 - 1, y + ny * 10 + 3);
+        }
+
+        if (cell) {
+          // The pointer: the week up to the edge, the blocks across to today, drawn to read on any colour; their
+          // dates where they meet the edge.
+          const x = Math.round(cell.x) + 0.5, y = Math.round(cell.y) + 0.5, edgeY = H - (cell.x / W) * H, edgeX = ((H - cell.y) / H) * W;
+          for (const [style, width] of /** @type {const} */ ([["rgb(0 0 0 / 0.35)", 3], ["#fff", 1]])) {
+            ctx.strokeStyle = style;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            ctx.moveTo(x, H);
+            ctx.lineTo(x, edgeY);
+            ctx.moveTo(edgeX, y);
+            ctx.lineTo(W, y);
+            ctx.stroke();
+          }
+          ctx.fillStyle = "#fff";
+          ctx.strokeStyle = "rgb(0 0 0 / 0.45)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          tag(ctx, edgeX, y, `Moved ${monthYear.format(dateOfHeight(grid.start[cell.c]))}`);
+          tag(ctx, x, edgeY, cell.r === R - 1 ? "Today" : weekDate(cell.r));
+        } else {
+          const avoid = wordsBoxes();
+          for (const t of current()?.tags ?? []) tag(ctx, xOf(t.h), yOf(t.h), t.text, avoid);
+        }
+      }
+
+      // ---- A life, drawn small: a share line on a log scale, 0.1% to all of it, its week marked.
+
+      const lifeCanvas = canvasOf("life");
+
+      /** As wide as the edge leaves room for, where it sits. */
+      function fitLife() {
+        const edge = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--edge")), shift = (edge * Math.hypot(W, H)) / H;
+        lifeCanvas.style.width = "60px";
+        const rect = lifeCanvas.getBoundingClientRect(), bottom = rect.bottom - stage.getBoundingClientRect().top;
+        lifeCanvas.style.width = `${Math.max(60, Math.min(340, Math.floor(W * (1 - bottom / H) - shift - rect.left - 6)))}px`;
+      }
+
+      function drawLife() {
+        const step = current(), band = cell ? /** @type {[number, number]} */ ([cell.c, cell.c + 1]) : step?.band;
+        $("peek").classList.toggle("on", !!band);
+        if (!band) return;
+        const { ctx, w, h } = fit(lifeCanvas), life = bandLife(...band), span = R - life.from;
+        const at = (/** @type {number} */ r) => (life.s[r] > 0 ? Math.max(0, Math.min(1, 1 + Math.log10(life.s[r] / life.most) / 3)) : 0);
+        const yAt = (/** @type {number} */ t) => 1 + (1 - t) * (h - 2);
+        ctx.fillStyle = tokens.line;
+        for (const t of [1, 2 / 3, 1 / 3]) ctx.fillRect(0, Math.round(yAt(t)) + 0.5, w, 1);
+        ctx.strokeStyle = tokens.ink;
+        ctx.lineWidth = 1.25;
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        for (let x = 0; x < w; x++) {
+          const y = yAt(at(life.from + Math.min(span - 1, Math.floor((x / w) * span))));
+          if (x) ctx.lineTo(x, y);
+          else ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+        if (cell) {
+          ctx.fillStyle = tokens.ink;
+          ctx.beginPath();
+          ctx.arc(((cell.r - life.from + 0.5) / span) * w, yAt(at(cell.r)), 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // ---- The words: the step's, or what's pointed at.
+
+      function say() {
+        const step = current();
+        if (cell) {
+          const { c, r } = cell, value = grid.v[r * C + c];
+          $("label").textContent = r === R - 1 ? "Today" : weekDate(r);
+          $("big").innerHTML = `<span class="sr">Triangle: </span>${btc(value)}<small>BTC</small>`;
+          $("text").innerHTML = `left of the coins that moved in ${monthYear.format(dateOfHeight(grid.start[c]))}${atPrice(grid.start[c])}: ${pct(value, grid.most[c])} of the most those blocks held, <b class="num">${btc(grid.most[c])}</b> BTC.`;
+          $("peek-label").textContent = "Their life, share left";
+        } else {
+          $("label").textContent = step.label;
+          $("big").innerHTML = `<span class="sr">Triangle: </span>${step.big.replace(/ (BTC|left|weeks?)$/, "<small>$1</small>")}`;
+          $("text").innerHTML = step.text;
+          $("peek-label").textContent = "Their life, share left";
+        }
+        $("cue").hidden = stepAt !== 0 || !!cell;
+        $("heat-switch").hidden = !step.explore;
+        $("day").hidden = !step.explore;
+        drawLife();
+      }
+
+      $("progress").innerHTML = STEPS.map((s, i) => `<button type="button" aria-label="${i + 1}: ${s.label}"></button>`).join("");
+      $("progress").querySelectorAll("button").forEach((b, i) =>
+        b.addEventListener("click", () => scrollTo({ top: $("story").offsetTop + i * H, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })),
+      );
+
+      // ---- Your day: everything that moved on it, followed to today.
+
+      /** @type {number | null} */
+      let pickedDay = null;
+      const pick = /** @type {HTMLInputElement} */ ($("pick"));
+      pick.min = "2009-01-03";
+      pick.max = dateOfHeight(N - 1).toISOString().slice(0, 10);
+
+      /** The shown step: the story's, or on the last, the day picked. */
+      function current() {
+        const step = STEPS[Math.max(0, stepAt)];
+        if (!step.explore || pickedDay === null) return step;
+        const h0 = days[pickedDay], h1 = (pickedDay + 1 < days.length ? days[pickedDay + 1] : N) - 1;
+        const c0 = Math.min(C - 1, Math.floor((h0 / N) * C)), c1 = Math.max(c0 + 1, Math.ceil(((h1 + 1) / N) * C));
+        const life = bandLife(c0, c1), day = longDate.format(dateOfDay(pickedDay)), now = prices[prices.length - 1], then = priceAt(h0);
+        return /** @type {Step} */ ({
+          ...step,
+          label: `Your day, ${day}`,
+          big: `${pct(life.today, life.most)} left`,
+          text: `At most <b class="num">${btc(life.most)}</b> BTC sat in the blocks around it${atPrice(h0)}. <b class="num">${btc(life.today)}</b> BTC of it has never moved since${then > 0 ? `; at today’s ${usd(now)}, ${(now / then).toLocaleString("en-US", { maximumFractionDigits: now / then >= 10 ? 0 : 1 })}× its price then` : ""}.`,
+          light: [[0, grid.start[c0]], [N, grid.start[c0]], [N, grid.start[c1]], [0, grid.start[c1]]],
+          tags: [{ h: h0, text: `Moved ${day}` }],
+          band: [c0, c1],
+        });
+      }
+
+      pick.addEventListener("change", () => {
+        pickedDay = pick.value ? Math.round((Date.parse(`${pick.value}T00:00:00Z`) - DAY0) / 864e5) : null;
+        if (pickedDay !== null && !(days[pickedDay] < N)) pickedDay = null;
+        $("unpick").hidden = pickedDay === null;
+        showStep(true);
+      });
+      $("unpick").addEventListener("click", () => {
+        pick.value = "";
+        pick.dispatchEvent(new Event("change"));
+      });
+
+      /** The shown step drawn: its veil, its words, its marks. */
+      function showStep(/** @type {boolean} */ fade) {
+        drawDim(current(), fade);
+        say();
+        drawOver();
+      }
+
+      function setStep(/** @type {number} */ i, fade = true) {
+        if (i === stepAt) return;
+        stepAt = i;
+        $("progress").querySelectorAll("button").forEach((b, k) => {
+          b.toggleAttribute("aria-current", k === i);
+          if (k === i) b.setAttribute("aria-current", "step");
+          b.classList.toggle("passed", k < i);
+        });
+        if (!STEPS[i].explore && heat !== "share") setHeat("share");
+        showStep(fade);
+      }
+
+      function setHeat(/** @type {"share" | "btc"} */ to) {
+        heat = to;
+        for (const b of document.querySelectorAll("[data-heat]")) b.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (b).dataset.heat === to));
+        $("ramp-lo").textContent = to === "share" ? "0.1%" : btc(10 ** grid.lo);
+        $("ramp-hi").textContent = to === "share" ? "100%" : `${compact.format(10 ** grid.hi / SATS)} BTC`;
+        if (W) paint();
+      }
+      for (const b of document.querySelectorAll("[data-heat]")) b.addEventListener("click", () => setHeat(/** @type {any} */ (/** @type {HTMLElement} */ (b).dataset.heat)));
+
+      // ---- Scrolling: which step the story is at.
+
+      function onScroll() {
+        const rect = $("story").getBoundingClientRect();
+        setStep(Math.max(0, Math.min(STEPS.length - 1, Math.round(-rect.top / H))));
+      }
+      addEventListener("scroll", onScroll, { passive: true });
+
+      // ---- The pointer: a mouse shows what's under it; a finger while it holds (a swipe up or down scrolls).
+
+      function cellAt(/** @type {PointerEvent} */ e) {
+        const rect = over.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
+        const seen = (x / W) * N, made = (1 - y / H) * N;
+        if (x < 0 || x >= W || y < 0 || y >= H || made > seen) return null;
+        return { c: Math.min(C - 1, Math.floor((made / N) * C)), r: weekOfHeight(seen), x, y };
+      }
+      function point(/** @type {{ c: number, r: number, x: number, y: number } | null} */ at) {
+        if (!at && !cell) return;
+        const same = at && cell && at.c === cell.c && at.r === cell.r;
+        cell = at;
+        drawOver();
+        if (!same) say();
+      }
+      over.addEventListener("pointermove", (e) => (e.pointerType === "mouse" || e.buttons) && point(cellAt(e)));
+      over.addEventListener("pointerdown", (e) => point(cellAt(e)));
+      over.addEventListener("pointerup", (e) => e.pointerType !== "mouse" && point(null));
+      over.addEventListener("pointercancel", () => point(null));
+      over.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && point(null));
+
+      // ---- After the story: the set by year.
+
+      function buildYears() {
+        const rows = [];
+        for (let y = Y - 1; y >= 0; y--) {
+          const { today, most, at } = yearLife(y);
+          rows.push(`<tr><td>${2009 + y}</td><td class="r"><span class="num">${btc(today)}</span></td><td class="r"><span class="num">${pct(today, most)}</span></td><td class="r wide"><span class="num">${btc(most)}</span> <span class="when">${weekMonth(at)}</span></td><td><canvas data-year="${y}"></canvas></td></tr>`);
+        }
+        $("years").innerHTML = rows.join("");
+      }
+
+      function drawYears() {
+        for (const canvas of /** @type {NodeListOf<HTMLCanvasElement>} */ (document.querySelectorAll("canvas[data-year]"))) {
+          // (One time axis for every year, genesis to today, so the rows line up: each from when it began.)
+          const y = Number(canvas.dataset.year), { ctx, w, h } = fit(canvas), { most } = yearLife(y), x0 = Math.floor((weekOfHeight(years[y]) / R) * w);
+          ctx.strokeStyle = tokens.left;
+          ctx.lineWidth = 1.25;
+          ctx.beginPath();
+          for (let x = x0; x < w; x++) {
+            const v = grid.yv[Math.min(R - 1, Math.floor((x / w) * R)) * Y + y] / most, py = h - 1 - v * (h - 3);
+            if (x === x0) ctx.moveTo(x, py);
+            else ctx.lineTo(x, py);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // ---- Start.
+
+      function drawAll() {
+        W = stage.clientWidth;
+        H = stage.clientHeight;
+        paint();
+        fitLife();
+        const at = stepAt;
+        stepAt = -1;
+        setStep(Math.max(0, at), false);
+        drawYears();
+      }
+
+      $("stand-in").textContent = `This page is a mockup: it reads its ${grouped.format(R)} weeks from a file made from /api/utxo-set, a server endpoint's job for the real one.`;
+      readColors();
+      buildYears();
+      setHeat("share");
+      $("loading").remove();
+      dark.addEventListener("change", () => {
+        readColors();
+        drawAll();
+      });
+      // (Drawn now, at the step the page is scrolled to; again at each new size.)
+      let width = stage.clientWidth;
+      drawAll();
+      onScroll();
+      new ResizeObserver(() => {
+        // (A phone's bars coming and going change its height alone: only a new size redraws.)
+        if (stage.clientWidth === width && stage.clientHeight === H) return;
+        width = stage.clientWidth;
+        drawAll();
+        onScroll();
+      }).observe(stage);
+      /** @type {any} */ (window).bitviewLaunch?.ready();
+    </script>
+  </body>
+</html>
