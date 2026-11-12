@@ -30,7 +30,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
   const line = (name, lines, days, { title = name, format, log, maxInterval } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}), ...(maxInterval ? { maxInterval } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /**
    * Fixed native event windows: separate charts, each sampled no coarser than its declared span. One whose lines aren't
-   * all published is left out whole (a comparison missing a line would read as that line at zero), and logged; the tree
+   * all published is left out whole (a comparison missing a line would read as that line at zero); the tree
    * is the generated client's, so the set is fixed per release and the sitemap (seo.mjs) is built from the same one.
    */
   const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, /** @type {(7 | 30)[]} */ spans = [7, 30], options = {}) => spans.flatMap((span, i) => {
@@ -40,7 +40,6 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
     for (const [label, total] of totals) {
       const node = flowWindow(total.sum, span === 7 ? "_1w" : "_1m");
       if (node) lines.push([`${label} per ${span} days`, node.name]);
-      else console.warn(`Missing published ${span}-day sum for ${name} (${total.cumulative.name})`);
     }
     return lines.length === totals.length ? [line(name, lines, 1, { ...options, title: heading, maxInterval: span === 7 ? "week1" : "month1" })] : [];
   });

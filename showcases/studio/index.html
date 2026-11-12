@@ -14348,6 +14348,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (catalogIndex) return;
           catalogIndex = found.index;
           cumulativeSeries = found.cumulative;
+          // (The roles read off the client's shape, checked on two known: a flow's total one, a share's all-time not.)
+          if (!cumulativeSeries.has("block_count_cumulative") || cumulativeSeries.has("fee_share_cumulative")) console.error("Running totals misread from the catalog's shape (see catalogWalk)");
           for (const name of found.byBlock) byBlock.add(name);
           for (const name of found.sharedTops) sharedTops.add(name);
           seriesCount = catalogIndex.size - byBlock.size;
@@ -25261,7 +25263,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A preset's: which one, by its place, see templateDoc.)
           // (Its heatmaps' days not all in: shown, kept unkeyed, drawn again the next time it's asked for; its framing's
           // roles not in: the same, and asked for again once they are.)
-          if (!framingKnown(copy)) rolesWanted.add(() => replot(all$(`[data-plot="${CSS.escape(doc.id)}"]`)));
+          if (!framingKnown(copy)) (unframed.add(doc.id), rolesWanted.add(replotUnframed));
           const drawn = { key: heat.whole === false || !framingKnown(copy) ? "" : key, ...previewOf(copy, data, previewBars(doc, index), PREVIEW, heat, bubbles), ...(doc.id.startsWith("preset:") ? { of: presetKey(Number(doc.id.slice(7))) } : {}) };
           // (The last drawn last: kept first, see savePreviews.)
           previews.delete(doc.id);
@@ -29160,6 +29162,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * be fetched (see paint), as the server answers (see checkLive); those drawn before their framing's roles were in
        * (see drawPreview). @param {Element[]} frames
        */
+      /** The previews drawn before the roles (see rolesWanted), by id: each drawn again once they're in. */
+      const unframed = new Set();
+      function replotUnframed() {
+        const ids = [...unframed];
+        unframed.clear();
+        if (ids.length) replot(all$(ids.map((id) => `[data-plot="${CSS.escape(id)}"]`).join(",")));
+      }
       function replot(frames = all$("[data-plot].failed")) {
         if (!frames.length) return;
         for (const frame of frames) {
