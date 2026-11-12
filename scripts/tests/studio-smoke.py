@@ -24,16 +24,24 @@ from urllib.parse import quote, urlparse
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
-# The page under test is the one in this checkout, read from disk at each request; everything else is the server's.
-STUDIO = Path(__file__).resolve().parents[2] / "showcases" / "studio"
-SERVED = {
-    "/studio": "index.html",
-    "/studio/": "index.html",
-    "/studio/index.html": "index.html",
-    "/studio/presets.js": "presets.js",
-    "/studio/palette.js": "palette.js",
-    "/studio/addresses.js": "addresses.js",
-}
+# The page under test is the one in this checkout, read from disk at each request: Studio's files, any of its addresses
+# (a preset's, a section's: the page) and the modules it loads; everything else (the API) is the server's.
+ROOT = Path(__file__).resolve().parents[2]
+STUDIO = ROOT / "showcases" / "studio"
+KINDS = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8", ".woff2": "font/woff2"}
+
+
+def served(path):
+    """The checkout's file for a path, or None (the server's): a module's, a Studio file's, else a Studio address's page."""
+    if path.startswith("/modules/"):
+        file = ROOT / path.lstrip("/")
+        return file if file.is_file() else None
+    if path != "/studio" and not path.startswith("/studio/"):
+        return None
+    file = STUDIO / path[len("/studio/"):]
+    if file.is_file():
+        return file
+    return STUDIO / "index.html" if "." not in path.rsplit("/", 1)[-1] else None
 STORE = "bitview-studio:v2"
 PREFS = "bitview-studio:prefs"
 VIEWPORT = {"width": 1400, "height": 900}
@@ -194,12 +202,12 @@ class Run:
             ctx.problems.append(f"{request.method} {url.path} blocked: the checks only read")
             ctx.aborted.add(request)
             return route.abort()
-        name = SERVED.get(url.path)
-        if name:
-            body = (STUDIO / name).read_text(encoding="utf-8")
-            if "source" in ctx.broken and name == "index.html":
-                body = ctx.broken["source"](body)
-            kind = "text/html; charset=utf-8" if name.endswith(".html") else "text/javascript; charset=utf-8"
+        file = served(url.path)
+        if file:
+            body = file.read_bytes()
+            if "source" in ctx.broken and file == STUDIO / "index.html":
+                body = ctx.broken["source"](body.decode("utf-8")).encode("utf-8")
+            kind = KINDS.get(file.suffix, "application/octet-stream")
             return route.fulfill(status=200, body=body, headers={"content-type": kind, "cache-control": "no-store"})
         if "fail" in ctx.broken and url.path.startswith(ctx.broken["fail"]):
             return route.abort("failed")  # (a network failure, not ours: not in ctx.aborted)
@@ -517,9 +525,15 @@ def check_page_draws(run):
 
 
 def read_link(link):
-    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed."""
-    hash = link.split("#chart=", 1)[1]
-    return json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed, with the fields after it."""
+    hash, *rest = link.split("#chart=", 1)[1].split("&")
+    chart = json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    fields = dict(field.split("=", 1) for field in rest)
+    if "range" in fields:
+        fields["range"] = fields["range"].lower()
+    if "from" in fields:
+        chart["view"] = {"from": fields.pop("from"), "to": fields.pop("to")}
+    return {**chart, **fields}
 
 
 def shape(chart):
