@@ -48,6 +48,9 @@ Only what's left. An item done is removed: its history is in the commits and log
   (n437/phone-probe.mjs, each frame's gap and whole draws): the long ones are a single 56–61 ms frame with nothing
   drawn (most likely a WebKit full collection: ~1 a 60-frame pan now, 5–6 in 120 with Lightweight Charts), and the
   scale's refit at new extremes (a whole draw, 20–37 ms on the 24-band stack). Left as is unless a heap cut shows up.
+- Next after the profile edge (2026-11-12, raised in its review, low): a profile's bar under a device pixel wide is
+  painted one pixel wide, over its neighbor's edge pixel, and `Profile.hit` names the neighbor there. One span
+  calculation shared by the painter and `hit` (the one-pixel minimum, later groups over earlier) would fix it.
 
 ## Studio: raised by you, still open
 
