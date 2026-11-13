@@ -138,8 +138,10 @@ clears); avoid reflecting programmatic calls. A programmatic
   same at any pan), a pixel of `backdrop` between two; split at `at` (a close), a group's `gain` under it and `loss` over
   it, a group `lit`, the others dim; `closeLine`, a close's dashed line across it (an older day's). Held at the plot's
   edge; an unchanged view keeps its picture and bins. The page is told before each render (`viewed`); `set(...)` its groups and the rest; `covers(x)`, whether a point's in its column as
-  drawn (bars or cumulative, its left edge as painted; nothing drawn, or hidden, none); `hit(x, y)`, the bar under a
-  point, its ends as painted (its group, its bin's rows; none out of its column, or cumulative). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
+  drawn (bars or cumulative, its left edge as painted; nothing drawn, or hidden, none); `readAt(y, group?)`, what its
+  bars hold at a height: `{ from, to, sum }`, the bin's rows (`to` not in it) and its signed sum, its groups' or
+  `group`'s (an empty bin's, 0), null where no bin is, hidden or cumulative; its bins found by the device pixel, as painted; `hit(x, y)`, the bar under a point, its ends as
+  painted (its group, its bin's rows; none out of its column, or cumulative). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
