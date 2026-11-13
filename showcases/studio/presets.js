@@ -373,9 +373,10 @@ export function studioPresets(client, facts) {
    * shares of it; others as lines, on a log scale (one may be thousands of times another).
    * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title
    * @param {string} by what sorts them, in the comparisons' titles ("feature"; "" none: what they are says it)
-   * @param {{ what?: string, disjoint?: boolean }} [options] `what`: what they are, as a title says it ("ECDSA signatures")
+   * @param {{ what?: string, disjoint?: boolean, more?: ChartNode[] }} [options] `what`: what they are, as a title says it
+   * ("ECDSA signatures"); `more`: charts of them together, after the comparisons
    */
-  const kinds = (list, name, title, by, { what = "transactions", disjoint = false } = {}) => {
+  const kinds = (list, name, title, by, { what = "transactions", disjoint = false, more = [] } = {}) => {
     const lines = (/** @type {[string, any][]} */ some, /** @type {(node: any) => any} */ pick) => some.map(([key, node], i) => series(pick(node), name(key), { color: ramp(some.length)[i] }));
     const shared = list.filter(([, node]) => node.share), sorted = by ? ` by ${by}` : "", What = `${what[0].toUpperCase()}${what.slice(1)}`;
     return [
@@ -384,6 +385,7 @@ export function studioPresets(client, facts) {
         : disjoint
           ? [section("Compare", parts([`${What}, 1 month`, `${What}${sorted}, 1 month`], ["Share, 1 month", `Share of ${what}${sorted}, 1 month`], lines(list, (node) => node.sum._1m)))]
           : [chart("Compare", `${What}${sorted}, 1 month`, lines(list, (node) => node.sum._1m), { log: [1] })]),
+      ...more,
       ...list.flatMap(([key, node]) => /** @type {(ChartNode | SectionNode)[]} */ (node.share ? [section(name(key), kindCharts(node, title(key)))] : flow(node, name(key), title(key)))),
     ];
   };
@@ -427,8 +429,10 @@ export function studioPresets(client, facts) {
   ];
   /** An amount implied by a public percentage of the same whole. @param {any} share @param {any} total @param {string} format */
   const shareAmount = (share, total, format) => formulaNode(`${share.name} * ${total.name} / 100`, total, format);
-  /** Share of matching amounts, used for every window and cohort. @param {any} part @param {any} total */
+  /** Share of matching amounts (flows, or what's held: a UTXO count), used for every window and cohort. @param {any} part @param {any} total */
   const flowShare = (part, total) => byDate(part) && byDate(total) ? formulaNode(`100 * ${part.name} / ${total.name}`, part) : undefined;
+  /** A cohort's share of every UTXO (an address cohort's too: of all UTXOs, not only addresses'). @param {any} c */
+  const utxoShare = (c) => flowShare(own(c.utxos?.count), t.utxoSet.count);
   /** Individual shares follow their sibling flow charts: four windows, the month shown. @param {any} c @param {string} selected @param {string} who @param {string} [color] */
   const flowShares = (c, selected, who, color = "violet") => FLOW_SHARES.flatMap(({ name, pick }) => {
     if (name !== selected || pick(c, "_24h")?.name === pick(t.holders.all, "_24h")?.name) return [];
@@ -482,6 +486,7 @@ export function studioPresets(client, facts) {
       utxos && section("UTXOs", [
         // (All coins' count is UTXOs › Count itself: its one home.)
         utxos.count && !whole && chart("Count", titled("UTXO count"), [series(own(utxos.count), "UTXOs", { color: color ?? "sky" })], { log: [1] }),
+        utxos.count && !whole && chart("Share of all UTXOs", titled("Share of all UTXOs"), [series(utxoShare(c), "Of all UTXOs", { color: color ?? "sky" })]),
         ...change(utxos.count?.delta, "Change", titled("UTXO count change")),
         ...flow(utxos.spentCount, "Spent", titled("UTXOs spent"), color),
       ]),
@@ -772,7 +777,7 @@ export function studioPresets(client, facts) {
       ...compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
       ...compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
       // (Overlapping members' shares as lines, all coins' 100% their reference; disjoint ones stack above.)
-      ...(options.disjoint ? [] : [...compare("Share of all coins", (c) => c.supply?.share), ...compare("Share of all capital", (c) => c.capital?.share)]),
+      ...(options.disjoint ? [] : [...compare("Share of all coins", (c) => c.supply?.share), ...compare("Share of all capital", (c) => c.capital?.share), ...compare("Share of all UTXOs", utxoShare)]),
       ...compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
       // (Members that split the whole (all coins, the reference, left out), their URPDs stacked at the chart's edge, each its color.)
       // (Stacked as they are, beside all coins' history (its heatmap: today's split by member, against how it came to
@@ -954,6 +959,14 @@ export function studioPresets(client, facts) {
   // ── The tree ──────────────────────────────────────────────────────────────
 
   const m = t.market, sup = t.supply, mining = t.mining, blocks = t.blocks, tx = t.transactions, ct = t.cointime, cf = t.coinflow;
+  /**
+   * By calendar period: a running total's change over each point (one at the chart's interval: a bare 1 is a day, and a
+   * point at least); transactions, all but coinbases (the fee-rate bands' sum, zero-fee ones too). Those paying under
+   * 0.1 sat/vB and under 1, zero-fee ones too, one list for every chart of them (Chain statistics' too).
+   */
+  const step = (/** @type {any} */ total) => `diff(${total.cumulative.name}, 1)`, txSteps = `${step(tx.count)} - ${step(blocks.count)}`;
+  const underTenthSatVb = [tx.fees.zeroFee.txCount, tx.fees.txCountByFeeRate.under0p1SatVb];
+  const underOneSatVb = [...underTenthSatVb, ...(/** @type {const} */ (["_0p1To0p25SatVb", "_0p25To0p5SatVb", "_0p5To1SatVb"])).map((key) => tx.fees.txCountByFeeRate[key])];
 
   /** Moving averages (`sma` or `ema`): each over the price with its ratio below, and all of them together. @param {any} node @param {string} kind */
   const averages = (node, kind) => {
@@ -1197,8 +1210,19 @@ export function studioPresets(client, facts) {
           series(blocks.fullness.avg._1m, "Block fullness, 1-month average", { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
         ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
         // (Each transaction by the fee rate it paid itself, the zero-fee ones apart; the block space they took by the
-        // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest.)
-        section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : spanLabel(key)), (key) => (key === "zeroFee" ? "Zero-fee transactions" : `Transactions paying ${lowered(spanLabel(key))}`), "fee rate", { disjoint: true })),
+        // effective rate, with the transactions they confirmed with, the zero-fee ones in the lowest. After their
+        // comparisons, the low end by calendar period (see step): the share under 1 sat/vB by month, over the blocks'
+        // fullness; under 0.1 sat/vB by day.)
+        section("By fee rate", kinds([["zeroFee", tx.fees.zeroFee.txCount], ...entries(tx.fees.txCountByFeeRate)], (key) => (key === "zeroFee" ? "Zero fee" : spanLabel(key)), (key) => (key === "zeroFee" ? "Zero-fee transactions" : `Transactions paying ${lowered(spanLabel(key))}`), "fee rate", { disjoint: true, more: [
+          chart("Under 1 sat/vB, by month", "Transactions paying under 1 sat/vB, by month", [
+            { formula: `100 * (${underOneSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "histogram", color: "orange", format: "percent", maxInterval: "month1" },
+            { formula: `${step(blocks.weight)} / ${step(blocks.count)} / 40000`, label: "Block fullness", type: "line", color: "sky", width: 2, format: "percent", pane: 2, maxInterval: "month1", levels: [{ value: 100, color: "gray", dash: 3 }] },
+          ], { index: "month1", size: { 2: 1.5 } }),
+          chart("Under 0.1 sat/vB, by day", "Transactions paying under 0.1 sat/vB, by day", [
+            { formula: underTenthSatVb.map(step).join(" + "), label: "Transactions, zero-fee ones too", type: "histogram", color: "orange", format: "number", maxInterval: "day1" },
+            { formula: `100 * (${underTenthSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "line", color: "orange", format: "percent", pane: 2, maxInterval: "day1" },
+          ], { size: { 2: 1.5 } }),
+        ] })),
         section("Block space by effective fee rate", kinds(entries(tx.fees.vsizeByEffectiveFeeRate), spanLabel, (key) => `Block space (vsize) at effective fee rates ${spanLabel(key, true)}`, "effective fee rate", { what: "block space (vsize)", disjoint: true })),
         ...spread(tx.fees.fee, "Fee", "Transaction fees", "amber"),
         ...spread(tx.vsize, "Size", "Transaction sizes (vsize)", "sky"),
@@ -1281,7 +1305,7 @@ export function studioPresets(client, facts) {
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${lowered(spanLabel(key))}`))),
         ]),
       ]),
-      chainStatistics({ t, facts, chart, section, ramp, flowWindow }),
+      chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)

@@ -2313,6 +2313,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/compare/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/compare/profile-on-the-heatmap</loc></url>
@@ -2417,6 +2418,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/utxos/spent-all-time</loc></url>
@@ -2473,6 +2475,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/utxos/spent-all-time</loc></url>
@@ -2520,6 +2523,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/mvrv</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/compare/share-in-profit</loc></url>
@@ -2542,6 +2546,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/utxos/spent-all-time</loc></url>
@@ -2598,6 +2603,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/utxos/spent-all-time</loc></url>
@@ -2652,6 +2658,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/utxos/spent-all-time</loc></url>
@@ -2708,6 +2715,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/utxos/spent-all-time</loc></url>
@@ -2802,6 +2810,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/spent-all-time</loc></url>
@@ -2831,6 +2840,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/spent-all-time</loc></url>
@@ -2908,6 +2918,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/spent-all-time</loc></url>
@@ -2948,6 +2959,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/spent-all-time</loc></url>
@@ -2988,6 +3000,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/spent-all-time</loc></url>
@@ -3028,6 +3041,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/spent-all-time</loc></url>
@@ -3068,6 +3082,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/spent-all-time</loc></url>
@@ -3108,6 +3123,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/spent-all-time</loc></url>
@@ -3148,6 +3164,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/spent-all-time</loc></url>
@@ -3188,6 +3205,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/spent-all-time</loc></url>
@@ -3228,6 +3246,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/spent-all-time</loc></url>
@@ -3268,6 +3287,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/spent-all-time</loc></url>
@@ -3308,6 +3328,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/spent-all-time</loc></url>
@@ -3348,6 +3369,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/spent-all-time</loc></url>
@@ -3388,6 +3410,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/spent-all-time</loc></url>
@@ -3428,6 +3451,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/spent-all-time</loc></url>
@@ -3468,6 +3492,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/spent-all-time</loc></url>
@@ -3508,6 +3533,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/spent-all-time</loc></url>
@@ -3548,6 +3574,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/spent-all-time</loc></url>
@@ -3588,6 +3615,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/spent-all-time</loc></url>
@@ -3628,6 +3656,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/spent-all-time</loc></url>
@@ -3668,6 +3697,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/spent-all-time</loc></url>
@@ -3708,6 +3738,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/spent-all-time</loc></url>
@@ -3748,6 +3779,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/spent-all-time</loc></url>
@@ -3786,6 +3818,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/spent-all-time</loc></url>
@@ -3819,6 +3852,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/mvrv</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/share-in-profit</loc></url>
@@ -3841,6 +3875,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/utxos/spent-all-time</loc></url>
@@ -3876,6 +3911,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/utxos/spent-all-time</loc></url>
@@ -3911,6 +3947,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/utxos/spent-all-time</loc></url>
@@ -3946,6 +3983,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/utxos/spent-all-time</loc></url>
@@ -3981,6 +4019,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/utxos/spent-all-time</loc></url>
@@ -4016,6 +4055,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/utxos/spent-all-time</loc></url>
@@ -4051,6 +4091,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/utxos/spent-all-time</loc></url>
@@ -4086,6 +4127,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/utxos/spent-all-time</loc></url>
@@ -4121,6 +4163,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/utxos/spent-all-time</loc></url>
@@ -4156,6 +4199,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/utxos/spent-all-time</loc></url>
@@ -4191,6 +4235,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/utxos/spent-all-time</loc></url>
@@ -4226,6 +4271,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/utxos/spent-all-time</loc></url>
@@ -4261,6 +4307,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/utxos/spent-all-time</loc></url>
@@ -4296,6 +4343,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/utxos/spent-all-time</loc></url>
@@ -4331,6 +4379,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/utxos/spent-all-time</loc></url>
@@ -4366,6 +4415,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/utxos/spent-all-time</loc></url>
@@ -4401,6 +4451,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/utxos/spent-all-time</loc></url>
@@ -4436,6 +4487,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/utxos/spent-all-time</loc></url>
@@ -4464,6 +4516,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/mvrv</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/share-in-profit</loc></url>
@@ -4488,6 +4541,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/utxos/spent-all-time</loc></url>
@@ -4525,6 +4579,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/utxos/spent-all-time</loc></url>
@@ -4562,6 +4617,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/utxos/spent-all-time</loc></url>
@@ -4599,6 +4655,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/utxos/spent-all-time</loc></url>
@@ -4636,6 +4693,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/utxos/spent-all-time</loc></url>
@@ -4673,6 +4731,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/utxos/spent-all-time</loc></url>
@@ -4710,6 +4769,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/utxos/spent-all-time</loc></url>
@@ -4747,6 +4807,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/utxos/spent-all-time</loc></url>
@@ -4784,6 +4845,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/utxos/spent-all-time</loc></url>
@@ -4821,6 +4883,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/utxos/spent-all-time</loc></url>
@@ -4858,6 +4921,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/utxos/spent-all-time</loc></url>
@@ -4895,6 +4959,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/utxos/spent-all-time</loc></url>
@@ -4932,6 +4997,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/utxos/spent-all-time</loc></url>
@@ -4969,6 +5035,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/utxos/spent-all-time</loc></url>
@@ -5006,6 +5073,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/utxos/spent-all-time</loc></url>
@@ -5043,6 +5111,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/utxos/spent-all-time</loc></url>
@@ -5080,6 +5149,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/utxos/spent-all-time</loc></url>
@@ -5117,6 +5187,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/utxos/spent-all-time</loc></url>
@@ -5154,6 +5225,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/utxos/spent-all-time</loc></url>
@@ -5229,6 +5301,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/spent-all-time</loc></url>
@@ -5258,6 +5331,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/spent-all-time</loc></url>
@@ -5287,6 +5361,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/spent-all-time</loc></url>
@@ -5316,6 +5391,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/spent-all-time</loc></url>
@@ -5345,6 +5421,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/spent-all-time</loc></url>
@@ -5416,6 +5493,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/spent-all-time</loc></url>
@@ -5445,6 +5523,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/spent-all-time</loc></url>
@@ -5474,6 +5553,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/spent-all-time</loc></url>
@@ -5503,6 +5583,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/spent-all-time</loc></url>
@@ -5532,6 +5613,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/spent-all-time</loc></url>
@@ -5561,6 +5643,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/spent-all-time</loc></url>
@@ -5590,6 +5673,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/spent-all-time</loc></url>
@@ -5619,6 +5703,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/spent-all-time</loc></url>
@@ -5648,6 +5733,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/spent-all-time</loc></url>
@@ -5677,6 +5763,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/spent-all-time</loc></url>
@@ -5706,6 +5793,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/spent-all-time</loc></url>
@@ -5735,6 +5823,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/spent-all-time</loc></url>
@@ -5764,6 +5853,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/spent-all-time</loc></url>
@@ -5793,6 +5883,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/spent-all-time</loc></url>
@@ -5822,6 +5913,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/spent-all-time</loc></url>
@@ -5851,6 +5943,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/spent-all-time</loc></url>
@@ -5880,6 +5973,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/spent-all-time</loc></url>
@@ -5909,6 +6003,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/spent-all-time</loc></url>
@@ -6558,6 +6653,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/compare/realized-loss-1-year</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/compare/realized-loss-share-1-year</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-sats/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-sats/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-sats/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-sats/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-sats/spent-all-time</loc></url>
@@ -6568,6 +6664,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-sats/utxos/spent-all-time</loc></url>
@@ -6589,6 +6686,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-sats/utxos/spent-all-time</loc></url>
@@ -6610,6 +6708,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-sats/utxos/spent-all-time</loc></url>
@@ -6631,6 +6730,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-sats/utxos/spent-all-time</loc></url>
@@ -6652,6 +6752,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-sats/utxos/spent-all-time</loc></url>
@@ -6673,6 +6774,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-minus-1m-sats/utxos/spent-all-time</loc></url>
@@ -6694,6 +6796,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1m-minus-10m-sats/utxos/spent-all-time</loc></url>
@@ -6715,6 +6818,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/0-1-minus-1-btc/utxos/spent-all-time</loc></url>
@@ -6736,6 +6840,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1-minus-10-btc/utxos/spent-all-time</loc></url>
@@ -6757,6 +6862,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10-minus-100-btc/utxos/spent-all-time</loc></url>
@@ -6778,6 +6884,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100-minus-1k-btc/utxos/spent-all-time</loc></url>
@@ -6799,6 +6906,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/1k-minus-10k-btc/utxos/spent-all-time</loc></url>
@@ -6820,6 +6928,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/10k-minus-100k-btc/utxos/spent-all-time</loc></url>
@@ -6841,6 +6950,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-amount/100k-plus-btc/utxos/spent-all-time</loc></url>
@@ -6859,6 +6969,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/mvrv</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/compare/utxo-count</loc></url>
@@ -6873,6 +6984,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-sat/utxos/spent-all-time</loc></url>
@@ -6896,6 +7008,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-sats/utxos/spent-all-time</loc></url>
@@ -6919,6 +7032,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-sats/utxos/spent-all-time</loc></url>
@@ -6942,6 +7056,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-sats/utxos/spent-all-time</loc></url>
@@ -6965,6 +7080,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-sats/utxos/spent-all-time</loc></url>
@@ -6988,6 +7104,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100k-sats/utxos/spent-all-time</loc></url>
@@ -7011,6 +7128,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1m-sats/utxos/spent-all-time</loc></url>
@@ -7034,6 +7152,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10m-sats/utxos/spent-all-time</loc></url>
@@ -7057,6 +7176,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1-btc/utxos/spent-all-time</loc></url>
@@ -7080,6 +7200,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10-btc/utxos/spent-all-time</loc></url>
@@ -7103,6 +7224,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-100-btc/utxos/spent-all-time</loc></url>
@@ -7126,6 +7248,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-1k-btc/utxos/spent-all-time</loc></url>
@@ -7149,6 +7272,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/over-an-amount/over-10k-btc/utxos/spent-all-time</loc></url>
@@ -7169,6 +7293,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/mvrv</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/compare/utxo-count</loc></url>
@@ -7183,6 +7308,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-sats/utxos/spent-all-time</loc></url>
@@ -7206,6 +7332,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-sats/utxos/spent-all-time</loc></url>
@@ -7229,6 +7356,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-sats/utxos/spent-all-time</loc></url>
@@ -7252,6 +7380,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-sats/utxos/spent-all-time</loc></url>
@@ -7275,6 +7404,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-sats/utxos/spent-all-time</loc></url>
@@ -7298,6 +7428,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1m-sats/utxos/spent-all-time</loc></url>
@@ -7321,6 +7452,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10m-sats/utxos/spent-all-time</loc></url>
@@ -7344,6 +7476,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1-btc/utxos/spent-all-time</loc></url>
@@ -7367,6 +7500,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10-btc/utxos/spent-all-time</loc></url>
@@ -7390,6 +7524,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100-btc/utxos/spent-all-time</loc></url>
@@ -7413,6 +7548,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-1k-btc/utxos/spent-all-time</loc></url>
@@ -7436,6 +7572,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-10k-btc/utxos/spent-all-time</loc></url>
@@ -7459,6 +7596,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/utxos/spent-all-time</loc></url>
@@ -7521,6 +7659,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pk/utxos/spent-all-time</loc></url>
@@ -7542,6 +7681,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2pkh/utxos/spent-all-time</loc></url>
@@ -7563,6 +7703,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2ms/utxos/spent-all-time</loc></url>
@@ -7584,6 +7725,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2sh/utxos/spent-all-time</loc></url>
@@ -7605,6 +7747,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wpkh/utxos/spent-all-time</loc></url>
@@ -7626,6 +7769,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2wsh/utxos/spent-all-time</loc></url>
@@ -7647,6 +7791,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2tr/utxos/spent-all-time</loc></url>
@@ -7668,6 +7813,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/p2a/utxos/spent-all-time</loc></url>
@@ -7689,6 +7835,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/empty/utxos/spent-all-time</loc></url>
@@ -7710,6 +7857,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/capital/share-of-all-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/utxos/spent</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/unknown/utxos/spent-all-time</loc></url>
@@ -7989,6 +8137,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-sats/addresses/count</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-sats/addresses/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/supply/share-of-all-addresses-coins</loc></url>
@@ -7999,6 +8148,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-sats/activity/transfer-volume-all-time</loc></url>
@@ -8019,6 +8169,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-sats/activity/transfer-volume-all-time</loc></url>
@@ -8039,6 +8190,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8059,6 +8211,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8079,6 +8232,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8099,6 +8253,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-minus-1m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8119,6 +8274,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1m-minus-10m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8139,6 +8295,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/0-1-minus-1-btc/activity/transfer-volume-all-time</loc></url>
@@ -8159,6 +8316,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1-minus-10-btc/activity/transfer-volume-all-time</loc></url>
@@ -8179,6 +8337,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10-minus-100-btc/activity/transfer-volume-all-time</loc></url>
@@ -8199,6 +8358,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100-minus-1k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8219,6 +8379,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/1k-minus-10k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8239,6 +8400,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/10k-minus-100k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8259,6 +8421,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/by-balance/100k-plus-btc/activity/transfer-volume-all-time</loc></url>
@@ -8274,6 +8437,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/utxo-count</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/address-count</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/compare/transfer-volume-1-month</loc></url>
@@ -8289,6 +8453,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-sat/activity/transfer-volume-all-time</loc></url>
@@ -8311,6 +8476,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-sats/activity/transfer-volume-all-time</loc></url>
@@ -8333,6 +8499,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-sats/activity/transfer-volume-all-time</loc></url>
@@ -8355,6 +8522,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8377,6 +8545,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8399,6 +8568,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8421,6 +8591,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8443,6 +8614,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8465,6 +8637,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1-btc/activity/transfer-volume-all-time</loc></url>
@@ -8487,6 +8660,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10-btc/activity/transfer-volume-all-time</loc></url>
@@ -8509,6 +8683,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-100-btc/activity/transfer-volume-all-time</loc></url>
@@ -8531,6 +8706,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-1k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8553,6 +8729,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/over-a-balance/over-10k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8570,6 +8747,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/share-of-all-coins</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/share-of-all-capital</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/utxo-count</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/address-count</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/compare/transfer-volume-1-month</loc></url>
@@ -8585,6 +8763,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-sats/activity/transfer-volume-all-time</loc></url>
@@ -8607,6 +8786,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-sats/activity/transfer-volume-all-time</loc></url>
@@ -8629,6 +8809,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8651,6 +8832,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8673,6 +8855,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-sats/activity/transfer-volume-all-time</loc></url>
@@ -8695,6 +8878,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8717,6 +8901,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10m-sats/activity/transfer-volume-all-time</loc></url>
@@ -8739,6 +8924,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1-btc/activity/transfer-volume-all-time</loc></url>
@@ -8761,6 +8947,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10-btc/activity/transfer-volume-all-time</loc></url>
@@ -8783,6 +8970,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100-btc/activity/transfer-volume-all-time</loc></url>
@@ -8805,6 +8993,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-1k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8827,6 +9016,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-10k-btc/activity/transfer-volume-all-time</loc></url>
@@ -8849,6 +9039,7 @@
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/capital/share-of-all-addresses-capital</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/utxos/count</loc></url>
+<url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/utxos/share-of-all-utxos</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/utxos/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/activity/transfer-volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/addresses/under-a-balance/under-100k-btc/activity/transfer-volume-all-time</loc></url>
@@ -9878,6 +10069,8 @@
 <url><loc>https://bitview.space/studio/presets/network/transactions/fee-rate-and-fullness</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/compare/transactions-1-month</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/compare/share-1-month</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/under-1-sat-vb-by-month</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/under-0-1-sat-vb-by-day</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/zero-fee</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/zero-fee-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/by-fee-rate/under-0-1-sat-vb</loc></url>

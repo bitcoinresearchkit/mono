@@ -14,10 +14,10 @@
  */
 
 /**
- * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1w" | "_1m") => NamedSeries | undefined }} parts
+ * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1w" | "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[] }} parts
  * @returns {SectionNode}
  */
-export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) {
+export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }) {
   /** A series' change over a day. @param {NamedSeries} series */
   const perDay = (series) => `diff(${series.name}, 1d)`;
   /** A running total's change over a day. @param {Cumulative} total */
@@ -71,7 +71,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
   const fees = t.transactions.fees;
   /** @type {[keyof typeof fees.txCountByFeeRate, string][]} */
   const feeRanges = [["under0p1SatVb", "under 0.1"], ["_0p1To0p25SatVb", "0.1 to 0.25"], ["_0p25To0p5SatVb", "0.25 to 0.5"], ["_0p5To1SatVb", "0.5 to 1"], ["_1To2SatVb", "1 to 2"], ["_2To5SatVb", "2 to 5"], ["_5To10SatVb", "5 to 10"], ["_10To25SatVb", "10 to 25"], ["_25To50SatVb", "25 to 50"], ["_50To100SatVb", "50 to 100"], ["_100To250SatVb", "100 to 250"], ["_250To500SatVb", "250 to 500"], ["_500To1kSatVb", "500 to 1,000"], ["over1kSatVb", "over 1,000"]];
-  const underOneSatVb = [daily(fees.zeroFee.txCount), ...feeRanges.slice(0, 4).map(([key]) => daily(fees.txCountByFeeRate[key]))].join(" + ");
+  const underOne = underOneSatVb.map(daily).join(" + ");
 
   const work = t.blocks.work.cumulative, hashrate = t.mining.hashrate.value, difficulty = t.blocks.difficulty.value;
   const workPerBlock = perBlock(perDay(work));
@@ -137,7 +137,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow }) 
       chart("Coinbase output value", "Coinbase output value", (/** @type {const} */ ([["block subsidy", t.mining.rewards.subsidy], ["transaction fees", t.mining.rewards.fees]])).map(([name, node], i) => ({ formula: perBlock(perDay(node.cumulative.btc)), label: name, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" }, average: { 1: "7d" } }),
     ]),
     section("Fees", [
-      percentLine("Sub 1 sat/vByte transactions", [["sub 1 sat/vbyte", percent(underOneSatVb, day.txs)]], 7),
+      percentLine("Sub 1 sat/vByte transactions", [["sub 1 sat/vbyte", percent(underOne, day.txs)]], 7),
       ...events("Zero-Fee transactions", [["zero-fee transactions", fees.zeroFee.txCount]]),
       shareStack("Transaction fee rate distribution", [["zero fee", daily(fees.zeroFee.txCount)], ...feeRanges.map(([key, name]) => [name, daily(fees.txCountByFeeRate[key])])], 90),
       shareStack("Fee rates by block space", feeRanges.map(([key, name]) => [name, daily(fees.vsizeByEffectiveFeeRate[key])]), 30),
