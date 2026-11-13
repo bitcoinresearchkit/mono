@@ -137,7 +137,7 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
 /// also keeps a request inside the website, and no `index.html`, as a folder's page is at the
 /// folder's address.
 fn is_one_address(path: &str) -> bool {
-    let path = path.strip_prefix('/').unwrap_or(path);
+    let path = path.trim_prefix('/');
     !path.contains('%')
         && path
             .strip_suffix('/')

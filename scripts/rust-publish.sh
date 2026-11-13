@@ -82,6 +82,10 @@ publish_release_selection() {
     done
 }
 
+# Crates published a moment ago must resolve while the next one is packaged,
+# so .cargo/config.toml's minimum publish age is off for this script.
+export CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow
+
 # bitview_website embeds ignored assets through symlinks, so Cargo requires
 # --allow-dirty even when the Git worktree itself is clean. Publish its
 # workspace dependencies first so Cargo can resolve the packaged crate.

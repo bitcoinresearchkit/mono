@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use rangeindex::RangeMap;
 
 use vecdb::{ReadableVec, VecIndex, VecValue};
@@ -45,7 +43,7 @@ pub trait AggFold<O: VecValue, S1I: VecIndex, S1T: VecValue>: 'static {
         mut f: F,
     ) -> B {
         let Ok(b) = Self::try_fold(source, mapping, from, to, init, |b, o| {
-            Ok::<_, Infallible>(f(b, o))
+            Ok::<_, !>(f(b, o))
         });
         b
     }

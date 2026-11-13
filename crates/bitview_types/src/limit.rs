@@ -8,7 +8,7 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Copy, Deref, Deserialize, JsonSchema)]
 #[serde(transparent)]
 #[allow(clippy::duplicated_attributes)]
-#[schemars(example = 1, example = 10, example = 100)]
+#[schemars(extend("examples" = [1, 10, 100]))]
 pub struct Limit(usize);
 
 impl fmt::Display for Limit {

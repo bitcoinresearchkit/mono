@@ -76,7 +76,7 @@ pub fn schnorr_sighash(bytes: &[u8]) -> Option<TapSighashType> {
 
 /// A DER integer against the half order, compared as 32 big-endian bytes.
 fn is_low_s(s: &[u8]) -> bool {
-    let s = s.strip_prefix(&[0]).unwrap_or(s);
+    let s = s.trim_prefix(&[0]);
     match s.len().cmp(&32) {
         Ordering::Less => true,
         Ordering::Equal => s <= &HALF_ORDER[..],

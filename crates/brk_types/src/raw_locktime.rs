@@ -10,7 +10,7 @@ use vecdb::Pco;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]
-#[cfg_attr(feature = "schemars", schemars(example = &0, example = &840000, example = &840001, example = &1713571200))]
+#[cfg_attr(feature = "schemars", schemars(extend("examples" = [0, 840000, 840001, 1713571200])))]
 pub struct RawLockTime(u32);
 
 impl RawLockTime {

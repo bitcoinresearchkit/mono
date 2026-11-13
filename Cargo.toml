@@ -1,13 +1,11 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "examples/custom_plugin"]
-package.description = "The Bitcoin Research Kit is a suite of tools designed to extract, compute and display data stored on a Bitcoin Core node"
 package.license = "MIT"
 package.edition = "2024"
 package.version = "0.13.0"
 package.homepage = "https://bitcoinresearchkit.org"
 package.repository = "https://github.com/bitcoinresearchkit/mono"
-package.readme = "README.md"
 
 [profile.dev]
 # No cross-crate LTO, default codegen units: on macOS, cross-crate ThinLTO with unpacked debuginfo keeps per-binary

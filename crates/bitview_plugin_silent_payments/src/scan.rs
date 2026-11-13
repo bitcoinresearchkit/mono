@@ -1,4 +1,4 @@
-use std::{iter, ops::Range, slice};
+use std::{ops::Range, slice};
 
 use bitcoin::{Block, Transaction, consensus::deserialize, hashes::Hash, secp256k1::PublicKey};
 use bitview_plugin_indexer::Indexer;
@@ -77,9 +77,7 @@ pub(crate) fn is_candidate(transaction: &Transaction, input_types: &[OutputType]
 /// large range reads, then the blocks and their transactions scanned in parallel.
 pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Result<Vec<BlockScan>> {
     let scanned = heights.start.max(TAPROOT_ACTIVATION)..heights.end;
-    let mut blocks = iter::repeat_with(BlockScan::before_activation)
-        .take(heights.len() - scanned.len())
-        .collect::<Vec<_>>();
+    let mut blocks = Vec::from_fn(heights.len() - scanned.len(), |_| BlockScan::before_activation());
     if scanned.is_empty() {
         return Ok(blocks);
     }

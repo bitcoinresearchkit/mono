@@ -1,4 +1,4 @@
-use std::{convert::Infallible, sync::Arc};
+use std::sync::Arc;
 
 use arc_swap::ArcSwap;
 use brk_types::{Height, Timestamp, Version};
@@ -224,7 +224,7 @@ impl LazyWindowStartVec {
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(Height)) {
         let Ok(()) = self.try_for_each_value(from, to, |value| {
             each(value);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

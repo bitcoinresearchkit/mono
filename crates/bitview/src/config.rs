@@ -181,7 +181,7 @@ impl Config {
     fn parse_toml(contents: &str) -> StdResult<Self, String> {
         let mut config = Self::default();
         let mut seen = HashSet::new();
-        let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
+        let contents = contents.trim_prefix('\u{feff}');
         for (index, line) in contents.lines().enumerate() {
             let at = |problem: String| format!("line {}: {problem}", index + 1);
             let line = line.trim();
@@ -526,7 +526,7 @@ fn bare_value(token: &str) -> StdResult<String, String> {
     if !token.starts_with(|c: char| c.is_ascii_digit() || c == '+' || c == '-') {
         return Ok(token.to_owned());
     }
-    let number = token.strip_prefix('+').unwrap_or(token).replace('_', "");
+    let number = token.trim_prefix('+').replace('_', "");
     for (prefix, radix) in [("0x", 16), ("0o", 8), ("0b", 2)] {
         if let Some(digits) = number.strip_prefix(prefix) {
             return u64::from_str_radix(digits, radix)

@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use arc_swap::ArcSwap;
 use bitview_primitives::PoolSlug;
@@ -248,7 +248,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
         let Ok(()) = self.try_for_each_value(from, to, |value| {
             each(value);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

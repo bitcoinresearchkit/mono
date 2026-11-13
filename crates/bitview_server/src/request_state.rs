@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use aide::OperationInput;
 use axum::{extract::FromRequestParts, http::request::Parts};
 
@@ -9,7 +7,7 @@ use crate::{AppState, request_deadline::RequestDeadline};
 pub(crate) struct RequestState(pub AppState);
 
 impl FromRequestParts<AppState> for RequestState {
-    type Rejection = Infallible;
+    type Rejection = !;
 
     async fn from_request_parts(
         parts: &mut Parts,

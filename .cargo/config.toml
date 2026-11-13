@@ -10,3 +10,8 @@ prod = "run --release -p bitviewd"
 # Dead or unnecessary `pub` (cargo-hawk), built in /tmp so its large instrumented target is easy to clear. The client,
 # the crates it re-exports wholesale, and vendored forks are external API boundaries.
 visibility = "hawk check --target-dir /tmp/cargo-hawk-target --exclude-crate bitview_client --exclude-crate bitview_types --exclude-crate bitview_catalog --exclude-crate bitview_cohort --exclude-crate bitview_primitives --exclude-crate brk_types --exclude-crate pco --exclude-crate fjall --exclude-crate lsm_tree --exclude-crate byteview"
+
+[registry]
+# Supply chain: resolve only crate versions published at least 3 days ago, so a hijacked release is usually
+# yanked before it can land here. Override once with CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow.
+global-min-publish-age = "3 days"

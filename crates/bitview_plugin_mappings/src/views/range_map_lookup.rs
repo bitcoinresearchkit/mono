@@ -1,4 +1,4 @@
-use std::{convert::Infallible, iter};
+use std::iter;
 
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use rangeindex::SharedRangeMap;
@@ -120,7 +120,7 @@ impl<I: VecIndex, T: VecIndex + VecValue> ReadableVec<I, T> for RangeMapLookupVe
         out.reserve(indices.len());
         self.try_fold_indices(indices.iter().copied(), (), |(), value| {
             out.push(value);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         })
         .unwrap();
     }

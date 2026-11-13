@@ -14,7 +14,7 @@ pub struct SearchQuery {
         default = "SearchQuery::default_limit",
         deserialize_with = "crate::de_plain"
     )]
-    #[schemars(example = 10, example = 100)]
+    #[schemars(extend("examples" = [10, 100]))]
     pub limit: PageSize,
 }
 

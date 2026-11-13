@@ -1,4 +1,4 @@
-FROM rust:1.99.1-bookworm AS builder
+FROM rust:1.100.0-bookworm AS builder
 
 RUN apt-get update && apt-get install -y pkg-config && rm -rf /var/lib/apt/lists/*
 

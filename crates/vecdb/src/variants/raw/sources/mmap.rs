@@ -1,4 +1,4 @@
-use std::{convert::Infallible, result::Result, slice};
+use std::{result::Result, slice};
 
 use rawdb::Region;
 
@@ -46,7 +46,7 @@ where
             output.reserve(self.end - self.pos);
             let Ok(()) = self.try_fold((), |(), value| {
                 output.push(value);
-                Ok::<_, Infallible>(())
+                Ok::<_, !>(())
             });
         }
     }

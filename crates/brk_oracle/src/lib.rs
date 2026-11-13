@@ -18,8 +18,6 @@
 //! 2020 crash, while the output cap helps the thin pre-2020 mix for longer and
 //! still prevents modern fan-out clusters from dominating one EMA slot.
 
-use std::convert::Infallible;
-
 use brk_types::Dollars;
 
 mod config;
@@ -123,7 +121,7 @@ impl Oracle {
             kept.iter().for_each(|h| {
                 o.process_histogram(h);
             });
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
         *self = oracle;
     }

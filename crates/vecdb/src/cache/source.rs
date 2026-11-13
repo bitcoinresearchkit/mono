@@ -1,4 +1,4 @@
-use std::{convert::Infallible, ops::Range, result::Result as FoldResult};
+use std::{ops::Range, result::Result as FoldResult};
 
 use crate::VecValue;
 
@@ -54,7 +54,7 @@ impl<T: VecValue> Cache<T> {
     ) {
         let Ok(()) = self.try_for_each_source(from, to, source, load, |at, values| {
             each(at, values);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

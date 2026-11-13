@@ -1,4 +1,4 @@
-use std::{convert::Infallible, result::Result};
+use std::result::Result;
 
 use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, cursor::Cursor};
 
@@ -93,7 +93,7 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
         Self: Sized,
     {
         let Ok(acc) = self.try_fold_range_at(from, to, init, |acc, value| {
-            Ok::<_, Infallible>(f(acc, value))
+            Ok::<_, !>(f(acc, value))
         });
         acc
     }

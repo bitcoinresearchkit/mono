@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -93,7 +93,7 @@ where
     fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(usize, &[S], &[M])) {
         let Ok(()) = self.try_for_each_input(from, to, |at, source, metadata| {
             each(at, source, metadata);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

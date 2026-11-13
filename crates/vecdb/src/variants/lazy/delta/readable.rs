@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use crate::{AnyVec, ReadableVec, SparseRead, VecIndex, VecValue, before_window};
 
 use super::{DeltaOp, LazyDeltaVec};
@@ -20,7 +18,7 @@ where
         buf.reserve(to.min(self.len()).saturating_sub(from));
         let Ok(()) = self.try_for_each_batch(from, to, |at, starts, batch| {
             buf.extend(Self::transformed_values(at, starts, batch));
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 
@@ -31,7 +29,7 @@ where
             output.clear();
             output.extend(Self::transformed_values(at, starts, batch));
             f(at, &output);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

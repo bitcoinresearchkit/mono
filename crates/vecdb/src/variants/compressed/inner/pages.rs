@@ -133,7 +133,7 @@ impl Pages {
             let base = u64::from_bytes(&bytes[offset..offset + BLOCK_BASE_BYTES])?;
             let mut block = PageBlock::new(base);
             offset += BLOCK_BASE_BYTES;
-            for local in 0..record_count {
+            for (local, slot) in block.records[..record_count].iter_mut().enumerate() {
                 let span = u32::from_bytes(&bytes[offset..offset + 4])?;
                 let body_and_flags = u32::from_bytes(&bytes[offset + 4..offset + 8])?;
                 let record = PageRecord {
@@ -155,7 +155,7 @@ impl Pages {
                 if record.is_raw() {
                     raw_page = Some(len + local);
                 }
-                block.records[local] = record;
+                *slot = record;
                 offset += RECORD_BYTES;
             }
             len += record_count;
@@ -238,8 +238,7 @@ impl Pages {
         let mut header_end = block.base;
         let mut chunk_start_page = block_index * PAGES_PER_BLOCK;
 
-        for local in 0..=local_index {
-            let record = block.records[local];
+        for (local, &record) in block.records[..=local_index].iter().enumerate() {
             let previous_end = end;
             end = end.checked_add(record.span as u64)?;
             let start = end - record.body() as u64;

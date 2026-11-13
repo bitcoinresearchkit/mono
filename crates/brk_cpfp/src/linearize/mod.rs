@@ -114,7 +114,7 @@ pub fn compare_feerates(a: (i128, Weight), b: (i128, Weight)) -> Ordering {
             ra.cmp(&rb)
         } else {
             (na, da, nb, db) = (da, ra, db, rb);
-            reverse = !reverse;
+            reverse.toggle();
             continue;
         };
         return if reverse { order.reverse() } else { order };

@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use bitview_primitives::{
     PercentileId, RarityPercentileId, percentile_table, rarity_percentile_table,
 };
@@ -23,7 +21,7 @@ macro_rules! percentile_collection {
             }
 
             pub fn from_fn(mut f: impl FnMut($id) -> T) -> Self {
-                let Ok(this) = Self::try_from_fn(|id| Ok::<_, Infallible>(f(id)));
+                let Ok(this) = Self::try_from_fn(|id| Ok::<_, !>(f(id)));
                 this
             }
 

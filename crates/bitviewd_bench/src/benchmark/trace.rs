@@ -131,7 +131,7 @@ impl Visit for Fields {
 /// The emitting crate, without the plugin prefix: `indexer`, `addresses`, `bitview_vecs`, ...
 fn source(target: &str) -> &str {
     let krate = target.split_once("::").map_or(target, |(krate, _)| krate);
-    krate.strip_prefix("bitview_plugin_").unwrap_or(krate)
+    krate.trim_prefix("bitview_plugin_")
 }
 
 fn progress(message: &str) -> Option<u64> {

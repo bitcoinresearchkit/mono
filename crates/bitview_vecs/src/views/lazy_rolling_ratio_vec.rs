@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use brk_types::Height;
 use schemars::JsonSchema;
@@ -172,7 +172,7 @@ where
         buf.reserve(to.min(self.len()).saturating_sub(from));
         let Ok(()) = self.try_for_each_batch(from, to, |starts, source, operand| {
             buf.extend(Self::values(starts, source, operand));
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 
@@ -188,14 +188,14 @@ where
             output.extend(Self::values(starts, source, operand));
             each(at, &output);
             at += output.len();
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(T)) {
         let Ok(()) = self.try_for_each_batch(from, to, |starts, source, operand| {
             Self::values(starts, source, operand).for_each(&mut *each);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

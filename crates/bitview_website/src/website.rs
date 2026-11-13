@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    convert::Infallible,
     fmt::{Formatter, Result as FmtResult},
     fs,
     io::ErrorKind,
@@ -186,7 +185,7 @@ fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
 }
 
 impl FromStr for Website {
-    type Err = Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> StdResult<Self, Self::Err> {
         Ok(match s.to_lowercase().as_str() {

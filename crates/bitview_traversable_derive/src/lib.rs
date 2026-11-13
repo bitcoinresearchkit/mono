@@ -214,7 +214,7 @@ fn doc_comment(field: &Field) -> Option<String> {
     let mut closed = false;
     for line in lines {
         // (`/// text` is " text": the space after the slashes isn't the text's.)
-        let raw = line.strip_prefix(' ').unwrap_or(&line);
+        let raw = line.trim_prefix(' ');
         let line = raw.trim_end();
         let text = line.trim_start();
         let ticks = text.bytes().take_while(|&byte| byte == b'`').count();
@@ -503,7 +503,7 @@ fn client_name(
         return Ok(Some(client.value()));
     }
     let ident = input.ident.to_string();
-    let name = ident.strip_suffix("Vecs").unwrap_or(&ident);
+    let name = ident.trim_suffix("Vecs");
     Ok(is_type_name(name).then(|| name.to_owned()))
 }
 
@@ -686,8 +686,8 @@ fn generate_field_traversals(
 
         let field_name_str = {
             let s = field_name.to_string();
-            let s = s.strip_prefix("r#").unwrap_or(&s);
-            s.strip_prefix('_').unwrap_or(s).to_string()
+            let s = s.trim_prefix("r#");
+            s.trim_prefix('_').to_string()
         };
 
         // With `wrap = "a/b"`, the node appears at `a/b/<rename-or-field-name>`.

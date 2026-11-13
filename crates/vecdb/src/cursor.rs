@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::{ReadableVec, VecIndex, VecValue};
 
@@ -119,7 +119,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
     /// rest stays buffered for later `next()` calls.
     #[inline]
     fn fold<B>(&mut self, n: usize, init: B, mut f: impl FnMut(B, T) -> B) -> B {
-        let Ok(value) = self.try_fold(n, init, |acc, value| Ok::<_, Infallible>(f(acc, value)));
+        let Ok(value) = self.try_fold(n, init, |acc, value| Ok::<_, !>(f(acc, value)));
         value
     }
 

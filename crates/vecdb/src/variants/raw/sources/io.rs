@@ -1,5 +1,4 @@
 use std::{
-    convert::Infallible,
     fs::File,
     io::{Error, ErrorKind, Read, Seek, SeekFrom},
     marker::PhantomData,
@@ -134,7 +133,7 @@ where
         if !S::IS_NATIVE_LAYOUT {
             let Ok(()) = self.try_fold((), |(), value| {
                 output.push(value);
-                Ok::<_, Infallible>(())
+                Ok::<_, !>(())
             });
             return;
         }

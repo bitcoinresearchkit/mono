@@ -48,7 +48,7 @@ pub const BLOCKS_PER_HALVING: u32 = 210_000;
 #[allow(clippy::duplicated_attributes)]
 #[cfg_attr(
     feature = "schemars",
-    schemars(example = 0, example = 210_000, example = 420_000, example = 840_000)
+    schemars(extend("examples" = [0, 210_000, 420_000, 840_000]))
 )]
 pub struct Height(u32);
 

@@ -1,4 +1,4 @@
-use std::{convert::Infallible, marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -109,7 +109,7 @@ where
     ) {
         let Ok(()) = self.try_for_each_input(from, to, |at, current, previous| {
             each(at, current, previous);
-            Ok::<_, Infallible>(())
+            Ok::<_, !>(())
         });
     }
 

@@ -2,7 +2,6 @@
 //! the lengthless `304 Not Modified`.
 
 use std::{
-    convert::Infallible,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -38,13 +37,13 @@ fn field_etags(value: &[u8]) -> impl Iterator<Item = &[u8]> {
     value
         .split(move |&byte| {
             if byte == b'"' {
-                quoted = !quoted;
+                quoted.toggle();
             }
             byte == b',' && !quoted
         })
         .filter_map(|entry| {
             let entry = entry.trim_ascii();
-            let entry = entry.strip_prefix(b"W/").unwrap_or(entry);
+            let entry = entry.trim_prefix(b"W/");
             entry.strip_prefix(b"\"")?.strip_suffix(b"\"")
         })
 }
@@ -62,12 +61,12 @@ struct NotModifiedBody;
 
 impl HttpBody for NotModifiedBody {
     type Data = Bytes;
-    type Error = Infallible;
+    type Error = !;
 
     fn poll_frame(
         self: Pin<&mut Self>,
         _: &mut Context<'_>,
-    ) -> Poll<Option<Result<Frame<Bytes>, Infallible>>> {
+    ) -> Poll<Option<Result<Frame<Bytes>, !>>> {
         Poll::Ready(None)
     }
 

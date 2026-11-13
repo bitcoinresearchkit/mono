@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash,
 )]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(feature = "schemars", schemars(example = &0, example = &1, example = &2, example = &5, example = &10))]
+#[cfg_attr(feature = "schemars", schemars(extend("examples" = [0, 1, 2, 5, 10])))]
 pub struct Vout(u32);
 
 impl Vout {
