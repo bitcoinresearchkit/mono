@@ -13766,7 +13766,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
       const MANY_LAYERS = 6;
       /** A formula's length at most: typed, as read from a link or a file. */
-      const FORMULA_MAX = 1000;
+      const FORMULA_MAX = 2000;
       /** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
       function roomFor(doc) {
         if (doc.layers.length < MAX_LAYERS) return true;

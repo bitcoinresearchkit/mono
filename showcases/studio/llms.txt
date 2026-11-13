@@ -111,17 +111,17 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages (32): https://bitview.space/studio/presets/price/moving-averages/
   - Range (3): https://bitview.space/studio/presets/price/range/
   - Technical (11): https://bitview.space/studio/presets/price/technical/
-- Valuation (72): https://bitview.space/studio/presets/valuation/
+- Valuation (73): https://bitview.space/studio/presets/valuation/
   - Compass (5): https://bitview.space/studio/presets/valuation/compass/
   - Cointime prices (7): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (552): https://bitview.space/studio/presets/holders/
+- Holders (566): https://bitview.space/studio/presets/holders/
   - Compare (49): https://bitview.space/studio/presets/holders/compare/
-  - All coins (49): https://bitview.space/studio/presets/holders/all-coins/
-  - Short-term holders (57): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (55): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (240): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - All coins (51): https://bitview.space/studio/presets/holders/all-coins/
+  - Short-term holders (59): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (57): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (248): https://bitview.space/studio/presets/holders/age-cutoffs/
   - Entry price (102): https://bitview.space/studio/presets/holders/entry-price/
 - Coin age (3163): https://bitview.space/studio/presets/coin-age/
   - Age bands (986): https://bitview.space/studio/presets/coin-age/age-bands/
@@ -133,7 +133,7 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - All coins (196): https://bitview.space/studio/presets/profitability/all-coins/
   - Short-term holders (196): https://bitview.space/studio/presets/profitability/short-term-holders/
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/
-- UTXOs (1260): https://bitview.space/studio/presets/utxos/
+- UTXOs (1261): https://bitview.space/studio/presets/utxos/
   - By amount (352): https://bitview.space/studio/presets/utxos/by-amount/
   - At or above each UTXO amount (324): https://bitview.space/studio/presets/utxos/over-an-amount/
   - Under each UTXO amount (324): https://bitview.space/studio/presets/utxos/under-an-amount/
@@ -162,14 +162,14 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Outputs (103): https://bitview.space/studio/presets/network/outputs/
   - OP_RETURN (350): https://bitview.space/studio/presets/network/op-return/
   - Chain statistics (169): https://bitview.space/studio/presets/network/chain-statistics/
-- Cointime (236): https://bitview.space/studio/presets/cointime/
+- Cointime (250): https://bitview.space/studio/presets/cointime/
   - Activity (8): https://bitview.space/studio/presets/cointime/activity/
   - Value (6): https://bitview.space/studio/presets/cointime/value/
   - Age bands (97): https://bitview.space/studio/presets/cointime/age-bands/
-  - Awake coins (124): https://bitview.space/studio/presets/cointime/awake-coins/
-- Coinflow (223): https://bitview.space/studio/presets/coinflow/
+  - Awake coins (138): https://bitview.space/studio/presets/cointime/awake-coins/
+- Coinflow (237): https://bitview.space/studio/presets/coinflow/
   - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/
-  - Mobile coins (124): https://bitview.space/studio/presets/coinflow/mobile-coins/
+  - Mobile coins (138): https://bitview.space/studio/presets/coinflow/mobile-coins/
 - Bedrock (23): https://bitview.space/studio/presets/bedrock/
   - Compare (5): https://bitview.space/studio/presets/bedrock/compare/
   - Awake (6): https://bitview.space/studio/presets/bedrock/awake/

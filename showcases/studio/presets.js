@@ -602,6 +602,24 @@ export function studioPresets(client, facts, report = (problem) => console.error
       c.costBasis && section("Cost basis", costCharts(c, who, urpd, color, weight)),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   };
+  /**
+   * How far the price runs from a cohort's realized price, in its ratio's (MVRV's) deviations from that ratio's own mean:
+   * as prices, bands about the mean over four years, a halving cycle (the price dear past +2σ, cheap under −1σ, as the
+   * ratio rarely goes lower; the realized price itself in the chart before); as a score, over one, two and four years
+   * and all time, four years shown. Only where the ratio is a series of its own (not a cutoff's, made of others: its
+   * realized price its cost basis' one chart, lifted to its place, kept there).
+   * @param {string} realized @param {string} ratio @param {(what: string) => string} titled
+   */
+  const deviationCharts = (realized, ratio, titled) => [
+    chart("Realized price bands", titled("Realized price deviation bands"), [
+      price(),
+      ...[3, 2, 1, 0, -1].map((k) => ({ formula: `${realized} * (sma(${ratio}, 4y) ${k < 0 ? "-" : "+"} ${Math.abs(k)} * stdev(${ratio}, 4y))`, label: k ? `${k > 0 ? "+" : "−"}${Math.abs(k)}σ` : "Mean", format: "usd", width: 1, ...(k ? polarLook(Math.abs(k) / 3, k < 0) : { color: "gray", dash: 3 }) })),
+    ]),
+    chart("Realized price z-score", titled("Realized price z-score"), [
+      price(),
+      ...["_1y", "_2y", "_4y", ""].map((key, i) => ({ formula: key ? `zscore(${ratio}, ${key.slice(1)})` : `zscore(${ratio})`, label: key ? windowSaid(key) : "All time", pane: 2, format: "number", ...around(0), ...shades(i, 4), ...(key === "_4y" ? {} : { hidden: true }) })),
+    ]),
+  ];
   /** A cohort's cost-basis charts, with its amounts available to recover density numerators (weighted cohorts too).
    * @param {any} c @param {string} who @param {string} [urpd] @param {string} [color] @param {string} [weight]
    * @returns {(ChartNode | false | undefined)[]}
@@ -630,6 +648,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
         ...(cost.byCoin.avg?.mvrv ? [series(cost.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
       ], { log: [2] }),
+      ...(cost.byCoin.avg?.mvrv && !cost.byCoin.avg.mvrv.formula ? deviationCharts(cost.byCoin.realizedPrice.name, cost.byCoin.avg.mvrv.name, titled) : []),
       cost.byDollar && chart("Capitalized price", titled("Capitalized price"), [
         price(), series(cost.byDollar.capitalizedPrice, "Capitalized price", { color: color ?? "green" }),
         ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
@@ -1160,6 +1179,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // (Market cap over thermo cap, every dollar ever paid to miners: how far the market's value runs over what securing it
       // has cost.)
       ((cap, thermo) => chart("Thermocap multiple", "Thermocap multiple", [price(), { formula: `${cap} / ${thermo}`, label: "Thermocap multiple", format: "ratio", pane: 2 }], { log: [2] }))(sup.marketCap.value.name, ct.caps.thermo.name),
+      // (The coins there are over a year's new ones at the subsidy then (52,560 blocks a year: the schedule, not the blocks
+      // found), stepping up at each halving; its model price, PlanB's 2019 fit of market cap to it (e^14.6 × S2F^3.3) over
+      // the supply.)
+      ((supply, epoch) => ((s2f) => chart("Stock-to-flow", "Stock-to-flow", [price(), { formula: `exp(14.6) * (${s2f}) ^ 3.3 / ${supply}`, label: "Model price", format: "usd", color: "violet", dash: 3 }, { formula: s2f, label: "Stock-to-flow", format: "number", pane: 2, color: "orange" }], { log: [2] }))(`${supply} / (50 * 0.5 ^ ${epoch} * 52560)`))(t.holders.all.supply.total.btc.name, blocks.halving.epoch.name),
       // (The newest coins' realized cap, a day to a week old, over the one-to-two-year-olds', weighed by the market's age in
       // days (more of it held as it ages): high, new money over held, as near the tops.)
       ((week, young, old) => chart("RHODL", "RHODL ratio", [price(), { formula: `${week} / (${young} + ${old}) * (date - 2009-01-03) / 86400`, label: "RHODL ratio", format: "number", pane: 2 }], { log: [2] }))(t.age.ranges._1dTo1w.capital.realizedCap.name, t.age.ranges._1yTo18m.capital.realizedCap.name, t.age.ranges._18mTo2y.capital.realizedCap.name),
@@ -1226,6 +1249,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), bandMember(client.AMOUNT_RANGE_NAMES, UTXO_AMOUNTS), { each: "by UTXO amount", disjoint: true })),
       ...cutoffs(entries(t.utxos.amounts), AMOUNT_EDGES, UTXO_AMOUNTS),
+      // (How unevenly the coins sit in UTXOs, 0 all alike to 1 all in one, read off the amount bands' Lorenz curve: each
+      // band's UTXOs times the coins below it twice and its own, over all UTXOs times all coins, from 1. Bands, not each
+      // UTXO: a floor under the true figure. The 0-sat band has UTXOs and no coins: in the count, nothing below.)
+      ((bands) => ((count, coins) => chart("Gini coefficient", "Gini coefficient of UTXO amounts", [price(), { formula: `1 - (${coins.map((s, i) => `${count[i + 1]} * (${i ? `2 * under(${s}) + ` : ""}${s})`).join(" + ")}) / (over(${count[0]}) * over(${coins[0]}))`, label: "Gini coefficient", format: "number", pane: 2, color: "violet" }]))(bands.map(([, c]) => own(c.utxos.count).name), bands.slice(1).map(([, c]) => c.supply.total.btc.name)))(entries(t.utxos.amounts)),
       section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { each: "by output type", disjoint: true })),
     ], { icon: "cube" }),
     section("Addresses", [

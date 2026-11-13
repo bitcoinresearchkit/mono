@@ -2241,6 +2241,7 @@
 <url><loc>https://bitview.space/studio/presets/valuation/nupl</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/nvt</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/thermocap-multiple</loc></url>
+<url><loc>https://bitview.space/studio/presets/valuation/stock-to-flow</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/rhodl</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/on-chain-prices</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/cost-basis-clouds</loc></url>
@@ -2400,6 +2401,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2457,6 +2460,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2512,6 +2517,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2585,6 +2592,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2640,6 +2649,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2697,6 +2708,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -2752,6 +2765,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -7613,6 +7628,7 @@
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/under-an-amount/under-100k-btc/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/utxos/gini-coefficient</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/compare/supply</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/compare/supply-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/utxos/by-type/compare/realized-cap</loc></url>
@@ -11265,6 +11281,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11281,6 +11299,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11297,6 +11317,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11317,6 +11339,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11333,6 +11357,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11349,6 +11375,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11365,6 +11393,8 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11488,6 +11518,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11504,6 +11536,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11520,6 +11554,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11540,6 +11576,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11556,6 +11594,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11572,6 +11612,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
@@ -11588,6 +11630,8 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/cumulative-profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price-bands</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/realized-price-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/capitalized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/percentiles-by-coin</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/percentile-lines-by-coin</loc></url>
