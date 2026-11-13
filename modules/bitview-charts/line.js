@@ -9,12 +9,20 @@
 
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
-import { Fill, painted } from "./color.js";
+import { Fill, painted, zoneSpans } from "./color.js";
 import { NOISE, firstFrom } from "./timeline.js";
 import { measure, measuring } from "./recorder.js";
 
 /** A curved segment's control points, as #bend writes them (made once). */
 const BEND = new Float64Array(4);
+/** Which of `zones` (low to high) `v` is in, the highest at or under it; -1, under them all. @param {readonly import("./color.js").Zone[]} zones @param {number} v */
+function zoneIndex(zones, v) {
+  let k = -1;
+  while (k + 1 < zones.length && v >= zones[k + 1].value) k++;
+  return k;
+}
+/** `v`'s color by `zones`: its zone's, else `own`. @param {readonly import("./color.js").Zone[]} zones @param {number} v @param {string} own */
+const zoneOf = (zones, v, own) => ((k) => (k < 0 ? own : zones[k].color))(zoneIndex(zones, v));
 /** No dashes (made once). */
 const SOLID = /** @type {number[]} */ ([]);
 /** CSS pixels along a dashed line between the places its subpath may be split (see the pen's to()). */
@@ -245,11 +253,12 @@ export class Line {
    * a pixel column holds several points either way); `dash`, its stroke's dashes (CSS pixels, as setLineDash takes
    * them; none, solid): fixed to its path, so they move with it (curved, its pane's drawn whole as the view moves: its
    * dashes from where its path starts); `curve`, bowed through its points (zoomed in), as the chart library's
-   * curves (each segment's bend from its points' neighbors); `under`, its stroke in another color below a value (a
-   * baseline's line: its color changing where it crosses its base).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} [options]
+   * curves (each segment's bend from its points' neighbors); `zones`, its colors by value, low to high, each from its
+   * value up, its own under them all (a line colored by its levels, a baseline's by its base: its color changing exactly
+   * where it crosses one, see Fill's zoned).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, under = null } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -268,17 +277,19 @@ export class Line {
     /** @type {number[] | null} */
     this.dash = dash && dash.length ? dash : null;
     this.curve = curve;
-    /** @type {{ value: number, color: string } | null} */
-    this.under = under;
+    /** @type {readonly import("./color.js").Zone[] | null} */
+    this.zones = zones && zones.length ? zones : null;
     // (Its dashes' anchors: the first and last points its last draw drew (-1: none yet), its path's length at each from
     // its dash origin.)
     this.dashFirst = -1;
     this.dashFirstAt = 0;
     this.dashLast = -1;
     this.dashLastAt = 0;
-    // (Its stroke's style split at its under value, a color pass each, kept till it changes.)
-    /** @type {Fill[]} */
-    this.splits = [];
+    // (Its stroke's style by its zones, kept till they or its scale change; where they lie, a measure each: see zoneSpans.)
+    /** @type {Fill | null} */
+    this.zoned = null;
+    /** @type {number[]} */
+    this.spans = [];
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
@@ -323,11 +334,11 @@ export class Line {
     this.summary?.set(i);
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, under?: { value: number, color: string } | null }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, under = this.under }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones }) {
     this.version++;
     this.drifts = false;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.under = under);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.zones = zones && zones.length ? zones : null);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -391,8 +402,8 @@ export class Line {
 
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {
-    // (Below its under value, that color: a baseline's tag, its dots and its crosshair's dot under its base.)
-    if (this.under && this.values[i] < this.under.value) return this.under.color;
+    // (By its zones, its value's: its tag, its dots and its crosshair's dot in the color its line has there.)
+    if (this.zones) return zoneOf(this.zones, this.values[i], this.color);
     return this.colors && this.palette.length ? this.palette[this.colors[i]] ?? this.color : this.color;
   }
 
@@ -556,7 +567,8 @@ export class Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   #stroke(g, time, scale, x0, x1, dpr) {
-    const colors = this.colors && this.palette.length ? this.colors : null;
+    // (By its zones, those alone: its palette none, as in colorAt and its dots.)
+    const zones = this.zones, colors = !zones && this.colors && this.palette.length ? this.colors : null;
     // (Its points as far past the strip as its stroke reaches (its outline's, three times as wide), so a strip draws
     // what reaches in from beside it; dashed as asked.)
     const reach = Math.ceil((this.width * (this.outline ? 3 : 1)) / 2) + 1;
@@ -586,16 +598,20 @@ export class Line {
     g.lineJoin = "bevel";
     // (One stroke a color. Measured, an all-painted palette shares one union pass; otherwise each color keeps its
     // own pass so its painted parts, including a split under color, are recorded as drawn.)
-    const passes = colors && (!measuring || !this.palette.every(painted)) ? this.palette.length : 0;
+    // (By its zones, one gradient; measured, a stroke a zone in its color, clipped to where it lies: what it paints is
+    // what's hit, a see-through zone none.)
+    const spans = zones && measuring ? zoneSpans(zones, scale, scale.height, this.spans) : null;
+    const passes = spans ? spans.length / 3 : colors && (!measuring || !this.palette.every(painted)) ? this.palette.length : 0;
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
-      // (Split at its under value where the scale shows it (a log scale can't show 0 or under: all above it).)
-      const under = this.under, color = colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass], at = under ? scale.y(under.value) : NaN;
-      g.strokeStyle = under && at === at ? (this.splits[pass + 1] ??= new Fill()).splitAt(g, color, under.color, at, scale.height) : color;
+      const color = spans && zones ? ((k) => (k < 0 ? this.color : zones[k].color))(spans[pass * 3]) : colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass];
+      if (spans) g.save(), g.beginPath(), g.rect(x0, spans[pass * 3 + 1], x1 - x0, spans[pass * 3 + 2] - spans[pass * 3 + 1]), g.clip();
+      g.strokeStyle = zones && !spans ? (this.zoned ??= new Fill()).zoned(g, color, zones, scale, scale.height) : color;
       g.beginPath();
-      pen.start(g, dpr, pass, phase, dash ?? SOLID, period);
+      pen.start(g, dpr, spans ? -1 : pass, phase, dash ?? SOLID, period);
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
+      if (spans) g.restore();
       if (period > 0 && pen.longest > DRIFT) this.drifts = true;
     }
     if (dash) g.setLineDash(SOLID), (g.lineDashOffset = 0);
@@ -640,16 +656,15 @@ export class Line {
   #dots(g, time, scale, x0, x1) {
     const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
     const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
-    const colors = this.colors && this.palette.length ? this.colors : null, under = this.under;
-    // (Its rings, then a fill a color; those below its under value last, in that color.)
-    for (let pass = ring ? -2 : colors ? 0 : -1; pass < (colors ? this.palette.length : 0) + (under ? 1 : 0); pass++) {
-      if (pass === -1 && colors) continue;
-      const below = Boolean(under) && pass === (colors ? this.palette.length : 0);
-      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : below ? /** @type {{ color: string }} */ (under).color : pass < 0 ? this.color : this.palette[pass];
+    const zones = this.zones, colors = zones ? null : this.colors && this.palette.length ? this.colors : null;
+    // (Its rings, then a fill a color: by its zones, a zone's (-1 its own) or its palette's.)
+    for (let pass = ring ? -2 : colors || zones ? 0 : -1; pass < (colors ? this.palette.length : zones ? zones.length + 1 : 0); pass++) {
+      if (pass === -1 && (colors || zones)) continue;
+      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : zones ? (pass ? zones[pass - 1].color : this.color) : pass < 0 ? this.color : this.palette[pass];
       g.beginPath();
       for (let i = a; i <= b; i++) {
         const v = values[i];
-        if (v !== v || (pass !== -2 && (under ? v < under.value : false) !== below) || (colors && pass >= 0 && !below && colors[i] !== pass)) continue;
+        if (v !== v || (pass >= 0 && (zones ? zoneIndex(zones, v) + 1 !== pass : colors ? colors[i] !== pass : false))) continue;
         const x = time.x(i), y = scale.y(v), size = pass === -2 ? ring : r;
         g.moveTo(x + size, y);
         g.arc(x, y, size, 0, 2 * Math.PI);

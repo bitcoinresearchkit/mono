@@ -107,7 +107,8 @@ clears); avoid reflecting programmatic calls. A programmatic
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
-  `under`, `{ value, color }`: its stroke in that color below that value (a baseline's line); `dash`, its dashes.
+  `zones`, `[{ value, color }]` low to high: its colors by value, each from its value up, its own under them all, changing
+  exactly where it crosses one (a line colored by levels, a baseline's by its base); `dash`, its dashes.
 - `Band({ lower, upper, base, color, fade, below, belowFade, to, steps })`: a fill between two columns (`steps`: its
   edges steps); without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with
   `below`, a baseline (under its base in that color); `fade`, `belowFade`, the colors they fade to (gradients fixed to

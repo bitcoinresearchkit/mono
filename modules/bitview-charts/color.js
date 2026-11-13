@@ -1,7 +1,7 @@
 // @ts-check
 // Words on a color: white or black, by its lightness (where APCA turns for a gray: see whiteReads), each color measured
 // once; a series' tag (its fill, its words). And a fill's or a stroke's style as a vertical gradient (a
-// fade, or a color split at a height), kept till it changes.
+// fade, or colors by value, hard-edged at their heights), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -233,16 +233,42 @@ function blended(from, to) {
   return stops;
 }
 
+/** @typedef {{ value: number, color: string }} Zone a color from a value up (see Fill's zoned) */
+
+/**
+ * Where `zones` (low to high, each its color from its value up) lie on a pane `height` tall, by its `scale` (its y of a
+ * value), bottom up: for each shown, its index (-1: under them all), its top and its foot, as triples into `out`. A
+ * zone's value under the foot, or one its scale can't show (a log scale's 0 or under), holds all from there up; one
+ * over the top, none (nor those above it).
+ * @param {readonly { value: number }[]} zones @param {{ y: (v: number) => number }} scale @param {number} height @param {number[]} out
+ */
+export function zoneSpans(zones, scale, height, out) {
+  out.length = 0;
+  let under = -1, foot = height;
+  for (let k = 0; k < zones.length; k++) {
+    const at = scale.y(zones[k].value);
+    if (at !== at || at >= height) {
+      under = k;
+      continue;
+    }
+    if (at <= 0) break;
+    out.push(under, at, foot);
+    (foot = at), (under = k);
+  }
+  out.push(under, 0, foot);
+  return out;
+}
+
 /** A fill's or a stroke's style: a color, or a vertical gradient (CSS pixels) kept till its colors or heights change. */
 export class Fill {
   constructor() {
     /** @type {CanvasGradient | null} */
     this.gradient = null;
-    this.from = "";
-    this.to = "";
-    this.top = NaN;
-    this.bottom = NaN;
-    this.split = false;
+    /** What its gradient was made of (its colors and heights). */
+    this.key = "";
+    // (A zoned style's spans (see zoneSpans): reused, a draw each.)
+    /** @type {number[]} */
+    this.spans = [];
   }
 
   /**
@@ -251,32 +277,43 @@ export class Fill {
    */
   style(g, color, fade, top, bottom) {
     if (!fade || fade === color || !(bottom > top)) return color;
-    return this.#made(g, color, fade, top, bottom, false);
+    return this.#made(g, color, fade, top, bottom);
   }
 
   /**
-   * `color` above height `at` and `under` below it, of a canvas `height` tall (a baseline's line: its color changing
-   * where it crosses its base).
-   * @param {CanvasRenderingContext2D} g @param {string} color @param {string} under @param {number} at @param {number} height
+   * Its colors by value, hard-edged where a value crosses into another's zone (a line or an area colored by its levels, a
+   * baseline's line by its base): `own` under every zone, each zone's color from its value up (`zones` low to high), on
+   * a canvas `height` tall, by its `scale` (its y of a value). A zone's value its scale can't show (a log scale's 0 or
+   * under) holds all of it. One color throughout: that color.
+   * @param {CanvasRenderingContext2D} g @param {string} own @param {readonly Zone[]} zones @param {{ y: (v: number) => number }} scale @param {number} height
+   * @returns {string | CanvasGradient}
    */
-  splitAt(g, color, under, at, height) {
-    if (under === color || !(height > 0)) return color;
-    return this.#made(g, color, under, Math.min(Math.max(at / height, 0), 1), height, true);
+  zoned(g, own, zones, scale, height) {
+    const spans = zoneSpans(zones, scale, height, this.spans), colorOf = (/** @type {number} */ k) => (k < 0 ? own : zones[k].color);
+    let key = `${height}`, one = true;
+    for (let s = 0; s < spans.length; s += 3) (key += `|${colorOf(spans[s])}|${spans[s + 1]}`), (one &&= colorOf(spans[s]) === colorOf(spans[0]));
+    if (one || !(height > 0)) return colorOf(spans[0]);
+    if (!this.gradient || this.key !== key) {
+      const gradient = g.createLinearGradient(0, 0, 0, height);
+      // (Its spans bottom up, their stops added top down. Drawn, not measured: a measure strokes each zone apart, see
+      // Line's stroke.)
+      for (let s = spans.length - 3; s >= 0; s -= 3) gradient.addColorStop(spans[s + 1] / height, colorOf(spans[s])), gradient.addColorStop(spans[s + 2] / height, colorOf(spans[s]));
+      (this.gradient = gradient), (this.key = key);
+    }
+    return this.gradient;
   }
 
-  /** @param {CanvasRenderingContext2D} g @param {string} from @param {string} to @param {number} top @param {number} bottom @param {boolean} split */
-  #made(g, from, to, top, bottom, split) {
-    if (!this.gradient || this.from !== from || this.to !== to || this.top !== top || this.bottom !== bottom || this.split !== split) {
-      const gradient = split ? g.createLinearGradient(0, 0, 0, bottom) : g.createLinearGradient(0, top, 0, bottom);
-      if (split) gradient.addColorStop(0, from), gradient.addColorStop(top, from), gradient.addColorStop(top, to), gradient.addColorStop(1, to);
-      else {
-        // (Blended in OKLab, not the canvas's sRGB: nine stops, an eighth apart.)
-        const stops = blended(from, to);
-        for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
-      }
-      const above = painted(from), below = painted(to), at = split ? top * bottom : top;
-      gradientPaint.set(gradient, above || below ? [above ? -Infinity : at, below ? Infinity : split ? at : bottom] : [Infinity, -Infinity]);
-      (this.gradient = gradient), (this.from = from), (this.to = to), (this.top = top), (this.bottom = bottom), (this.split = split);
+  /** @param {CanvasRenderingContext2D} g @param {string} from @param {string} to @param {number} top @param {number} bottom */
+  #made(g, from, to, top, bottom) {
+    const key = `${from}|${to}|${top}|${bottom}`;
+    if (!this.gradient || this.key !== key) {
+      const gradient = g.createLinearGradient(0, top, 0, bottom);
+      // (Blended in OKLab, not the canvas's sRGB: nine stops, an eighth apart.)
+      const stops = blended(from, to);
+      for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
+      const above = painted(from), below = painted(to);
+      gradientPaint.set(gradient, above || below ? [above ? -Infinity : top, below ? Infinity : bottom] : [Infinity, -Infinity]);
+      (this.gradient = gradient), (this.key = key);
     }
     return this.gradient;
   }

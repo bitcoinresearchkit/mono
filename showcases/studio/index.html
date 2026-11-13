@@ -17635,11 +17635,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const radius = dotRadius(layer.width), base = baseOf(layer);
             // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see
             // stackBands). An area's fill to the pane's foot, or its top where it's filled above its line.)
-            const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius } }]
-              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+            const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null } }]
+              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: null }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
               : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
-              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.line, under: { value: base, color: paint.under } }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
-              : ["line", { line: { ...stroke, color: paint.color } }];
+              // (A baseline's line by its base: its second color under it, its own from it up.)
+              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.under, zones: [{ value: base, color: paint.line }] }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
+              : ["line", { line: { ...stroke, color: paint.color, zones: null } }];
             series = standard(/** @type {"line" | "band" | "bars"} */ (kind), again);
             styleSeries(series, { ...tags, ...look });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
