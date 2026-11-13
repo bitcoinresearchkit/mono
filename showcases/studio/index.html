@@ -25880,7 +25880,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * to as it is, not written again.
        */
       function renderGallery() {
-        const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = typedWords(field.value);
         const shown = "path" in homeAt, path = "path" in homeAt ? homeAt.path : [], back = shown && $("gallery").hidden;
         $("gallery").hidden = !shown;
         if (!shown) {
@@ -25923,10 +25923,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (words.length) {
           // (The best of them as many as show, ranked; how many, all of them.)
-          const found = presetsMatching(words, galleryShown + 1, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null), count = presetsCounted, partial = presetsPartial;
+          const { found, count, partial } = presetsMatching(words, galleryShown + 1, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
           galleryFound = count;
           // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
-          const elsewhere = count || !path.length ? 0 : (presetsMatching(words, 0), presetsCounted);
+          const elsewhere = count || !path.length ? 0 : presetsMatching(words, 0).count;
           $("gallery").innerHTML = (count ? `${partial ? `<p class="gallery-note">No preset holds every word; these hold the most.</p>` : ""}${presetGridHtml(found, count)}` : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (placeNames(path).at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
         } else if (again) {
           // (Kept, not written again: at its shelves' starts, as a page come to is (Back puts them where they were, see
@@ -27544,11 +27544,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
        * own presets, in the presets' order), every preset it holds at any depth (`under`, in their order), its key (its path, as kept), its name as
-       * shown (see shownStep) and its path as shown (`shown`); and each preset's words for the search (its title, its place and its places' steps as shown,
-       * lowercased), gathered in the same walk (see presetWordList).
+       * shown (see shownStep) and its path as shown (`shown`); and, once a search needs them, each preset's words (see presetSearch).
        * @typedef {{ path: string[], key: string, name: string, shown: string[], items: (PresetNode | number)[], under: number[], icon?: string }} PresetNode
        */
-      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode>, words: string[] }} */ ({ for: null, node: null, byKey: new Map(), words: [] });
+      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode>, search: PresetSearch | null, making: Generator<void, PresetSearch> | null }} */ ({ for: null, node: null, byKey: new Map(), search: null, making: null });
       /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
       function sectionKeys(/** @type {number} */ i) {
         const path = /** @type {Preset[]} */ (presets)[i].p;
@@ -27558,8 +27557,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
         const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", shown: [], items: [], under: [] }), byKey = new Map([[root.key, root]]);
-        const words = presets.map((preset, i) => {
-          let node = root, said = `${preset.t} ${preset.p.join(" ")}`;
+        presets.forEach((preset, i) => {
+          let node = root;
           node.under.push(i);
           for (let depth = 0; depth < preset.p.length - 1; depth++) {
             const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
@@ -27573,17 +27572,78 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             node = next;
             node.under.push(i);
-            if (node.name !== path[depth]) said += ` ${node.name}`;
           }
           node.items.push(i);
-          const own = presetLabels[JSON.stringify(preset.p)];
-          return (own ? `${said} ${own}` : said).toLowerCase();
         });
-        presetRoot = { for: presets, node: root, byKey, words };
+        presetRoot = { for: presets, node: root, byKey, search: null, making: null };
         return root;
       }
-      /** Each preset's words for the search (see presetTree): none till they're read. */
-      const presetWordList = () => (presetTree() ? presetRoot.words : []);
+      /**
+       * What a search of the presets reads, made from the tree after they're read, a slice at a time in idle moments (none
+       * of it at the start, nor a long task: see searchNow), the rest at once when a search comes first. Each preset's
+       * words (its title, its place, its places' steps as shown where they're shown otherwise, and its own name as shown,
+       * lowercased): as shown (`shown`: what a slip's taken for, see slipsOf) and as a search reads them, its pieces' words
+       * joined in pairs too (`texts`, see searchText); its title as a search reads it, its name and its subject (its title
+       * before ": "), lowercased (`titles`); its rank among those alike in fit (see presetRankOf), and the presets in that
+       * order (`order`); those whose name or subject is a search exactly, by it (`exact`).
+       * @typedef {{ shown: string[], texts: string[], titles: { title: string, name: string, subject: string }[], rank: Int32Array, order: Int32Array, exact: Map<string, number[]> }} PresetSearch
+       * @param {Preset[]} list @param {PresetNode} root @returns {Generator<void, PresetSearch>}
+       */
+      function* searchMaking(list, root) {
+        // (Each one's places' names shown otherwise than their steps, by a walk down the tree, at once: a step a section.)
+        const named = /** @type {string[][]} */ (new Array(list.length));
+        const walk = (/** @type {PresetNode} */ node, /** @type {string[]} */ names) => {
+          for (const item of node.items) {
+            if (typeof item === "number") named[item] = names;
+            else walk(item, item.name === item.path.at(-1) ? names : [...names, item.name]);
+          }
+        };
+        walk(root, []);
+        const shown = /** @type {string[]} */ (new Array(list.length)), texts = /** @type {string[]} */ (new Array(list.length)), titles = /** @type {PresetSearch["titles"]} */ (new Array(list.length));
+        for (let i = 0; i < list.length; i++) {
+          const preset = list[i], own = presetLabels[JSON.stringify(preset.p)];
+          // (Its pieces each a phrase: words paired within one, never across a place's steps.)
+          const pieces = [preset.t, ...preset.p, ...named[i], ...(own ? [own] : [])].map((piece) => piece.toLowerCase()), title = pieces[0];
+          shown[i] = pieces.join(" ");
+          texts[i] = searchText(shown[i], pieces);
+          titles[i] = { title: searchText(title), name: presetName(preset).toLowerCase(), subject: title.split(": ")[0] };
+          if (i % 250 === 249) yield;
+        }
+        // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
+        const rank = Int32Array.from(list, (preset) => presetRankOf(preset.p.length, preset.t)), starts = new Int32Array(Math.max(0, ...rank) + 2), order = new Int32Array(list.length);
+        for (let i = 0; i < rank.length; i++) starts[rank[i] + 1]++;
+        for (let r = 1; r < starts.length; r++) starts[r] += starts[r - 1];
+        for (let i = 0; i < rank.length; i++) order[starts[rank[i]]++] = i;
+        const exact = /** @type {Map<string, number[]>} */ (new Map());
+        for (let i = 0; i < titles.length; i++) {
+          for (const said of new Set([titles[i].name, titles[i].subject])) {
+            const found = exact.get(said);
+            if (found) found.push(i);
+            else exact.set(said, [i]);
+          }
+        }
+        return { shown, texts, titles, rank, order, exact };
+      }
+      /** A preset's rank among those alike in a search's fit: the nearest the top of the tree, then the shortest title. */
+      const presetRankOf = (/** @type {number} */ depth, /** @type {string} */ title) => depth * 1000 + Math.min(title.length, 999);
+      /** A slice of the presets' search's making (see searchMaking): true once it's made. */
+      function searchStep() {
+        presetTree();
+        if (presetRoot.search) return true;
+        const step = (presetRoot.making ??= searchMaking(/** @type {Preset[]} */ (presets), /** @type {PresetNode} */ (presetRoot.node))).next();
+        if (step.done) (presetRoot.search = step.value), (presetRoot.making = null);
+        return Boolean(step.done);
+      }
+      /** The presets' search (see searchMaking), the rest of its making at once. Once the presets are read. */
+      function presetSearch() {
+        while (!searchStep());
+        return /** @type {PresetSearch} */ (presetRoot.search);
+      }
+      /** The presets' search made in idle moments, a slice each (see inSlices); then the slips' words (see vocabNow). */
+      function searchNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline) {
+        inSlices(deadline, searchStep, searchNow);
+        if (presetRoot.search) whenIdle(vocabNow);
+      }
       /** A preset's name as shown (see shownStep). @param {Preset} preset */
       const presetName = (preset) => shownStep(presetLabels, preset.p);
       /** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
@@ -29227,16 +29287,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let presetLabels = /** @type {Record<string, string>} */ ({});
       /** The presets, once read. */
       let presets = /** @type {Preset[] | null} */ (null), presetsFailed = false;
-      /** Each preset's title, name and subject (its title before ": "), lowercased, as a search compares them. @type {{ title: string, name: string, subject: string }[]} */
-      let presetTitles = [];
-      /**
-       * The presets as a search ranks those alike in fit: the nearest the top of the tree, then the shortest title (as
-       * made; a renamed one's as it is now, placed at the search: see presetsMatching), then their order; each one's rank.
-       * Made once they're read.
-       */
-      let presetOrder = new Int32Array(0), presetRank = new Int32Array(0);
-      /** The presets whose name or title's subject is a search's words exactly (lowercased), by those words: its best. @type {Map<string, number[]>} */
-      let presetExact = new Map();
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (null);
       /**
@@ -29354,30 +29404,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
           await aFrame();
           presets = list;
-          // (Its tree, and each one's search words with it: see presetTree.)
+          // (Its tree: see presetTree.)
           presetTree();
-          // (Their words each once, for a slip in a search (see slipsOf), and their charts' ids (see presetById), gathered
-          // meanwhile: no keystroke, no way back to the grid, waits for them.)
-          whenIdle(vocabNow);
+          // (What a search reads (see searchNow), then their words each once, for a slip in a search (see slipsOf), and their
+          // charts' ids (see presetById), gathered meanwhile: no keystroke, no way back to the grid, waits for them.)
+          whenIdle(searchNow);
           whenIdle(idsNow);
-          presetTitles = list.map((preset) => ((title) => ({ title, name: presetName(preset).toLowerCase(), subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
-          // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
-          presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
-          const starts = new Int32Array(Math.max(0, ...presetRank) + 2);
-          for (let i = 0; i < presetRank.length; i++) starts[presetRank[i] + 1]++;
-          for (let r = 1; r < starts.length; r++) starts[r] += starts[r - 1];
-          presetOrder = new Int32Array(list.length);
-          for (let i = 0; i < presetRank.length; i++) presetOrder[starts[presetRank[i]]++] = i;
           // (A search narrowed from the last one's found: of the list before, let go of.)
           presetsFound = { query: "", found: [] };
-          presetExact = new Map();
-          presetTitles.forEach(({ name, subject }, i) => {
-            for (const words of new Set([name, subject])) {
-            let found = presetExact.get(words);
-            if (!found) presetExact.set(words, (found = []));
-            found.push(i);
-          }
-          });
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
           // have it now, if that's changed.)
           // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
@@ -30040,7 +30074,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The presets' words (see presetVocab), at once; in an idle moment (`deadline`), as far as it goes, then the next. */
       function vocabNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
-        const words = presetWordList();
+        const words = presetSearch().shown;
         if (presetVocab.of !== words) presetVocab = { of: words, counts: new Map(), making: vocabMaking(words) };
         inSlices(deadline, () => ((step) => (step?.done && ((presetVocab.counts = step.value), (presetVocab.making = null)), !step || Boolean(step.done)))(presetVocab.making?.next()), vocabNow);
         return presetVocab.counts;
@@ -30048,64 +30082,98 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A word typed as no preset has it (nor a renamed one's title, `extra`), the words of theirs it's a slip off (from
        * four letters, a letter; from seven, two; against as much of theirs as was typed and a letter, as fitScore's), the
-       * nearest first, then those more presets have; none if it's found as typed.
+       * nearest first, then those more presets have; none if it's found as typed: in their words as shown, or, of letters
+       * and digits only, two of them joined, in what's searched (`texts`, see searchText: "1week"; "profit," still a slip).
        */
-      function slipsOf(/** @type {string} */ word, /** @type {string[]} */ extra) {
+      function slipsOf(/** @type {string} */ word, /** @type {string[]} */ texts, /** @type {string[]} */ extra) {
         if (word.length < 4 || extra.some((text) => text.includes(word))) return [];
         const counts = /** @type {Map<string, number>} */ (vocabNow()), most = word.length >= 7 ? 2 : 1, near = /** @type {[string, number, number][]} */ ([]);
         for (const each of counts.keys()) if (each.includes(word)) return [];
+        if (/^[a-z0-9]+$/.test(word)) for (let i = 0; i < texts.length; i++) if (texts[i].includes(word)) return [];
         const weigh = (/** @type {string} */ each, /** @type {number} */ count) => ((edits) => edits <= most && near.push([each, edits, count]))(editsBetween(word, each.slice(0, word.length + 1), most));
         for (const [each, count] of counts) weigh(each, count);
         for (const each of new Set(extra.flatMap((text) => text.split(/[^a-z0-9]+/)))) if (each.length >= 3 && !counts.has(each)) weigh(each, 1);
         return near.sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([each]) => each);
       }
-      /** A preset's words for a search: its title as made, and as edited here, and where it is. */
-      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWordList()[i]} ${titleOf(edited).toLowerCase()}` : presetWordList()[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
-      /** How many the last search found, all of them (what it returns, the best few); and whether they hold only some of its words (see presetsMatching). */
-      let presetsCounted = 0, presetsPartial = false;
-      /** ⌘K's heading for the presets the last search found: those holding only some of its words, said so wherever they're listed. */
-      const presetsGroup = () => (presetsPartial ? "Presets holding the most words" : "Presets");
+      /** ⌘K's heading for presets a search found: those holding only some of its words (`partial`), said so wherever they're listed. */
+      const presetsGroup = (/** @type {boolean} */ partial) => (partial ? "Presets holding the most words" : "Presets");
       /**
-       * The presets whose words hold every word typed, the best first (what's typed its name, or its title's subject,
-       * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
-       * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`; none
-       * holding them all, those holding the most of them (see below).
+       * The presets whose words hold every word typed (`words`, see typedWords), the best first (what's typed its name, or
+       * its title's subject, before ": "; then every word in its title, then its title starting with the first; at each,
+       * the nearest the top of the tree, then the shortest title: the measure itself before its families' members), as
+       * many as `most`; none holding them all, those holding the most of them (see below). With how many it found, all of
+       * them (`count`), and whether they hold only some of the words (`partial`).
+       * @returns {{ found: number[], count: number, partial: boolean }}
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
-        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), presetWords = presetWordList();
-        // (Typed on from the last search, every match is among its matches.)
-        const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
+        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, titles, rank, order, exact } = presetSearch();
         // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
         // among them all at each match: thousands, a word or two typed.)
         const copies = new Map();
         for (const doc of library.presets) ((i) => i >= 0 && !copies.has(i) && copies.set(i, doc))(presetIndex(doc));
-        // (Only those renamed: a copy kept as it came (any preset opened) searched by its words as made, the quick way.)
-        const renamed = new Map([...copies.keys()].filter((i) => ((kept) => kept && titleOf(kept) !== list[i].t)(keptPreset(i, copies.get(i)))).map((i) => [i, presetSearchWords(i)]));
-        // (An index, not an iterator: called for each of thousands, a phone's engine without a JIT; a word alone, its own
-        // test.)
-        const only = words.length === 1 ? words[0] : null;
-        const holds = (/** @type {string} */ text) => {
-          if (only !== null) return text.includes(only);
-          for (let k = 0; k < words.length; k++) if (!text.includes(words[k])) return false;
-          return true;
+        // (Only those renamed, by their title as it is now: a copy kept as it came (any preset opened) searched by its words
+        // as made, the quick way. Their words, those as made and the title, in a copy of the list (a native copy, ~0.02 ms
+        // without a JIT, against a lookup at each of thousands).)
+        const renamed = /** @type {Map<number, string>} */ (new Map());
+        for (const [i, doc] of copies) {
+          const kept = keptPreset(i, doc);
+          if (kept && titleOf(kept) !== list[i].t) renamed.set(i, titleOf(kept));
+        }
+        const texts = renamed.size ? made.slice() : made;
+        for (const [i, title] of renamed) texts[i] = `${made[i]} ${searchText(title.toLowerCase())}`;
+        // (One scan: each one's words held, counted, and kept those holding the most, every word where any does. Else, of
+        // the presets as a whole, at least half of them and two (one word of two is a search for that word alone, not a
+        // name half remembered: an older release's, "reused outputs share spendable"), said to be partial where they're
+        // counted, ⌘K's rows marking the words they hold; in a section, none: its note offers the presets as a whole. One's
+        // let go once it can't hold as many: holding every word, at its first missing. Index loops, not iterators (all of
+        // them, `among` none), the first word tested inline, a word alone a loop of its own (a search's first letter: every
+        // preset found): thousands each keystroke, most let go at the first word, a phone's engine without a JIT.)
+        const wordCount = words.length, first = words[0], least = under || wordCount < 2 ? wordCount : Math.max(2, Math.ceil(wordCount / 2));
+        const scan = (/** @type {ArrayLike<number> | null} */ among, /** @type {number} */ fewest) => {
+          const found = [];
+          let top = fewest;
+          const n = among === null ? texts.length : among.length;
+          if (wordCount === 1) {
+            for (let j = 0; j < n; j++) {
+              const i = among === null ? j : among[j];
+              if (texts[i].includes(first)) found.push(i);
+            }
+            return { found, top };
+          }
+          for (let j = 0; j < n; j++) {
+            const i = among === null ? j : among[j], text = texts[i];
+            let held = 1;
+            if (!text.includes(first)) {
+              if (wordCount - 1 < top) continue;
+              held = 0;
+            }
+            for (let k = 1; k < wordCount && held + wordCount - k >= top; k++) if (text.includes(words[k])) held++;
+            if (held < top) continue;
+            if (held > top) (top = held), (found.length = 0);
+            found.push(i);
+          }
+          return { found, top };
         };
-        if (among && !renamed.size) for (let k = 0; k < among.length; k++) holds(presetWords[among[k]]) && found.push(among[k]);
-        else if (!under && !renamed.size && only !== null) for (let i = 0; i < presetWords.length; i++) presetWords[i].includes(only) && found.push(i);
-        else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
-        if (!under) presetsFound = { query, found };
-        presetsCounted = found.length;
-        presetsPartial = false;
-        // (Nothing found, and a word in no preset's words a slip off one that is (as ⌘K's rows forgive one, see fitScore):
-        // found as that word, as series and settings are found through a slip; of the words each could be (the nearest
-        // first, then those more presets have), the first together found (where it's searched: a few tried, a dozen at
-        // most), else the nearest of each. A slip only: the words as typed first.)
-        if (!found.length && !slipped) {
-          const extra = [...renamed.values()], choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, extra)));
+        // (Typed on from the last search, those holding every word now are among those that held every word then: looked
+        // through first; none, the presets as a whole for the most held. In a section, only its own.)
+        const among = !under && !renamed.size && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null;
+        const all = under ? order.filter(under) : null;
+        let { found, top } = scan(among ?? all, among ? wordCount : least);
+        if (among && !found.length && least < wordCount) ({ found, top } = scan(all, least));
+        const partial = found.length > 0 && top < wordCount;
+        // (Typed on, a search narrows only what held every word.)
+        if (!under) presetsFound = { query, found: partial ? [] : found };
+        // (None holding every word, and a word in no preset's words a slip off one that is (as ⌘K's rows forgive one, see
+        // fitScore): found as that word, as series and settings are found through a slip; of the words each could be (the
+        // nearest first, then those more presets have), the first together found (where it's searched: a few tried, a
+        // dozen at most), else the nearest of each. A slip only: the words as typed first.)
+        if ((!found.length || partial) && !slipped) {
+          const extra = [...renamed.values()].map((title) => title.toLowerCase()), choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, texts, extra)));
           if (choices.some((options, k) => options[0] !== words[k])) {
             const anyHolds = (/** @type {string[]} */ some) => {
-              for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && some.every((word) => (renamed.get(i) ?? presetWords[i]).includes(word))) return true;
+              for (let i = 0; i < texts.length; i++) if ((!under || under(i)) && some.every((word) => texts[i].includes(word))) return true;
               return false;
             };
             // (Each combination in turn, the last word's choices turning fastest, as an odometer's.)
@@ -30123,53 +30191,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return presetsMatching(fixed, most, under, true);
           }
         }
-        // (Still none among them all: those holding the most of the words, at least half and at least two (one word of
-        // two is a search for that word alone, not a name half remembered: an older release's, "reused outputs share
-        // spendable"), said to be partial where they're counted, ⌘K's rows marking the words they hold. In a section,
-        // none: its note offers the presets as a whole.)
-        if (!found.length && !under && words.length > 1) {
-          const held = new Uint32Array(presetWords.length);
-          let top = 0;
-          for (let i = 0; i < presetWords.length; i++) {
-            const text = renamed.get(i) ?? presetWords[i];
-            let n = 0;
-            for (let k = 0; k < words.length; k++) if (text.includes(words[k])) n++;
-            held[i] = n;
-            if (n > top) top = n;
-          }
-          if (top >= 2 && top * 2 >= words.length) for (let i = 0; i < held.length; i++) if (held[i] === top) found.push(i);
-          // (Typed on, a search narrows only what held every word: none.)
-          presetsFound = { query, found: [] };
-          presetsCounted = found.length;
-          presetsPartial = found.length > 0;
-        }
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
-        // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
+        // the nearest the top, the shortest (`order`). Each one's fit found as it's reached, the fits in turn, till
         // `most` are: a word or two matches thousands, a few dozen show.
         const inFound = new Uint8Array(list.length), fits = new Int8Array(list.length).fill(-1);
         for (let k = 0; k < found.length; k++) inFound[found[k]] = 1;
         // (Each one's title as read, but an edited one's as it is now.)
+        const holdsAll = (/** @type {string} */ text) => {
+          for (let k = 0; k < wordCount; k++) if (!text.includes(words[k])) return false;
+          return true;
+        };
         const fitOf = (/** @type {number} */ i) => {
           if (fits[i] < 0) {
-            const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = presetTitles[i], title = kept ? titleOf(kept).toLowerCase() : named.title;
-            const exact = named.name === query || (kept ? title.split(": ")[0] : named.subject) === query;
-            fits[i] = exact ? 4 : (holds(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+            const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = titles[i], lower = kept ? titleOf(kept).toLowerCase() : null, title = lower === null ? named.title : searchText(lower);
+            const isExact = named.name === query || (lower === null ? named.subject : lower.split(": ")[0]) === query;
+            fits[i] = isExact ? 4 : (holdsAll(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
           }
           return fits[i];
         };
-        // (A renamed one ranked by its title as it is now: see presetRank.)
-        const rankOf = (/** @type {number} */ i) => (renamed.has(i) ? list[i].p.length * 1000 + Math.min(titleOf(/** @type {Chart} */ (keptPreset(i, copies.get(i)))).toLowerCase().length, 999) : presetRank[i]);
+        // (A renamed one ranked by its title as it is now: see presetSearch.)
+        const rankOf = (/** @type {number} */ i) => ((title) => (title === undefined ? rank[i] : presetRankOf(list[i].p.length, title)))(renamed.get(i));
         const byRank = (/** @type {number} */ a, /** @type {number} */ b) => rankOf(a) - rankOf(b) || a - b;
         // (Exactly what's typed: looked up, and the copies kept, whose title may say it now.)
-        const best = [...new Set([...(presetExact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) === 4).sort(byRank).slice(0, most);
+        const best = [...new Set([...(exact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) === 4).sort(byRank).slice(0, most);
         // (Those found in rank order: a few, sorted; many, read along the presets' order, the renamed ones (few) in their
         // own places.)
-        const few = found.length * 16 < presetOrder.length ? found.slice().sort(byRank) : null;
-        const along = few ?? (!renamed.size ? presetOrder : ((moved) => {
+        const few = found.length * 16 < order.length ? found.slice().sort(byRank) : null;
+        const along = few ?? (!renamed.size ? order : ((moved) => {
           const out = [];
           let m = 0;
-          for (let k = 0; k < presetOrder.length; k++) {
-            const i = presetOrder[k];
+          for (let k = 0; k < order.length; k++) {
+            const i = order[k];
             if (renamed.has(i)) continue;
             for (; m < moved.length && byRank(moved[m], i) < 0; m++) out.push(moved[m]);
             out.push(i);
@@ -30181,7 +30233,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const i = along[k];
           if ((few || inFound[i]) && fitOf(i) === fit) best.push(i);
         }
-        return best;
+        return { found: best, count: found.length, partial };
       }
       /** A preset's row: its title (as edited here, if it is; found by a search, its place too); its preview; ↵ opens it; its actions (⌘K). */
       const presetRow = (/** @type {number} */ i, deep = false) => {
@@ -30219,9 +30271,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : { kind: "row", key: "presets-waiting", icon: ICONS.recent, label: "Loading the presets…", dim: true, stay: true }];
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
             // (At the top, the presets as a whole: searched as such, see presetsMatching.)
-            const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
+            const words = palette.pages.at(-1) === page ? typedWords(palette.query) : [];
             // (Found holding only some of the words, headed as ⌘K's own list heads them: see presetsGroup.)
-            if (words.length) return presetsMatching(words, 300, path.length ? under : null).map((i) => ({ ...presetRow(i, true), ...(presetsPartial ? { group: presetsGroup() } : {}) }));
+            if (words.length) {
+              const { found, partial } = presetsMatching(words, 300, path.length ? under : null);
+              return found.map((i) => ({ ...presetRow(i, true), ...(partial ? { group: presetsGroup(true) } : {}) }));
+            }
             // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
             const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.under.length, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
@@ -34652,14 +34707,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // Charts and commands match here; series too, on this machine once the search's index is built, else on
         // bitview.space.
-        const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+        const words = typedWords(query);
         // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
         const everything = !palette.adding && !palette.replacing;
         // A command leads only when the first word typed starts a word of its name ("download", "share"); otherwise (a word
         // of its description alone) it follows the series, which is what people search for. One of many of a kind (an
         // interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the page that has them all, the
         // one in effect checked, does.
-        const leads = (command) => (command.follows ?? command.title).toLowerCase().split(/[^a-z0-9%×.]+/).some((word) => word.startsWith(words[0]));
+        const leads = (command) => ((own) => [...own.words, ...own.joins].some((word) => word.startsWith(words[0])))(textWords((command.follows ?? command.title).toLowerCase()));
         const found = !everything ? [] : rank(commands().map(commandItem), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
         // (Of those leading, a title starting with it first, "delete" Delete this chart; an interval's by its own name
         // after; one that destroys, so, last.)
@@ -34671,7 +34726,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const chartsFound = !everything ? [] : rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words);
         const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", chartsPage, chartsFound.length);
         // The presets (once read), after yours: a few that match; all of them on their own page.
-        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: presetsGroup() })), presetsGroup(), "presets found", () => presetsPage([]), undefined, 60);
+        const matched = everything && presets ? presetsMatching(words, 60) : null;
+        const presetRows = matched ? allOf(matched.found.map((i) => ({ ...presetRow(i, true), group: presetsGroup(matched.partial) })), presetsGroup(matched.partial), "presets found", () => presetsPage([]), undefined, 60) : [];
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         // (The chart's settings, as kept while ⌘K's open: see settingsNow.)
@@ -35123,12 +35179,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         spark.innerHTML = `<defs><linearGradient id="${fill}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escape(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escape(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#${fill})"/>${lines}`;
       }
 
-      /** A text with what's typed marked in it (found in the text itself, then escaped around: no mark lands in an entity). */
+      /** highlightMatch's pattern, by what's typed: made once a query, not for each row. */
+      let highlighting = { query: "", pattern: /** @type {RegExp | null} */ (null) };
+      /**
+       * A text with what's typed marked in it (found in the text itself, then escaped around: no mark lands in an entity),
+       * a pair typed joined as the search finds it (see writtenPattern): "bip69" marks BIP-69, "1week" 1 week.
+       */
       function highlightMatch(text, query) {
-        const words = query.toLowerCase().split(/[\s_]+/).filter(Boolean);
-        if (!words.length) return escape(text);
+        if (highlighting.query !== query) {
+          const words = query.toLowerCase().split(/[\s_]+/).filter(Boolean);
+          highlighting = { query, pattern: words.length ? new RegExp(words.map(writtenPattern).join("|"), "gi") : null };
+        }
+        if (!highlighting.pattern) return escape(text);
         let out = "", last = 0;
-        for (const match of text.matchAll(new RegExp(words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi"))) {
+        for (const match of text.matchAll(highlighting.pattern)) {
           out += `${escape(text.slice(last, match.index))}<mark>${escape(match[0])}</mark>`;
           last = (match.index ?? 0) + match[0].length;
         }
@@ -35534,6 +35598,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /**
+       * Each pair of adjacent words in a text, apart by a space or a hyphen, joined: what a search finds a pair typed as
+       * one word by ("bip69": BIP-69; "1week": 1 week, 1-week; "onchain": on-chain).
+       */
+      function joinsOf(/** @type {string} */ text) {
+        const words = text.replaceAll("-", " ").split(" ").filter(Boolean), joined = [];
+        for (let k = 1; k < words.length; k++) joined.push(words[k - 1] + words[k]);
+        return joined;
+      }
+      /**
+       * A text (lowercased) as a search reads it: its words, and its pieces' pairs of them joined (see joinsOf; its pieces,
+       * it alone unless said), each once, in their order (a word typed is found within one: none lost, a title's words
+       * and its place's alike).
+       */
+      function searchText(/** @type {string} */ lower, pieces = [lower]) {
+        return [...new Set([...lower.split(" "), ...pieces.flatMap(joinsOf)])].join(" ");
+      }
+      /**
+       * A typed word (see typedWords) as a pattern finding it in a text as written: as typed, or two words joined, spaces
+       * and hyphens between them (see joinsOf): "1week", 1 week. Each a literal, none nested: no text takes long to search.
+       */
+      function writtenPattern(/** @type {string} */ word) {
+        const literal = (/** @type {string} */ text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return [literal(word), ...Array.from({ length: word.length - 1 }, (_, k) => `${literal(word.slice(0, k + 1))}[- ]+${literal(word.slice(k + 1))}`)].join("|");
+      }
+      /** What's typed into a search, as the words it looks for, lowercased. */
+      function typedWords(/** @type {string} */ query) {
+        return query.toLowerCase().split(/\s+/).filter(Boolean);
+      }
+      /** Texts' words as textWords made them, by text: ⌘K's rows are the same from one keystroke to the next. Let go of past a few thousand. */
+      const textWordsKept = /** @type {Map<string, { words: readonly string[], joins: readonly string[] }>} */ (new Map());
+      /**
+       * A text's words (lowercased) as fitScore weighs what's typed against them, and its pairs of them joined (`joins`,
+       * see joinsOf). Made once a text, kept (see textWordsKept): shared, never changed.
+       */
+      function textWords(/** @type {string} */ lower) {
+        const kept = textWordsKept.get(lower);
+        if (kept) return kept;
+        if (textWordsKept.size >= 4000) textWordsKept.clear();
+        const made = { words: lower.split(/[^a-z0-9%×.]+/).filter(Boolean), joins: joinsOf(lower) };
+        textWordsKept.set(lower, made);
+        return made;
+      }
+      /**
        * Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. (Three rows
        * taken in turn, each one's least kept as it's made: no call, spread or swap by destructuring a letter, as a phone
        * without a JIT pays for them.)
@@ -35560,12 +35667,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return row[n];
       }
       /**
-       * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
+       * How well what's typed (`words`, see typedWords) finds a text, word by word: a whole word (two joined too, not by a
+       * slip: see textWords), a word's start, inside one, or (from four letters)
        * a word of its `name` a letter or two off (a slip in what it's called, not in what's said of it: "light" isn't
        * "right"); 0 when a word finds nothing.
        */
       function fitScore(text, words, name = text) {
-        const lower = text.toLowerCase(), own = lower.split(/[^a-z0-9%×.]+/).filter(Boolean);
+        const lower = text.toLowerCase(), { words: own, joins } = textWords(lower);
         /** Its name's words, made once a slip's looked for. @type {Set<string> | null} */
         let named = null;
         let total = 0;
@@ -35579,10 +35687,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (other === word) best = 4;
             else if (other.startsWith(word)) best = Math.max(best, 3);
             else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
-            else if (!best && word.length >= 4 && (named ??= new Set(name.toLowerCase().split(/[^a-z0-9%×.]+/))).has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
+            else if (!best && word.length >= 4 && (named ??= new Set(textWords(name.toLowerCase()).words)).has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
             if (best === 4) break;
           }
-          if (!best && word.length >= 3 && lower.includes(word)) best = 2;
+          // (Two of its words joined: "bip69", BIP-69; found whole, by its start or inside, never by a slip.)
+          for (let k = 0; best < 4 && k < joins.length; k++) {
+            const other = joins[k];
+            if (other === word) best = 4;
+            else if (other.startsWith(word)) best = Math.max(best, 3);
+            else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
+          }
+          // (Inside the text, not only a slip off one of its words: "30-day", a slip off its "30day", is in it.)
+          if (best < 2 && word.length >= 3 && lower.includes(word)) best = 2;
           if (!best) return 0;
           total += best;
         }
@@ -35660,7 +35776,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           palette.active = 0;
           return renderPalette();
         }
-        const words = palette.query.toLowerCase().split(/\s+/).filter(Boolean);
+        const words = typedWords(palette.query);
         palette.items = words.length && !page.searches ? rank(page.rows(), rowText, words) : page.rows();
         // A search here can always widen to everything ⌘K finds.
         const query = palette.query.trim();
