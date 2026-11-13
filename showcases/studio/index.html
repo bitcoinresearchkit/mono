@@ -17528,6 +17528,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A stacked line: an area of no fill, its line where a line's is, the edge the band over it stops at (see
           // stackBands): a band shows its own layer's share alone.)
           const stackedLine = layer.type === "line" && Boolean(stack);
+          // (A line or an area colored by its levels, not stacked: by its value, its color changing exactly where it crosses
+          // a level (the library's zones), not date by date. Stacked, drawn at its total: date by date, by its own value.)
+          const zoned = layer.byLevels && layer.levels?.length && (layer.type === "line" || layer.type === "area") && !stack ? levelSteps(layer) : null;
           // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
@@ -17548,7 +17551,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
           // own, theirs (see Cloud), not one a date.)
           const banded = layer.type === "cloud" && Boolean(layer.byLayers && result?.members?.length && result.memberIds);
-          const fromSource = candles || banded ? null : paintOf(doc, layer, data);
+          const fromSource = candles || banded || zoned ? null : paintOf(doc, layer, data);
           // (A date it has no color for: its own.)
           const dated = fromSource && ((/** @type {number} */ i) => ((name) => (name ? ink(name) : base))(fromSource(i)));
           // (A shaded signal's down stretches, in its second color: painted in its rows, as dated layers' colors are, so a new
@@ -17635,12 +17638,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const radius = dotRadius(layer.width), base = baseOf(layer);
             // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see
             // stackBands). An area's fill to the pane's foot, or its top where it's filled above its line.)
+            // (Its levels' zones, in their colors as its own are painted: a line's, an area's fill and fade; none, its own color.)
+            const fill = fillOf(layer, false), zones = (/** @type {(c: string) => Record<string, string>} */ look) => (zoned ? zoned.map((step) => ({ value: step.value, ...look(ink(step.color)) })) : null);
+            const lineZones = zones((c) => ({ color: op < 1 ? alpha(c, op) : c }));
             const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null } }]
-              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: null }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve } }]
+              : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: lineZones }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve, zones: zones((c) => ({ color: alpha(c, fill[0] * op), fade: alpha(c, fill[1] * op) })) } }]
               : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
               // (A baseline's line by its base: its second color under it, its own from it up.)
-              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.under, zones: [{ value: base, color: paint.line }] }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve } }]
-              : ["line", { line: { ...stroke, color: paint.color, zones: null } }];
+              : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.under, zones: [{ value: base, color: paint.line }] }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve, zones: null } }]
+              : ["line", { line: { ...stroke, color: paint.color, zones: lineZones } }];
             series = standard(/** @type {"line" | "band" | "bars"} */ (kind), again);
             styleSeries(series, { ...tags, ...look });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
@@ -24454,7 +24460,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * bars, or bubbles, above the base, `d2` those below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
        * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf),
        * `o` outlined (see OUTLINED): its layer's place, from 1 (its marks drawn together, see previewSvg).
-       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number, w?: number }} PlotMark
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number, w?: number, z?: [number, string][] }} PlotMark
        * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
        * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
@@ -25042,8 +25048,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 for (let p = part.length - 1; p >= 0; p--) back += `L${xText(part[p][0])} ${/** @type {(i: number) => number} */ (floorAt)(part[p][0])}`;
                 return back;
               };
-              // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
-              const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
+              // (A line or an area colored by its levels, not stacked: by value, as on the chart, each level's height and color
+              // (low to high: its color from there up, see previewSvg). Else painted date by date, as on the chart: a mark for
+              // each of its colors, its pieces in that color.)
+              const zones = layer.byLevels && layer.levels?.length && (layer.type === "line" || layer.type === "area") && !stacked.has(layer.id) ? levelSteps(layer).map((step) => /** @type {[number, string]} */ ([y(scaled(step.value)), step.color])) : null;
+              const dateColors = zones ? null : paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
               /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
               const perColor = (pieces) => {
                 const by = new Map();
@@ -25110,7 +25119,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 }
                 // (Each part's points written once: its line's, and a band's way along them.)
                 const written = parts.map((part) => part.map(at).join("L"));
-                const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
+                const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}), ...(zones ? { z: zones } : {}) };
                 if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part, k) => `M${written[k]}${backAlong(part)}Z`).join("") } : {}) });
                 else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
                 else drawn.marks.push({ ...line, k: "line" });
@@ -25135,6 +25144,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         panesDrawn.set(data, { look, times, panes });
         return drawn;
+      }
+      /**
+       * A preview's levels (`z`: each its height and color, low to high, a color from its height up) as the parts of a
+       * picture `height` tall each holds, top down; under them all, its own (`c`, the last). A level whose height isn't a
+       * number (on a log scale, at 0 or under) holds all from there up.
+       * @param {[number, string][]} z @param {number} height @param {string} own @returns {{ y: number, h: number, c: string }[]}
+       */
+      function zoneRects(z, height, own) {
+        const parts = [];
+        let foot = height, under = own;
+        for (const [at, color] of z) {
+          const y = Number.isFinite(at) ? Math.min(Math.max(at, 0), height) : height;
+          if (y >= foot) {
+            under = color;
+            continue;
+          }
+          parts.push({ y, h: foot - y, c: under });
+          (foot = y), (under = color);
+        }
+        parts.push({ y: 0, h: foot, c: under });
+        return parts.reverse().filter((part) => part.h > 0);
       }
       /** Each subpath of a line closed down (or up) to `edge`: the fill under it. */
       const closedTo = (d, edge) => d.split("M").filter(Boolean).map((part) => `M${part.split(" ")[0]} ${edge}L${part}L${part.slice(part.lastIndexOf("L") + 1).split(" ")[0]} ${edge}Z`).join("");
@@ -25200,18 +25230,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else {
             // (Its fill as the chart's: see fillOf. A preview kept from before, the defaults then.)
             const [top, foot] = mark.f ?? (mark.up ? [0.12, 0.12] : mark.band ? [STACK_FILL, STACK_FILL] : [0.2, 0]);
-            if (mark.k === "area" && mark.up) under = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
-            else if (mark.k === "area" && mark.band) under = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${mark.band}"/>`;
-            else if (mark.k === "area") {
-              defs.push(fade("u", c, mark.top, mark.bottom, top, foot));
-              under = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
-            }
+            // (Colored by its levels (`z`, low to high, each its height and its color from there up): its line and its fill
+            // parted at each, each part clipped to its zone, as the chart's; else one color.)
+            const zones = mark.z ? zoneRects(mark.z, H, mark.c) : [{ y: 0, h: H, c: mark.c }];
+            zones.forEach((zone, k) => {
+              const zc = escape(ink(zone.c)), clip = mark.z ? ` clip-path="url(#${g}z${k})"` : "";
+              if (mark.z) defs.push(`<clipPath id="${g}z${k}"><rect y="${zone.y}" width="${W}" height="${zone.h}"/></clipPath>`);
+              if (mark.k === "area" && mark.up) under += `<path class="fill"${clip} style="fill:color-mix(in srgb, ${zc} ${top * 100}%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
+              else if (mark.k === "area" && mark.band) under += `<path class="fill"${clip} style="fill:color-mix(in srgb, ${zc} ${top * 100}%, transparent)" d="${mark.band}"/>`;
+              else if (mark.k === "area") {
+                defs.push(fade(`u${k}`, zc, mark.top, mark.bottom, top, foot));
+                under += `<path class="fill"${clip} style="fill:url(#${g}u${k})" d="${closedTo(mark.d, mark.bottom)}"/>`;
+              }
+              over += `<path stroke="${zc}"${clip}${dash} d="${mark.d}"/>`;
+            });
             band = halo(mark.d);
-            over = `<path stroke="${c}"${dash} d="${mark.d}"/>`;
           }
           // (Its end marked in Quick Look's picture alone, by its value beside it; a card's line just ends.)
           if (mark.end && size !== PREVIEW) {
-            const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : c;
+            const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : mark.z ? escape(ink(zoneRects(mark.z, H, mark.c).find((zone) => y >= zone.y && y <= zone.y + zone.h)?.c ?? mark.c)) : c;
             over += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
           }
           const faded = (/** @type {string} */ html) => (html && mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);

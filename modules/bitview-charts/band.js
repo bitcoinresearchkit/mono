@@ -1,5 +1,5 @@
 // @ts-check
-import { Fill } from "./color.js";
+import { Fill, zoneSpans } from "./color.js";
 import { NOISE, firstFrom } from "./timeline.js";
 import { measure } from "./recorder.js";
 
@@ -52,6 +52,8 @@ const outline = {
   },
 };
 
+/** @typedef {{ value: number, color: string, fade?: string | null }} BandZone a fill from a value up (see Band's zones) */
+
 export class Band {
   /**
    * `fade`, its fill's color at its far end (a baseline's base, else the pane's foot) where it fades from `color` (at the
@@ -59,10 +61,12 @@ export class Band {
    * so a pan moves them with its picture. None: one color.
    * `curve`: its edges bowed through their points (zoomed in), as a curved line is (its edge's line alike). `colors`
    * (a Uint8Array or Uint16Array of indices into `palette`, its fills: a color and what it fades to): each segment in its first point's
-   * (a band colored by another series), as a line's.
-   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[] }} options
+   * (a band colored by another series), as a line's. `zones`: its fill by value, low to high, each a color and what it
+   * fades to from its value up, its own under them all (an area colored by its levels: its fill parted exactly where its
+   * line crosses one, each part fading as the whole would; see Fill's zoned).
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[], zones?: readonly BandZone[] | null }} options
    */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [] }) {
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [], zones = null }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
@@ -84,6 +88,13 @@ export class Band {
     // (Its palette's fills, made once each.)
     /** @type {Fill[]} */
     this.fills = [];
+    /** @type {readonly BandZone[] | null} */
+    this.zones = zones && zones.length ? zones : null;
+    // (Its zones' fills (its own first), made once each, and where they lie, a draw each: see zoneSpans.)
+    /** @type {Fill[]} */
+    this.zoneFills = [];
+    /** @type {number[]} */
+    this.spans = [];
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** @type {Float64Array} */
@@ -169,9 +180,9 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[] }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[], zones?: readonly BandZone[] | null }} change
    */
-  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette }) {
+  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette, zones = this.zones }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -181,6 +192,7 @@ export class Band {
     this.base = base;
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
     (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps), (this.curve = curve), (this.colors = colors), (this.palette = palette);
+    this.zones = zones && zones.length ? zones : null;
   }
 
   /**
@@ -256,6 +268,20 @@ export class Band {
    * @param {number} x0 @param {number} x1
    */
   draw(g, time, scale, x0, x1) {
+    if (this.zones && !this.below) {
+      // (By its zones: each part of the pane a zone holds, its fill clipped to it, fading over the pane as a whole.)
+      const zones = this.zones, spans = zoneSpans(zones, scale, scale.height, this.spans);
+      for (let s = 0; s < spans.length; s += 3) {
+        const k = spans[s], top = spans[s + 1], foot = spans[s + 2], color = k < 0 ? this.color : zones[k].color, fade = k < 0 ? this.fade : zones[k].fade ?? null;
+        g.save();
+        g.beginPath();
+        g.rect(x0, top, x1 - x0, foot - top);
+        g.clip();
+        this.#fill(g, time, scale, x0, x1, (this.zoneFills[k + 1] ??= new Fill()).style(g, color, fade, 0, scale.height), -1);
+        g.restore();
+      }
+      return;
+    }
     if (!this.below) {
       // (Colored point by point: a fill a color, its segments in it.)
       const palette = this.colors ? this.palette : [];
