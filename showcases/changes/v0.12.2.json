@@ -10,11 +10,11 @@
     "before": 61949,
     "now": 21154,
     "kept": 1757,
-    "renamed": 22279,
+    "renamed": 22280,
     "same": 11966,
     "different": 7100,
-    "unknown": 3213,
-    "removed": 37913
+    "unknown": 3214,
+    "removed": 37912
   },
   "endpoints": {
     "removed": [
@@ -280,7 +280,7 @@
       ["braiinssolo_","pool_braiinssolo_",8],
       ["bravomining_","pool_bravomining_",8],
       ["btcc_","pool_btcc_",3],
-      ["btccom_","pool_btccom_",32],
+      ["btccom_","pool_cloverpool_",32],
       ["btcdig_","pool_btcdig_",8],
       ["btcguild_","pool_btcguild_",3],
       ["btclab_","pool_btclab_",8],
@@ -777,7 +777,8 @@
       ["nicehash_blocks_mined_sum_1w","pool_nicehash_block_count_sum_1w",1],
       ["nicehash_blocks_mined_sum_1m","pool_nicehash_block_count_sum_1m",1],
       ["nicehash_blocks_mined_sum_1y","pool_nicehash_block_count_sum_1y",1],
-      ["sth_adj_value_created","sth_adjusted_value_created",0.01]
+      ["sth_adj_value_created","sth_adjusted_value_created",0.01],
+      ["tx_count_annex","annex_tx_count",1]
     ]
   },
   "different": [
@@ -10424,7 +10425,6 @@
       "transfer_volume_in_profit_cumulative_by_entry_sats",
       "transfer_volume_in_profit_cumulative_by_epoch_cents",
       "transfer_volume_in_profit_cumulative_by_epoch_sats",
-      "tx_count_annex",
       "tx_count_empty",
       "tx_count_explicitly_rbf",
       "tx_count_fake_pubkey",

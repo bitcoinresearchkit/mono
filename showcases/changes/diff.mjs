@@ -14,6 +14,12 @@
 //   ... --cache --offline                                            fetches nothing: what the cache lacks is
 //                                                                    unreadable (a server since moved on, as prod is
 //                                                                    once next is released, never read for the old)
+//
+// Historical data: v0.12.2.json was amended after its server and fetch cache were lost, so it cannot be regenerated.
+// Its bare tx_count_annex -> annex_tx_count rule was added without historical value evidence.
+// BTC.com's destination is today's pool_cloverpool_, not the pool_btccom_ served by the compared build; that later
+// change renamed the same pool. Original value classifications and value-match counts are kept; newly recognized
+// renames have unknown historical values. The page checks these destinations against its own server when read.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
