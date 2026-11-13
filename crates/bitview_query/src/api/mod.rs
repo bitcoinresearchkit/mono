@@ -23,6 +23,7 @@ pub use price::ResolvedHistoricalPrice;
 pub use silent_payments::{BlindbitBlock, BlindbitSpends};
 pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 pub use urpd::ResolvedUrpd;
+pub(crate) use urpd::UrpdGrid;
 pub use utxo_set::UtxoSetPoint;
 
 /// mempool.space reports a block without transactions at 0 sat/vB; the series leave it undefined.
