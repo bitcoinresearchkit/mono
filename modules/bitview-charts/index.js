@@ -540,7 +540,7 @@ export class Chart {
     // onto the legend); else the one a pointer's on, none with the crosshair gone. Its items made here read at its
     // point, in this frame.)
     const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
-    for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time), (series) => pane.restOf(series, time));
+    for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, (series, v) => pane.words(series, v, time), (series) => pane.restOf(series, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);

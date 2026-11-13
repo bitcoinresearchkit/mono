@@ -13,7 +13,7 @@ const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "A
 
 export class Crosshair {
   /** Its canvas' ends, from its plot's left (CSS pixels): where its badges are kept within (see draw), set each draw. */
-  #within = [0, 0];
+  #within = /** @type {[number, number]} */ ([0, 0]);
 
   constructor() {
     this.canvas = document.createElement("canvas");
