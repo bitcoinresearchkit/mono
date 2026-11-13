@@ -6,7 +6,7 @@
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
-// server's too, and the touch icon at /apple-touch-icon.png) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
+// server's too, and the touch icons at /apple-touch-icon.png and its -precomposed twin) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
 // the rows, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
@@ -136,6 +136,9 @@ if (!check) {
 // (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
 // screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons.)
 const MCP_ICON = join(HERE, "..", "crates", "bitview_mcp", "assets", "logo.png");
+/** The touch icons at the root, Bitview's own icon: iOS asks for the precomposed one first, then the other, and link
+ * previews for either. */
+const TOUCH_ICONS = ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"];
 const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
   ["bitview", undefined],
   ...folders.map((name) => [name, tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-color"]]),
@@ -282,7 +285,7 @@ if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share
 if (pictures || icons) await makePictures();
 // (Every app's icon there, the favicon, and every card, once any were made.)
 for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
-for (const file of ["favicon.ico", "apple-touch-icon.png"]) if (!existsSync(join(HERE, file))) problems.push(`No ${file}: run with --icons`);
+for (const file of ["favicon.ico", ...TOUCH_ICONS]) if (!existsSync(join(HERE, file))) problems.push(`No ${file}: run with --icons`);
 for (const name of Object.keys(CARDS)) if (!existsSync(join(HERE, "assets", "cards", `${name}.jpg`))) problems.push(`${name}: no card, assets/cards/${name}.jpg: run with --pictures --only ${name}`);
 
 if (problems.length) {
@@ -345,8 +348,8 @@ async function makePictures() {
         // (Bitview's is the MCP server's icon too: its page's and the MCP registry's; and the one at the root, for what asks
         // there rather than reading a page's, as iOS and link previews do.)
         if (name === "bitview") {
-          for (const file of [MCP_ICON, join(HERE, "apple-touch-icon.png")]) writeFileSync(file, Buffer.from(shot.data, "base64"));
-          console.log("made bitview_mcp's logo.png and apple-touch-icon.png");
+          for (const file of [MCP_ICON, ...TOUCH_ICONS.map((icon) => join(HERE, icon))]) writeFileSync(file, Buffer.from(shot.data, "base64"));
+          console.log(`made bitview_mcp's logo.png, ${TOUCH_ICONS.join(" and ")}`);
         }
       } finally {
         await tab.close();

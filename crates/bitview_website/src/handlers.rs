@@ -49,7 +49,7 @@ pub async fn file_handler(
 ) -> Response<Body> {
     read(website, move |website| match respond(website, &uri, &headers) {
         Err(error) if error.is_not_found() => match moved(uri.path(), uri.query()) {
-            Some(to) => Redirect::permanent(&to).into_response(),
+            Some(to) => permanent(&to),
             None => not_found(website, &headers),
         },
         answer => answer.into_response(),
@@ -139,6 +139,14 @@ async fn read(
     .unwrap_or_else(|e| Error::internal(e.to_string()).into_response())
 }
 
+/// A 308 to where an address is answered now, revalidated as the site's files are: without a lifetime a browser may
+/// keep a permanent redirect as long as it likes, and where an address goes can change with a release (`MOVED`).
+fn permanent(location: &str) -> Response<Body> {
+    let mut response = Redirect::permanent(location).into_response();
+    CachePolicy::Revalidate.apply(response.headers_mut());
+    response
+}
+
 fn respond(website: &Website, uri: &Uri, request_headers: &HeaderMap) -> Result<Response<Body>, Error> {
     // The path as sent: written the one way, it has no escape to decode. The not-found page is
     // the answer to other addresses, not one of its own.
@@ -156,7 +164,7 @@ fn respond(website: &Website, uri: &Uri, request_headers: &HeaderMap) -> Result<
     // A folder's page is at its address with the slash, the links' and the sitemap's.
     if !path.is_empty() && !has_slash && file.ends_with(Path::new(path).join("index.html")) {
         let query = uri.query().map(|query| format!("?{query}")).unwrap_or_default();
-        return Ok(Redirect::permanent(&format!("{}/{query}", uri.path())).into_response());
+        return Ok(permanent(&format!("{}/{query}", uri.path())));
     }
     // A slash after a file's name, or a query for anything but a page, whose script reads it.
     if (has_slash && file.ends_with(Path::new(path)))

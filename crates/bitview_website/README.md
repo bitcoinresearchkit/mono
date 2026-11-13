@@ -4,8 +4,8 @@ Serves Bitview's showcases, embedded or from a directory.
 
 `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html`;
 an address no file answers that is served elsewhere answers 308 to the same place under its new folder (`/address/…`
-to the explorer's), or to the page that replaced it (`/charts` to Studio's; `MOVED` in `src/handlers.rs`); anything
-else is 404, with
+to the explorer's), or to the page that replaced it (`/charts` to Studio's; `MOVED` in `src/handlers.rs`), each 308
+revalidated as the files are, so a redirect changed with a release reaches browsers; anything else is 404, with
 the site's `404.html` for a request whose `Accept` lists `text/html` (a browser's), a plain message otherwise, both
 `no-store` since the answer depends on `Accept`. A `Filesystem` website without a `404.html` answers browsers with the
 plain message too (behind the API server, its JSON problem document). Release builds tag each response with an ETag of its content, and with the same hash in a
