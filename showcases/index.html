@@ -2271,6 +2271,7 @@
 
     <script type="module">
       // @ts-check
+      import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const banner = (/** @type {string} */ id) => `/assets/home/banners/${id}.jpg`, poster = (/** @type {string} */ id) => `/assets/home/covers/${id}.jpg`;
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2679,16 +2680,13 @@
       /** A pool's logo, as the other pages draw it (one with none: its initials). */
       function logo(/** @type {string} */ slug, /** @type {string} */ name) {
         const mark = el("span", { className: "logo" });
-        mark.style.backgroundImage = `url("/assets/pools/${slug}.svg")`;
-        const probe = new Image();
-        probe.onerror = () => {
+        if (LOGOS.has(slug)) mark.style.backgroundImage = `url("${poolLogo(slug, false)}")`;
+        else {
           const words = name.replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
           const one = words[0] ?? "?";
           mark.textContent = (words.length > 1 ? words.map((w) => w[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
           mark.classList.add("initials");
-          mark.style.backgroundImage = "";
-        };
-        probe.src = `/assets/pools/${slug}.svg`;
+        }
         return mark;
       }
 

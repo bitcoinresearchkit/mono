@@ -161,12 +161,19 @@ impl SeriesNotFound {
     }
 }
 
+impl SeriesNotFound {
+    /// The name asked for, as the message writes it (cut short past the display cap).
+    pub fn series(&self) -> &str {
+        &self.series
+    }
+}
+
 impl fmt::Display for SeriesNotFound {
+    /// A sentence or a question, whole.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}' not found", self.series)?;
-
         if self.suggestions.is_empty() {
-            return Ok(());
+            return f.write_str(".");
         }
 
         f.write_str(", did you mean ")?;
@@ -176,17 +183,10 @@ impl fmt::Display for SeriesNotFound {
             }
             write!(f, "'{suggestion}'")?;
         }
-        f.write_str("?")?;
-
         let remaining = self.total_matches - self.suggestions.len();
         if remaining > 0 {
-            write!(
-                f,
-                " ({remaining} more — /api/series/search?q={} for all)",
-                self.series
-            )?;
+            write!(f, " ({remaining} more: /api/series/search?q={})", self.series)?;
         }
-
-        Ok(())
+        f.write_str("?")
     }
 }

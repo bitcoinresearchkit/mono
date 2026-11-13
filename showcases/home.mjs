@@ -1,11 +1,12 @@
 // The front page, kept in step with the apps it opens: each app's name and words read from its own page and written
 // into the front page's FROM_APPS (its title before " · Bitview", else its launch tag's data-app; its meta
 // description), and what it can't take from them checked: every app in the repository on it, every Studio chart and
-// section it links to in Studio's sitemap, every series it draws on the server. With --pictures, its pictures made
+// section it or another page links to in Studio's sitemap, every series it draws on the server, the pool logos' list
+// every page draws from (assets/pools/logos.js) against that folder's files. With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
-// server's too) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
+// server's too, and the touch icon at /apple-touch-icon.png) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
 // the rows, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
@@ -17,7 +18,7 @@
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
 //                                                page's share card too if it's its picture
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,7 +94,9 @@ if ((existsSync(SITEMAP) ? readFileSync(SITEMAP, "utf8") : "") !== sitemapXml) {
 // (An app: a folder of the repository's with a page, its name not starting with "_", an unlisted one's.)
 const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: HERE });
 if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().decode(git.stderr).trim()}): the apps on the front page unchecked`);
-const folders = new TextDecoder().decode(git.stdout).split("\n").filter(Boolean).map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
+// (Every page git knows, but one deleted and not yet committed as such.)
+const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
+const folders = pages.map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
 // (On it: in its rows, APPS or DEV, the footer's links not counting; or unlisted, in UNLISTED: served at its address,
 // with its icon, but off the front page and the sitemap, until it's ready to be listed.)
 const UNLISTED = ["/ledger/"];
@@ -119,8 +122,7 @@ if (!check) {
   if (typeof repo?.stargazers_count !== "number") console.log("The stars on GitHub: GitHub didn't answer, every page's count left as it is");
   else {
     const count = `<b class="stars-count">${atLeast(repo.stargazers_count)}</b>`, written = [];
-    // (Every page git knows, but one deleted and not yet committed as such.)
-    for (const file of ["index.html", ...new TextDecoder().decode(git.stdout).split("\n").filter(Boolean)].filter((file) => existsSync(join(HERE, file)))) {
+    for (const file of ["index.html", ...pages]) {
       const at = join(HERE, file), was = readFileSync(at, "utf8"), now = was.replace(/<b class="stars-count">[^<]*<\/b>/g, count);
       if (now !== was) (writeFileSync(at, now), written.push(file), at === PAGE && (html = now));
     }
@@ -185,15 +187,28 @@ for (const href of [...apps, ...dev]) {
   else if (image !== join(HERE, "assets", "cards", `${name}.jpg`)) wrong(`its og:image isn't its card, ${ORIGIN}/assets/cards/${name}.jpg`);
 }
 
-// ── Every way into Studio it has, in Studio's sitemap ──
+// ── Every way into Studio a page has (this one's, and every other app's), in Studio's sitemap ──
 
 const sitemap = new Set([...readFileSync(join(HERE, "studio", "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*\/studio\/presets\/([^<]*)<\/loc>/g)].map(([, path]) => path));
 const topics = [...html.matchAll(/\["([a-z0-9-]+)", "[^"]+", "#[0-9a-f]{6}"(?:, "([a-z0-9_]+)")?\]/g)];
-// (Each address whole, to its quote or space: a chart renamed by a suffix isn't taken for its former self; one made in the
-// page from a template, as the topics' are, read from TOPICS instead.)
-const studioPaths = [...new Set([...[...html.matchAll(/\/studio\/presets\/([^"'`\s<>)]*)/g)].map(([, path]) => path).filter((path) => !path.includes("${")), ...topics.map(([, slug]) => `${slug}/`)])];
+// (Each address whole, to its quote, space, a sentence's comma or semicolon, or the view after its "#": a chart renamed by a
+// suffix isn't taken for its former self; one made in the page from a template, as the topics' are, read from TOPICS
+// instead.)
+const studioPaths = [...new Set([
+  ...[html, ...pages.map((file) => readFileSync(join(HERE, file), "utf8"))].flatMap((page) => [...page.matchAll(/\/studio\/presets\/([^"'`\s<>),;#]*)/g)].map(([, path]) => path)).filter((path) => !path.includes("${")),
+  ...topics.map(([, slug]) => `${slug}/`),
+])];
 if (!topics.length) problems.push("No TOPICS rows found: the page changed? (this script reads them)");
 for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/presets/${path}: not in Studio's sitemap, exactly (a chart or section renamed?)`);
+
+// ── The pool logos every page draws from (assets/pools/logos.js, written by crates/bitview_primitives/pools.sh), the folder's ──
+
+{
+  const { LOGOS, LIGHT } = await import(join(HERE, "assets", "pools", "logos.js"));
+  const files = new Set(readdirSync(join(HERE, "assets", "pools")).filter((file) => file.endsWith(".svg")));
+  const listed = new Set([...[...LOGOS].map((slug) => `${slug}.svg`), ...[...LIGHT].map((slug) => `${slug}.light.svg`)]);
+  if (files.symmetricDifference(listed).size) problems.push("assets/pools/logos.js isn't the folder's logos: run crates/bitview_primitives/pools.sh");
+}
 
 // ── Every series it draws, on the server ──
 
@@ -267,7 +282,7 @@ if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share
 if (pictures || icons) await makePictures();
 // (Every app's icon there, the favicon, and every card, once any were made.)
 for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
-if (!existsSync(join(HERE, "favicon.ico"))) problems.push("No favicon.ico: run with --icons");
+for (const file of ["favicon.ico", "apple-touch-icon.png"]) if (!existsSync(join(HERE, file))) problems.push(`No ${file}: run with --icons`);
 for (const name of Object.keys(CARDS)) if (!existsSync(join(HERE, "assets", "cards", `${name}.jpg`))) problems.push(`${name}: no card, assets/cards/${name}.jpg: run with --pictures --only ${name}`);
 
 if (problems.length) {
@@ -327,8 +342,12 @@ async function makePictures() {
         const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
         writeFileSync(join(HERE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
         console.log(`made apps/${name}.png`);
-        // (Bitview's is the MCP server's icon too: its page's and the MCP registry's.)
-        if (name === "bitview") writeFileSync(MCP_ICON, Buffer.from(shot.data, "base64")), console.log("made bitview_mcp's logo.png");
+        // (Bitview's is the MCP server's icon too: its page's and the MCP registry's; and the one at the root, for what asks
+        // there rather than reading a page's, as iOS and link previews do.)
+        if (name === "bitview") {
+          for (const file of [MCP_ICON, join(HERE, "apple-touch-icon.png")]) writeFileSync(file, Buffer.from(shot.data, "base64"));
+          console.log("made bitview_mcp's logo.png and apple-touch-icon.png");
+        }
       } finally {
         await tab.close();
       }

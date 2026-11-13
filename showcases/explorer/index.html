@@ -1367,6 +1367,7 @@
     <main class="page" id="view"><div class="wait">Loading</div></main>
     <div class="card" id="card" hidden></div>
     <script type="module">
+      import { logo as poolLogo } from "/assets/pools/logos.js";
       // ---------------------------------------------------------------- Reads, all from the server serving the page.
       const get = async (path) => {
         const r = await fetch(`/api${path}`);
@@ -1540,13 +1541,9 @@
           return Array.from({ length: b.tx_count }, (_, i) => flags.findIndex((f) => f[i]));
         });
 
-      // Each pool's logo, from the shared assets (a light ground's own where it has one), the default one if missing.
-      const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
-      const poolMark = (slug) => {
-        const name = /^[a-z0-9-]+$/.test(slug ?? "") ? slug : "unknown";
-        const src = `/assets/pools/${name}${lightScheme.matches && LIGHT_LOGOS.has(name) ? ".light" : ""}.svg`;
-        return `<img class="pool" src="${src}" alt="" onerror="this.onerror=null;this.src='/assets/pools/default${lightScheme.matches ? ".light" : ""}.svg'" />`;
-      };
+      // Each pool's logo, from the shared assets (a light ground's own where it has one), the default one for a pool
+      // without, the unknown miner's for a block without a pool.
+      const poolMark = (slug) => `<img class="pool" src="${poolLogo(slug || "unknown", lightScheme.matches)}" alt="" />`;
       const poolName = (pool) => esc(!pool || pool.name === "Unknown" ? "Unknown miner" : pool.name);
 
       const ICON = {

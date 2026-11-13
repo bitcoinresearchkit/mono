@@ -4,12 +4,17 @@ use aide::{
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
 };
-use axum::{Extension, http::HeaderMap, response::Redirect, routing::get};
+use axum::{
+    Extension,
+    http::HeaderMap,
+    response::Redirect,
+    routing::{any, get},
+};
 use schemars::{SchemaGenerator, generate::SchemaSettings, transform::ReplacePrefixItems};
 use serde_json::Value;
 
 use super::AppState;
-use crate::{Error, extended::TransformResponseExtended, params::Empty};
+use crate::{Error, error::changes_hint, extended::TransformResponseExtended, params::Empty};
 
 #[cfg(feature = "full-api")]
 mod addrs;
@@ -131,10 +136,15 @@ impl ApiRoutes for ApiRouter<AppState> {
                 "/.well-known/openapi.json",
                 get(|| async { Redirect::permanent("/openapi.json") }),
             )
+            // Any method: a removed endpoint's caller learns what replaced it whatever it sends (a real
+            // endpoint's wrong method is its own route's 405).
             .route(
                 "/api/{*path}",
-                get(|| async {
-                    Error::not_found("Unknown API endpoint. See /api for documentation.")
+                any(|| async {
+                    Error::not_found(format!(
+                        "Unknown API endpoint, see /api. {}",
+                        changes_hint(None)
+                    ))
                 }),
             )
             // Documented once for every operation instead of per route.

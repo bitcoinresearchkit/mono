@@ -182,7 +182,7 @@ Errors use `application/problem+json`:
   "error": {
     "type": "not_found",
     "code": "series_not_found",
-    "message": "'foo' not found, did you mean 'bar'?",
+    "message": "'foo' not found, did you mean 'bar'? What became of it: /changes/?id=foo",
     "doc_url": "/api"
   }
 }

@@ -307,6 +307,7 @@
          Blocks and mempool projections come live from the server that serves the page. -->
     <script type="module">
       // @ts-check
+      import { logo as poolLogo } from "/assets/pools/logos.js";
       // Config ---------------------------------------------------------------
 
       // The server that serves the page.
@@ -359,7 +360,6 @@
       const COS = Math.cos(Math.PI / 6);
       const SIN = 0.5;
       const FONT = "Lilex, ui-monospace, SFMono-Regular, Menlo, monospace";
-      const LIGHT_LOGOS = new Set(["foundryusa", "unknown", "ultimuspool", "whitepool"]);
       /** @type {number[]} */
       const SOLID = [];
       const DASHED = [4, 4];
@@ -499,17 +499,11 @@
         if (cached !== undefined) return cached;
         logos.set(key, null);
         const image = new Image();
-        let fallback = false;
         image.addEventListener("load", () => {
           logos.set(key, inked(image));
           dirty = true;
         });
-        image.addEventListener("error", () => {
-          if (fallback) return;
-          fallback = true;
-          image.src = `../assets/pools/default${light ? ".light" : ""}.svg`;
-        });
-        image.src = `../assets/pools/${slug}${light && LIGHT_LOGOS.has(slug) ? ".light" : ""}.svg`;
+        image.src = poolLogo(slug, light);
         return null;
       }
 

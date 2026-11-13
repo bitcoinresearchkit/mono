@@ -6,13 +6,24 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_http::CachePolicy;
-use bitview_query::Error as QueryError;
+use bitview_query::{Error as QueryError, SeriesNotFound};
 use bitview_types::{ErrorBody, ErrorCode, ErrorType};
 use brk_error::Error as BrkError;
 use serde_json::to_vec;
 use tracing::error;
 
 const DOC_URL: &str = "/api";
+/// The website's page of what each release renamed or removed (series, endpoints, indexes, parameters).
+const CHANGES_URL: &str = "/changes/";
+
+/// What an answer to a request written for an earlier release adds, after its own sentence: an id's own answer on the
+/// changes page, else the page.
+pub(crate) fn changes_hint(id: Option<&str>) -> String {
+    match id {
+        Some(id) => format!("What became of it: {CHANGES_URL}?id={id}"),
+        None => format!("Written for an earlier release? What it renamed or removed: {CHANGES_URL}"),
+    }
+}
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -124,12 +135,28 @@ impl Error {
 impl From<QueryError> for Error {
     fn from(error: QueryError) -> Self {
         let (status, code) = error_details(&error);
+        let message = match &error {
+            QueryError::SeriesNotFound(not_found) => series_not_found(not_found),
+            error => error.to_string(),
+        };
         Self {
             status,
             code,
-            message: error.to_string(),
+            message,
         }
     }
+}
+
+/// A missing series' message and where its change is said: for a name written as an id, its own answer (one written
+/// otherwise, or cut short for display, was never an id).
+fn series_not_found(not_found: &SeriesNotFound) -> String {
+    let series = not_found.series();
+    let id = (!series.is_empty()
+        && series
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_'))
+    .then_some(series);
+    format!("{not_found} {}", changes_hint(id))
 }
 
 /// Errors from below the query (node calls, IO) take the query's translation, except a

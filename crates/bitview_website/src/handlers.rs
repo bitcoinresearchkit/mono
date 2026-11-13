@@ -14,11 +14,17 @@ use crate::{
     website::{File, hash},
 };
 
-/// Pages that moved, each old folder with where its addresses go now: a link or a search result to the old address
-/// still arrives.
+/// Addresses served elsewhere on the site, each old folder with where its addresses go now: a link or a search
+/// result to the old address still arrives, and so does one written for another explorer's addresses.
 const MOVED: &[(&str, To)] = &[
     ("series", To::Under("catalog")),
     ("api-changes", To::Under("changes")),
+    // The explorer's places (its routes, `parse()` in showcases/explorer/index.html), at the root on mempool.space and
+    // the explorers that copy its addresses.
+    ("address", To::Under("explorer/address")),
+    ("tx", To::Under("explorer/tx")),
+    ("block", To::Under("explorer/block")),
+    ("mempool-block", To::Under("explorer/mempool-block")),
     // The old charts' addresses name nothing in Studio, which replaced them.
     ("charts", To::Page("studio")),
 ];
@@ -34,16 +40,21 @@ enum To {
 /// The site's page for an address that names nothing.
 const NOT_FOUND_PAGE: &str = "404.html";
 
-/// Any address on the site, `/` included.
+/// Any address on the site, `/` included: the file it names, else where it moved, else the not-found answer, in one job
+/// on the website's files. A file there always wins, as a site served from a folder may have its own.
 pub async fn file_handler(
     State(website): State<Website>,
     headers: HeaderMap,
     uri: Uri,
 ) -> Response<Body> {
-    if let Some(to) = moved(uri.path(), uri.query()) {
-        return Redirect::permanent(&to).into_response();
-    }
-    serve(website, uri, headers).await
+    read(website, move |website| match respond(website, &uri, &headers) {
+        Err(error) if error.is_not_found() => match moved(uri.path(), uri.query()) {
+            Some(to) => Redirect::permanent(&to).into_response(),
+            None => not_found(website, &headers),
+        },
+        answer => answer.into_response(),
+    })
+    .await
 }
 
 /// Where a request under a moved page's old folder goes now: the new page whatever follows the folder, or the same
@@ -64,15 +75,6 @@ fn moved(path: &str, query: Option<&str>) -> Option<String> {
 
 /// A file's version, its content hash.
 const VERSION: HeaderName = HeaderName::from_static("bitview-version");
-
-/// The file a request names, or the not-found answer, in one job on the website's files.
-async fn serve(website: Website, uri: Uri, headers: HeaderMap) -> Response<Body> {
-    read(website, move |website| match respond(website, &uri, &headers) {
-        Err(error) if error.is_not_found() => not_found(website, &headers),
-        answer => answer.into_response(),
-    })
-    .await
-}
 
 /// For an address that names nothing: the site's page for it to a browser, with 404, else the plain message (made a
 /// problem document by the API server's error layer). Neither is stored: which one comes depends on `Accept`, which a

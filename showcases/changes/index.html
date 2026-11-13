@@ -1094,18 +1094,41 @@
 
       /** @type {Map<string, Promise<boolean>>} */
       const served = new Map();
-      /** Whether this page's server serves series `id` (the release it's on). @param {string} id */
+      /** The server not answering, or with another error than its 404. */
+      class Unanswered extends Error {}
+      /**
+       * Whether this page's server serves series `id` (the release it's on): its 404 says no; otherwise `Unanswered`, and
+       * asked again next time. @param {string} id
+       */
       function serves(id) {
-        if (!served.has(id)) served.set(id, fetch(`/api/series/${encodeURIComponent(id)}`).then((r) => r.ok, () => false));
+        if (!served.has(id)) {
+          const unanswered = () => {
+            served.delete(id);
+            throw new Unanswered();
+          };
+          served.set(id, fetch(`/api/series/${encodeURIComponent(id)}`).then((r) => (r.ok || r.status === 404 ? r.ok : unanswered()), unanswered));
+        }
         return /** @type {Promise<boolean>} */ (served.get(id));
       }
       const seriesLink = (/** @type {string} */ id) => `<a href="/catalog/?series=${encodeURIComponent(id)}">${code(id)}</a>`;
+      /**
+       * Ids gone that Studio computes from the series served now, each with its chart, where the formula lives (home.mjs
+       * checks every address into Studio a page has is one). @type {Record<string, string>}
+       */
+      const IN_STUDIO = {
+        puell_multiple: "/studio/presets/mining/rewards/puell-multiple",
+        nvt: "/studio/presets/valuation/nvt",
+        rhodl_ratio: "/studio/presets/valuation/rhodl",
+        thermo_cap_multiple: "/studio/presets/valuation/thermocap-multiple",
+        pi_cycle: "/studio/presets/price/technical/pi-cycle",
+      };
 
       let asked = 0;
       async function lookUp() {
         const id = /** @type {HTMLInputElement} */ ($("q")).value.trim();
-        const answer = $("answer"), ask = ++asked;
-        if (!changes || !/^[a-z0-9_]{3,}$/.test(id)) return void (answer.hidden = true);
+        // (Typed, from three letters; linked, as the API's not-found links any id it lacks, whatever its length.)
+        const answer = $("answer"), ask = ++asked, linked = id === asked0;
+        if (!changes || !(linked ? /^[a-z0-9_]+$/ : /^[a-z0-9_]{3,}$/).test(id)) return void (answer.hidden = true);
         const readings = read(id, rules);
         const said = await (async () => {
           if (!readings[0]?.exact && (await serves(id))) {
@@ -1132,16 +1155,28 @@
           const cohort = changes.removed.cohorts.find((/** @type {[string, number]} */ [prefix]) => id.startsWith(prefix));
           const measure = !cohort && changes.removed.measures.find((/** @type {[string, number]} */ [name]) => id.endsWith(`_${name}`));
           // (Every id gone is in a list of the removed; one that's in none wasn't an id, as a word searched in the
-          // notes: nothing said of it.)
-          if (!cohort && !measure && !changes.removed.ids.includes(id)) return "";
+          // notes: nothing said of it, unless a link asked for it, as the API's not-found does for any id it lacks.)
+          const removed = cohort || measure || changes.removed.ids.includes(id);
+          if (!removed && !linked) return "";
           const near = await fetch(`/api/series/search?q=${encodeURIComponent(id)}&limit=5`).then((r) => (r.ok ? r.json() : []), () => []);
+          const [from, to] = versions(changes.from, changes.to);
+          // (Under a unit's suffix too, `puell_multiple_ppm`: Studio draws the id without it.)
+          const computed = [id, ...rules.suffixes.map(([unit]) => id.endsWith(`_${unit}`) && id.slice(0, -unit.length - 1))].find(
+            (it) => it && Object.hasOwn(IN_STUDIO, it),
+          );
           return (
-            `<p class="now">${code(id)} <span class="gone">isn't served</span> under any id we could find.</p>` +
+            (removed
+              ? `<p class="now">${code(id)} <span class="gone">isn't served</span> under any id we could find.</p>`
+              : `<p class="now">${code(id)} <span class="gone">isn't served</span>, and ${escape(to)} didn't rename or remove it from ${escape(from)}: if it was an id before that, the notes below that name it say what became of it.</p>`) +
             (cohort ? `<p class="why">Its cohort, ${code(`${cohort[0]}…`)}, is gone, all ${grouped.format(cohort[1])} of its ids.</p>` : "") +
             (measure ? `<p class="why">Its measure, ${code(`…_${measure[0]}`)}, is gone from ${grouped.format(measure[1])} cohorts.</p>` : "") +
+            (computed ? `<p class="why">Studio computes ${computed === id ? "it" : code(computed)} from the series served now: <a href="${IN_STUDIO[computed]}">its chart</a>, with its formula.</p>` : "") +
             (near.length ? `<p class="why">Closest now: ${near.map(seriesLink).join(", ")}</p>` : "")
           );
-        })();
+        })().catch((error) => {
+          if (!(error instanceof Unanswered)) throw error;
+          return `<p class="now">The server didn't answer: try again.</p>`;
+        });
         if (ask !== asked) return;
         answer.innerHTML = said;
         answer.hidden = !said;
@@ -1160,7 +1195,8 @@
       // (Without the changelog, the API's comparisons alone.)
       const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
       tabs = tabsOf(releases(changelog));
-      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
+      // (An id asked for, on the newest release compared, where ids are looked up.)
+      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? (asked0 ? tabs.find((tab) => tab.api) : undefined) ?? tabs[0]);
       else $("lead").textContent = "No release yet.";
     </script>
   </body>

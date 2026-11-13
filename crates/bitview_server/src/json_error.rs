@@ -10,7 +10,7 @@ use axum::{
 use bitview_http::CachePolicy;
 use bitview_types::ErrorCode;
 
-use crate::error::Error;
+use crate::error::{Error, changes_hint};
 
 const MAX_ERROR_BODY_BYTES: usize = 4096;
 
@@ -54,6 +54,17 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
         StatusCode::METHOD_NOT_ALLOWED => (
             ErrorCode::MethodNotAllowed,
             "Method not allowed for this endpoint".into(),
+        ),
+        // A request's path, query or body its route couldn't read (axum's rejection): often one written for a release
+        // that named things otherwise.
+        StatusCode::BAD_REQUEST => (
+            ErrorCode::BadRequest,
+            format!(
+                "{}. {}",
+                if msg.is_empty() { "Bad request" } else { msg.trim_end_matches('.') },
+                changes_hint(None)
+            )
+            .into(),
         ),
         s if s.is_client_error() => (
             ErrorCode::BadRequest,

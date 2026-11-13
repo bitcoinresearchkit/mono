@@ -51,7 +51,7 @@ The hosted showcases, API, and MCP endpoint require no account or authentication
 - [Rust](https://crates.io/crates/bitview_client)
 
 ```bash
-curl https://bitview.space/api/mempool/price
+curl https://bitview.space/api/oracle/price
 curl https://bitview.space/api/series/count
 ```
 

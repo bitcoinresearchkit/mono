@@ -902,6 +902,7 @@
 
     <script type="module">
       // @ts-check
+      import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       // Every day of a year, the pool that found the most blocks (its logo on the day); a day, every block in height
       // order. All from the server that serves the page: the blocks' times and pools by height, the pools' names, and,
       // for a day, each pool's count so far (its nth block ever).
@@ -909,8 +910,6 @@
       const DAY = 86_400_000, GENESIS = "2009-01-03";
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-      // (Logos drawn for one ground: these have their own for the light.)
-      const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
       /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
@@ -942,27 +941,16 @@
        * its background, by a rule written once for its pool (a year's tiles draw some 700, each a picture, a source and
        * an image before: the phone's layout and paint of a year a third longer). */
       const logoRules = /** @type {CSSStyleSheet} */ (document.head.appendChild(document.createElement("style")).sheet);
-      /** Each pool's logo: drawn (its rule written), missing (initials), or being tried, its marks so far kept to turn
-       * into initials if it's missing. @type {Map<string, "drawn" | "missing" | Set<HTMLElement>>} */
-      const logos = new Map();
+      /** The pools whose logo rule is written. @type {Set<string>} */
+      const ruled = new Set();
       function logo(/** @type {string} */ slug) {
         const mark = Object.assign(document.createElement("span"), { className: "logo" });
         mark.dataset.logo = slug;
-        let known = logos.get(slug);
-        if (known === undefined) {
-          const dark = `/assets/pools/${slug}.svg`, light = LIGHT_LOGOS.has(slug) ? `/assets/pools/${slug}.light.svg` : dark;
-          logoRules.insertRule(`.logo[data-logo="${CSS.escape(slug)}"] { --dark: url("${dark}"); --light: url("${light}"); }`);
-          logos.set(slug, (known = new Set()));
-          // (Each of its files tried once, as an image: a background says nothing when it's missing; either missing, its
-          // initials, on either ground.)
-          const tried = [...new Set([dark, light])].map((src) => new Promise((ok, no) => Object.assign(new Image(), { onload: ok, onerror: no, src })));
-          Promise.all(tried).then(() => logos.set(slug, "drawn"), () => {
-            for (const pending of /** @type {Set<HTMLElement>} */ (logos.get(slug))) initials(pending, slug);
-            logos.set(slug, "missing");
-          });
+        if (!LOGOS.has(slug)) initials(mark, slug);
+        else if (!ruled.has(slug)) {
+          logoRules.insertRule(`.logo[data-logo="${CSS.escape(slug)}"] { --dark: url("${poolLogo(slug, false)}"); --light: url("${poolLogo(slug, true)}"); }`);
+          ruled.add(slug);
         }
-        if (known === "missing") initials(mark, slug);
-        else if (known !== "drawn") known.add(mark);
         return mark;
       }
       /** A pool with no logo of its own: its initials, so two such pools still look apart. (Two words, or a word's two

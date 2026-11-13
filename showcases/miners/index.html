@@ -226,6 +226,7 @@
     </main>
     <footer>Every number here is read from the chain by this server. Each height opens its block.</footer>
     <script type="module">
+      import { logo as poolLogo } from "/assets/pools/logos.js";
       /** Rows a single request may hold: 8-byte counts and amounts, 1-byte pools. */
       const COUNT_PAGE = 40_000, POOL_PAGE = 320_000;
       /** The pool rows of nearby blocks are read as one range, up to this gap. */
@@ -285,7 +286,7 @@
       };
       const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
       const number = (value) => value.toLocaleString("en-US");
-      const pool = (slug) => `<span class="pool"><img src="/assets/pools/${esc(slug)}.svg" alt="" />${esc(names.get(slug) ?? "Unknown miner")}</span>`;
+      const pool = (slug) => `<span class="pool"><img src="${poolLogo(slug, false)}" alt="" />${esc(names.get(slug) ?? "Unknown miner")}</span>`;
       const when = (height) => (height === null ? '<span class="none">–</span>' : `<span class="when"><a href="/explorer/block/${height}">${number(height)}</a><small>${dateOf(height)}</small></span>`);
       const table = (columns, rows) => `<table><thead><tr>${columns.map(([label, kind]) => `<th${kind ? ' class="num"' : ""}>${label}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
       const byFirst = (entries) => [...entries].sort((a, b) => a[1].first - b[1].first);
@@ -296,11 +297,6 @@
         const slugs = await heights("block_pool", from, tip, POOL_PAGE);
         return (height) => slugs[height - from];
       });
-
-      // A pool logo that is missing shows the default one.
-      document.addEventListener("error", ({ target }) => {
-        if (target.matches?.(".pool img") && !target.src.endsWith("/assets/pools/default.svg")) target.src = "/assets/pools/default.svg";
-      }, true);
 
       const counted = async (name, id, column, first) => {
         try {
