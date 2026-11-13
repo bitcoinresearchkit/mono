@@ -10722,7 +10722,7 @@
             <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
             <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).</li>
             <li>"gradient": [[0, "blue"], [60, "yellow"], [100, "red"]] on a line, dots, an area, bars, a cloud, a trend or a heatmap: its colors by its value instead, date by date, from its lowest value (0) to its highest (100), 2 to 4 colors, each at its place, mixed between them (past the outer ones, theirs); its lowest and highest of all its history (at an interval under a day, of what's loaded), or with "upToDate": true of its history up to each date (no hindsight); kept but off, "byGradient": false. A heatmap's by its cells' strength (its unrealized P&amp;L's: loss at 0, none at 50, profit at 100).</li>
-            <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.</li>
+            <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, above each level, that level's color (give each one its "color"); under them all, its own. A line or an area changes color exactly where it crosses a level, its fill parted there; dots and bars each take their own value's color.</li>
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.05 to 1, by 0.05 (1 if none; a cloud's 0.2, solid at 1).</li>
@@ -13534,8 +13534,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   they're far: a spike, a far tail.
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
-       *   `byLevels`: colored by its levels instead, date by date: above each, that level's color; under them all, its own
-       *   (a line's, dots', an area's or bars'; never with `colorFrom`).
+       *   `byLevels`: colored by its levels instead: above each, that level's color; under them all, its own (a line's,
+       *   dots', an area's or bars'; never with `colorFrom`). A line or an area by height, parted where it crosses a level
+       *   (stacked, at its total, date by date); dots and bars each by their own value.
        *   `byGradient`: colored by its value instead, date by date, along its `gradient`: its stops (2 to 4, each where it
        *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
        *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
@@ -18834,7 +18835,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * What a layer paints at each date (its colors' names, its opacity aside): one taking its colors from another, that
        * one's as drawn (a loop of those: its own); with two, the one its value calls for: a baseline's or bars' over or
        * under their base, a trend's on resistance or support, a cloud's by which of its two is over; by its levels, the
-       * highest one under its value. Null: its one color all along (a date its source has no value at: its own color
+       * highest one under its value (as its readings say it; a line or an area not stacked is drawn parted by height
+       * instead, see zoned in draw). Null: its one color all along (a date its source has no value at: its own color
        * there).
        * @param {Chart} doc @param {Layer} layer @param {Resolved} data @returns {((i: number) => string | null) | null}
        */
