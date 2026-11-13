@@ -230,16 +230,15 @@ impl Query {
         let pin = self.read_pin(pin);
         let weights = self.urpd_weights(ages, height, weight)?;
         let version = self.urpd_grid_version();
-        let grid = {
-            // Held while building: requests for the same block wait for this build, not another.
-            let mut last = self.0.urpd_grid.lock();
-            match &*last {
-                Some(grid) if grid.hash == hash && grid.version == version => Arc::clone(grid),
-                _ => {
-                    let grid = Arc::new(self.urpd_grid(&pin, height, hash, version)?);
-                    *last = Some(Arc::clone(&grid));
-                    grid
-                }
+        let last = self.0.urpd_grid.lock().clone();
+        let grid = match last {
+            Some(grid) if grid.hash == hash && grid.version == version => grid,
+            // Built unlocked so different blocks build at once; concurrent misses on one block
+            // each build it, as many as the route admits.
+            _ => {
+                let grid = Arc::new(self.urpd_grid(&pin, height, hash, version)?);
+                *self.0.urpd_grid.lock() = Some(Arc::clone(&grid));
+                grid
             }
         };
         let header = UrpdHeader {
