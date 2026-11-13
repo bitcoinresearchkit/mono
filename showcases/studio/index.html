@@ -11134,7 +11134,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
       import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { AGES, HOLDERS, capitalized, dimensionBand, holderName, shownStep } from "/studio/words.js";
@@ -17545,7 +17545,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const shown = !layer.hidden && !signal;
           const tags = { hidden: !shown, tag: shown && !foldedLayers.has(layer.id), priceLine: Boolean(layer.priceLine) && !stack && !signal, format: format.value, outline: Boolean(layer.outline) && OUTLINED.has(layer.type) ? css("--card") : null };
           // (Its line's: width, dashes (by its width as set), steps or curved, its crosshair dot.)
-          const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0 };
+          // (Its last period still running, a period's amount (see periodAmount): drawn partial, the library's way.)
+          const partial = periodAmount(layer);
+          const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0, partial };
           const pane = paneIndex.get(layer.pane) ?? 0;
           const candles = layer.type === "candles" && result?.ohlc;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
@@ -17641,9 +17643,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its levels' zones, in their colors as its own are painted: a line's, an area's fill and fade; none, its own color.)
             const fill = fillOf(layer, false), zones = (/** @type {(c: string) => Record<string, string>} */ look) => (zoned ? zoned.map((step) => ({ value: step.value, ...look(ink(step.color)) })) : null);
             const lineZones = zones((c) => ({ color: op < 1 ? alpha(c, op) : c }));
-            const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null } }]
+            const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null, partial: false } }]
               : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: lineZones }, band: { color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve, zones: zones((c) => ({ color: alpha(c, fill[0] * op), fade: alpha(c, fill[1] * op) })) } }]
-              : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER } }]
+              : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER, partial } }]
               // (A baseline's line by its base: its second color under it, its own from it up.)
               : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.under, zones: [{ value: base, color: paint.line }] }, band: { color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve, zones: null } }]
               : ["line", { line: { ...stroke, color: paint.color, zones: lineZones } }];
@@ -18146,12 +18148,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return at < 0 ? NaN : /** @type {Float64Array} */ (resolved?.results.get(layer.id)?.values)[at];
       }
       /**
-       * A retained older reading's date: always outside the view, inside it when more than one point behind its end
-       * (the live price can be one ahead of the other series).
+       * What's said after a reading: its last period's "so far" (a period's amount, its period still running: see
+       * periodAmount); else a retained older reading's date: always outside the view, inside it when more than one point
+       * behind its end (the live price can be one ahead of the other series).
        */
       function asOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
-        const at = valuePointOf(layer, point), times = resolved?.times;
+        const at = valuePointOf(layer, point), times = resolved?.times, values = resolved?.results.get(layer.id)?.values;
+        if (at >= 0 && values && periodAmount(layer) && values.findLastIndex(Number.isFinite) === at) return "so far";
         return point.rest && at >= 0 && times && (at < point.at - 1 || at < firstInView()) ? pointLabel(times[at]) : "";
+      }
+      /**
+       * Whether a layer is an amount over each calendar period (a flow() of a running total: a year's), whose last period
+       * is still running (the chain goes on to now): drawn partial, read "so far". Nothing else is: a level, a trailing
+       * window's sum (the server's day, week or month is a whole window ending at its last block), a running total.
+       * @param {Layer} layer
+       */
+      function periodAmount(layer) {
+        if (typeof layer.formula !== "string") return false;
+        try {
+          const node = parse(layer.formula);
+          return node.k === "call" && node.f === "flow";
+        } catch {
+          return false;
+        }
       }
       /**
        * A cloud's range at a point, as its legend writes it: its lower to its higher (`lines`: its higher over its lower,
@@ -25020,6 +25039,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             const drawLayer = ({ layer, unseen, scaled, bars, base, level, points, band, bands }) => {
               if (unseen) return;
+              // (A period's amount's last point, its period still running (see periodAmount): drawn partial, as on the chart,
+              // where it's drawn: its bar faint, a line's segment to it dashed. Of its data, before it's put in buckets.)
+              const partial = periodAmount(layer) ? data.results.get(layer.id)?.values?.findLastIndex(Number.isFinite) ?? -1 : -1;
               // (None stacked, nor on a % or indexed scale: see acrossUnfit.)
               const across = acrossUnfit(doc, layer) ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", base]] : [])];
               for (const [key, value] of across) {
@@ -25088,12 +25110,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 let d = "", d2 = "";
                 const painted = new Map();
                 // A bar a bucket, at its middle, to the one of its extremes farthest from the base (painted: in its date's
-                // color, whichever side).
+                // color, whichever side). A period's amount's last, its period still running, faint apart, as the chart's.
                 points.forEach((point, b) => {
                   if (!point) return;
                   const [i, value] = point.reduce((far, next) => (Math.abs(next[1] - base) > Math.abs(far[1] - base) ? next : far));
                   const bar = `M${x(middleOf(b))} ${y(base)}V${y(value)}`;
-                  if (dateColors) painted.set(tintAt(i), (painted.get(tintAt(i)) ?? "") + bar);
+                  if (i === partial) drawn.marks.push({ ...look, c: dateColors ? tintAt(i) : value >= base ? layer.color : belowOf(layer), k: "bars", d: bar, op: (look.op ?? 1) * PARTIAL_SHARE });
+                  else if (dateColors) painted.set(tintAt(i), (painted.get(tintAt(i)) ?? "") + bar);
                   else if (value >= base) d += bar;
                   else d2 += bar;
                 });
@@ -25104,12 +25127,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // Its runs: the buckets with a value, unbroken.
               const runs = runsOf(points);
               if (!runs.length) return;
-              const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
+              const whole = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
+              // (A line's partial point (see `partial`), as the chart draws it: the segment to it from the point before it
+              // (no gap between) dashed apart, in its color there, the rest without it.)
+              const final = whole(runs[runs.length - 1]).slice(-2), tail = layer.type === "line" && final.length === 2 && final[1][0] === partial && final[0][0] === partial - 1 ? final : null;
+              const along = (/** @type {number[]} */ part) => (tail ? whole(part).filter(([i]) => i !== partial) : whole(part));
               // (Its latest value's dot, in the color it's drawn in there.)
               // (Painted date by date, its pieces by color; else one a run.)
-              const pieces = dateColors ? byColor(joined(runs.map(along)), ([i]) => tintAt(i), layer.type !== "dots") : runs.map((run) => ({ color: layer.color, points: along(run) })), last = pieces.at(-1);
+              const pieces = (dateColors ? byColor(joined(runs.map(along)), ([i]) => tintAt(i), layer.type !== "dots") : runs.map((run) => ({ color: layer.color, points: along(run) }))).filter((piece) => piece.points.length), last = pieces.at(-1);
               if (!last) return;
-              const [endAt, endValue] = /** @type {[number, number]} */ (last.points.at(-1));
+              const [endAt, endValue] = /** @type {[number, number]} */ (tail ? tail[1] : last.points.at(-1));
               const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
               // (The latest value's color last: its dot over the rest.)
               for (const [c, parts] of [...perColor(pieces)].sort(([a], [b]) => Number(a === last.color) - Number(b === last.color))) {
@@ -25119,11 +25146,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 }
                 // (Each part's points written once: its line's, and a band's way along them.)
                 const written = parts.map((part) => part.map(at).join("L"));
-                const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}), ...(zones ? { z: zones } : {}) };
+                const line = { ...look, c, d: written.map((points) => `M${points}`).join(""), ...(c === last.color && !tail ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}), ...(zones ? { z: zones } : {}) };
                 if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, f: fillOf(layer, Boolean(floorAt)), ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part, k) => `M${written[k]}${backAlong(part)}Z`).join("") } : {}) });
                 else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
                 else drawn.marks.push({ ...line, k: "line" });
               }
+              if (tail) drawn.marks.push({ ...look, c: dateColors ? tintAt(partial) : layer.color, k: "line", d: `M${at(tail[0])}L${at(tail[1])}`, dash: "3 3", end: [x(endAt), y(endValue)], ...(zones ? { z: zones } : {}) });
             };
             for (const item of shaped) {
               const start = drawn.marks.length;

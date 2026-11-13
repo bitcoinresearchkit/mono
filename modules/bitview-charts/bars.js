@@ -10,6 +10,8 @@ import { barStyle } from "./bar-style.js";
 
 /** A rounded rect's corners, at its value's end (top or bottom), made once and set at each draw. */
 const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
+/** A partial bar's share of its opacity (see Bars' partial; a page drawing its own pictures of bars, the same). */
+export const PARTIAL = 0.4;
 /** Its own extent, read before it widens the pane's. */
 const OWN = new Float64Array(2);
 
@@ -29,12 +31,13 @@ function barShape(g, x, width, y, baseY, sign, dpr, pad, radius) {
 
 export class Bars extends Line {
   /**
-   * `radius`, its corners' at their value's end (a number, or one by the spacing of its points).
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number), outline?: string | null }} [options]
+   * `radius`, its corners' at their value's end (a number, or one by the spacing of its points); `partial`, its last bar's
+   * period still running: that bar at PARTIAL of its opacity, where bars have room (see wide).
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number), outline?: string | null, partial?: boolean }} [options]
    */
-  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2, outline = null } = {}) {
+  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2, outline = null, partial = false } = {}) {
     // (No crosshair dot on bars.)
-    super({ values, color, colors, palette, marker: 0, outline });
+    super({ values, color, colors, palette, marker: 0, outline, partial });
     this.base = base;
     this.radius = radius;
   }
@@ -61,15 +64,25 @@ export class Bars extends Line {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.values.length) return;
-    const colors = this.colors && this.palette.length ? this.colors : null;
-    // (Its outline first (each bar a pixel and a half wider all round), all of them one fill; then one fill a color.)
-    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr)), g.fill();
+    const colors = this.colors && this.palette.length ? this.colors : null, partial = time.spacing >= 3 ? this.partialAt() : -1;
+    // (Its outline first (each bar a pixel and a half wider all round), all of them one fill; then one fill a color. Its
+    // partial bar apart, last, faint in its color, outline and all.)
+    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr), partial), g.fill();
     for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
       g.fillStyle = pass < 0 ? this.color : this.palette[pass];
       g.beginPath();
-      this.#shapes(g, time, scale, x0, x1, dpr, colors, pass, 0);
+      this.#shapes(g, time, scale, x0, x1, dpr, colors, pass, 0, partial);
       g.fill();
     }
+    if (partial < 0 || time.x(partial) < x0 - time.spacing || time.x(partial) > x1 + time.spacing) return;
+    const alpha = g.globalAlpha;
+    g.globalAlpha = alpha * PARTIAL;
+    if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr), -1, partial), g.fill();
+    g.fillStyle = this.colorAt(partial);
+    g.beginPath();
+    this.#shapes(g, time, scale, x0, x1, dpr, null, -1, 0, -1, partial);
+    g.fill();
+    g.globalAlpha = alpha;
   }
 
   /**
@@ -77,8 +90,9 @@ export class Bars extends Line {
    * wider all round (an outline's).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr @param {Uint8Array | Uint16Array | null} colors @param {number} pass @param {number} pad
+   * @param {number} [skip] a bar left out (its partial one), none: -1 @param {number} [only] the one bar drawn, all: -1
    */
-  #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad) {
+  #shapes(g, time, scale, x0, x1, dpr, colors, pass, pad, skip = -1, only = -1) {
     // (On a log scale, its values over zero; with its base none there (zero or under), its bars from the scale's lowest,
     // one under it a stub there, see barShape.)
     const values = this.values, n = values.length, base = this.base, log = scale.mode === "log";
@@ -88,9 +102,9 @@ export class Bars extends Line {
     ROUND_UP[0] = ROUND_UP[1] = ROUND_DOWN[2] = ROUND_DOWN[3] = radius;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     if (wide) {
-      for (let i = a; i <= b; i++) {
+      for (let i = only < 0 ? a : Math.max(a, only); i <= (only < 0 ? b : Math.min(b, only)); i++) {
         const v = values[i];
-        if (!(log ? v > 0 : v === v) || (colors && colors[i] !== pass)) continue;
+        if (!(log ? v > 0 : v === v) || i === skip || (colors && colors[i] !== pass)) continue;
         const x = time.x(i), y = scale.y(v);
         // (Its edges on device pixels: bars side by side keep even gaps.)
         const left = time.snap(x - half, dpr) - pad, right = time.snap(x + half, dpr) + pad;

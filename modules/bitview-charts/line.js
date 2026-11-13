@@ -23,6 +23,8 @@ function zoneIndex(zones, v) {
 }
 /** `v`'s color by `zones`: its zone's, else `own`. @param {readonly import("./color.js").Zone[]} zones @param {number} v @param {string} own */
 const zoneOf = (zones, v, own) => ((k) => (k < 0 ? own : zones[k].color))(zoneIndex(zones, v));
+/** A partial segment's dashes, in widths of its line (see Line's partial). */
+const PARTIAL_DASH = [2, 2];
 /** No dashes (made once). */
 const SOLID = /** @type {number[]} */ ([]);
 /** CSS pixels along a dashed line between the places its subpath may be split (see the pen's to()). */
@@ -255,10 +257,11 @@ export class Line {
    * dashes from where its path starts); `curve`, bowed through its points (zoomed in), as the chart library's
    * curves (each segment's bend from its points' neighbors); `zones`, its colors by value, low to high, each from its
    * value up, its own under them all (a line colored by its levels, a baseline's by its base: its color changing exactly
-   * where it crosses one, see Fill's zoned).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null }} [options]
+   * where it crosses one, see Fill's zoned); `partial`, its last point's period still running (a year so far): the segment
+   * to it dashed (bars: that bar faint), where its points have room (a pixel or more each).
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, partial?: boolean }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null, partial = false } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -279,6 +282,7 @@ export class Line {
     this.curve = curve;
     /** @type {readonly import("./color.js").Zone[] | null} */
     this.zones = zones && zones.length ? zones : null;
+    this.partial = partial;
     // (Its dashes' anchors: the first and last points its last draw drew (-1: none yet), its path's length at each from
     // its dash origin.)
     this.dashFirst = -1;
@@ -334,11 +338,11 @@ export class Line {
     this.summary?.set(i);
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, partial?: boolean }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones, partial = this.partial }) {
     this.version++;
     this.drifts = false;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.zones = zones && zones.length ? zones : null);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.zones = zones && zones.length ? zones : null), (this.partial = partial);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -578,6 +582,18 @@ export class Line {
     const dash = this.dash, period = dash && !measuring && !(this.curve && !this.steps) ? periodOf(dash) : 0;
     const phase = period > 0 && time.x(0) - 1 <= x1 && time.x(this.values.length - 1) + 1 >= x0 ? this.#anchor(g, time, scale, x0, x1, dpr, colors) : 0;
     if (dash) g.setLineDash(dash);
+    // (Its partial point's segment (see #held), after each pass's own, in the same style, dashed.)
+    const held = time.spacing >= 1 ? this.#held(scale) : -1, partialDash = held < 0 ? SOLID : PARTIAL_DASH.map((part) => part * this.width);
+    const tail = (/** @type {number} */ pass) => {
+      if (held < 0) return;
+      g.setLineDash(partialDash);
+      g.beginPath();
+      pen.start(g, dpr, pass, 0, partialDash, periodOf(partialDash));
+      this.#trace(time, scale, x0, x1, colors, held);
+      pen.lift();
+      g.stroke();
+      g.setLineDash(dash ?? SOLID);
+    };
     // (Its outline first: its whole path in it, three times as wide, round at its joins (bevelled, its corners show);
     // dashed and colored, a color's segments at a time, as its strokes are, so their dashes start where theirs do.)
     if (this.outline) {
@@ -591,6 +607,7 @@ export class Line {
         this.#trace(time, scale, x0, x1, colors);
         pen.lift();
         g.stroke();
+        tail(pass);
       }
     }
     g.lineWidth = this.width;
@@ -611,11 +628,27 @@ export class Line {
       this.#trace(time, scale, x0, x1, colors);
       pen.lift();
       g.stroke();
+      tail(spans ? -1 : pass);
       if (spans) g.restore();
       if (period > 0 && pen.longest > DRIFT) this.drifts = true;
     }
     if (dash) g.setLineDash(SOLID), (g.lineDashOffset = 0);
     if (period > 0) (this.dashLast = pen.lastId), (this.dashLastAt = pen.last);
+  }
+
+  /** Its partial point (see `partial`): its last with a value, whatever its scale shows; none, -1. */
+  partialAt() {
+    return this.partial ? this.last(false) : -1;
+  }
+
+  /**
+   * Its partial point where the segment to it is drawn apart, dashed: the point before it has a value, the line goes on
+   * from it (no break after it), both shown on `scale`; else -1.
+   * @param {import("./scale.js").Scale} scale
+   */
+  #held(scale) {
+    const i = this.partialAt(), v = this.values;
+    return i > 0 && (scale.mode === "log" ? v[i] > 0 && v[i - 1] > 0 : v[i - 1] === v[i - 1]) && !(this.breaks && this.breaks[i - 1] === 1) ? i : -1;
   }
 
   /**
@@ -676,17 +709,19 @@ export class Line {
   /**
    * Its points from `x0` to `x1`, written to the pen.
    * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {number} x0 @param {number} x1
-   * @param {Uint8Array | Uint16Array | null} colors
+   * @param {Uint8Array | Uint16Array | null} colors @param {number} [only] its partial point's index: the segment to it
+   * alone (see #held); none, all but that segment
    */
-  #trace(time, scale, x0, x1, colors) {
+  #trace(time, scale, x0, x1, colors, only = -1) {
     const values = this.values, breaks = this.breaks, n = values.length, log = scale.mode === "log";
     if (time.spacing >= 1) {
       // (A pixel or more a point: each point, and one past each end, so the line reaches the edges.)
-      const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
-      // (Stepped: each value held to the next point, then up or down to its value there.)
+      const held = only < 0 ? this.#held(scale) : -1, a = only < 0 ? Math.max(0, Math.floor(time.index(x0)) - 1) : only - 1, b = only < 0 ? Math.min(n - 1, Math.ceil(time.index(x1)) + 1) : only;
+      // (Stepped: each value held to the next point, then up or down to its value there. Its partial point left out:
+      // the segment to it drawn apart, see #stroke.)
       for (let i = a; i <= b; i++) {
         const v = values[i];
-        if (!(log ? v > 0 : v === v)) {
+        if (!(log ? v > 0 : v === v) || i === held) {
           pen.lift();
           continue;
         }

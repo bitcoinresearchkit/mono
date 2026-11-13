@@ -21,7 +21,7 @@ import { Crosshair } from "./crosshair.js";
 export { Timeline, Pane, TimeAxis, lastIn };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
-export { Bars } from "./bars.js";
+export { Bars, PARTIAL } from "./bars.js";
 export { Candles, BODIES_FROM } from "./candles.js";
 export { Bubbles } from "./bubbles.js";
 export { Shade } from "./shade.js";

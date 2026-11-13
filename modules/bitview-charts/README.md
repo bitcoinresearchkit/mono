@@ -108,7 +108,8 @@ clears); avoid reflecting programmatic calls. A programmatic
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
   `zones`, `[{ value, color }]` low to high: its colors by value, each from its value up, its own under them all, changing
-  exactly where it crosses one (a line colored by levels, a baseline's by its base); `dash`, its dashes.
+  exactly where it crosses one (a line colored by levels, a baseline's by its base); `dash`, its dashes; `partial`, its
+  last point's period still running (a year so far): the segment to it dashed, where points have a pixel or more.
 - `Band({ lower, upper, base, color, fade, below, belowFade, to, steps, zones })`: a fill between two columns (`steps`: its
   edges steps); without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with
   `below`, a baseline (under its base in that color); `fade`, `belowFade`, the colors they fade to (gradients fixed to
@@ -117,7 +118,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   where its edges cross on the way to a point in another color, changing color at the crossing: a cloud between two
   lines, its edges the two, colored by which one is over); `zones` (`{ value, color, fade }` low to high), an area
   filled by value, parted exactly where its line crosses a zone's value, each part fading as the whole would.
-- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down, upWick,
+- `Bars({ values, base, color, colors, palette, radius, partial })` (`partial`: its last bar at `PARTIAL` of its opacity), `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
   number or one by its points' spacing). Under `BODIES_FROM` pixels a point (3), candles are drawn as their wicks
