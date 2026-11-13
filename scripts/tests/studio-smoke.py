@@ -3,7 +3,8 @@
 # requires-python = ">=3.11"
 # dependencies = ["playwright>=1.49"]
 # ///
-"""Smoke checks for what Studio can't undo: saved charts survive reloads, the page draws, a shared link opens.
+"""Smoke checks for what Studio can't undo: saved charts survive reloads, the page draws, a shared link opens, and what
+seo.mjs makes from the presets is current (presets.hash among it: returning browsers keep their presets by it).
 
 Run before a Studio commit: uv run --script scripts/tests/studio-smoke.py [--base http://127.0.0.1:3110]
 """
@@ -13,6 +14,7 @@ import base64
 import json
 import mimetypes
 import os
+import subprocess
 import sys
 import time
 import traceback
@@ -455,6 +457,15 @@ OLD = {
 # ── The checks
 
 
+def check_made_files(run):
+    """What seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml, running-totals.js) is as it would make them now, from the server's chain."""
+    done = subprocess.run(["bun", str(ROOT / "showcases" / "studio" / "seo.mjs"), "--check", run.base], capture_output=True, text=True)
+    said = (done.stdout + done.stderr).strip().splitlines()
+    if done.returncode:
+        raise Failure(next((line for line in reversed(said) if line.strip()), f"seo.mjs --check exited {done.returncode}"))
+    return said[-1] if said else "up to date"
+
+
 def check_saved_charts(run):
     """Saved charts and libraries survive reloads, a first load over storage already written, and an older Studio's library."""
     stored, want = run.library()
@@ -616,6 +627,7 @@ def check_shared_link(run):
 
 
 CHECKS = [
+    ("made files", check_made_files),
     ("saved charts", check_saved_charts),
     ("page draws", check_page_draws),
     ("shared link", check_shared_link),
