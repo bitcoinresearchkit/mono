@@ -838,6 +838,136 @@
         }
       }
 
+      .distribution {
+        margin-top: 36px;
+
+        > header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          gap: 12px 28px;
+          margin-bottom: 4px;
+        }
+
+        h3 { color: var(--ink); font: 400 26px/1.2 var(--serif); }
+        figure { margin: 0; }
+
+        .index-lines {
+          flex-wrap: wrap;
+          gap: 0 20px;
+
+          button { min-height: 44px; min-width: 44px; }
+          [data-distribution-line] { font-weight: 600; }
+          [data-distribution-line][aria-pressed="true"] {
+            color: var(--ink);
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 6px;
+          }
+        }
+
+        .distribution-plot {
+          position: relative;
+          height: clamp(320px, 44svh, 460px);
+          @media (max-width: 719px) { height: 260px; }
+        }
+
+        canvas, .distribution-input {
+          display: block;
+          width: 100%;
+          height: 100%;
+          touch-action: pan-y;
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
+        }
+
+        canvas { cursor: crosshair; }
+
+        /* A real adjustable control for keyboard and VoiceOver; pointer inspection goes to the canvas below it. */
+        .distribution-input {
+          position: absolute;
+          inset: 0;
+          margin: 0;
+          padding: 0;
+          border: 0;
+          appearance: none;
+          -webkit-appearance: none;
+          background: transparent;
+          pointer-events: none;
+
+          &::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 0; height: 0; }
+          &::-moz-range-thumb { width: 0; height: 0; border: 0; }
+          &::-moz-range-track { background: transparent; }
+        }
+
+        .distribution-legend {
+          display: flex;
+          align-items: center;
+          gap: 0 24px;
+          margin-bottom: 12px;
+          font-variant-numeric: tabular-nums;
+
+          @media (max-width: 719px) { display: block; }
+        }
+
+        #distribution-bucket {
+          flex: 0 0 154px;
+          min-height: 28px;
+          margin: 0;
+          color: var(--ink);
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        #distribution-phases {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+          gap: 4px 16px;
+          flex: 1;
+          min-width: 0;
+
+          @media (max-width: 719px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        .distribution-entry {
+          --phase: var(--ink);
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          align-content: center;
+          gap: 0 .3em;
+          min-height: 44px;
+          min-width: 0;
+          padding: 0;
+          border: 0;
+          background: none;
+          color: var(--ink);
+          font: 600 13px/1.5 var(--sans);
+          font-variant-numeric: tabular-nums;
+          text-align: left;
+
+          @media (max-width: 719px) { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center; }
+
+          .distribution-name { display: inline-flex; align-items: center; gap: 4px; color: var(--phase); }
+          svg { width: 14px; height: 14px; flex: none; }
+          .distribution-values { display: inline-flex; align-items: baseline; gap: .25em; white-space: nowrap; }
+          .distribution-count { min-width: 3ch; text-align: right; }
+          .distribution-unit { min-width: 4ch; }
+          .distribution-share { min-width: 6ch; }
+          &[aria-pressed="false"] {
+            color: var(--faint);
+            .distribution-name { color: inherit; text-decoration: line-through; }
+            svg { opacity: 0.4; }
+          }
+        }
+
+        button.distribution-entry:hover .distribution-name { text-decoration: underline dotted; text-underline-offset: 4px; }
+
+        figcaption { margin-top: 16px; max-width: 88ch; color: var(--soft); font-size: 13px; }
+        #distribution-span { display: block; margin-bottom: 4px; }
+      }
+
       /* A mood or trend lit (see light): pressable wherever it's named; the compass's other cells and the other rows
          dimmed; over the chart, the mood underlined (dotted and faint, stronger under a mouse, so it reads as pressable
          without a hover; solid once lit) and the trend's pill, already a button's shape, ringed inside once lit. */
@@ -1379,6 +1509,27 @@
           <canvas id="index-canvas" aria-hidden="true"></canvas>
         </figure>
         <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The <b>raw</b> index, faint beside it or shown alone: the compass's own place ranked the same way, closer to the moods, and faster. The lane under them is the trend's, as under the price.</p>
+        <div class="distribution" id="distribution" role="group" aria-labelledby="distribution-title">
+          <header>
+            <h3 id="distribution-title">Days at each value</h3>
+            <div class="index-lines" id="distribution-lines" role="group" aria-label="Distribution index">
+              <button type="button" data-distribution-line="index" aria-pressed="true">Index</button>
+              <button type="button" data-distribution-line="raw" aria-pressed="false">Raw</button>
+            </div>
+          </header>
+          <figure>
+            <div class="distribution-legend">
+              <p id="distribution-bucket">Today —</p>
+              <div id="distribution-phases" role="group" aria-label="Phase visibility and cumulative shares"></div>
+            </div>
+            <div class="distribution-plot">
+              <canvas id="distribution-canvas" aria-hidden="true"></canvas>
+              <input class="distribution-input" id="distribution-input" type="range" min="0" max="0" value="0" aria-label="Index distribution bucket" aria-valuetext="No daily data loaded" aria-describedby="distribution-help" disabled />
+            </div>
+            <figcaption><span id="distribution-span">Ranked daily history</span>Bars count days in each phase. The % is each phase’s share of its days below this value; All counts every visible day. Point, slide or use the arrow keys to read; select a phase to hide it.</figcaption>
+          </figure>
+          <p class="sr" id="distribution-help">Two-point buckets include their lower edge; the last includes 100. Cumulative shares count days below the upper edge, through 100 in the last bucket. Full history through today, independent of replay. Use the arrow keys, Home and End to read buckets. Escape returns to today.</p>
+        </div>
       </section>
 
       <section class="part" aria-labelledby="how-title">
@@ -1613,6 +1764,7 @@
 
       /** The days an index has behind it before it's said: a year (fewer, it'd be ranked against next to nothing). */
       const RANKED_AFTER = 365;
+      const rankedFrom = (/** @type {Days} */ d) => d.first + RANKED_AFTER;
       /**
        * Each day from `first` to `last`, 0 to 100: the share of the days before it at or under its value, each weighted
        * half as much a halving cycle further back, as placeOf ranks a place outside a cloud (the first day, 50).
@@ -1727,18 +1879,21 @@
         probe.remove();
         return color;
       }
-      /** @type {{ states: string[], trends: string[], trendLine: string, ink: string, faint: string, long: string, short: string, app: string }} */
+      /** @type {{ states: string[], trends: string[], trendCurves: string[], trendLine: string, ink: string, faint: string, long: string, short: string, app: string }} */
       let paint;
       function repaint() {
         paint = {
           states: STATES.map((s) => resolved(`var(--s-${s.id})`)),
           trends: TRENDS.map((t) => resolved(`var(--s-${t.color})`)),
+          // (Cumulative curves shift lightness while retaining each phase's hue and chroma.)
+          trendCurves: TRENDS.map((t) => resolved(`light-dark(oklch(from var(--s-${t.color}) calc(l * .72) c h), oklch(from var(--s-${t.color}) min(.88, calc(l + .12)) c h))`)),
           trendLine: resolved("var(--trend-line)"),
           ink: resolved("var(--ink)"), faint: resolved("var(--faint)"),
           long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
         // (New colours: every drawing kept as a bitmap made again.)
         stillKey = panKey = stripKey = "";
+        refreshDistribution();
       }
 
       // ── What's shown: the span, the day ──
@@ -2744,7 +2899,7 @@
       function drawIndex() {
         const w = indexCanvas.clientWidth, h = indexCanvas.clientHeight;
         if (!days || !w) return;
-        const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, lane = bottom + INDEX_LAYOUT.lane, from = d.first + RANKED_AFTER;
+        const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, lane = bottom + INDEX_LAYOUT.lane, from = rankedFrom(d);
         const x = (/** @type {number} */ day) => ((day - from + 0.5) / (d.last - from + 1)) * right;
         const y = (/** @type {number} */ index) => INDEX_LAYOUT.top + (1 - index / 100) * (bottom - INDEX_LAYOUT.top);
         const colourOf = (/** @type {number} */ index) => indexMix(index, [paint.states[0], paint.states[4], paint.states[8]]);
@@ -2864,9 +3019,10 @@
       new ResizeObserver(redraw).observe(indexCanvas);
       /** A mouse reads the day under it; a finger, while it holds and slides. */
       const pointIndex = (/** @type {PointerEvent} */ e) => {
-        const d = /** @type {Days} */ (days), w = indexCanvas.clientWidth - INDEX_LAYOUT.right, from = d.first + RANKED_AFTER;
-        if (!days || e.offsetX > w) return leaveIndex();
-        indexAt = Math.max(from, Math.min(d.last, from + Math.floor((e.offsetX / w) * (d.last - from + 1))));
+        if (!days) return;
+        const d = days, w = indexCanvas.clientWidth - INDEX_LAYOUT.right, from = rankedFrom(d), x = e.clientX - indexChart.getBoundingClientRect().left;
+        if (x < 0 || x > w) return leaveIndex();
+        indexAt = Math.max(from, Math.min(d.last, from + Math.floor((x / w) * (d.last - from + 1))));
         redraw();
       };
       const leaveIndex = () => {
@@ -2874,10 +3030,18 @@
         indexAt = null;
         redraw();
       };
-      indexChart.addEventListener("pointerdown", pointIndex);
-      indexChart.addEventListener("pointermove", pointIndex);
-      for (const type of ["pointerleave", "pointercancel"]) indexChart.addEventListener(type, leaveIndex);
-      indexChart.addEventListener("pointerup", (e) => e.pointerType !== "mouse" && leaveIndex());
+      inspectPointers(indexChart, pointIndex, leaveIndex);
+      /** One pointer lifecycle for the index history and its distribution: a mouse hovers, a finger holds/slides. */
+      function inspectPointers(/** @type {HTMLElement} */ element, /** @type {(event: PointerEvent) => void} */ point, /** @type {() => void} */ leave, focus = () => {}) {
+        element.addEventListener("pointerdown", (e) => {
+          if (e.pointerType === "mouse") focus();
+          else element.setPointerCapture(e.pointerId);
+          point(e);
+        });
+        element.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) point(e); });
+        for (const event of ["pointerleave", "pointercancel", "lostpointercapture"]) element.addEventListener(event, leave);
+        element.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") leave(); });
+      }
       /** The header's switches, a line each: pressed, it's shown; the one shown alone stays (never neither). */
       const lineSwitches = $("index-lines");
       lineSwitches.addEventListener("click", (e) => {
@@ -2890,6 +3054,210 @@
         lineSwitches.dataset.alone = lines.index && lines.raw ? "" : lines.index ? "index" : "raw";
         redraw();
       });
+
+      // ── One daily distribution, with an independent Index / Raw choice. ──
+
+      const DISTRIBUTION_BINS = 50, DISTRIBUTION_WIDTH = 100 / DISTRIBUTION_BINS;
+      const distributionValue = (/** @type {number} */ value) => Number.isFinite(value) && value >= 0 && value <= 100 ? value : NaN;
+      const bucketOf = (/** @type {number} */ value) => Math.min(DISTRIBUTION_BINS - 1, Math.floor(value / DISTRIBUTION_WIDTH));
+      const emptyDistribution = () => ({ counts: new Uint32Array(DISTRIBUTION_BINS), cumulative: new Uint32Array(DISTRIBUTION_BINS), total: 0 });
+      /** Counts and cumulative counts share exactly the same eligible days and denominator. */
+      function distributionOf(/** @type {Days} */ d, /** @type {"index" | "raw"} */ line) {
+        const phases = TRENDS.map(emptyDistribution);
+        for (let i = rankedFrom(d); i <= d.last; i++) {
+          const value = distributionValue(d[line][i]), phase = phases[d.trend[i]];
+          if (!phase || !Number.isFinite(value)) continue;
+          phase.counts[bucketOf(value)]++;
+          phase.total++;
+        }
+        for (const phase of phases) {
+          let count = 0;
+          phase.counts.forEach((n, b) => { count += n; phase.cumulative[b] = count; });
+        }
+        return phases;
+      }
+      /** All is a pool of the visible observations, rather than an average of phase percentages. */
+      function combinedDistribution(/** @type {ReturnType<typeof distributionOf>} */ phases, /** @type {boolean[]} */ visible) {
+        const combined = emptyDistribution();
+        phases.forEach((phase, t) => {
+          if (!visible[t]) return;
+          combined.total += phase.total;
+          phase.counts.forEach((n, b) => { combined.counts[b] += n; combined.cumulative[b] += phase.cumulative[b]; });
+        });
+        return combined;
+      }
+
+      /** Keeps the distribution's state, cached drawing and input handling together. */
+      const refreshDistribution = (() => {
+        const phases = $("distribution-phases"), switches = $("distribution-lines"), spanLabel = $("distribution-span"), bucketLabel = $("distribution-bucket");
+        const input = /** @type {HTMLInputElement} */ ($("distribution-input")), canvas = /** @type {HTMLCanvasElement} */ ($("distribution-canvas"));
+        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), base = document.createElement("canvas");
+        const visible = TRENDS.map(() => true), order = [...TRENDS.keys()].reverse();
+        const percent = new Intl.NumberFormat("en-US", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const share = (/** @type {number} */ count, /** @type {number} */ total) => {
+          if (!total) return "—";
+          if (count && count * 1000 < total) return "<0.1%";
+          if (count < total && (total - count) * 1000 < total) return ">99.9%";
+          return percent.format(count / total);
+        };
+        let line = /** @type {"index" | "raw"} */ ("index"), source = /** @type {Days | null} */ (null);
+        let histograms = /** @type {{ index: ReturnType<typeof distributionOf>, raw: ReturnType<typeof distributionOf> } | null} */ (null);
+        let selected = /** @type {number | null} */ (null), drawn = "", told = "", pending = 0;
+        let combined = emptyDistribution();
+        phases.innerHTML = [...TRENDS.map(t => t.name), "All"].map((name, i) => {
+          const all = i === TRENDS.length, tag = all ? "span" : "button";
+          return `<${tag} class="distribution-entry" ${all ? "" : `type="button" data-phase="${i}" aria-pressed="true"`} style="--phase:${all ? "var(--ink)" : `var(--s-${TRENDS[i].color})`}"><span class="distribution-name">${all ? "" : trendIcon(i)}${name}</span><span class="distribution-values"><span class="distribution-count">—</span> <span class="distribution-unit">days</span><span aria-hidden="true">·</span><span class="distribution-share">—</span></span></${tag}>`;
+        }).join("");
+        const entries = [...phases.querySelectorAll(".distribution-entry")].map(row => ({ count: row.querySelector(".distribution-count"), unit: row.querySelector(".distribution-unit"), share: row.querySelector(".distribution-share") }));
+        input.max = String(DISTRIBUTION_BINS - 1);
+        const margins = { left: 34, right: 40, top: 22, bottom: 30 };
+        const layout = () => ({ left: margins.left, right: canvas.clientWidth - margins.right, top: margins.top, bottom: canvas.clientHeight - margins.bottom });
+        const latest = (/** @type {Days} */ d) => d.last >= rankedFrom(d) ? distributionValue(d[line][d.last]) : NaN;
+        const schedule = () => { pending ||= requestAnimationFrame(() => { pending = 0; draw(); }); };
+        const inspect = (/** @type {number | null} */ bucket) => {
+          if (bucket === selected) return;
+          selected = bucket;
+          schedule();
+        };
+        const point = (/** @type {PointerEvent} */ e) => {
+          const { left, right } = layout(), x = e.clientX - canvas.getBoundingClientRect().left;
+          inspect(x < left || x > right ? null : bucketOf((x - left) / (right - left) * 100));
+        };
+        inspectPointers(canvas, point, () => inspect(null), () => input.focus({ preventScroll: true }));
+        input.addEventListener("input", () => inspect(Number(input.value)));
+        input.addEventListener("blur", () => inspect(null));
+        input.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape" || selected === null) return;
+          e.preventDefault();
+          e.stopPropagation();
+          inspect(null);
+        });
+        new ResizeObserver(schedule).observe(canvas);
+        document.fonts.ready.then(() => { drawn = ""; schedule(); });
+        phases.addEventListener("click", (e) => {
+          const button = e.target instanceof Element ? e.target.closest("[data-phase]") : null;
+          if (!(button instanceof HTMLButtonElement)) return;
+          const i = Number(button.dataset.phase);
+          visible[i] = !visible[i];
+          button.setAttribute("aria-pressed", String(visible[i]));
+          schedule();
+        });
+        switches.addEventListener("click", (e) => {
+          const button = e.target instanceof Element ? e.target.closest("[data-distribution-line]") : null;
+          if (!(button instanceof HTMLButtonElement)) return;
+          line = /** @type {"index" | "raw"} */ (button.dataset.distributionLine);
+          for (const each of switches.querySelectorAll("button")) each.setAttribute("aria-pressed", String(each.dataset.distributionLine === line));
+          schedule();
+        });
+
+        function paintBase(/** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined, /** @type {number} */ dpr) {
+          const w = canvas.clientWidth, h = canvas.clientHeight, { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS;
+          const maximum = Math.max(...combined.counts), increment = Math.max(2, 10 ** Math.floor(Math.log10(maximum || 1)) / 2);
+          const ceiling = Math.max(2, Math.ceil(Math.ceil(maximum / increment) * increment / 2) * 2);
+          for (const c of [canvas, base]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+          const g = /** @type {CanvasRenderingContext2D} */ (base.getContext("2d"));
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.clearRect(0, 0, w, h);
+          const y = (/** @type {number} */ fraction) => bottom - fraction * (bottom - top);
+          g.font = "500 11px Inter, system-ui, sans-serif";
+          g.textBaseline = "middle";
+          for (const fraction of [0, 0.5, 1]) {
+            const cy = Math.round(y(fraction)) + 0.5;
+            g.strokeStyle = withAlpha(paint.ink, 0.1); g.lineWidth = 1;
+            g.beginPath(); g.moveTo(left, cy); g.lineTo(right, cy); g.stroke();
+            g.fillStyle = paint.faint; g.textAlign = "left"; if (maximum) g.fillText(grouped(ceiling * fraction), 0, cy);
+            g.textAlign = "right"; g.fillText(`${100 * fraction}%`, w, cy);
+          }
+          g.fillStyle = paint.faint; g.textAlign = "left"; g.fillText("Days", 0, 7);
+          g.textAlign = "right"; g.fillText("Cumulative", w, 7);
+          g.textAlign = "center";
+          for (const value of [0, 20, 40, 60, 80, 100]) g.fillText(String(value), left + value / 100 * (right - left), h - 8);
+          for (let b = 0; b < DISTRIBUTION_BINS; b++) {
+            let sum = 0;
+            for (const t of order) {
+              if (!visible[t]) continue;
+              const count = histogram[t].counts[b], x = left + b * step + 0.5, cy = y((sum + count) / ceiling), height = y(sum / ceiling) - cy;
+              g.fillStyle = withAlpha(paint.trends[t], 0.8);
+              g.fillRect(x, cy, Math.max(1, step - 1), height);
+              if (count) { g.strokeStyle = paint.trends[t]; g.lineWidth = 0.5; g.strokeRect(x, cy, Math.max(1, step - 1), height); }
+              sum += count;
+            }
+          }
+          // Every curve ends at 100% of its own eligible observations. All uses the pooled visible total.
+          for (const [t, phase] of [...histogram, combined].entries()) {
+            if (!phase.total || (t < histogram.length && !visible[t])) continue;
+            const all = t === histogram.length;
+            g.beginPath(); g.moveTo(left, bottom);
+            phase.cumulative.forEach((count, b) => g.lineTo(left + (b + 1) * step, y(count / phase.total)));
+            g.strokeStyle = all ? paint.ink : paint.trendCurves[t];
+            g.lineWidth = all ? 1.7 : 1.3;
+            g.stroke();
+          }
+          const today = latest(d);
+          if (Number.isFinite(today) && maximum) {
+            const x = left + today / 100 * (right - left);
+            g.strokeStyle = withAlpha(paint.ink, 0.45); g.setLineDash([2, 3]);
+            g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke(); g.setLineDash([]);
+            g.fillStyle = paint.ink; g.beginPath(); g.moveTo(x, bottom + 5); g.lineTo(x - 4, bottom + 11); g.lineTo(x + 4, bottom + 11); g.closePath(); g.fill();
+          }
+          if (!maximum) {
+            g.fillStyle = paint.ink; g.textAlign = "center";
+            g.fillText(visible.some(Boolean) ? "No ranked days in these phases" : "Choose a phase above", (left + right) / 2, (top + bottom) / 2);
+          }
+        }
+
+        function readBucket(/** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined) {
+          const today = latest(d), b = selected ?? bucketOf(today), valid = Number.isFinite(b);
+          const upper = valid ? (b + 1) * DISTRIBUTION_WIDTH : NaN, below = b === DISTRIBUTION_BINS - 1 ? "Through 100" : `Below ${upper}`;
+          const interval = valid ? `${b * DISTRIBUTION_WIDTH}–${upper}` : "—";
+          bucketLabel.textContent = !visible.some(Boolean) ? "Choose a phase above" : selected === null ? `Today ${Number.isFinite(today) ? Math.round(today) : "—"} · ${interval}` : interval;
+          const name = line === "index" ? "Index" : "Raw", said = [name, bucketLabel.textContent];
+          for (const [t, row] of entries.entries()) {
+            const all = t === TRENDS.length, phase = all ? combined : histogram[t], shown = all || visible[t];
+            const count = valid && phase.total ? phase.counts[b] : NaN;
+            row.count.textContent = shown && Number.isFinite(count) ? grouped(count) : "—";
+            row.unit.textContent = count === 1 ? "day" : "days";
+            row.share.textContent = shown && valid ? share(phase.cumulative[b], phase.total) : "—";
+            if (shown) said.push(`${all ? "All visible" : TRENDS[t].name}: ${row.count.textContent} ${row.unit.textContent}, ${below.toLowerCase()}: ${row.share.textContent}`);
+          }
+          input.disabled = !valid;
+          if (valid) input.value = String(b);
+          input.setAttribute("aria-label", `${name} distribution bucket`);
+          input.setAttribute("aria-valuetext", said.join(". "));
+        }
+
+        function draw() {
+          const d = days, w = canvas.clientWidth, h = canvas.clientHeight;
+          if (!d || !w || !h) return;
+          if (source !== d) {
+            source = d;
+            histograms = { index: distributionOf(d, "index"), raw: distributionOf(d, "raw") };
+            drawn = told = "";
+          }
+          const histogram = /** @type {NonNullable<typeof histograms>} */ (histograms)[line], dpr = density();
+          const key = `${line}|${visible}|${paint.ink}|${paint.app}|${paint.faint}|${paint.trends}|${paint.trendCurves}|${dpr}|${w}×${h}`;
+          const changed = key !== drawn;
+          if (changed) {
+            drawn = key;
+            spanLabel.textContent = d.last < rankedFrom(d) ? "No ranked days yet" : `${grouped(histogram.reduce((n, p) => n + p.total, 0))} ranked days · ${dated(rankedFrom(d))}–${dated(d.last)}`;
+            combined = combinedDistribution(histogram, visible);
+            paintBase(d, histogram, combined, dpr);
+          }
+          const readKey = `${drawn}|${selected}`;
+          if (!changed && readKey === told) return;
+          told = readKey;
+          context.setTransform(1, 0, 0, 1, 0, 0);
+          context.clearRect(0, 0, canvas.width, canvas.height); context.drawImage(base, 0, 0);
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+          if (selected !== null) {
+            const { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS, x = left + selected * step;
+            context.fillStyle = withAlpha(paint.ink, 0.08); context.fillRect(x, top, step, bottom - top);
+            context.strokeStyle = withAlpha(paint.ink, 0.45); context.lineWidth = 1; context.strokeRect(x + 0.5, top + 0.5, step - 1, bottom - top - 1);
+          }
+          readBucket(d, histogram, combined);
+        }
+        return schedule;
+      })();
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
       // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it or
@@ -3108,6 +3476,7 @@
       function use(/** @type {Days} */ computed, rebuild = true) {
         const before = /** @type {Days} */ (days);
         days = computed;
+        refreshDistribution();
         slider.min = String(days.first);
         slider.max = String(days.last);
         if (pinned !== null) pinned = Math.max(days.first, Math.min(days.last - 1, pinned));
