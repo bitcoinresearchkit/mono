@@ -54,7 +54,8 @@ FOLDER = "Smoke folder"
 
 def local(path):
     """
-    Whether a path is the checkout's (under a directory in OWNED; one ending in a slash, a directory's index.html), and
+    Whether a path is the checkout's (under a directory in OWNED; one ending in a slash, a directory's index.html; a Studio
+    address, its page), and
     its file there, resolved and inside it: (False, None), the server's; (True, None), the checkout has none: missing.
     """
     path = unquote(path)
@@ -62,6 +63,9 @@ def local(path):
         if path == prefix.rstrip("/") or path.startswith(prefix):
             rest = path.removeprefix(prefix.rstrip("/"))
             file = (root / rest.lstrip("/") / ("index.html" if rest.endswith("/") or not rest else "")).resolve()
+            # (Studio's own addresses (a preset's, a section's), no file of their own: its page, as the server serves them.)
+            if prefix == "/studio/" and not file.exists() and "." not in rest.rsplit("/", 1)[-1]:
+                file = root / "index.html"
             return True, (file if file.is_file() and file.is_relative_to(root) else None)
     return False, None
 
@@ -532,9 +536,16 @@ def check_page_draws(run):
 
 
 def read_link(link):
-    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed."""
-    hash = link.split("#chart=", 1)[1]
-    return json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    """What a link carries, read with no help from the page: its hash, inflated (raw deflate, base64url) and parsed, with the fields after it."""
+    hash, *rest = link.split("#chart=", 1)[1].split("&")
+    chart = json.loads(zlib.decompress(base64.urlsafe_b64decode(hash + "=" * (-len(hash) % 4)), -15))
+    fields = dict(field.split("=", 1) for field in rest)
+    if "range" in fields:
+        fields["range"] = fields["range"].lower()
+    if "from" in fields:
+        # (A view up to the latest has no end: it runs up to now.)
+        chart["view"] = {"from": fields.pop("from"), **({"to": fields.pop("to")} if "to" in fields else {})}
+    return {**chart, **fields}
 
 
 def shape(chart):

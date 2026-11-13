@@ -16,6 +16,8 @@ A link carries a whole chart: https://bitview.space/studio/#chart= followed by t
 {"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}
 ```
 
+A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), and "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&interval=1W. A chart's link takes the same after its chart.
+
 ## A chart
 - "layers" (the one thing needed): its layers, in order (see below).
 - "title".
