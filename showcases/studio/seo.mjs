@@ -3,17 +3,19 @@
 // "about" section, as Markdown, with the presets' sections at their addresses), and presets.hash, what the page keys
 // its presets' cache by (see below); and for the page itself, running-totals.js, the series that are running totals
 // (its zero framing reads them, at once). Made from the presets as a server's chain makes them (the local one's by
-// default) and the client's series, their titles checked against the rules every title keeps (see TITLE_RULES), and
-// written again whenever the presets, the guide or the client change:
+// default; its facts kept beside them, chain-facts.json) and the client's series, their titles checked against the rules
+// every title keeps (see TITLE_RULES), and written again whenever the presets, the guide or the client change:
 //
-//   bun showcases/studio/seo.mjs [server]          writes them
-//   bun showcases/studio/seo.mjs --check [server]  fails if they're not what they'd be now
+//   bun showcases/studio/seo.mjs [server]          writes them, by the server's chain now
+//   bun showcases/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
+//                                                  they were written by: what the chain did since fails nothing)
 //   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone (see below)
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { addressesOf } from "./addresses.js";
+import { CHAIN_STATISTICS } from "./chain-statistics.js";
 import { shownStep } from "./words.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -25,9 +27,13 @@ const ORIGIN = "https://bitview.space/studio";
 const html = readFileSync(join(HERE, "index.html"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
 const { studioPresets } = await import(pathToFileURL(join(HERE, "presets.js")).href);
-const { chainFacts } = await import(pathToFileURL(join(HERE, "facts.js")).href);
-// (Without the chain's facts the presets would hold what never happened: stopped, not written.)
-const facts = await chainFacts(SERVER).catch((error) => {
+const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(HERE, "facts.js")).href);
+const written = (/** @type {string} */ name) => { try { return readFileSync(join(HERE, name), "utf8"); } catch { return ""; } };
+// (Checked, by the facts they were written by; written, by the server's now. Without them the presets would hold what
+// never happened: stopped.)
+const kept = written("chain-facts.json").trim();
+if (check && !kept) throw new Error("No chain-facts.json: write them first, bun showcases/studio/seo.mjs");
+const facts = check ? factsOfKey(kept) : await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
 // (What the presets report while they're made, a band the client renamed (see reported in presets.js), stops them here:
@@ -50,9 +56,8 @@ const TITLE_RULES = [
   ["a month that isn't an age", (text) => /(?<!\b(?:by|per|each) )\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
   ["all addresses", (text) => /\ball addresses\b/i.test(text)],
 ];
-/** The section whose charts keep the names of the site they reproduce (see chainStatistics): no rule of these is theirs. */
-const OWN_NAMES = ["Network", "Chain statistics"];
-const ruled = presets.filter((preset) => !OWN_NAMES.every((step, i) => preset.p[i] === step));
+// (Chain statistics' charts keep the names of the site they reproduce: no rule of these is theirs.)
+const ruled = presets.filter((preset) => !preset.p.includes(CHAIN_STATISTICS));
 /** Every step of every place, once, by its key. @type {Map<string, string[]>} */
 const steps = new Map();
 for (const preset of ruled) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
@@ -97,18 +102,25 @@ const markdown = [...about.matchAll(/<(h1|h2|h3|p|li|pre)(?:\s[^>]*)?>([\s\S]*?)
 // asking for one; the charts themselves, in the sitemap.)
 // (Each by its name as shown: its label, where it has one; see shownStep.)
 const held = new Map();
-for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) ((key) => held.set(key, (held.get(key) ?? 0) + 1))(JSON.stringify(preset.p.slice(0, depth)));
-const sections = [...held].map(([key, count]) => ((path) => `${path.length > 1 ? "  " : ""}- ${shownStep(labels, path)} (${count}): ${ORIGIN}${book.sections.get(key)}`)(JSON.parse(key)));
+for (const preset of presets) for (let depth = 1; depth < preset.p.length && depth <= 2; depth++) {
+  const key = JSON.stringify(preset.p.slice(0, depth));
+  held.set(key, (held.get(key) ?? 0) + 1);
+}
+const sections = [...held].map(([key, count]) => {
+  const path = JSON.parse(key);
+  return `${path.length > 1 ? "  " : ""}- ${shownStep(labels, path)} (${count}): ${ORIGIN}${book.sections.get(key)}`;
+});
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const urls = ["/", ...book.sections.values(), ...book.presets];
 // The presets' source, presets.js and every module it imports (followed by their relative imports, as Bun reads them,
-// each once), hashed: the page keys its presets' cache by it (with the client's and the chain's facts), so a change to
-// any of them makes them again, with nothing read in the page to know it.
+// each once), hashed, each by its path from here (the same on every system): the page keys its presets' cache by it
+// (with the client's and the chain's facts), so a change to any of them makes them again, with nothing read in the page
+// to know it. (Not the client: it's made by the server's build, which never runs this; the page hashes it itself.)
 const sources = new Set([join(HERE, "presets.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
 for (const file of sources) {
   const text = readFileSync(file, "utf8");
-  sha.update(`${file.slice(HERE.length)}\0${text}\0`);
+  sha.update(`${relative(HERE, file).replaceAll(sep, "/")}\0${text}\0`);
   for (const { path } of transpiler.scanImports(text)) if (path.startsWith(".")) sources.add(join(dirname(file), path));
 }
 
@@ -116,9 +128,9 @@ const files = {
   "running-totals.js": `// Made by seo.mjs from the client's series (not edited by hand): every series that's a running total, what Studio's\n// zero framing reads (see cumulativeLayer in index.html).\nexport const RUNNING_TOTALS = new Set([\n${[...totals].sort().map((name) => `  "${name}",`).join("\n")}\n]);\n`,
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
   "presets.hash": `${sha.digest("hex")}\n`,
+  "chain-facts.json": `${factsKey(facts)}\n`,
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,
 };
-const written = (/** @type {string} */ name) => { try { return readFileSync(join(HERE, name), "utf8"); } catch { return ""; } };
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
 // word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop).
 const now = new Set(urls.map((url) => `${ORIGIN}${url}`));
@@ -137,4 +149,4 @@ if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
-console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), running-totals.js (${totals.size} series), presets.hash (${sources.size} modules), from ${SERVER}'s chain; ${shown.length} names shown keep the rules`);
+console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), running-totals.js (${totals.size} series), presets.hash (${sources.size} modules), from ${check ? "the chain's facts they were written by" : `${SERVER}'s chain`}; ${shown.length} names shown keep the rules`);

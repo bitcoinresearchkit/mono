@@ -14,6 +14,9 @@
  * @typedef {{ [K in keyof SeriesTree["pools"]]: SeriesTree["pools"][K] extends Pool ? K : never }[keyof SeriesTree["pools"]]} PoolKey
  */
 
+/** Its section's name: its charts keep the names of the site they reproduce, outside the rules other titles keep (seo.mjs). */
+export const CHAIN_STATISTICS = "Chain statistics";
+
 /**
  * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1w" | "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[] }} parts
  * @returns {SectionNode}
@@ -95,7 +98,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   const utxos = t.utxos.types;
   const inAndOut = (/** @type {string} */ title, /** @type {keyof typeof inputs} */ key) => events(title, [["inputs", inputs[key].count], ["outputs", outputs[key].count]]);
 
-  return section("Chain statistics", [
+  return section(CHAIN_STATISTICS, [
     section("Yearly", [
       yearly("Transaction fees per year", t.mining.rewards.fees.cumulative.btc, "btc"),
       yearly("Empty blocks per year", t.blocks.emptyCount.cumulative),

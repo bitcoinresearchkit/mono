@@ -458,8 +458,8 @@ OLD = {
 
 
 def check_made_files(run):
-    """What seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml, running-totals.js) is as it would make them now, from the server's chain."""
-    done = subprocess.run(["bun", str(ROOT / "showcases" / "studio" / "seo.mjs"), "--check", run.base], capture_output=True, text=True)
+    """What seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml, running-totals.js) is as the code makes them now, by the chain's facts they were written by: what the chain did since fails nothing."""
+    done = subprocess.run(["bun", str(ROOT / "showcases" / "studio" / "seo.mjs"), "--check"], capture_output=True, text=True)
     said = (done.stdout + done.stderr).strip().splitlines()
     if done.returncode:
         raise Failure(next((line for line in reversed(said) if line.strip()), f"seo.mjs --check exited {done.returncode}"))

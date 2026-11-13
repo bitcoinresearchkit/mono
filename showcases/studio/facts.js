@@ -36,3 +36,12 @@ export async function chainFacts(origin) {
  * @param {Facts | undefined} facts
  */
 export const factsKey = (facts) => (facts ? JSON.stringify([[...facts.pools].sort(), [...facts.recent].sort(), Math.floor(facts.height / 210_000), facts.year, facts.topPools.map((slug) => [slug, facts.names.get(slug)])]) : "");
+
+/**
+ * The facts a key says (see factsKey), as the presets read them (its height its halving epoch's first block): what
+ * seo.mjs's check makes the presets by, the facts the files it checks were written by. @param {string} key @returns {Facts}
+ */
+export function factsOfKey(key) {
+  const [pools, recent, epoch, year, top] = JSON.parse(key);
+  return { pools: new Set(pools), recent: new Set(recent), height: epoch * 210_000, year, topPools: top.map((/** @type {[string, string]} */ [slug]) => slug), names: new Map(top) };
+}
