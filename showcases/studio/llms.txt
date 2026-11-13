@@ -50,7 +50,8 @@ Then, each if wanted:
 - "fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).
 - "levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).
 - "priceLine": true: a line across at its latest value.
-- "fit": false: the axis framed without it (not a heatmap's, a signal's or bubbles'): it's drawn where its values are, past the edge if they're far (a spike, a far tail).
+- "maxInterval": "week1": the chart's interval at most weekly while this layer's in it (its source unchanged). Fixed 7-day event counts use week1; 30-day counts use month1. Each window has its own preset and keeps its source when the interval changes.
+- A single running total on a linear axis includes zero; comparisons fit their values. "fit": "zero": keep zero included explicitly; "fit": false: the axis framed without it (not a heatmap's, a signal's or bubbles'): it's drawn where its values are, past the edge if they're far (a spike, a far tail).
 - {"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 8 to 48 pixels by 4 (24 if none); "hide": the share of the largest under which none is drawn, 0 to 0.25 by 0.01 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).
 - "outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.
 - "format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.
@@ -152,13 +153,13 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Halvings (2): https://bitview.space/studio/presets/mining/halvings/
   - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
   - Pools (965): https://bitview.space/studio/presets/mining/pools/
-- Network (1059): https://bitview.space/studio/presets/network/
+- Network (1093): https://bitview.space/studio/presets/network/
   - Blocks (20): https://bitview.space/studio/presets/network/blocks/
   - Transactions (301): https://bitview.space/studio/presets/network/transactions/
   - Inputs (150): https://bitview.space/studio/presets/network/inputs/
   - Outputs (103): https://bitview.space/studio/presets/network/outputs/
   - OP_RETURN (350): https://bitview.space/studio/presets/network/op-return/
-  - Chain statistics (135): https://bitview.space/studio/presets/network/chain-statistics/
+  - Chain statistics (169): https://bitview.space/studio/presets/network/chain-statistics/
 - Cointime (236): https://bitview.space/studio/presets/cointime/
   - Activity (8): https://bitview.space/studio/presets/cointime/activity/
   - Value (6): https://bitview.space/studio/presets/cointime/value/

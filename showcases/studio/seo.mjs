@@ -1,7 +1,9 @@
 // Beside the page, for those who find Studio: sitemap.xml, every address it has (Home, the presets' page,
 // each section, each preset: made by addresses.js, the page's own), and llms.txt, its guide for assistants (the
-// page's own "about" section, as Markdown, with the presets' sections at their addresses). Made from the presets as a
-// server's chain makes them (the local one's by default), and written again whenever the presets or the guide change:
+// page's own "about" section, as Markdown, with the presets' sections at their addresses); and for the page itself,
+// running-totals.js, the series that are running totals (its zero framing reads them, at once). Made from the presets
+// as a server's chain makes them (the local one's by default) and the client's series, and written again whenever the
+// presets, the guide or the client change:
 //
 //   bun showcases/studio/seo.mjs [server]          writes them
 //   bun showcases/studio/seo.mjs --check [server]  fails if they're not what they'd be now
@@ -24,7 +26,7 @@ const { studioPresets, chainFacts } = await import(pathToFileURL(join(HERE, "pre
 const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
-const presets = studioPresets(new BitviewClient({ baseUrl: SERVER }), facts);
+const client = new BitviewClient({ baseUrl: SERVER }), presets = studioPresets(client, facts);
 // The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
 const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
 if (!recommended) throw new Error("No RECOMMENDED in the page");
@@ -33,6 +35,18 @@ const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
 const book = addressesOf(presets);
+
+// The running totals, by the client's shape: a flow's `cumulative`, beside its `sum` windows (a share's all-time
+// percentage, also named so, has none), and every series under one. Checked on two known ones: a flow's total is one,
+// a share's isn't.
+const totals = new Set(), walk = [[client.series, false]];
+while (walk.length) {
+  const [node, total] = /** @type {[any, boolean]} */ (walk.pop());
+  if (node && typeof node.name === "string" && typeof node.indexes === "function") {
+    if (total) totals.add(node.name);
+  } else if (node && typeof node === "object") for (const key of Object.keys(node)) walk.push([node[key], total || (key === "cumulative" && Object.hasOwn(node, "sum"))]);
+}
+if (!totals.has("block_count_cumulative") || totals.has("fee_share_cumulative")) throw new Error("Running totals misread from the client's shape (block_count_cumulative is one, fee_share_cumulative isn't; or one was renamed)");
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
 if (!about) throw new Error("No about section in the page: llms.txt is made from it");
@@ -53,6 +67,7 @@ const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").r
 const urls = ["/", ...book.sections.values(), ...book.presets];
 
 const files = {
+  "running-totals.js": `// Made by seo.mjs from the client's series (not edited by hand): every series that's a running total, what Studio's\n// zero framing reads (see cumulativeLayer in index.html).\nexport const RUNNING_TOTALS = new Set([\n${[...totals].sort().map((name) => `  "${name}",`).join("\n")}\n]);\n`,
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,
 };
@@ -75,4 +90,4 @@ if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
-console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), from ${SERVER}'s chain`);
+console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), running-totals.js (${totals.size} series), from ${SERVER}'s chain`);
