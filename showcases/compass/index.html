@@ -1568,6 +1568,8 @@
 
     <script type="module">
       // @ts-check
+      import { barStyle } from "/modules/bitview-charts/bar-style.js";
+
       // Where Bitcoin's market stands, each day: its close against two clouds of holders' cost basis (the long-term and
       // the short-term holders'), nine states from the two, and three short-term trends' agreement. All computed here
       // from the server's daily series.
@@ -3152,6 +3154,7 @@
 
         function paintBase(/** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined, /** @type {number} */ dpr) {
           const w = canvas.clientWidth, h = canvas.clientHeight, { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS;
+          const bar = barStyle(step);
           const maximum = Math.max(...combined.counts), increment = Math.max(2, 10 ** Math.floor(Math.log10(maximum || 1)) / 2);
           const ceiling = Math.max(2, Math.ceil(Math.ceil(maximum / increment) * increment / 2) * 2);
           for (const c of [canvas, base]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
@@ -3173,13 +3176,19 @@
           g.textAlign = "center";
           for (const value of [0, 20, 40, 60, 80, 100]) g.fillText(String(value), left + value / 100 * (right - left), h - 8);
           for (let b = 0; b < DISTRIBUTION_BINS; b++) {
+            const center = left + (b + 0.5) * step;
+            const x = Math.round((center - bar.width / 2) * dpr) / dpr, end = Math.round((center + bar.width / 2) * dpr) / dpr;
+            const top = order.findLast(t => visible[t] && histogram[t].counts[b]);
             let sum = 0;
             for (const t of order) {
-              if (!visible[t]) continue;
-              const count = histogram[t].counts[b], x = left + b * step + 0.5, cy = y((sum + count) / ceiling), height = y(sum / ceiling) - cy;
+              const count = histogram[t].counts[b];
+              if (!visible[t] || !count) continue;
+              const cy = y((sum + count) / ceiling), height = y(sum / ceiling) - cy;
               g.fillStyle = withAlpha(paint.trends[t], 0.8);
-              g.fillRect(x, cy, Math.max(1, step - 1), height);
-              if (count) { g.strokeStyle = paint.trends[t]; g.lineWidth = 0.5; g.strokeRect(x, cy, Math.max(1, step - 1), height); }
+              g.beginPath();
+              if (t === top && bar.radius) g.roundRect(x, cy, end - x, height, [bar.radius, bar.radius, 0, 0]);
+              else g.rect(x, cy, end - x, height);
+              g.fill();
               sum += count;
             }
           }

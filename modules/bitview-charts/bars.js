@@ -6,6 +6,7 @@
 
 import { Line } from "./line.js";
 import { NOISE } from "./timeline.js";
+import { barStyle } from "./bar-style.js";
 
 /** A rounded rect's corners, at its value's end (top or bottom), made once and set at each draw. */
 const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
@@ -82,9 +83,8 @@ export class Bars extends Line {
     // one under it a stub there, see barShape.)
     const values = this.values, n = values.length, base = this.base, log = scale.mode === "log";
     const spacing = time.spacing, wide = spacing >= 3, baseY = scale.y(log && !(base > 0) ? scale.lo : base);
-    // (A bar's half width, a gap between bars (a pixel, two once there's room), its corners' radius.)
-    const corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
-    const half = Math.max(0.5, (spacing - (spacing > 8 ? 2 : 1)) / 2), radius = wide && corner > 0 ? Math.min(corner, half) + pad : 0;
+    const style = barStyle(spacing, typeof this.radius === "function" ? this.radius(spacing) : this.radius);
+    const half = style.width / 2, radius = style.radius > 0 ? style.radius + pad : 0;
     ROUND_UP[0] = ROUND_UP[1] = ROUND_DOWN[2] = ROUND_DOWN[3] = radius;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1);
     if (wide) {

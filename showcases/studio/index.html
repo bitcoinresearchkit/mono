@@ -11135,6 +11135,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
       import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
+      import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { addressSteps } from "/studio/addresses.js";
       import { RUNNING_TOTALS } from "/studio/running-totals.js";
@@ -17071,11 +17072,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** @type {Map<string, any>} layer id → its series on the chart */
       const drawn = new Map();
-      /**
-       * A candle's and a bar's corners, rounded a touch, more as they're drawn wider: none under 4px apart, then 1px, a
-       * tenth of the space between bars from 10px, at most 4px (CSS pixels; the vendored chart's patch).
-       */
-      const BAR_CORNER = (/** @type {number} */ spacing) => (spacing < 4 ? 0 : Math.min(4, Math.max(1, spacing / 10)));
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
       /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
       const built = new Map();
