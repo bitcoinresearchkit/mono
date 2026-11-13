@@ -89,6 +89,10 @@
         color: inherit;
       }
 
+      input {
+        font-size: 16px;
+      }
+
       button {
         border: 0;
         background: none;
@@ -719,6 +723,18 @@
       // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
       // diff.mjs from two servers, the one release's and the other's before it was released.
       const RELEASES = [["v0.12.2","v0.13.0"]];
+      /** @type {Map<string, Promise<any>>} API comparisons, fetched once and shared by the tabs and id lookup. */
+      const comparisons = new Map();
+
+      /** @param {string | undefined} from */
+      function comparison(from) {
+        if (!from) return;
+        if (!comparisons.has(from)) comparisons.set(from, fetch(`./${from}.json`).then((response) => {
+          if (!response.ok) throw new Error(`${from}.json: ${response.status}`);
+          return response.json();
+        }));
+        return comparisons.get(from);
+      }
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const escape = (/** @type {unknown} */ text) =>
@@ -888,14 +904,18 @@
         );
       }
 
+      let opening = 0;
       /** A tab's changes, the tab chosen (its address saying so, but for the newest's). @param {Tab} tab */
       function open(tab) {
+        const request = ++opening;
         const url = new URL(location.href);
         if (tab === tabs[0]) url.searchParams.delete("release");
         else url.searchParams.set("release", tab.name);
         history.replaceState(null, "", url);
         showTabs(tab);
-        return load(tab).catch((error) => ($("lead").textContent = `The changes couldn't be read: ${error.message}.`));
+        return load(tab, request).catch((error) => {
+          if (request === opening) $("lead").textContent = `The changes couldn't be read: ${error.message}.`;
+        });
       }
 
       const version = (/** @type {Release} */ release) => escape(release.version?.replace(/^v/, "") ?? "");
@@ -911,6 +931,7 @@
               ? `What ${version(released[0])} changed`
               : `What each ${escape(tab.name)} release changed, ${version(/** @type {Release} */ (released.at(-1)))} to ${version(released[0])}`;
         if (!changes) return `${notes}.`;
+        if (!tab.api) return `${notes}. Type an old series id above to see where it went.`;
         const [from, to] = versions(changes.from, changes.to);
         const api = `what ${escape(to)} changes of ${escape(from)}'s API. Type an id from ${escape(from)} above to see where it went.`;
         return notes ? `${notes}: its notes, then ${api}` : api[0].toUpperCase() + api.slice(1);
@@ -930,24 +951,28 @@
         }
       }
 
-      /** @param {Tab} tab */
-      async function load(tab) {
+      /** @param {Tab} tab @param {number} request */
+      async function load(tab, request) {
         changes = undefined;
         different = new Set();
-        if (tab.api) {
-          const response = await fetch(`./${tab.api[0]}.json`);
-          if (!response.ok) throw new Error(`${tab.api[0]}.json: ${response.status}`);
-          changes = await response.json();
-          rules = index(changes.rules);
-          different = new Set(changes.different);
-        }
+        ++asked;
+        $("answer").hidden = true;
         sections.length = 0;
         $("sections").replaceChildren();
         $("nav").replaceChildren();
         $("figures").replaceChildren();
         $("lead").innerHTML = leadOf(tab);
         addNotes(tab);
-        if (!changes) return void (render(), lookUp());
+        render();
+        const data = await comparison((tab.api ?? RELEASES[0])?.[0]);
+        if (request !== opening) return;
+        changes = data;
+        if (changes) {
+          rules = index(changes.rules);
+          different = new Set(changes.different);
+        }
+        $("lead").innerHTML = leadOf(tab);
+        if (!tab.api || !changes) return void (render(), lookUp());
         const { series, endpoints, indexes } = changes;
         const [, to] = versions(changes.from, changes.to);
 
@@ -1133,7 +1158,7 @@
         const said = await (async () => {
           if (!readings[0]?.exact && (await serves(id))) {
             const changed = changes.changed.some((/** @type {string[]} */ row) => row[0] === id);
-            return `<p class="now">${code(id)} is served as it was.</p>` + (changed ? `<p class="why">Its values changed under it: see Kept, changed.</p>` : "");
+            return `<p class="now">${code(id)} is served as it was.</p>` + (changed ? `<p class="why">Its values changed under it.</p>` : "");
           }
           for (const reading of readings) {
             if (reading.id === id || !(await serves(reading.id))) continue;
@@ -1167,7 +1192,7 @@
           return (
             (removed
               ? `<p class="now">${code(id)} <span class="gone">isn't served</span> under any id we could find.</p>`
-              : `<p class="now">${code(id)} <span class="gone">isn't served</span>, and ${escape(to)} didn't rename or remove it from ${escape(from)}: if it was an id before that, the notes below that name it say what became of it.</p>`) +
+              : `<p class="now">${code(id)} <span class="gone">isn't served</span>, and ${escape(to)} didn't rename or remove it from ${escape(from)}: if it was an id before that, check the earlier releases' notes.</p>`) +
             (cohort ? `<p class="why">Its cohort, ${code(`${cohort[0]}…`)}, is gone, all ${grouped.format(cohort[1])} of its ids.</p>` : "") +
             (measure ? `<p class="why">Its measure, ${code(`…_${measure[0]}`)}, is gone from ${grouped.format(measure[1])} cohorts.</p>` : "") +
             (computed ? `<p class="why">Studio computes ${computed === id ? "it" : code(computed)} from the series served now: <a href="${IN_STUDIO[computed]}">its chart</a>, with its formula.</p>` : "") +
@@ -1195,8 +1220,7 @@
       // (Without the changelog, the API's comparisons alone.)
       const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
       tabs = tabsOf(releases(changelog));
-      // (An id asked for, on the newest release compared, where ids are looked up.)
-      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? (asked0 ? tabs.find((tab) => tab.api) : undefined) ?? tabs[0]);
+      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
       else $("lead").textContent = "No release yet.";
     </script>
   </body>
