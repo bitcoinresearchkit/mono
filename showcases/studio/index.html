@@ -5450,7 +5450,7 @@
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        /* (All coins alone, then a row each pair: the terms, under and over 4 months, under and over 6.) */
+        /* (All coins alone, then a row each pair: the terms, under 4 months and at least 4, under 6 and at least 6.) */
         &.holders > :nth-child(2) {
           grid-column-start: 1;
         }
@@ -11137,6 +11137,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
       import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
+      import { AGES, HOLDERS, capitalized, dimensionBand, holderName, shownStep } from "/studio/words.js";
+      import { chainFacts, factsKey } from "/studio/facts.js";
       import { addressSteps } from "/studio/addresses.js";
       import { RUNNING_TOTALS } from "/studio/running-totals.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
@@ -11717,7 +11719,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return (l1 - l2) ** 2 + 2 * (c1 - c2) ** 2 + 3 * dh ** 2;
       }
       /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
-      const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalize(key));
+      const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalized(key));
       /** Each color's name as found (by the theme it's shown in: see colorName), a few hundred kept. */
       const colorNames = new Map();
       /**
@@ -11735,8 +11737,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (distance < nearest) (nearest = distance), (best = name);
         }
         if (colorNames.size > 500) colorNames.clear();
-        colorNames.set(key, capitalize(best.name));
-        return capitalize(best.name);
+        colorNames.set(key, capitalized(best.name));
+        return capitalized(best.name);
       }
       /** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
       const TWO_KEPT = new Set(["trend", "cloud"]);
@@ -11989,20 +11991,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"], ["profile", "Profile"]].find(([id]) => id === type)?.[1] ?? type;
       /**
        * (Here, before the library's read: its profiles normalized as it is, see normalize.)
-       * The URPD's cohorts (`GET /api/urpd`), named as the Holders presets name them (presets.js's HOLDERS; the age bands
-       * as the client's AGE_RANGE_NAMES, "old" left off), each with its short name (where its list says what it is): all
-       * coins, then each complementary pair (the terms, under and over 4 months, under and over 6), then the age bands
-       * from the youngest.
+       * The URPD's cohorts (`GET /api/urpd`), named as the presets name them (see words.js): each its id, its name as
+       * shown, its short name (where its list says what it is) and its name in titles. All coins, then each complementary
+       * pair (the terms, under 4 months and at least 4, under 6 and at least 6), as holderName names them; then the age
+       * bands from the youngest, each read from its key (see dimensionBand: "1 day to under 1 week old"), short as the
+       * client's (an abbreviation its key's reader doesn't make: "1d–1w"); one it can't read, reported and left out.
        */
-      const HEAT_COHORTS = /** @type {[string, string, string][]} */ ([
-        ["all", "All coins", "All coins"], ["sth", "Short-term holders", "Short-term"], ["lth", "Long-term holders", "Long-term"],
-        ["age_under_4m", "Under 4 months old", "Under 4 months"], ["age_over_4m", "Over 4 months old", "Over 4 months"], ["age_under_6m", "Under 6 months old", "Under 6 months"], ["age_over_6m", "Over 6 months old", "Over 6 months"],
-        ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long, short }) => /** @type {[string, string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, ""), short.replace("-", "–")])),
+      /** @typedef {{ id: string, shown: string, brief: string, who: string, age: boolean }} HeatCohort */
+      const HEAT_COHORTS = /** @type {HeatCohort[]} */ ([
+        ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
+        ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => {
+          const band = dimensionBand(key, AGES);
+          if (!band) console.error(`Studio: age band ${key} has no edges it can read; left out`);
+          return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
+        }),
       ]);
-      /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
-      const heatKnown = (layer) => ((known) => (layer.type === "profile" ? (layer.profile ?? []).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
-      /** The URPD's age bands, the youngest first (after all coins and the age cutoffs). */
-      const HEAT_AGES = HEAT_COHORTS.slice(7).map(([id]) => id);
+      /** A URPD cohort, by its id (one Bitview doesn't have, a link's typo or one renamed: undefined). */
+      const HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c])), heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
+      /** Whether Bitview has a heatmap's holder group (see heatCohort). @param {Layer} layer */
+      const heatKnown = (layer) => (layer.type === "profile" ? (layer.profile ?? []).every((id) => heatCohort(id)) : Boolean(heatCohort(layer.heatmap ?? "all")));
+      /** The URPD's holder groups (all coins and the age cutoffs), then its age bands, the youngest first. */
+      const HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id), HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
       /**
        * Each holder group's color, one palette wherever it's drawn (see palette.js, the presets' too): its own (all coins
        * green, short-term holders orange, long-term blue, the age cutoffs around them; the URPD's age_under_4m is the
@@ -12012,9 +12021,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A profile's color for one of its holder groups: its own, else the group's (see cohortColor). @param {Layer} layer @param {string} cohort */
       const profileColor = (layer, cohort) => (layer.cohortColors && Object.hasOwn(layer.cohortColors, cohort) ? layer.cohortColors[cohort] : cohortColor(cohort));
       /** A cohort's name (one not listed: its id). */
-      const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
+      const cohortName = (/** @type {string} */ id) => heatCohort(id)?.shown ?? id;
+      /** A cohort's name in titles, whose coins they are ("Short-term holders", "Coins 1 day to under 1 week old"; one not listed: its id). */
+      const cohortWho = (/** @type {string} */ id) => heatCohort(id)?.who ?? id;
       /** A holder group's short name, where its list says what it is (a profile's, under Holders or Age bands: "Short-term", "1h–1d"). @param {string} id */
-      const cohortShort = (id) => HEAT_COHORTS.find(([one]) => one === id)?.[2] ?? id;
+      const cohortShort = (id) => heatCohort(id)?.brief ?? id;
       /** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again), named, then short (its settings' tabs); the first, unsaid, the default. */
       const HEAT_MEASURES = /** @type {[string, string, string][]} */ ([["supply", "Supply", "Supply"], ["capital", "Capital", "Capital"], ["pnl", "Unrealized P&L", "P&L"]]), DEFAULT_MEASURE = HEAT_MEASURES[0][0];
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
@@ -12562,13 +12573,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const percentileWord = (text) => ((p) => p && `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"} percentile`)(/^p(\d+(?:[._]\d+)?)$/.exec(text)?.[1].replace("_", "."));
       const word = (text) => WORDS[text] ?? percentileWord(text) ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
-      const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
       /** A name as a sentence reads it, after its start: its first letter lowered, not an initialism's ("URPD"). @param {string} text */
       const inSentence = (text) => text.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase());
       /** A series id as words, a percentile's decimal point kept: "supply_in_loss_rarity_p99_9" …rarity 99.9th percentile. */
-      const humanize = (name) => capitalize(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
+      const humanize = (name) => capitalized(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
       /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole, "p99_5ToP99_9" 99.5th percentile to 99.9th percentile. */
-      const humanizeKey = (key) => capitalize(key.replace(/^_/, "").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
+      const humanizeKey = (key) => capitalized(key.replace(/^_/, "").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
       function ago(time) {
         const minutes = Math.round((Date.now() - time) / 60000);
         if (minutes < 1) return "just now";
@@ -12606,7 +12616,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A month as the page writes it: "Sep 2022" (`whole`: "September 2022"), in UTC. */
       const monthYear = (/** @type {number} */ time, whole = false) => {
         const at = new Date(time * 1000);
-        return `${whole ? capitalize(MONTH_NAMES[at.getUTCMonth()]) : MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
+        return `${whole ? capitalized(MONTH_NAMES[at.getUTCMonth()]) : MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
       };
       /** A date as the page writes it: "25 Sep 2022" (and "14:30", for fine intervals), in UTC. */
       const dateLabel = (/** @type {number} */ time, /** @type {boolean} */ fine) => {
@@ -13561,12 +13571,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       const TOOLS = /** @type {Record<DrawingKind, { name: string, noun: string, verb: string, key: string, tip: string, keys: string, icon: string }>} */ ({
         trend: { name: "Trend line", noun: "trend line", verb: "Draw a trend line", key: "L", tip: `Drag, or ${CLICK} its two ends`, keys: "Arrows to each end, ↵ to place it", icon: ICONS.trend },
-        path: { name: "Path", noun: "path", verb: "Draw a path", key: "P", tip: `${capitalize(CLICK)} each of its points, the last again to finish`, keys: "Arrows to each point, ↵ to place it, ↵ again to finish", icon: ICONS.path },
-        hline: { name: "Horizontal line", noun: "horizontal line", verb: "Draw a horizontal line", key: "H", tip: `${capitalize(CLICK)} at its value`, keys: "Arrows to its value, ↵ to place it", icon: ICONS.hline },
-        vline: { name: "Vertical line", noun: "vertical line", verb: "Draw a vertical line", key: "V", tip: `${capitalize(CLICK)} at its date`, keys: "Arrows to its date, ↵ to place it", icon: ICONS.vline },
+        path: { name: "Path", noun: "path", verb: "Draw a path", key: "P", tip: `${capitalized(CLICK)} each of its points, the last again to finish`, keys: "Arrows to each point, ↵ to place it, ↵ again to finish", icon: ICONS.path },
+        hline: { name: "Horizontal line", noun: "horizontal line", verb: "Draw a horizontal line", key: "H", tip: `${capitalized(CLICK)} at its value`, keys: "Arrows to its value, ↵ to place it", icon: ICONS.hline },
+        vline: { name: "Vertical line", noun: "vertical line", verb: "Draw a vertical line", key: "V", tip: `${capitalized(CLICK)} at its date`, keys: "Arrows to its date, ↵ to place it", icon: ICONS.vline },
         rect: { name: "Rectangle", noun: "rectangle", verb: "Draw a rectangle", key: "R", tip: `Drag, or ${CLICK} two corners`, keys: "Arrows to each corner, ↵ to place it", icon: ICONS.rect },
         ellipse: { name: "Ellipse", noun: "ellipse", verb: "Draw an ellipse", key: "E", tip: `Drag, or ${CLICK} two corners`, keys: "Arrows to each corner, ↵ to place it", icon: ICONS.ellipse },
-        text: { name: "Text", noun: "text", verb: "Write on the chart", key: "T", tip: `${capitalize(CLICK)} where it goes, then type`, keys: "Arrows to where it goes, ↵, then type", icon: ICONS.text },
+        text: { name: "Text", noun: "text", verb: "Write on the chart", key: "T", tip: `${capitalized(CLICK)} where it goes, then type`, keys: "Arrows to where it goes, ↵, then type", icon: ICONS.text },
         brush: { name: "Brush", noun: "stroke", verb: "Draw with the brush", key: "B", tip: "Draw freely", keys: "Draw freely, with a pointer", icon: ICONS.brush },
         ruler: { name: "Ruler", noun: "ruler", verb: "Measure a change", key: "M", tip: "Drag across the chart to measure a change", keys: "Arrows to each end, ↵ to place it", icon: ICONS.ruler },
       });
@@ -19833,7 +19843,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const span = shown ? spanParts(Number(shown.from), Number(shown.to)).join(" to ").replace(/’(\d\d)/g, "20$1") : "";
         const panes = chart.panes.map((pane, i) => {
           const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden);
-          return layers.length ? capitalize(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${viewName(chart, layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
+          return layers.length ? capitalized(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${viewName(chart, layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
         }).filter(Boolean);
         return `${CADENCE[shownIndex()]}, ${span}. ${panes.join(". ")}.`;
       }
@@ -21918,8 +21928,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The plot in focus, as the keys place it.)
         const byKeys = document.activeElement === $("plot-keys"), other = BOXES.has(tool) ? "other corner" : "other end";
         // (A path's next point, then the last again (or esc) to finish it.)
-        const next = tool === "path" ? (byKeys ? "Arrows to its next point, ↵ to place it, ↵ again to finish" : `${capitalize(CLICK)} its next point, the last again to finish`) : "";
-        const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? next || (byKeys ? `Arrows to its ${other}, ↵ to place it` : `${capitalize(CLICK)} its ${other}`) : `${byKeys ? TOOLS[tool].keys : TOOLS[tool].tip}${toolKept ? ", as many as you like" : ""}`);
+        const next = tool === "path" ? (byKeys ? "Arrows to its next point, ↵ to place it, ↵ again to finish" : `${capitalized(CLICK)} its next point, the last again to finish`) : "";
+        const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? next || (byKeys ? `Arrows to its ${other}, ↵ to place it` : `${capitalized(CLICK)} its ${other}`) : `${byKeys ? TOOLS[tool].keys : TOOLS[tool].tip}${toolKept ? ", as many as you like" : ""}`);
         // The tools, then what's in hand; drawings selected, only theirs (esc, or a click on the chart, and the tools are back).
         const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           <div class="belt-row ${drawings.length || context ? "" : "spread"}">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
@@ -22027,7 +22037,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { left: left - canvas.left, top: top - canvas.top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
       }
       /** The sides the drawing tools dock on, as choices (⌘K's, the grip's by keys). */
-      const dockChoices = () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalize(side), current: prefs.belt.dock === side, run: () => dockBelt(side) }));
+      const dockChoices = () => /** @type {const} */ (["top", "bottom", "left", "right"]).map((side) => ({ key: side, label: capitalized(side), current: prefs.belt.dock === side, run: () => dockBelt(side) }));
       /** The drawing tools docked on a side (⌘K's way to what dragging them does), in the middle of it. */
       function dockBelt(/** @type {"top" | "bottom" | "left" | "right"} */ side) {
         Object.assign(prefs.belt, { dock: side, at: 0.5 });
@@ -22459,13 +22469,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const weightName = (/** @type {Layer} */ layer) => HEAT_WEIGHTS.find(([id]) => id === (layer.weight ?? ""))?.[1];
       /** Its weight as its name ends with it (", awake"; every coin: nothing). @param {Layer} layer */
       const weightSaid = (layer) => (layer.weight ? `, ${/** @type {string} */ (weightName(layer)).toLowerCase()}` : "");
-      /** A heatmap's name: its measure by cost basis, its cohort's, its weight's ("Supply by cost basis, short-term holders, awake"). @param {Layer} layer */
-      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${measureName(layer)} by cost basis, ${inSentence(cohortName(layer.heatmap ?? "all"))}${weightSaid(layer)}`;
+      /** A heatmap's name: its measure by cost basis, its weight's, then whose ("Supply by cost basis, awake: Short-term holders"). @param {Layer} layer */
+      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${measureName(layer)} by cost basis${weightSaid(layer)}: ${cohortWho(layer.heatmap ?? "all")}`;
       /**
-       * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
-       * short-term and long-term holders"). @param {Layer} layer
+       * A profile's name, as a heatmap's (see heatName): its measure's, its weight's, then whose, its holder groups (two
+       * named, more counted: "Supply profile, awake: Long-term holders and short-term holders"). @param {Layer} layer
        */
-      const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer)} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => inSentence(cohortName(cohort))).join(" and ")}`}${weightSaid(layer)}`)(layer.profile ?? []);
+      const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer)} profile${weightSaid(layer)}${!grouped || !groups.length ? "" : `: ${groups.length > 2 ? capitalized(groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort, k) => (k ? inSentence(cohortWho(cohort)) : cohortWho(cohort))).join(" and ")}`}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
       const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it last moved at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
@@ -22492,7 +22502,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's settings' two lists: its holder groups (all coins, the terms, the age cutoffs; then its groups Bitview
        * doesn't have, to take out) and the age bands, the youngest first. @param {Layer} layer
        */
-      const profileLists = (layer) => ({ holders: [...HEAT_COHORTS.slice(0, 7).map(([id]) => id), ...(layer.profile ?? []).filter((id) => !HEAT_COHORTS.some(([one]) => one === id))], ages: HEAT_AGES });
+      const profileLists = (layer) => ({ holders: [...HEAT_HOLDERS, ...(layer.profile ?? []).filter((id) => !heatCohort(id))], ages: HEAT_AGES });
       /**
        * A profile's list (see profileLists) all in (those not in yet, after the others, in its order) or all out. The button
        * pressed keeps the focus. @param {string} id @param {"holders" | "ages"} list @param {boolean} on
@@ -22500,7 +22510,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function setCohorts(id, list, on) {
         const layer = layerById(id);
         if (layer?.type !== "profile") return;
-        const ids = profileLists(layer)[list].filter((cohort) => !on || HEAT_COHORTS.some(([one]) => one === cohort));
+        const ids = profileLists(layer)[list].filter((cohort) => !on || heatCohort(cohort));
         editById(id, (item) => (item.profile = on ? [...(item.profile ?? []), ...ids.filter((cohort) => !item.profile?.includes(cohort))] : (item.profile ?? []).filter((cohort) => !ids.includes(cohort))));
         refocus(`#inspector [data-cohorts-${on ? "in" : "out"}="${list}"]`);
       }
@@ -22508,7 +22518,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder groups", rows: () => {
         const layer = layerById(id), groups = layer?.profile ?? [];
         // (Its groups Bitview doesn't have (a link's typo) last, to take out.)
-        return [...HEAT_COHORTS, ...groups.filter((cohort) => !HEAT_COHORTS.some(([one]) => one === cohort)).map((cohort) => /** @type {[string, string]} */ ([cohort, `${cohort}: not on Bitview`]))].map(([cohort, name], i) => ((on) => ({ kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group: i < 7 ? "Holder groups" : i < HEAT_COHORTS.length ? "Age bands" : "Not on Bitview", run: () => toggleCohort(id, cohort) }))(groups.includes(cohort)));
+        const rows = [...HEAT_COHORTS.map((c) => [c.id, c.shown, c.age ? "Age bands" : "Holder groups"]), ...groups.filter((cohort) => !heatCohort(cohort)).map((cohort) => [cohort, `${cohort}: not on Bitview`, "Not on Bitview"])];
+        return rows.map(([cohort, name, group]) => {
+          const on = groups.includes(cohort);
+          return { kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group, run: () => toggleCohort(id, cohort) };
+        });
       } });
       /**
        * A heatmap's rows in its page (see layerPage) and its inspector's menus: its holders, measure, weight and density,
@@ -22521,7 +22535,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A profile's, its groups pressed in or out; a heatmap's, its one.)
           layer.type === "profile"
             ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
-            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map(([id, name]) => /** @type {[string, string]} */ ([id, name])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
+            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map((c) => /** @type {[string, string]} */ ([c.id, c.shown])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
           ...(layer.type === "profile" ? [{ key: "view", icon: ICONS.layers, label: "View", aside: layer.cumulative ? "Cumulative" : "Bars", group: kind, page: choices("View", PROFILE_VIEWS, (item) => (item.cumulative ? "cumulative" : "bars"), (item, view) => (item.cumulative = view === "cumulative" || undefined), (view) => HEAT_SAYS[view]) }] : []),
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: measureName(layer), group: kind, page: choices("Measure", HEAT_MEASURES, measureOf, (item, measure) => reshape(item, (one) => (one.measure = measure === DEFAULT_MEASURE ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: weightName(layer), group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
@@ -22544,8 +22558,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // betweenField), each in its color; the first pressed at the edge.)
         // (Each list in a grid, each by its short name (its whole one its tip), all of it in or out at once: All, None.)
         const groups = layer.profile ?? [], lists = profileLists(layer);
-        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
-        const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !HEAT_COHORTS.some(([one]) => one === id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
+        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(Boolean(heatCohort(id)))).join("")}</div>`;
+        const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !heatCohort(id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
         // (A profile's holder groups and age bands, a heatmap's holder group; then their measure, weight and density alike.)
         return `<section>
               <h3>${layer.type === "profile" ? "Profile" : "Heatmap"}</h3>
@@ -25424,7 +25438,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderSideNav();
       }
       /** The page's name, where it is: a folder's, the Library's, the previews', Recent's, a section's, the presets'; at the top, Home. */
-      const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? "Library" : "previews" in homeAt ? "Previews" : "recent" in homeAt ? "Recent" : "path" in homeAt ? homeAt.path.at(-1) ?? "Presets" : "Home");
+      const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? "Library" : "previews" in homeAt ? "Previews" : "recent" in homeAt ? "Recent" : "path" in homeAt ? placeNames(homeAt.path).at(-1) ?? "Presets" : "Home");
       /** @typedef {{ name: string, at: Place }} Step */
       /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
       function crumbsHtml(steps) {
@@ -25439,7 +25453,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const group = (/** @type {Group} */ name) => ({ name: GROUP_OF[name][0], at: GROUP_OF[name][1] });
         if ("previews" in place) return [group("previews")];
         if ("recent" in place) return [group("recent")];
-        if ("path" in place) return [group("presets"), ...place.path.map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
+        if ("path" in place) return [group("presets"), ...placeNames(place.path).map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
         if (!("folder" in place)) return [];
         const folder = folderById(place.folder);
         return [group("library"), ...(folder ? [...foldersAbove(folder), folder] : []).map((step) => ({ name: step.name, at: { folder: step.id } }))];
@@ -25494,7 +25508,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const inside = "path" in place
           ? (presetNodeAt(place.path)?.items ?? []).map((item) => (typeof item === "number"
             ? { group: at, icon: presetMark(item), label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(keptPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
-            : { group: at, ...page({ name: /** @type {string} */ (item.path.at(-1)), at: { path: item.path } }) }))
+            : { group: at, ...page({ name: item.name, at: { path: item.path } }) }))
           : "folder" in place ? childrenOf(place.folder || undefined).map((item) => ("layers" in item ? doc(item) : { group: at, ...page({ name: item.name, at: { folder: item.id } }) }))
           : listedPreviews().map(doc);
         // (Its presets' marks not drawn yet, drawn now, as the sidebar's rows in sight are.)
@@ -25791,29 +25805,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A shelf's last tile, holding more than it shows: to its page, as its name is. @param {Place} place @param {number} count */
       const seeAll = (place, count) => (count > SHELF ? `<button type="button" class="shelf-all" data-see-all="" data-place="${escape(JSON.stringify(place))}">See all ${grouped.format(count)}${ICONS.next}</button>` : "");
       let galleryShown = GALLERY_PAGE;
-      /**
-       * Under a section, its charts: those right under it (`own`), and each section under it with all of its own. Each
-       * section's made once for the presets as read (a step into one and back made both again: all the presets looked
-       * through, each time).
-       */
-      let sectionsMade = { for: /** @type {Preset[] | null} */ (null), at: /** @type {Map<string, { own: number[], groups: Map<string, number[]> }>} */ (new Map()) };
-      function sectionAt(/** @type {string[]} */ path) {
-        const list = /** @type {Preset[]} */ (presets), key = JSON.stringify(path);
-        if (sectionsMade.for !== list) sectionsMade = { for: list, at: new Map() };
-        const made = sectionsMade.at.get(key);
-        if (made) return made;
-        const own = /** @type {number[]} */ ([]), groups = /** @type {Map<string, number[]>} */ (new Map());
-        list.forEach((preset, i) => {
-          if (preset.p.length <= path.length || !path.every((name, depth) => preset.p[depth] === name)) return;
-          if (preset.p.length === path.length + 1) return void own.push(i);
-          const name = preset.p[path.length];
-          if (!groups.has(name)) groups.set(name, []);
-          /** @type {number[]} */ (groups.get(name)).push(i);
-        });
-        const section = { own, groups };
-        sectionsMade.at.set(key, section);
-        return section;
-      }
       /** The recommended presets, by their place in the tree. */
       /** The recommended places' presets as last found, and the list they were found in. */
       let recommendedFound = /** @type {{ for: Preset[] | null, at: number[] }} */ ({ for: null, at: [] });
@@ -25932,11 +25923,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (words.length) {
           // (The best of them as many as show, ranked; how many, all of them.)
-          const found = presetsMatching(words, galleryShown + 1, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null), count = presetsCounted;
+          const found = presetsMatching(words, galleryShown + 1, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null), count = presetsCounted, partial = presetsPartial;
           galleryFound = count;
           // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
           const elsewhere = count || !path.length ? 0 : (presetsMatching(words, 0), presetsCounted);
-          $("gallery").innerHTML = (count ? presetGridHtml(found, count) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
+          $("gallery").innerHTML = (count ? `${partial ? `<p class="gallery-note">No preset holds every word; these hold the most.</p>` : ""}${presetGridHtml(found, count)}` : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (placeNames(path).at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
         } else if (again) {
           // (Kept, not written again: at its shelves' starts, as a page come to is (Back puts them where they were, see
           // popstate).)
@@ -25951,11 +25942,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           freshenTiles();
         } else {
           galleryAside = null;
-          const { own, groups } = sectionAt(path);
+          // (Under a section, its charts: those right under it, then each section under it with all of its own.)
+          const items = presetNodeAt(path)?.items ?? [], own = /** @type {number[]} */ (items.filter((item) => typeof item === "number"));
           $("gallery").innerHTML = [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
             ...(own.length ? [presetGridHtml(own)] : []),
-            ...[...groups].map(([name, list]) => shelfHtml(name, list, [...path, name])),
+            ...items.flatMap((item) => (typeof item === "number" ? [] : [shelfHtml(item.name, item.under, item.path)])),
           ].join("");
         }
         if (kept) placeGallery(kept);
@@ -27551,10 +27543,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
-       * own presets, in the presets' order), how many it holds at any depth, its key (its path, as kept).
-       * @typedef {{ path: string[], key: string, items: (PresetNode | number)[], count: number, icon?: string }} PresetNode
+       * own presets, in the presets' order), every preset it holds at any depth (`under`, in their order), its key (its path, as kept), its name as
+       * shown (see shownStep) and its path as shown (`shown`); and each preset's words for the search (its title, its place and its places' steps as shown,
+       * lowercased), gathered in the same walk (see presetWordList).
+       * @typedef {{ path: string[], key: string, name: string, shown: string[], items: (PresetNode | number)[], under: number[], icon?: string }} PresetNode
        */
-      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
+      let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode>, words: string[] }} */ ({ for: null, node: null, byKey: new Map(), words: [] });
       /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
       function sectionKeys(/** @type {number} */ i) {
         const path = /** @type {Preset[]} */ (presets)[i].p;
@@ -27563,32 +27557,42 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTree() {
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
-        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", items: [], count: 0 }), byKey = new Map([[root.key, root]]);
-        presets.forEach((preset, i) => {
-          let node = root;
-          node.count++;
+        const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", shown: [], items: [], under: [] }), byKey = new Map([[root.key, root]]);
+        const words = presets.map((preset, i) => {
+          let node = root, said = `${preset.t} ${preset.p.join(" ")}`;
+          node.under.push(i);
           for (let depth = 0; depth < preset.p.length - 1; depth++) {
             const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
             let next = byKey.get(key);
             if (!next) {
               // (A top section's icon, on its first preset: see presets.js.)
-              next = { path, key, items: [], count: 0, ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
+              const name = shownStep(presetLabels, path);
+              next = { path, key, name, shown: [...node.shown, name], items: [], under: [], ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
               byKey.set(key, next);
               node.items.push(next);
             }
             node = next;
-            node.count++;
+            node.under.push(i);
+            if (node.name !== path[depth]) said += ` ${node.name}`;
           }
           node.items.push(i);
+          const own = presetLabels[JSON.stringify(preset.p)];
+          return (own ? `${said} ${own}` : said).toLowerCase();
         });
-        presetRoot = { for: presets, node: root };
+        presetRoot = { for: presets, node: root, byKey, words };
         return root;
       }
+      /** Each preset's words for the search (see presetTree): none till they're read. */
+      const presetWordList = () => (presetTree() ? presetRoot.words : []);
+      /** A preset's name as shown (see shownStep). @param {Preset} preset */
+      const presetName = (preset) => shownStep(presetLabels, preset.p);
       /** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
       function presetNodeAt(/** @type {string[]} */ path) {
-        let node = presetTree() ?? undefined;
-        for (const name of path) node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name));
-        return node;
+        return presetTree() ? presetRoot.byKey.get(JSON.stringify(path)) : undefined;
+      }
+      /** A section's steps as shown (see shownStep); their names till the presets are read. @param {string[]} path */
+      function placeNames(path) {
+        return presetNodeAt(path)?.shown ?? path;
       }
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
@@ -27679,13 +27683,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!depth) continue;
               // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
               const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-              const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (preset.p.at(-1)));
+              const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(presetName(preset));
               parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
               continue;
             }
-            const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
+            const section = item, shown = open.has(section.key), name = section.name, key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.count)}</span></button>
+              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
               <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ path: section.path }))}" aria-label="View ${escape(name)}" data-tip="View">${ICONS.arrowRight}</button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
@@ -28371,9 +28375,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rename = { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { aside: folder.name, page: () => renameFolderPage(id) } : { run: () => renameFolder(id, inSide) }) };
         // (Its mark: its first letter, or an icon.)
         const now = () => folderById(id) ?? folder;
-        const icon = { key: "icon", icon: folderMark(folder), label: "Icon", aside: folder.icon ? capitalize(folder.icon) : "Letter", page: () => choicePage("Icon", () => [
+        const icon = { key: "icon", icon: folderMark(folder), label: "Icon", aside: folder.icon ? capitalized(folder.icon) : "Letter", page: () => choicePage("Icon", () => [
           { key: "letter", icon: folderMark({ ...now(), icon: undefined }), label: "Letter", aside: letterOf(now().name), current: !now().icon, run: () => setFolderIcon(id, undefined) },
-          ...FOLDER_ICONS.map((name) => ({ key: name, icon: folderMark({ ...now(), icon: name }), label: capitalize(name), current: now().icon === name, run: () => setFolderIcon(id, name) })),
+          ...FOLDER_ICONS.map((name) => ({ key: name, icon: folderMark({ ...now(), icon: name }), label: capitalized(name), current: now().icon === name, run: () => setFolderIcon(id, name) })),
         ]) };
         return [
           // (In ⌘K, View first, as its pages lead with their own (see viewRow); in its menu, Rename first, as a chart's is.)
@@ -29219,8 +29223,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** See looksOf: empty till the presets are read. */
       let presetLooks = /** @type {Map<string, Partial<Layer>>} */ (new Map());
-      /** The presets, once read; each one's words (its title and place, lowercased) for the search. */
-      let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
+      /** Their places' steps shown otherwise than their places say, by key (see shownStep): none till they're read. */
+      let presetLabels = /** @type {Record<string, string>} */ ({});
+      /** The presets, once read. */
+      let presets = /** @type {Preset[] | null} */ (null), presetsFailed = false;
       /** Each preset's title, name and subject (its title before ": "), lowercased, as a search compares them. @type {{ title: string, name: string, subject: string }[]} */
       let presetTitles = [];
       /**
@@ -29245,84 +29251,91 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetsWaiting = new Promise((/** @type {(waits: boolean) => void} */ resolve) => (presetsWaited = resolve));
       function readPresetList() {
         return (presetsRead ??= (async () => {
-          const list = await presetsKept();
+          const { presets: list, labels } = await presetsKept();
+          presetLabels = labels;
           presetLooks = looksOf(list);
           return list;
         })());
       }
       /**
-       * The presets, made from presets.js and the client: kept in this browser by what made them
-       * (those two files, by a hash of them, and the chain's facts then), read back at once on a reload; made in a worker
-       * (off the page's thread: Firefox took a fifth of a second) when either file changed, and looked at again behind
-       * (made anew for the next reload when the chain's facts have changed: a pool's first block, a halving, a new year).
-       * Without the Cache API (Lockdown Mode's Safari: nothing to keep them in), made in the worker at each start all the
-       * same; without a worker, made here as ever.
-       * @returns {Promise<Preset[]>}
+       * The presets and their places' shown names (see studioPresets), made from presets.js and the client by the chain's
+       * facts: kept in this browser by what made them (presets.js and the modules it imports, by the hash seo.mjs writes
+       * of them, presets.hash; the client), read back at once on a reload, the chain's facts they were made by kept beside
+       * them and looked at again behind (made anew for the next start when they've changed: a pool's first block, a
+       * halving, a new year); made in a worker (off the page's thread: Firefox took a fifth of a second) when either
+       * changed. Without the Cache API (Lockdown Mode's Safari: nothing to keep them in), made in the worker at each start
+       * all the same; without a worker, made here as ever.
+       * @returns {Promise<{ presets: Preset[], labels: Record<string, string> }>}
        */
       async function presetsKept() {
         const presetsUrl = new URL("/studio/presets.js", location.origin).href, clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
-        const here = async () => {
-          const made = await import("/studio/presets.js");
-          // (The chain's facts from this server; without them, every preset, those of what never happened too.)
-          return made.studioPresets(client, await made.chainFacts(location.origin).catch(() => undefined));
+        // (The chain's facts from this server, asked once, when first needed (without them, every preset, those of what
+        // never happened too): at once to make the presets, after the start to look at kept ones again.)
+        let asked = /** @type {Promise<Awaited<ReturnType<typeof chainFacts>> | undefined> | null} */ (null);
+        const factsNow = () => (asked ??= chainFacts(location.origin).catch(() => undefined));
+        const here = async () => (await import("/studio/presets.js")).studioPresets(client, await factsNow());
+        /** Made in a worker: as JSON, and the facts they were made by, as text (see factsKey; none, ""). @returns {Promise<{ text: string, said: string }>} */
+        const made = async () => {
+          let facts;
+          const text = await new Promise((resolve, reject) => {
+            const source = URL.createObjectURL(new Blob([`(${presetsMaker})(${JSON.stringify(presetsUrl)}, ${JSON.stringify(clientUrl)}, ${JSON.stringify(location.origin)});`], { type: "text/javascript" }));
+            let worker;
+            try {
+              worker = new Worker(source, { type: "module" });
+            } catch (error) {
+              URL.revokeObjectURL(source);
+              return reject(error);
+            }
+            const done = () => (worker.terminate(), URL.revokeObjectURL(source));
+            worker.onmessage = ({ data }) => (done(), data.error ? reject(new Error(data.error)) : resolve(data.text));
+            worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
+            // (Its modules read while the facts come: then sent it.)
+            factsNow().then((come) => worker.postMessage((facts = come) ?? null));
+          });
+          return { text: /** @type {string} */ (text), said: factsKey(facts) };
         };
-        /** Made in a worker: its list (as JSON) and the facts it was made with; only those, if they're `known`. */
-        const made = (/** @type {string | null} */ known) => new Promise((resolve, reject) => {
-          const source = URL.createObjectURL(new Blob([`(${presetsMaker})(${JSON.stringify(presetsUrl)}, ${JSON.stringify(clientUrl)}, ${JSON.stringify(location.origin)}, ${JSON.stringify(known)});`], { type: "text/javascript" }));
-          let worker;
-          try {
-            worker = new Worker(source, { type: "module" });
-          } catch (error) {
-            URL.revokeObjectURL(source);
-            return reject(error);
-          }
-          const done = () => (worker.terminate(), URL.revokeObjectURL(source));
-          worker.onmessage = ({ data }) => (done(), data.error ? reject(new Error(data.error)) : resolve(/** @type {{ facts: string, text?: string }} */ (data)));
-          worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
-        });
         try {
           // (Nothing to keep them in: made in the worker, but here while the page waits for them (an address or a link
           // being read, see presetsWaited): ~150 ms sooner on a phone in Lockdown Mode, the client here already read.)
-          if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse(/** @type {string} */ ((await made(null)).text));
-          const store = await caches.open("bitview-studio:presets");
-          // (What they're made from: the presets, the palette they're colored by, the client.)
-          const texts = await Promise.all([presetsUrl, new URL("/studio/palette.js", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
+          if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse((await made()).text);
+          const [store, texts] = await Promise.all([caches.open("bitview-studio:presets"), Promise.all([new URL("/studio/presets.hash", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))))]);
           const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
           const key = new URL(`presets-${hash}.json`, location.origin).href, kept = await store.match(key);
-          /** @param {{ facts: string, text?: string }} result */
-          const keep = (result) => result.facts && result.text ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.facts } }))]) : undefined;
+          // (Kept alone, those made from anything else gone, with the facts they were made by; made without them (they
+          // didn't come), not kept, nor anything gone: their next start asks for them again.)
+          const keep = (/** @type {{ text: string, said: string }} */ result) => (result.said ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.said } }))]) : undefined);
           if (kept) {
             // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)
-            const facts = kept.headers.get("x-facts");
-            setTimeout(() => made(facts).then((result) => (result.text ? keep(result) : undefined)).catch(() => {}), 5000);
+            const said = kept.headers.get("x-facts");
+            setTimeout(() => factsNow().then((facts) => (facts && factsKey(facts) !== said ? made().then(keep) : undefined)).catch(() => {}), 5000);
             const text = await kept.text();
             // (Read, then made sense of, a frame apart.)
             await aFrame();
             return JSON.parse(text);
           }
-          const result = await made(null);
+          const result = await made();
           void keep(result)?.catch(() => {});
-          return JSON.parse(/** @type {string} */ (result.text));
+          return JSON.parse(result.text);
         } catch {
           return here();
         }
       }
       /**
-       * The presets, made in a worker (see presetsKept): its whole source, its arguments written in. Posts the chain's
-       * facts it made them with (a pool's slugs, the halving epoch, the year), and the list as JSON unless those facts are
-       * the ones `known`.
-       * @param {string} presetsUrl @param {string} clientUrl @param {string} origin @param {string | null} known
+       * The presets, made in a worker (see presetsKept): its whole source, its arguments written in, the chain's facts
+       * sent it (none, null). Posts them as JSON. @param {string} presetsUrl @param {string} clientUrl @param {string} origin
        */
-      async function presetsMaker(presetsUrl, clientUrl, origin, known) {
-        try {
-          const [{ studioPresets, chainFacts }, { BitviewClient }] = await Promise.all([import(presetsUrl), import(clientUrl)]);
-          /** @type {{ pools: Set<string>, recent: Set<string>, height: number, year: number, topPools: string[], names: Map<string, string> } | undefined} */
-          const facts = await chainFacts(origin).catch(() => undefined);
-          const said = facts ? JSON.stringify([[...facts.pools].sort(), [...facts.recent].sort(), Math.floor(facts.height / 210_000), facts.year, facts.topPools.map((slug) => [slug, facts.names.get(slug)])]) : "";
-          postMessage(known !== null && said === known ? { facts: said } : { facts: said, text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts)) });
-        } catch (error) {
-          postMessage({ error: String(error) });
-        }
+      function presetsMaker(presetsUrl, clientUrl, origin) {
+        // (Its modules read as it starts, its facts' message waited for beside them.)
+        const modules = Promise.all([import(presetsUrl), import(clientUrl)]);
+        modules.catch(() => {});
+        onmessage = async ({ data: facts }) => {
+          try {
+            const [{ studioPresets }, { BitviewClient }] = await modules;
+            postMessage({ text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts ?? undefined)) });
+          } catch (error) {
+            postMessage({ error: String(error) });
+          }
+        };
       }
       /**
        * The next frame, for work split across frames; a hidden tab (no frames: a tab opened behind, a prerender) or one
@@ -29341,12 +29354,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
           await aFrame();
           presets = list;
-          presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          // (Its tree, and each one's search words with it: see presetTree.)
+          presetTree();
           // (Their words each once, for a slip in a search (see slipsOf), and their charts' ids (see presetById), gathered
           // meanwhile: no keystroke, no way back to the grid, waits for them.)
           whenIdle(vocabNow);
           whenIdle(idsNow);
-          presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
+          presetTitles = list.map((preset) => ((title) => ({ title, name: presetName(preset).toLowerCase(), subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
           presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
           const starts = new Int32Array(Math.max(0, ...presetRank) + 2);
@@ -29560,9 +29574,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         document.title = home ? ("top" in homeAt ? "Bitview Studio: charts of Bitcoin's on-chain data" : `${homeName()} · Bitview Studio`) : `${titleOf(chart)}${i >= 0 ? " chart" : ""} · Bitview Studio`;
         const as = `${address}|${home}|${i >= 0 ? chart.updated : ""}|${presets?.length ?? 0}`;
         const said = as === saidFor ? saidThen : i >= 0 && presets
-          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${presets[i].p.slice(0, -1).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
+          ? `${titleOf(chart)}: ${list(shown(chart))}, a chart of Bitcoin's on-chain data (${placeNames(presets[i].p.slice(0, -1)).join(" › ")}), live from bitview.space. Open it, change it and share it in Bitview Studio, free in the browser.`
           : path && !path.length ? "Thousands of ready-made charts of Bitcoin's on-chain data: market, network, mining, distribution, investing and more. Open one, change it and share it in Bitview Studio, free in the browser."
-          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${path.join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((at) => [...at.groups.keys(), ...at.own.map((k) => /** @type {Preset[]} */ (presets)[k].t)])(sectionAt(path)))
+          : path && presets ? ((inside) => `Charts of Bitcoin's on-chain data in ${placeNames(path).join(" › ")}: ${inside.length > 4 ? `${inside.slice(0, 4).join(", ")} and more` : list(inside)}. Open one, change it and share it in Bitview Studio, free in the browser.`)(((items) => [...items.flatMap((item) => (typeof item === "number" ? [] : [item.name])), ...items.flatMap((item) => (typeof item === "number" ? [/** @type {Preset[]} */ (presets)[item].t] : []))])(presetNodeAt(path)?.items ?? []))
           : DESCRIPTION;
         saidFor = as;
         saidThen = said;
@@ -30026,7 +30040,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The presets' words (see presetVocab), at once; in an idle moment (`deadline`), as far as it goes, then the next. */
       function vocabNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
-        if (presetVocab.of !== presetWords) presetVocab = { of: presetWords, counts: new Map(), making: vocabMaking(presetWords) };
+        const words = presetWordList();
+        if (presetVocab.of !== words) presetVocab = { of: words, counts: new Map(), making: vocabMaking(words) };
         inSlices(deadline, () => ((step) => (step?.done && ((presetVocab.counts = step.value), (presetVocab.making = null)), !step || Boolean(step.done)))(presetVocab.making?.next()), vocabNow);
         return presetVocab.counts;
       }
@@ -30045,18 +30060,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return near.sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([each]) => each);
       }
       /** A preset's words for a search: its title as made, and as edited here, and where it is. */
-      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(keptPreset(i));
+      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWordList()[i]} ${titleOf(edited).toLowerCase()}` : presetWordList()[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
-      /** How many the last search found, all of them (what it returns, the best few). */
-      let presetsCounted = 0;
+      /** How many the last search found, all of them (what it returns, the best few); and whether they hold only some of its words (see presetsMatching). */
+      let presetsCounted = 0, presetsPartial = false;
       /**
        * The presets whose words hold every word typed, the best first (what's typed its name, or its title's subject,
        * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
-       * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`.
+       * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`; none
+       * holding them all, those holding the most of them (see below).
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
-        const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
+        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), presetWords = presetWordList();
         // (Typed on from the last search, every match is among its matches.)
         const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
         // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
@@ -30078,6 +30094,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
         if (!under) presetsFound = { query, found };
         presetsCounted = found.length;
+        presetsPartial = false;
         // (Nothing found, and a word in no preset's words a slip off one that is (as ⌘K's rows forgive one, see fitScore):
         // found as that word, as series and settings are found through a slip; of the words each could be (the nearest
         // first, then those more presets have), the first together found (where it's searched: a few tried, a dozen at
@@ -30103,6 +30120,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             return presetsMatching(fixed, most, under, true);
           }
+        }
+        // (Still none among them all: those holding the most of the words, at least half and at least two (one word of
+        // two is a search for that word alone, not a name half remembered: an older release's, "reused outputs share
+        // spendable"), said to be partial where they're counted, ⌘K's rows marking the words they hold. In a section,
+        // none: its note offers the presets as a whole.)
+        if (!found.length && !under && words.length > 1) {
+          const held = new Uint32Array(presetWords.length);
+          let top = 0;
+          for (let i = 0; i < presetWords.length; i++) {
+            const text = renamed.get(i) ?? presetWords[i];
+            let n = 0;
+            for (let k = 0; k < words.length; k++) if (text.includes(words[k])) n++;
+            held[i] = n;
+            if (n > top) top = n;
+          }
+          if (top >= 2 && top * 2 >= words.length) for (let i = 0; i < held.length; i++) if (held[i] === top) found.push(i);
+          // (Typed on, a search narrows only what held every word: none.)
+          presetsFound = { query, found: [] };
+          presetsCounted = found.length;
+          presetsPartial = found.length > 0;
         }
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
         // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
@@ -30149,12 +30186,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
           // (Its mark as the sidebar's, drawn once its row's in sight (see paletteMarksSeen); the presets' icon till then.)
-          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: placeNames(preset.p.slice(0, -1)).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
             const doc = presetDoc(i);
-            panel.innerHTML = `<h4 class="plain">${escape(title)}</h4><p class="description">${escape(preset.p.slice(0, -1).join(" › "))}</p>
+            panel.innerHTML = `<h4 class="plain">${escape(title)}</h4><p class="description">${escape(placeNames(preset.p.slice(0, -1)).join(" › "))}</p>
               ${plotIn(doc, previewIndex(doc))}<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers)}</dl></div>`;
           },
         };
@@ -30169,27 +30206,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         void loadPresets().catch(() => {});
         /** @type {Page} */
         const page = {
-          title: path.at(-1) ?? "Presets",
+          title: placeNames(path).at(-1) ?? "Presets",
           // (Its rows are its search's, best first. Of no chart: ⌘K comes back to it whichever's open.)
           searches: true,
           global: true,
-          placeholder: path.length ? `Search in ${path.at(-1)}` : "Search the presets",
+          placeholder: path.length ? `Search in ${placeNames(path).at(-1)}` : "Search the presets",
           rows: () => {
             if (!presets) return [presetsFailed
               ? { kind: "row", key: "presets-retry", icon: ICONS.recent, label: "The presets couldn't be read", aside: "Try again", verb: "Retry", stay: true, run: retryPresets }
               : { kind: "row", key: "presets-waiting", icon: ICONS.recent, label: "Loading the presets…", dim: true, stay: true }];
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
+            // (At the top, the presets as a whole: searched as such, see presetsMatching.)
             const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
-            if (words.length) return presetsMatching(words, 300, under).map((i) => presetRow(i, true));
-            const rows = [], counts = new Map();
-            list.forEach((preset, i) => {
-              if (!under(i)) return;
-              if (preset.p.length === path.length + 1) return void rows.push(presetRow(i));
-              const name = preset.p[path.length];
-              if (!counts.has(name)) rows.push({ kind: "row", key: `group:${name}`, icon: sectionMark(presetNodeAt([...path, name])), label: name, verb: "Open", page: () => presetsPage([...path, name]) });
-              counts.set(name, (counts.get(name) ?? 0) + 1);
-            });
-            for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
+            if (words.length) return presetsMatching(words, 300, path.length ? under : null).map((i) => presetRow(i, true));
+            // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
+            const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.under.length, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
             // screen of them.)
             return [viewRow({ path }), ...(path.length ? [] : [{ kind: "row", key: "group:recommended", icon: ICONS.folder, label: "Recommended", aside: plural(recommendedPresets().length, "chart"), verb: "Open", page: recommendedPage }]), ...rows];
@@ -30932,7 +30963,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>${typeName(layer.type)}</h3>
               ${betweenField(layer)}
               ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${refPicked(layer)}${CHEVRON}</button></div>`}
-              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
+              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalized(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula
           ? `<section>
@@ -32592,7 +32623,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [, , what, , , usual] = FUNCTIONS[call.f], names = argNames(call.f), at = names[call.arg];
         return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
           ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
-          <p class="call-what">${escape(capitalize(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
+          <p class="call-what">${escape(capitalized(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
       }
       /**
        * The usual spans a function's span takes at this interval, each in words: a window's, two points at least (one is the
@@ -33725,7 +33756,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const betweenField = (layer) => {
         const has = (/** @type {string} */ member) => Boolean(layer.from?.includes(member)), edges = edgesOf(layer);
-        const chips = [...memberCandidates(layer, placedBy(chart, layer), has).map((item) => ({ id: item.id, icon: letterChip(item), name: labelOf(item), tip: "" })), ...(layer.type === "cloud" ? EDGES.map((edge) => ({ id: edge, icon: edgeIcon(edge), name: capitalize(edge), tip: `${EDGE_NAMES[edge]}: from its layers ${edge === "top" ? "up" : "down"} to it` })) : [])];
+        const chips = [...memberCandidates(layer, placedBy(chart, layer), has).map((item) => ({ id: item.id, icon: letterChip(item), name: labelOf(item), tip: "" })), ...(layer.type === "cloud" ? EDGES.map((edge) => ({ id: edge, icon: edgeIcon(edge), name: capitalized(edge), tip: `${EDGE_NAMES[edge]}: from its layers ${edge === "top" ? "up" : "down"} to it` })) : [])];
         return `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}${edges.length ? `, the ${edges.join(" and ")}` : ""}</span></span><div class="from-of" role="group" aria-label="What it's between">${chips.map(({ id, icon, name, tip }) => `<button type="button" data-member-of="${id}" aria-pressed="${has(id)}"${tip ? ` data-tip="${escape(tip)}"` : ""}>${icon}<span class="name">${escape(name)}</span></button>`).join("")}</div></div>`;
       };
       /** What flips a trend, from its button. */
@@ -34637,7 +34668,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const chartsFound = !everything ? [] : rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words);
         const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", chartsPage, chartsFound.length);
         // The presets (once read), after yours: a few that match; all of them on their own page.
-        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), "Presets", "presets found", () => presetsPage([]), undefined, 60);
+        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), "Presets", presetsPartial ? "presets holding the most words" : "presets found", () => presetsPage([]), undefined, 60);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         // (The chart's settings, as kept while ⌘K's open: see settingsNow.)
@@ -35016,7 +35047,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a piece of a formula is: a layer of this chart, with its latest value; or a function. */
       function previewPiece(item) {
         const layer = item.layer ? layerById(item.layer) : null;
-        if (!layer) return `<h4><code>${escape(item.title ?? "")}</code></h4><p class="description">${escape(capitalize(item.text ?? ""))}.</p>`;
+        if (!layer) return `<h4><code>${escape(item.title ?? "")}</code></h4><p class="description">${escape(capitalized(item.text ?? ""))}.</p>`;
         const unit = unitFor(layer, resolved?.results.get(layer.id));
         const result = resolved?.results.get(layer.id), values = result && measured(result);
         const value = values?.findLast(Number.isFinite) ?? NaN;
@@ -35672,7 +35703,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function previewChart(panel, doc) {
         if (!doc) return void (panel.innerHTML = "");
         // (Its edit's time; a preset not edited, where it is.)
-        const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${/** @type {Preset[]} */ (presets)[at].p.slice(0, -1).join(" › ")}` : "";
+        const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${placeNames(/** @type {Preset[]} */ (presets)[at].p.slice(0, -1)).join(" › ")}` : "";
         panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${[plural(doc.layers.length, "layer"), CADENCE[doc.index], where].filter(Boolean).map(escape).join(" · ")}</p>
           ${plotIn(doc)}${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers.slice(0, 10))}</dl></div>` : ""}`;
       }
@@ -36048,11 +36079,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         { key: "add-profile", icon: ICONS.profile, label: "Add a profile", aside: PROFILE_SHORT, under: true, page: profileAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
       /** ⌘K's page for a heatmap: a holder group to add one of (its supply by cost basis; the rest, its own to change). @returns {Page} */
-      const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
+      const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
       /** Adding a profile: long-term and short-term holders together first (the coins' two sides, each its color), then one group; more pressed in its settings. */
       const profileAddPage = () => choicePage("Add a profile", () => [
-        { key: "lth+sth", icon: ICONS.profile, label: "Long-term and short-term holders", aside: "Each its color", verb: "Add", run: () => addHeatmap("lth", ["lth", "sth"]) },
-        ...HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
+        { key: "lth+sth", icon: ICONS.profile, label: `${holderName("lth").brief} and ${inSentence(holderName("sth").who)}`, aside: "Each its color", verb: "Add", run: () => addHeatmap("lth", ["lth", "sth"]) },
+        ...HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
       ]);
       /** @returns {Page} */
       function chartPage() {
@@ -36063,7 +36094,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
               { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
-              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
+              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalized(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalized(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               legendAction("Chart"),
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
               { key: "panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
@@ -36262,7 +36293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...drawingPage(drawing.id).rows().filter((row) => DRAWING_QUICK.has(String(row.key))),
           ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, under: true, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
-          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: capitalize(LENS_SAYS), under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
+          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: capitalized(LENS_SAYS), under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => takeUp("select") },
             { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
@@ -36597,7 +36628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
         const away = Boolean(span && !why && fineDrawn() && !stretchOf(span).loaded);
         const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
-        panel.innerHTML = `<h4 class="plain">${span ? escape(capitalize(span.label)) : "Go to a date"}</h4>
+        panel.innerHTML = `<h4 class="plain">${span ? escape(capitalized(span.label)) : "Go to a date"}</h4>
           <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span class="spark-caption" hidden></span>
           ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
@@ -37708,7 +37739,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function renderRanges() {
         const html = RANGES.map(([id, text], i) => {
-          const fits = presetFits(id), tip = fits ? capitalize(periodOf(id)) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
+          const fits = presetFits(id), tip = fits ? capitalized(periodOf(id)) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
           return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${text}: ${tip.toLowerCase()}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : 'aria-disabled="true"'}>${text}</button>`;
         }).join("");
         if (html === rangesShown) return;
@@ -39893,8 +39924,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           ...node.items.map((each) => (typeof each === "number"
             // (By its own name, as its row: retitled here, by that.)
-            ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : /** @type {string} */ (all[each].p.at(-1))))(keptPreset(each)), run: () => pickPreset(each) }
-            : { key: each.key, icon: sectionMark(each), label: /** @type {string} */ (each.path.at(-1)), aside: shortCount(each.count), marked: holding.includes(each.key), page: () => ({ title: /** @type {string} */ (each.path.at(-1)), heading: true, rows: () => sectionFlyout(each.key) }) })),
+            ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : presetName(all[each])))(keptPreset(each)), run: () => pickPreset(each) }
+            : { key: each.key, icon: sectionMark(each), label: each.name, aside: shortCount(each.under.length), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
           { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
         ];
       }
@@ -41096,7 +41127,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (quick?.key === key && $("quick").matches(":popover-open")) return;
         quick = { key };
         $("quick-name").textContent = look ? titleOf(look.doc) : "";
-        $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${/** @type {Preset[]} */ (presets)[look.i].p.slice(0, -1).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${folderPath(look.doc.folder)}` : "Library";
+        $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${placeNames(/** @type {Preset[]} */ (presets)[look.i].p.slice(0, -1)).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${folderPath(look.doc.folder)}` : "Library";
         $("quick-none").hidden = Boolean(look);
         /** @type {HTMLElement} */ ($("quick").querySelector("[data-quick-open]")).hidden = !look;
         const frame = $("quick-picture");

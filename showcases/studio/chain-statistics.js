@@ -6,7 +6,8 @@
  */
 
 /** @import { SeriesTree, SeriesPattern, Pool, Concentration } from "../../modules/bitview-client/index.js" */
-/** @import { Facts, ChartBuilder, SectionBuilder, SectionNode } from "./presets.js" */
+/** @import { ChartBuilder, SectionBuilder, SectionNode } from "./presets.js" */
+/** @import { Facts } from "./facts.js" */
 /**
  * @typedef {Pick<SeriesPattern<unknown>, "name">} NamedSeries
  * @typedef {{ cumulative: NamedSeries, sum?: Record<string, NamedSeries> }} Cumulative

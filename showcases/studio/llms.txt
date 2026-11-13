@@ -125,8 +125,8 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Entry price (102): https://bitview.space/studio/presets/holders/entry-price/
 - Coin age (3163): https://bitview.space/studio/presets/coin-age/
   - Age bands (986): https://bitview.space/studio/presets/coin-age/age-bands/
-  - Over an age (664): https://bitview.space/studio/presets/coin-age/over-an-age/
-  - Under an age (738): https://bitview.space/studio/presets/coin-age/under-an-age/
+  - At or above each age (664): https://bitview.space/studio/presets/coin-age/over-an-age/
+  - Under each age (738): https://bitview.space/studio/presets/coin-age/under-an-age/
   - Halving epochs (192): https://bitview.space/studio/presets/coin-age/halving-epochs/
   - Vintages (582): https://bitview.space/studio/presets/coin-age/vintages/
 - Profitability (588): https://bitview.space/studio/presets/profitability/
@@ -135,20 +135,20 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/
 - UTXOs (1260): https://bitview.space/studio/presets/utxos/
   - By amount (352): https://bitview.space/studio/presets/utxos/by-amount/
-  - Over an amount (324): https://bitview.space/studio/presets/utxos/over-an-amount/
-  - Under an amount (324): https://bitview.space/studio/presets/utxos/under-an-amount/
+  - At or above each UTXO amount (324): https://bitview.space/studio/presets/utxos/over-an-amount/
+  - Under each UTXO amount (324): https://bitview.space/studio/presets/utxos/under-an-amount/
   - By type (259): https://bitview.space/studio/presets/utxos/by-type/
 - Addresses (1181): https://bitview.space/studio/presets/addresses/
   - Count (4): https://bitview.space/studio/presets/addresses/count/
-  - Reused (13): https://bitview.space/studio/presets/addresses/reused/
-  - Respent (11): https://bitview.space/studio/presets/addresses/respent/
-  - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
+  - Reused addresses (13): https://bitview.space/studio/presets/addresses/reused/
+  - Addresses with more than one spent output (11): https://bitview.space/studio/presets/addresses/respent/
+  - Addresses with exposed keys or scripts (3): https://bitview.space/studio/presets/addresses/exposed/
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/
   - By type (184): https://bitview.space/studio/presets/addresses/by-type/
   - By balance (339): https://bitview.space/studio/presets/addresses/by-balance/
-  - Over a balance (310): https://bitview.space/studio/presets/addresses/over-a-balance/
-  - Under a balance (310): https://bitview.space/studio/presets/addresses/under-a-balance/
+  - At or above each address balance (310): https://bitview.space/studio/presets/addresses/over-a-balance/
+  - Under each address balance (310): https://bitview.space/studio/presets/addresses/under-a-balance/
 - Mining (988): https://bitview.space/studio/presets/mining/
   - Hashing (6): https://bitview.space/studio/presets/mining/hashing/
   - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
