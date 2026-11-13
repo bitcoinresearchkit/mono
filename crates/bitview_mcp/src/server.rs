@@ -9,8 +9,8 @@ use axum::{
     Json, Router,
     body::{Body, Bytes},
     http::{
-        HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, ORIGIN},
+        HeaderMap, HeaderValue, Method, Request, StatusCode,
+        header::{ACCEPT, ALLOW, CACHE_CONTROL, ORIGIN, VARY},
         request::Parts,
     },
     middleware::{self, Next},
@@ -411,19 +411,77 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
         return unsupported_version(version);
     }
 
-    // `GET /` is the page. Asked for as an event stream it's the MCP endpoint, which has no stream.
-    if request.method() == Method::GET
-        && request.uri().path() == "/"
-        && request
-            .headers()
-            .get(ACCEPT)
-            .and_then(|accept| accept.to_str().ok())
-            .is_some_and(|accept| accept.contains("text/event-stream"))
-    {
-        return StatusCode::METHOD_NOT_ALLOWED.into_response();
+    // `GET /` (and its `HEAD`) is the page. As an event stream it is MCP, which has no stream.
+    let landing = matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
+    if landing && accepts_event_stream(request.headers()) {
+        return (
+            StatusCode::METHOD_NOT_ALLOWED,
+            [
+                (CACHE_CONTROL, "no-store"),
+                (ALLOW, "GET, HEAD, POST"),
+                (VARY, "Accept"),
+            ],
+        )
+            .into_response();
     }
 
-    next.run(request).await
+    let mut response = next.run(request).await;
+    if landing && !varies_by_accept(response.headers()) {
+        response.headers_mut().append(VARY, HeaderValue::from_static("Accept"));
+    }
+    response
+}
+
+/// Whether a response already says it varies by `Accept` (any `Vary` header naming it, any case).
+fn varies_by_accept(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(VARY)
+        .iter()
+        .filter_map(|vary| vary.to_str().ok())
+        .flat_map(|vary| vary.split(','))
+        .any(|name| name.trim().eq_ignore_ascii_case("accept"))
+}
+
+/// Whether any `Accept` header names `text/event-stream` as a media range (any case, its parameters aside), not refused
+/// with `q=0`.
+fn accepts_event_stream(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(ACCEPT)
+        .iter()
+        .filter_map(|accept| accept.to_str().ok())
+        .flat_map(|accept| split_unquoted(accept, b','))
+        .any(|range| {
+            let mut parts = split_unquoted(range, b';').into_iter();
+            parts
+                .next()
+                .is_some_and(|media| media.trim().eq_ignore_ascii_case("text/event-stream"))
+                && !parts.any(|parameter| {
+                    parameter
+                        .trim()
+                        .split_once('=')
+                        .is_some_and(|(name, q)| name.trim().eq_ignore_ascii_case("q") && q.trim().parse::<f32>() == Ok(0.0))
+                })
+        })
+}
+
+/// A header's text split at an ASCII `delimiter` outside its quoted strings (a `"`-quoted value, `\` escaping within it),
+/// as RFC 9110 reads a list and its parameters.
+fn split_unquoted(text: &str, delimiter: u8) -> Vec<&str> {
+    let (mut parts, mut start, mut quoted, mut escaped) = (Vec::new(), 0, false, false);
+    for (at, byte) in text.bytes().enumerate() {
+        if escaped {
+            escaped = false;
+        } else if quoted && byte == b'\\' {
+            escaped = true;
+        } else if byte == b'"' {
+            quoted = !quoted;
+        } else if !quoted && byte == delimiter {
+            parts.push(&text[start..at]);
+            start = at + 1;
+        }
+    }
+    parts.push(&text[start..]);
+    parts
 }
 
 fn is_supported(version: &HeaderValue) -> bool {
