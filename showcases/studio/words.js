@@ -4,6 +4,12 @@
 
 /** Words as a name or title starts them: their first letter in capital ("at least 1 BTC": "At least 1 BTC"). @param {string} text */
 export const capitalized = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+/**
+ * A name as it reads inside a sentence: its first letter lowered where it's a word's in sentence case and no later word
+ * is capitalized as a name's ("Pool", not "SegWit"): "Short-term holders" "short-term holders", "At least 1 BTC" "at
+ * least 1 BTC"; a name kept ("P2TR", "AntPool", "Open Assets"). @param {string} text
+ */
+export const inSentence = (text) => (/^[A-Z][a-z]+(?![A-Za-z])/.test(text) && !/[\s-][A-Z][a-z]+(?![A-Za-z])/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text);
 
 /** Units as said, one and more, as keys spell them: a time's letter, else the key's unit. */
 const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"], Block: ["block", "blocks"], Blocks: ["block", "blocks"], Bytes: ["byte", "bytes"], SatVb: ["sat/vB", "sat/vB"], Sats: ["sat", "sats"], Btc: ["BTC", "BTC"] };
@@ -26,7 +32,7 @@ const MULTIPLIERS = /** @type {Record<string, number>} */ ({ "": 1, k: 1e3, m: 1
  * written (a range with a bound, a letter its unit doesn't take): undefined.
  * @param {string} key @returns {Key | undefined}
  */
-export function readKey(key) {
+function readKey(key) {
   if (!READ.has(key)) READ.set(key, readOnce(key));
   return READ.get(key);
 }
@@ -65,7 +71,10 @@ export function spanLabel(/** @type {string} */ key, after = false) {
  * A band's edge as its places keep it, as its key writes it (`_1kTo10kSats` low "1K sats", `_1yTo18m` low "1 year",
  * `loss0To10Percent` high "10%"); none, undefined. @param {string} key @param {"low" | "high"} end
  */
-export const placeEdge = (key, end) => ((e) => e && (e.unit === "Percent" ? `${e.written}%` : `${e.written} ${unitWord(e.value, e.unit)}`))(readKey(key)?.[end]);
+export const placeEdge = (key, end) => {
+  const e = readKey(key)?.[end];
+  return e && (e.unit === "Percent" ? `${e.written}%` : `${e.written} ${unitWord(e.value, e.unit)}`);
+};
 /**
  * A trailing window as shown, in titles, legends and labels alike: a window counts fixed days, never calendar ones
  * (crates/bitview_plugin_mappings/src/lookback.rs), so its months are said as their days, 30 each (`_1m` "30 days",

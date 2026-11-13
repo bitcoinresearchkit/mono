@@ -11137,7 +11137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { createChart, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
       import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-      import { AGES, HOLDERS, capitalized, dimensionBand, holderName, shownStep } from "/studio/words.js";
+      import { AGES, HOLDERS, capitalized, dimensionBand, holderName, inSentence, shownStep } from "/studio/words.js";
       import { chainFacts, factsKey } from "/studio/facts.js";
       import { addressSteps } from "/studio/addresses.js";
       import { RUNNING_TOTALS } from "/studio/running-totals.js";
@@ -11995,14 +11995,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shown, its short name (where its list says what it is) and its name in titles. All coins, then each complementary
        * pair (the terms, under 4 months and at least 4, under 6 and at least 6), as holderName names them; then the age
        * bands from the youngest, each read from its key (see dimensionBand: "1 day to under 1 week old"), short as the
-       * client's (an abbreviation its key's reader doesn't make: "1d–1w"); one it can't read, reported and left out.
+       * client's (an abbreviation its key's reader doesn't make: "1d–1w"); one it can't read, left out (the presets
+       * report it: the same bands, see ageBand in presets.js).
        */
       /** @typedef {{ id: string, shown: string, brief: string, who: string, age: boolean }} HeatCohort */
       const HEAT_COHORTS = /** @type {HeatCohort[]} */ ([
         ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
         ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => {
           const band = dimensionBand(key, AGES);
-          if (!band) console.error(`Studio: age band ${key} has no edges it can read; left out`);
           return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
         }),
       ]);
@@ -12573,8 +12573,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const percentileWord = (text) => ((p) => p && `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"} percentile`)(/^p(\d+(?:[._]\d+)?)$/.exec(text)?.[1].replace("_", "."));
       const word = (text) => WORDS[text] ?? percentileWord(text) ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
-      /** A name as a sentence reads it, after its start: its first letter lowered, not an initialism's ("URPD"). @param {string} text */
-      const inSentence = (text) => text.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase());
       /** A series id as words, a percentile's decimal point kept: "supply_in_loss_rarity_p99_9" …rarity 99.9th percentile. */
       const humanize = (name) => capitalized(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
       /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole, "p99_5ToP99_9" 99.5th percentile to 99.9th percentile. */

@@ -34,9 +34,10 @@
  * charts are in titles (`who`, "Short-term holders' coins over 10% in profit"), and, as its shares of its family's whole
  * name it (`inWhole`, "Coins over 10% in profit", see cohort), where that's another; a band's, its band inside a
  * sentence (`said`, "1 day to under 1 week old")
- * @typedef {import("./words.js").Dimension & { inWhole?: (said: string) => string, within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Bands
- * a band dimension as its families and cutoffs read it (see Dimension), and: `inWhole`, its members within their whole
- * (see Naming); `within`, `of`, `lookOf`: its families' (see family)
+ * @typedef {import("./words.js").Dimension & { inWhole?: (said: string) => string }} Bands a band dimension as its
+ * families and cutoffs read it (see Dimension), and `inWhole`, its members within their whole (see Naming)
+ * @typedef {{ within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Kin
+ * what a band family's options and its cutoffs' share (see family)
  * @typedef {{ name: Name, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {(name: Name, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, window?: string, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
  * @typedef {{ name: Name, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
@@ -46,7 +47,7 @@
 
 /** @import { Facts } from "./facts.js" */
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
-import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
+import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
 /** @param {any} n */
@@ -97,11 +98,6 @@ function keyWords(/** @type {string} */ key) {
 }
 /** A client key's words as a name starts them ("supplyInLoss" "Supply in loss"). @param {string} key */
 const words = (key) => capitalized(keyWords(key));
-/**
- * A name as it reads inside a sentence: words in sentence case lowercased ("Unknown" "unknown", "Bare hash" "bare
- * hash"), a name kept ("P2TR", "Open Assets", "Version 1").
- */
-const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+(?:[ -][a-z]+)*$/.test(name) ? name.toLowerCase() : name);
 
 /** Transaction features as said (the client's keys spell them as words), their timelocks and what they spend too. */
 const FEATURES = {
@@ -1023,10 +1019,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * place says its side and that edge as its key writes it ("Over 1 day old", see placeEdge); shown and in titles, its
    * side and edge as its dimension counts them (see Bands: "at least 1 day old"). `side`: the side its words say, and
    * whether its bands are those from its edge up (`up`), else those under it (see cutoffs).
-   * @param {[string, any][]} list the bands, low to high @param {string[]} edges @param {Side} side @param {Bands} d
+   * @param {[string, any][]} list the bands, low to high @param {string[]} edges @param {Side} side @param {Bands} d @param {Kin} kin
    * @returns {SectionNode}
    */
-  const cutoffFolder = (list, edges, { over, up }, d) => {
+  const cutoffFolder = (list, edges, { over, up }, d, kin) => {
     const nodes = list.map(([, node]) => node), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const [side, each, place] = over ? [d.family.over, d.family.each, "Over"] : [d.family.under, d.family.under, "Under"];
     const members = edges.flatMap((key) => {
@@ -1036,22 +1032,22 @@ export function studioPresets(client, facts, report = (problem) => console.error
       return [{ key, c: cutoffCohort(nodes, at(key), up), naming: { name: shownAs(`${place} ${placeEdge(key, d.end)}${d.after}`, capitalized(said)), who: d.who(said), inWhole: d.inWhole?.(said) } }];
     });
     const naming = new Map(members.map((m) => [m.key, m.naming]));
-    return section(shownAs(`${place} ${d.article}`, capitalized(`${each} each ${d.noun}`)), family(members.map((m) => [m.key, m.c]), (key) => naming.get(key), { each: `${each} each ${d.noun}`, ...(d.within ? { within: d.within } : {}), ...(d.of ? { of: d.of } : {}), ...(d.lookOf ? { lookOf: d.lookOf } : {}) }));
+    return section(shownAs(`${place} ${d.article}`, capitalized(`${each} each ${d.noun}`)), family(members.map((m) => [m.key, m.c]), (key) => naming.get(key), { each: `${each} each ${d.noun}`, ...kin }));
   };
   /**
    * The bands' cutoffs, on each of `sides` (see cutoffFolder): `edges`, low to high, each by the band at its edge. A side
    * of one band alone isn't one: it's that band's own page. An edge whose band isn't in `list` is reported, its cutoffs
-   * left out.
-   * @param {[string, any][]} list the bands, low to high @param {string[]} edges @param {Bands} d @param {Side[]} [sides]
+   * left out. `kin`: what they share with their bands' family (see Kin).
+   * @param {[string, any][]} list the bands, low to high @param {string[]} edges @param {Bands} d @param {Kin} [kin] @param {Side[]} [sides]
    * @returns {SectionNode[]}
    */
-  const cutoffs = (list, edges, d, sides = [OVER, UNDER]) => {
+  const cutoffs = (list, edges, d, kin = {}, sides = [OVER, UNDER]) => {
     const at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const known = edges.filter((key) => {
       if (at(key) < 0) report(`no band ${key} to cut at; its cutoffs left out`);
       return at(key) >= 0;
     });
-    return sides.map((side) => cutoffFolder(list, known.filter((key) => (side.up ? list.length - at(key) : at(key)) > 1), side, d));
+    return sides.map((side) => cutoffFolder(list, known.filter((key) => (side.up ? list.length - at(key) : at(key)) > 1), side, d, kin));
   };
   /** A cutoff side (see cutoffFolder): over an edge, its bands from it up; under it, those under it. @typedef {{ over: boolean, up: boolean }} Side */
   const OVER = { over: true, up: true }, UNDER = { over: false, up: false };
@@ -1061,18 +1057,21 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * holds its high edge, a loss band its low one (see BAND_SIDES): its profit cutoffs at its bands' low edges, over 10%
    * in profit; its loss cutoffs at their high edges, at least 10% in loss, the bands deeper than its edge's (its bands
    * run from the deepest loss up: those under its edge, see profitCutoffs). Each by the band of its edge's look.
-   * @param {string} key the group's @returns {{ bands: Bands, profits: Bands, losses: Bands }}
+   * @param {string} key the group's @returns {{ bands: Bands, profits: Bands, losses: Bands, kin: Kin }}
    */
   const profitsOf = (key) => {
-    const g = holderName(key), mine = key === "all" ? {} : { within: g.who, of: wholeOf(`${g.who.toLowerCase()}'`) };
+    const g = holderName(key);
     /** @type {Bands} */
-    const profits = { noun: "profit level", article: "a profit", family: EDGES.through, end: "low", after: " in profit", who: (said) => capitalized(`${g.coins} ${said}`), inWhole: (said) => capitalized(`coins ${said}`), lookOf: profitBandLook, ...mine };
-    return { bands: { ...profits, after: "" }, profits, losses: { ...profits, noun: "loss level", article: "a loss", family: EDGES.from, end: "high", after: " in loss" } };
+    const profits = { noun: "profit level", article: "a profit", family: EDGES.through, end: "low", after: " in profit", who: (said) => capitalized(`${g.coins} ${said}`), inWhole: (said) => capitalized(`coins ${said}`) };
+    return {
+      bands: { ...profits, after: "" }, profits, losses: { ...profits, noun: "loss level", article: "a loss", family: EDGES.from, end: "high", after: " in loss" },
+      kin: { lookOf: profitBandLook, ...(key === "all" ? {} : { within: g.who, of: wholeOf(`${g.who.toLowerCase()}'`) }) },
+    };
   };
   /** A holder group's profit cutoffs, then its loss cutoffs (see profitsOf). @param {any} bands @param {ReturnType<typeof profitsOf>} sides @returns {SectionNode[]} */
-  const profitCutoffs = (bands, { profits, losses }) => {
+  const profitCutoffs = (bands, { profits, losses, kin }) => {
     const list = entries(bands).reverse();
-    return [...cutoffs(list, PROFIT_EDGES, profits, [OVER]), ...cutoffs(list, LOSS_EDGES, losses, [{ over: true, up: false }])];
+    return [...cutoffs(list, PROFIT_EDGES, profits, kin, [OVER]), ...cutoffs(list, LOSS_EDGES, losses, kin, [{ over: true, up: false }])];
   };
   /**
    * Where the age bands can be cut, each by the band at its edge (its edge read from its key, as its places keep it and as
@@ -1209,7 +1208,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
         section("Components", entries(t.rarityMeter.components).map(([key, node]) => holderSection(key, entries(node).map(([k, v]) => component(v, words(k), holderName(key).who, referenceOf(key, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")]))))),
         // (Each extreme against its bands: the median and its rare side's tail shown, the others a click away.)
         section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).flatMap(([key, node]) => {
-          if (!EXTREMES[key]) return (report(`no words for the rarity meter extreme ${key}; left out`), []);
+          if (!EXTREMES[key]) {
+            report(`no words for the rarity meter extreme ${key}; left out`);
+            return [];
+          }
           const { what, window, low } = EXTREMES[key], measure = capitalized(what), said = window ? `${measure}, ${windowSaid(window)}` : measure;
           // (Its place keeps its window as its key spells it, "Realized profit, 24h".)
           return [chart(window ? shownAs(`${measure}, ${window.slice(1)}`, said) : measure, `Rarity bands of ${what}`, [series(own(node), said, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1], window })];
@@ -1243,7 +1245,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ], { icon: "hourglass" }),
     section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => {
       const sides = profitsOf(key), d = sides.bands;
-      return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...(d.within ? { within: d.within } : {}), ...(d.of ? { of: d.of } : {}), lookOf: profitBandLook })]);
+      return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...sides.kin })]);
     })), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
@@ -1264,7 +1266,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, client.SPENDABLE_TYPE_NAMES[key]?.short ?? key))),
       ]),
       section("By balance", family(entries(t.addresses.balances), bandMember(client.AMOUNT_RANGE_NAMES, BALANCES), { each: "by address balance", disjoint: true, of: ADDRESSED })),
-      ...cutoffs(entries(t.addresses.balances), AMOUNT_EDGES, { ...BALANCES, of: ADDRESSED }),
+      ...cutoffs(entries(t.addresses.balances), AMOUNT_EDGES, BALANCES, { of: ADDRESSED }),
     ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
@@ -1334,7 +1336,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...perBlockFan(blocks.fullness, "Fullness", "Block fullness", false),
         ...flow(blocks.sigopCost, "Signature operations", "Signature operation cost"),
         ...flow(blocks.emptyCount, "Empty", numberOf("empty blocks")),
-        ...entries(blocks.versionBits).flatMap(([key, node]) => ((bit) => flow(node, `Version ${bit}`, numberOf(`blocks signaling version ${bit}`)))(keyWords(key))),
+        ...entries(blocks.versionBits).flatMap(([key, node]) => flow(node, `Version ${keyWords(key)}`, numberOf(`blocks signaling version ${keyWords(key)}`))),
         section("Coinbase locktime", [
           ...flow(blocks.coinbaseLocktime.nonzero, "Nonzero", numberOf("blocks with a nonzero coinbase locktime")),
           ...flow(blocks.coinbaseLocktime.bip54, "BIP-54", numberOf("blocks whose coinbase locktime matches BIP-54's rule")),
@@ -1813,22 +1815,25 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
       ]),
       // (Each kind its count, its coins and their share of these addresses'; what they did, where it's counted.)
-      ...addressKinds.map((kind) => ((k, who) => section(shownAs(kind.name, who), [
-        // (Exposed: their public key or spending script seen on chain, P2PK and P2TR once funded, the hashed types once spent.)
-        chart("Count", numberOf(kind.set), [series(k.count.funded, "Funded", { color: "orange" }), series(k.count.total, "Total", { color: "sky" })], { log: [1] }),
-        measure("Supply", who, amount(k.supply, "Supply")),
-        measure(shownAs("Supply share", `Share of ${these}' coins`), who, [series(k.supply.share, "Share", { color: "sky" })]),
-        ...(k.events ? [
-          ...flow(k.events.outputs.count, "Outputs to them", numberOf(`outputs to ${kind.set}`)),
-          measure(shownAs("Output share", `Share of outputs to ${these}`), who, sharesOf(k.events.outputs.share, "Share")),
-          // (Reuse at its most direct, where counted: an output paying an address its own transaction spends from.)
-          ...(k.direct ? flow(k.direct.outputCount, "Direct reuse", of(numberOf("outputs paying an address the same transaction spends from"))) : []),
-          ...flow(k.events.inputs.count, "Inputs from them", numberOf(`inputs from ${kind.set}`)),
-          measure(shownAs("Input share", `Share of inputs from ${these}`), who, sharesOf(k.events.inputs.share, "Share")),
-          measure(shownAs("Active per block", `Average number of active ${these} per block`), who, windows(k.events.active.count.avg, "")),
-          measure(shownAs("Active share", `Share of active ${these}, counted per block`), who, sharesOf(k.events.active.share, "Share"), { absolute: sharesOf(k.events.active.count, "Address appearances"), absoluteLog: true }),
-        ] : []),
-      ]))(a[kind.key], capitalized(kind.set))),
+      ...addressKinds.map((kind) => {
+        const k = a[kind.key], who = capitalized(kind.set);
+        return section(shownAs(kind.name, who), [
+          // (Exposed: their public key or spending script seen on chain, P2PK and P2TR once funded, the hashed types once spent.)
+          chart("Count", numberOf(kind.set), [series(k.count.funded, "Funded", { color: "orange" }), series(k.count.total, "Total", { color: "sky" })], { log: [1] }),
+          measure("Supply", who, amount(k.supply, "Supply")),
+          measure(shownAs("Supply share", `Share of ${these}' coins`), who, [series(k.supply.share, "Share", { color: "sky" })]),
+          ...(k.events ? [
+            ...flow(k.events.outputs.count, "Outputs to them", numberOf(`outputs to ${kind.set}`)),
+            measure(shownAs("Output share", `Share of outputs to ${these}`), who, sharesOf(k.events.outputs.share, "Share")),
+            // (Reuse at its most direct, where counted: an output paying an address its own transaction spends from.)
+            ...(k.direct ? flow(k.direct.outputCount, "Direct reuse", of(numberOf("outputs paying an address the same transaction spends from"))) : []),
+            ...flow(k.events.inputs.count, "Inputs from them", numberOf(`inputs from ${kind.set}`)),
+            measure(shownAs("Input share", `Share of inputs from ${these}`), who, sharesOf(k.events.inputs.share, "Share")),
+            measure(shownAs("Active per block", `Average number of active ${these} per block`), who, windows(k.events.active.count.avg, "")),
+            measure(shownAs("Active share", `Share of active ${these}, counted per block`), who, sharesOf(k.events.active.share, "Share"), { absolute: sharesOf(k.events.active.count, "Address appearances"), absoluteLog: true }),
+          ] : []),
+        ]);
+      }),
       ...(a.supply ? cohort({ supply: a.supply, capital: a.capital }, `Coins in ${these}`) : []),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   }
