@@ -30118,9 +30118,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return presetVocab.counts;
       }
       /**
-       * A word typed as no preset has it (nor a renamed one's title, `extra`), the words of theirs it's a slip off (from
-       * four letters, a letter; from seven, two; against as much of theirs as was typed and a letter, as fitScore's), the
-       * nearest first, then those more presets have; none if it's found as typed: in their words as shown, or, of letters
+       * A word typed as no preset has it (nor a renamed one's title, `extra`), the words of theirs it's a slip off (see
+       * slipEdits, as fitScore's), the nearest first, then those more presets have; none if it's found as typed: in their words as shown, or, of letters
        * and digits only, two of them joined, in what's searched (`texts`, see searchText: "1week"; "profit," still a slip).
        */
       function slipsOf(/** @type {string} */ word, /** @type {string[]} */ texts, /** @type {string[]} */ extra) {
@@ -30128,7 +30127,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const counts = /** @type {Map<string, number>} */ (vocabNow()), most = word.length >= 7 ? 2 : 1, near = /** @type {[string, number, number][]} */ ([]);
         for (const each of counts.keys()) if (each.includes(word)) return [];
         if (/^[a-z0-9]+$/.test(word)) for (let i = 0; i < texts.length; i++) if (texts[i].includes(word)) return [];
-        const weigh = (/** @type {string} */ each, /** @type {number} */ count) => ((edits) => edits <= most && near.push([each, edits, count]))(editsBetween(word, each.slice(0, word.length + 1), most));
+        const weigh = (/** @type {string} */ each, /** @type {number} */ count) => ((edits) => edits <= most && near.push([each, edits, count]))(slipEdits(word, each, counts));
         for (const [each, count] of counts) weigh(each, count);
         for (const each of new Set(extra.flatMap((text) => text.split(/[^a-z0-9]+/)))) if (each.length >= 3 && !counts.has(each)) weigh(each, 1);
         return near.sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([each]) => each);
@@ -35713,6 +35712,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return row[n];
       }
       /**
+       * How far a typed word (four letters or more) is from `other`, one of the words it's checked among (`words`), as a
+       * slip in typing: its edits (against as much of `other` as was typed and a letter), a slip at a letter, from seven
+       * letters two; more, none. Past a stem the two share (one of `words`, from four letters), one edit at most: an ending
+       * put in another's place isn't a slip ("monthly" isn't "months"; "addresess" is "addresses"); nor is the stem itself,
+       * where they have it with another ending too ("annexes" is annex; "monthly" isn't month, there being months).
+       * @param {string} word @param {string} other @param {{ has(word: string): boolean, keys(): Iterable<string> }} words
+       */
+      function slipEdits(word, other, words) {
+        const most = word.length >= 7 ? 2 : 1, edits = editsBetween(word, other.slice(0, word.length + 1), most);
+        if (edits > most) return edits;
+        let shared = 0;
+        while (shared < word.length && shared < other.length && word[shared] === other[shared]) shared++;
+        let stem = "";
+        for (let k = shared; k >= 4 && !stem; k--) if (words.has(word.slice(0, k))) stem = word.slice(0, k);
+        if (!stem) return edits;
+        if (other !== stem) return edits > 1 ? most + 1 : edits;
+        for (const each of words.keys()) if (each !== stem && each.startsWith(stem)) return most + 1;
+        return edits;
+      }
+      /**
        * How well what's typed (`words`, see typedWords) finds a text, word by word: a whole word (two joined too, not by a
        * slip: see textWords), a word's start, inside one, or (from four letters)
        * a word of its `name` a letter or two off (a slip in what it's called, not in what's said of it: "light" isn't
@@ -35733,7 +35752,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (other === word) best = 4;
             else if (other.startsWith(word)) best = Math.max(best, 3);
             else if (word.length >= 3 && other.includes(word)) best = Math.max(best, 2);
-            else if (!best && word.length >= 4 && (named ??= new Set(textWords(searchCase(name)).words)).has(other) && editsBetween(word, other.slice(0, word.length + 1), word.length >= 7 ? 2 : 1) <= (word.length >= 7 ? 2 : 1)) best = 1;
+            else if (!best && word.length >= 4 && (named ??= new Set(textWords(searchCase(name)).words)).has(other) && slipEdits(word, other, named) <= (word.length >= 7 ? 2 : 1)) best = 1;
             if (best === 4) break;
           }
           // (Two of its words joined: "bip69", BIP-69; found whole, by its start or inside, never by a slip.)
