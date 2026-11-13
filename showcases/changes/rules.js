@@ -89,5 +89,6 @@ export function read(id, rules) {
     if (used.length) add({ id: prefix + renamed + tail, factor, ...renamedCohort, words: used, ...withSuffix });
     add({ id: prefix + base + tail, factor, ...renamedCohort, ...withSuffix });
   }
+  if (id.startsWith("tx_count_")) add({ id: `${id.slice(9)}_tx_count`, factor: 1, words: [["tx_count_X", "X_tx_count", 0]] });
   return readings;
 }
