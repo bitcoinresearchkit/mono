@@ -30065,6 +30065,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /** How many the last search found, all of them (what it returns, the best few); and whether they hold only some of its words (see presetsMatching). */
       let presetsCounted = 0, presetsPartial = false;
+      /** ⌘K's heading for the presets the last search found: those holding only some of its words, said so wherever they're listed. */
+      const presetsGroup = () => (presetsPartial ? "Presets holding the most words" : "Presets");
       /**
        * The presets whose words hold every word typed, the best first (what's typed its name, or its title's subject,
        * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
@@ -30218,7 +30220,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const list = presets, under = (/** @type {number} */ i) => path.every((name, depth) => list[i].p[depth] === name);
             // (At the top, the presets as a whole: searched as such, see presetsMatching.)
             const words = palette.pages.at(-1) === page ? palette.query.toLowerCase().split(/\s+/).filter(Boolean) : [];
-            if (words.length) return presetsMatching(words, 300, path.length ? under : null).map((i) => presetRow(i, true));
+            // (Found holding only some of the words, headed as ⌘K's own list heads them: see presetsGroup.)
+            if (words.length) return presetsMatching(words, 300, path.length ? under : null).map((i) => ({ ...presetRow(i, true), ...(presetsPartial ? { group: presetsGroup() } : {}) }));
             // (Its sections, each by its name as shown and how many it holds, and its own presets, as the sidebar has them.)
             const rows = (presetNodeAt(path)?.items ?? []).map((item) => (typeof item === "number" ? presetRow(item) : { kind: "row", key: `group:${item.path.at(-1)}`, icon: sectionMark(item), label: item.name, aside: plural(item.under.length, "chart"), verb: "Open", page: () => presetsPage(item.path) }));
             // (Its page first; at their top, the recommended, a folder of their own before the sections: a row away, not a
@@ -34668,7 +34671,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const chartsFound = !everything ? [] : rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words);
         const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", chartsPage, chartsFound.length);
         // The presets (once read), after yours: a few that match; all of them on their own page.
-        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), "Presets", presetsPartial ? "presets holding the most words" : "presets found", () => presetsPage([]), undefined, 60);
+        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: presetsGroup() })), presetsGroup(), "presets found", () => presetsPage([]), undefined, 60);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         // (The chart's settings, as kept while ⌘K's open: see settingsNow.)
