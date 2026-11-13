@@ -121,6 +121,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/series/difficulty/notanindex".into(),
         ),
         get(
+            "request: former index spelling in series path",
+            "/api/series/difficulty/day".into(),
+        ),
+        get(
+            "request: former query parameter name",
+            "/api/series/difficulty/day1?from=-14".into(),
+        ),
+        get(
             "request: invalid timestamp parameter",
             "/api/v1/historical-price?timestamp=abc".into(),
         ),

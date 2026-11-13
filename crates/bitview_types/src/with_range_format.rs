@@ -1,7 +1,8 @@
 /// Expands a struct definition by appending shared range/format fields
 /// (`start`, `end`, `limit`, `format`). Used to keep `DataRangeFormat` and
 /// `SeriesSelection` in sync without `#[serde(flatten)]`, since `deny_unknown_fields` is
-/// silently inert through any flatten chain.
+/// silently inert through any flatten chain. A renamed field's former name goes in the server's
+/// `FORMER_PARAMS` (`json_error.rs`), so its 400 names the fix.
 macro_rules! with_range_format {
     (
         $(#[$attr:meta])*

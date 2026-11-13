@@ -120,6 +120,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - MCP: the server's icon is Bitview's app icon, and a link to its pages previews them, each named and described
 - A block's `orphans` list the stale blocks at its height that the server's node knows (`getchaintips`, every block of
   each fork, refreshed with each new block), as mempool.space does; `status` is `valid-fork` or `valid-headers`
+- A 400 for an index or query parameter spelled as v0.11 and v0.12 also read it names its fix: ``unknown index `day`,
+  use `day1` `` (any former spelling, or the name in another case), ``unknown field `from`, use `start` `` (`from`,
+  `to`, `count`, `metrics` and the rest, where the route reads the new name). Still refused: one spelling per answer
 
 ### Performance
 

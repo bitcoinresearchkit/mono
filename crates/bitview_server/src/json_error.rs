@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use axum::{
     body::{Body, to_bytes},
     http::{
@@ -21,6 +23,52 @@ fn is_document(content_type: &str) -> bool {
     mime == "application/json"
         || mime == "text/html"
         || (mime.starts_with("application/") && mime.ends_with("+json"))
+}
+
+/// The query parameters v0.11 and v0.12 also read under another name, with the name read now; a
+/// parameter renamed later adds its former name here.
+const FORMER_PARAMS: &[(&str, &str)] = &[
+    ("from", "start"),
+    ("f", "start"),
+    ("s", "start"),
+    ("to", "end"),
+    ("t", "end"),
+    ("e", "end"),
+    ("count", "limit"),
+    ("c", "limit"),
+    ("l", "limit"),
+    ("metrics", "series"),
+    ("m", "series"),
+    ("i", "index"),
+    ("p", "page"),
+    ("bucket", "agg"),
+];
+
+/// axum's refusal of a query parameter under a former name names its fix in place of the fields
+/// it lists, where the route reads the new name; any other text is left as it is. The only place
+/// that parses rejection text. It relies on the wording ``Failed to deserialize query string:
+/// from: unknown field `from`, expected …`` (axum, serde_path_to_error, serde), read whole so a
+/// key can't forge it. A change of that wording silently drops the hint (the old list comes
+/// back); the only guard is `cargo api`'s "former query parameter name" error snapshot.
+fn with_param_fix(msg: &str) -> Cow<'_, str> {
+    const QUERY: &str = "Failed to deserialize query string: ";
+    let fix = msg.strip_prefix(QUERY).and_then(|rest| {
+        // The list is serde's, of the route's own names; the key before it is the caller's.
+        let (head, expected) = rest.rsplit_once("`, expected ")?;
+        let &(former, now) = FORMER_PARAMS.iter().find(|&&(former, _)| {
+            head.strip_prefix(former)
+                .and_then(|head| head.strip_prefix(": unknown field `"))
+                == Some(former)
+        })?;
+        // The names read are the ones in backticks: `a`, `a` or `b`, one of `a`, `b`, ….
+        expected
+            .split('`')
+            .skip(1)
+            .step_by(2)
+            .any(|name| name == now)
+            .then(|| format!("{QUERY}{former}: unknown field `{former}`, use `{now}`"))
+    });
+    fix.map_or(Cow::Borrowed(msg), Cow::Owned)
 }
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
@@ -61,7 +109,11 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
             ErrorCode::BadRequest,
             format!(
                 "{}. {}",
-                if msg.is_empty() { "Bad request" } else { msg.trim_end_matches('.') },
+                if msg.is_empty() {
+                    "Bad request".into()
+                } else {
+                    with_param_fix(msg.trim_end_matches('.'))
+                },
                 changes_hint(None)
             )
             .into(),

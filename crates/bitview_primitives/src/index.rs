@@ -153,6 +153,44 @@ with_resolution_fields!(indexes, calendars {
 ]);
 
 impl Index {
+    /// The other spellings v0.11 and v0.12 read this index by (in any case), kept only so an
+    /// error can name the fix: an index is read by its name alone.
+    const fn former_names(self) -> &'static [&'static str] {
+        match self {
+            Self::Minute10 => &["10mn"],
+            Self::Minute30 => &["30mn"],
+            Self::Hour1 => &["1h", "hour", "hourly"],
+            Self::Hour4 => &["4h"],
+            Self::Hour12 => &["12h"],
+            Self::Day1 => &["1d", "d", "day", "date", "daily", "dateindex"],
+            Self::Day3 => &["3d"],
+            Self::Week1 => &["1w", "w", "week", "weekly", "weekindex"],
+            Self::Month1 => &["1m", "1mo", "m", "month", "monthly", "monthindex"],
+            Self::Month3 => &["3m", "3mo", "q", "quarter", "quarterly", "quarterindex"],
+            Self::Month6 => &["6m", "6mo", "s", "semester", "semesterindex"],
+            Self::Year1 => &["1y", "y", "year", "yearly", "yearindex"],
+            Self::Year10 => &["10y", "decade", "decadeindex"],
+            Self::HalvingEpoch => &["halving", "halvingepoch", "halv"],
+            Self::DifficultyEpoch => &["epoch", "difficulty", "difficultyepoch", "diff"],
+            Self::Height => &["h", "blk", "block"],
+            Self::TxIndex => &["tx"],
+            Self::TxInIndex => &["txi", "txin"],
+            Self::TxOutIndex => &["txo", "txout"],
+            Self::EmptyScriptOutputIndex => &["emptyout", "empty_output_index"],
+            Self::OpReturnOutputIndex => &["op", "opreturn", "op_return", "op_return_index"],
+            Self::P2AAddressIndex => &["aaddr", "p2aaddr", "p2a_addr_index"],
+            Self::P2MSOutputIndex => &["msout", "p2msout"],
+            Self::P2PK33AddressIndex => &["pk33addr", "p2pk33addr", "p2pk33_addr_index"],
+            Self::P2PK65AddressIndex => &["pk65addr", "p2pk65addr", "p2pk65_addr_index"],
+            Self::P2PKHAddressIndex => &["pkhaddr", "p2pkhaddr", "p2pkh_addr_index"],
+            Self::P2SHAddressIndex => &["shaddr", "p2shaddr", "p2sh_addr_index"],
+            Self::P2TRAddressIndex => &["traddr", "p2traddr", "p2tr_addr_index"],
+            Self::P2WPKHAddressIndex => &["wpkhaddr", "p2wpkhaddr", "p2wpkh_addr_index"],
+            Self::P2WSHAddressIndex => &["wshaddr", "p2wshaddr", "p2wsh_addr_index"],
+            Self::UnknownScriptOutputIndex => &["unknownout", "unknown_output_index"],
+        }
+    }
+
     /// Convert an index value to a timestamp for time-based indexes.
     /// Returns None for non-time-based indexes.
     pub fn index_to_timestamp(&self, i: usize) -> Option<Timestamp> {
@@ -222,18 +260,24 @@ impl Index {
 
 impl TryFrom<&str> for Index {
     type Error = Error;
-    /// The index named exactly `value`; an error naming every index otherwise.
+    /// The index named exactly `value`; otherwise an error naming the index meant (a former
+    /// spelling, or the name in another case) or, failing that, every index.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::all()
-            .into_iter()
-            .find(|index| index.name() == value)
-            .ok_or_else(|| {
+        if let Some(index) = Self::all().into_iter().find(|index| index.name() == value) {
+            return Ok(index);
+        }
+        let meant = Self::all().into_iter().find(|index| {
+            std::iter::once(index.name())
+                .chain(index.former_names().iter().copied())
+                .any(|name| name.eq_ignore_ascii_case(value))
+        });
+        Err(Error::Parse(match meant {
+            Some(index) => format!("unknown index `{value}`, use `{index}`"),
+            None => {
                 let names: Vec<&str> = Self::all().iter().map(Self::name).collect();
-                Error::Parse(format!(
-                    "unknown index `{value}`, expected one of {}",
-                    names.join(", ")
-                ))
-            })
+                format!("unknown index `{value}`, expected one of {}", names.join(", "))
+            }
+        }))
     }
 }
 
