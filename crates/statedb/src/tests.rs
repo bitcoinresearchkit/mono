@@ -1,6 +1,9 @@
 //! One model-based end-to-end test: both producers, the history and its readers, against a plain
 //! in-memory chain replayed from genesis.
-use crate::{Amount, BlockDiff, Creations, History, SNAPSHOT_INTERVAL, Spends, State, View};
+use crate::{
+    Amount, BlockDiff, Creations, History, SNAPSHOT_INTERVAL, Spends, State, View,
+    snapshots::Snapshots,
+};
 use std::{
     collections::BTreeMap,
     fs,
@@ -253,11 +256,30 @@ impl Model {
         Ok(quit)
     }
     /// The UTXO Set's update through both producers, sometimes rebuilding from genesis (its own
-    /// version bump) and sometimes with a visit failing after a retained checkpoint was written.
+    /// version bump), sometimes with a visit failing after a retained checkpoint was written, and
+    /// sometimes over a history missing snapshots below `start`, as one laid out at another
+    /// interval is: it lays them out again from genesis, visiting only from `start`.
     fn advance(&mut self, s: &mut Stores) -> Result<()> {
         let end = self.made[0].len().min(self.made[1].len());
         let start = if self.rng.chance(2) { 0 } else { self.consumer };
-        self.views.retain(|&(_, ceiling)| ceiling <= start);
+        if start > 0 && self.rng.chance(5) {
+            let len = self.rng.below(start);
+            s.history.drop_snapshots_past(len)?;
+            self.views.retain(|&(_, ceiling)| ceiling <= len);
+            self.retained.retain(|&retained, _| retained <= len);
+            for tip in [&mut self.tip, &mut self.prev] {
+                if tip.is_some_and(|tip| tip.0 > len) {
+                    *tip = None;
+                }
+            }
+        }
+        // From the last snapshot of the run at every multiple, or `start` when none is missing.
+        let laid = (self.retained.range(..=start).map(|(&len, _)| len))
+            .zip(1..)
+            .take_while(|&(len, k)| len == k * SNAPSHOT_INTERVAL)
+            .count();
+        let from = if laid == start / SNAPSHOT_INTERVAL { start } else { laid * SNAPSHOT_INTERVAL };
+        self.views.retain(|&(_, ceiling)| ceiling <= from);
         let checkpoint = start.max(1).next_multiple_of(SNAPSHOT_INTERVAL);
         let fail = (checkpoint < end && self.rng.chance(50))
             .then(|| checkpoint + self.rng.below(end - checkpoint));
@@ -294,21 +316,23 @@ impl Model {
             (Some(tip), Some(retained)) if retained.0 > tip.0 => Some(retained),
             (tip, retained) => tip.or(retained),
         };
-        if start == end && (self.live == Some(self.snap(start)) || latest == Some(self.snap(end))) {
+        if from == end && (self.live == Some(self.snap(from)) || latest == Some(self.snap(end))) {
             self.live = Some(self.snap(end));
             self.consumer = end;
             return Ok(());
         }
-        self.retained.retain(|&len, _| len <= start);
+        self.retained.retain(|&len, _| len <= from);
         for tip in [&mut self.tip, &mut self.prev] {
-            if tip.is_some_and(|tip| tip.0 > start) {
+            if tip.is_some_and(|tip| tip.0 > from) {
                 *tip = None;
             }
         }
-        for len in (checkpoint..=reached).step_by(SNAPSHOT_INTERVAL) {
+        let first = from.max(1).next_multiple_of(SNAPSHOT_INTERVAL);
+        for len in (first..=reached).step_by(SNAPSHOT_INTERVAL) {
             let (_, hash, versions) = self.snap(len);
             self.retained.entry(len).or_insert((hash, versions));
         }
+        assert!(s.history.snapshot_heights().into_iter().eq(self.retained.keys().copied()));
         self.live = None;
         if fail.is_none() {
             self.prev = self.tip.or(self.prev);
@@ -464,6 +488,20 @@ fn model() -> Result<()> {
         s.creations.push([0; 32], row, Some((0, row))).is_err(),
         "overwrite of its own block"
     );
+    // Where a relayout starts: the old interval's layout, a gap, a complete run, one cut short.
+    let i = SNAPSHOT_INTERVAL;
+    for (heights, len, from) in [
+        (&[5 * i, 10 * i][..], 12 * i, 0),
+        (&[i, 2 * i, 4 * i][..], 4 * i + 1, 2 * i),
+        (&[i, 2 * i, 3 * i][..], 3 * i + 1, 3 * i + 1),
+        (&[i, 2 * i, 3 * i][..], 2 * i + 1, 2 * i + 1),
+    ] {
+        let mut snapshots = Snapshots::open(&root.join(format!("layout-{len}")), true)?;
+        for &h in heights {
+            snapshots.retain(&State::new(vec![Amount::default(); h], [0; 32])?, (0, 0))?;
+        }
+        assert_eq!(snapshots.laid_out_through(i, len), from, "{heights:?} through {len}");
+    }
     let mut m = Model::default();
     m.check(&s)?;
     for _ in 0..STEPS {

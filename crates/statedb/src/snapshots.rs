@@ -271,6 +271,20 @@ impl Snapshots {
             .rev()
             .map(move |&e| self.read(e, versions))
     }
+    /// Where the retained snapshots through `len` stop being one at each multiple of `interval`:
+    /// `len` when none is missing, else the last of the run from the first.
+    pub fn laid_out_through(&self, interval: usize, len: usize) -> usize {
+        let through = self.entries.partition_point(|&(h, _, _)| h <= len);
+        let laid = (self.entries[..through].iter())
+            .zip(1..)
+            .take_while(|&(&(h, _, _), k)| h == k * interval)
+            .count();
+        if laid == len / interval { len } else { laid * interval }
+    }
+    #[cfg(test)]
+    pub(crate) fn heights(&self) -> Vec<usize> {
+        self.entries.iter().map(|&(h, _, _)| h).collect()
+    }
     /// Drops every snapshot past `start`: after a rewind they describe a replaced chain.
     pub fn truncate(&mut self, start: usize) -> Result<()> {
         self.write(|this| {

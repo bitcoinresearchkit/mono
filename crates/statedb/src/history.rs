@@ -6,8 +6,9 @@ use crate::{
 };
 use std::{fs, io::Result, path::Path};
 
-/// Blocks between full snapshots: a restore loads the nearest one and replays at most this many diffs.
-pub const SNAPSHOT_INTERVAL: usize = 5000;
+/// Blocks between full snapshots: a restore loads the nearest one and replays fewer than this many
+/// diffs. A history laid out at another interval lays its snapshots out again on its next advance.
+pub const SNAPSHOT_INTERVAL: usize = 1000;
 
 /// Owns full snapshots. Spends and creations remain their sole, separately produced diff columns.
 pub struct History {
@@ -142,19 +143,24 @@ impl History {
             return Err(invalid("invalid origin range"));
         }
         let versions = (spends.version(), created.version());
+        // Snapshots missing below `start` (another interval's layout, or a relayout cut short) are
+        // laid out again by a replay from the last one in place that visits only `start..end`. It
+        // rewrites snapshots below open views' ceilings, so it runs before any reader opens a view:
+        // the first advance after the interval changes is bitview's bootstrap, before it serves.
+        let from = self.snapshots.laid_out_through(SNAPSHOT_INTERVAL, start);
         let warm = live.filter(|(state, old)| {
             *old == versions
-                && state.len() == start
-                && continues(start, state.hash(), spends, created).is_ok_and(|ok| ok)
+                && state.len() == from
+                && continues(from, state.hash(), spends, created).is_ok_and(|ok| ok)
         });
         let (mut state, warm) = match warm {
             Some((state, _)) => (state, true),
             None => {
-                let tips = self.tips_within(spends, created, start)?;
-                (self.restore(start, spends, created, &tips)?, false)
+                let tips = self.tips_within(spends, created, from)?;
+                (self.restore(from, spends, created, &tips)?, false)
             }
         };
-        if start == end
+        if from == end
             && (warm
                 || self
                     .snapshots
@@ -164,12 +170,15 @@ impl History {
             self.live = Some((state, versions));
             return Ok(());
         }
-        let from = (start, state.hash());
-        self.snapshots.truncate(start)?;
-        // Pages of the tip that differ from the state at `start`: grown ones and spent ones.
+        let base = (from, state.hash());
+        self.snapshots.truncate(from)?;
+        // Pages of the tip that differ from the state at `from`: grown ones and spent ones.
         let mut changed = vec![false; end.div_ceil(PAGE)];
-        changed[start / PAGE..].fill(true);
-        let mut height = start;
+        changed[from / PAGE..].fill(true);
+        let mut visit = |height, amount| {
+            if height < start { Ok(()) } else { visit(height, amount) }
+        };
+        let mut height = from;
         loop {
             if height > 0 && height.is_multiple_of(SNAPSHOT_INTERVAL) {
                 self.snapshots.retain(&state, versions)?;
@@ -187,9 +196,18 @@ impl History {
                 &mut visit,
             )?;
         }
-        self.snapshots.publish(&state, versions, from, &changed)?;
+        self.snapshots.publish(&state, versions, base, &changed)?;
         self.live = Some((state, versions));
         Ok(())
+    }
+    /// Drops the snapshots past `len`, as a history laid out at another interval lacks some.
+    #[cfg(test)]
+    pub(crate) fn drop_snapshots_past(&mut self, len: usize) -> Result<()> {
+        self.snapshots.truncate(len)
+    }
+    #[cfg(test)]
+    pub(crate) fn snapshot_heights(&self) -> Vec<usize> {
+        self.snapshots.heights()
     }
     /// Replays `state`, which continues the producer chain, through `end`.
     fn replay(

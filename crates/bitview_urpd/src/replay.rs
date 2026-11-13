@@ -7,9 +7,11 @@ use statedb::{Reader, SNAPSHOT_INTERVAL, State};
 
 use crate::{OriginUrpd, ReplayInputs, replay_state::ReplayState};
 
-/// Blocks per parallel segment: the history's snapshot interval, so each segment restores its
-/// start state from a snapshot.
-const SEGMENT_BLOCKS: usize = SNAPSHOT_INTERVAL;
+/// Blocks per parallel segment: a multiple of the history's snapshot interval, so every segment
+/// after the first starts on a snapshot, and long enough that the restores (each rebuilds the
+/// price/age view) stay few.
+const SEGMENT_BLOCKS: usize = 5000;
+const _: () = assert!(SEGMENT_BLOCKS.is_multiple_of(SNAPSHOT_INTERVAL));
 
 /// Where a replay stands: the origin state and its price/age view.
 type Position = (State, OriginUrpd);
