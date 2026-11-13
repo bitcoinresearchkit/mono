@@ -25,6 +25,13 @@ const STROKE = 1.5;
 /** A profile's column at its widest, by the plot's width (CSS pixels): a fifth of it, 72 to 200. @param {number} plot */
 export const columnWidth = (plot) => Math.round(Math.min(200, Math.max(72, plot * 0.2)));
 
+/**
+ * A bar's right end as painted (device pixels: the column past its last), its left on `left` and its right end at `x`
+ * (CSS pixels): a pixel past its left at least, a bar thinner than one over the edge of the one before it (nearer the
+ * plot's edge, drawn first). The painter's and hit's both. @param {number} left @param {number} x @param {number} dpr
+ */
+const barEnd = (left, x, dpr) => Math.max(left + 1, Math.round(x * dpr));
+
 export class Profile {
   /**
    * @param {{
@@ -162,15 +169,19 @@ export class Profile {
     if (!bars || !this.covers(x)) return null;
     const bin = this.#binAt(y);
     if (bin < 0) return null;
-    const { starts, sums, count, most, width, right, dpr, ids } = bars, snap = (/** @type {number} */ v) => Math.round(v * dpr) / dpr;
-    // (Each bar from its left edge as painted to where the one nearer the edge starts (the first, to the plot's edge).)
-    for (let c = 0, at = right, end = right; c < count; c++) {
-      const length = (sums[bin * count + c] / most) * width, group = ids[c], left = snap(at - length);
+    const { starts, sums, count, most, width, right, dpr, ids } = bars;
+    // (By the device pixel's column it's in (at the plot's edge, its last): each bar's columns as painted, the last
+    // group's over it there the one seen.)
+    const column = Math.min(Math.floor(x * dpr), Math.ceil(right * dpr) - 1);
+    let seen = -1;
+    for (let c = 0, at = right; c < count; c++) {
+      const length = (sums[bin * count + c] / most) * width;
       if (!length) continue;
-      if (group && x >= left && x <= end) return { group, from: starts[bin], to: starts[bin + 1] };
-      (at -= length), (end = left);
+      const left = Math.round((at - length) * dpr);
+      if (column >= left && column < barEnd(left, at, dpr)) seen = c;
+      at -= length;
     }
-    return null;
+    return seen >= 0 && ids[seen] ? { group: ids[seen], from: starts[bin], to: starts[bin + 1] } : null;
   }
 
   /**
@@ -208,7 +219,7 @@ export class Profile {
           const x = from[b], left = Math.round((x - length) * dpr), top = tops[b], bottom = bottoms[b];
           const y0 = strong ? Math.max(top, split) : top, y1 = strong ? bottom : Math.min(bottom, split);
           if (y1 > y0) {
-            g.fillRect(left, y0, Math.max(1, Math.round(x * dpr) - left), y1 - y0);
+            g.fillRect(left, y0, barEnd(left, x, dpr) - left, y1 - y0);
             leftmost = Math.min(leftmost, left);
           }
           if (!strong) from[b] = x - length;
