@@ -8,6 +8,8 @@ import { Tags, pill } from "./tags.js";
 const DAY = 86400;
 /** Labels' least room between them (CSS pixels). */
 const ROOM = 72;
+/** A column twice as long, its values kept. @param {Float64Array} column */
+const grown = (column) => ((longer) => (longer.set(column), longer))(new Float64Array(column.length * 2));
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 /** Each unit's steps, from the finest: [seconds a step (about), step in its unit, its unit]. */
 const STEPS = /** @type {const} */ ([
@@ -45,6 +47,10 @@ export function at(times, t) {
 }
 
 export class TimeAxis {
+  /** Its labels' half widths in the font they were measured in (a pan's frames write the same few again). @type {Map<string, number>} */
+  #widths = new Map();
+  #widthsFont = "";
+
   constructor() {
     this.canvas = document.createElement("canvas");
     this.canvas.style.cssText = "position: absolute; left: 0; display: block";
@@ -53,19 +59,22 @@ export class TimeAxis {
     this.g = g;
     this.height = 0;
     this.width = 0;
-    /** Its labels as last drawn: each one's x and words, `drawnCount` of them (the crosshair's date covers those it touches). */
+    /** Its labels as last drawn: each one's x and half width, `drawnCount` of them (the crosshair's date covers those it touches). */
     this.drawnX = new Float64Array(64);
-    /** @type {string[]} */
-    this.drawnWords = [];
+    this.drawnHalf = new Float64Array(64);
     this.drawnCount = 0;
-    // (Each unit's labels: a month's start is its name among days, its year's among months.)
+    // (Daily labels always include their month; January is named by its year among monthly ticks.)
     const date = (/** @type {number} */ t) => new Date(t * 1000);
+    const day = (/** @type {Date} */ d) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${d.getUTCDate() === 1 && d.getUTCMonth() === 0 ? ` ${d.getUTCFullYear()}` : ""}`;
     // (A time of day as hours and minutes; midnight, its day.)
-    const clock = kept((t) => (date(t).getUTCHours() || date(t).getUTCMinutes() ? `${String(date(t).getUTCHours()).padStart(2, "0")}:${String(date(t).getUTCMinutes()).padStart(2, "0")}` : String(date(t).getUTCDate())));
+    const clock = kept((t) => {
+      const d = date(t);
+      return d.getUTCHours() || d.getUTCMinutes() ? `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}` : day(d);
+    });
     this.labels = {
       year: kept((t) => String(date(t).getUTCFullYear())),
       month: kept((t) => (date(t).getUTCMonth() ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCFullYear()))),
-      day: kept((t) => (date(t).getUTCDate() === 1 ? MONTHS[date(t).getUTCMonth()] : String(date(t).getUTCDate()))),
+      day: kept((t) => day(date(t))),
       hour: clock,
       minute: clock,
     };
@@ -78,6 +87,16 @@ export class TimeAxis {
     /** The panes' series' own tags on it as last drawn, and each one's half width. */
     this.page = new Tags();
     this.halves = new Float64Array(8);
+  }
+
+  /** A label's half width in the axis' font, measured once while that font stays. @param {string} text */
+  #half(text) {
+    let half = this.#widths.get(text);
+    if (half === undefined) {
+      if (this.#widths.size >= 512) this.#widths.clear();
+      this.#widths.set(text, (half = this.g.measureText(text).width / 2));
+    }
+    return half;
   }
 
   /** @param {number} top @param {number} width @param {number} height @param {number} dpr */
@@ -101,20 +120,24 @@ export class TimeAxis {
     g.fillStyle = theme.background;
     g.fillRect(0, 0, this.width, this.height);
     g.font = theme.font;
+    if (this.#widthsFont !== theme.font) {
+      this.#widths.clear();
+      this.#widthsFont = theme.font;
+    }
     (page.count = 0), (page.length = plot), (this.drawnCount = 0);
     for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden && !pane.series[k].faint) pane.series[k].timeTags?.(page.add);
     // (Each tag's half width, measured once a draw.)
     if (this.halves.length < page.count) this.halves = new Float64Array(page.count * 2);
     // (Each where it's drawn: within the plot (one out of it none, as a value's).)
-    for (let k = 0; k < page.count; k++) (this.halves[k] = g.measureText(page.texts[k]).width / 2 + 6), (page.at[k] = Math.min(Math.max(page.at[k], this.halves[k]), plot - this.halves[k]));
+    for (let k = 0; k < page.count; k++) (this.halves[k] = this.#half(page.texts[k]) + 6), (page.at[k] = Math.min(Math.max(page.at[k], this.halves[k]), plot - this.halves[k]));
     this.#labels(time, theme, plot, page);
     g.textBaseline = "middle";
     for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], page.at[k], this.height / 2, "center");
   }
 
-  /** Whether a label at `x` is under a page's tag (within its half, a label's half and 4 pixels). @param {number} x @param {Tags} page */
-  #covered(x, page) {
-    for (let k = 0; k < page.count; k++) if (Math.abs(page.at[k] - x) < this.halves[k] + 22) return true;
+  /** Whether a label at `x` overlaps a page's tag, with four pixels between them. @param {number} x @param {Tags} page @param {number} half */
+  #covered(x, page, half) {
+    for (let k = 0; k < page.count; k++) if (Math.abs(page.at[k] - x) < this.halves[k] + half + 4) return true;
     return false;
   }
 
@@ -147,7 +170,7 @@ export class TimeAxis {
    * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
    */
   #row(time, theme, plot, page, a, b, step) {
-    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit], own = unit === "hour" || unit === "minute";
+    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit];
     let drawn = 0;
     g.fillStyle = theme.text;
     g.textAlign = "center";
@@ -157,19 +180,28 @@ export class TimeAxis {
     civil(times[a]);
     const calendar = unit === "year" || unit === "month";
     let y = unit === "year" ? Math.floor(civilYear / size) * size : civilYear, m = unit === "month" ? Math.floor(civilMonth / size) * size : 0;
-    let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity;
+    let t = calendar ? Date.UTC(y, m, 1) / 1000 : Math.floor(times[a] / seconds) * seconds, last = -Infinity, lastRight = -Infinity;
     for (let guard = 0; guard < 400 && t <= times[b]; guard++) {
       const i = at(times, t), next = unit === "year" ? Date.UTC((y += size), 0, 1) / 1000 : unit === "month" ? Date.UTC(y, (m += size), 1) / 1000 : t + seconds;
       if (i <= b && times[i] < next) {
+        // A calendar label names its actual period, including a first partial year/month; a multi-year tick before
+        // the first point is skipped when it would name another year (2008 for January 2009).
+        if (calendar) {
+          civil(times[i]);
+          const start = Date.UTC(civilYear, unit === "year" ? 0 : civilMonth, 1) / 1000;
+          if (start !== t) { t = next; continue; }
+        }
         const x = time.x(i);
-        // (None cut at the axis' ends: a label's half (~a year's, a day's) from them at least.)
-        // (Its time: the step's, or by hours and minutes its point's; a page's words for it, where it has some.)
-        const when = own ? times[i] : t, words = this.format ? this.format(when, kindOf(when)) : null;
-        if (words !== "" && x - last >= ROOM && x > 18 && x < plot - 18 && !this.#covered(x, page)) {
-          const text = words ?? label(when);
+        // Measure the final label: day/year text and page-supplied words have the same edge and overlap bounds.
+        const when = calendar || unit === "day" ? t : times[i], words = this.format ? this.format(when, kindOf(when)) : null;
+        // (ROOM between labels' middles keeps a row as sparse as its step (a finer row tried after it too); measured,
+        // none touches another, a page's tag or an edge.)
+        if (words !== "" && x - last >= ROOM) {
+          const text = words ?? label(when), half = this.#half(text);
+          if (x < half || x + half > plot || x - half < lastRight + 4 || this.#covered(x, page, half)) { t = next; continue; }
           g.fillText(text, x, this.height / 2);
-          if (this.drawnCount === this.drawnX.length) ((grown) => (grown.set(this.drawnX), (this.drawnX = grown)))(new Float64Array(this.drawnCount * 2));
-          (this.drawnX[this.drawnCount] = x), (this.drawnWords[this.drawnCount++] = text), (last = x), drawn++;
+          if (this.drawnCount === this.drawnX.length) (this.drawnX = grown(this.drawnX)), (this.drawnHalf = grown(this.drawnHalf));
+          (this.drawnX[this.drawnCount] = x), (this.drawnHalf[this.drawnCount++] = half), (last = x), (lastRight = x + half), drawn++;
         }
       }
       t = next;

@@ -8,7 +8,7 @@ const SUFFIXES = ["", "K", "M", "B", "T"];
  * The decimals a step between ticks is written with: 20, none; 2.5, one; 0.02, two.
  * @param {number} step
  */
-export function decimalsOf(step) {
+function decimalsOf(step) {
   if (!(step > 0 && step < Infinity)) return 0;
   for (let p = 0; p < 20; p++) {
     const scaled = step * 10 ** p;

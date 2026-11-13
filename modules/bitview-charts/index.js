@@ -13,12 +13,12 @@
 // Dragged, a pane pans (a finger's flick glides on, slowing as a list does, a little sooner); pinched or wheeled, it zooms about that point;
 // a trackpad's sideways scroll pans (a diagonal swipe both at once).
 
-import { Timeline } from "./timeline.js";
+import { Timeline, lastIn } from "./timeline.js";
 import { Pane } from "./pane.js";
 import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
-export { Timeline, Pane, TimeAxis };
+export { Timeline, Pane, TimeAxis, lastIn };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars } from "./bars.js";
@@ -34,7 +34,7 @@ export { Levels } from "./levels.js";
 export { Legend } from "./legend.js";
 export { picture } from "./picture.js";
 export { Scale } from "./scale.js";
-export { compact, decimalsOf } from "./format.js";
+export { compact } from "./format.js";
 export { channels } from "./color.js";
 
 /** @type {import("./pane.js").Theme} */
@@ -242,17 +242,20 @@ export class Chart {
   }
 
   /**
-   * The view: logical indices, fractions allowed. As wide as it is (a page's own pan: its glide, its navigator's drag),
-   * moved as a pan is, by whole pixels (the rest kept): the panes' pictures moved, not drawn again. An effective change stops momentum.
-   * @param {number} from @param {number} to
+   * The view: logical indices, fractions allowed, within the zoom's bounds (narrower, centred at the closest). As wide as
+   * it is (a page's own pan: its glide, its navigator's drag), moved as a pan is, by whole pixels (the rest kept): the
+   * panes' pictures moved, not drawn again; `exact`, at its endpoints as given (a view restored, dates gone to). An
+   * effective change stops momentum.
+   * @param {number} from @param {number} to @param {{ exact?: boolean }} [options]
    */
-  setRange(from, to) {
-    const time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
+  setRange(from, to, options) {
+    const exact = options?.exact === true, time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
     // (From where it truly is: its kept part of a pixel counted once.)
-    if (time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
+    if (!exact && time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
     else time.setRange(from, to);
     this.#stopIfChanged(wasFrom, wasTo);
-    if (this.placed) this.placed = "range";
+    // (Exact, its endpoints held through the next render's axes fitted wider too (see render); else so after data.)
+    if (this.placed || exact) this.placed = "range";
     this.invalidate();
   }
 
@@ -537,7 +540,7 @@ export class Chart {
     // onto the legend); else the one a pointer's on, none with the crosshair gone. Its items made here read at its
     // point, in this frame.)
     const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
-    for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time));
+    for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, time, (series, v) => pane.words(series, v, time), (series) => pane.restOf(series, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {
       (this.drawnFrom = time.from), (this.drawnTo = time.to);

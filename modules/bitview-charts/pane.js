@@ -329,6 +329,15 @@ export class Pane {
   }
 
   /**
+   * A series' point at rest, as its tag reads it: its last in view with a value (on a log scale, above zero); none, -1.
+   * @param {any} series @param {import("./timeline.js").Timeline} time
+   */
+  restOf(series, time) {
+    const k = this.series.indexOf(series), i = k < 0 ? -1 : series.lastBy(time.lastVisible, this.scaleOf(k).mode === "log");
+    return i >= Math.max(0, time.firstVisible) ? i : -1;
+  }
+
+  /**
    * A series' value in its words, as its tag writes it: its side's writer (or its own), by the ticks there; on a
    * relative scale, as it reads it (against its first value in view).
    * @param {any} series @param {number} v @param {import("./timeline.js").Timeline} time
@@ -565,9 +574,12 @@ export class Pane {
     return (this.tickTexts[slot] = /** @type {(values: number[]) => string[]} */ (this.tickWriters[slot])(values));
   }
 
-  /** The first point a relative scale reads its series from: its first in view. @param {import("./timeline.js").Timeline} time */
+  /**
+   * The first point a relative scale reads its series from: the view's first, as every reading takes it (the first
+   * whose center is in view, see the timeline's firstVisible). @param {import("./timeline.js").Timeline} time
+   */
   #from(time) {
-    return Math.max(0, Math.floor(time.from));
+    return Math.max(0, time.firstVisible);
   }
 
   /**
@@ -741,8 +753,8 @@ export class Pane {
     if (moves || stretches) {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again (the plot moved alone) where that's another point.)
-      const from = this.#from(time);
-      if (overs !== this.drawnOvers || ((Math.ceil(time.to) !== this.axesEnd || from > this.tagsFrom || from <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      const first = Math.max(0, time.firstVisible);
+      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || first > this.tagsFrom || first <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -775,7 +787,7 @@ export class Pane {
         this.drawnTags[1].lines.length = 0;
       }
     }
-    this.axesEnd = Math.ceil(time.to);
+    this.axesEnd = time.lastVisible;
   }
 
   /** Whether it has a tag shown that may read the view (a line's, with one; a page's own, asked each time: its axis tags). */
@@ -919,16 +931,16 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value in view, a point partly in it counted (as the chart library's were:
-   * they read the view's end, its strict range's, as a pan moves it (a price line's tag too: its line alone at its last
-   * of all); one with nothing in view, none),
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view
+   * (a price line's tag too: its line alone at its last of all); one with nothing in view, none,
    * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
    * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
    * the pane; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = Math.ceil(time.to);
+    // (A relative scale's base and what a tag reads, by the points whose centers are in view: see #from, lastVisible.)
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = time.lastVisible;
     lines.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;

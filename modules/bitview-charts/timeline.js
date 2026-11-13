@@ -12,11 +12,24 @@
  * same in a pan's strip as in a whole draw (an index 1190.0000000000002 had put point 1190 in the next column).
  */
 export const NOISE = 1e-9;
+/** An endpoint within NOISE of a whole point, that point. @param {number} x */
+const snap = (x) => (Math.abs(x - Math.round(x)) < NOISE ? Math.round(x) : x);
 
 /** A column's first value at or after index `i` (a relative scale's base: a series' first in view), or NaN: none. @param {Float64Array} values @param {number} i */
 export function firstFrom(values, i) {
   for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
   return NaN;
+}
+
+/**
+ * The last value's index (NaN: none there, as a line's lastBy reads) in inclusive bounds (`from` to `to`, fractions taken inward); none, -1. A reading at rest
+ * (a legend's, a tag's, a page's): the last in view, or one from before it, its date then said by its reader.
+ * @param {ArrayLike<number>} values @param {number} from @param {number} to
+ */
+export function lastIn(values, from, to) {
+  const first = Math.max(0, Math.ceil(from));
+  for (let i = Math.min(Math.floor(to), values.length - 1); i >= first; i--) if (values[i] === values[i]) return i;
+  return -1;
 }
 
 export class Timeline {
@@ -43,9 +56,19 @@ export class Timeline {
     this.kept = Infinity;
   }
 
-  /** The last point a crosshair can be on: the last one with data, or past it, the last whole one in view. */
+  /** The first point whose center is in view, allowing only floating-point noise at the boundary. */
+  get firstVisible() {
+    return Math.ceil(this.from - NOISE);
+  }
+
+  /** The last point whose center is in view, allowing only floating-point noise at the boundary. A value beyond the edge never becomes the resting readout. */
+  get lastVisible() {
+    return Math.floor(this.to + NOISE);
+  }
+
+  /** The last point a crosshair can be on: the last one with data, or past it, the last one whose center is in view. */
   get lastSlot() {
-    return Math.max(this.length - 1, Math.floor(this.to));
+    return Math.max(this.length - 1, this.lastVisible);
   }
 
   /**
@@ -209,5 +232,10 @@ export class Timeline {
     // (Its last point at least its share of the view into it; its first at most that from the view's end.)
     const by = this.held(this.from, this.to);
     (this.from += by), (this.to += by);
+    // Layout and pan arithmetic can leave an exact endpoint a fraction past its bar. Every reader sees the same
+    // whole endpoint (tags, legends and date ranges), rather than rounding that noise onto the following day.
+    // (Never to nothing: a span narrower than that noise keeps its own endpoints.)
+    const from = snap(this.from), to = snap(this.to);
+    if (to > from) (this.from = from), (this.to = to);
   }
 }

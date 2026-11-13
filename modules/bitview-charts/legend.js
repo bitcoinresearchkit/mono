@@ -95,17 +95,15 @@ export class Legend {
   /**
    * The values of the items made here (their series' at the crosshair's point, else their last in view), written as
    * their tags write them. @param {number} index the crosshair's (NaN: none) @param {import("./timeline.js").Timeline} time
-   * @param {(series: any, value: number) => string} write
+   * @param {(series: any, value: number) => string} write @param {(series: any) => number} rest a series' point at rest (see Pane.restOf)
    */
-  read(index, time, write) {
+  read(index, time, write, rest) {
     for (const [k, item] of this.items.entries()) {
       if (item.elements) continue;
       const series = item.series?.[0], value = /** @type {HTMLElement | null} */ (this.laid[k][0].querySelector(".bc-legend-value"));
       if (!series?.values || !value) continue;
       // (Past its last point (the crosshair after the data), read as at rest: its last in view.)
-      const past = !(index === index && index < series.values.length), i = past ? Math.min(Math.ceil(time.to), series.values.length - 1) : index;
-      let at = i;
-      while (past && at > 0 && !(series.values[at] === series.values[at])) at--;
+      const past = !(index === index && index < series.values.length), at = past ? rest(series) : index;
       const v = series.values[at], text = v === v && v !== undefined ? write(series, v) : "";
       if (value.textContent !== text) value.textContent = text;
     }

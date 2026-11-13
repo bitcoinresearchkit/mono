@@ -30,14 +30,20 @@ chart.show(365);                                 // the last 365 points in view
   none there, null for the library's.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
   a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
-  `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to)` (logical indices,
-  fractions allowed; stops a flick when the effective range changes), `range`, `onRange(listener)`,
+  `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to, options?)` (logical indices,
+  fractions allowed, within the zoom's bounds: narrower, centred at the closest; moved as a pan, by whole pixels, where
+  as wide as the view; `{ exact: true }`, at its endpoints as given; stops a flick when the effective range changes),
+  `range`, `onRange(listener)`,
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
   `setCrosshair(index, y)`,
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
+  `time.firstVisible` and `time.lastVisible` (the first and last point whose centers are in view, for date captions and
+  resting readings; geometry fitting includes connecting points beyond fractional edges),
+  `lastIn(values, from, to)` (exported: the last index within inclusive bounds whose value isn't NaN, -1 if none: a
+  reading kept from before the view, its date then said by its reader),
   `time.held(from, to)` (how far a view would move to keep its data's share in view, as the chart holds it: a page's
   glide aimed there ends where the chart stops it),
   `invalidate(whole)` (after changing a series through its methods, `invalidate()`: its pane sees its version change and
@@ -84,7 +90,7 @@ clears); avoid reflecting programmatic calls. A programmatic
 - `setLegend({ onPress })`: its legend, over its plot's top left (made once, returned): `set(items, summary?)`, each
   `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;
   else made from its first series: a key of its color, its `label`, its value at the crosshair or its last in view, as
-  its tag writes it). One shown, named; more, a chip (their first four keys and how many; a press on it told
+  its tag writes it; none in view, blank: a value from outside the view isn't shown as the view's). One shown, named; more, a chip (their first four keys and how many; a press on it told
   `onPress`); an optional `summary` caption stays beside the folded count. The series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
   not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
@@ -183,8 +189,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   placed in the plot); `behind`, behind every series; `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 - `compact(v, step)`: a value as a scale writes it unless told otherwise (four significant digits at most, thousands as
-  K, M, B, T; given `step`, its ticks' around it, a decimal past theirs); `decimalsOf(step)`, the decimals a step's
-  written with: for a page's own words to read as the axis's.
+  K, M, B, T; given `step`, its ticks' around it, a decimal past theirs).
 - Hits (`Pane.hit`, the crosshair's and clicks' series) are measured against each series' own drawing near the pointer
   (recorder.js: a canvas stand-in keeping its strokes, fills and dots), so they match the picture at any zoom.
   Strokes and fills honor rectangular clips and a library gradient's painted rows; transparent parts are not hit.

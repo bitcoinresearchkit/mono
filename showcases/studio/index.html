@@ -3006,6 +3006,10 @@
         }
       }
 
+      .legend[data-apart] button {
+        position: absolute;
+        visibility: hidden;
+      }
       .legend {
         position: absolute;
         top: 4px;
@@ -11128,7 +11132,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       // (Studio's chart library: bitview-charts.)
-      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, decimalsOf, stack as stackColumns, Grid, Profile, columnWidth } from "/modules/bitview-charts/index.js";
+      import { createChart, picture as chartPicture, Line, Band, Bars, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
       import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { addressSteps } from "/studio/addresses.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
@@ -12411,50 +12415,52 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [, sign, digits, letter] = /^(−?)([\d.]+(?:e[-+]?\d+)?)([A-Z]?)/.exec(label) ?? [];
         return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
       }
+      /** Four significant digits, as written (decimal rounding: 823.05 is 823.1), no grouping: precise's figures under a thousand. */
+      const figures = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
+      /** Four digits down to one, with a power of ten, rounded as figures are (see scientific). */
+      const SCIENTIFIC = [4, 3, 2, 1].map((digits) => new Intl.NumberFormat("en-US", { notation: "scientific", maximumSignificantDigits: digits }));
       /**
-       * A value as it's read, everywhere (the legend, the panel, an axis's tags, the crosshair's, a drawing's), whatever
-       * its unit (see format): by the value alone, four to six digits, a digit or so more than a tick says, in as much
-       * room as the widest (PRECISE): thousands whole, grouped (82,156); under a thousand, four digits (123.4, 1.234,
-       * 0.01234); millions and up, four digits and a letter (1.235M). On an axis (a tag, a level's, the crosshair's:
-       * `step`, the step between its ticks around it), by them: a decimal past theirs, in its letter's unit (89.0% by ticks
-       * 20% apart, 1.053 by 0.02, 20.1M by 2M), thousands whole as ever (77,546).
-       * @param {number} value @param {string} [suffix] @param {number} [step]
+       * A value with a power of ten, rounded as figures are (0.00012345 is 1.235e-4), in as many of four digits as PRECISE
+       * holds (1.23e-10): too small, or too large, for figures there. @param {number} abs
        */
-      function precise(value, suffix = "", step = NaN) {
-        const key = `p${value}|${suffix}|${step}`, known = axisLabels.get(key);
-        if (known !== undefined) return known;
-        if (axisLabels.size > 4000) axisLabels.clear();
-        const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
-        if (step > 0 && Math.round(abs) < 1e6 && abs < 999.95) {
-          const text = abs.toFixed(Math.min(20, decimalsOf(step) + 1));
-          if (text.length <= PRECISE.length) return axisLabels.set(key, `${Number(text) ? sign : ""}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
-        }
-        if (step > 0 && Math.round(abs) >= 1e6) {
-          let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3));
-          if (abs / 1000 ** tier >= 999.95 && tier < SI.length - 1) tier++;
-          const unit = 1000 ** tier, text = `${(abs / unit).toFixed(Math.min(20, decimalsOf(step / unit) + 1))}${SI[tier]}`;
-          if (text.length <= PRECISE.length) return axisLabels.set(key, `${sign}${text}${suffix}`), /** @type {string} */ (axisLabels.get(key));
-        }
-        // (A value as it is, the least too: unlike a tick's, no step's leftovers to round away.)
-        const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
-        // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
-        const lettered = (/** @type {number} */ n) => {
-          let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), value = n / 1000 ** tier;
-          if (Number(value.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (value /= 1000);
-          return `${digits(value)}${SI[tier]}`;
-        };
-        // (Each threshold by the value as written: 999,999.6 is a million.)
-        const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
-        // (Never wider than PRECISE, its sign and suffix aside (the same figure wherever it's written: −123,456 as
-        // 123,456): a longer one (0.0001234) said shorter, its four digits kept (1.234e-4).)
-        const fit = text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : compact(abs, 4, PRECISE.length);
-        // (Past the last letter's thousands, a power of ten: 1.23e+30.)
-        const label = `${sign}${fit.length <= PRECISE.length ? fit : abs.toExponential(2)}${suffix}`;
-        axisLabels.set(key, label);
-        return label;
+      function scientific(abs) {
+        let text = "";
+        for (const format of SCIENTIFIC) if ((text = format.format(abs).replace("E", "e")).length <= PRECISE.length) break;
+        return text;
       }
       /** The widest a precise figure is, its sign and suffix aside (0.001234, 1.234e-5, 123,456). */
       const PRECISE = "0.000000";
+      /**
+       * A value at the widest each of precise's forms writes (its figures read as zeros, see widest): a fraction's
+       * (0.001234: a smaller one as wide, 1.234e-5), thousands grouped, a letter's. What a reading's room is measured by,
+       * whatever its value.
+       */
+      const WIDEST_VALUES = [0.001234, 888_888, 888.8e6];
+      /**
+       * One value, the same text everywhere (legend, panel, axis, crosshair and drawings), with its unit affixed by
+       * format: four significant digits, thousands whole and grouped, millions and up lettered, never wider than
+       * PRECISE (its sign and suffix aside): a smaller fraction said shorter, its four digits kept (1.234e-5).
+       * @param {number} value @param {string} [suffix]
+       */
+      function precise(value, suffix = "") {
+        const key = `p${value}|${suffix}`, known = axisLabels.get(key);
+        if (known !== undefined) return known;
+        if (axisLabels.size > 4000) axisLabels.clear();
+        const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
+        // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
+        const lettered = (/** @type {number} */ n) => {
+          let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), written = figures.format(n / 1000 ** tier);
+          if (Number(written) >= 1000 && tier < SI.length - 1) written = figures.format(n / 1000 ** ++tier);
+          return `${written}${SI[tier]}`;
+        };
+        // (Each threshold by the value as written: 999,999.6 is a million.)
+        const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : figures.format(abs);
+        // (Too wide (a small fraction, past the last letter's thousands), with a power of ten: 1.235e-4, 1.235e30.)
+        const fit = text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : "";
+        const label = `${sign}${fit && fit.length <= PRECISE.length ? fit : scientific(abs)}${suffix}`;
+        axisLabels.set(key, label);
+        return label;
+      }
       function duration(seconds) {
         const days = Math.abs(seconds) / 86400;
         if (days * 24 < 1) return plural(Math.max(1, Math.round(days * 1440)), "minute");
@@ -15038,11 +15044,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return i + (time - times[i]) / (times[i + 1] - times[i]);
         };
         // No further past the data than the chart's own room on the right (at the view's own spacing); only a few bars
-        // here (two days, at a week): thirty, ending where it did.
+        // here (two days, at a week): at least one bar, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
         const plot = engine.time.width, bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
         const room = plot > gap ? (gap * bars) / (plot - gap) : 0;
-        const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
+        const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 1);
         return { from, to };
       }
       /**
@@ -16598,13 +16604,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * How a pane's values are written, its tags' and its ticks': as values, or a 100% stack's in percent, 0 to 100 (none
-       * past it: the margin over the top stays blank). (Its ticks short; its latest's tag and the crosshair's, a digit or
-       * so more: see precise.)
+       * past it: the margin over the top stays blank). Tags and crosshair readings use the same value writer.
        */
-      const VALUE_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => precise(value, "", step), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
-      const SHARE_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%", step)), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
+      const VALUE_FORMAT = { value: (/** @type {number} */ value) => precise(value), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
+      const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
       /** How a % or indexed scale writes its changes: in percent. */
-      const PERCENT_FORMAT = { value: (/** @type {number} */ value, /** @type {number} */ step = NaN) => precise(value, "%", step), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
+      const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
       /** A folded pane's: nothing written (its layers all hidden, its scale held by hand still reads nothing). */
       const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => values.map(() => "") };
 
@@ -16644,17 +16649,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
       /** The points in view (fractions allowed) as the timeline has them; none without data. */
       const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
-      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span */
-      const showSpan = (span) => engine.setRange(span.from, span.to);
-      /** The dates of the first and last points at least partly in view; none without data. */
+      const EXACT_RANGE = { exact: true };
+      /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span @param {{ exact?: boolean }} [options] */
+      const showSpan = (span, options) => engine.setRange(span.from, span.to, options);
+      /** The dates of the first and last points whose centers are in view; none without data. */
       const shownDates = () => {
         const times = engine.time.times, n = times.length, at = (/** @type {number} */ i) => times[clamp(i, 0, n - 1)];
-        return n ? { from: at(Math.floor(engine.time.from)), to: at(Math.ceil(engine.time.to)) } : null;
+        return n && engine.time.firstVisible <= engine.time.lastVisible ? { from: at(engine.time.firstVisible), to: at(engine.time.lastVisible) } : null;
       };
       /** The view moved to show the points from one date to another (the first at or after it, the last at or before). @param {{ from: number, to: number }} span */
       const showDates = (span) => {
         const times = engine.time.times, from = lowerBound(times, span.from), after = lowerBound(times, span.to);
-        engine.setRange(from, times[after] === span.to ? after : after - 1);
+        engine.setRange(from, times[after] === span.to ? after : after - 1, EXACT_RANGE);
       };
       /** A date's x across the plot (its point's); none where no point has it. @param {number} time */
       /**
@@ -17737,11 +17743,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
         // library's own, on a first draw), and the change of their width held against it: the library holds the bars where
         // they are on screen as an axis widens.)
-        if (back && back.to - back.from >= 1) {
+        if (back && back.to >= back.from) {
           const target = within(back, "to");
-          showSpan(target);
+          showSpan(target, EXACT_RANGE);
           engine.render(true);
-          showSpan(target);
+          showSpan(target, EXACT_RANGE);
           setPresetShown(false);
           if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
         } else if (!visible || presetShown || onRange || linkOpen) {
@@ -18000,14 +18006,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function lastShown() {
         const n = resolved?.times.length ?? 0;
         const range = n ? shownSpan() : null;
-        // (A point partly in view counted, as the library's tags read it: the same point.)
-        return range ? clamp(Math.ceil(range.to), 0, n - 1) : n - 1;
+        // (The last point in view, as the library's tags read it; never the next point beyond its edge.)
+        return range ? clamp(engine.time.lastVisible, 0, n - 1) : n - 1;
       }
-      /** The view's first point (one partly in view counted, as the library reads a relative scale's base). */
+      /** The view's first point, the first whose center is in view (the library's Timeline.firstVisible), as every readout and caption reads it. */
       function firstInView() {
         const n = resolved?.times.length ?? 0;
-        const range = n ? shownSpan() : null;
-        return range ? clamp(Math.floor(range.from), 0, n - 1) : 0;
+        return n && engine.time.length ? clamp(engine.time.firstVisible, 0, n - 1) : 0;
       }
       /**
        * A point read: its index, the view's last at rest (`rest`); `cross`, the crosshair's place on the chart while it
@@ -18025,32 +18030,39 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function valuePointOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
         const values = resolved?.results.get(layer.id)?.values;
         if (!values || at < 0) return -1;
-        if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
-        return at;
+        if (!rest) return at;
+        // (Found once for its values, the point and the data as it is (a live price writes into them): its value, its
+        // date, its range and its change each read it.)
+        const kept = restPoints.get(values);
+        if (kept?.at === at && kept.revision === dataRevision) return kept.i;
+        const i = lastIn(values, 0, at);
+        restPoints.set(values, { at, revision: dataRevision, i });
+        return i;
       }
+      /** Each layer's values' reading at rest, by its point and the data's revision (see valuePointOf): forgotten with them. @type {WeakMap<object, { at: number, revision: number, i: number }>} */
+      const restPoints = new WeakMap();
       /** A layer's value at a point (see valuePointOf). */
       function valueAt(layer, point) {
         const at = valuePointOf(layer, point);
         return at < 0 ? NaN : /** @type {Float64Array} */ (resolved?.results.get(layer.id)?.values)[at];
       }
       /**
-       * When a layer's value at rest is from, said where it's older than the view's end by more than a point (one behind is
-       * the live price's bar the others haven't yet): its point's date; else nothing.
+       * A retained older reading's date: always outside the view, inside it when more than one point behind its end
+       * (the live price can be one ahead of the other series).
        */
       function asOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const at = valuePointOf(layer, point), times = resolved?.times;
-        return point.rest && at >= 0 && at < point.at - 1 && times ? pointLabel(times[at]) : "";
+        return point.rest && at >= 0 && times && (at < point.at - 1 || at < firstInView()) ? pointLabel(times[at]) : "";
       }
       /**
        * A cloud's range at a point, as its legend writes it: its lower to its higher (`lines`: its higher over its lower,
        * as the panel stacks them), from its value up (≥, to the top), or up to it (≤, from the bottom); a dash where
        * there's none (of its pane's two edges, all along).
        */
-      function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }, /** @type {string} */ unit, lines = false) {
-        const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low;
+      function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point, /** @type {string} */ unit, lines = false) {
+        const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low, at = valuePointOf(layer, point);
         // (To both its pane's edges: the pane, whatever its layers (its room, a dash's: see valueSlot).)
         if (!high || !low || at < 0 || edgesOf(layer).length > 1) return "—";
-        if (rest) while (at > 0 && !Number.isFinite(high[at])) at--;
         if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
         return layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : lines ? `${format(high[at], unit)}\n${format(low[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
       }
@@ -19374,13 +19386,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Measured once a kind: they don't depend on its data.)
           const key = `${layer.type}:${measureOf(layer)}:${Boolean(layer.cumulative)}:${size}:${lines}`, measured = binnedSlots;
           if (measured.has(key)) return /** @type {number} */ (measured.get(key));
-          // (Its amounts as far as they go, each of precise's forms (figures read as zeros, see widest): a fraction as
-          // wide as PRECISE up to all coins (₿20.99M, the widest of 21M's form) or their worth (a letter's), both signs
-          // where they can be (a P&L's); a bin's or a cell's with its place, a cumulative profile's after how far its price
-          // is from the close, each of its forms too (a fraction either way, nearly all down, as far up as precise goes).)
-          const unit = measureUnit(measureOf(layer)), amounts = [0.001234, 888_888, unit === "btc" ? 20.99e6 : 888.8e9].flatMap((value) => (signedMeasure(layer) ? [value, -value] : [value])).map((value) => format(value, unit));
-          const hovered = layer.cumulative ? [-0.001234, 0.001234, -99.99, 888_888, 888.8e6].map(fromClose).flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => readingLine({ amount, at })));
-          const width = widest([...hovered, ...(layer.type === "profile" ? ["100% in profit"] : [])], 510, size);
+          // (Its amounts as wide as the writer writes any (see WIDEST_VALUES), both signs where they can be (a P&L's); a
+          // bin's or a cell's with its place, a cumulative profile's after how far its price is from the close, either way.)
+          const unit = measureUnit(measureOf(layer)), amounts = WIDEST_VALUES.flatMap((value) => (signedMeasure(layer) ? [value, -value] : [value])).map((value) => format(value, unit));
+          // (Up as far as the writer goes; down, nearly all.)
+          const changes = [...WIDEST_VALUES, -WIDEST_VALUES[0], -99.99].map(fromClose);
+          const hovered = layer.cumulative ? changes.flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => readingLine({ amount, at })));
+          const shares = [100, 88.88, WIDEST_VALUES[0]].map((share) => `${format(share, "percent")} in profit`);
+          const width = widest([...hovered, ...(layer.type === "profile" ? shares : [])], 510, size);
           measured.set(key, width);
           return width;
         }
@@ -19412,8 +19425,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const span = changeWindow(layer);
         if (!span) return null;
         const { values, times, a, base, relative, unit } = span;
-        let b = point.at;
-        if (point.rest) while (b > a && !Number.isFinite(values[b])) b--;
+        // (At rest, its value's point as every reading takes it, see valuePointOf.)
+        const b = point.rest ? valuePointOf(layer, point) : point.at;
         if (b < a || !Number.isFinite(values[b])) return null;
         return change(values[relative && b >= base ? base : a], values[b], relative && b >= base, unit, times[relative && b >= base ? base : a], times[b]);
       }
@@ -21465,7 +21478,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const series = this.series, scale = seriesScale(series), write = layerFormats.get(this.layer) ?? precise;
           if (!scale?.relative) return write;
           // (Its first value in view: what its scale reads against.)
-          const from = shownSpan()?.from, base = from === undefined ? NaN : series.engine.first(Math.floor(from));
+          const base = resolved?.times.length ? series.engine.first(firstInView()) : NaN;
           return (/** @type {number} */ value) => {
             if (!base) return "";
             const change = (100 * (value - base)) / Math.abs(base);
@@ -22754,7 +22767,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const shown = profileDays(look, look.g[day]), close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
         if (share === null) return null;
         const at = hoveredIn(layer, point, look.grid);
-        return at ? profileAt(look, at) : { amount: `${share}% in profit`, at: "" };
+        return at ? profileAt(look, at) : { amount: `${format(share, "percent")} in profit`, at: "" };
       }
       /**
        * What a profile reads at a height in its pane (see profileReading), as it's drawn: the bin there, its amount (its
@@ -22924,7 +22937,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
       const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
       /**
-       * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent, rounded;
+       * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent;
        * none, no coins. Kept while its days, grid and close are the same: a crosshair reads the view's day too.
        * @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} close
        */
@@ -22944,7 +22957,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           for (let k = 0; k < rows.length; k++) (all += supply[k]), k < cut && (under += supply[k]);
         }
-        const share = all > 0 ? Math.round((100 * under) / all) : null;
+        const share = all > 0 ? (100 * under) / all : null;
         heat.profit = { grid, close, days: shown.map((item) => item?.day), share };
         return share;
       }
@@ -22965,7 +22978,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // before its series: theirs read on the next frame).)
         const shown = (/** @type {{ close: number, share: number } | undefined} */ next) => {
           const was = heat.shares;
-          if (was?.close === next?.close && was?.share === next?.share) return;
+          // (As written: a live tick moving the share past what it says, nothing drawn again.)
+          const said = (/** @type {{ share: number } | undefined} */ shares) => shares && `${format(shares.share, "percent")} ${format(100 - shares.share, "percent")}`;
+          if (was?.close === next?.close && said(was) === said(next)) return;
           heat.shares = next;
           queueMicrotask(() => drawn.get(heat.id)?.redraw());
         };
@@ -23019,8 +23034,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             axisTags: (on, add) => {
               const look = heatLooks.get(id), shares = look?.shares, y = shares && seriesY(series, shares.close);
               if (on !== side || series.engine.faint || !shares || y === null || y === undefined) return;
-              add(y - 19, `${100 - shares.share}%`, look.halo ?? "transparent", look.lose ?? "transparent");
-              add(y + 19, `${shares.share}%`, look.halo ?? "transparent", look.gain ?? "transparent");
+              add(y - 19, format(100 - shares.share, "percent"), look.halo ?? "transparent", look.lose ?? "transparent");
+              add(y + 19, format(shares.share, "percent"), look.halo ?? "transparent", look.gain ?? "transparent");
             },
           },
           { over: true },
@@ -38444,7 +38459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A canvas as a PNG file's contents. @param {HTMLCanvasElement} canvas @returns {Promise<Blob>} */
       const pngOf = (canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png"));
       /** Why the image couldn't be made, as said: unreadable here (see canvasReadable), else plainly. @param {unknown} error */
-      const imageTrouble = (error) => (error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
+      const imageTrouble = (error) => (error instanceof Error && (error.message === UNREADABLE || error.message === TOO_SMALL) ? error.message : "Couldn't make the image");
       /**
        * The chart's picture alone, in a tab of its own (titled with the chart's): to look at, save, or show (an assistant
        * in a browser shares this, not a screenshot of the page). Round it, the picture's own ground (nothing framing it);
@@ -38511,6 +38526,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       const UNREADABLE = "A privacy setting in this browser blocks reading the chart's image. Allow it for this site to export images";
+      /** Why a picture couldn't be made at a size: its legends don't fit under a plot there, even laid out larger. */
+      const TOO_SMALL = "Its legends don't fit a picture this size: make it larger";
       /**
        * The size a picture of yours is taken at: as the chart shows in a window wide enough; narrower, or upright (a
        * phone's), a picture's own, 16:9, as one's shared, not a strip as tall as the screen.
@@ -38524,7 +38541,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * `wait` (a script's), a heatmap's days at its size waited for first.
        * @param {{ width?: number, height?: number, scale?: number }} [size] @returns {Promise<HTMLCanvasElement>}
        */
-      async function chartImage(size = {}, wait = false) {
+      async function chartImage(size = {}, wait = false, grown = false) {
         if (!canvasReadable()) throw new Error(UNREADABLE);
         const PAD = 28, FOOT = 40, title = titleOf(chart);
         // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
@@ -38539,11 +38556,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const titled = pictureTitle(title, width), HEAD = titled.length > 1 ? 86 : 60;
         const height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
-        // (Its legends set apart, under the plot: their block's height, out of the plot's at a size asked for.)
-        let below = 0;
         /**
          * The chart laid out as its picture, `read` run on it at once (what it reads, given back), then put back exactly
-         * as it was. @template T @param {() => T} read @returns {T}
+         * as it was. @template T @param {(layout: ReturnType<typeof apartLayout>) => T} read @returns {T}
          */
         const asPicture = (read) => {
           // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
@@ -38552,8 +38567,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its resizes aren't the chart's: the view held as it is, see holdView. Its tags at rest, as its legends read:
           // a crosshair on it, a pinned one's too, read nowhere (put back after).)
           exporting = true;
-          const crossIndex = engine.crosshair.index;
+          const crossIndex = engine.crosshair.index, hovered = hoverTime;
           engine.crosshair.index = NaN;
+          hoverTime = null;
           try {
             if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
             // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
@@ -38563,25 +38579,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (The panes at its width first, its legends wrapped there: then those past two rows set apart, and the plot's
             // height less their block, at a size asked for.)
             sizeChart(width, height);
-            // (Too small a picture to hold their block under a plot of 160 pixels: over it, as before.)
+            // (Its view as the screen's: its spacing at this width, its range, again once its margins are set (an axis
+            // grown over the plot moves it).)
+            const view = () => {
+              if (!sized || !resolved || drawnChart !== chart.id) return;
+              fitSpacing(chart, resolved.times.length);
+              if (presetShown) applyRange(chart, resolved);
+              else if (logical) showSpan(atLatest(logical, screen) ?? logical, EXACT_RANGE);
+            };
+            view();
+            // (Read as drawn at this size: a heatmap's days by its blocks there, see viewHeat.)
+            engine.render(true);
+            updateReadout();
+            // (Their block under the plot, out of its height at a size asked for: see chartImage for one too small.)
             const together = setApart();
             restoreLegends = () => (together(), presented());
-            below = apartHeight(width);
-            if (sized && below && height - below < 160) (together(), (below = 0));
-            const plot = sized ? height - below : height;
+            const layout = apartLayout(width);
+            // (Its legends set apart, under the plot: their block's height, out of the plot's at a size asked for.)
+            const plot = sized ? height - layout.height : height;
             if (sized) element.style.height = `${plot}px`;
             sizeChart(width, plot);
             chartHeight = plot;
             sizePanes();
-            if (sized && resolved && drawnChart === chart.id) {
-              fitSpacing(chart, resolved.times.length);
-              if (presetShown) applyRange(chart, resolved);
-              else if (logical) showSpan(atLatest(logical, screen) ?? logical);
-            }
             marginsSet = "";
             fitMargins();
             sizeChart(width, plot);
-            return read();
+            view();
+            return read(layout);
           } finally {
             engine.crosshair.index = crossIndex;
             restoreLegends();
@@ -38595,7 +38619,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
             // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
             if (sized) (engine.time.rightOffset = rightGap()), engine.invalidate(true);
-            if (sized && logical) showSpan(logical);
+            if (sized && logical) showSpan(logical, EXACT_RANGE);
             // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
             // picture).)
             if (sized && shown && resolved && drawnChart === chart.id) {
@@ -38607,6 +38631,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
             engine.render(true);
             exporting = false;
+            hoverTime = hovered;
+            updateReadout();
             // (A profile's bar pointed at, lit again: the picture's drew none.)
             if (profileLit) drawn.get(profileLit.layer)?.redraw();
             lastBox = chartWidth();
@@ -38614,12 +38640,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (crossSet) holdCross();
           }
         };
-        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, apart: ReturnType<typeof apartItems>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
+        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, layout: ReturnType<typeof apartLayout>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
         let taken;
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
         heatExtras.add(extra);
         try {
+          // (Too small a size to hold its legends under a plot of 160 pixels: laid out larger by the least of 1.25, 1.25²…
+          // that holds them (up to about twice: drawn down further, its words would be too small to read), its shape the
+          // same, and drawn down to the size asked for (see the resampling at its end): every name whole, nothing over the
+          // lines. Once: a larger one is the picture, checked as laid out. None that holds them, no picture: why.)
+          const grow = !sized ? 1 : asPicture((layout) => {
+            const holds = (/** @type {number} */ k) => height * k + (k - 1) * (HEAD + FOOT) - (k === 1 ? layout : apartLayout(width * k + (k - 1) * PAD * 2)).height >= 160;
+            let k = 1;
+            while (!grown && !holds(k) && k * 1.25 <= 2) k *= 1.25;
+            if (!holds(k)) throw new Error(TOO_SMALL);
+            return k;
+          });
+          if (grow > 1) return chartImage({ width: /** @type {number} */ (size.width) * grow, height: /** @type {number} */ (size.height) * grow, scale: (size.scale ?? devicePixelRatio) / grow }, wait, true);
           // (`wait`, a script's at a size not the screen's: a heatmap's days there, asked for by a draw at it (the chart
           // laid out so only while it's drawn), waited for with the page as it is, a few rounds while a draw asks for more
           // (a coarser day's columns, then their own); still missing after them, no picture: why. Not a tap's: a share
@@ -38639,7 +38677,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (shownAs() !== owner) throw new Error("The chart changed meanwhile");
           }
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
-          taken = asPicture(() => {
+          taken = asPicture((layout) => {
             capturing = true;
             repaintDrawings();
             let shot;
@@ -38650,50 +38688,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               repaintDrawings();
             }
             const scale = shot.width / width;
-            // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
-            const hovered = hoverTime;
-            hoverTime = null;
-            updateReadout();
-            let pieces, apart;
-            try {
-              pieces = measureLegends(scale);
-              apart = apartItems();
-            } finally {
-              hoverTime = hovered;
-              updateReadout();
-            }
+            const pieces = measureLegends(scale);
             // (Its dates and its axes' size, as the shot has them.)
-            return { shot, scale, pieces, apart, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
+            return { shot, scale, pieces, layout, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
           });
         } finally {
           heatExtras.delete(extra);
         }
-        const { shot, scale, pieces, apart, dates, axisHeight, leftWidth } = taken;
+        const { shot, scale, pieces, layout, dates, axisHeight, leftWidth } = taken;
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
-        // (The legends set apart, under the plot, in columns, read across: each its mark, its name (cut where it's long),
+        // (The legends set apart, under the plot, in columns, read across: each its mark, its full name,
         // its value at its column's end; pane after pane.)
-        if (apart.length) {
-          const cols = apartColumns(width), column = (width / cols) * scale, row = APART.row * scale, gap = 14 * scale, [markWidth, markHeight] = [16 * scale, 12 * scale];
-          const nameFont = `510 ${12 * scale}px ${sans}`, valueFont = `590 ${12 * scale}px ${sans}`, measure = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-          measure.font = valueFont;
-          let top = shot.height + APART.top * scale;
-          for (const items of apart) {
-            items.forEach((item, i) => {
-              // (Its value cut where it's longer than its column holds beside a short name, so it can't cross into the next.)
-              const x = (i % cols) * column, y = top + Math.floor(i / cols) * row, end = x + column - gap, nameAt = x + (item.mark ? markWidth + 6 * scale : 0), valueWidth = Math.min(measure.measureText(item.value).width, Math.max(0, end - nameAt - 48 * scale));
-              if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
-              pieces.push({ x: nameAt, y, width: Math.max(0, end - valueWidth - 8 * scale - nameAt), height: row, faded: item.faded, text: item.name, font: nameFont, color: softColor, align: "left", cut: true });
-              if (item.value) pieces.push({ x: end - valueWidth, y, width: valueWidth, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
-            });
-            top += Math.ceil(items.length / cols) * row + APART.gap * scale;
+        if (layout.items.length) {
+          const row = APART.row * scale, [markWidth, markHeight] = [APART.mark * scale, APART.markHeight * scale];
+          const { name: nameFont, value: valueFont } = apartFonts(scale, sans);
+          for (const item of layout.items) {
+            const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + APART.markGap * scale : 0);
+            if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
+            item.lines.forEach((text, i) => pieces.push({ x: nameAt, y: y + i * row, width: item.nameWidth * scale, height: row, faded: item.faded, text, font: nameFont, color: softColor, align: "left", cut: true }));
+            if (item.value) pieces.push({ x: (item.x + layout.column - APART.columnGap - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
           }
         }
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
-        const pad = px(PAD), head = px(HEAD), foot = px(FOOT), under = apart.length ? px(below) : 0;
+        const pad = px(PAD), head = px(HEAD), foot = px(FOOT), under = layout.items.length ? px(layout.height) : 0;
         const canvas = document.createElement("canvas");
         canvas.width = shot.width + pad * 2;
         canvas.height = shot.height + head + under + foot;
@@ -38780,11 +38801,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (placed) context.fillText(where, at, baseline);
         context.textAlign = "right";
         context.fillText(said, canvas.width - pad, baseline);
-        // At the scale asked for (a script's): the screen's density made that, smoothly.
-        if (!sized || !size.scale || (Math.abs(canvas.width - /** @type {number} */ (size.width) * size.scale) < 1 && Math.abs(canvas.height - /** @type {number} */ (size.height) * size.scale) < 1)) return canvas;
+        // At the scale asked for (a script's): the screen's density made that, smoothly; none asked, the screen's as it is.
+        if (!sized || !size.scale) return canvas;
+        const outWidth = Math.round(/** @type {number} */ (size.width) * size.scale), outHeight = Math.round(/** @type {number} */ (size.height) * size.scale);
+        if (canvas.width === outWidth && canvas.height === outHeight) return canvas;
         const out = document.createElement("canvas");
-        out.width = Math.round(/** @type {number} */ (size.width) * size.scale);
-        out.height = Math.round(/** @type {number} */ (size.height) * size.scale);
+        out.width = outWidth;
+        out.height = outHeight;
         const resampled = /** @type {CanvasRenderingContext2D} */ (out.getContext("2d"));
         resampled.imageSmoothingQuality = "high";
         resampled.drawImage(canvas, 0, 0, out.width, out.height);
@@ -38796,8 +38819,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function viewDates() {
         const times = resolved?.times ?? [], span = shownDates();
-        if (!times.length) return { span: "", values: "" };
-        const last = times[lastShown()], [from, to] = [pointLabel(Number(span?.from ?? times[0])), pointLabel(Number(span?.to ?? last))];
+        if (!times.length || !span) return { span: "", values: "" };
+        const last = times[lastShown()], [from, to] = [pointLabel(span.from), pointLabel(span.to)];
         return { span: from === to ? to : `${from} – ${to}`, values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
       }
       /**
@@ -38850,6 +38873,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const edge = legend.getBoundingClientRect().right;
           // (A profile's key, as it shows.)
           for (const key of /** @type {HTMLElement[]} */ (all$(":scope > .legend-key", legend))) if (key.offsetParent) keyPieces(key, false);
+          // (Its items set apart: under the plot, see apartLayout.)
+          if (legend.hasAttribute("data-apart")) continue;
           for (const button of legend.querySelectorAll("button")) {
             // (Hidden, or past its edge.)
             if (button.style.display === "none" || !button.offsetParent || button.getBoundingClientRect().right > edge + 1) continue;
@@ -38876,26 +38901,75 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return pieces;
       }
       /**
-       * A picture's legends past two rows (as presentLegends wrote them, the panes at the picture's width): set apart,
-       * under the plot (see apartItems), the plot whole, none of it over its lines; a folded pane's kept (all it shows),
-       * and one with a key (a profile's groups, a cloud's colors: drawn as they show). Undone by what it returns.
+       * A picture's long or truncated legends (as presentLegends wrote them, the panes at the picture's width): set apart,
+       * under the plot (see apartItems), the plot whole, none of it over its lines; a short folded legend stays in its pane,
+       * a key (profile groups or cloud colors) stays over the plot. Undone by what it returns.
        * @returns {() => void}
        */
       function setApart() {
         const folded = foldedPanes(chart);
         const apart = legends().filter((legend) => {
           const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
-          return row > 0 && !folded.has(legend.dataset.pane ?? "") && !legend.querySelector(".legend-key") && legend.offsetHeight > row * 2 + 6;
+          return row > 0 && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
         }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
-        for (const [legend] of apart) (legend.dataset.apart = ""), (legend.style.display = "none");
+        for (const [legend] of apart) {
+          legend.dataset.apart = "";
+          if (!legend.querySelector(".legend-key")) legend.style.display = "none";
+        }
         return () => {
           for (const [legend, display] of apart) delete legend.dataset.apart, (legend.style.display = display);
         };
       }
       /** A picture's legends set apart (see setApart): their rows, the space over, under and between them. */
-      const APART = { row: 20, top: 6, bottom: 10, gap: 8 };
-      /** The columns a picture `width` wide sets them in: each as wide as a name and its value. */
-      const apartColumns = (/** @type {number} */ width) => Math.max(1, Math.floor(width / (width < 500 ? 150 : 175)));
+      const APART = { row: 20, top: 6, bottom: 10, gap: 8, columnGap: 14, textGap: 8, mark: 16, markHeight: 12, markGap: 6, size: 12, nameWeight: 510, valueWeight: 590 };
+      const apartFonts = (scale = 1, sans = css("--sans")) => ({ name: `${APART.nameWeight} ${APART.size * scale}px ${sans}`, value: `${APART.valueWeight} ${APART.size * scale}px ${sans}` });
+      /** A picture's legend layout, measured in CSS pixels once for both its height and its words. */
+      function apartLayout(/** @type {number} */ width) {
+        const groups = apartItems();
+        const g = measure, fonts = apartFonts();
+        // (A column as wide as an item's longest word and its value: its name wraps, one long name no reason for one column.)
+        const itemWidth = (item) => {
+          g.font = fonts.name;
+          const name = Math.max(0, ...item.name.split(/\s+/).map((word) => g.measureText(word).width));
+          g.font = fonts.value;
+          return name + g.measureText(item.value).width + (item.mark ? APART.mark + APART.markGap : 0) + APART.columnGap + APART.textGap;
+        };
+        let widest = width < 500 ? 150 : 175;
+        for (const group of groups) for (const item of group) widest = Math.max(widest, itemWidth(item));
+        const cols = Math.max(1, Math.floor(width / widest)), column = width / cols;
+        const items = [];
+        let y = APART.top;
+        for (const group of groups) {
+          for (let start = 0; start < group.length; start += cols) {
+            let rows = 1;
+            group.slice(start, start + cols).forEach((item, i) => {
+              g.font = fonts.value;
+              const mark = item.mark ? APART.mark + APART.markGap : 0, valueWidth = Math.min(g.measureText(item.value).width, Math.max(0, column - APART.columnGap - APART.textGap - mark - 48)), nameWidth = Math.max(1, column - APART.columnGap - APART.textGap - valueWidth - mark);
+              g.font = fonts.name;
+              const lines = [""];
+              // Break words first, and split a single word only when it cannot fit even on its own line.
+              for (const word of item.name.split(/\s+/)) {
+                let at = lines.length - 1;
+                if (lines[at] && g.measureText(`${lines[at]} ${word}`).width > nameWidth) lines.push("");
+                if (g.measureText(word).width <= nameWidth) {
+                  lines[lines.length - 1] += `${lines.at(-1) ? " " : ""}${word}`;
+                  continue;
+                }
+                for (const char of word) {
+                  at = lines.length - 1;
+                  if (lines[at] && g.measureText(lines[at] + char).width > nameWidth) lines.push("");
+                  lines[lines.length - 1] += char;
+                }
+              }
+              rows = Math.max(rows, lines.length);
+              items.push({ ...item, lines, nameWidth, valueWidth, x: i * column, y });
+            });
+            y += rows * APART.row;
+          }
+          y += APART.gap;
+        }
+        return { items, column, height: groups.length ? y - APART.gap + APART.bottom : 0 };
+      }
       /** Each legend set apart, its items as they show (a hidden layer's left out, as over the plot), their values as read. */
       const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$("button", legend).filter((button) => button.style.display !== "none").map((button) => {
         const value = /** @type {HTMLElement | null} */ (button.querySelector(".legend-value, .legend-error")), after = value ? getComputedStyle(value, "::after") : null;
@@ -38903,8 +38977,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const asOf = value?.dataset.asOf && after && after.content !== "none" && after.display !== "none" ? ` · ${value.dataset.asOf}` : "";
         return { mark: button.querySelector(".series-mark")?.outerHTML ?? "", name: button.querySelector(".name")?.textContent?.trim() ?? "", value: `${value?.textContent?.trim() ?? ""}${asOf}`, faded: button.classList.contains("hidden") };
       })).filter((items) => items.length);
-      /** Their block's height under the plot of a picture `width` wide (none set apart, none). */
-      const apartHeight = (/** @type {number} */ width) => ((groups) => (groups.length ? APART.top + groups.reduce((sum, items) => sum + Math.ceil(items.length / apartColumns(width)) * APART.row, 0) + (groups.length - 1) * APART.gap + APART.bottom : 0))(apartItems());
       /**
        * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
        * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
@@ -40227,9 +40299,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // hasn't yet: another layer's series has it already; far behind, it waits for the server); a point the server
           // has (or one opened before) moves.
           const opens = added.length > 0 || !Number.isFinite(result.values[at]);
-          let last = at;
-          if (opens) while (last > 0 && !Number.isFinite(result.values[last])) last--;
-          if (at - last > 100 || !Number.isFinite(result.values[last])) continue;
+          const last = opens ? lastIn(result.values, 0, at) : at;
+          if (last < 0 || at - last > 100 || !Number.isFinite(result.values[last])) continue;
           const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           // (Its gradient's range of all its history moved by it, either way: every point's color another, see below.)
           const was = layer.byGradient && !layer.upToDate ? rangeOf(result.values).join() : "";
@@ -40761,8 +40832,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               return cell ? [[layer.id, readingLine(cellText(cell, grid, measure))]] : [];
             })(heat.get(layer.id));
             if (!high || result.error) return [];
-            let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
-            while (at >= 0 && !Number.isFinite(high[at])) at--;
+            const at = lastIn(high, 0, drawn.end ?? high.length - 1);
             if (at < 0) return [];
             return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`]];
           }));
@@ -40770,8 +40840,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const bands = new Map(copy.layers.flatMap((layer) => {
             const high = data.results.get(layer.id)?.values;
             if (!high || !named(layer)) return [];
-            let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
-            while (at >= 0 && !Number.isFinite(high[at])) at--;
+            const at = lastIn(high, 0, drawn.end ?? high.length - 1);
             const band = at >= 0 ? bandOf(layer, high[at]) : null;
             return band ? [[layer.id, cssColor(band.color)]] : [];
           }));
