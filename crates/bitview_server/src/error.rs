@@ -8,7 +8,7 @@ use axum::{
 use bitview_http::CachePolicy;
 use bitview_query::{Error as QueryError, SeriesNotFound};
 use bitview_types::{ErrorBody, ErrorCode, ErrorType};
-use brk_error::Error as BrkError;
+use brk_error::{Error as BrkError, Updating};
 use serde_json::to_vec;
 use tracing::error;
 
@@ -67,7 +67,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
             StatusCode::SERVICE_UNAVAILABLE,
             ErrorCode::MempoolNotAvailable,
         ),
-        QueryError::StateUpdating => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
+        QueryError::StateUpdating(_) => (StatusCode::SERVICE_UNAVAILABLE, ErrorCode::StateUpdating),
         QueryError::ReadTimeout => (StatusCode::GATEWAY_TIMEOUT, ErrorCode::Timeout),
         QueryError::Internal(_) | QueryError::Lower(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, ErrorCode::InternalError)
@@ -80,6 +80,9 @@ pub struct Error {
     status: StatusCode,
     code: ErrorCode,
     message: String,
+    /// The guard that found the state updating, for the request log (`response_time`): a
+    /// response extension, never sent.
+    updating: Option<Updating>,
 }
 
 impl Error {
@@ -88,6 +91,7 @@ impl Error {
             status,
             code,
             message: msg.into(),
+            updating: None,
         }
     }
 
@@ -139,10 +143,15 @@ impl From<QueryError> for Error {
             QueryError::SeriesNotFound(not_found) => series_not_found(not_found),
             error => error.to_string(),
         };
+        let updating = match error {
+            QueryError::StateUpdating(at) => Some(at),
+            _ => None,
+        };
         Self {
             status,
             code,
             message,
+            updating,
         }
     }
 }
@@ -204,6 +213,9 @@ impl IntoResponse for Error {
                 .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
         }
         policy.apply(response.headers_mut());
+        if let Some(at) = self.updating {
+            response.extensions_mut().insert(at);
+        }
         response
     }
 }

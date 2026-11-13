@@ -207,7 +207,7 @@ impl Query {
         // not yet at this tip has nothing to blend.
         let live = match mempool.map(|mempool| mempool.live_payments(&tip)) {
             Some(Ok(payments)) => Some(payments),
-            None | Some(Err(brk_error::Error::StateUpdating)) => None,
+            None | Some(Err(brk_error::Error::StateUpdating(_))) => None,
             Some(Err(error)) => return Err(error.into()),
         };
         let safe = pin.lengths();

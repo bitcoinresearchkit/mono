@@ -107,7 +107,7 @@ struct FieldVisitor<const ANSI: bool> {
 }
 
 impl<const ANSI: bool> FieldVisitor<ANSI> {
-    /// Access events (with `status`) print `status [uri] [latency]`; others print
+    /// Access events (with `status`) print `status [uri] [latency] [fields]`; others print
     /// `message — fields`, with method/uri/latency appended as plain fields.
     fn write_to(self, w: &mut impl Write) -> Result {
         if let Some(status) = self.status {
@@ -125,6 +125,9 @@ impl<const ANSI: bool> FieldVisitor<ANSI> {
                 } else {
                     write!(w, " {latency}")?;
                 }
+            }
+            if !self.fields.is_empty() {
+                write!(w, " {}", self.fields)?;
             }
             return Ok(());
         }

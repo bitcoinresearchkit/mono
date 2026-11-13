@@ -134,7 +134,7 @@ impl Pool {
     /// This publication, when it is anchored at `tip`.
     pub fn at(&self, tip: &BlockHash) -> Result<&Self> {
         if self.tip != *tip {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         Ok(self)
     }

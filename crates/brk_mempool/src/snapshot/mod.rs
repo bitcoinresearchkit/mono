@@ -242,7 +242,7 @@ impl Snapshot {
     /// wait for) leaves them standing.
     pub(crate) fn ensure_fees(&self) -> Result<()> {
         if !self.fees.complete {
-            return Err(QueryError::StateUpdating);
+            return Err(QueryError::updating());
         }
         Ok(())
     }
@@ -251,7 +251,7 @@ impl Snapshot {
     /// always contains block zero, even when Core selected no transactions.
     pub(crate) fn ensure_projection(&self) -> Result<()> {
         if self.block_stats.is_empty() || self.template_missing {
-            return Err(QueryError::StateUpdating);
+            return Err(QueryError::updating());
         }
         Ok(())
     }

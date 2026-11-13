@@ -111,7 +111,7 @@ impl AppState {
     /// never turn temporary publication loss into an HTTP error.
     pub fn preflight<T>(&self, f: impl FnOnce(&Query) -> Result<Option<T>>) -> Result<Option<T>> {
         match self.query.sync(f) {
-            Err(QueryError::StateUpdating) => Ok(None),
+            Err(QueryError::StateUpdating(_)) => Ok(None),
             result => result,
         }
     }

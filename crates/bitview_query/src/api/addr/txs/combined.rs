@@ -62,7 +62,7 @@ impl Query {
                         if !mempool.is_pending(txid, &view)? {
                             // One a reorg left in limbo is unknown for the moment only.
                             return Err(if view.in_limbo(txid) {
-                                Error::StateUpdating
+                                Error::updating()
                             } else {
                                 Error::UnknownAfterTxid
                             });

@@ -17,11 +17,11 @@ impl Query {
             .plugins()
             .addresses
             .read_state()
-            .ok_or(Error::StateUpdating)?;
+            .ok_or_else(|| Error::updating())?;
         let pin = self.pin_safe_lengths()?;
         // Only a rollback, a failed write or a long catch-up leaves it at another length.
         if state.written() != Some(pin.lengths().height) {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         let chain_stats = self
             .find_addr_bytes(&bytes, &pin)?
@@ -84,5 +84,5 @@ fn pending_balance(chain: Sats, pending_received: Sats, pending_sent: Sats) -> R
         .checked_add(pending_received.into())
         .and_then(|value| value.checked_sub(pending_sent.into()))
         .map(Sats::from)
-        .ok_or(Error::StateUpdating)
+        .ok_or_else(|| Error::updating())
 }

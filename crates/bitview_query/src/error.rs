@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt, result::Result as StdResult};
 
+use brk_error::Updating;
 use thiserror::Error as ThisError;
 
 pub type Result<T> = StdResult<T, Error>;
@@ -57,7 +58,7 @@ pub enum Error {
     #[error("Mempool data is not available")]
     MempoolNotAvailable,
     #[error("State is updating")]
-    StateUpdating,
+    StateUpdating(Updating),
     #[error("Read exceeded its time limit")]
     ReadTimeout,
 
@@ -69,6 +70,13 @@ pub enum Error {
 }
 
 impl Error {
+    /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
+    #[track_caller]
+    #[inline]
+    pub fn updating() -> Self {
+        Self::StateUpdating(Updating::here())
+    }
+
     /// Another process holds the database open: transient, never a reason to delete data.
     pub fn is_lock_error(&self) -> bool {
         matches!(self, Self::Lower(error) if error.is_lock_error())
@@ -79,7 +87,7 @@ impl From<brk_error::Error> for Error {
     fn from(error: brk_error::Error) -> Self {
         use brk_error::Error as Lower;
         match error {
-            Lower::StateUpdating => Self::StateUpdating,
+            Lower::StateUpdating(at) => Self::StateUpdating(at),
             Lower::InvalidAddress => Self::InvalidAddress,
             Lower::InvalidNetwork => Self::InvalidNetwork,
             Lower::UnindexableDate => Self::UnindexableDate,

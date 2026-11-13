@@ -14,7 +14,7 @@ use fjall::Error as FjallError;
 use jiff::Error as JiffError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, io, path::PathBuf, result::Result as StdResult};
+use std::{borrow::Cow, io, panic::Location, path::PathBuf, result::Result as StdResult};
 
 use thiserror::Error;
 
@@ -37,6 +37,25 @@ impl<T> OptionData<T> for Option<T> {
     #[inline]
     fn data(self) -> Result<T> {
         self.ok_or(Error::Internal("data unavailable"))
+    }
+}
+
+/// Where a read found the state updating (a 503): the guard that answered so, logged beside the
+/// request. Made only by [`Updating::here`], so every such error names its site.
+#[derive(Debug, Clone, Copy)]
+pub struct Updating(&'static Location<'static>);
+
+impl Updating {
+    /// The caller's location. Call it (or an error's `updating`) directly, or from a closure:
+    /// passed as a function (`ok_or_else(Error::updating)`), it reports a location in `core`.
+    #[track_caller]
+    #[inline]
+    pub fn here() -> Self {
+        Self(Location::caller())
+    }
+
+    pub fn location(self) -> &'static Location<'static> {
+        self.0
     }
 }
 
@@ -97,7 +116,7 @@ pub enum Error {
     InvalidNetwork,
 
     #[error("State is updating")]
-    StateUpdating,
+    StateUpdating(Updating),
 
     #[error("Unsupported type ({0})")]
     UnsupportedType(String),
@@ -165,6 +184,13 @@ impl From<RawDBError> for Error {
 }
 
 impl Error {
+    /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
+    #[track_caller]
+    #[inline]
+    pub fn updating() -> Self {
+        Self::StateUpdating(Updating::here())
+    }
+
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {

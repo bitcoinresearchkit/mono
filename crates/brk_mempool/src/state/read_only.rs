@@ -114,12 +114,12 @@ impl ReadOnlyState {
     }
 
     pub(crate) fn pool(&self) -> Result<&Pool> {
-        self.pool.as_deref().ok_or(Error::StateUpdating)
+        self.pool.as_deref().ok_or_else(|| Error::updating())
     }
 
     /// [`Self::pool`], shared: a reader keeping it past the call.
     pub(crate) fn pool_arc(&self) -> Result<&Arc<Pool>> {
-        self.pool.as_ref().ok_or(Error::StateUpdating)
+        self.pool.as_ref().ok_or_else(|| Error::updating())
     }
 
     /// Last valid template projection; its source may be newer than retained membership.

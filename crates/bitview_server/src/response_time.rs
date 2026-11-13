@@ -6,6 +6,7 @@ use axum::{
     middleware::Next,
 };
 use bitview_http::CachePolicy;
+use brk_error::Updating;
 use tracing::{error, info};
 
 pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body> {
@@ -19,6 +20,9 @@ pub(crate) async fn respond(request: Request<Body>, next: Next) -> Response<Body
 
     if status_code.is_informational() || status_code.is_success() || status_code.is_redirection() {
         info!(%method, status, %uri, ?latency);
+    } else if let Some(at) = response.extensions().get::<Updating>() {
+        let at = at.location();
+        error!(%method, status, %uri, ?latency, %at);
     } else {
         error!(%method, status, %uri, ?latency);
     }

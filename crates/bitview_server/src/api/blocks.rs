@@ -130,7 +130,7 @@ impl AppState {
                 } else {
                     snapshot.last_height().map(|height| height.to_string())
                 }
-                .ok_or(QueryError::StateUpdating)?;
+                .ok_or_else(|| QueryError::updating())?;
                 // The owned value is the whole representation. In particular, a
                 // same-height reorg changes the hash endpoint but not the height.
                 let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));

@@ -85,7 +85,7 @@ impl Query {
             return Ok(None);
         };
         let Some(pool_tip) = mempool.tip() else {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         };
         let tip = pin.tip();
         if pool_tip == tip {
@@ -101,12 +101,12 @@ impl Query {
                     break;
                 }
                 Err(Error::NotFound(_)) => {}
-                Err(Error::StateUpdating) if pin.is_lowered() => {}
+                Err(Error::StateUpdating(_)) if pin.is_lowered() => {}
                 Err(error) => return Err(error),
             }
         }
         let Some((height, left)) = common else {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         };
         let lengths = pin.lengths();
         if usize::from(lengths.height) - usize::from(height) > MAX_POOL_LAG + 1 {
@@ -148,7 +148,7 @@ impl Query {
     pub(crate) fn pool_answers(error: &Error, pin: &ReadPin) -> bool {
         match error {
             Error::UnknownTxid => true,
-            Error::StateUpdating => pin.is_lowered(),
+            Error::StateUpdating(_) => pin.is_lowered(),
             _ => false,
         }
     }
@@ -157,7 +157,7 @@ impl Query {
     /// `StateUpdating` for a transaction in limbo ([`PendingView::in_limbo`]).
     pub(crate) fn unanswered(error: Error, view: &PendingView, txid: &Txid) -> Error {
         if view.in_limbo(txid) {
-            Error::StateUpdating
+            Error::updating()
         } else {
             error
         }

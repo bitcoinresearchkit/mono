@@ -59,7 +59,7 @@ impl Mempool {
                 }
                 match self.tick_with(&resolver, gate) {
                     // A block arrived mid-fetch: the next cycle observes the new tip.
-                    Ok(()) | Err(Error::StateUpdating) => {}
+                    Ok(()) | Err(Error::StateUpdating(_)) => {}
                     Err(e) => error!("mempool update failed: {e}"),
                 }
             }));
@@ -108,7 +108,7 @@ impl Mempool {
         if coherent {
             Ok(())
         } else {
-            Err(Error::StateUpdating)
+            Err(Error::updating())
         }
     }
 
@@ -174,7 +174,7 @@ impl Mempool {
             || rpc.tip_hash != tip_before
             || self.client.get_best_block_hash()? != tip_before
         {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
         self.state.template_only = template_only;

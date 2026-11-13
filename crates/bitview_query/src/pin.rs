@@ -57,7 +57,7 @@ impl Deref for ReadPin {
 #[cfg(feature = "series")]
 pub(crate) fn check_bound<T: PartialOrd>(pin: &SafeLengths, index: T, bound: T) -> Result<()> {
     if index >= bound && pin.is_lowered() {
-        return Err(Error::StateUpdating);
+        return Err(Error::updating());
     }
     Ok(())
 }
@@ -71,7 +71,7 @@ impl Query {
         self.check_deadline()?;
         let pin = self.indexer().pin();
         if pin.is_lowered() && pin.lengths().height.is_zero() {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         Ok(self.read_pin(pin))
     }
@@ -116,7 +116,7 @@ impl Query {
     /// The published tip height a pin reads at; `StateUpdating` while nothing is published.
     #[cfg(feature = "full-api")]
     pub(crate) fn tip_height(pin: &SafeLengths) -> Result<Height> {
-        pin.lengths().last_height().ok_or(Error::StateUpdating)
+        pin.lengths().last_height().ok_or_else(|| Error::updating())
     }
 
     #[cfg(feature = "series")]

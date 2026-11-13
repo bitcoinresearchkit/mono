@@ -71,7 +71,7 @@ fn run() -> Result<()> {
                 }
                 // A tip moving mid-cycle is a race, not a failure: no backoff.
                 match e {
-                    Error::StateUpdating => PERIOD,
+                    Error::StateUpdating(_) => PERIOD,
                     _ => (wait * 2).min(BACKOFF_MAX),
                 }
             }

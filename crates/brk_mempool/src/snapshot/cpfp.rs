@@ -29,7 +29,7 @@ impl ReadOnlyState {
             return Ok(None);
         };
         if !tx.is_resolved() {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         let Some(index) = snapshot.idx_of_txid(txid) else {
             return Ok(None);

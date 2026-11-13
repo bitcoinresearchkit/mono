@@ -47,7 +47,7 @@ impl Query {
         limit: usize,
     ) -> Result<ResolvedPoolBlocks> {
         let chain = self.blocks_window(None, 0)?;
-        let tip = chain.last_height().ok_or(Error::StateUpdating)?;
+        let tip = chain.last_height().ok_or_else(|| Error::updating())?;
         let heights = before_height
             .map_or(Some(tip), Height::decremented)
             .map_or_else(Vec::new, |through| {

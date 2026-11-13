@@ -35,7 +35,7 @@ impl UtxoSetPoint {
     fn end_within(&self, history: usize) -> Result<usize> {
         let end = usize::from(self.last) + 1;
         if end > history {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         Ok(end)
     }
@@ -81,7 +81,7 @@ impl Query {
         let end = point.end_within(reader.len())?;
         let state = reader.state_at(end)?;
         if state.hash() != *point.hash {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         let amounts = state.amounts();
         let total = state.total();
@@ -120,7 +120,7 @@ impl Query {
             }
         }
         if diffs.hash() != Some(*point.hash) {
-            return Err(Error::StateUpdating);
+            return Err(Error::updating());
         }
         let mut removed = UtxoChanges::default();
         for (origin, (count, sats)) in spent {

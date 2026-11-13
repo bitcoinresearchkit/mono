@@ -89,7 +89,7 @@ fn select_timestamp(
     mut raw: impl FnMut(usize) -> Result<Timestamp>,
 ) -> Result<(usize, Timestamp)> {
     if len == 0 {
-        return Err(Error::StateUpdating);
+        return Err(Error::updating());
     }
     let crossing = lower_bound(len, target, true, &mut maximum)?;
     if crossing == 0 {

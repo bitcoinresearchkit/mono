@@ -149,7 +149,7 @@ impl Query {
 
     fn sync_status_from(&self, tip_height: Option<Height>) -> Result<SyncStatus> {
         let guard = self.pin_safe_lengths()?;
-        let indexed_height = guard.lengths().last_height().ok_or(Error::StateUpdating)?;
+        let indexed_height = guard.lengths().last_height().ok_or_else(|| Error::updating())?;
         let tip_height = tip_height.unwrap_or(indexed_height);
         let blocks_behind = Height::from(tip_height.saturating_sub(*indexed_height));
         let last_indexed_at_unix = self

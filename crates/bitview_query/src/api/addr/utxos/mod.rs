@@ -55,7 +55,7 @@ impl Query {
                 let mut outpoints = Vec::new();
                 for outpoint in pin
                     .addr_unspent_outpoints(output_type, type_index)
-                    .ok_or(Error::StateUpdating)?
+                    .ok_or_else(|| Error::updating())?
                 {
                     let (tx_index, vout) = outpoint?;
                     let txid = txids.try_get(tx_index).data()?;
