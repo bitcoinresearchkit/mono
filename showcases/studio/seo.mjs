@@ -9,25 +9,31 @@
 //   bun showcases/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
 //                                                  they were written by: what the chain did since fails nothing)
 //   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone (see below)
+import { gunzipSync, gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { addressesOf } from "./addresses.js";
 import { CHAIN_STATISTICS } from "./chain-statistics.js";
+import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "./page-info.js";
 import { shownStep } from "./words.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
 const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "http://127.0.0.1:3110";
 // (The address Studio's known by, on every domain it's served on: see ORIGIN in the page.)
-const ORIGIN = "https://bitview.space/studio";
+const ORIGIN = STUDIO_ORIGIN;
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
 const { studioPresets } = await import(pathToFileURL(join(HERE, "presets.js")).href);
 const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(HERE, "facts.js")).href);
-const written = (/** @type {string} */ name) => { try { return readFileSync(join(HERE, name), "utf8"); } catch { return ""; } };
+const writtenBytes = (/** @type {string} */ name) => {
+  try { return readFileSync(join(HERE, name)); }
+  catch (error) { if (error.code === "ENOENT") return Buffer.alloc(0); throw error; }
+};
+const written = (/** @type {string} */ name) => writtenBytes(name).toString("utf8");
 // (Checked, by the facts they were written by; written, by the server's now. Without them the presets would hold what
 // never happened: stopped.)
 const kept = written("chain-facts.json").trim();
@@ -111,7 +117,30 @@ for (const file of sources) {
   for (const { path } of transpiler.scanImports(text)) if (path.startsWith(".")) sources.add(join(dirname(file), path));
 }
 
+// A section's direct children, in the page's order: sections before charts.
+const children = new Map([...book.sections.keys()].map((key) => [key, new Map()]));
+for (const [key, address] of book.sections) {
+  const path = JSON.parse(key);
+  if (path.length) children.get(JSON.stringify(path.slice(0, -1))).set(address, shownStep(labels, path));
+}
+for (const [i, preset] of presets.entries()) children.get(JSON.stringify(preset.p.slice(0, -1))).set(book.presets[i], preset.t);
+const pageInfo = {};
+for (const [key, address] of book.sections) {
+  const path = JSON.parse(key), links = children.get(key), info = sectionInfo(path, labels, [...links.values()]);
+  const canonical = `${ORIGIN}${address}`;
+  pageInfo[address] = { ...info, canonical, json_ld: studioApplication(canonical, info.description),
+    markdown: `# ${path.length ? shownStep(labels, path) : "Studio presets"}\n\n${info.description}\n\n[Open this page](${canonical})\n\n## Charts and sections\n\n${[...links].map(([address, name]) => `- [${name}](${ORIGIN}${address})`).join("\n")}\n` };
+}
+for (const [i, preset] of presets.entries()) {
+  const canonical = `${ORIGIN}${book.presets[i]}`, info = presetInfo(preset, labels), distributions = presetDistributions(preset, client.series);
+  pageInfo[book.presets[i]] = { ...info, canonical, json_ld: presetDataset(preset, labels, client.series, canonical),
+    markdown: `# ${preset.t}\n\n${info.description}\n\n[Open this chart](${canonical})\n\n## What the chart shows\n\n${preset.c.layers.map((layer, i) => `- ${String.fromCharCode(65 + i)}: ${layer.label ?? layer.series ?? (layer.formula ? `Formula ${layer.formula}` : layer.heatmap ? `Cost basis distribution: ${layer.heatmap}` : layer.profile ? `Cost basis profile: ${layer.profile.join(", ")}` : `Cloud between ${(layer.cloud ?? []).join(" and ")}`)}${layer.hidden ? " (hidden initially)" : ""}`).join("\n")}\n\n## Data sources\n\n${distributions.map((source) => `- ${source.name}: [${source.encodingFormat === "text/csv" ? "CSV" : "JSON"}](${source.contentUrl})`).join("\n")}\n` };
+}
+pageInfo["/"] = { title: STUDIO_TITLE, description: STUDIO_DESCRIPTION, canonical: `${ORIGIN}/`, json_ld: studioApplication(`${ORIGIN}/`, STUDIO_DESCRIPTION), markdown: `# Bitview Studio\n\n${STUDIO_DESCRIPTION}\n\n[Browse the presets](${ORIGIN}/presets/)\n\n[Guide for assistants](${ORIGIN}/llms.txt)\n` };
+
+const pageInfoText = `${JSON.stringify(pageInfo)}\n`;
 const files = {
+  "page-info.json.gz": gzipSync(pageInfoText, { level: 9 }),
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
   "presets.hash": `${sha.digest("hex")}\n`,
   "chain-facts.json": `${factsKey(facts)}\n`,
@@ -129,10 +158,14 @@ if (gone.length && !drop) {
 const stale = [];
 for (const [name, text] of Object.entries(files)) {
   if (!check) writeFileSync(join(HERE, name), text);
-  else if (written(name) !== text) stale.push(name);
+  else {
+    const kept = writtenBytes(name);
+    if (name === "page-info.json.gz" ? !kept.length || gunzipSync(kept).toString("utf8") !== pageInfoText : !kept.equals(Buffer.from(text))) stale.push(name);
+  }
 }
 if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
+console.log(`Page info: ${Object.keys(pageInfo).length} addresses, ${Buffer.byteLength(files["page-info.json.gz"])} bytes`);
 console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), presets.hash (${sources.size} modules), from ${check ? "the chain's facts they were written by" : `${SERVER}'s chain`}; ${shown.length} names shown keep the rules`);
