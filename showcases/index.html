@@ -2420,8 +2420,13 @@
       // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
       // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
       // phone Studio's band, its top only, the widest there.)
-      // (The first, in the page from its start; the others made here, loaded when near their turn.)
-      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", src: banner(t.id), srcset: `${banner(t.id)} 1900w, ${banner(t.id).replace(".jpg", "@2x.jpg")} 2880w`, sizes: first.sizes, loading: "lazy" })) : first));
+      // (The first, in the page from its start; the others made here, each asked for halfway through the one before it, or
+      // when chosen: all in view, stacked, a lazy one would load at once.)
+      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "" })) : first));
+      const fetchPicture = (/** @type {number} */ i) => {
+        const p = pictures[i], src = banner(FEATURED[i].id);
+        if (!p.src) Object.assign(p, { sizes: first.sizes, srcset: `${src} 1900w, ${src.replace(".jpg", "@2x.jpg")} 2880w`, src });
+      };
       const pages = FEATURED.map((t, i) => {
         const button = el("button", { type: "button", ariaLabel: t.name });
         button.addEventListener("click", () => {
@@ -2459,9 +2464,10 @@
         const t = FEATURED[i], first = at < 0;
         at = i;
         elapsed = 0;
-        pictures.forEach((p, k) => {
-          p.classList.toggle("on", k === i);
-        });
+        fetchPicture(i);
+        // (The one showing stays until this one is ready, or has failed: a picture chosen before it came never fades
+        // into an empty band; a later choice meanwhile wins.)
+        pictures[i].decode().catch(() => {}).then(() => at === i && pictures.forEach((p, k) => p.classList.toggle("on", k === i)));
         pages.forEach((b, k) => (b.setAttribute("aria-current", String(k === i)), b.style.setProperty("--done", reduced && k === i ? "100%" : "0%")));
         const words = $("words"), put = () => {
           current = i;
@@ -2497,6 +2503,7 @@
         elapsed += Math.min(100, now - last);
         last = now;
         pages[at].style.setProperty("--done", `${Math.min(100, (elapsed / SHOW) * 100)}%`);
+        if (elapsed >= SHOW / 2) fetchPicture((at + 1) % FEATURED.length);
         if (elapsed >= SHOW) show((at + 1) % FEATURED.length);
         requestAnimationFrame(tick);
       }
