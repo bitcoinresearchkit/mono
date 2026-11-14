@@ -27653,9 +27653,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a search of the presets reads, made from the tree after they're read, a slice at a time in idle moments (none
        * of it at the start, nor a long task: see searchNow), the rest at once when a search comes first. Each preset's
-       * words (its title, its place, its places' steps as shown where they're shown otherwise, and its own name as shown,
-       * lowercased): as shown (`shown`: what a slip's taken for, see slipsOf) and as a search reads them, its pieces' words
-       * joined in pairs too (`texts`, see searchText); its title as a search reads it, its name and its subject (its title
+       * words (its title, its place, its places' steps as shown where they're shown otherwise, its own name as shown, and
+       * the key of a holder group it's in, as its series and the old charts say it: "sth", "lth"; lowercased): as shown
+       * (`shown`: what a slip's taken for, see slipsOf) and as a search reads them, its pieces' words joined in pairs too (`texts`, see searchText); its title as a search reads it, its name and its subject (its title
        * before ": "), lowercased (`titles`); its rank among those alike in fit (see presetRankOf), and the presets in that
        * order (`order`); those whose name or subject is a search exactly, by it (`exact`).
        * @typedef {{ shown: string[], texts: string[], titles: { title: string, name: string, subject: string }[], rank: Int32Array, order: Int32Array, exact: Map<string, number[]> }} PresetSearch
@@ -27671,11 +27671,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         };
         walk(root, []);
+        const holderKeys = new Map(Object.keys(HOLDERS).map((key) => [holderName(key).place, key]));
         const shown = /** @type {string[]} */ (new Array(list.length)), texts = /** @type {string[]} */ (new Array(list.length)), titles = /** @type {PresetSearch["titles"]} */ (new Array(list.length));
         for (let i = 0; i < list.length; i++) {
           const preset = list[i], own = presetLabels[JSON.stringify(preset.p)];
           // (Its pieces each a phrase: words paired within one, never across a place's steps.)
-          const pieces = [preset.t, ...preset.p, ...named[i], ...(own ? [own] : [])].map(searchCase), title = pieces[0];
+          const pieces = [preset.t, ...preset.p, ...named[i], ...(own ? [own] : []), ...preset.p.flatMap((step) => holderKeys.get(step) ?? [])].map(searchCase), title = pieces[0];
           shown[i] = pieces.join(" ");
           texts[i] = searchText(shown[i], pieces);
           titles[i] = { title: searchText(title), name: searchCase(presetName(preset)), subject: title.split(": ")[0] };
