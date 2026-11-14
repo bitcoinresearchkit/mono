@@ -227,10 +227,12 @@
          doesn't zoom one). No zoom of the page by a pinch either (the chart's zoomed by its own; an app's page isn't:
          installed, nothing would zoom it back): the viewport's user-scalable (Android's), and, as iOS ignores that, no
          page zoom where a pinch starts but on what holds and drags its rows (a touch-action on the page's root hands a
-         held row's drag to the scroll). */
+         held row's drag to the scroll). Text keeps the size it's given: iOS Safari otherwise enlarges the text of
+         some blocks on its own, and a row's re-layout (a layer hidden) could flip it on for the rows below. */
       html {
         overflow: hidden;
         -webkit-tap-highlight-color: transparent;
+        -webkit-text-size-adjust: 100%;
       }
 
       :is(button, a, input, textarea, [role="button"]) {
