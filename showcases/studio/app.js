@@ -5706,6 +5706,18 @@ const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => 
 let chartSans = css("--sans");
 // (Begun as the page started, with the page's own Inter: see the first script; its file for the chart's characters.)
 const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+// Register the page's resize work before the chart's observer, so it joins the chart's next draw.
+const resized = new ResizeObserver((entries) => {
+  for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
+  for (const entry of entries) if (entry.target === $("chart") && !sizeHeld) {
+    chartHeight = entry.contentRect.height;
+    if (!exporting) chartSize = { width: entry.contentRect.width, height: entry.contentRect.height };
+  }
+  relayout();
+});
+resized.observe($("chart"));
+resized.observe($("navigator"));
+resized.observe($("overview"));
 // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
 // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
 const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
@@ -9114,21 +9126,6 @@ function fitMargins() {
 // (A separator dragged, the panes laid out at each move: their room over their lines with them, as tall as their
 // legends, not a share of the height they had (the lines moving when let go).)
 engine.onLayout(() => engine.resizing && fitMargins());
-const resized = new ResizeObserver((entries) => {
-  // (Its size held through a layout's motion: the chart's own height, not its box's, till it follows it again.)
-  // (The chart at its box's size, as the library's own watch would (see `view`): not while a motion holds it, nor
-  // while a picture's made of it.)
-  // (The overview's box as laid out, not as it shows: a chart growing out of its tile is scaled, as it's drawn.)
-  for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
-  for (const entry of entries) if (entry.target === $("chart") && !sizeHeld) {
-    chartHeight = entry.contentRect.height;
-    if (!exporting && (entry.contentRect.width !== chartSize.width || entry.contentRect.height !== chartSize.height)) sizeChart(entry.contentRect.width, entry.contentRect.height);
-  }
-  relayout();
-});
-resized.observe($("chart"));
-resized.observe($("navigator"));
-resized.observe($("overview"));
 // Pane separators resize panes (the chart library's own drag); their sizes stay with the chart, kept as a pointer's
 // let go (a moment later: the library's last move in), wherever: a release lost, the next one keeps them. Only the
 // open chart's, drawn, no look on it: the panes on screen are its.
