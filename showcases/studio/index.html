@@ -12654,8 +12654,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const mean = new Float64Array(x.length).fill(NaN), variance = new Float64Array(x.length).fill(NaN), counts = new Float64Array(x.length).fill(NaN), totals = new Float64Array(x.length).fill(NaN);
         let origin = NaN, sum = 0, squares = 0, count = 0, peak = 0, first = -1;
+        // (Finite as `v - v === 0`, NaN as `origin !== origin`: no call a value, which a phone without a JIT (Lockdown
+        // Mode) pays for: a fifth of the time this takes there, its results the same to the bit.)
         const add = (/** @type {number} */ value, /** @type {number} */ sign) => {
-          if (Number.isNaN(origin)) origin = value;
+          if (origin !== origin) origin = value;
           const d = value - origin;
           sum += sign * d;
           squares += sign * d * d;
@@ -12663,20 +12665,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (d * d > peak) peak = d * d;
         };
         for (let i = 0; i < x.length; i++) {
-          if (Number.isFinite(x[i])) {
-            add(x[i], 1);
+          const value = x[i];
+          if (value - value === 0) {
+            add(value, 1);
             if (first < 0) first = i;
           }
-          if (i >= n && Number.isFinite(x[i - n])) add(x[i - n], -1);
+          if (i >= n) {
+            const old = x[i - n];
+            if (old - old === 0) add(old, -1);
+          }
           if ((i + 1) % n === 0 || (count && peak > 1e6 * (squares - (sum * sum) / count))) {
             origin = NaN;
             sum = squares = count = peak = 0;
-            for (let j = Math.max(0, i - n + 1); j <= i; j++) if (Number.isFinite(x[j])) add(x[j], 1);
+            for (let j = i - n + 1 > 0 ? i - n + 1 : 0; j <= i; j++) {
+              const again = x[j];
+              if (again - again === 0) add(again, 1);
+            }
           }
-          if (count && (partial || i - first + 1 >= n) && Number.isFinite(x[i])) {
-            const shift = sum / count;
+          if (count && (partial || i - first + 1 >= n) && value - value === 0) {
+            const shift = sum / count, spread = squares / count - shift * shift;
             mean[i] = origin + shift;
-            variance[i] = Math.max(0, squares / count - shift * shift);
+            variance[i] = spread < 0 ? 0 : spread;
             counts[i] = count;
             totals[i] = origin * count + sum;
           }
