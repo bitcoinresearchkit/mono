@@ -14566,29 +14566,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let layerPickLast = "", pickHead = "";
       /** The layer last open (its settings left): where a ⇧-click's run starts, nothing being picked or open (once). */
       let lastOpen = "";
-      const edits = { past: /** @type {string[]} */ ([]), future: /** @type {string[]} */ ([]), key: "", at: 0, held: 0 };
+      /**
+       * A step of a chart's history: its state on the other side (as JSON), and when it was taken (see stepCount): ⌘Z takes
+       * the newest of those in reach (see historyFor). @typedef {{ state: string, at: number }} ChartStep
+       */
+      const edits = { past: /** @type {ChartStep[]} */ ([]), future: /** @type {ChartStep[]} */ ([]), key: "", at: 0, held: 0 };
+      /** Steps taken so far, done, undone or redone, in any history: each one's `at`. */
+      let stepCount = 0;
       /** The drag under way (a slider's, a color surface's: see track), counted; none, 0. Its edits undo as one. */
       let holding = 0, holds = 0;
       /** Each chart's undo and redo, kept while others are open (the last few charts'), for as long as the page is. */
-      const histories = /** @type {Map<string, { past: string[], future: string[] }>} */ (new Map());
+      const histories = /** @type {Map<string, { past: ChartStep[], future: ChartStep[] }>} */ (new Map());
       /**
        * Undo budgets count JSON characters (two bytes each); kept charts get less, or a large chart's history could
        * hold hundreds of MB.
        */
       const UNDO_CHARS = 8e6, KEPT_CHARS = 2e6;
       /** Steps within a budget: the farthest go first (the oldest undo, then the farthest redo), the nearest of each stays. */
-      function trimSteps(/** @type {{ past: string[], future: string[] }} */ steps, /** @type {number} */ budget) {
+      function trimSteps(/** @type {{ past: ChartStep[], future: ChartStep[] }} */ steps, /** @type {number} */ budget) {
         let size = 0;
-        for (const state of steps.past) size += state.length;
-        for (const state of steps.future) size += state.length;
-        while (size > budget && steps.past.length > 1) size -= /** @type {string} */ (steps.past.shift()).length;
-        while (size > budget && steps.future.length > 1) size -= /** @type {string} */ (steps.future.shift()).length;
+        for (const step of steps.past) size += step.state.length;
+        for (const step of steps.future) size += step.state.length;
+        while (size > budget && steps.past.length > 1) size -= /** @type {ChartStep} */ (steps.past.shift()).state.length;
+        while (size > budget && steps.future.length > 1) size -= /** @type {ChartStep} */ (steps.future.shift()).state.length;
       }
       /** Bumped by every change of state: edits, undo, redo, opening a chart. */
       let revision = 0;
       /** Saves and toasts so far (a Library undo that saved nothing did nothing; one that said why, said it: see undoLibrary). */
       let saves = 0, toasts = 0;
-      /** Whether the open chart changed in this task (a toast now says that change; see toastStep). */
+      /** Whether the open chart changed in this task (a toast now says that change; see chartToast). */
       let chartChanged = false;
       /** The sidebar's groups, in its order (Home's doors too), each its name and its page. @typedef {"recent" | "previews" | "library" | "presets"} Group */
       const GROUPS = /** @type {Group[]} */ (["recent", "previews", "library", "presets"]);
@@ -14969,7 +14975,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart. (Joining
         // only a step there's still: the history let go meanwhile (another tab's edit taken in), it starts one anew.)
         const joins = coalesce && edits.past.length > 0 && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
-        if (!joins) edits.past.push(before);
+        if (!joins) edits.past.push({ state: before, at: 0 });
+        // (Joined, it's taken now all the same: the newest.)
+        /** @type {ChartStep} */ (edits.past.at(-1)).at = ++stepCount;
         const steps = edits.past.length;
         if (edits.past.length > 200) edits.past.shift();
         edits.future = [];
@@ -14977,32 +14985,118 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its oldest steps let go: the one that kept a chart started here may be among them, kept for good then; the
         // toast's step as many back.)
         if (edits.past.length < steps) keptByEdit.delete(chart);
-        if (toastStep?.chart === chart) toastStep.depth -= steps - edits.past.length;
         edits.key = coalesce;
         edits.at = now;
         edits.held = holding;
+        stepped(chart);
         // (A view's step (a range) is a step, not an edit: nothing stamped, a preview untouched, as a pan.)
         if (!view) stampEdit(chart);
         if (!view && isPreview(chart)) touchPreview(chart);
         if (isPreview(chart) && drafts.has(chart) && !quiet && !look) (keepPreview(false), keptByEdit.set(chart, edits.past.length));
         changed(!quiet, redraw, keepMenu);
       }
-      /** Undo, as ⌘Z and ⌘K do it: the Library's last step where it takes one (see libraryEdits), a toast's Undo while it's up, else the chart's last edit. */
+      /**
+       * A chart whose step was taken from elsewhere (renamed from its row, reset from its menu), and the page that was on
+       * (see navigations): in reach of ⌘Z there, as the page's own history is (see historyFor), till another is opened.
+       */
+      let steppedIn = /** @type {Chart | null} */ (null), steppedAt = -1;
+      const stepped = (/** @type {Chart} */ doc) => void ((steppedIn = doc), (steppedAt = navigations));
+      /** A history's steps: the Library's (null), the open chart's, another's kept (see histories). */
+      const stepsOf = (/** @type {Chart | null} */ doc) => (!doc ? libraryEdits : doc === chart ? edits : histories.get(doc.id));
+      /**
+       * The history ⌘Z (`back`) or ⇧⌘Z takes a step in: of those in reach, the one whose next step was taken last. In
+       * reach: the page's own (a chart's; the Charts page's is the Library's), the Library's (what you have and where it
+       * is, wherever it was changed from), and a chart stepped in from this page (see steppedIn). Never another chart's
+       * else: ⌘Z in one chart doesn't change another's content. null, the Library's; undefined, none.
+       */
+      function historyFor(/** @type {boolean} */ back) {
+        const side = back ? "past" : "future", page = home ? null : chart;
+        // (A chart that isn't here any more (deleted, taken by another tab's copy) has no steps to take.)
+        const other = steppedIn && steppedAt === navigations && (steppedIn === chart || chartById(steppedIn.id) === steppedIn) ? steppedIn : null;
+        let found, at = 0;
+        for (const doc of [page, null, other]) {
+          const step = stepsOf(doc)?.[side].at(-1);
+          if (step && step.at > at) (found = doc), (at = step.at);
+        }
+        return found;
+      }
+      /** Undo, as ⌘Z and ⌘K do it (see historyFor). */
       function undoLast() {
         // (A path being placed: its last point taken back first, as ⌫ does.)
         if (!home && unplacePath()) return;
-        if (libraryUndo()) return undoLibrary();
-        if (toastUndo?.mark === revision) return toastUndo.press();
-        if (!home) undo();
+        travelIn(historyFor(true), true);
       }
-      /** Redo, as ⌘⇧Z does it: the Library's last step undone where it takes one, a toast's Redo while it's up, else the chart's next edit. */
+      /** Redo, as ⇧⌘Z does it (see historyFor). */
       function redoLast() {
         // (A path being placed: the last point taken back from it put back first; none, nothing (the chart's redo would
         // let it go).)
         if (!home && (replacePath() || placingPath())) return;
-        if (libraryRedo()) return redoLibrary();
-        if (toastRedo?.mark === revision) return toastRedo.press();
-        if (!home) redo();
+        travelIn(historyFor(false), false);
+      }
+      /** A step back (`back`) or forth in a history: the Library's (null), the open chart's, another's as it lies. */
+      function travelIn(/** @type {Chart | null | undefined} */ doc, /** @type {boolean} */ back) {
+        if (doc === undefined) return;
+        if (!doc) return back ? undoLibrary() : redoLibrary();
+        if (doc === chart && !home) return back ? undo() : redo();
+        const steps = /** @type {{ past: ChartStep[], future: ChartStep[] }} */ (stepsOf(doc)), now = JSON.stringify(doc);
+        const { state } = /** @type {ChartStep} */ (steps[back ? "past" : "future"].pop());
+        steps[back ? "future" : "past"].push({ state: now, at: ++stepCount });
+        if (!putState(doc, state, now) && isPreview(doc)) asideDirty.add(doc);
+        stepped(doc);
+        hideToast();
+        save();
+        renderCharts();
+        if (doc === chart) refresh(true);
+        say(back ? "Undone" : "Redone");
+      }
+      /**
+       * A chart put back to one of its states (`state`, an undo's or a redo's; `now`, as it is): all of it as it was then,
+       * but its id, folder and blank (the chart's own now), and its range, a view as a pan is, unless the step was the
+       * range alone (see setRange); stamped as an edit unless so. Whether it was the range alone.
+       */
+      function putState(/** @type {Chart} */ doc, /** @type {string} */ state, /** @type {string} */ now) {
+        const was = JSON.parse(state), folder = doc.folder, stamped = doc.updated, blank = doc.blank;
+        const bare = (/** @type {Record<string, any>} */ item) => JSON.stringify(Object.keys(item).filter((key) => !["range", "updated", "folder", "id", "blank"].includes(key)).sort().map((key) => [key, item[key]]));
+        const ranged = was.range !== doc.range && bare(was) === bare(JSON.parse(now));
+        for (const key of Object.keys(doc)) if (!(key in was)) delete /** @type {any} */ (doc)[key];
+        Object.assign(doc, was, { range: ranged ? was.range : doc.range, id: doc.id });
+        if (folder) doc.folder = folder;
+        else delete doc.folder;
+        // (Once something's been in it, a chart for good: not blank again, whichever step.)
+        if (!blank) delete doc.blank;
+        // (Stamped past the copy as it was: this step is its latest edit; a range's, a view's, nothing stamped, as when set.)
+        doc.updated = stamped;
+        if (!ranged) stampEdit(doc);
+        return ranged;
+      }
+      /**
+       * An edit of any chart, as its own step: the open one's (see commit), else (another's, from its row, its tile, ⌘K;
+       * the open one's under the Charts page) kept with that chart's steps, saved, shown in the lists.
+       * @param {Chart} doc @param {(doc: Chart) => void} edit @param {Parameters<typeof commit>[1]} [options]
+       */
+      function editChart(doc, edit, options) {
+        if (doc === chart && !home) return commit(edit, options);
+        const before = JSON.stringify(doc);
+        edit(doc);
+        normalize(doc);
+        if (JSON.stringify(doc) === before) return;
+        const steps = /** @type {{ past: ChartStep[], future: ChartStep[] }} */ (stepsOf(doc) ?? { past: [], future: [] });
+        steps.past.push({ state: before, at: ++stepCount });
+        steps.future = [];
+        if (doc !== chart) {
+          // (Kept as a left chart's are: the last few charts', newest last.)
+          if (steps.past.length > 50) steps.past.shift();
+          trimSteps(steps, KEPT_CHARS);
+          histories.delete(doc.id);
+          histories.set(doc.id, steps);
+          while (histories.size > 8) histories.delete(/** @type {string} */ (histories.keys().next().value));
+        }
+        stampEdit(doc);
+        if (isPreview(doc)) touchPreview(doc);
+        stepped(doc);
+        save();
+        renderCharts();
+        if (doc === chart) refresh(true);
       }
       function travel(/** @type {"past" | "future"} */ back, /** @type {"past" | "future"} */ forth) {
         // A field being typed into is kept first (a step of its own: the steps are read after it), a color picked and
@@ -15014,38 +15108,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stopDrawing();
         pathResume = null;
         const from = edits[back], to = edits[forth];
-        const state = /** @type {string} */ (from.pop());
-        to.push(JSON.stringify(chart));
+        const { state } = /** @type {ChartStep} */ (from.pop());
+        to.push({ state: JSON.stringify(chart), at: ++stepCount });
         // (A drawing's step a tool made once (see drawnSteps), its own the other way too: undone, redone, undone again.)
         const drawn = drawnSteps.get(state);
         drawnSteps.delete(state);
-        // The chart as it was, all of it (what it didn't have then, it hasn't now); the range is a view, as a pan is: it
-        // stays as it is.
-        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, shapes = new Map(chart.layers.map((layer) => [layer.id, shapeKey(layer)]));
-        // (A step of the range alone (see setRange): its range back, shown; any other keeps the view as it is.)
-        // (Compared as undo leaves the rest: its folder, id and blank, kept as they are now.)
-        const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank"].includes(key)).sort().map((key) => [key, doc[key]]));
-        const ranged = was.range !== chart.range && bare(was) === bare(JSON.parse(/** @type {string} */ (to.at(-1))));
-        for (const key of Object.keys(chart)) if (!(key in was)) delete chart[key];
-        // (The range is a view, as a pan is; its folder, the library's; its id, the chart's own (kept again, it may have
-        // a new one): all stay as they are.)
-        Object.assign(chart, was, { range: ranged ? was.range : chart.range, id: chart.id });
+        // The chart as it was, all of it (what it didn't have then, it hasn't now; see putState).
+        const shapes = new Map(chart.layers.map((layer) => [layer.id, shapeKey(layer)]));
+        const ranged = putState(chart, state, /** @type {ChartStep} */ (to.at(-1)).state);
         // (The looks remembered by the layers whose shape this changed (a type, a heatmap's P&L) let go of: they were the
         // steps' since, not this one's.)
         for (const layer of chart.layers) if (shapes.get(layer.id) !== shapeKey(layer)) looksLeft.delete(`${chart.id}:${layer.id}`);
         // (A preview's step, kept aside as its edits are: reloaded, it's as it is now.)
         if (isPreview(chart) && !ranged) asideDirty.add(chart);
-        if (folder) chart.folder = folder;
-        else delete chart.folder;
-        // (Once something's been in it, a chart for good: not blank again, whichever step.)
-        if (!blank) delete chart.blank;
-        // (Stamped past the copy as it was: this step is its latest edit.)
-        chart.updated = stamped;
-        // (A range's step, a view's: nothing stamped, as it wasn't when set.)
-        if (!ranged) stampEdit(chart);
         edits.key = "";
-        // (The toast saying a step now taken back: no longer true. One of no step, a deleted chart's, holds.)
-        if (back === "past" && toastStep?.chart === chart && edits.past.length < toastStep.depth) hideToast();
+        stepped(chart);
+        // (The toast up said what's now taken back or done again, or something before it: no longer true.)
+        hideToast();
         // The step that kept a chart started here undone: a draft again, not one of your charts (redone, kept again).
         const keptAt = keptByEdit.get(chart);
         if (keptAt !== undefined && back === "past" && edits.past.length === keptAt - 1 && library.charts.includes(chart)) {
@@ -15063,7 +15142,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // been picked since; redone, down again if an undo took it up.)
         if (drawn && back === "past" && (undoTook || picks === drawn.picks)) (takeUp(drawn.kind, false, true), (undoTook = drawn.kind));
         else if (drawn && back === "future" && undoTook === drawn.kind && tool === drawn.kind) takeUp("", false, true);
-        if (drawn) noteDrawn(/** @type {string} */ (to.at(-1)), drawn);
+        if (drawn) noteDrawn(/** @type {ChartStep} */ (to.at(-1)).state, drawn);
         // (Said, for a screen reader: nothing else on screen says it.)
         say(back === "past" ? "Undone" : "Redone");
       }
@@ -15513,7 +15592,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!back) return;
         // (What's being typed, in first: its step before this one's start.)
         flushEdits();
-        const from = revision;
         // (The focus on a row: the next one's, else the one before's, else the open chart's.)
         const focused = Boolean(document.activeElement?.closest("[data-preview-row]"));
         if (chart === doc) saveView();
@@ -15540,8 +15618,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderHome();
         };
         closedPreviews.set(doc.id, titleOf(doc));
-        if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: reopen, undone: "Preview back", from }), (closedToast = doc);
-        else libraryStep(`Closed the preview “${titleOf(doc)}”`, reopen, "Preview back", from);
+        if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: reopen, undone: "Preview back" }), (closedToast = doc);
+        else libraryStep(`Closed the preview “${titleOf(doc)}”`, reopen, "Preview back");
       }
       /** The previews closed in this tab, by id, with their titles: a step back to one (Back) says it was closed. */
       const closedPreviews = new Map();
@@ -23679,9 +23757,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A drawing its tool just made, added: its tool put down with it (not kept), the step it made noted, to take it up again if it's undone. */
       function addDrawn(/** @type {Drawing} */ drawing) {
         addDrawing(drawing);
-        if (!toolKept && drawingById(drawing.id) && edits.past.length) noteDrawn(/** @type {string} */ (edits.past.at(-1)), { kind: drawing.kind, picks });
+        if (!toolKept && drawingById(drawing.id) && edits.past.length) noteDrawn(/** @type {ChartStep} */ (edits.past.at(-1)).state, { kind: drawing.kind, picks });
       }
-      /** A drawn step noted by its state (moved, not copied, as its state is written anew: see travel, swapSteps); the oldest let go past as many as a chart's steps kept (see commit). */
+      /** A drawn step noted by its state (moved, not copied, as its state is written anew: see travel); the oldest let go past as many as a chart's steps kept (see commit). */
       function noteDrawn(/** @type {string} */ state, /** @type {{ kind: DrawingKind, picks: number }} */ drawn) {
         drawnSteps.set(state, drawn);
         for (const key of drawnSteps.keys()) if (drawnSteps.size > 200) drawnSteps.delete(key);
@@ -26593,40 +26671,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const left = () => queueMicrotask(() => input.isConnected && document.activeElement !== input && finish(true, false));
         input.addEventListener("blur", () => leftWith(input, left) || left());
       }
-      /** A chart's own steps (its undo's and redo's states, open or kept: see histories). */
-      const stepsOf = (/** @type {Chart} */ doc) => (doc === chart ? edits : histories.get(doc.id));
-      /** Its own steps' states, all of them. */
-      const statesOf = (/** @type {Chart} */ doc) => ((steps) => (steps ? [...steps.past, ...steps.future] : []))(stepsOf(doc));
-      /**
-       * Its own steps' states that have the name `from` (but those in `skip`), each as it'd be named `to` (a rename that
-       * isn't one of them). @returns {Map<string, string>}
-       */
-      function retitled(/** @type {Chart} */ doc, /** @type {string} */ from, /** @type {string} */ to, /** @type {Set<string>} */ skip = new Set()) {
-        const states = new Map();
-        for (const state of statesOf(doc)) {
-          if (skip.has(state)) continue;
-          const was = JSON.parse(state);
-          if ((was.title ?? "") !== from) continue;
-          if (to) was.title = to;
-          else delete was.title;
-          states.set(state, JSON.stringify(was));
-        }
-        return states;
-      }
-      /** Its own steps' states swapped as `swap` says (state → state). @returns {Map<string, string>} those swapped */
-      function swapSteps(/** @type {Chart} */ doc, /** @type {Map<string, string>} */ swap) {
-        const steps = stepsOf(doc), done = new Map();
-        if (!steps) return done;
-        const one = (/** @type {string} */ state) => (swap.has(state) ? (done.set(state, swap.get(state)), /** @type {string} */ (swap.get(state))) : state);
-        steps.past = steps.past.map(one);
-        steps.future = steps.future.map(one);
-        // (A drawing's step keeps its tool, written anew.)
-        for (const [from, to] of done) {
-          const drawn = drawnSteps.get(from);
-          if (drawn) (drawnSteps.delete(from), noteDrawn(to, drawn));
-        }
-        return done;
-      }
       /** A chart renamed by its id, as it is now (not as it was when the name began). */
       function renameById(/** @type {string} */ id, /** @type {string} */ title) {
         const doc = chartById(id);
@@ -26762,7 +26806,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A focus on the chart or a menu over it, before leaving lets it go: see below.)
         const focusLeaves = onChart();
         // (A toast of the chart's edit stays with it: its Undo isn't the page's.)
-        if (toastStep) hideToast();
+        if (chartToast) hideToast();
         // (Full screen is the chart's: the grid, as ever.)
         setFull(false);
         leaveField();
@@ -30012,7 +30056,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A preset's chart: as edited here, else as made now (one left as it was, made anew: the presets may have changed
        * since). Never edited: stamped 0 (past a reset, just after it), any edit's copy (here,
-       * another tab's) wins over it; nothing of an earlier one's undo comes with it.
+       * another tab's) wins over it. Its steps here stay with it (a reset let go of with it, undone once it's back).
        */
       function presetChart(/** @type {number} */ i) {
         const key = presetKey(i), had = editedPreset(i), id = presetIdOf(key), kept = keptPreset(i);
@@ -30020,7 +30064,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = /** @type {Chart} */ ({ ...freshPreset(i), id, preset: key, updated: (library.deleted[id] ?? -1) + 1 });
         doc.base = contentHash(doc);
         library.presets = [...library.presets.filter((other) => other !== had), doc];
-        histories.delete(id);
         return doc;
       }
       /**
@@ -30177,37 +30220,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!told) return kept;
         toast(`The presets were reorganized: ${[moved ? `${plural(moved, "edited preset")} moved with them` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);
       }
-      /** A preset back as made (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
+      /**
+       * A preset back as made: an edit of its own (see editChart), said with an Undo where it's open. Its copies in other
+       * tabs, older, let go of (as a deleted chart's are), even once this one, as made, is let go of here (see prunePresets).
+       * @param {Chart} doc
+       */
       function resetPreset(doc) {
-        const at = library.presets.indexOf(doc), i = presetIndex(doc);
-        if (at < 0 || i < 0) return;
-        const open = doc === chart, steps = open ? { past: edits.past, future: edits.future } : null;
-        library.presets.splice(at, 1);
+        const i = presetIndex(doc);
+        if (i < 0 || !presetEdited(doc)) return;
         library.deleted[doc.id] = Math.max(Date.now(), doc.updated);
-        // (Open, or under the page: as made, there, none of its undo with it: that goes with the edits.)
-        if (open) {
-          edits.past = [];
-          edits.future = [];
-          openChart(presetChart(i));
-        }
-        save();
-        renderCharts();
-        toast(`Reset “${titleOf(doc)}”`, { label: "Undo", run: () => {
-          if (library.presets.includes(doc)) return;
-          // (Edited again since: that's kept, as it is.)
-          const now = library.presets.find((other) => other.preset === doc.preset);
-          if (now && presetEdited(now)) return notice(`“${titleOf(now)}” has been edited since then, so it was left unchanged`);
-          recover(doc);
-          library.presets = [...library.presets.filter((other) => other !== now), doc];
-          if (now === chart || (open && chart.preset === doc.preset)) {
-            openChart(doc);
-            // (Its undo back with it.)
-            if (steps) (edits.past = steps.past), (edits.future = steps.future), refresh("none");
-          }
-          save();
-          renderCharts();
-          return () => library.presets.includes(doc) && resetPreset(doc);
-        }, undone: `“${titleOf(doc)}” is back as you left it` });
+        editChart(doc, (draft) => {
+          const made = freshPreset(i);
+          for (const key of Object.keys(draft)) if (!(key in made) && !["id", "preset", "updated", "folder"].includes(key)) delete /** @type {any} */ (draft)[key];
+          Object.assign(draft, made, { id: draft.id, preset: draft.preset, base: contentHash(made) });
+        });
+        undoToast(`Reset “${titleOf(doc)}”`, doc);
       }
       /**
        * A preset copied into your Library (`folder`: into it; none, at the top), as it shows here, first there, and opened;
@@ -34852,7 +34879,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
-          canTravel(true) ? { title: "Undo", text: placingPath() ? "The path's last point taken back." : libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
+          canTravel(true) ? { title: "Undo", text: placingPath() ? "The path's last point taken back." : historyFor(true) === null ? `${libraryEdits.past.at(-1)?.text}.` : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
             ...(picked.size === 1 ? [{ title: `Rename “${titleOf(chartById([...picked][0]) ?? { title: "" })}”`, text: "Type a new title.", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
@@ -36302,36 +36329,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : { key: `folder:${item.id}`, icon: folderMark(item), label: item.name, aside: plural(counts.get(item.id) ?? 0, "chart"), verb: "Open", group: "In it", page: () => folderOwnPage(item.id) })))(chartCounts()),
         ].map((row) => ({ kind: "row", ...row }));
       } });
-      /** A chart's title: the open one as an edit (undoable), another in place. */
-      function renameChart(doc, title, library = false, /** @type {Map<string, string> | null} */ swap = null) {
-        // (The open one's: its own edit; in the Library (the one under it), or the Library's step undone or redone, the
-        // Library's, as the others there are.)
-        if (doc === chart && !home && !library) return commit((draft) => (draft.title = title), { redraw: "none" });
-        // (The Library's step, undone as one. The same name, nothing.)
-        const was = doc.title ?? "";
-        if (title === was) return;
-        // (Its own steps that had the old name have this one: its undo doesn't take the rename back. Undone or redone,
-        // those states back and forth (`swap`), and those its steps made since, which carry the name taken back.)
-        const swapped = swapSteps(doc, swap ?? retitled(doc, was, title)), known = new Set(statesOf(doc));
-        const back = new Map([...swapped].map(([from, to]) => [to, from]));
-        libraryStep(`Renamed “${titleOf(doc)}”`, () => {
-          const now = chartById(doc.id);
-          if (!now || (now.title ?? "") !== title) return;
-          const undid = new Map([...back, ...retitled(now, title, was, known)]);
-          renameChart(now, was, true, undid);
-          // (Redone: what the undo did, the other way, and the states made since with the old name.)
-          const since = new Set(statesOf(now)), redo = new Map([...undid].map(([from, to]) => [to, from]));
-          return () => ((again) => again && (again.title ?? "") === was && renameChart(again, title, true, new Map([...redo, ...retitled(again, was, title, since)])))(chartById(doc.id));
-        }, "Name put back");
-        doc.title = title;
-        stampEdit(doc);
-        if (doc === chart) refresh("none");
-        // (A chart started here, named: it's yours; another's preview stays one till kept.)
-        if (isPreview(doc) && drafts.has(doc)) return keepPreview(false, doc);
-        if (isPreview(doc)) return void (touchPreview(doc), save(), renderCharts());
-        save();
-        renderCharts();
-      }
+      /** A chart's title, its own step wherever it's renamed from (see editChart). @param {Chart} doc @param {string} title */
+      const renameChart = (doc, title) => editChart(doc, (draft) => (draft.title = title), { redraw: "none" });
 
       /**
        * Every setting and action of this chart, its layers and its panes, as found from the search: "Realized price ·
@@ -39825,10 +39824,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** An Undo asked for once another change came after its own: told how to step back to it. */
       const steppedPast = () => notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`);
-      /** A toast whose Undo steps back only while that change is still the latest one (the chart's own step: see libraryEdits). */
-      function undoToast(text) {
-        const mark = revision;
-        toast(text, { label: "Undo", chart: true, run: () => (revision === mark ? undo() : steppedPast()) });
+      /** A toast of a chart's last step (the open one's by default), whose Undo takes it back while it's still that chart's last. */
+      function undoToast(text, doc = chart) {
+        const state = stepsOf(doc)?.past.at(-1);
+        toast(text, { label: "Undo", chart: true, run: () => (state && stepsOf(doc)?.past.at(-1) === state ? travelIn(doc, true) : steppedPast()) });
       }
       let toastTimer = 0;
       /**
@@ -39836,13 +39835,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * nothing moves under a second press); a preview's Keep marked once it's edited (the edits go with it, if kept).
        */
       function syncUndo() {
-        // (Dimmed, not disabled: a key's focus on one stays there as it runs out.)
-        // (The page's: the Library's steps and a toast's, the chart under it out of reach there.)
-        const back = Boolean(libraryUndo()) || toastUndo?.mark === revision, forth = Boolean(libraryRedo()) || toastRedo?.mark === revision;
-        $("undo").setAttribute("aria-disabled", String(!canTravel(true)));
-        $("redo").setAttribute("aria-disabled", String(!canTravel(false)));
-        $("home-undo").setAttribute("aria-disabled", String(!back));
-        $("home-redo").setAttribute("aria-disabled", String(!forth));
+        // (Dimmed, not disabled: a key's focus on one stays there as it runs out. The chart's and the Charts page's alike:
+        // what ⌘Z and ⇧⌘Z take where they show.)
+        const back = canTravel(true), forth = canTravel(false);
+        for (const id of ["undo", "home-undo"]) $(id).setAttribute("aria-disabled", String(!back));
+        for (const id of ["redo", "home-redo"]) $(id).setAttribute("aria-disabled", String(!forth));
         const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
         keep.dataset.tip = edited ? "Save this chart and your edits to your Library" : "Save this chart to your Library";
@@ -39850,25 +39847,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Whether ⌘Z (`back`) or ⇧⌘Z has a step to take, as undoLast and redoLast take them: a path's point being placed
-       * (taken back, put back), the Library's, a toast's, the chart's.
+       * (taken back, put back), a history's (see historyFor).
        */
       function canTravel(/** @type {boolean} */ back) {
         if (placingPath() && draft) return back ? draft.points.length > 1 : pathTaken.length > 0;
-        if (back) return Boolean(libraryUndo()) || toastUndo?.mark === revision || (!home && edits.past.length > 0);
-        return Boolean(libraryRedo()) || toastRedo?.mark === revision || (!home && (edits.future.length > 0 || Boolean(pathResume && tool === "path")));
+        return historyFor(back) !== undefined || (!back && !home && Boolean(pathResume && tool === "path"));
       }
-      /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
-      let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null), toastRedo = /** @type {{ press: () => void, mark: number } | null} */ (null);
       /**
        * A step of the Library's own (a chart or a folder deleted, moved, copied; one a toast offered to undo): what it
-       * said, how it's undone (giving how it's done again, if it can be), and the revision it was done at.
+       * said, how it's undone (giving how it's done again, if it can be), and when it was taken (see ChartStep).
        * (`folder`: the folder it made, whose first name is its own: see nameFolder.)
-       * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, mark: number, from?: number, folder?: string }} LibraryStep
+       * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, at: number, folder?: string }} LibraryStep
        */
       /**
-       * The Library's steps, kept however long ago they were (the toast that said one gone or not): ⌘Z and ⌘⇧Z take
-       * them in the Library (its pages, the grid), and in a chart the last of them while nothing's changed since (else the
-       * chart's own steps, see edits). Fifty back.
+       * The Library's steps, kept however long ago they were (the toast that said one gone or not): ⌘Z and ⇧⌘Z take them
+       * wherever they're the newest in reach (see historyFor). Fifty back.
        */
       const libraryEdits = { past: /** @type {LibraryStep[]} */ ([]), future: /** @type {LibraryStep[]} */ ([]) };
       /** A Library step being done again (its Redo): the steps after it, still to redo, stay; being undone: it makes none. */
@@ -39900,26 +39893,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Its refusal: the charts it'd let go of edited since, kept. @param {Chart[]} docs */
       const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
       /** A Library step kept (see libraryEdits): said by a toast's Undo, or by nothing (a rename, a reorder). @returns {LibraryStep | null} */
-      function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined, /** @type {number | undefined} */ from = undefined) {
+      function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined) {
         if (undoing) return null;
-        // (`from`: the revision it was begun at, where what it does moved it on (a chart opened): see undoLibrary.)
-        const step = { text, run, undone, mark: revision, from };
+        const step = { text, run, undone, at: ++stepCount };
         libraryEdits.past.push(step);
         if (libraryEdits.past.length > 50) libraryEdits.past.shift();
-        // (Something new done: nothing to redo, a toast offering it put away.)
-        if (!redoing) (libraryEdits.future = []), toastRedo && hideToast();
+        // (Something new done: nothing to redo.)
+        if (!redoing) libraryEdits.future = [];
         syncUndo();
         return step;
       }
-      /** The Library's step to undo now, if ⌘Z takes one (see libraryEdits). */
-      const libraryUndo = () => ((step) => (step && (home || step.mark === revision) ? step : null))(libraryEdits.past.at(-1));
-      const libraryRedo = () => ((step) => (step && (home || step.mark === revision) ? step : null))(libraryEdits.future.at(-1));
       /** The Library's last step undone: said, with its Redo where it can be done again. */
       function undoLibrary() {
         const step = libraryEdits.past.pop();
         if (!step) return;
-        // (Undone from just where it left things, nothing since: see the step before's turn, below.)
-        const fresh = step.mark === revision;
         const saved = saves, said = toasts;
         undoing = true;
         let again;
@@ -39930,14 +39917,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Nothing done (what it'd undo changed since, gone, back already): not said as done; its own word, if it had one.)
         if (saves === saved) return void (syncUndo(), toasts === said && notice(`Nothing to undo: things have changed since then (${step.text})`));
-        // (The step before, done just before this one began (nothing between: two previews closed one after the other), its
-        // turn now, here, though this one moved on what's open.)
-        const before = libraryEdits.past.at(-1);
-        if (fresh && before && step.from !== undefined && before.mark === step.from) before.mark = revision;
         if (typeof again !== "function") return void (syncUndo(), toast(step.undone ?? "Undone"));
-        const back = { text: step.text, run: again, undone: step.undone, mark: revision };
+        const back = { text: step.text, run: again, undone: step.undone, at: ++stepCount };
         libraryEdits.future.push(back);
-        toast(step.undone ?? "Undone", { label: "Redo", run: redoLibrary });
+        // (Its Redo, while it's still the next to redo.)
+        toast(step.undone ?? "Undone", { label: "Redo", run: () => (libraryEdits.future.at(-1) === back ? redoLibrary() : notice("Nothing to redo: things have changed since then")) });
       }
       /** The Library's last step undone, done again (it says so itself, its Undo a step again). */
       function redoLibrary() {
@@ -39955,15 +39939,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         syncUndo();
         if (saves === saved && toasts === said) notice(`Nothing to redo: things have changed since then (${step.text})`);
       }
-      /** The step the toast up came with: its chart, and how many steps back it is once made (undone, it's put away). */
-      let toastStep = /** @type {{ chart: Chart, depth: number } | null} */ (null);
+      /** Whether the toast up says an edit of the open chart (its Undo the chart's: leaving it, it's put away). */
+      let chartToast = false;
       /**
-       * Something done, with its check; or (`done` false) something to know, without. An Undo whose `run` gives back how
-       * to do it again is followed by a Redo (`undone` saying it), which ⌘⇧Z presses as ⌘Z pressed the Undo: a folder or a
-       * chart deleted, moved, copied, back and gone again as a chart's edits are.
-       * An Undo said with a Library step (not `chart`, a chart's own step's: see undoToast) keeps that step (see
-       * libraryEdits): the toast's button undoes it while it's still the last.
-       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, chart?: boolean, folder?: string, from?: number }} [action]
+       * Something done, with its check; or (`done` false) something to know, without. An Undo said with a Library step
+       * (not `chart`, a chart's own step's: see undoToast) keeps that step (see libraryEdits): the toast's button undoes it
+       * while it's still the last, as ⌘Z does (see historyFor); one whose `run` gives back how to do it again is followed
+       * by a Redo (`undone` saying it): a folder or a chart deleted, moved, copied, back and gone again as a chart's edits are.
+       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, chart?: boolean, folder?: string }} [action]
        */
       function toast(text, action, done = true) {
         toasts++;
@@ -39983,10 +39966,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const undoes = action?.label === "Undo";
         // (A Library step: kept, as long as the Library's are.)
-        const step = undoes && action && !action.chart ? libraryStep(text, action.run, action.undone, action.from) : null;
+        const step = undoes && action && !action.chart ? libraryStep(text, action.run, action.undone) : null;
         if (step && action?.folder) step.folder = action.folder;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
-        toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
+        chartToast = chartChanged;
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
         const redoes = action?.label === "Redo";
         // (One said as another shows: that one fading out as this one comes, each as wide as its words, never one cut to
@@ -39995,22 +39978,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (replacing) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }]);
         else cutFade(element);
         element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
-        const mark = revision;
-        const press = () => {
+        element.querySelector("button")?.addEventListener("click", () => {
           element.classList.remove("visible");
-          toastUndo = toastRedo = null;
-          syncUndo();
           // (A Library step's Undo: it, while it's the last of them.)
           if (step) return libraryEdits.past.at(-1) === step ? undoLibrary() : steppedPast();
-          // (A Redo after a change since, as an Undo's: not done, said.)
-          if (redoes && revision !== mark && !(home && action?.run === redoLibrary)) return notice(`Nothing to redo: things have changed since then`);
-          const again = action?.run();
-          // (Undone, and it can be done again: a Redo for it, as a chart's edit has.)
-          if (undoes && typeof again === "function") toast(action?.undone ?? "Undone", { label: "Redo", run: again });
-        };
-        element.querySelector("button")?.addEventListener("click", press);
-        toastUndo = undoes ? { press, mark: revision } : null;
-        toastRedo = redoes ? { press, mark: revision } : null;
+          action?.run();
+        });
         syncUndo();
         placeToast(host);
         element.classList.add("visible");
@@ -40061,8 +40034,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(toastTimer);
         $("toast").classList.remove("visible");
         unsay();
-        toastUndo = toastRedo = null;
-        syncUndo();
       }
       /** What the last toast put on a status line, and that line (the page's, or a dialog's, the toast moved out since). */
       let toastSaid = "", saidOn = /** @type {HTMLElement | null} */ (null);
@@ -40079,8 +40050,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if ((hoverable.matches && element.matches(":hover")) || element.matches(":focus-within")) return hideToastLater();
           element.classList.remove("visible");
           unsay();
-          toastUndo = toastRedo = null;
-          syncUndo();
         }, toastFor);
       }
 
