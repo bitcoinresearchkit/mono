@@ -338,30 +338,23 @@ impl Mempool {
             &self.state,
             tip,
             self.rebuilder.snapshot().clone(),
-            self.template.as_ref().and_then(|built| built.json.as_ref()),
+            self.template.as_ref().map(|built| &built.json),
             membership_ready,
         ) {
             self.read_only.current.store(Arc::new(next));
         }
     }
 
-    /// Builds the template of the published snapshot's block 0 at `tip`, unless it's built
-    /// already ([`Built::new`]).
+    /// Builds the template of the published snapshot's block 0 at `tip`, unless Core accepted it
+    /// already ([`Built::new`]): one that failed is tried again at the next publication.
     fn refresh_template(&mut self, tip: BlockHash, tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>) {
         let snapshot = self.rebuilder.snapshot();
         if self.template.as_ref().is_some_and(|built| built.is_of(snapshot, &tip)) {
             return;
         }
-        let held = self.template.take().filter(|built| *built.tip() == tip).and_then(|built| built.json);
-        let facts = tip_facts(&tip);
-        self.template = Some(Built::new(
-            snapshot.clone(),
-            tip,
-            facts.as_ref(),
-            self.core_header.as_ref(),
-            &self.client,
-            held,
-        ));
+        self.template = tip_facts(&tip).and_then(|facts| {
+            Built::new(snapshot.clone(), tip, &facts, self.core_header.as_ref(), &self.client)
+        });
     }
 
     fn panic_msg(payload: &(dyn Any + Send)) -> &str {

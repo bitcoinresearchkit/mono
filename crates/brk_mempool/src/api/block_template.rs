@@ -47,8 +47,9 @@ impl AsRef<[u8]> for BlockTemplateJson {
 }
 
 impl ReadOnlyState {
-    /// The template of the published projection's block 0: `StateUpdating` before the first
-    /// publication, and for the moment the chain can't yet say what the next block's header is.
+    /// The template of the published projection's block 0: `StateUpdating` until Core accepts
+    /// it (before the first publication, while the chain can't say what the next block's header
+    /// is, after a rejection).
     pub fn block_template(&self) -> Result<BlockTemplateJson> {
         self.snapshot().ensure_projection()?;
         self.template.clone().ok_or_else(Error::updating)

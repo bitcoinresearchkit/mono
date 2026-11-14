@@ -82,7 +82,7 @@ pub struct Mempool {
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
-    /// The template of the published snapshot's block 0, kept while neither changes.
+    /// The template of the published snapshot's block 0 at its tip, once Core accepts it.
     template: Option<template::Built>,
     /// What Core's own template of the last applied cycle says of the next block: the benchmark
     /// ours is checked against.

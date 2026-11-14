@@ -51,36 +51,29 @@ impl TipFacts {
     }
 }
 
-/// The template served for one snapshot's block 0 at one tip.
+/// The template of one snapshot's block 0 at one tip, accepted by Core.
 pub(crate) struct Built {
     snapshot: Arc<Snapshot>,
     tip: BlockHash,
-    /// The newest template at `tip` Core accepted: this one's, or one before it.
-    pub json: Option<BlockTemplateJson>,
+    pub json: BlockTemplateJson,
 }
 
 impl Built {
-    /// Builds the template and has Core check the block it describes: rejected (Core's reason
-    /// logged) or with no `facts`, it serves `held`, the last one accepted at `tip`, which stays
-    /// valid while `tip` does.
+    /// Builds the template and has Core check the block it describes: none when Core rejects it
+    /// (its reason logged) or can't be asked.
     pub fn new(
         snapshot: Arc<Snapshot>,
         tip: BlockHash,
-        facts: Option<&TipFacts>,
+        facts: &TipFacts,
         core: Option<&CoreTemplateHeader>,
         client: &Client,
-        held: Option<BlockTemplateJson>,
-    ) -> Self {
-        let json = facts.and_then(|facts| accepted(&snapshot.block0, facts, core, client)).or(held);
-        Self { snapshot, tip, json }
+    ) -> Option<Self> {
+        let json = accepted(&snapshot.block0, facts, core, client)?;
+        Some(Self { snapshot, tip, json })
     }
 
     pub fn is_of(&self, snapshot: &Arc<Snapshot>, tip: &BlockHash) -> bool {
         Arc::ptr_eq(&self.snapshot, snapshot) && self.tip == *tip
-    }
-
-    pub fn tip(&self) -> &BlockHash {
-        &self.tip
     }
 }
 
