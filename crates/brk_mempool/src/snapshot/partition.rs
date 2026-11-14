@@ -5,9 +5,10 @@
 //! Equal feerates go as Core's chunk index orders them: the shorter run of equal-feerate chunks
 //! within its cluster first, then the chunk whose greatest txid is lower. At every virtual block
 //! boundary, partially consumed components split and are linearized again. A chunk that
-//! doesn't fit waits for the next block, and so does the rest of its component (Core's block
-//! builder skips the cluster); a block closes once 1,000 chunks in a row failed with it within
-//! 4,000 WU of full (Core's `BlockAssembler`). As in Core 32, a candidate is tested at its actual
+//! doesn't fit waits for the next block, and so does each later chunk that depends on it; every
+//! other chunk is still tried, to the end of the pool (where Core's block builder skips the rest
+//! of the cluster and stops after 1,000 misses in a row, a block's tail holds less). As in Core
+//! 32, a candidate is tested at its actual
 //! weight, while feerates use its sigop-adjusted weight. A chunk no block could hold waits for the
 //! last, which takes whatever is left (mempool.space's catch-all, then more than a block);
 //! trailing empty blocks are not made. The budgets are Core's defaults (`-blockreservedweight`,
@@ -23,8 +24,6 @@ use super::{SnapTx, TxIndex, builder::ChunkCache, cluster};
 /// the header and coinbase) and 79,600 sigops (80,000 less 400).
 const MAX_WEIGHT: Weight = Weight::new(3_992_000);
 const MAX_SIGOPS: SigOps = SigOps::new(79_600);
-const FULL_ENOUGH: Weight = Weight::new(3_988_000);
-const MAX_CONSECUTIVE_FAILURES: u32 = 1_000;
 
 /// Every component's chunks in linearization order, components one after another.
 #[derive(Clone, Default)]
@@ -280,11 +279,9 @@ fn pack(
     while !pending.is_empty() {
         let last = blocks.len() + 1 == num_blocks;
         let mut block = Vec::new();
-        let mut missed = vec![false; chunks.components.len()];
         let mut selected = vec![false; chunks.components.len()];
         let mut selected_components = Vec::new();
         let (mut weight, mut sigops) = (Weight::ZERO, SigOps::ZERO);
-        let mut failures = 0;
         for (position, &index) in pending.iter().enumerate() {
             let cand = &cands[index];
             // Below Core's floor: it and all after it wait for the last block.
@@ -292,19 +289,15 @@ fn pack(
                 deferred.extend_from_slice(&pending[position..]);
                 break;
             }
-            if missed[cand.component as usize] {
-                deferred.push(index);
-                continue;
-            }
+            // Ready once every parent is placed: what an earlier chunk that missed holds back is
+            // only what depends on it.
+            let members = chunks.members(index);
+            let ready = members.iter().all(|m| {
+                txs[m.as_usize()].parents.iter().all(|p| consumed[p.as_usize()] || members.contains(p))
+            });
             let fits = cand.fits(weight, sigops);
-            if !(last || fits) {
-                missed[cand.component as usize] = true;
+            if !(ready && (last || fits)) {
                 deferred.push(index);
-                failures += 1;
-                if failures > MAX_CONSECUTIVE_FAILURES && weight > FULL_ENOUGH {
-                    deferred.extend_from_slice(&pending[position + 1..]);
-                    break;
-                }
                 continue;
             }
             overflow |= last && !fits;
@@ -313,7 +306,6 @@ fn pack(
                 selected[component] = true;
                 selected_components.push(component);
             }
-            failures = 0;
             weight += cand.weight;
             sigops += cand.sigops;
             for &member in chunks.members(index) {

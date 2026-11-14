@@ -1168,8 +1168,9 @@ fn residual_siblings_split_after_local_and_gbt_boundaries() {
     let linearized = chunks(&txs);
     let local = partition(&txs, &linearized, &vec![false; txs.len()], 8, &mut ChunkCache::default());
     let position = |projection: &crate::snapshot::partition::Projection, member| projection.blocks.iter().position(|b| b.iter().any(|&(m, _)| m == TxIndex::from(member))).unwrap();
+    // tx 1 misses block 0's last 800 WU; its sibling tx 2, independent of it, still fills them.
     assert_eq!(position(&local, 0), 0);
-    assert_eq!(position(&local, 2), 1);
+    assert_eq!(position(&local, 2), 0);
     assert_eq!(position(&local, 1), 2);
     let mut excluded = vec![false; txs.len()];
     for &(m, _) in &local.blocks[0] { excluded[m.as_usize()] = true; }

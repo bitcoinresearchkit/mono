@@ -90,21 +90,25 @@ On a loaded `ReadOnlyState`:
 
 ## Projection and fee tiers
 
-Block 0 is Core's `getblocktemplate` selection (the packer's first block when Core gives none). Every dependency component (edges from each
-body's inputs as the pool stands at each rebuild) is linearized once, whole, in one order
+Every projected block, block 0 included, comes from one packer. Every dependency component (edges
+from each body's inputs as the pool stands at each rebuild) is linearized once, whole, in one order
 whichever member a walk starts from (`brk_cpfp`: optimal up to 64 members); its chunk feerates
-are the members' CPFP rates. Later projected blocks are packed as Core's block assembler packs,
-ranked by the node's signed modified fees (`getprioritisedtransactions`; mining options shape block 0 only):
-whole chunks by descending feerate, in dependency order, within Core's default weight and sigop
-budgets (3,992,000 WU and 79,600 sigops of transactions; a candidate tested at its actual weight,
-the block counting actual weight); after every virtual block, partially consumed components
-split into their residual components and are linearized again without consumed members; a chunk that doesn't fit waits for the next block with the rest of its component,
-one no block can hold for the last; a block closes after 1,000 misses in a row within 4,000 WU
-of full. Up to eight blocks in all, mempool.space's count, the last a catch-all; empty trailing
-blocks are not projected. Priority metadata is observed independently of membership. A failed priority RPC or parse retains the last valid ranking map with a warning while other data updates; an unsupported method uses base-fee compatibility. Paid rates and totals always use base fees, and neither GBT nor the mixed RPC batch is an atomic pool snapshot. From an incomplete view (Core's template a few seconds older than its
-listing, or listed transactions not loaded yet) the blocks after block 0 leave out what couldn't
-follow it: a transaction spending an outpoint a template-only one spends (its replacement), one
-spending a listed transaction not loaded yet, and their descendants. Each projected member's fee statistics use the feerate it was packed at, and every
+are the members' CPFP rates. Blocks are packed ranked by the node's signed modified fees
+(`getprioritisedtransactions`): whole chunks by descending feerate, in dependency order, within
+Core's default weight and sigop budgets (3,992,000 WU and 79,600 sigops of transactions; a
+candidate tested at its actual weight, the block counting actual weight); after every virtual
+block, partially consumed components split into their residual components and are linearized
+again without consumed members. A chunk that doesn't fit waits for the next block, and so does
+each later chunk that depends on it; every other chunk is still tried, to the end of the pool
+(Core's block assembler skips the rest of the cluster and stops after 1,000 misses in a row, so
+its blocks' tails hold less); one no block can hold waits for the last. Up to eight blocks in
+all, mempool.space's count, the last a catch-all; empty trailing blocks are not projected.
+Priority metadata is observed independently of membership. A failed priority RPC or parse retains
+the last valid ranking map with a warning while other data updates; an unsupported method uses
+base-fee compatibility. Paid rates and totals always use base fees. Listed transactions not loaded
+yet, and their descendants, are left out of every block. Block 0 is also served as the next
+block's template (`/api/block-template`, BIP 22), only once Core accepts the block it describes
+(`getblocktemplate` proposal mode). Each projected member's fee statistics use the feerate it was packed at, and every
 effective feerate is fee over the sigop-adjusted weight's exact quarter (Core's chunk feerates,
 mempool.space's effective ones); a block's `blockVSize` is its weight over 4. Maps keyed by addresses,
 txids or outpoints are seeded per process (rapidhash), so crafted keys cannot collide them.
