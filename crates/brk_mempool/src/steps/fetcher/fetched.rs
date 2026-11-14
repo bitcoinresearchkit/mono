@@ -26,6 +26,8 @@ pub struct Fetched {
     /// in the pool). The Rebuilder only needs the txid sequence to
     /// project Core's exact selection; with none (Core refused one), it packs block 0 itself.
     pub block_template_txids: Option<Vec<Txid>>,
+    /// Core's `getblocktemplate` response as it arrived, when the template read.
+    pub template_json: Option<Box<str>>,
     /// The template's transactions the listing lacks, in its order: Core builds a template
     /// at most every few seconds while its pool changes, so these left the pool since. Their
     /// bodies serve block 0 alone; the pool buries them as it would any leaver.

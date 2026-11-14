@@ -63,6 +63,7 @@ Traps:
 - `/api/v1/replacements`
 - `/api/v1/fullrbf/replacements`
 - `/api/mempool-blocks/{index}[/diff/{since}]`
+- `/api/block-template`
 - `/api/tx-index/{index}`
 - `/api/v1/cpfp/{txid}`
 - `/api/tx/{txid}[/hex|/raw|/status|/outspends|/merkle-proof|/outspend/{vout}|/merkleblock-proof]`, `/api/v1/tx/{txid}/rbf`

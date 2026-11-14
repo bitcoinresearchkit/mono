@@ -6852,6 +6852,16 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')
 
+    def get_block_template(self) -> Any:
+        """Next block template.
+
+        Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers).
+
+        *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+
+        Endpoint: `GET /api/block-template`"""
+        return self.get_json('/api/block-template')
+
     def get_txid_by_index(self, index: TxIndex) -> Txid:
         """Txid by index.
 

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use brk_types::{MempoolBlockHash, Transaction};
 
 pub mod addr;
+pub mod block_template;
 pub mod fees;
 pub mod histogram;
 pub mod mempool_block;
@@ -14,6 +15,7 @@ pub mod rbf;
 pub mod tx;
 
 pub use addr::{PendingUtxos, Spends};
+pub use block_template::BlockTemplateJson;
 pub use pending::PendingView;
 pub use mempool_block::MempoolBlockSource;
 pub use published_tx::{PublishedEntry, PublishedTx};

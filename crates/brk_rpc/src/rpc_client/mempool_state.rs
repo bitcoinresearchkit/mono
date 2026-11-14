@@ -1,4 +1,5 @@
 use brk_types::{BlockHash, FeeRate, Txid};
+use serde_json::value::RawValue;
 
 pub struct MempoolState {
     pub live_txids: Vec<Txid>,
@@ -14,6 +15,8 @@ pub struct MempoolState {
 pub struct MempoolObservation {
     pub state: MempoolState,
     pub block_template: Option<Vec<crate::BlockTemplateTx>>,
+    /// Core's `getblocktemplate` response as it arrived, when `block_template` read from it.
+    pub template_json: Option<Box<RawValue>>,
     /// The node's signed `modified_fee` (sats) of each prioritised transaction in the mempool,
     /// in txid byte order: base fee plus the operator's `prioritisetransaction` delta. Empty on a
     /// node without `getprioritisedtransactions` (before Core 27); the previous cycle's after a

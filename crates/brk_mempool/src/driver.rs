@@ -14,7 +14,7 @@ use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::{error, info, warn};
 
 use crate::{
-    Mempool, State,
+    BlockTemplateJson, Mempool, State,
     steps::{
         Confirmed, Fetched, applier,
         fetcher::{self, MAX_TX_FETCHES_PER_CYCLE},
@@ -147,6 +147,7 @@ impl Mempool {
             new_entries,
             new_txs,
             block_template_txids,
+            template_json,
             template_only,
             capped,
             requested,
@@ -178,6 +179,7 @@ impl Mempool {
         }
         self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
         self.state.template_only = template_only;
+        self.template = template_json.map(BlockTemplateJson::new);
         let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
         prevouts::fill(&mut self.state, resolver, &unloaded);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
@@ -319,6 +321,7 @@ impl Mempool {
             &self.state,
             tip,
             self.rebuilder.snapshot().clone(),
+            self.template.as_ref(),
             membership_ready,
         ) {
             self.read_only.current.store(Arc::new(next));

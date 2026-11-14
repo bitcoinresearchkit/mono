@@ -7,7 +7,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::{Snapshot, snapshot::BlockContent};
+use crate::{BlockTemplateJson, Snapshot, snapshot::BlockContent};
 
 use super::{Pool, State};
 
@@ -30,6 +30,8 @@ pub struct ReadOnlyState {
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
     history: VecDeque<(Instant, usize, BlockContent)>,
+    /// Core's template from the poll the projection was built from, as it arrived.
+    pub(crate) template: Option<BlockTemplateJson>,
 }
 
 impl ReadOnlyState {
@@ -38,6 +40,7 @@ impl ReadOnlyState {
         state: &State,
         tip: BlockHash,
         graph: Arc<Snapshot>,
+        template: Option<&BlockTemplateJson>,
         membership_complete: bool,
     ) -> Option<Self> {
         let pool_changed = membership_complete
@@ -61,6 +64,7 @@ impl ReadOnlyState {
         }
         if projection_changed {
             next.publish_projection(graph, tip);
+            next.template = template.cloned();
         }
         Some(next)
     }

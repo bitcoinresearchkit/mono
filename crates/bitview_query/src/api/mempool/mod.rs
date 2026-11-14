@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_mempool::{JsonBody, PendingView, ReadOnlyState};
+use brk_mempool::{BlockTemplateJson, JsonBody, PendingView, ReadOnlyState};
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
 use brk_types::{MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::Serialize;
@@ -205,6 +205,14 @@ impl Query {
     /// mempool state snapshot.
     pub fn transaction_times_with_hash(&self, txids: &[Txid]) -> Result<(Vec<u64>, u64)> {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
+    }
+
+    /// Core's `getblocktemplate` response as it arrived, from the poll the published projection
+    /// was built from, with its content identity.
+    pub fn block_template_json(&self) -> Result<(BlockTemplateJson, RepresentationId)> {
+        let template = self.require_mempool()?.block_template()?;
+        let identity = RepresentationId::Content(template.hash());
+        Ok((template, identity))
     }
 
     /// Capture a published block for cheap validation and deferred construction.

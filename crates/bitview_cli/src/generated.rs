@@ -363,6 +363,18 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-block-template",
+        method: "GET",
+        path: "/api/block-template",
+        summary: "Next block template",
+        description: "Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: [\"segwit\"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers).\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-block-tip-hash",
         method: "GET",
         path: "/api/blocks/tip/hash",

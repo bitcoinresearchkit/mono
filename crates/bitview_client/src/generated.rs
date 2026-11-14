@@ -3804,6 +3804,17 @@ impl BitviewClient {
         ))
     }
 
+    /// Next block template
+    ///
+    /// Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers).
+    ///
+    /// *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+    ///
+    /// Endpoint: `GET /api/block-template`
+    pub fn get_block_template(&self) -> Result<serde_json::Value> {
+        self.base.get_json(&format!("/api/block-template"))
+    }
+
     /// Txid by index
     ///
     /// Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.

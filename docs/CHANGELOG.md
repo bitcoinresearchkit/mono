@@ -76,6 +76,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- `GET /api/block-template`: Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the
+  poll the projected blocks were last built from, byte for byte, the format pools and mining software read: a valid
+  block once a coinbase paying `coinbasevalue` and carrying `default_witness_commitment` is added. Projected block 0 is
+  built from it. Its ETag follows its bytes, so an unchanged template answers 304; 404 while Core gives none (about
+  3.9 MB raw, 1.5 MB brotli at ~3,100 transactions)
 - Three on-chain valuation series, in the families that own their inputs: mining rewards'
   `puell_multiple` (365 times trailing-24h USD subsidy over trailing-365-day USD subsidy), supply's
   `nvt` (market cap over trailing-24h USD transaction input value, including change), and age's

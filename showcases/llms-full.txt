@@ -12,7 +12,7 @@
 - Support: https://bitview.space/support/
 - Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.
 - Metrics: 22904
-- Operations: 107
+- Operations: 108
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -326,6 +326,16 @@ Parameters:
 - `height` (path, Height, required)
 
 Returns: text `BlockHash`
+
+### Block Template
+
+#### GET `/api/block-template`
+
+Next block template
+
+Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers). *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+
+Returns: JSON `value`
 
 ### Blocks
 

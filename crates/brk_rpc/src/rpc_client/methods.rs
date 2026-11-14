@@ -144,17 +144,18 @@ impl Client {
                 read()
                     .inspect_err(|error| warn!(%error, "getblocktemplate: unreadable, set aside"))
                     .ok()
+                    .map(|(tip, txs)| (tip, txs, raw))
             }
             Err(error) => {
                 debug!(%error, "getblocktemplate: none");
                 None
             }
         };
-        let (tip_hash, block_template) = match template {
-            Some((tip, template)) => (tip, Some(template)),
+        let (tip_hash, block_template, template_json) = match template {
+            Some((tip, template, raw)) => (tip, Some(template), Some(raw)),
             None => {
                 let tip: String = from_str(tip_raw.get())?;
-                (Self::parse_block_hash(&tip, "getbestblockhash")?, None)
+                (Self::parse_block_hash(&tip, "getbestblockhash")?, None, None)
             }
         };
         let info: GetMempoolInfo = from_str(info_raw.get())?;
@@ -169,6 +170,7 @@ impl Client {
                 loaded: info.loaded,
             },
             block_template,
+            template_json,
             modified_fees,
         })
     }

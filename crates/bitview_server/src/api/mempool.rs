@@ -4,6 +4,7 @@ use bitview_types::ReplacementNode;
 use brk_types::{
     MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid, Version,
 };
+use serde_json::Value;
 
 use super::{mempool_block, mempool_txids};
 use crate::{
@@ -146,6 +147,26 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .summary("Projected mempool block changes")
                     .description("The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.")
                     .json_response::<MempoolBlockDiff>()
+                    .not_modified()
+                    .not_found()
+            },
+        ),
+    )
+    .api_route(
+        "/api/block-template",
+        get_with(
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                state
+                    .respond_json_bound(headers, Version::ONE, |q| q.block_template_json())
+                    .await
+            },
+            |op| {
+                op.id("get_block_template")
+                    .tag(tags::MEMPOOL)
+                    .mcp_ignore()
+                    .summary("Next block template")
+                    .description("Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: [\"segwit\"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers).\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*")
+                    .json_response::<Value>()
                     .not_modified()
                     .not_found()
             },

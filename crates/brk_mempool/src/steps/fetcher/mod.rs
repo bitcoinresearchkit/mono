@@ -45,7 +45,8 @@ pub fn fetch(
     failing: &RapidHashMap<Txid, u32>,
     previous_modified: &[(Txid, i64)],
 ) -> Result<Fetched> {
-    let MempoolObservation { state, block_template, modified_fees } = client.fetch_mempool_state(previous_modified)?;
+    let MempoolObservation { state, block_template, template_json, modified_fees } =
+        client.fetch_mempool_state(previous_modified)?;
     let mut template = block_template.is_some();
     let mut block_template = block_template.unwrap_or_default();
 
@@ -219,6 +220,8 @@ pub fn fetch(
         new_entries,
         new_txs,
         block_template_txids: template.then_some(block_template_txids),
+        // Served only beside the projection built from it: none once set aside.
+        template_json: template_json.filter(|_| template).map(Into::into),
         template_only: unlisted,
         capped,
         requested,

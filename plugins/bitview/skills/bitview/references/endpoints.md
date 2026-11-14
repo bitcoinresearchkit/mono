@@ -78,6 +78,7 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /api/v1/fullrbf/replacements` Recent full-RBF replacements
 - `GET /api/mempool-blocks/{index}` Projected mempool block
 - `GET /api/mempool-blocks/{index}/diff/{since}` Projected mempool block changes
+- `GET /api/block-template` Next block template
 - `GET /api/tx-index/{index}` Txid by index
 - `GET /api/v1/cpfp/{txid}` CPFP info
 - `GET /api/v1/tx/{txid}/rbf` RBF replacement history
