@@ -774,16 +774,15 @@
  *   later projected ones
  */
 /**
- * A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
- * `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
- * ranked by signed modified fees within Core's default budgets, with paid-fee statistics. Returned by
- * `GET /api/mempool-blocks/{index}`.
+ * A projected mempool block with its transactions in block order: every block, block 0 the next,
+ * packed as Core's block assembler packs, ranked by signed modified fees within Core's default
+ * budgets, with paid-fee statistics. Returned by `GET /api/mempool-blocks/{index}`.
  *
  * @typedef {Object} MempoolBlockContent
  * @property {MempoolBlockHash} hash - Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
  * @property {MempoolBlock} stats
- * @property {MempoolTxSummary[]} transactions - The transactions in block order (block 0's: `getblocktemplate`'s), each in its light
- *   shape: the whole body is at `GET /api/tx/{txid}`.
+ * @property {MempoolTxSummary[]} transactions - The transactions in block order, each in its light shape: the whole body is at
+ *   `GET /api/tx/{txid}`.
  */
 /**
  * A projected mempool block's changes since a prior copy identified by `since`. Returned by
@@ -822,7 +821,7 @@
  */
 /**
  * A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
- * next block, Bitcoin Core's `getblocktemplate` selection.
+ * next block.
  *
  * @typedef {number} MempoolBlockIndex
  */
@@ -9770,7 +9769,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool blocks
    *
-   * Projected blocks for fee estimation, up to eight as mempool.space's. Block 0 is Bitcoin Core's `getblocktemplate` selection; the rest are packed after it as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`; mining options shape block 0 only), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
+   * Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
@@ -9898,7 +9897,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block
    *
-   * A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+   * A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
@@ -9931,7 +9930,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Next block template
    *
-   * Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Projected block 0, `GET /api/mempool-blocks/0`, is built from it and lists its transactions in light shape. Answers `404` while Core gives no template (in initial sync, or with no peers).
+   * Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. It is Core's own selection; projected block 0, `GET /api/mempool-blocks/0`, is Bitview's. Answers `404` while Core gives no template (in initial sync, or with no peers).
    *
    * *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
    *

@@ -17,15 +17,7 @@ use crate::{
     stores::tx_store::TxRecord,
 };
 
-/// Where a fill goes: a pooled record, or block 0's template-only one at its index.
-#[derive(Clone, Copy)]
-enum FillTo {
-    Pool(TxKey),
-    TemplateOnly(usize),
-}
-
-/// Fill every unfilled prevout the cycle can resolve, the pool's and block 0's template-only
-/// bodies' (served, and counted by their sigops). Same-cycle parents (pooled, template-only or
+/// Fill every unfilled prevout of the pool the cycle can resolve. Same-cycle parents (pooled or
 /// retained) are filled directly. The remainder go through `resolver` in one batched call, but
 /// those whose parent is listed and not loaded yet (`unloaded`): the node's UTXO set can't have
 /// them, they fill once it loads.
@@ -33,33 +25,14 @@ pub fn fill<F>(state: &mut State, resolver: F, unloaded: &RapidHashSet<Txid>)
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
-    let template_only: RapidHashMap<Txid, usize> = state
-        .template_only
-        .iter()
-        .enumerate()
-        .map(|(i, record)| (record.entry.txid, i))
-        .collect();
-    let unresolved = state
-        .txs
-        .unresolved()
-        .iter()
-        .map(|key| {
-            let record = state.txs.record_by_key(key).expect("unresolved tx is pooled");
-            (FillTo::Pool(*key), record)
-        })
-        .chain(
-            state
-                .template_only
-                .iter()
-                .enumerate()
-                .filter(|(_, record)| !record.tx.is_resolved())
-                .map(|(i, record)| (FillTo::TemplateOnly(i), record)),
-        );
+    let unresolved = state.txs.unresolved().iter().map(|key| {
+        let record = state.txs.record_by_key(key).expect("unresolved tx is pooled");
+        (*key, record)
+    });
     let parent = |txid: &Txid| {
         state
             .txs
             .get(txid)
-            .or_else(|| template_only.get(txid).map(|&i| state.template_only[i].tx.as_ref()))
             .or_else(|| {
                 state
                     .graveyard
@@ -69,15 +42,10 @@ where
     };
     let (in_mempool, holes) = gather(unresolved, parent, unloaded);
     let external = resolve_external(holes, resolver);
-    for (into, fills) in in_mempool.into_iter().chain(external) {
-        match into {
-            FillTo::Pool(key) => {
-                let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
-                state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
-                state.txs.apply_fills(&key, fills);
-            }
-            FillTo::TemplateOnly(i) => state.template_only[i].fill(fills),
-        }
+    for (key, fills) in in_mempool.into_iter().chain(external) {
+        let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
+        state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
+        state.txs.apply_fills(&key, fills);
     }
 }
 
@@ -99,15 +67,15 @@ pub fn rpc_resolver(
 /// confirmed or unknown); a hole whose parent is `unloaded` waits. Retained parents let the
 /// children of a just-mined parent resolve before the chain publishes its block.
 fn gather<'a, 'p>(
-    unresolved: impl Iterator<Item = (FillTo, &'a TxRecord)>,
+    unresolved: impl Iterator<Item = (TxKey, &'a TxRecord)>,
     parent: impl Fn(&Txid) -> Option<&'p Transaction>,
     unloaded: &RapidHashSet<Txid>,
 ) -> (
-    Vec<(FillTo, Vec<(Vin, TxOut)>)>,
-    Vec<(FillTo, Vec<(Vin, Txid, Vout)>)>,
+    Vec<(TxKey, Vec<(Vin, TxOut)>)>,
+    Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
 ) {
-    let mut filled: Vec<(FillTo, Vec<(Vin, TxOut)>)> = Vec::new();
-    let mut holes: Vec<(FillTo, Vec<(Vin, Txid, Vout)>)> = Vec::new();
+    let mut filled: Vec<(TxKey, Vec<(Vin, TxOut)>)> = Vec::new();
+    let mut holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)> = Vec::new();
     for (into, record) in unresolved {
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
         let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
@@ -138,9 +106,9 @@ fn gather<'a, 'p>(
 /// resolver once, then re-attribute resolved entries to their
 /// consumer txs.
 fn resolve_external<F>(
-    holes: Vec<(FillTo, Vec<(Vin, Txid, Vout)>)>,
+    holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
     resolver: F,
-) -> Vec<(FillTo, Vec<(Vin, TxOut)>)>
+) -> Vec<(TxKey, Vec<(Vin, TxOut)>)>
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {

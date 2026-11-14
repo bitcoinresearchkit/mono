@@ -3,7 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
-/// next block, Bitcoin Core's `getblocktemplate` selection.
+/// next block.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "schemars", schemars(example = 0))]

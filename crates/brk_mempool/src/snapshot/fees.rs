@@ -27,8 +27,7 @@ const FULL_BLOCK_VSIZE: u64 = 950_000;
 #[derive(Default)]
 pub(crate) struct FeeView {
     /// The view's own blocks when it is complete. An incomplete view holds back part of the pool,
-    /// so its blocks after block 0 would quote too low: the last view's stand in for them, and
-    /// for its block 0 too unless that is Core's template.
+    /// so its blocks would quote too low: the last complete view's stand in for them.
     pub stats: Arc<[BlockStats]>,
     pub whole: RecommendedFees,
     pub precise: PreciseRecommendedFees,
@@ -37,20 +36,11 @@ pub(crate) struct FeeView {
 }
 
 impl FeeView {
-    /// `held`: an incomplete view's predecessor, and whether its own block 0 is Core's whole
-    /// template.
-    pub fn new(blocks: &[BlockStats], held: Option<(&FeeView, bool)>, min_fee: FeeRate) -> Self {
+    /// `held`: an incomplete view's predecessor.
+    pub fn new(blocks: &[BlockStats], held: Option<&FeeView>, min_fee: FeeRate) -> Self {
         let (stats, complete): (Arc<[BlockStats]>, bool) = match held {
             None => (blocks.into(), true),
-            Some((previous, template)) => {
-                let own = usize::from(template).min(blocks.len());
-                let stats = blocks[..own]
-                    .iter()
-                    .chain(previous.stats.iter().skip(own))
-                    .cloned()
-                    .collect();
-                (stats, previous.complete)
-            }
+            Some(previous) => (previous.stats.clone(), previous.complete),
         };
         Self {
             whole: whole(&stats, min_fee),

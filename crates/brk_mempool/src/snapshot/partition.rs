@@ -1,7 +1,7 @@
-//! Projected blocks 1..N, packed as Core's block assembler packs, by modified fees (the operator's
-//! `prioritisetransaction` deltas included) within Core's default budgets (mining options shape
-//! only block 0): block 0 is Core's `getblocktemplate` (the caller's); the rest take whole chunks by
-//! descending feerate, in dependency order, each block within Core's weight and sigop budgets.
+//! The projected blocks, block 0 first, packed as Core's block assembler packs, by modified fees
+//! (the operator's `prioritisetransaction` deltas included) within Core's default budgets: whole
+//! chunks by descending feerate, in dependency order, each block within Core's weight and sigop
+//! budgets.
 //! Equal feerates go as Core's chunk index orders them: the shorter run of equal-feerate chunks
 //! within its cluster first, then the chunk whose greatest txid is lower. At every virtual block
 //! boundary, partially consumed components split and are linearized again. A chunk that
@@ -91,7 +91,8 @@ impl Chunks {
     }
 }
 
-/// Blocks after block 0 (the `excluded` members), each member with the feerate it was packed at.
+/// The projected blocks, block 0 first (none of the `excluded`), each member with the feerate it
+/// was packed at.
 pub struct Projection {
     pub blocks: Vec<Vec<(TxIndex, FeeRate)>>,
     /// Whether the last block is a catch-all: what was left past the others, more than a block
@@ -162,8 +163,7 @@ impl Candidate {
     }
 
     /// Core's mining order: feerate, then the equal-feerate run, then the greatest txid: a strict
-    /// order, as a snapshot's txids are unique (the node's listing, then the template's txids it
-    /// lacks), so chunks never tie. A component's chunks keep their order (an equal-feerate later
+    /// order, as a snapshot's txids are unique (the node's listing), so chunks never tie. A component's chunks keep their order (an equal-feerate later
     /// one has the longer run).
     fn order(&self, other: &Self) -> std::cmp::Ordering {
         compare_feerates((other.fee, other.policy), (self.fee, self.policy))
@@ -250,7 +250,7 @@ fn split(
     pending.sort_by(|&a, &b| cands[a].order(&cands[b]));
 }
 
-/// Blocks after block 0 from `chunks`, `consumed` holding block 0's members and the withheld.
+/// The blocks from `chunks`, `consumed` holding the withheld.
 fn pack(
     txs: &[SnapTx],
     mut chunks: Chunks,
@@ -263,7 +263,7 @@ fn pack(
     let mut overflow = false;
     let mut cands = Vec::with_capacity(chunks.chunks.len());
     push_candidates(txs, &chunks, &mut cands);
-    // Block 0 and the withheld: components they took whole leave, ones they took part of split.
+    // The withheld: components they took whole leave, ones they took part of split.
     let mut pending = Vec::new();
     let mut touched = Vec::new();
     for component in 0..chunks.components.len() {
@@ -348,7 +348,7 @@ fn pack(
     Projection { blocks, overflow }
 }
 
-/// Every member comes after its parents: block 0's, earlier blocks' or its own block's earlier.
+/// Every member comes after its parents: earlier blocks' or its own block's earlier.
 #[cfg(debug_assertions)]
 fn check_order(txs: &[SnapTx], excluded: &[bool], blocks: &[Vec<(TxIndex, FeeRate)>]) {
     let mut placed = excluded.to_vec();

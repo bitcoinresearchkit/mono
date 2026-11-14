@@ -73,29 +73,19 @@ impl Linearized {
 }
 
 impl Snapshot {
-    /// The pool's transactions, then `template_only` (block 0's bodies the pool lacks), indexed
-    /// in that order. A template-only one stands alone, linked to nothing: it left Core's pool,
-    /// so no pooled transaction's chunk or CPFP answer counts it. `modified_fees`: authoritative
-    /// signed amounts, in txid byte order.
+    /// The pool's transactions, indexed in its order. `modified_fees`: authoritative signed
+    /// amounts, in txid byte order.
     pub(crate) fn build_txs(
         txs: &TxStore,
-        template_only: &[TxRecord],
         modified_fees: &[(Txid, i64)],
         cache: &mut ChunkCache,
     ) -> (Vec<SnapTx>, KeyIndex, Chunks) {
-        let records = || {
-            txs.records()
-                .map(|(key, record)| (*key, record))
-                .chain(template_only.iter().map(|record| (record.entry.key(), record)))
-        };
-        let n = txs.len() + template_only.len();
+        let n = txs.len();
         let mut key_to_idx = KeyIndex::with_capacity_and_hasher(n, FxBuildHasher);
         let mut keys: Vec<TxKey> = Vec::with_capacity(n);
-        for (i, (key, _)) in records().enumerate() {
-            // A pooled key keeps its index: a template-only body sharing it (a hash collision)
-            // finds no index of its own and leaves block 0 short.
-            key_to_idx.entry(key).or_insert(TxIndex::from(i));
-            keys.push(key);
+        for (i, (key, _)) in txs.records().enumerate() {
+            key_to_idx.entry(*key).or_insert(TxIndex::from(i));
+            keys.push(*key);
         }
         let modified_of = |txid: &Txid| {
             modified_fees
@@ -104,17 +94,15 @@ impl Snapshot {
                 .map(|i| modified_fees[i].1)
         };
         let mut snap_txs = Vec::with_capacity(n);
-        snap_txs.extend(records().map(|(_, record)| {
+        snap_txs.extend(txs.records().map(|(_, record)| {
             Self::live_tx(record, modified_of(&record.entry.txid))
         }));
         // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
         // return after its child arrived), each checked by its full txid.
-        let pooled = txs.len();
         for (i, (_, record)) in txs.records().enumerate() {
             let mut parents: SmallVec<[TxIndex; 2]> = SmallVec::new();
             for input in &record.tx.input {
                 if let Some(&parent) = key_to_idx.get(&TxKey::from(&input.txid))
-                    && parent.as_usize() < pooled
                     && snap_txs[parent.as_usize()].txid == input.txid
                     && !parents.contains(&parent)
                 {

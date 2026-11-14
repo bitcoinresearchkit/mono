@@ -1,15 +1,13 @@
 pub mod fetched;
 
-use std::sync::Arc;
-
 use brk_error::Result;
-use brk_rpc::{BlockTemplateTx, Client, MempoolObservation};
-use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
+use brk_rpc::{Client, MempoolObservation};
+use brk_types::{MempoolEntryInfo, Txid, VSize};
 pub use fetched::Fetched;
 use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::warn;
 
-use crate::{State, steps::preparer::TxAddition, stores::tx_store::TxRecord};
+use crate::State;
 
 /// Bounds the non-template transactions fetched per cycle (the RPC client
 /// separately chunks its batches). New template transactions are not subject
@@ -22,17 +20,11 @@ pub(crate) const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 /// `getmempoolentry` (+ `getrawtransaction` outside the template) for *new*
 /// txids, in batches of at most 2,000 txids.
 ///
-/// New listed template transactions lead that batch, uncapped (Core bounds the
-/// template), entries only: their bodies, weights, policy sizes (from the
-/// template's weight and sigops) and fees are the template's, their arrival
-/// times Core's entries'. One that left between the two batches is still
-/// materialized from the template, so block 0 always reflects Core's exact
-/// selection; only then is its arrival time (`now`) estimated.
-///
-/// The template's transactions the listing lacks (Core rebuilds its template at most every few
-/// seconds while its pool changes: they left since) are kept for block 0 alone, as records: the
-/// pool's own while it still holds them (it buries them this cycle), else block 0's last ones,
-/// the graveyard's, or the template's body. Nothing is fetched for them.
+/// Core's template is a source of bodies, not of block 0 (the packer's): new listed template
+/// transactions lead that batch, uncapped (Core bounds the template), entries only: their bodies,
+/// weights, policy sizes (from the template's weight and sigops) and fees are the template's,
+/// their arrival times Core's entries'. One that left between the two batches is set aside: the
+/// listing no longer holds it.
 ///
 /// Confirmed prevouts are resolved after apply, by the resolver passed to
 /// `Mempool::tick_with`.
@@ -47,70 +39,34 @@ pub fn fetch(
 ) -> Result<Fetched> {
     let MempoolObservation { state, block_template, template_json, modified_fees } =
         client.fetch_mempool_state(previous_modified)?;
-    let mut template = block_template.is_some();
-    let mut block_template = block_template.unwrap_or_default();
+    let block_template = block_template.unwrap_or_default();
 
-    // The same private pool decides the fetch list and template synthesis,
-    // so they agree on what's already known. The template's txids the listing lacks: the
-    // block-sized set trimmed by one pass over the listing, no second full-pool set beside the
-    // one the preparer builds.
-    let mut template_only: RapidHashSet<Txid> = block_template.iter().map(|g| g.txid).collect();
-    for txid in &state.live_txids {
-        template_only.remove(txid);
-    }
     // Listed and new to the pool, or a witness variant of a body it holds (Core keeps one per
-    // txid, so a variant follows only the original's leaving, which a poll can miss): fetched
-    // afresh.
-    let mut template_new: RapidHashSet<Txid> = block_template
-        .iter()
-        .filter(|g| {
-            !template_only.contains(&g.txid)
-                && mempool
-                    .txs
-                    .record(&g.txid)
-                    .is_none_or(|record| record.entry.wtxid != g.wtxid)
-        })
-        .map(|g| g.txid)
-        .collect();
-    // What block 0 takes from the template alone (the unlisted held nowhere, new bodies), read
-    // before anything is fetched: a body that doesn't decode sets the template aside for the
-    // cycle (block 0 packs from the pool, the listing fetches what it held), not the cycle.
-    let now = Timestamp::now();
-    let previous: RapidHashMap<Txid, &TxRecord> = mempool
-        .template_only
-        .iter()
-        .map(|record| (record.entry.txid, record))
-        .collect();
-    let read = || -> Result<_> {
-        let mut unlisted = Vec::with_capacity(template_only.len());
-        let mut bodies = RapidHashMap::default();
-        for g in &block_template {
-            if template_only.contains(&g.txid) {
-                unlisted.push(template_record(g, mempool, &previous, now)?);
-            } else if template_new.contains(&g.txid) {
-                bodies.insert(g.txid, g.decode()?);
-            }
-        }
-        Ok((unlisted, bodies))
-    };
-    let (unlisted, mut bodies) = read().unwrap_or_else(|error| {
-        warn!(%error, "getblocktemplate: a body doesn't decode, set aside");
-        template = false;
-        block_template.clear();
-        template_only.clear();
-        template_new.clear();
-        Default::default()
+    // txid, so a variant follows only the original's leaving, which a poll can miss): its body is
+    // the template's. The listing is checked in one pass over it.
+    let in_template: RapidHashSet<Txid> = block_template.iter().map(|g| g.txid).collect();
+    let listed: RapidHashSet<Txid> =
+        state.live_txids.iter().filter(|txid| in_template.contains(*txid)).copied().collect();
+    let new_from_template = block_template.iter().filter(|g| {
+        listed.contains(&g.txid)
+            && mempool.txs.record(&g.txid).is_none_or(|record| record.entry.wtxid != g.wtxid)
     });
-    let template_txids: Vec<Txid> = block_template
-        .iter()
-        .map(|g| g.txid)
-        .filter(|txid| template_new.contains(txid))
-        .collect();
+    // A body that doesn't decode is fetched with the listing instead.
+    let mut bodies = RapidHashMap::default();
+    for g in new_from_template {
+        match g.decode() {
+            Ok(body) => {
+                bodies.insert(g.txid, (g, body));
+            }
+            Err(error) => warn!(%error, txid = %g.txid, "getblocktemplate: a body doesn't decode"),
+        }
+    }
+    let template_txids: Vec<Txid> = bodies.keys().copied().collect();
     let unknown = || {
         state
             .live_txids
             .iter()
-            .filter(|t| !mempool.txs.contains(t) && !template_new.contains(t))
+            .filter(|t| !mempool.txs.contains(t) && !bodies.contains_key(*t))
     };
     let mut new_txids: Vec<Txid> = unknown()
         .filter(|t| !failing.contains_key(t))
@@ -149,7 +105,7 @@ pub fn fetch(
                     .is_some_and(|record| record.entry.wtxid != entry.wtxid)
             })
             .map(|entry| entry.txid)
-            .filter(|txid| !block_template.iter().any(|g| g.txid == *txid))
+            .filter(|txid| !bodies.contains_key(txid))
             .collect();
         if !variants.is_empty() {
             new_txids.extend(state.live_txids.iter().filter(|txid| variants.contains(*txid)));
@@ -158,57 +114,23 @@ pub fn fetch(
 
     let (mut new_entries, mut new_txs) = client.fetch_new_pool_data(&template_txids, &new_txids)?;
     let requested = new_txids;
-    let fetched: RapidHashSet<Txid> = new_entries
-        .iter()
-        .map(|entry| entry.txid)
-        .filter(|txid| template_new.contains(txid))
-        .collect();
-
-    // Template entries lead (fetched in request order, synthesized ones after
-    // them), listing entries follow.
-    let listed_entries = new_entries.split_off(fetched.len());
-    debug_assert!(
-        new_entries
-            .iter()
-            .all(|entry| fetched.contains(&entry.txid))
-    );
-
-    // Consume `block_template` by value: the template's order is captured as a
-    // `Vec<Txid>` for the Rebuilder, which only reads txids, and new bodies are
-    // decoded from the template (known bodies stay undecoded).
-    //
-    // The body is the template's, and so are its weight, policy size and fee: the node may hold
-    // another witness variant by the time its entry was fetched, so only the entry's arrival
-    // time is kept.
-    let fetched_at: RapidHashMap<Txid, usize> = new_entries
-        .iter()
-        .enumerate()
-        .map(|(i, entry)| (entry.txid, i))
-        .collect();
-    let mut block_template_txids: Vec<Txid> = Vec::with_capacity(block_template.len());
-    for g in block_template {
-        let txid = g.txid;
-        if let Some(body) = bodies.remove(&txid) {
-            new_txs.insert(txid, body);
-            let entry = MempoolEntryInfo {
-                txid,
-                wtxid: g.wtxid,
-                vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
-                weight: g.weight,
-                fee: g.fee,
-                first_seen: now,
-            };
-            match fetched_at.get(&txid) {
-                Some(&i) => {
-                    new_entries[i] = MempoolEntryInfo {
-                        first_seen: new_entries[i].first_seen,
-                        ..entry
-                    }
-                }
-                None => new_entries.push(entry),
-            }
-        }
-        block_template_txids.push(txid);
+    // Template entries lead (in request order), listing entries follow. The body is the
+    // template's, and so are its weight, policy size and fee: the node may hold another witness
+    // variant by the time its entry was fetched, so only the entry's arrival time is kept. One
+    // whose entry didn't come back left the pool between the two batches.
+    let fetched = new_entries.iter().take_while(|entry| bodies.contains_key(&entry.txid)).count();
+    let listed_entries = new_entries.split_off(fetched);
+    for entry in &mut new_entries {
+        let (g, body) = bodies.remove(&entry.txid).expect("a template entry");
+        new_txs.insert(g.txid, body);
+        *entry = MempoolEntryInfo {
+            txid: g.txid,
+            wtxid: g.wtxid,
+            vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
+            weight: g.weight,
+            fee: g.fee,
+            first_seen: entry.first_seen,
+        };
     }
     new_entries.extend(listed_entries);
 
@@ -219,48 +141,8 @@ pub fn fetch(
         recheck,
         new_entries,
         new_txs,
-        block_template_txids: template.then_some(block_template_txids),
-        // Served only beside the projection built from it: none once set aside.
-        template_json: template_json.filter(|_| template).map(Into::into),
-        template_only: unlisted,
+        template_json: template_json.map(Into::into),
         capped,
         requested,
     })
-}
-
-/// A template transaction the listing lacks, as a record for block 0: one already held of the
-/// same witness (the pool's, leaving this cycle, block 0's last, or the graveyard's), else built
-/// from the template's body, first seen `now` unless the graveyard saw it before.
-fn template_record(
-    g: &BlockTemplateTx,
-    mempool: &State,
-    previous: &RapidHashMap<Txid, &TxRecord>,
-    now: Timestamp,
-) -> Result<TxRecord> {
-    let held = |record: &TxRecord| (record.entry.wtxid == g.wtxid).then(|| record.clone());
-    if let Some(record) = mempool
-        .txs
-        .record(&g.txid)
-        .and_then(held)
-        .or_else(|| previous.get(&g.txid).and_then(|record| held(record)))
-        .or_else(|| {
-            mempool
-                .graveyard
-                .get(&g.txid)
-                .and_then(|tomb| held(&tomb.record))
-        })
-    {
-        return Ok(record);
-    }
-    let info = MempoolEntryInfo {
-        txid: g.txid,
-        wtxid: g.wtxid,
-        vsize: g.sigops.adjust_vsize(VSize::from(g.weight)),
-        weight: g.weight,
-        fee: g.fee,
-        first_seen: now,
-    };
-    let TxAddition { tx, entry } =
-        TxAddition::new(&info, g.decode()?, &mempool.txs, &mempool.graveyard);
-    Ok(TxRecord::new(Arc::new(tx), entry))
 }

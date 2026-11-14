@@ -162,7 +162,6 @@ impl Pool {
             ancestry: self.ancestry.clone(),
             // A panic may have abandoned a newer private witness: verify the restored records.
             unverified: self.txs.records().map(|(_, record)| record.entry.txid).collect(),
-            template_only: Vec::new(),
         }
     }
 }

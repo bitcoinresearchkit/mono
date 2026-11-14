@@ -20,8 +20,8 @@ const HISTORY_MAX: usize = 8 * 120;
 
 /// All published mempool read data. Replaced through one ArcSwap.
 ///
-/// Membership carries its own matching graph. A complete Core template may
-/// advance independently when the raw listing is incomplete or differs.
+/// Membership carries its own matching graph. The projection may advance independently while
+/// the listing is incomplete, withholding what can't follow the missing.
 #[derive(Clone, Default)]
 pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
@@ -126,7 +126,7 @@ impl ReadOnlyState {
         self.pool.as_ref().ok_or_else(|| Error::updating())
     }
 
-    /// Last valid template projection; its source may be newer than retained membership.
+    /// The last valid projection; its source may be newer than retained membership.
     pub(crate) fn snapshot(&self) -> &Arc<Snapshot> {
         &self.projection
     }

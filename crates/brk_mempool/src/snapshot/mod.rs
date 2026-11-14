@@ -33,16 +33,12 @@ pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
     /// linearized chunk rate plus parent/child adjacency.
     txs: Vec<SnapTx>,
-    /// Projected block 0: Core's `getblocktemplate` (Bitcoin Core's actual selection), or the
-    /// packer's first block when Core gives none (`block0_packed`).
-    block0: Vec<TxIndex>,
-    pub(crate) block0_packed: bool,
     /// Every projected block's statistics: block 0's, then the package-aware projection's
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
     pub(crate) fees: fees::FeeView,
-    /// Whether its view was complete (no template-only bodies, every listed transaction loaded
-    /// or stuck): its fee tiers are its own. A rebuild reuses it only for a view alike.
+    /// Whether its view was complete (every listed transaction loaded or stuck): its fee tiers
+    /// are its own. A rebuild reuses it only for a view alike.
     pub(crate) complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
@@ -54,11 +50,7 @@ pub struct Snapshot {
     /// holding more than a block (what's left, mempool.space's catch-all).
     served: Vec<ServedBlock>,
     content_revision: u64,
-    template_missing: bool,
-    /// The gaps of the view it was built from (template-only bodies by their digests, in the
-    /// template's order; listed txids not loaded): a rebuild from the same view, gaps included,
-    /// reuses it.
-    pub(crate) template_only: Box<[u64]>,
+    /// The listed txids not loaded when it was built: a rebuild from the same view reuses it.
     pub(crate) unloaded: RapidHashSet<Txid>,
     /// The node's signed modified fees it ranked by: a rebuild under the same ones reuses it.
     pub(crate) modified_fees: Box<[(Txid, i64)]>,
@@ -85,24 +77,19 @@ pub(crate) struct ServedBlock {
 impl Snapshot {
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
-    /// `block0`: each member at its feerate there (its chunk's for the template's, the one it was
-    /// packed at for the packer's: `block0_packed`). `held_fees`: an incomplete view's
-    /// predecessor's tiers, and whether this view's block 0 is Core's whole template
-    /// ([`fees::FeeView`]).
+    /// `blocks`: every projected block, block 0 first, each member at the feerate it was packed
+    /// at. `held_fees`: an incomplete view's predecessor's tiers ([`fees::FeeView`]).
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn build(
         txs: Vec<SnapTx>,
-        block0: Vec<(TxIndex, FeeRate)>,
-        block0_packed: bool,
-        rest: &[Vec<(TxIndex, FeeRate)>],
+        blocks: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
         chunks: partition::Chunks,
         min_fee: FeeRate,
-        held_fees: Option<(&fees::FeeView, bool)>,
+        held_fees: Option<&fees::FeeView>,
     ) -> Self {
         let chunk_of = chunks.chunk_of(txs.len());
-        let block_stats = BlockStats::for_blocks(&block0, rest, &txs);
-        let block0 = block0.into_iter().map(|(index, _)| index).collect();
+        let block_stats = BlockStats::for_blocks(blocks, &txs);
         let fees = fees::FeeView::new(
             &block_stats,
             held_fees,
@@ -110,8 +97,6 @@ impl Snapshot {
         );
         Self {
             txs,
-            block0,
-            block0_packed,
             block_stats,
             fees,
             complete: held_fees.is_none(),
@@ -121,8 +106,6 @@ impl Snapshot {
             chunk_of,
             served: Vec::new(),
             content_revision: 0,
-            template_missing: false,
-            template_only: Box::default(),
             unloaded: RapidHashSet::default(),
             modified_fees: Box::default(),
             fees_json: OnceLock::new(),
@@ -166,7 +149,6 @@ impl Snapshot {
         &mut self,
         blocks: Vec<(Vec<Arc<Transaction>>, Vec<u64>)>,
         revision: u64,
-        missing: bool,
         previous: &[ServedBlock],
     ) {
         debug_assert!(!blocks.is_empty() && blocks.len() <= self.block_stats.len());
@@ -193,18 +175,11 @@ impl Snapshot {
             })
             .collect();
         self.content_revision = revision;
-        self.template_missing = missing;
     }
 
     fn idx_of_txid(&self, txid: &Txid) -> Option<TxIndex> {
         let index = *self.key_to_idx.get(&TxKey::from(txid))?;
         (self.txs[index.as_usize()].txid == *txid).then_some(index)
-    }
-
-    /// Txids of `blocks[0]` (Core's `getblocktemplate` selection),
-    /// in template order. Empty for a default snapshot.
-    pub fn block0_txids(&self) -> impl Iterator<Item = Txid> + '_ {
-        self.block0.iter().map(|idx| self.txs[idx.as_usize()].txid)
     }
 
     /// Linearized chunk rate for a live tx. Recomputed each
@@ -238,8 +213,7 @@ impl Snapshot {
 
     /// Tiers from a complete view: its own, or one held over (as long as views stay incomplete,
     /// the last one standing; Core unread, the last publication's): only before the first
-    /// complete view are there none. A block 0 missing a template member (which only its bodies
-    /// wait for) leaves them standing.
+    /// complete view are there none.
     pub(crate) fn ensure_fees(&self) -> Result<()> {
         if !self.fees.complete {
             return Err(QueryError::updating());
@@ -250,7 +224,7 @@ impl Snapshot {
     /// A default snapshot is not an observed empty mempool. A real publication
     /// always contains block zero, even when Core selected no transactions.
     pub(crate) fn ensure_projection(&self) -> Result<()> {
-        if self.block_stats.is_empty() || self.template_missing {
+        if self.block_stats.is_empty() {
             return Err(QueryError::updating());
         }
         Ok(())

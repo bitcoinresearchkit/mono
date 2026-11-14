@@ -2,10 +2,10 @@
 
 use std::{mem, sync::Arc};
 
-use brk_types::{FeeRate, Transaction, Txid, Vout};
+use brk_types::{FeeRate, Transaction, Txid};
 use rapidhash::RapidHashSet;
 
-use crate::{State, key::TxKey};
+use crate::State;
 
 use super::{SnapTx, Snapshot, TxIndex, builder::ChunkCache, fees::FeeView, partition};
 
@@ -27,51 +27,35 @@ impl Rebuilder {
     }
 
     /// Reuse the private graph only when all of its inputs are unchanged.
-    /// Publication and template history are committed together by the writer.
-    /// `unloaded`: listed transactions not loaded yet; the blocks after block 0 withhold what
-    /// can't follow them or `state.template_only` (block 0's bodies the listing lacks).
-    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck. With it and
-    /// no template-only bodies the view is complete: it stands behind its fee tiers.
-    /// `gbt_txids`: Core's template, block 0; without one, the packer's first block is.
+    /// Publication and diff history are committed together by the writer.
+    /// `unloaded`: listed transactions not loaded yet; no block takes what can't follow them.
+    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck. With it the
+    /// view is complete: it stands behind its fee tiers.
     pub fn tick(
         &mut self,
         state: &State,
-        gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
         modified_fees: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
         membership_ready: bool,
     ) {
-        let complete = state.template_only.is_empty() && membership_ready;
         let snapshot = &self.snapshot;
         if snapshot.ensure_projection().is_ok()
-            && snapshot.complete == complete
+            && snapshot.complete == membership_ready
             && snapshot.min_fee == min_fee
             && *snapshot.modified_fees == *modified_fees
-            && snapshot
-                .template_only
-                .iter()
-                .copied()
-                .eq(state.template_only.iter().map(|record| record.digest))
             && snapshot.unloaded == *unloaded
             && snapshot.content_revision == state.txs.content_revision()
-            && match gbt_txids {
-                Some(gbt_txids) => {
-                    !snapshot.block0_packed && snapshot.block0_txids().eq(gbt_txids.iter().copied())
-                }
-                None => snapshot.block0_packed,
-            }
         {
             return;
         }
 
         let snapshot = Self::build_snapshot(
             state,
-            gbt_txids,
             min_fee,
             modified_fees,
             unloaded,
-            (!complete).then_some(&self.snapshot.fees),
+            (!membership_ready).then_some(&self.snapshot.fees),
             &mut self.chunks,
             &mut self.leftovers,
             &self.snapshot,
@@ -82,7 +66,6 @@ impl Rebuilder {
     #[allow(clippy::too_many_arguments)]
     fn build_snapshot(
         state: &State,
-        gbt_txids: Option<&[Txid]>,
         min_fee: FeeRate,
         modified_fees: &[(Txid, i64)],
         unloaded: &RapidHashSet<Txid>,
@@ -91,86 +74,41 @@ impl Rebuilder {
         leftovers: &mut ChunkCache,
         previous: &Snapshot,
     ) -> Snapshot {
-        let (txs, key_to_idx, chunks) =
-            Snapshot::build_txs(&state.txs, &state.template_only, modified_fees, cache);
-        let pooled = state.txs.len();
-        let record_at = |i: usize| {
-            if i < pooled {
-                state.txs.record_at(i)
-            } else {
-                &state.template_only[i - pooled]
-            }
-        };
-        // Core's selection, each member at its chunk's feerate.
-        let template_block0: Vec<(TxIndex, FeeRate)> = gbt_txids
-            .into_iter()
-            .flatten()
-            .filter_map(|txid| {
-                key_to_idx
-                    .get(&TxKey::from(txid))
-                    .copied()
-                    .filter(|index| txs[index.as_usize()].txid == *txid)
-            })
-            .map(|index| (index, txs[index.as_usize()].chunk_rate))
-            .collect();
+        let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, modified_fees, cache);
         let mut excluded = vec![false; txs.len()];
-        for (index, _) in &template_block0 {
-            excluded[index.as_usize()] = true;
+        if !unloaded.is_empty() {
+            let bodies: Vec<&Transaction> =
+                (0..txs.len()).map(|i| state.txs.record_at(i).tx.as_ref()).collect();
+            withhold(&bodies, &txs, unloaded, &mut excluded);
         }
-        if !state.template_only.is_empty() || !unloaded.is_empty() {
-            let bodies: Vec<&Transaction> = (0..txs.len()).map(|i| record_at(i).tx.as_ref()).collect();
-            withhold(&bodies, &txs, pooled, unloaded, &mut excluded);
+        let mut projection = partition::partition(&txs, &chunks, &excluded, NUM_BLOCKS, leftovers);
+        // An empty pool still has a block 0, and a lone block holding more than a block stays the
+        // catch-all after an empty one.
+        if projection.blocks.len() == usize::from(projection.overflow) {
+            projection.blocks.insert(0, Vec::new());
         }
-        // Without a template, the packer's first block stands in for Core's.
-        let packed = gbt_txids.is_none();
-        let mut projection = partition::partition(
-            &txs,
-            &chunks,
-            &excluded,
-            NUM_BLOCKS - usize::from(!packed),
-            leftovers,
-        );
-        let block0 = if packed {
-            match projection.blocks.first() {
-                // A lone block holding more than a block stays the catch-all, after an empty one.
-                Some(_) if projection.blocks.len() > 1 || !projection.overflow => {
-                    projection.blocks.remove(0)
-                }
-                _ => Vec::new(),
-            }
-        } else {
-            template_block0
-        };
         let record_of = |index: &TxIndex| {
-            let record = record_at(index.as_usize());
+            let record = state.txs.record_at(index.as_usize());
             debug_assert_eq!(record.entry.txid, txs[index.as_usize()].txid);
             (record.tx.clone(), record.digest)
         };
 
         // Each projected block's bodies, but a last one holding more than a block.
         let served = projection.blocks.len() - usize::from(projection.overflow);
-        let mut blocks = Vec::with_capacity(1 + served);
-        for block in std::iter::once(&block0).chain(&projection.blocks[..served]) {
-            blocks.push(block.iter().map(|(index, _)| record_of(index)).unzip());
-        }
+        let blocks = projection.blocks[..served]
+            .iter()
+            .map(|block| block.iter().map(|(index, _)| record_of(index)).unzip())
+            .collect();
 
-        let missing = gbt_txids.is_some_and(|gbt_txids| block0.len() != gbt_txids.len());
         let mut snapshot = Snapshot::build(
             txs,
-            block0,
-            packed,
             &projection.blocks,
             key_to_idx,
             chunks,
             min_fee,
-            held_fees.map(|held| (held, !packed && !missing)),
+            held_fees,
         );
-        snapshot.set_served(blocks, state.txs.content_revision(), missing, previous.served_blocks());
-        snapshot.template_only = state
-            .template_only
-            .iter()
-            .map(|record| record.digest)
-            .collect();
+        snapshot.set_served(blocks, state.txs.content_revision(), previous.served_blocks());
         snapshot.unloaded = unloaded.clone();
         snapshot.modified_fees = modified_fees.into();
         snapshot
@@ -181,30 +119,19 @@ impl Rebuilder {
     }
 }
 
-/// Marks, beside block 0's members already `excluded`, what the blocks after it can't hold: a
-/// transaction spending an outpoint a template-only one (from index `template_only` on) spends
-/// (the template can be older than the listing, a replacement listed meanwhile), one spending a
-/// listed transaction not loaded yet, and their descendants. `bodies` and `txs` are indexed
-/// alike.
+/// Marks what no block can hold: a transaction spending a listed transaction not loaded yet, and
+/// its descendants. `bodies` and `txs` are indexed alike.
 pub(crate) fn withhold(
     bodies: &[&Transaction],
     txs: &[SnapTx],
-    template_only: usize,
     unloaded: &RapidHashSet<Txid>,
     excluded: &mut [bool],
 ) {
-    let spent: RapidHashSet<(Txid, Vout)> = bodies[template_only..]
-        .iter()
-        .flat_map(|tx| tx.input.iter().map(|input| (input.txid, input.vout)))
-        .collect();
     let mut stack: Vec<TxIndex> = bodies
         .iter()
         .enumerate()
         .filter(|&(i, tx)| {
-            !excluded[i]
-                && tx.input.iter().any(|input| {
-                    unloaded.contains(&input.txid) || spent.contains(&(input.txid, input.vout))
-                })
+            !excluded[i] && tx.input.iter().any(|input| unloaded.contains(&input.txid))
         })
         .map(|(i, _)| TxIndex::from(i))
         .collect();

@@ -21,7 +21,7 @@ use crate::{
         cluster,
         partition::{Chunks, partition},
     },
-    steps::{Confirmed, applier, preparer::{self, TxAddition}, prevouts},
+    steps::{Confirmed, applier, preparer, prevouts},
     state::TxEntry,
     stores::{TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
     steps::TxRemoval,
@@ -133,9 +133,7 @@ fn cpfp_answers_match_a_fresh_linearization() {
     let txs = pool(2_000);
     let snapshot = Snapshot::build(
         txs.clone(),
-        Vec::new(),
-        false,
-        &[],
+        &[Vec::new()],
         KeyIndex::default(),
         chunks(&txs),
         FeeRate::default(),
@@ -277,9 +275,9 @@ fn served_blocks_publish_and_diff() {
     );
 }
 
-/// Through ingestion and `Rebuilder::tick`: the blocks after block 0 withhold a template-only
-/// transaction's replacement and an unloaded parent's child; the same view, gaps included, reuses
-/// the snapshot; either gap changing alone rebuilds it, and what it withholds follows.
+/// Through ingestion and `Rebuilder::tick`: no block takes an unloaded parent's child; the same
+/// view, gap included, reuses the snapshot; the gap changing alone rebuilds it, and what it
+/// withholds follows.
 #[test]
 fn rebuilds_follow_the_view_gaps() {
     let raw = |spends: (bitcoin::Txid, u32), sequence: u32| bitcoin::Transaction {
@@ -298,11 +296,8 @@ fn rebuilds_follow_the_view_gaps() {
     };
     let confirmed = |seed: u8| bitcoin::Txid::from_byte_array([seed; 32]);
     let unloaded_parent = confirmed(95);
-    // p: unrelated; t: template-only; r: t's replacement (same outpoint); c: child of a listed
-    // transaction not loaded yet.
+    // p: unrelated; c: child of a listed transaction not loaded yet.
     let p = raw((confirmed(90), 0), 0);
-    let t = raw((confirmed(91), 0), 1);
-    let r = raw((confirmed(91), 0), 2);
     let c = raw((unloaded_parent, 0), 0);
     let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
     let mut state = State::default();
@@ -314,12 +309,12 @@ fn rebuilds_follow_the_view_gaps() {
         fee: Sats::from(1_000u64),
         first_seen: Timestamp::now(),
     };
-    let entries = [&p, &r, &c].iter().map(|tx| info(tx)).collect();
-    let bodies = [&p, &r, &c]
+    let entries = [&p, &c].iter().map(|tx| info(tx)).collect();
+    let bodies = [&p, &c]
         .iter()
         .map(|&tx| (id(tx), tx.clone()))
         .collect();
-    let live = [id(&p), id(&r), id(&c), Txid::from(unloaded_parent)];
+    let live = [id(&p), id(&c), Txid::from(unloaded_parent)];
     let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
     applier::apply(
         &mut state,
@@ -327,15 +322,13 @@ fn rebuilds_follow_the_view_gaps() {
         diff,
         &Confirmed::default(),
     );
-    let TxAddition { tx, entry } = TxAddition::new(&info(&t), t.clone(), &state.txs, &state.graveyard);
-    state.template_only = vec![TxRecord::new(Arc::new(tx), entry)];
 
     let mut rebuilder = Rebuilder::default();
     let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
     let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
-        rebuilder.tick(state, Some(&[id(&t)]), FeeRate::default(), &[], unloaded, unloaded.is_empty());
+        rebuilder.tick(state, FeeRate::default(), &[], unloaded, unloaded.is_empty());
         let snapshot = rebuilder.snapshot().clone();
-        let later: RapidHashSet<Txid> = snapshot.served_blocks()[1..]
+        let later: RapidHashSet<Txid> = snapshot.served_blocks()
             .iter()
             .flat_map(|block| block.content.bodies.iter().map(|tx| tx.txid))
             .collect();
@@ -343,7 +336,7 @@ fn rebuilds_follow_the_view_gaps() {
     };
     let set = |txids: &[Txid]| txids.iter().copied().collect::<RapidHashSet<Txid>>();
     let (first, later) = tick(&state, &unloaded);
-    assert_eq!(later, set(&[id(&p)]), "r and c withheld");
+    assert_eq!(later, set(&[id(&p)]), "c withheld");
     let (again, _) = tick(&state, &unloaded);
     assert!(
         Arc::ptr_eq(&first, &again),
@@ -359,20 +352,12 @@ fn rebuilds_follow_the_view_gaps() {
         "c follows once its parent isn't missing"
     );
 
-    state.template_only.clear();
-    let (listed, later) = tick(&state, &unloaded);
-    assert!(
-        !Arc::ptr_eq(&loaded, &listed),
-        "the template-only gap changed"
-    );
-    assert_eq!(later, set(&[id(&p), id(&r), id(&c)]));
-
     // A listed transaction stuck unloaded withholds what follows it, but holds no tiers back,
     // even when nothing else changed since it was only missing.
     let stuck = set(&[Txid::from(unloaded_parent)]);
     let mut rebuilder = Rebuilder::default();
     for ready in [false, true] {
-        rebuilder.tick(&state, None, FeeRate::default(), &[], &stuck, ready);
+        rebuilder.tick(&state, FeeRate::default(), &[], &stuck, ready);
         assert_eq!(rebuilder.snapshot().ensure_fees().is_ok(), ready);
     }
 }
@@ -447,7 +432,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let tip_block = Block { hash: tip, txids: Arc::from([txid(9), spent_by_h]) };
     state.ancestry.follow(tip, &[Block::unread(hash(4)), tip_block]);
     let mut publish = |state: &State, previous: &ReadOnlyState| {
-        rebuilder.tick(state, None, FeeRate::default(), &[], &RapidHashSet::default(), true);
+        rebuilder.tick(state, FeeRate::default(), &[], &RapidHashSet::default(), true);
         previous
             .updated(state, tip, rebuilder.snapshot().clone(), None, true)
             .expect("published")
@@ -898,9 +883,7 @@ fn snapshot_after(blocks: &[&[&Arc<Transaction>]], later: usize, previous: &Snap
         .collect();
     let mut snapshot = Snapshot::build(
         txs,
-        indexed[0].clone(),
-        false,
-        &indexed[1..],
+        &indexed,
         KeyIndex::default(),
         Chunks::default(),
         FeeRate::default(),
@@ -915,7 +898,7 @@ fn snapshot_after(blocks: &[&[&Arc<Transaction>]], later: usize, previous: &Snap
                 .unzip()
         })
         .collect();
-    snapshot.set_served(bodies, 0, false, previous.served_blocks());
+    snapshot.set_served(bodies, 0, previous.served_blocks());
     Arc::new(snapshot)
 }
 
@@ -1016,7 +999,7 @@ fn served_json_carries_only_complete_content_and_retires() {
     let mut stats = snapshot(&[&[&a, &b]], 0);
     let stats = Arc::get_mut(&mut stats).unwrap();
     stats.block_stats[0].total_fee += Sats::from(1u64);
-    stats.set_served(vec![(vec![a.clone(), b.clone()], vec![TxRecord::digest_of(&a), TxRecord::digest_of(&b)])], 0, false, old.served_blocks());
+    stats.set_served(vec![(vec![a.clone(), b.clone()], vec![TxRecord::digest_of(&a), TxRecord::digest_of(&b)])], 0, old.served_blocks());
     assert!(stats.served_blocks()[0].json.get().is_none(), "stats participate in identity");
     assert_ne!(old.served_blocks()[0].content.hash, old.served_blocks()[1].content.hash);
     assert!(old.served_blocks()[1].json.get().is_none(), "no carry from another index");
@@ -1078,9 +1061,9 @@ fn block_diff_reconstructs_current_bodies() {
 }
 
 /// Priority-only changes invalidate projection reuse without changing paid totals, including
-/// signed-64 extremes and clearing the authoritative map. GBT order remains the node's.
+/// signed-64 extremes and clearing the authoritative map; block 0 ranks by them.
 #[test]
-fn ranked_projection_preserves_paid_fees_and_template_order() {
+fn ranked_projection_preserves_paid_fees() {
     let mut state = State::default();
     for seed in [1, 2] {
         let tx = body(seed);
@@ -1096,31 +1079,24 @@ fn ranked_projection_preserves_paid_fees_and_template_order() {
     }
     let mut rebuilder = Rebuilder::default();
     let unloaded = RapidHashSet::default();
-    for template in [None, Some(Vec::new()), Some(vec![txid(1)])] {
-        let mut previous = None;
-        for fees in [vec![(txid(1), 3_150_000_000_000_000), (txid(2), 4_200_000_000_000_000)],
-            vec![(txid(1), i64::MAX), (txid(2), i64::MIN)], Vec::new()] {
-            rebuilder.tick(&state, template.as_deref(), FeeRate::ZERO, &fees, &unloaded, true);
-            let snap = rebuilder.snapshot().clone();
-            if let Some(previous) = previous { assert!(!Arc::ptr_eq(&snap, &previous)); }
-            let (ranked, _, _) = Snapshot::build_txs(&state.txs, &[], &fees, &mut ChunkCache::default());
-            let paid: u64 = ranked.iter().map(|tx| u64::from(tx.fee)).sum();
-            assert_eq!(paid, 3_000);
-            for tx in &ranked {
-                let expected = fees.iter().find(|(id, _)| *id == tx.txid).map_or(u64::from(tx.fee) as i64, |&(_, f)| f);
-                assert_eq!(tx.modified, expected);
-            }
-            let first = if let Some(template) = &template {
-                assert_eq!(snap.block0_txids().collect::<Vec<_>>(), *template);
-                snap.served_blocks().get(1).and_then(|b| b.content.bodies.first()).map(|tx| tx.txid)
-            } else { snap.block0_txids().next() };
-            if template.as_ref().is_none_or(|t| t.is_empty()) {
-                assert_eq!(first, Some(if fees.get(1).is_some_and(|&(_, fee)| fee == i64::MIN) { txid(1) } else { txid(2) }));
-            }
-            rebuilder.tick(&state, template.as_deref(), FeeRate::ZERO, &fees, &unloaded, true);
-            assert!(Arc::ptr_eq(rebuilder.snapshot(), &snap));
-            previous = Some(snap);
+    let mut previous = None;
+    for fees in [vec![(txid(1), 3_150_000_000_000_000), (txid(2), 4_200_000_000_000_000)],
+        vec![(txid(1), i64::MAX), (txid(2), i64::MIN)], Vec::new()] {
+        rebuilder.tick(&state, FeeRate::ZERO, &fees, &unloaded, true);
+        let snap = rebuilder.snapshot().clone();
+        if let Some(previous) = previous { assert!(!Arc::ptr_eq(&snap, &previous)); }
+        let (ranked, _, _) = Snapshot::build_txs(&state.txs, &fees, &mut ChunkCache::default());
+        let paid: u64 = ranked.iter().map(|tx| u64::from(tx.fee)).sum();
+        assert_eq!(paid, 3_000);
+        for tx in &ranked {
+            let expected = fees.iter().find(|(id, _)| *id == tx.txid).map_or(u64::from(tx.fee) as i64, |&(_, f)| f);
+            assert_eq!(tx.modified, expected);
         }
+        let first = snap.served_blocks()[0].content.bodies.first().map(|tx| tx.txid);
+        assert_eq!(first, Some(if fees.get(1).is_some_and(|&(_, fee)| fee == i64::MIN) { txid(1) } else { txid(2) }));
+        rebuilder.tick(&state, FeeRate::ZERO, &fees, &unloaded, true);
+        assert!(Arc::ptr_eq(rebuilder.snapshot(), &snap));
+        previous = Some(snap);
     }
 }
 

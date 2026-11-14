@@ -2,26 +2,16 @@ use brk_types::{FeeRate, MempoolBlock, Sats, VSize, Weight, weighted_percentiles
 
 use super::{SnapTx, TxIndex};
 
-/// Block 0 mirrors Core's `getblocktemplate`, so the full 0..100 range
-/// is exact and worth surfacing.
-const CORE_PERCENTILES: [u64; 7] = [0, 10, 25, 50, 75, 90, 100];
+/// Block 0 is the next block itself (the template's), so the full 0..100 range is exact and
+/// worth surfacing.
+const NEXT_BLOCK_PERCENTILES: [u64; 7] = [0, 10, 25, 50, 75, 90, 100];
 
-/// Blocks 1..N are a projection. Tighten to 5..95 so a single
-/// stale-GBT leftover or CPFP orphan doesn't blow out the min/max
-/// columns of an otherwise tightly clustered fee tier.
+/// Blocks 1..N are a projection: later blocks depend on transactions not yet broadcast. Tightened
+/// to 5..95 so a single CPFP orphan doesn't blow out the min/max columns of an otherwise tightly
+/// clustered fee tier.
 const PROJECTED_PERCENTILES: [u64; 7] = [5, 10, 25, 50, 75, 90, 95];
 
 /// Per-block aggregate stats for a projected block.
-///
-/// `block_stats[0]` mirrors Bitcoin Core's `getblocktemplate` - the
-/// node's actual next-block selection. `fee_range` spans the full
-/// 0..100 percentiles.
-///
-/// `block_stats[1..]` are the package-aware projection (whole chunks by
-/// descending feerate within Core's budgets), a client-facing fee-tier
-/// gradient: later blocks depend on transactions not yet broadcast. Their
-/// `fee_range` is clipped to 5..95 percentiles so a single stale-GBT
-/// leftover or CPFP orphan doesn't dominate the min/max columns.
 #[derive(Debug, Clone, Default)]
 pub struct BlockStats {
     pub tx_count: u32,
@@ -33,23 +23,19 @@ pub struct BlockStats {
 }
 
 impl BlockStats {
-    /// Stats for every projected block, in order: block 0 (Core's template, or the packer's first
-    /// block without one, each member at its chunk's feerate) over the exact 0..100 percentiles, the rest (each member at the feerate
-    /// it was packed at) over the clipped 5..95 range that hides CPFP / stale-GBT outliers.
-    pub fn for_blocks(
-        block0: &[(TxIndex, FeeRate)],
-        rest: &[Vec<(TxIndex, FeeRate)>],
-        txs: &[SnapTx],
-    ) -> Vec<Self> {
-        let mut stats = vec![Self::compute(block0.iter().copied(), txs, CORE_PERCENTILES)];
-        // Projected blocks descend by rate. Read backwards so sort's ascending-run check
-        // avoids sorting them again.
-        stats.extend(
-            rest.iter().map(|block| {
-                Self::compute(block.iter().rev().copied(), txs, PROJECTED_PERCENTILES)
-            }),
-        );
-        stats
+    /// Stats for every projected block, in order, each member at the feerate it was packed at:
+    /// block 0 over the exact 0..100 percentiles, the rest over the clipped 5..95 range.
+    pub fn for_blocks(blocks: &[Vec<(TxIndex, FeeRate)>], txs: &[SnapTx]) -> Vec<Self> {
+        // Packed blocks descend by rate. Read backwards so sort's ascending-run check avoids
+        // sorting them again.
+        blocks
+            .iter()
+            .enumerate()
+            .map(|(i, block)| {
+                let percentiles = if i == 0 { NEXT_BLOCK_PERCENTILES } else { PROJECTED_PERCENTILES };
+                Self::compute(block.iter().rev().copied(), txs, percentiles)
+            })
+            .collect()
     }
 
     /// Vsize-weighted percentile distribution over the members' feerates, as Core's

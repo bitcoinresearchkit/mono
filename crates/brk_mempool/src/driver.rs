@@ -146,9 +146,7 @@ impl Mempool {
             modified_fees,
             new_entries,
             new_txs,
-            block_template_txids,
             template_json,
-            template_only,
             capped,
             requested,
             checked,
@@ -178,7 +176,6 @@ impl Mempool {
             return Err(Error::updating());
         }
         self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
-        self.state.template_only = template_only;
         self.template = template_json.map(BlockTemplateJson::new);
         let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
         prevouts::fill(&mut self.state, resolver, &unloaded);
@@ -186,7 +183,6 @@ impl Mempool {
         self.state.graveyard.end_cycle(&unloaded, &mut self.state.upkeep);
         self.rebuilder.tick(
             &self.state,
-            block_template_txids.as_deref(),
             rpc.min_fee,
             &modified_fees,
             &unloaded,
@@ -258,7 +254,6 @@ impl Mempool {
         live: &[Txid],
         requested: &[Txid],
     ) -> (RapidHashSet<Txid>, bool) {
-        // Block 0's template-only bodies aren't the pool's, so they don't count as loaded.
         let membership_complete = self.state.contains_all(live);
         let unloaded: RapidHashSet<Txid> = if membership_complete {
             RapidHashSet::default()

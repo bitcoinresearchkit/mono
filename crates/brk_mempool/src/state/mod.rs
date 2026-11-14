@@ -32,9 +32,6 @@ pub struct State {
     pub ancestry: Ancestry,
     /// Records restored from a shutdown save or publication, not yet checked against Core.
     pub unverified: Vec<Txid>,
-    /// The last applied poll's template transactions the listing lacks (left Core's pool since
-    /// it built the template), in its order: block 0's bodies alone, never pooled.
-    pub template_only: Vec<TxRecord>,
 }
 
 impl State {
