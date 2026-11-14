@@ -11140,7 +11140,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { AGES, HOLDERS, capitalized, dimensionBand, holderName, inSentence, shownStep } from "/studio/words.js";
       import { chainFacts } from "/studio/facts.js";
       import { addressSteps } from "/studio/addresses.js";
-      import { RUNNING_TOTALS } from "/studio/running-totals.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -12066,18 +12065,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A visible layer whose values participate in its pane's framing. @param {Layer} layer */
       const framesAxis = (layer) => !layer.hidden && layer.fit !== false && (heatLike(layer) || fittable(layer));
       /**
-       * Whether a layer is a running total: a series that is one (see running-totals.js), or a formula of them through
-       * affine arithmetic (their sums and differences, by constants), each layer it reads followed once.
+       * Whether a layer is a running total: a series that is one (its info's accumulation, `cumulative`: read before
+       * it's drawn, see resolve), or a formula of them through affine arithmetic (their sums and differences, by
+       * constants), each layer it reads followed once.
        * @returns {boolean}
        */
       function cumulativeLayer(/** @type {Chart} */ doc, /** @type {Layer} */ layer) {
-        if (layer.series) return RUNNING_TOTALS.has(layer.series);
+        const runningTotal = (/** @type {string} */ name) => known.get(name)?.accumulation === "cumulative";
+        if (layer.series) return runningTotal(layer.series);
         if (!layer.formula) return false;
         const roles = new Map(), visiting = new Set();
         /** @param {Node} node @returns {"constant" | "total" | null} */
         const kind = (node) => {
           if (node.k === "num") return "constant";
-          if (node.k === "series") return RUNNING_TOTALS.has(node.v) ? "total" : null;
+          if (node.k === "series") return runningTotal(node.v) ? "total" : null;
           if (node.k === "ref") {
             const source = doc.layers.find((item) => item.letter === node.v);
             return source ? role(source) : null;
@@ -12095,9 +12096,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         /** @param {Layer} item @returns {"constant" | "total" | null} */
         const role = (item) => {
-          if (item.series) return RUNNING_TOTALS.has(item.series) ? "total" : null;
-          const known = roles.get(item.id);
-          if (known !== undefined) return known;
+          if (item.series) return runningTotal(item.series) ? "total" : null;
+          const had = roles.get(item.id);
+          if (had !== undefined) return had;
           if (!item.formula || visiting.has(item.id)) return null;
           visiting.add(item.id);
           let value = null;
@@ -15949,7 +15950,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Data ──────────────────────────────────────────────────────────────────
 
-      /** @type {Map<string, Promise<{ description?: string, indexes: string[], type: string }>>} */
+      /** @type {Map<string, Promise<{ description?: string, indexes: string[], type: string, accumulation: string }>>} */
       const infos = new Map();
       /** Series info as it came, by name. */
       const known = new Map();
@@ -24176,7 +24177,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const PRESET_MARKS = "bitview-studio:preset-marks";
       const THUMB_POINTS = 28;
       /** The drawings' version: one kept from before it (drawn by older rules) isn't reused. Drawings only, never saved charts or preferences. */
-      const MARK_VERSION = "3:";
+      const MARK_VERSION = "4:";
       /** A drawing's key, what it's of, under the drawings' version (see MARK_VERSION). @param {unknown[]} parts */
       const drawingKey = (parts) => MARK_VERSION + JSON.stringify(parts);
       const validDrawingKey = (key) => typeof key === "string" && key.startsWith(MARK_VERSION);
@@ -33999,7 +34000,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!response.ok) throw new Error(`The catalog answered ${response.status}`);
           /** @type {Map<string, string>} */
           const described = new Map();
-          /** What the API says of each series (its description, intervals, type), as its info answers it. @type {Map<string, { description: string, indexes: string[], type: string }>} */
+          /** What the API says of each series (its description, intervals, type, accumulation), as its info answers it. @type {Map<string, { description: string, indexes: string[], type: string, accumulation: string }>} */
           const about = new Map();
           /** @type {Set<string>} */
           const byBlock = new Set();
@@ -34018,7 +34019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const text = node.type === "string" || node.type === "object";
               if (!text) described.set(node.name, typeof node.description === "string" ? node.description : "");
               // (Its type as the API's info says it, "Dollars", "Sats": the catalog's kind; its "type" is the JSON one.)
-              about.set(node.name, { description: typeof node.description === "string" ? node.description : "", indexes: node.indexes, type: typeof node.kind === "string" ? node.kind : "" });
+              about.set(node.name, { description: typeof node.description === "string" ? node.description : "", indexes: node.indexes, type: typeof node.kind === "string" ? node.kind : "", accumulation: node.accumulation });
             } else if (node && typeof node === "object") for (const child of Object.values(node)) stack.push(child);
           }
           for (const [name, { indexes }] of about) if (!dated.some((id) => indexes.includes(id))) byBlock.add(name);

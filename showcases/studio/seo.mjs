@@ -1,10 +1,9 @@
 // Beside the page, for those who find Studio: sitemap.xml, every address it has (Home, the presets' page,
 // each section, each preset: made by addresses.js, the page's own), llms.txt, its guide for assistants (the page's own
 // "about" section, as Markdown, with the presets' sections at their addresses), and presets.hash, what the page keys
-// its presets' cache by (see below); and for the page itself, running-totals.js, the series that are running totals
-// (its zero framing reads them, at once). Made from the presets as a server's chain makes them (the local one's by
-// default; its facts kept beside them, chain-facts.json) and the client's series, their titles checked against the rules
-// every title keeps (see TITLE_RULES), and written again whenever the presets, the guide or the client change:
+// its presets' cache by (see below). Made from the presets as a server's chain makes them (the local one's by default;
+// its facts kept beside them, chain-facts.json) and the client's series, their titles checked against the rules every
+// title keeps (see TITLE_RULES), and written again whenever the presets, the guide or the client change:
 //
 //   bun showcases/studio/seo.mjs [server]          writes them, by the server's chain now
 //   bun showcases/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
@@ -77,18 +76,6 @@ if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown
 
 const book = addressesOf(presets);
 
-// The running totals, by the client's shape: a flow's `cumulative`, beside its `sum` windows (a share's all-time
-// percentage, also named so, has none), and every series under one. Checked on two known ones: a flow's total is one,
-// a share's isn't.
-const totals = new Set(), walk = [[client.series, false]];
-while (walk.length) {
-  const [node, total] = /** @type {[any, boolean]} */ (walk.pop());
-  if (node && typeof node.name === "string" && typeof node.indexes === "function") {
-    if (total) totals.add(node.name);
-  } else if (node && typeof node === "object") for (const key of Object.keys(node)) walk.push([node[key], total || (key === "cumulative" && Object.hasOwn(node, "sum"))]);
-}
-if (!totals.has("block_count_cumulative") || totals.has("fee_share_cumulative")) throw new Error("Running totals misread from the client's shape (block_count_cumulative is one, fee_share_cumulative isn't; or one was renamed)");
-
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
 if (!about) throw new Error("No about section in the page: llms.txt is made from it");
 // (Its tags gone, a tag being < and a letter: the guide's comparisons (B > 3.5, < >= <=) kept as written.)
@@ -125,7 +112,6 @@ for (const file of sources) {
 }
 
 const files = {
-  "running-totals.js": `// Made by seo.mjs from the client's series (not edited by hand): every series that's a running total, what Studio's\n// zero framing reads (see cumulativeLayer in index.html).\nexport const RUNNING_TOTALS = new Set([\n${[...totals].sort().map((name) => `  "${name}",`).join("\n")}\n]);\n`,
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
   "presets.hash": `${sha.digest("hex")}\n`,
   "chain-facts.json": `${factsKey(facts)}\n`,
@@ -149,4 +135,4 @@ if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
   process.exit(1);
 }
-console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), running-totals.js (${totals.size} series), presets.hash (${sources.size} modules), from ${check ? "the chain's facts they were written by" : `${SERVER}'s chain`}; ${shown.length} names shown keep the rules`);
+console.log(`${check ? "Up to date" : "Written"}: llms.txt (${(files["llms.txt"].length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), presets.hash (${sources.size} modules), from ${check ? "the chain's facts they were written by" : `${SERVER}'s chain`}; ${shown.length} names shown keep the rules`);
