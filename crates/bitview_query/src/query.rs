@@ -46,9 +46,9 @@ pub(crate) struct QueryInner<'a> {
     pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
-    /// The last URPD grid built.
+    /// Recently used URPD grids, oldest first.
     #[cfg(feature = "full-api")]
-    pub(crate) urpd_grid: parking_lot::Mutex<Option<Arc<UrpdGrid>>>,
+    pub(crate) urpd_grid: parking_lot::Mutex<std::collections::VecDeque<Arc<UrpdGrid>>>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,

@@ -14,7 +14,10 @@ mod entries;
 
 use entries::UrpdHeader;
 
-/// The price × age grid of the block a distribution was asked for last, which every cohort,
+// Two slots keep a day and the tip together; each grid was ~11 MB at the 2026-11 tip.
+const GRID_SLOTS: usize = 2;
+
+/// The price × age grid of a block, which every cohort,
 /// aggregation and weight of that block projects.
 pub(crate) struct UrpdGrid {
     hash: BlockHash,
@@ -230,14 +233,35 @@ impl Query {
         let pin = self.read_pin(pin);
         let weights = self.urpd_weights(ages, height, weight)?;
         let version = self.urpd_grid_version();
-        let last = self.0.urpd_grid.lock().clone();
-        let grid = match last {
-            Some(grid) if grid.hash == hash && grid.version == version => grid,
+        let cached = {
+            let mut grids = self.0.urpd_grid.lock();
+            grids
+                .iter()
+                .position(|grid| grid.hash == hash && grid.version == version)
+                .map(|i| {
+                    let grid = grids.remove(i).unwrap();
+                    grids.push_back(Arc::clone(&grid));
+                    grid
+                })
+        };
+        let grid = match cached {
+            Some(grid) => grid,
             // Built unlocked so different blocks build at once; concurrent misses on one block
             // each build it, as many as the route admits.
             _ => {
                 let grid = Arc::new(self.urpd_grid(&pin, height, hash, version)?);
-                *self.0.urpd_grid.lock() = Some(Arc::clone(&grid));
+                let mut grids = self.0.urpd_grid.lock();
+                // Another request may have built the same grid while the lock was released.
+                if let Some(i) = grids
+                    .iter()
+                    .position(|g| g.hash == hash && g.version == version)
+                {
+                    grids.remove(i);
+                }
+                if grids.len() == GRID_SLOTS {
+                    grids.pop_front();
+                }
+                grids.push_back(Arc::clone(&grid));
                 grid
             }
         };
