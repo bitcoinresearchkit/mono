@@ -10403,7 +10403,7 @@
           right: 53px;
         }
 
-        .folder-row:has(> .chart-go) > .folder-item {
+        .folder-row:has(> .chart-go):is(:hover:where(.can-hover *), :has(:focus-visible)) > .folder-item {
           padding-right: 81px;
         }
 
