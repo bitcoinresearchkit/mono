@@ -29650,9 +29650,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const i = chartPreset(chart);
         return i >= 0 ? book.presets[i] : "/";
       }
-      /** The address the page is known by: the live one's (next's, any other, point there). */
-      // (The copy's links its own: Studio's would open it, and its storage.)
+      /** Share links open this copy, whose storage belongs to its origin. */
       const ORIGIN = `${location.origin}/studio`;
+      /** Search names the live Studio on every origin. */
+      const CANONICAL_ORIGIN = `https://bitview.space${BASE}`;
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
@@ -29687,7 +29688,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its canonical address made once it knows where it is: none before, rather than the root's at every address.)
         let link = /** @type {HTMLLinkElement | null} */ (document.querySelector('link[rel="canonical"]'));
         if (!link) document.head.append((link = Object.assign(document.createElement("link"), { rel: "canonical" })));
-        const canonical = `${ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
+        const canonical = `${CANONICAL_ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
         if (link.href !== canonical) link.href = canonical;
         // (Where the page's Studio's own: a link still being read, a picture's, or broken, left as it is till it's dealt with.)
         // (An address waiting for the presets to be read, kept.)
