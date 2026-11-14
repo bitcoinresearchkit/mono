@@ -109,6 +109,10 @@ impl Rebuilder {
             held_fees,
         );
         snapshot.set_served(blocks, state.txs.content_revision(), previous.served_blocks());
+        snapshot.block0 = projection.blocks[0]
+            .iter()
+            .map(|(index, _)| state.txs.record_at(index.as_usize()).clone())
+            .collect();
         snapshot.unloaded = unloaded.clone();
         snapshot.modified_fees = modified_fees.into();
         snapshot

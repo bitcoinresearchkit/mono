@@ -2,9 +2,8 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
-    MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid, Version,
+    BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid, Version,
 };
-use serde_json::Value;
 
 use super::{mempool_block, mempool_txids};
 use crate::{
@@ -165,10 +164,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::MEMPOOL)
                     .mcp_ignore()
                     .summary("Next block template")
-                    .description("Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: [\"segwit\"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. It is Core's own selection; projected block 0, `GET /api/mempool-blocks/0`, is Bitview's. Answers `404` while Core gives no template (in initial sync, or with no peers).\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*")
-                    .json_response::<Value>()
+                    .description("The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Rebuilt whenever block 0 or the tip changes.\n\n*[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*")
+                    .json_response::<BlockTemplate>()
                     .not_modified()
-                    .not_found()
             },
         ),
     )

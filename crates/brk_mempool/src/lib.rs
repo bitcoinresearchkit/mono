@@ -9,7 +9,7 @@
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use arc_swap::ArcSwap;
-use brk_rpc::Client;
+use brk_rpc::{Client, CoreTemplateHeader};
 use rapidhash::RapidHashMap;
 
 mod api;
@@ -22,6 +22,7 @@ mod snapshot;
 mod state;
 mod steps;
 mod stores;
+mod template;
 #[cfg(test)]
 mod tests;
 
@@ -35,6 +36,7 @@ pub use read_only::ReadOnlyMempool;
 use snapshot::Snapshot;
 pub use state::ReadOnlyState;
 pub use steps::{TxRemoval, prevouts::rpc_resolver};
+pub use template::TipFacts;
 
 use snapshot::Rebuilder;
 use state::State;
@@ -80,8 +82,11 @@ pub struct Mempool {
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
-    /// Core's template from the last applied cycle, published with the projection built from it.
-    template: Option<BlockTemplateJson>,
+    /// The template of the published snapshot's block 0, kept while neither changes.
+    template: Option<template::Built>,
+    /// What Core's own template of the last applied cycle says of the next block: the benchmark
+    /// ours is checked against.
+    core_header: Option<CoreTemplateHeader>,
     /// Cycles in a row whose new blocks couldn't all be read.
     unread_cycles: u32,
     /// Listed transactions asked for that didn't load, with how many cycles in a row.
@@ -106,6 +111,7 @@ impl Mempool {
             chain: ChainWaker::default(),
             withheld: None,
             template: None,
+            core_header: None,
             unread_cycles: 0,
             failing: RapidHashMap::default(),
             graveyard_file: None,

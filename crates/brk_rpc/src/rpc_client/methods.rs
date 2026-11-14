@@ -135,24 +135,26 @@ impl Client {
         let template = match template_raw {
             Ok(raw) => {
                 let read = || -> Result<_> {
-                    let template: GetBlockTemplate = from_str(raw.get())?;
+                    let mut template: GetBlockTemplate = from_str(raw.get())?;
+                    template.header.weight = template.transactions.iter().map(|tx| tx.weight).sum();
+                    template.header.txs = template.transactions.len();
                     Ok((
                         Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?,
                         ClientInner::build_gbt(template.transactions)?,
+                        template.header,
                     ))
                 };
                 read()
                     .inspect_err(|error| warn!(%error, "getblocktemplate: unreadable, set aside"))
                     .ok()
-                    .map(|(tip, txs)| (tip, txs, raw))
             }
             Err(error) => {
                 debug!(%error, "getblocktemplate: none");
                 None
             }
         };
-        let (tip_hash, block_template, template_json) = match template {
-            Some((tip, template, raw)) => (tip, Some(template), Some(raw)),
+        let (tip_hash, block_template, core_header) = match template {
+            Some((tip, template, header)) => (tip, Some(template), Some(header)),
             None => {
                 let tip: String = from_str(tip_raw.get())?;
                 (Self::parse_block_hash(&tip, "getbestblockhash")?, None, None)
@@ -170,7 +172,7 @@ impl Client {
                 loaded: info.loaded,
             },
             block_template,
-            template_json,
+            core_header,
             modified_fees,
         })
     }

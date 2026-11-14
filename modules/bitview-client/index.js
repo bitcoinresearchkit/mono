@@ -321,6 +321,45 @@
  * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
  */
 /**
+ * The next block's template in BIP 22/23 form, as Bitcoin Core's `getblocktemplate` answers
+ * (`rules: ["segwit"]`): what pools and mining software read. Complete once a miner adds a
+ * coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Returned by
+ * `GET /api/block-template`.
+ *
+ * @typedef {Object} BlockTemplate
+ * @property {number} version - The block version: BIP 9 version bits, no deployment signaled.
+ * @property {string[]} rules - The rules the template follows: `!` marks one a client must understand.
+ * @property {{ [key: string]: number }} vbavailable - BIP 9 deployments the client may signal: none.
+ * @property {number} vbrequired - Version bits the client must set: none.
+ * @property {BlockHash} previousblockhash
+ * @property {BlockTemplateTransaction[]} transactions - The transactions, every parent before its children.
+ * @property {{ [key: string]: string }} coinbaseaux - Data to put in the coinbase's script: none.
+ * @property {Sats} coinbasevalue - What the coinbase may pay: the subsidy at `height` plus every transaction's fee (sats).
+ * @property {string} target - The proof-of-work target, as 64 hex digits.
+ * @property {Timestamp} mintime - The earliest valid `curtime`: the median time past plus one second.
+ * @property {string[]} mutable - What the client may change: the time, the transactions, the previous block.
+ * @property {string} noncerange
+ * @property {number} sigoplimit - Consensus limits for the whole block, coinbase included.
+ * @property {number} sizelimit
+ * @property {number} weightlimit
+ * @property {Timestamp} curtime - The block time to use: now, or `mintime` if later.
+ * @property {string} bits - The compact target, as 8 hex digits.
+ * @property {Height} height
+ * @property {string} defaultWitnessCommitment - The coinbase output committing to the transactions' witnesses (BIP 141), as script hex.
+ */
+/**
+ * One transaction of a [`BlockTemplate`].
+ *
+ * @typedef {Object} BlockTemplateTransaction
+ * @property {string} data - The transaction serialized with its witness, as hex.
+ * @property {Txid} txid
+ * @property {string} hash - The witness transaction id.
+ * @property {number[]} depends - The 1-based positions in `transactions` of the ones it spends.
+ * @property {Sats} fee - Its fee (sats).
+ * @property {SigOps} sigops - Its signature-operation cost.
+ * @property {Weight} weight
+ */
+/**
  * Block information returned for timestamp queries
  *
  * @typedef {Object} BlockTimestamp
@@ -9930,17 +9969,17 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Next block template
    *
-   * Bitcoin Core's `getblocktemplate` response (BIP 22/23, `rules: ["segwit"]`) from the poll the projected blocks were last built from, byte for byte as Core returned it: `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue`, `target`, `bits`, `curtime`, `mintime`, `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A valid block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. It is Core's own selection; projected block 0, `GET /api/mempool-blocks/0`, is Bitview's. Answers `404` while Core gives no template (in initial sync, or with no peers).
+   * The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Rebuilt whenever block 0 or the tip changes.
    *
    * *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
    *
    * Endpoint: `GET /api/block-template`
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<*>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockTemplate>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<BlockTemplate>>}
    */
   async getBlockTemplate({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/block-template`;
-    return this._getCached(path, 'json', _readJson(true), { signal, onValue, cache, memCache });
+    return this._getCached(path, 'json', _readJson({ "coinbaseaux": true, "vbavailable": true }), { signal, onValue, cache, memCache });
   }
 
   /**

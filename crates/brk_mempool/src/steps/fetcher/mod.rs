@@ -37,7 +37,7 @@ pub fn fetch(
     failing: &RapidHashMap<Txid, u32>,
     previous_modified: &[(Txid, i64)],
 ) -> Result<Fetched> {
-    let MempoolObservation { state, block_template, template_json, modified_fees } =
+    let MempoolObservation { state, block_template, core_header, modified_fees } =
         client.fetch_mempool_state(previous_modified)?;
     let block_template = block_template.unwrap_or_default();
 
@@ -141,7 +141,7 @@ pub fn fetch(
         recheck,
         new_entries,
         new_txs,
-        template_json: template_json.map(Into::into),
+        core_header,
         capped,
         requested,
     })

@@ -1,4 +1,4 @@
-//! Core's `getblocktemplate` response, served as it arrived.
+//! The next block's template, served as built.
 
 use std::{
     hash::Hasher,
@@ -9,18 +9,18 @@ use brk_error::{Error, Result};
 
 use crate::{ReadOnlyState, json};
 
-/// One poll's `getblocktemplate` response, its bytes as Core sent them, shared.
+/// The next block's template as JSON, shared.
 #[derive(Clone)]
 pub struct BlockTemplateJson(Arc<Template>);
 
 struct Template {
-    json: Box<str>,
-    /// The bytes' validator, hashed by the first request: most polls' templates are never served.
+    json: Vec<u8>,
+    /// The bytes' validator, hashed by the first request: most templates are never served.
     hash: OnceLock<u64>,
 }
 
 impl BlockTemplateJson {
-    pub(crate) fn new(json: Box<str>) -> Self {
+    pub(crate) fn new(json: Vec<u8>) -> Self {
         Self(Arc::new(Template { json, hash: OnceLock::new() }))
     }
 
@@ -28,28 +28,29 @@ impl BlockTemplateJson {
     pub fn hash(&self) -> u64 {
         *self.0.hash.get_or_init(|| {
             let mut hasher = json::keyed_hasher();
-            hasher.write(self.0.json.as_bytes());
+            hasher.write(&self.0.json);
             hasher.finish()
         })
     }
 }
 
+impl PartialEq for BlockTemplateJson {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 impl AsRef<[u8]> for BlockTemplateJson {
     fn as_ref(&self) -> &[u8] {
-        self.0.json.as_bytes()
+        &self.0.json
     }
 }
 
 impl ReadOnlyState {
-    /// Core's template from the poll the published projection was built from: none before the
-    /// first publication (`StateUpdating`), nor while Core gives none (`NotFound`).
+    /// The template of the published projection's block 0: `StateUpdating` before the first
+    /// publication, and for the moment the chain can't yet say what the next block's header is.
     pub fn block_template(&self) -> Result<BlockTemplateJson> {
         self.snapshot().ensure_projection()?;
-        self.template.clone().ok_or_else(|| {
-            Error::NotFound(
-                "Bitcoin Core gives no block template now (in initial sync, or with no peers)"
-                    .into(),
-            )
-        })
+        self.template.clone().ok_or_else(Error::updating)
     }
 }

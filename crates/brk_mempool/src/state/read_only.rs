@@ -30,7 +30,7 @@ pub struct ReadOnlyState {
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
     history: VecDeque<(Instant, usize, BlockContent)>,
-    /// Core's template from the poll the projection was built from, as it arrived.
+    /// The template of the projection's block 0 at its tip.
     pub(crate) template: Option<BlockTemplateJson>,
 }
 
@@ -50,7 +50,8 @@ impl ReadOnlyState {
                 .is_some_and(|pool| pool.matches(state, &tip, &graph));
         let projection_changed = graph.ensure_projection().is_ok()
             && (self.projection_tip != Some(tip) || !Arc::ptr_eq(&self.projection, &graph));
-        if !pool_changed && !projection_changed {
+        let template_changed = self.template.as_ref() != template;
+        if !pool_changed && !projection_changed && !template_changed {
             return None;
         }
         let mut next = self.clone();
@@ -64,8 +65,8 @@ impl ReadOnlyState {
         }
         if projection_changed {
             next.publish_projection(graph, tip);
-            next.template = template.cloned();
         }
+        next.template = template.cloned();
         Some(next)
     }
 

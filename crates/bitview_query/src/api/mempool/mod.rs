@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use brk_mempool::{BlockTemplateJson, JsonBody, PendingView, ReadOnlyState};
+use brk_mempool::{BlockTemplateJson, JsonBody, PendingView, ReadOnlyState, TipFacts};
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
-use brk_types::{MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
+use brk_types::{BlockHash, Height, MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 use vecdb::ReadableVec;
@@ -17,6 +17,9 @@ pub use rbf::ResolvedRbf;
 /// normally trails the chain by a cycle (a block), and one further behind has stalled and tells
 /// nothing of what's pending now. It bounds the view's build too: every input of those blocks.
 const MAX_POOL_LAG: usize = 6;
+
+/// Blocks per difficulty epoch, on every network.
+const EPOCH_BLOCKS: u32 = 2016;
 
 /// A body the pool built once, shared, and its content hash as its identity.
 fn published_json((bytes, hash): JsonBody) -> Result<(Arc<[u8]>, RepresentationId)> {
@@ -213,6 +216,21 @@ impl Query {
         let template = self.require_mempool()?.block_template()?;
         let identity = RepresentationId::Content(template.hash());
         Ok((template, identity))
+    }
+
+    /// What the next block's template needs of the indexed chain at `tip`: its height and
+    /// header, its median time past, and its difficulty epoch's first block time.
+    pub fn tip_facts(&self, tip: &BlockHash) -> Result<TipFacts> {
+        let pin = self.pin_safe_lengths()?;
+        let height = self.height_by_hash_at(tip, &pin)?;
+        let blocks = &self.indexer().vecs().blocks;
+        let epoch_start = Height::new(*height / EPOCH_BLOCKS * EPOCH_BLOCKS);
+        Ok(TipFacts {
+            height,
+            header: self.read_block_header_at(height, &pin)?,
+            median_time: blocks.median_time.collect_one(height).data()?,
+            epoch_start_time: blocks.timestamp.collect_one(epoch_start).data()?,
+        })
     }
 
     /// Capture a published block for cheap validation and deferred construction.

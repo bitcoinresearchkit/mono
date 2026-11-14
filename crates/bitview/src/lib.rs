@@ -175,7 +175,13 @@ where
         let chain = query.sync(bitview_query::Query::clone);
         let published = mempool.chain_waker();
         thread::spawn(move || {
-            mempool.start_with(resolver, || chain.tip_blockhash());
+            let tip_facts = |tip: &_| {
+                chain
+                    .tip_facts(tip)
+                    .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))
+                    .ok()
+            };
+            mempool.start_with(resolver, || chain.tip_blockhash(), tip_facts);
         });
         published
     };

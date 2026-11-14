@@ -26,13 +26,15 @@ use serde_json::to_vec;
 pub use snap_tx::SnapTx;
 pub use tx_index::TxIndex;
 
-use crate::{JsonBody, json, key::TxKey};
+use crate::{JsonBody, json, key::TxKey, stores::tx_store::TxRecord};
 
 #[derive(Default)]
 pub struct Snapshot {
     /// Dense per-tx data indexed by `TxIndex`. Each entry carries the
     /// linearized chunk rate plus parent/child adjacency.
     txs: Vec<SnapTx>,
+    /// Block 0's records, in block order: what the next block's template is built from.
+    pub(crate) block0: Box<[TxRecord]>,
     /// Every projected block's statistics: block 0's, then the package-aware projection's
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
@@ -97,6 +99,7 @@ impl Snapshot {
         );
         Self {
             txs,
+            block0: Box::default(),
             block_stats,
             fees,
             complete: held_fees.is_none(),

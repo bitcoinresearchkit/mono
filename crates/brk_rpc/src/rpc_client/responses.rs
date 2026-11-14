@@ -35,6 +35,25 @@ pub struct GetBlockTemplate {
     #[serde(rename = "previousblockhash")]
     pub previous_block_hash: String,
     pub transactions: Vec<BlockTemplateTransaction>,
+    #[serde(flatten)]
+    pub header: CoreTemplateHeader,
+}
+
+/// What Core's `getblocktemplate` says of the next block: the benchmark our own template is
+/// checked against.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct CoreTemplateHeader {
+    pub height: u32,
+    /// The compact target, as 8 hex digits.
+    pub bits: String,
+    pub mintime: u32,
+    #[serde(rename = "coinbasevalue")]
+    pub coinbase_value: u64,
+    /// Its transactions' weight and count, summed from the list.
+    #[serde(skip)]
+    pub weight: u64,
+    #[serde(skip)]
+    pub txs: usize,
 }
 
 /// One of `getblocktemplate`'s transactions.
