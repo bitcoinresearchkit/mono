@@ -2274,7 +2274,8 @@
         min-width: 0;
         min-height: 0;
         margin: 8px 8px 8px 0;
-        transition: margin var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
+        /* Only full-screen changes animate the margin; viewport breakpoints must not resize the chart each frame. */
+        transition: margin var(--card-margin-duration, 0s) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
         /* (Its sheen a line of its background, its ring an outline: resized, as the sidebar and the panel move, a box with

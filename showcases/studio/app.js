@@ -19377,8 +19377,15 @@ function setFull(on = !fullOn()) {
 }
 /** The chart alone, laid out (full screen's, a picture's) or not: no peeking panel, no sheet; its button said so. */
 function layOutAlone(/** @type {boolean} */ on) {
-  const button = $("full");
+  const button = $("full"), card = /** @type {HTMLElement} */ (document.querySelector(".card"));
+  card.style.setProperty("--card-margin-duration", "var(--dur-layout)");
   /** @type {HTMLElement} */ (document.querySelector(".app")).toggleAttribute("data-full", on);
+  const release = () => {
+    const moving = card.getAnimations().filter((motion) => motion instanceof CSSTransition && motion.transitionProperty.startsWith("margin-") && (motion.playState === "running" || motion.playState === "paused"));
+    if (moving.length) void Promise.allSettled(moving.map((motion) => motion.finished)).then(release);
+    else card.style.removeProperty("--card-margin-duration");
+  };
+  release();
   if (on) {
     document.body.removeAttribute("data-peek");
     delete document.body.dataset.sheet;
