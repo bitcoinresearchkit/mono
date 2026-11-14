@@ -28898,8 +28898,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (wasOpen && !away) openChart(standIn ?? library.charts[Math.min(index, library.charts.length - 1)]);
         save();
         renderCharts();
-        // (Gone back to the Charts page: said once another chart's under it, its Undo the page's last step then.)
-        const say = () => toast(`Deleted “${titleOf(doc)}”`, {
+        const text = `Deleted “${titleOf(doc)}”`, action = {
           label: "Undo",
           run: () => {
             if (inLibrary(doc)) return;
@@ -28920,19 +28919,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return () => (same() ? ((now) => now && deleteChart(now))(library.charts.find((other) => other.id === doc.id)) : keptAsEdited([doc]));
           },
           undone: `“${titleOf(doc)}” is back`,
-        });
-        // (Said later, as a redo's: still the redo's, the steps after it kept.)
-        const asRedo = redoing;
-        if (away) void until(() => chart !== doc, 4000).then(() => {
-          const was = redoing;
-          redoing = asRedo;
-          try {
-            say();
-          } finally {
-            redoing = was;
-          }
-        });
-        else say();
+        };
+        if (!away) return toast(text, action);
+        // (Gone back to the Charts page: its step done now, in its place among the others; said once another chart's
+        // under it.)
+        const step = libraryStep(text, action.run, action.undone);
+        void until(() => chart !== doc, 4000).then(() => toast(text, { ...action, step }));
       }
       /**
        * A blank chart, where to start from (series, a preset, a file): yours at once, first in your charts (on a folder's
@@ -40005,7 +39997,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * (not `of` a chart, a chart's own step's: see undoToast) keeps that step (see libraryEdits): the toast's button undoes it
        * while it's still the last, as ⌘Z does (see historyFor); one whose `run` gives back how to do it again is followed
        * by a Redo (`undone` saying it): a folder or a chart deleted, moved, copied, back and gone again as a chart's edits are.
-       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, of?: Chart, folder?: string }} [action]
+       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, of?: Chart, folder?: string, step?: LibraryStep | null }} [action]
        */
       function toast(text, action, done = true) {
         toasts++;
@@ -40025,7 +40017,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const undoes = action?.label === "Undo";
         // (A Library step: kept, as long as the Library's are.)
-        const step = undoes && action && !action.of ? libraryStep(text, action.run, action.undone) : null;
+        // (Or its step done already, said late: see deleteChart.)
+        const step = undoes && action && !action.of ? ("step" in action ? action.step ?? null : libraryStep(text, action.run, action.undone)) : null;
         if (step && action?.folder) step.folder = action.folder;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
         toastOf = action?.of ?? (chartChanged ? chart : null);
