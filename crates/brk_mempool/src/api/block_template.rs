@@ -6,6 +6,7 @@ use std::{
 };
 
 use brk_error::{Error, Result};
+use brk_types::BlockHash;
 
 use crate::{ReadOnlyMempool, json};
 
@@ -15,13 +16,15 @@ pub struct BlockTemplateJson(Arc<Template>);
 
 pub(crate) struct Template {
     json: Vec<u8>,
+    /// The tip its block extends.
+    tip: BlockHash,
     /// The bytes' validator, hashed by the first request: most templates are never served.
     hash: OnceLock<u64>,
 }
 
 impl Template {
-    pub(crate) fn new(json: Vec<u8>) -> Self {
-        Self { json, hash: OnceLock::new() }
+    pub(crate) fn new(json: Vec<u8>, tip: BlockHash) -> Self {
+        Self { json, tip, hash: OnceLock::new() }
     }
 }
 
@@ -44,8 +47,14 @@ impl AsRef<[u8]> for BlockTemplateJson {
 
 impl ReadOnlyMempool {
     /// The newest template Core accepted: block 0's of the newest snapshot checked, which trails
-    /// the published block 0 by one check. `StateUpdating` until the first is accepted.
+    /// the published block 0 by one check. `StateUpdating` until one is accepted at the published
+    /// block 0's tip: one at an older tip describes a block no longer minable.
     pub fn block_template(&self) -> Result<BlockTemplateJson> {
-        self.template.load_full().map(BlockTemplateJson).ok_or_else(Error::updating)
+        let tip = self.load().projection_tip();
+        self.template
+            .load_full()
+            .filter(|template| Some(template.tip) == tip)
+            .map(BlockTemplateJson)
+            .ok_or_else(|| Error::updating())
     }
 }

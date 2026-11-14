@@ -105,17 +105,9 @@ impl Checker {
                     let checked = facts.as_ref().and_then(|(_, facts)| {
                         accepted(&job.snapshot.block0, facts, job.core.as_ref(), &client)
                     });
-                    match checked {
-                        Some(template) => {
-                            served.store(Some(Arc::new(template)));
-                            accepted_for = Some((job.snapshot, job.tip));
-                        }
-                        // One accepted at an older tip describes a block no longer minable.
-                        None if accepted_for.as_ref().is_some_and(|(_, tip)| *tip != job.tip) => {
-                            served.store(None);
-                            accepted_for = None;
-                        }
-                        None => {}
+                    if let Some(template) = checked {
+                        served.store(Some(Arc::new(template)));
+                        accepted_for = Some((job.snapshot, job.tip));
                     }
                 }
             })
@@ -185,7 +177,7 @@ fn accepted(
         serialize_us = (started.elapsed() - built - proposed).as_micros() as u64,
         "block template: accepted"
     );
-    Some(Template::new(json))
+    Some(Template::new(json, template.previousblockhash))
 }
 
 /// The template of the block after `tip` holding `block0`'s transactions in its order (every
