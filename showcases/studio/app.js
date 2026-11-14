@@ -6937,16 +6937,20 @@ function reveal(/** @type {number} */ join, /** @type {-1 | 1} */ outward) {
 const defaultSize = (i) => (i === 0 ? 3 : 1.4);
 /**
  * The panes folded: those with nothing shown (every layer in them hidden: as a preset opens some, or as
- * hidden one by one), while another shows something. A folded pane keeps only its legend's height: its layers'
- * names, there to be shown again; showing one opens it as tall as it was.
+ * hidden one by one), while another shows something (or all, with `empty`). On screen a folded pane keeps only its
+ * legend's height: its layers' names, there to be shown again; showing one opens it as tall as it was.
  */
-function foldedPanes(/** @type {Chart} */ doc) {
+function foldedPanes(/** @type {Chart} */ doc, empty = false) {
   // (A signal shows nothing of its own: its marks are its layer's.)
   const showing = new Set(doc.layers.filter((layer) => !layer.hidden && layer.type !== "signal").map((layer) => layer.pane));
-  return new Set(showing.size ? doc.panes.filter((pane) => !showing.has(pane.id)).map((pane) => pane.id) : []);
+  return new Set(showing.size || empty ? doc.panes.filter((pane) => !showing.has(pane.id)).map((pane) => pane.id) : []);
 }
 /** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
-function paneFactors(/** @type {Chart} */ doc) {
+function paneFactors(/** @type {Chart} */ doc, picture = exporting) {
+  if (picture) {
+    const folded = foldedPanes(doc, true);
+    return doc.panes.map((pane, i) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(i)));
+  }
   const folded = foldedPanes(doc), count = engine.panes.length, reach = folded.size ? parseFloat(css("--control-hit")) : 0;
   // (Its legend's names: hidden, its layers have no values under them; an error, if one has one.)
   const strip = (pane) => {
@@ -6970,10 +6974,10 @@ let lookDoc = null;
  * drag jumped back a frame at a time, and was lost if let go just then).
  */
 let panesLaid = { doc: /** @type {Chart | null} */ (null), meant: "", panes: /** @type {any[]} */ ([]), factors: /** @type {number[]} */ ([]) };
-function sizePanes(doc = lookDoc ?? chart, again = false) {
+function sizePanes(doc = lookDoc ?? chart, again = false, picture = exporting) {
   const panes = engine.panes;
   if (!doc || panes.length !== doc.panes.length) return;
-  const factors = paneFactors(doc), meant = `${doc.panes.map((pane) => pane.id).join()}|${factors.join()}`;
+  const factors = paneFactors(doc, picture), meant = `${doc.panes.map((pane) => pane.id).join()}|${factors.join()}`;
   if (doc === panesLaid.doc && meant === panesLaid.meant && panes.every((pane, i) => pane === panesLaid.panes[i]) && !again) return;
   panesLaid = { doc, meant, panes: [...panes], factors };
   if (!factors.some((factor, i) => Math.abs(panes[i].share - factor) > 1e-6)) return;
@@ -28073,7 +28077,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
       // (The chart library's own frame back to its container's size, and following it again.)
       sizeChart(element.clientWidth, element.clientHeight);
       [wrapper.style.width, wrapper.style.height] = wrapped;
-      sizePanes();
+      sizePanes(undefined, false, false);
       if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
       // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
       if (sized) (engine.time.rightOffset = rightGap()), engine.invalidate(true);
@@ -28360,15 +28364,14 @@ function measureLegends(scale) {
 }
 /**
  * A picture's long or truncated legends (as presentLegends wrote them, the panes at the picture's width): set apart,
- * under the plot (see apartItems), the plot whole, none of it over its lines; a short folded legend stays in its pane,
- * a key (profile groups or cloud colors) stays over the plot. Undone by what it returns.
+ * under the plot (see apartItems), the plot whole, none of it over its lines; a key (profile groups or cloud colors)
+ * stays over the plot. Undone by what it returns.
  * @returns {() => void}
  */
 function setApart() {
-  const folded = foldedPanes(chart);
   const apart = legends().filter((legend) => {
     const first = /** @type {HTMLElement | undefined} */ (all$("button", legend).find((button) => button.style.display !== "none")), row = first?.offsetHeight ?? 0;
-    return row > 0 && ((!folded.has(legend.dataset.pane ?? "") && legend.offsetHeight > row * 2 + 6) || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
+    return row > 0 && (legend.offsetHeight > row * 2 + 6 || all$(".name", legend).some((name) => name.scrollWidth > name.clientWidth));
   }).map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.display]));
   for (const [legend] of apart) {
     legend.dataset.apart = "";
@@ -28438,7 +28441,7 @@ const apartItems = () => all$("#chart .legend[data-apart]").map((legend) => all$
 /**
  * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
  * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
- * plot), a hidden layer's left out (the others close up as they would; a folded pane's kept, faded, all it shows),
+ * plot), a hidden layer and a folded pane's legend left out,
  * none lit or selected.
  * @returns {() => void}
  */
@@ -28446,7 +28449,7 @@ function presentLegends() {
   const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
   const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
   const keys = all$("#chart .legend .legend-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
-  const folded = foldedPanes(chart), lit = profileLit;
+  const folded = foldedPanes(chart, true), lit = profileLit;
   // (Each layer named, as the library lays a picture's: its chip let go, put back after.)
   const laid = engine.panes.flatMap((pane) => (pane.legend ? [pane.legend] : []));
   for (const legend of laid) (legend.setWhole(true), legendAccess(legend.element));
@@ -28455,11 +28458,11 @@ function presentLegends() {
   // (Every layer as it is, none faded by the spotlight: lit again after.)
   const spot = spotlit;
   spotlight(null);
-  for (const [legend] of strips) Object.assign(legend.style, { display: "flex", flexWrap: "wrap", overflow: "visible", rowGap: "2px", height: "auto" });
+  for (const [legend] of strips) Object.assign(legend.style, { display: folded.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", rowGap: "2px", height: "auto" });
   // (A profile's key onto more lines where it's longer than its pane is wide.)
   for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
   for (const [button] of buttons) {
-    if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
+    if (button.classList.contains("hidden")) button.style.display = "none";
     button.classList.remove("selected", "lit");
   }
   return () => {

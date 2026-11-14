@@ -415,8 +415,9 @@ export class Chart {
     // (A pointer's place kept where it is on the chart: the plot moved under it as a left axis comes or goes.)
     if (this.pointerX === this.pointerX) this.pointerX += wasLeft - left;
     let top = 0;
+    const last = this.panes.findLastIndex((pane) => pane.share > 0);
     for (const [k, pane] of this.panes.entries()) {
-      const bottom = k === this.panes.length - 1 ? room : Math.round(top + (room * pane.share) / shares);
+      const bottom = !pane.share ? top : k === last ? room : Math.round(top + (room * pane.share) / shares);
       pane.place(top, width, bottom - top, axis, this.dpr);
       pane.canvas.style.left = pane.frame.style.left = `${left}px`;
       pane.axisCanvas.style.left = `${left + pane.plot}px`;

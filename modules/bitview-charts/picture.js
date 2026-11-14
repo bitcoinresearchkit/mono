@@ -18,12 +18,13 @@ export function picture(chart, { crosshair = false } = {}) {
   g.fillRect(0, 0, canvas.width, canvas.height);
   const left = Math.round(chart.left * dpr);
   for (const pane of chart.panes) {
+    if (!pane.height) continue;
     g.drawImage(pane.canvas, left, Math.round(pane.top * dpr));
     if (pane.axisCanvas.width) g.drawImage(pane.axisCanvas, left + Math.round(pane.plot * dpr), Math.round(pane.top * dpr));
     if (pane.leftCanvas && left) g.drawImage(pane.leftCanvas, 0, Math.round(pane.top * dpr));
   }
   g.drawImage(chart.timeAxis.canvas, left, Math.round((chart.height - chart.timeHeight) * dpr));
   if (crosshair) g.drawImage(chart.crosshair.canvas, 0, 0);
-  for (const pane of chart.panes) if (pane.overCanvas) g.drawImage(pane.overCanvas, left, Math.round(pane.top * dpr));
+  for (const pane of chart.panes) if (pane.height && pane.overCanvas) g.drawImage(pane.overCanvas, left, Math.round(pane.top * dpr));
   return canvas;
 }
