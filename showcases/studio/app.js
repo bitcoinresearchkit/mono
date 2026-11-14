@@ -4638,7 +4638,7 @@ for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
     // the frame they'd begin in, iOS showing the sheet more than half in at once, or gone in one frame.)
     if (shown !== was) beginOnTime(...[panel, $("scrim")].flatMap((element) => element.getAnimations().filter((animation) => animation instanceof CSSTransition)));
     const modal = (wasModal = shown && sheetWhole());
-    for (const element of [$("sidebar"), ...$("main").children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
+    for (const element of [$("sidebar"), ...(/** @type {HTMLElement} */ (document.querySelector(".card-inner"))).children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
       if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = modal;
     }
     if (shown && (!was || (modal && !modalWas)) && !panel.contains(document.activeElement)) {

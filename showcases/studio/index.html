@@ -811,7 +811,9 @@
       /* ── Shell: the sidebar on the page, the chart on one card ───────────── */
 
       .app {
-        position: relative;
+        /* WebKit can leave the document viewport shifted after an installed app rotates (related: WebKit bug 313800). */
+        position: fixed;
+        inset: 0;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         height: 100dvh;
@@ -2273,7 +2275,6 @@
         min-height: 0;
         margin: 8px 8px 8px 0;
         transition: margin var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
-        overflow: hidden;
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
         /* (Its sheen a line of its background, its ring an outline: resized, as the sidebar and the panel move, a box with
@@ -2283,6 +2284,17 @@
         outline: var(--card-ring);
         isolation: isolate;
         container: card / inline-size;
+      }
+
+      .card-inner {
+        /* A scroll-container clip can use WebKit's stale viewport after rotation; keep the card's shadow outside. */
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        clip-path: inset(0 round calc(var(--radius-xl) - 1px));
+        transition: clip-path var(--dur-layout) var(--ease-layout);
       }
 
       .card-head {
@@ -2376,6 +2388,10 @@
           border-color: transparent;
           border-radius: 0;
           /* (On a phone, what the header and the tab bar kept clear: the notch, the home indicator.) */
+        }
+
+        .card-inner {
+          clip-path: inset(0);
           padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
@@ -8887,6 +8903,10 @@
           outline: none;
         }
 
+        .card-inner {
+          clip-path: inset(0);
+        }
+
         /* Behind a chart's card, its own color: where the page isn't (an installed app's status bar), iOS shows the
            page's, and the ground's would be a darker strip over the header, a shadow (as theme-color reads, which iOS
            doesn't follow live). A picture's page, its own (the grid's). */
@@ -9108,7 +9128,7 @@
 
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
              sheet whole, as it was behind the dim. Its legends a line each, as on a phone on its side.) */
-          body[data-sheet="panel"] .card {
+          body[data-sheet="panel"] .card-inner {
             padding-bottom: var(--sheet-half-height);
           }
         }
@@ -9486,7 +9506,7 @@
         /* The tab bar, a phone's own: a pill floating over the page's foot, as wide as its content, its four tabs the same
            everywhere, each named under its icon, where you are on a raised chip; over what scrolls under it (the grid,
            the sheet), translucent. Room is kept for it at the card's foot. */
-        .card {
+        .card-inner {
           padding-bottom: var(--bar-room);
         }
 
@@ -9639,7 +9659,7 @@
           /* (Their room given to the chart, a gap kept over the keys, where the page is made shorter (Android's); where
              the keys lie over it (iOS's), that room is under them: kept, the chart not laid out again for nothing as
              they come and go (the title tapped, ⌘K). With the sheet up, its room kept, the foot's given.) */
-          &[data-keys="shortening"]:not([data-sheet="panel"]) .card {
+          &[data-keys="shortening"]:not([data-sheet="panel"]) .card-inner {
             padding-bottom: 8px;
           }
 
@@ -9704,7 +9724,7 @@
         }
 
         /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
-        .app[data-full] .card {
+        .app[data-full] .card-inner {
           padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
@@ -9718,12 +9738,12 @@
             padding-inline: 0;
           }
 
-          .app[data-full] .card {
+          .app[data-full] .card-inner {
             padding-right: env(safe-area-inset-right);
             padding-left: env(safe-area-inset-left);
           }
 
-          .card {
+          .card-inner {
             padding-right: env(safe-area-inset-right);
             padding-bottom: env(safe-area-inset-bottom);
             padding-left: calc(var(--rail) + env(safe-area-inset-left));
@@ -9890,14 +9910,14 @@
 
           /* (The chart beside the column, in what it leaves, as above the upright half sheet: its latest values and its
              axis in sight while they're changed.) */
-          body[data-sheet="panel"] .card {
+          body[data-sheet="panel"] .card-inner {
             padding-right: var(--column);
           }
 
           /* (Too narrow for both, the chart 280px beside the column (past the rail): the column over the chart's right,
              not leaving it a strip.) */
           @media (max-width: 665px) {
-            body[data-sheet="panel"] .card {
+            body[data-sheet="panel"] .card-inner {
               padding-right: env(safe-area-inset-right);
             }
           }
@@ -10729,11 +10749,12 @@
 
         body > :not(.app, #page-info),
         .app > :not(.card),
-        .card > :not(.about) {
+        .card-inner > :not(.about) {
           display: none !important;
         }
 
         .app.app {
+          position: static;
           display: block;
           height: auto;
           visibility: visible !important;
@@ -10748,6 +10769,12 @@
           outline: none;
           container-type: normal;
           animation: none;
+        }
+
+        .card-inner {
+          display: block;
+          clip-path: none;
+          transition: none;
         }
 
         .about.about {
@@ -10849,6 +10876,7 @@
       <div id="side-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Sidebar width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
 
       <main id="main" class="card" style="--i: 2">
+        <div class="card-inner">
         <section id="about" class="about" aria-label="About Studio's links">
           <h1>Bitview Studio</h1>
           <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on).</p>
@@ -11038,6 +11066,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div id="panel-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Panel width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
         </div>
 
+        </div>
       </main>
 
       <section id="home" class="home" role="main" style="--i: 2" aria-labelledby="home-title">
