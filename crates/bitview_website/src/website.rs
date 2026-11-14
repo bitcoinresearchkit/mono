@@ -17,7 +17,7 @@ use tracing::{error, info};
 
 use crate::Error;
 
-static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
+pub(crate) static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
 
 /// Embedded files' content hashes by path, computed once on first use.
 static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
@@ -59,7 +59,11 @@ pub(crate) fn hash(contents: &[u8]) -> String {
 
 /// The content type a file's name declares: the kinds a site holds, bytes otherwise.
 fn content_type(path: &Path) -> &'static str {
-    match path.extension().and_then(|extension| extension.to_str()).unwrap_or_default() {
+    match path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+    {
         "css" => "text/css",
         "wasm" => "application/wasm",
         "js" | "mjs" => "application/javascript",
@@ -136,12 +140,19 @@ impl Website {
                 for file in candidates.map(|candidate| base.join(candidate)) {
                     let metadata = match fs::metadata(&file) {
                         Ok(metadata) => metadata,
-                        Err(e) if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::NotADirectory) => continue,
+                        Err(e)
+                            if matches!(
+                                e.kind(),
+                                ErrorKind::NotFound | ErrorKind::NotADirectory
+                            ) =>
+                        {
+                            continue;
+                        }
                         Err(e) => return Err(failed(&file, e)),
                     };
                     if metadata.is_file() {
                         return fs::read(&file)
-                            .map(|contents| File::fresh(contents, &file))
+                            .map(|contents| File::fresh(contents, file.strip_prefix(base).unwrap()))
                             .map_err(|e| failed(&file, e));
                     }
                 }

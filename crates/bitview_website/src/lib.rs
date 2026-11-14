@@ -6,6 +6,7 @@
 
 mod error;
 mod handlers;
+mod page_info;
 mod router;
 mod website;
 

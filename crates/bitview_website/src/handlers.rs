@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::Path};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use axum::{
     body::{Body, Bytes},
@@ -11,6 +11,7 @@ use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
     Error, Website,
+    router::Site,
     website::{File, hash},
 };
 
@@ -43,14 +44,14 @@ const NOT_FOUND_PAGE: &str = "404.html";
 /// Any address on the site, `/` included: the file it names, else where it moved, else the not-found answer, in one job
 /// on the website's files. A file there always wins, as a site served from a folder may have its own.
 pub async fn file_handler(
-    State(website): State<Website>,
+    State(site): State<Arc<Site>>,
     headers: HeaderMap,
     uri: Uri,
 ) -> Response<Body> {
-    read(website, move |website| match respond(website, &uri, &headers) {
+    read(site, move |site| match respond(site, &uri, &headers) {
         Err(error) if error.is_not_found() => match moved(uri.path(), uri.query()) {
             Some(to) => permanent(&to),
-            None => not_found(website, &headers),
+            None => not_found(&site.website, &headers),
         },
         answer => answer.into_response(),
     })
@@ -121,11 +122,11 @@ static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
 /// Runs a job on the website's files. Filesystem reads block, so there it leaves the executor, holding a permit until it
 /// ends.
 async fn read(
-    website: Website,
-    job: impl FnOnce(&Website) -> Response<Body> + Send + 'static,
+    site: Arc<Site>,
+    job: impl FnOnce(&Site) -> Response<Body> + Send + 'static,
 ) -> Response<Body> {
-    if website.filesystem_path().is_none() {
-        return job(&website);
+    if site.website.filesystem_path().is_none() {
+        return job(&site);
     }
     let permit = match FILESYSTEM_READS.acquire().await {
         Ok(permit) => permit,
@@ -133,7 +134,7 @@ async fn read(
     };
     spawn_blocking(move || {
         let _permit = permit;
-        job(&website)
+        job(&site)
     })
     .await
     .unwrap_or_else(|e| Error::internal(e.to_string()).into_response())
@@ -147,23 +148,23 @@ fn permanent(location: &str) -> Response<Body> {
     response
 }
 
-fn respond(website: &Website, uri: &Uri, request_headers: &HeaderMap) -> Result<Response<Body>, Error> {
+fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Response<Body>, Error> {
     // The path as sent: written the one way, it has no escape to decode. The not-found page is
     // the answer to other addresses, not one of its own.
     let path = uri.path().strip_prefix('/').unwrap_or_default();
     if !is_one_address(uri.path()) || path == NOT_FOUND_PAGE {
         return Err(Error::not_found());
     }
-    let File {
-        path: file,
-        contents,
-        hash: file_hash,
-        content_type,
-    } = website.get_file(path)?;
+    let mut found = site.website.get_file(path)?;
+    let file = &found.path;
+    let content_type = found.content_type;
     let has_slash = path.ends_with('/');
     // A folder's page is at its address with the slash, the links' and the sitemap's.
     if !path.is_empty() && !has_slash && file.ends_with(Path::new(path).join("index.html")) {
-        let query = uri.query().map(|query| format!("?{query}")).unwrap_or_default();
+        let query = uri
+            .query()
+            .map(|query| format!("?{query}"))
+            .unwrap_or_default();
         return Ok(permanent(&format!("{}/{query}", uri.path())));
     }
     // A slash after a file's name, or a query for anything but a page, whose script reads it.
@@ -172,22 +173,35 @@ fn respond(website: &Website, uri: &Uri, request_headers: &HeaderMap) -> Result<
     {
         return Err(Error::not_found());
     }
+    let varies = site
+        .pages
+        .apply(&mut found, uri.path(), request_headers)
+        .map_err(|error| Error::internal(format!("{}: {error}", uri.path())))?;
+    let File {
+        contents,
+        hash: file_hash,
+        content_type,
+        ..
+    } = found;
     // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
     let etag = (!cfg!(debug_assertions))
         .then(|| file_hash.map_or_else(|| Cow::Owned(hash(&contents)), Cow::Borrowed));
     let etag = etag.as_deref();
     if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
         let mut response = bitview_http::not_modified();
-        insert_caching(response.headers_mut(), etag);
+        insert_caching(response.headers_mut(), etag, varies);
         return Ok(response);
     }
     let mut response = file_response(contents, content_type);
-    insert_caching(response.headers_mut(), etag);
+    insert_caching(response.headers_mut(), etag, varies);
     Ok(response)
 }
 
 /// The validator and cache policy a file's 200 and 304 share: every file revalidates.
-fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
+fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, varies: bool) {
+    if varies {
+        headers.insert(header::VARY, HeaderValue::from_static("Accept"));
+    }
     if let Some(etag) = etag {
         // Weak: a CDN compressing the file serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
@@ -195,7 +209,15 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
         // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(REVALIDATE));
+    // Shared caches may ignore Vary: Accept. Browsers can still revalidate each representation.
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static(if varies {
+            "private, max-age=0, must-revalidate"
+        } else {
+            REVALIDATE
+        }),
+    );
 }
 
 /// Whether the path as sent is written the one way: no escape, no empty, `.` or `..` segment, which

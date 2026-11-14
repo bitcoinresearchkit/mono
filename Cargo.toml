@@ -96,6 +96,7 @@ byteview = { package = "brk_byteview", version = "0.13.0", path = "crates/bytevi
 corepc-jsonrpc = { package = "jsonrpc", version = "0.19.0", default-features = false }
 derive_more = { version = "2.1.1", features = ["add_assign", "deref", "deref_mut"] }
 fjall = { package = "brk_fjall", path = "crates/fjall", version = "0.13.0" }
+flate2 = "1.1.10"
 include_dir = "0.7"
 indexmap = { version = "2.14.2", features = ["serde"] }
 itoa = "1.0.18"

@@ -54,3 +54,33 @@ cargo run -p bitview_website --example website -- path/to/site
 ```
 
 Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its showcases.
+
+## Address-specific page info
+
+A folder can publish `page-info.json.gz`: a gzip-compressed UTF-8 JSON object keyed by addresses relative to that
+folder (`"/"`, `"/articles/example"`, etc.). Each entry has `title`, `description`, `canonical`, `json_ld` (a JSON value)
+and `markdown`. Only entries belonging to the `index.html` actually selected by the nearest-folder rule apply.
+Missing files or entries keep the ordinary response. Invalid data or templates stop router initialization with the file's name.
+
+That index provides exactly one pair of each marker, in document order:
+
+```html
+<head>
+  <!-- page-info-head -->
+  <!-- The generic title, description, canonical, og:title/description/url and JSON-LD go here. -->
+  <!-- /page-info-head -->
+</head>
+<body>
+  <article id="page-info"><!-- page-info-body --><!-- /page-info-body --></article>
+</body>
+```
+
+The server replaces the head slot and fills the body slot. The Markdown subset supports headings, paragraphs,
+unordered lists and HTTP(S), root-relative or fragment links; raw HTML is escaped. Rendered entries load once when
+the router starts, including for filesystem websites: restart after replacing the data. Gzip keeps large generated
+catalogs small on disk and in embedded builds; requests never decompress or render Markdown.
+
+An app removes its body article when it starts, leaving that article readable when JavaScript cannot run. HTML and
+Markdown carry the same content for every user agent. An explicit `Accept: text/markdown` preference over HTML selects
+the entry's Markdown instead; both variants send `Vary: Accept`, including on 304. Release ETags hash the final response
+bytes, so addresses and representations validate independently. Negotiated responses are private and must revalidate, so shared caches that ignore `Accept` cannot mix formats.
