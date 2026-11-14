@@ -210,9 +210,9 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// The template of the published projection's block 0 (BIP 22), with its content identity.
+    /// The newest block template Core accepted (BIP 22), with its content identity.
     pub fn block_template_json(&self) -> Result<(BlockTemplateJson, RepresentationId)> {
-        let template = self.require_mempool()?.block_template()?;
+        let template = self.mempool_handle().ok_or(Error::MempoolNotAvailable)?.block_template()?;
         let identity = RepresentationId::Content(template.hash());
         Ok((template, identity))
     }

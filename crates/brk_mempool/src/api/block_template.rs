@@ -7,23 +7,25 @@ use std::{
 
 use brk_error::{Error, Result};
 
-use crate::{ReadOnlyState, json};
+use crate::{ReadOnlyMempool, json};
 
 /// The next block's template as JSON, shared.
 #[derive(Clone)]
 pub struct BlockTemplateJson(Arc<Template>);
 
-struct Template {
+pub(crate) struct Template {
     json: Vec<u8>,
     /// The bytes' validator, hashed by the first request: most templates are never served.
     hash: OnceLock<u64>,
 }
 
-impl BlockTemplateJson {
+impl Template {
     pub(crate) fn new(json: Vec<u8>) -> Self {
-        Self(Arc::new(Template { json, hash: OnceLock::new() }))
+        Self { json, hash: OnceLock::new() }
     }
+}
 
+impl BlockTemplateJson {
     #[must_use]
     pub fn hash(&self) -> u64 {
         *self.0.hash.get_or_init(|| {
@@ -34,24 +36,16 @@ impl BlockTemplateJson {
     }
 }
 
-impl PartialEq for BlockTemplateJson {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
-    }
-}
-
 impl AsRef<[u8]> for BlockTemplateJson {
     fn as_ref(&self) -> &[u8] {
         &self.0.json
     }
 }
 
-impl ReadOnlyState {
-    /// The template of the published projection's block 0: `StateUpdating` until Core accepts
-    /// it (before the first publication, while the chain can't say what the next block's header
-    /// is, after a rejection).
+impl ReadOnlyMempool {
+    /// The newest template Core accepted: block 0's of the newest snapshot checked, which trails
+    /// the published block 0 by one check. `StateUpdating` until the first is accepted.
     pub fn block_template(&self) -> Result<BlockTemplateJson> {
-        self.snapshot().ensure_projection()?;
-        self.template.clone().ok_or_else(Error::updating)
+        self.template.load_full().map(BlockTemplateJson).ok_or_else(Error::updating)
     }
 }

@@ -205,7 +205,14 @@ impl Query {
     #[cfg(feature = "full-api")]
     #[inline]
     pub(crate) fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
-        self.0.mempool.as_ref().map(ReadOnlyMempool::load)
+        self.mempool_handle().map(ReadOnlyMempool::load)
+    }
+
+    /// The mempool's reader handle: its publications, and the block template replaced apart.
+    #[cfg(feature = "full-api")]
+    #[inline]
+    pub(crate) fn mempool_handle(&self) -> Option<&ReadOnlyMempool> {
+        self.0.mempool.as_ref()
     }
 
     /// The mempool, then a pin: the pool never follows a block before the chain publishes it, so

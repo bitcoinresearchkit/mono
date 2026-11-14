@@ -82,8 +82,8 @@ pub struct Mempool {
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
-    /// The template of the published snapshot's block 0 at its tip, once Core accepts it.
-    template: Option<template::Built>,
+    /// Builds and checks block 0's template off the cycle, once driven ([`Self::start_with`]).
+    checker: Option<template::Checker>,
     /// What Core's own template of the last applied cycle says of the next block: the benchmark
     /// ours is checked against.
     core_header: Option<CoreTemplateHeader>,
@@ -106,11 +106,12 @@ impl Mempool {
             rebuilder: Rebuilder::default(),
             read_only: ReadOnlyMempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
+                template: Arc::default(),
             },
             needs_recovery: false,
             chain: ChainWaker::default(),
             withheld: None,
-            template: None,
+            checker: None,
             core_header: None,
             unread_cycles: 0,
             failing: RapidHashMap::default(),

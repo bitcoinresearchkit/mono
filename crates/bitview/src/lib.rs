@@ -175,8 +175,9 @@ where
         let chain = query.sync(bitview_query::Query::clone);
         let published = mempool.chain_waker();
         thread::spawn(move || {
-            let tip_facts = |tip: &_| {
-                chain
+            let facts = chain.clone();
+            let tip_facts = move |tip: &_| {
+                facts
                     .tip_facts(tip)
                     .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))
                     .ok()

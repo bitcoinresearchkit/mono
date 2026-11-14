@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 
 use crate::{
     Mempool, State, TipFacts,
-    template::Built,
+    template::Checker,
     steps::{
         Confirmed, Fetched, applier,
         fetcher::{self, MAX_TX_FETCHES_PER_CYCLE},
@@ -42,15 +42,21 @@ impl Mempool {
     /// pair it with their chain view; when the chain publishes a tip and wakes the driver
     /// ([`Self::chain_waker`]), the last cycle's observation at that tip goes out at once, or a
     /// cycle starts at once for a pool behind it. `tip_facts`: what the chain says of a tip it
-    /// published, for the next block's template.
+    /// published, for the next block's template, which is built and checked on a thread of its
+    /// own ([`Checker`]).
     pub fn start_with<F>(
         &mut self,
         resolver: F,
         published_tip: impl Fn() -> BlockHash,
-        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
+        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts> + Send + 'static,
     ) where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> + Send,
     {
+        self.checker = Some(Checker::spawn(
+            self.client.clone(),
+            tip_facts,
+            self.read_only.template.clone(),
+        ));
         let gate = || Some(published_tip());
         let loading = Instant::now();
         loop {
@@ -61,9 +67,9 @@ impl Mempool {
                 if let Some((tip, membership_ready)) =
                     self.withheld.take_if(|(tip, _)| gate() == Some(*tip))
                 {
-                    return self.publish_observation(tip, membership_ready, &tip_facts);
+                    return self.publish_observation(tip, membership_ready);
                 }
-                match self.tick_with(&resolver, gate, &tip_facts) {
+                match self.tick_with(&resolver, gate) {
                     // A block arrived mid-fetch: the next cycle observes the new tip.
                     Ok(()) | Err(Error::StateUpdating(_)) => {}
                     Err(e) => error!("mempool update failed: {e}"),
@@ -95,24 +101,19 @@ impl Mempool {
     /// `StateUpdating` when it published nothing: the tip moved mid-cycle (a block arrived, or
     /// couldn't be read back), or the node is reloading its mempool.
     pub fn tick(&mut self) -> Result<()> {
-        self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None, |_| None)
+        self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None)
     }
 
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
     /// internally. Failed observations leave the public state intact.
-    fn tick_with<F>(
-        &mut self,
-        resolver: F,
-        gate: impl Fn() -> Option<BlockHash>,
-        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
-    ) -> Result<()>
+    fn tick_with<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<()>
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
         if self.needs_recovery {
             self.restore_published();
         }
-        let coherent = self.tick_once(resolver, gate, tip_facts)?;
+        let coherent = self.tick_once(resolver, gate)?;
         // Applied either way: a cycle whose tip moved at its end publishes nothing, the next one
         // builds on it.
         self.needs_recovery = false;
@@ -146,12 +147,7 @@ impl Mempool {
     }
 
     /// Whether the cycle's tip held to its end (only then can it publish).
-    fn tick_once<F>(
-        &mut self,
-        resolver: F,
-        gate: impl Fn() -> Option<BlockHash>,
-        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
-    ) -> Result<bool>
+    fn tick_once<F>(&mut self, resolver: F, gate: impl Fn() -> Option<BlockHash>) -> Result<bool>
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
@@ -207,7 +203,7 @@ impl Mempool {
         if coherent_tip {
             // Never ahead of the chain readers pair the pool with.
             if gate().is_none_or(|published| published == rpc.tip_hash) {
-                self.publish_observation(rpc.tip_hash, publishable, tip_facts);
+                self.publish_observation(rpc.tip_hash, publishable);
             } else {
                 self.withheld = Some((rpc.tip_hash, publishable));
             }
@@ -325,36 +321,17 @@ impl Mempool {
         });
     }
 
-    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck.
-    fn publish_observation(
-        &mut self,
-        tip: BlockHash,
-        membership_ready: bool,
-        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
-    ) {
-        self.refresh_template(tip, tip_facts);
+    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck. Block 0's
+    /// template follows on the checker's thread: publication never waits on Core's check.
+    fn publish_observation(&mut self, tip: BlockHash, membership_ready: bool) {
         let previous = self.read_only.load();
-        if let Some(next) = previous.updated(
-            &self.state,
-            tip,
-            self.rebuilder.snapshot().clone(),
-            self.template.as_ref().map(|built| &built.json),
-            membership_ready,
-        ) {
+        let snapshot = self.rebuilder.snapshot();
+        if let Some(next) = previous.updated(&self.state, tip, snapshot.clone(), membership_ready) {
             self.read_only.current.store(Arc::new(next));
         }
-    }
-
-    /// Builds the template of the published snapshot's block 0 at `tip`, unless Core accepted it
-    /// already ([`Built::new`]): one that failed is tried again at the next publication.
-    fn refresh_template(&mut self, tip: BlockHash, tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>) {
-        let snapshot = self.rebuilder.snapshot();
-        if self.template.as_ref().is_some_and(|built| built.is_of(snapshot, &tip)) {
-            return;
+        if let Some(checker) = &self.checker {
+            checker.check(snapshot.clone(), tip, self.core_header.clone());
         }
-        self.template = tip_facts(&tip).and_then(|facts| {
-            Built::new(snapshot.clone(), tip, &facts, self.core_header.as_ref(), &self.client)
-        });
     }
 
     fn panic_msg(payload: &(dyn Any + Send)) -> &str {

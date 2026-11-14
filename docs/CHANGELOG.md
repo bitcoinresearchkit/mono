@@ -87,7 +87,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   transactions in the same order, in the format pools and mining software read (`getblocktemplate`'s, with the
   height, previous block, bits, target and `mintime` from the indexed chain): a complete block once a coinbase paying
   `coinbasevalue` and carrying `default_witness_commitment` is added, each one served only after Bitcoin Core accepts
-  that block (proposal mode, every check but proof of work). Rebuilt whenever block 0 or the tip changes; its
+  that block (proposal mode, every check but proof of work), checked apart from the pool's publication, which never
+  waits on it (the template trails block 0 by about 0.15 s). Rebuilt whenever block 0 or the tip changes; its
   ETag follows its bytes, so an unchanged template answers 304 (about 3.8 MB raw at ~4,200 transactions)
 - Three on-chain valuation series, in the families that own their inputs: mining rewards'
   `puell_multiple` (365 times trailing-24h USD subsidy over trailing-365-day USD subsidy), supply's

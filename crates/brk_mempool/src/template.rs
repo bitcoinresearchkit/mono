@@ -1,8 +1,14 @@
 //! The next block's template (BIP 22), built from projected block 0 at the tip it extends and
-//! served only once Core accepts the block it describes.
+//! served only once Core accepts the block it describes, on a thread of its own: the cycle
+//! publishes without waiting on Core's check.
 
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::{Arc, Condvar, Mutex},
+    thread,
+    time::Instant,
+};
 
+use arc_swap::ArcSwapOption;
 use bitcoin::{
     Amount, Block, BlockHash as BitcoinBlockHash, CompactTarget, OutPoint, ScriptBuf, Sequence,
     Target, Transaction, TxIn, TxMerkleNode, TxOut, Witness, WitnessMerkleNode, Wtxid,
@@ -21,7 +27,7 @@ use brk_types::{BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats
 use rapidhash::RapidHashMap;
 use tracing::{debug, warn};
 
-use crate::{BlockTemplateJson, snapshot::Snapshot, stores::tx_store::TxRecord};
+use crate::{api::block_template::Template, snapshot::Snapshot, stores::tx_store::TxRecord};
 
 /// BIP 9 version bits with nothing signaled, as Core sets it with no deployment in progress.
 const VERSION: i32 = 0x2000_0000;
@@ -43,7 +49,7 @@ impl TipFacts {
     /// rules, which Bitview indexes (no testnet minimum-difficulty blocks).
     fn next_bits(&self) -> CompactTarget {
         let params = &Params::MAINNET;
-        if (*self.height + 1) as u64 % params.difficulty_adjustment_interval() != 0 {
+        if !((*self.height + 1) as u64).is_multiple_of(params.difficulty_adjustment_interval()) {
             return self.header.bits;
         }
         let timespan = self.header.time.saturating_sub(*self.epoch_start_time);
@@ -51,29 +57,78 @@ impl TipFacts {
     }
 }
 
-/// The template of one snapshot's block 0 at one tip, accepted by Core.
-pub(crate) struct Built {
-    snapshot: Arc<Snapshot>,
-    tip: BlockHash,
-    pub json: BlockTemplateJson,
+/// Builds and checks the template of each published snapshot's block 0 on its own thread,
+/// serving the newest Core accepted at the newest tip. Latest wins: a snapshot handed over while
+/// a check runs replaces one still waiting, so checks never queue behind the cycle.
+pub(crate) struct Checker {
+    next: Arc<(Mutex<Option<Job>>, Condvar)>,
 }
 
-impl Built {
-    /// Builds the template and has Core check the block it describes: none when Core rejects it
-    /// (its reason logged) or can't be asked.
-    pub fn new(
-        snapshot: Arc<Snapshot>,
-        tip: BlockHash,
-        facts: &TipFacts,
-        core: Option<&CoreTemplateHeader>,
-        client: &Client,
-    ) -> Option<Self> {
-        let json = accepted(&snapshot.block0, facts, core, client)?;
-        Some(Self { snapshot, tip, json })
+struct Job {
+    snapshot: Arc<Snapshot>,
+    tip: BlockHash,
+    core: Option<CoreTemplateHeader>,
+}
+
+impl Checker {
+    /// `tip_facts`: what the chain says of a tip it published. `served`: where accepted
+    /// templates go.
+    pub fn spawn(
+        client: Client,
+        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts> + Send + 'static,
+        served: Arc<ArcSwapOption<Template>>,
+    ) -> Self {
+        let next = Arc::new((Mutex::new(None::<Job>), Condvar::new()));
+        let waiting = Arc::clone(&next);
+        thread::Builder::new()
+            .name("block-template".into())
+            .spawn(move || {
+                // The last snapshot and tip Core accepted, and the facts of the tip last read.
+                let mut accepted_for: Option<(Arc<Snapshot>, BlockHash)> = None;
+                let mut facts: Option<(BlockHash, TipFacts)> = None;
+                loop {
+                    let job = {
+                        let (slot, ready) = &*waiting;
+                        let mut slot = ready
+                            .wait_while(slot.lock().expect("checker slot"), |job| job.is_none())
+                            .expect("checker slot");
+                        slot.take().expect("woken with a job")
+                    };
+                    if accepted_for.as_ref().is_some_and(|(snapshot, tip)| {
+                        Arc::ptr_eq(snapshot, &job.snapshot) && *tip == job.tip
+                    }) {
+                        continue;
+                    }
+                    if facts.as_ref().is_none_or(|(tip, _)| *tip != job.tip) {
+                        facts = tip_facts(&job.tip).map(|read| (job.tip, read));
+                    }
+                    let checked = facts.as_ref().and_then(|(_, facts)| {
+                        accepted(&job.snapshot.block0, facts, job.core.as_ref(), &client)
+                    });
+                    match checked {
+                        Some(template) => {
+                            served.store(Some(Arc::new(template)));
+                            accepted_for = Some((job.snapshot, job.tip));
+                        }
+                        // One accepted at an older tip describes a block no longer minable.
+                        None if accepted_for.as_ref().is_some_and(|(_, tip)| *tip != job.tip) => {
+                            served.store(None);
+                            accepted_for = None;
+                        }
+                        None => {}
+                    }
+                }
+            })
+            .expect("the block template thread starts");
+        Self { next }
     }
 
-    pub fn is_of(&self, snapshot: &Arc<Snapshot>, tip: &BlockHash) -> bool {
-        Arc::ptr_eq(&self.snapshot, snapshot) && self.tip == *tip
+    /// Hands over `snapshot` at `tip`, replacing one not yet taken. Handed over at every
+    /// publication: one Core couldn't check is tried again, one it accepted is skipped.
+    pub fn check(&self, snapshot: Arc<Snapshot>, tip: BlockHash, core: Option<CoreTemplateHeader>) {
+        let (slot, ready) = &*self.next;
+        *slot.lock().expect("checker slot") = Some(Job { snapshot, tip, core });
+        ready.notify_one();
     }
 }
 
@@ -83,7 +138,7 @@ fn accepted(
     facts: &TipFacts,
     core: Option<&CoreTemplateHeader>,
     client: &Client,
-) -> Option<BlockTemplateJson> {
+) -> Option<Template> {
     let started = Instant::now();
     let (template, proposal) = build(block0, facts, Timestamp::now());
     let built = started.elapsed();
@@ -130,7 +185,7 @@ fn accepted(
         serialize_us = (started.elapsed() - built - proposed).as_micros() as u64,
         "block template: accepted"
     );
-    Some(BlockTemplateJson::new(json))
+    Some(Template::new(json))
 }
 
 /// The template of the block after `tip` holding `block0`'s transactions in its order (every
