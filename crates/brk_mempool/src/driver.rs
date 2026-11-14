@@ -352,8 +352,16 @@ impl Mempool {
         if self.template.as_ref().is_some_and(|built| built.is_of(snapshot, &tip)) {
             return;
         }
+        let held = self.template.take().filter(|built| *built.tip() == tip).and_then(|built| built.json);
         let facts = tip_facts(&tip);
-        self.template = Some(Built::new(snapshot.clone(), tip, facts.as_ref(), self.core_header.as_ref()));
+        self.template = Some(Built::new(
+            snapshot.clone(),
+            tip,
+            facts.as_ref(),
+            self.core_header.as_ref(),
+            &self.client,
+            held,
+        ));
     }
 
     fn panic_msg(payload: &(dyn Any + Send)) -> &str {

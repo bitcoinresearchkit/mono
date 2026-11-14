@@ -57,6 +57,15 @@ impl Client {
         Ok(FeeRate::from_milli(sat_per_kvb as u64))
     }
 
+    /// Core's verdict on a block extending its tip (`getblocktemplate` in proposal mode: every
+    /// check but proof of work), the block as hex: `None` when valid, else Core's reason.
+    pub fn propose_block(&self, block_hex: &str) -> Result<Option<String>> {
+        self.0.call_with_retry(
+            "getblocktemplate",
+            &(json!({ "mode": "proposal", "data": block_hex }),),
+        )
+    }
+
     /// The best chain's tip height.
     pub fn get_last_height(&self) -> Result<Height> {
         let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;

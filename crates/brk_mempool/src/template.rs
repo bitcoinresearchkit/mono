@@ -1,12 +1,22 @@
-//! The next block's template (BIP 22), built from projected block 0 at the tip it extends.
+//! The next block's template (BIP 22), built from projected block 0 at the tip it extends and
+//! served only once Core accepts the block it describes.
 
 use std::{sync::Arc, time::Instant};
 
 use bitcoin::{
-    Block, CompactTarget, Target, WitnessMerkleNode, Wtxid, block::Header, hashes::Hash,
-    hex::DisplayHex, merkle_tree, params::Params,
+    Amount, Block, BlockHash as BitcoinBlockHash, CompactTarget, OutPoint, ScriptBuf, Sequence,
+    Target, Transaction, TxIn, TxMerkleNode, TxOut, Witness, WitnessMerkleNode, Wtxid,
+    absolute::LockTime,
+    block::{self, Header},
+    consensus::encode::{VarInt, serialize},
+    hashes::Hash,
+    hex::DisplayHex,
+    merkle_tree,
+    opcodes::OP_TRUE,
+    params::Params,
+    transaction,
 };
-use brk_rpc::CoreTemplateHeader;
+use brk_rpc::{Client, CoreTemplateHeader};
 use brk_types::{BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats, Timestamp, Txid};
 use rapidhash::RapidHashMap;
 use tracing::{debug, warn};
@@ -45,30 +55,44 @@ impl TipFacts {
 pub(crate) struct Built {
     snapshot: Arc<Snapshot>,
     tip: BlockHash,
-    /// None while the chain can't say what the next block's header is.
+    /// The newest template at `tip` Core accepted: this one's, or one before it.
     pub json: Option<BlockTemplateJson>,
 }
 
 impl Built {
+    /// Builds the template and has Core check the block it describes: rejected (Core's reason
+    /// logged) or with no `facts`, it serves `held`, the last one accepted at `tip`, which stays
+    /// valid while `tip` does.
     pub fn new(
         snapshot: Arc<Snapshot>,
         tip: BlockHash,
         facts: Option<&TipFacts>,
         core: Option<&CoreTemplateHeader>,
+        client: &Client,
+        held: Option<BlockTemplateJson>,
     ) -> Self {
-        let json = facts.map(|facts| served(&snapshot.block0, facts, core));
+        let json = facts.and_then(|facts| accepted(&snapshot.block0, facts, core, client)).or(held);
         Self { snapshot, tip, json }
     }
 
     pub fn is_of(&self, snapshot: &Arc<Snapshot>, tip: &BlockHash) -> bool {
         Arc::ptr_eq(&self.snapshot, snapshot) && self.tip == *tip
     }
+
+    pub fn tip(&self) -> &BlockHash {
+        &self.tip
+    }
 }
 
-/// `block0`'s template at `facts`' tip, as JSON.
-fn served(block0: &[TxRecord], facts: &TipFacts, core: Option<&CoreTemplateHeader>) -> BlockTemplateJson {
+/// `block0`'s template at `facts`' tip if Core accepts its block, as JSON.
+fn accepted(
+    block0: &[TxRecord],
+    facts: &TipFacts,
+    core: Option<&CoreTemplateHeader>,
+    client: &Client,
+) -> Option<BlockTemplateJson> {
     let started = Instant::now();
-    let template = build(block0, facts, Timestamp::now());
+    let (template, proposal) = build(block0, facts, Timestamp::now());
     let built = started.elapsed();
     let height = *template.height;
     if let Some(core) = core.filter(|core| core.height == height)
@@ -83,6 +107,19 @@ fn served(block0: &[TxRecord], facts: &TipFacts, core: Option<&CoreTemplateHeade
             "block template: the chain's next header differs from Core's"
         );
     }
+    let verdict = client.propose_block(&proposal);
+    let proposed = started.elapsed() - built;
+    match verdict {
+        Ok(None) => {}
+        Ok(Some(reason)) => {
+            warn!(height, reason, "block template: Core rejects its block");
+            return None;
+        }
+        Err(error) => {
+            warn!(height, %error, "block template: Core's check failed");
+            return None;
+        }
+    }
     let json = serde_json::to_vec(&template).expect("a template serializes");
     let fees = u64::from(template.coinbasevalue - template.height.subsidy());
     let weight: u64 = template.transactions.iter().map(|tx| u64::from(tx.weight)).sum();
@@ -96,15 +133,17 @@ fn served(block0: &[TxRecord], facts: &TipFacts, core: Option<&CoreTemplateHeade
         core_weight = core.map(|core| core.weight),
         core_txs = core.map(|core| core.txs),
         build_us = built.as_micros() as u64,
-        serialize_us = (started.elapsed() - built).as_micros() as u64,
-        "block template: built"
+        propose_us = proposed.as_micros() as u64,
+        serialize_us = (started.elapsed() - built - proposed).as_micros() as u64,
+        "block template: accepted"
     );
-    BlockTemplateJson::new(json)
+    Some(BlockTemplateJson::new(json))
 }
 
 /// The template of the block after `tip` holding `block0`'s transactions in its order (every
-/// parent first), dated `now` or the earliest time the chain allows.
-fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> BlockTemplate {
+/// parent first), dated `now` or the earliest time the chain allows, and the block it describes
+/// ([`proposal`]).
+fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate, String) {
     let height = Height::new(*tip.height + 1);
     let mintime = Timestamp::from(*tip.median_time + 1);
     let position: RapidHashMap<Txid, u32> =
@@ -130,7 +169,7 @@ fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> BlockTemplate {
     let fees: Sats = block0.iter().map(|record| record.entry.fee).sum();
     let bits = tip.next_bits();
     let commitment = witness_commitment(block0.iter().map(|record| record.entry.wtxid));
-    BlockTemplate {
+    let template = BlockTemplate {
         version: VERSION,
         rules: ["csv", "!segwit", "taproot"].map(String::from).into(),
         vbavailable: Default::default(),
@@ -150,7 +189,50 @@ fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> BlockTemplate {
         bits: format!("{:08x}", bits.to_consensus()),
         height,
         default_witness_commitment: commitment.to_lower_hex_string(),
-    }
+    };
+    let proposal = proposal(&template, tip.header.block_hash(), bits, commitment);
+    (template, proposal)
+}
+
+/// The block `template` describes as hex, under the least coinbase a miner could add: the BIP 34
+/// height, the witness reserved value, and outputs paying `coinbasevalue` and committing to the
+/// witnesses.
+fn proposal(template: &BlockTemplate, tip: BitcoinBlockHash, bits: CompactTarget, commitment: Vec<u8>) -> String {
+    let coinbase = Transaction {
+        version: transaction::Version::TWO,
+        lock_time: LockTime::ZERO,
+        input: vec![TxIn {
+            previous_output: OutPoint::null(),
+            script_sig: ScriptBuf::builder().push_int(i64::from(*template.height)).into_script(),
+            sequence: Sequence::MAX,
+            witness: Witness::from_slice(&[WITNESS_RESERVED_VALUE]),
+        }],
+        output: vec![
+            TxOut {
+                value: Amount::from_sat(u64::from(template.coinbasevalue)),
+                script_pubkey: ScriptBuf::from_bytes(vec![OP_TRUE.to_u8()]),
+            },
+            TxOut { value: Amount::ZERO, script_pubkey: ScriptBuf::from_bytes(commitment) },
+        ],
+    };
+    let txids = std::iter::once(coinbase.compute_txid())
+        .chain(template.transactions.iter().map(|tx| tx.txid.into()))
+        .map(|txid: bitcoin::Txid| txid.to_raw_hash());
+    let header = Header {
+        version: block::Version::from_consensus(template.version),
+        prev_blockhash: tip,
+        merkle_root: TxMerkleNode::from_raw_hash(merkle_tree::calculate_root(txids).expect("the coinbase's")),
+        time: *template.curtime,
+        bits,
+        nonce: 0,
+    };
+    let body: usize = template.transactions.iter().map(|tx| tx.data.len()).sum();
+    let mut hex = String::with_capacity(body + 2_000);
+    hex.push_str(&serialize(&header).to_lower_hex_string());
+    hex.push_str(&serialize(&VarInt(template.transactions.len() as u64 + 1)).to_lower_hex_string());
+    hex.push_str(&serialize(&coinbase).to_lower_hex_string());
+    template.transactions.iter().for_each(|tx| hex.push_str(&tx.data));
+    hex
 }
 
 /// The coinbase output script committing to `wtxids` (the coinbase's own counted as zeros) and
