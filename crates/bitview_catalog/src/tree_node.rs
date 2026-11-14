@@ -37,29 +37,34 @@ impl TreeNode {
         }
     }
 
-    /// Attach interned descriptions to every matching series leaf.
-    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
+    /// Visit every leaf of this subtree mutably, in tree order.
+    pub fn for_each_leaf_mut(&mut self, f: &mut impl FnMut(&mut SeriesLeafWithSchema)) {
         match self {
             Self::Branch(children) => {
                 for child in children.values_mut() {
-                    child.set_descriptions(descriptions);
+                    child.for_each_leaf_mut(f);
                 }
             }
-            Self::Leaf(leaf) => {
-                let Some(description) = descriptions.get(leaf.leaf.name.as_str()) else {
-                    return;
-                };
-                if let Some(existing) = &leaf.leaf.description {
-                    debug_assert_eq!(
-                        existing, description,
-                        "Conflicting descriptions for series {}",
-                        leaf.leaf.name
-                    );
-                } else {
-                    leaf.leaf.description = Some(description.clone());
-                }
-            }
+            Self::Leaf(leaf) => f(leaf),
         }
+    }
+
+    /// Attach interned descriptions to every matching series leaf.
+    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
+        self.for_each_leaf_mut(&mut |leaf| {
+            let Some(description) = descriptions.get(leaf.leaf.name.as_str()) else {
+                return;
+            };
+            if let Some(existing) = &leaf.leaf.description {
+                debug_assert_eq!(
+                    existing, description,
+                    "Conflicting descriptions for series {}",
+                    leaf.leaf.name
+                );
+            } else {
+                leaf.leaf.description = Some(description.clone());
+            }
+        });
     }
 
     /// Removes every leaf of a series, and the branches left empty.

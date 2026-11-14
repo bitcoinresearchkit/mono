@@ -1952,6 +1952,7 @@ Returns: JSON `ServerVersion`
 - `indexes`: `Index[]` (required)
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
 - `description`: `string | null` — Human-readable metric definition, when documented.
+- `accumulation`: `Accumulation` (required) — How its values combine over time: summed over a window, read at a point, or differenced across one.
 - `type`: `JsonType` (required) — What the values are on the wire.
 
 ### `SeriesList`

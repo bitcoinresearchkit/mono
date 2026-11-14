@@ -196,7 +196,6 @@ Limit = int
 JsonType = Literal["null", "boolean", "integer", "number", "string", "array", "object"]
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
 Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_output_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
-TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
 # Index of a 12-hour period.
@@ -323,6 +322,7 @@ Address = str
 MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
 # How a series' values combine over time.
 Accumulation = Union[Literal["flow"], Literal["level"], Literal["cumulative"]]
+TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 class OutPoint(TypedDict):
     """
     The output a transaction input spends: its transaction index and output position, written as
@@ -602,25 +602,6 @@ class Logs(TypedDict):
     started_unix_ms: int
     lines: List[LogLine]
     next: str
-
-class _SeriesLeafWithSchemaRequired(TypedDict):
-    name: SeriesName
-    kind: str
-    indexes: List[Index]
-    nullable: List[Index]
-    type: JsonType
-
-class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
-    """
-    Series leaf with JSON Schema for client generation.
-
-    Attributes:
-        kind: The value type, by its schema's name (e.g., "Sats", "Ratio").
-        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
-        description: Human-readable metric definition, when documented.
-        type: What the values are on the wire.
-    """
-    description: Optional[str]
 
 class SyncStatus(TypedDict):
     """
@@ -1744,6 +1725,27 @@ class AddressHashPrefixMatches(TypedDict):
     prefix: str
     truncated: bool
     addresses: List[Address]
+
+class _SeriesLeafWithSchemaRequired(TypedDict):
+    name: SeriesName
+    kind: str
+    indexes: List[Index]
+    nullable: List[Index]
+    accumulation: Accumulation
+    type: JsonType
+
+class SeriesLeafWithSchema(_SeriesLeafWithSchemaRequired, total=False):
+    """
+    Series leaf with JSON Schema for client generation.
+
+    Attributes:
+        kind: The value type, by its schema's name (e.g., "Sats", "Ratio").
+        nullable: Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
+        description: Human-readable metric definition, when documented.
+        accumulation: How its values combine over time: summed over a window, read at a point, or differenced across one.
+        type: What the values are on the wire.
+    """
+    description: Optional[str]
 
 class _SeriesInfoRequired(TypedDict):
     indexes: List[Index]

@@ -141,6 +141,14 @@ impl<'a> SeriesRegistry<'a> {
             descriptions.insert(series, description);
         }
         catalog.set_descriptions(&descriptions);
+        catalog.for_each_leaf_mut(&mut |leaf| {
+            let name = leaf.leaf.name.as_str();
+            leaf.leaf.accumulation = builder
+                .by_series
+                .get(name)
+                .unwrap_or_else(|| panic!("Catalog leaf {name} has no series"))
+                .accumulation;
+        });
         // A collision that lost the id keeps no leaf under its own plugin.
         if let TreeNode::Branch(root) = &mut catalog {
             for (name, db) in &excluded {

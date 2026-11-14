@@ -74,7 +74,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 - Series metadata has an `accumulation`, how values combine over time: a `flow` sums over a window, a `level` is read
   at a point, and a `cumulative` series is already a running total, its flow the difference. `GET /api/series/{series}`,
-  the MCP's `get_series_info` and the clients' `SeriesInfo` carry it, so a reader no longer guesses it from the id.
+  the catalog's leaves (`GET /api/series`), the MCP's `get_series_info` and the clients' `SeriesInfo` carry it, so a
+  reader no longer guesses it from the id.
   Each series' accumulation is declared where it is defined (`#[traversable(accumulation = Flow)]` on its
   field)
 - Every one of mainnet.observer's 127 charts and tables has its series (136 new ones, and BIP-47's own as an OP_RETURN

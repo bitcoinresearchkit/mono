@@ -1341,6 +1341,8 @@
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
  *   undefined one (e.g. NaN).
  * @property {?string=} description - Human-readable metric definition, when documented.
+ * @property {Accumulation} accumulation - How its values combine over time: summed over a window, read at a point, or differenced
+ *   across one.
  * @property {JsonType} type - What the values are on the wire.
  */
 /**

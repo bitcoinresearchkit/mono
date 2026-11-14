@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, sync::Arc};
 
-use bitview_primitives::{Index, SeriesName};
+use bitview_primitives::{Accumulation, Index, SeriesName};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,9 @@ pub struct SeriesLeaf {
     /// Human-readable metric definition, when documented.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<Arc<str>>,
+    /// How its values combine over time: summed over a window, read at a point, or differenced
+    /// across one.
+    pub accumulation: Accumulation,
 }
 
 impl SeriesLeaf {
@@ -27,6 +30,8 @@ impl SeriesLeaf {
             indexes,
             nullable: BTreeSet::new(),
             description: None,
+            // The series' own, set from its metadata when the registry is built.
+            accumulation: Accumulation::UNDECLARED,
         }
     }
 
