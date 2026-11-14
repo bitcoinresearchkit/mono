@@ -68,6 +68,8 @@
            height, a phone's sheet's two heights (fractions of the screen's: the script reads them too); a layer row's value
            and change (the script measures their room at them). */
         --panel-width: 300px;
+        --control-hit: 24px;
+        --stage-foot-height: 44px;
         --row-value-size: 12px;
         --row-change-size: 11px;
         --tablet-panel: 44dvh;
@@ -84,9 +86,9 @@
         --raise: light-dark(#ffffff, #17181b);
         --ink: light-dark(#0f1012, #f7f8f8);
         --text: light-dark(#2b2f36, #d0d6e0);
-        --soft: light-dark(#5f6570, #8a8f98);
+        --soft: light-dark(#575d68, #9399a2);
         /* (Small text, axis labels among it: 4.5:1 or more on the card, in both.) */
-        --muted: light-dark(#6b7079, #7c818a);
+        --muted: light-dark(#5e646e, #858a93);
         --faint: light-dark(#c4c7cc, #3e4147);
         /* How many, beside what's counted: muted (a step under it read under 4.5:1: 3.3-3.8 on the page). */
         --count: var(--muted);
@@ -117,9 +119,9 @@
         /* (The brand's orange: the chrome's one color, for where you are and what you're moving: the open chart's bar, a
            resize bar pointed at or held, the chart's own separators too.) */
         --accent: oklch(64.34% 0.191 44.41);
-        --up: light-dark(#0c7642, #3ccf7c);
+        --up: light-dark(#096336, #3ccf7c);
         --live: var(--up);
-        --danger: light-dark(#bf2b31, #f2555a);
+        --danger: light-dark(#b32229, #f2555a);
         --chart-grid: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.04));
         --chart-text: var(--soft);
         --crosshair: light-dark(rgb(0 0 0 / 0.25), rgb(255 255 255 / 0.2));
@@ -471,7 +473,9 @@
        * reads it first; a page without JavaScript shows it, see the noscript style).
        */
       .vh,
-      .about {
+      .about,
+      /* A zero-width flex item loses its text in WebKit: the rail's words keep the same accessible hiding as any label. */
+      body[data-sidebar="collapsed"]:not([data-sliding]) .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark)) {
         position: absolute;
         top: 0;
         width: 1px;
@@ -781,6 +785,7 @@
       /* ── Shell: the sidebar on the page, the chart on one card ───────────── */
 
       .app {
+        position: relative;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         height: 100dvh;
@@ -2330,6 +2335,10 @@
        * sidebar collapses; once gone, they're not drawn at all (the screen's whole, where the browser gives it).
        */
       .app[data-full] {
+        > #side-grip {
+          display: none;
+        }
+
         .sidebar {
           margin-left: calc(-1 * var(--side));
           visibility: hidden;
@@ -3040,8 +3049,14 @@
         display: flex;
         gap: 2px;
         height: 22px;
-        overflow: hidden;
+        overflow-x: clip;
+        overflow-y: visible;
         pointer-events: none;
+
+        /* (Its items each reached, as controls; a chip's keys are its picture, the chip the control.) */
+        &:not([data-chip]) > button {
+          min-width: var(--control-hit);
+        }
 
         /* (Every layer hidden: each named, its eye there to show it again, on as many lines as their names take, none
            cut off: a folded pane as tall as they are, see paneFactors. One shown keeps its line: a profile's key beside
@@ -3090,8 +3105,8 @@
 
           > :is(.bc-legend-count, .bc-legend-summary) {
             margin-left: 6px;
+            color: var(--text);
             opacity: 1;
-            color: var(--dim);
             font: 510 12px/22px var(--sans);
             font-variant-numeric: tabular-nums;
           }
@@ -3331,7 +3346,7 @@
         flex: 1;
         min-width: 80px;
         height: 28px;
-        overflow: hidden;
+        overflow: visible;
         border-radius: var(--radius-md);
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
@@ -3353,6 +3368,8 @@
       .navigator-clip {
         position: absolute;
         inset: 0;
+        overflow: hidden;
+        border-radius: inherit;
       }
 
       .brush {
@@ -3743,7 +3760,7 @@
         align-items: center;
         gap: 10px;
         flex-shrink: 0;
-        height: 44px;
+        height: var(--stage-foot-height);
         padding: 0 10px;
         box-shadow: inset 0 1px 0 var(--line);
       }
@@ -4045,7 +4062,9 @@
       /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), the line between
          them and the chart lit as it's pointed at or dragged (the accent: what you're moving), focused (the focus ring's):
          the sidebar's a bar of its own beside the card (its edge round), the panel's its own edge (a line of its own,
-         inside it, sat beside it); side by side with the chart only (a rail, a floating panel, a sheet: none).
+         inside it, sat beside it). Each handle sits outside its clipped view, across the seam: 7px inside the view, the
+         rest over the chart, short of the chart's foot and its controls. Side by side only (a rail, a floating panel, a
+         sheet: none).
          (Separators: the drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid
          it.) */
       .grip[role="separator"] {
@@ -4054,22 +4073,18 @@
         bottom: 0;
         z-index: 4;
         display: none;
-        width: 7px;
+        /* (A precision edge, 24px on either pointer: a finger's 44 would take the controls beside the seam.) */
+        --grip-reach: 24px;
+        --grip-inner: 7px;
+        width: var(--grip-reach);
         cursor: col-resize;
         touch-action: none;
-
-        &:focus-visible {
-          outline: none;
-        }
-      }
-
-      #side-grip {
-        right: 0;
 
         &::after {
           content: "";
           position: absolute;
-          inset: 0 3px;
+          inset: 0 auto 0 var(--grip-line);
+          width: 1px;
           background: var(--accent);
           opacity: 0;
         }
@@ -4078,22 +4093,28 @@
           opacity: 1;
         }
 
-        &:focus-visible::after {
-          background: var(--focus);
-          opacity: 1;
+        &:focus-visible {
+          outline: none;
+
+          &::after {
+            background: var(--focus);
+            opacity: 1;
+          }
         }
       }
 
-      .panel:has(> #panel-grip:is(:hover:where(.can-hover *), .dragging)) {
-        border-left-color: var(--accent);
-      }
-
-      .panel:has(> #panel-grip:focus-visible) {
-        border-left-color: var(--focus);
+      #side-grip {
+        --grip-line: 3px;
+        grid-area: 1 / 1 / 2 / 2;
+        right: calc(var(--grip-inner) - var(--grip-reach));
+        /* (The chart's foot and the card's 8px margin under it.) */
+        bottom: calc(var(--stage-foot-height) + 8px);
       }
 
       #panel-grip {
-        left: 0;
+        --grip-line: calc(var(--grip-reach) - var(--grip-inner));
+        right: calc(var(--panel-width) - var(--grip-inner));
+        bottom: var(--stage-foot-height);
       }
 
       @media (min-width: 761px) and (min-height: 501px) {
@@ -4112,8 +4133,14 @@
           position: relative;
         }
 
-        #panel-grip {
+        body:is([data-panel="open"], [data-peek]) #panel-grip {
           display: block;
+          /* (Placed at the panel's full width: shown once it has slid open, not ahead of it meanwhile.) */
+          transition: visibility 0s var(--dur-layout);
+
+          @starting-style {
+            visibility: hidden;
+          }
         }
       }
 
@@ -5054,69 +5081,83 @@
         align-items: center;
         height: 28px;
         border-radius: var(--radius-md);
-        background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line);
         cursor: pointer;
         touch-action: pan-y;
         user-select: none;
 
-        &:hover:where(.can-hover *) {
+        /* The slider owns the reach; its track owns the drawing, at the same size on either pointer. */
+        .stepper-track {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+          height: 28px;
+          border-radius: inherit;
+          background: var(--field);
+          box-shadow: inset 0 0 0 1px var(--line);
+          pointer-events: none;
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            bottom: 2px;
+            left: 2px;
+            width: round(calc(2px + var(--track) * var(--at)), 1px);
+            border-radius: var(--radius-sm);
+            background: var(--press);
+          }
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 7px;
+            bottom: 7px;
+            left: round(calc(2px + var(--track) * var(--at)), 1px);
+            width: 2px;
+            border-radius: 1px;
+            background: var(--ink);
+          }
+
+          i {
+            position: absolute;
+            top: 13px;
+            left: round(calc(2px + var(--track) * var(--k)), 1px);
+            width: 2px;
+            height: 2px;
+            border-radius: 1px;
+            background: var(--faint);
+          }
+
+          .value {
+            position: absolute;
+            right: 10px;
+            color: var(--text);
+            font: 13px/1 var(--sans);
+            font-variant-numeric: tabular-nums;
+            pointer-events: none;
+          }
+
+          i.under {
+            opacity: 0;
+          }
+        }
+
+        &:hover:where(.can-hover *) .stepper-track {
           box-shadow: inset 0 0 0 1px var(--faint);
         }
 
         &:focus-visible {
           outline: none;
-          box-shadow: var(--field-focus);
+
+          .stepper-track {
+            box-shadow: var(--field-focus);
+          }
         }
 
-        &::before {
-          content: "";
-          position: absolute;
-          top: 2px;
-          bottom: 2px;
-          left: 2px;
-          width: round(calc(2px + var(--track) * var(--at)), 1px);
-          border-radius: var(--radius-sm);
-          background: var(--press);
-        }
-
-        &::after {
-          content: "";
-          position: absolute;
-          top: 7px;
-          bottom: 7px;
-          left: round(calc(2px + var(--track) * var(--at)), 1px);
-          width: 2px;
-          border-radius: 1px;
-          background: var(--ink);
-        }
-
-        i {
-          position: absolute;
-          top: 13px;
-          left: round(calc(2px + var(--track) * var(--k)), 1px);
-          width: 2px;
-          height: 2px;
-          border-radius: 1px;
-          background: var(--faint);
-        }
-
-        .value {
-          position: absolute;
-          right: 10px;
-          color: var(--text);
-          font: 13px/1 var(--sans);
-          font-variant-numeric: tabular-nums;
-          pointer-events: none;
-        }
-
-        i.under {
-          opacity: 0;
-        }
-
-        /* (Several layers at different stops: no handle, no fill; its value says "Mixed".) */
-        &.mixed::before,
-        &.mixed::after {
+        /* Several layers at different stops: no handle or fill; the value says Mixed. */
+        &.mixed .stepper-track::before,
+        &.mixed .stepper-track::after {
           visibility: hidden;
         }
 
@@ -5984,7 +6025,7 @@
 
       /* A level: its line's look, its value, removing it; under its value, its name (what the values from it up read
          as), quiet till it has one. */
-      .field .level {
+      .field > .level {
         display: flex;
         align-items: center;
         gap: 2px;
@@ -6000,10 +6041,13 @@
          own till pointed at or typed in, then ringed as a field is.) */
       .levels {
         display: grid;
-        grid-template-columns: 24px minmax(0, 1fr) minmax(88px, 32%) 24px;
+        /* (Its caps' middles 18px in from its edges; a touch's reach, wider than their column, out to the far side of the
+           gap beside it, never onto a name or a value.) */
+        --edge: max(24px, calc(var(--control-hit) - 2 * 4px));
+        grid-template-columns: var(--edge) minmax(0, 1fr) minmax(88px, 32%) var(--edge);
         column-gap: 4px;
         width: 100%;
-        padding: 0 6px;
+        padding: 0 calc(18px - var(--edge) / 2);
         border-radius: var(--radius-md);
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
@@ -6013,7 +6057,11 @@
           grid-column: 1 / -1;
           grid-template-columns: subgrid;
           align-items: center;
-          min-height: 40px;
+          min-height: max(40px, var(--control-hit));
+
+          > .cap {
+            justify-self: center;
+          }
 
           & + .level {
             border-top: 1px solid var(--line);
@@ -10135,20 +10183,51 @@
         }
       }
 
+      /* Reach belongs to the shared controls: 24px for a pointer, 44px for touch. The visible controls keep their size.
+         Low specificity leaves positioned controls in place. The reach stays behind the contents, so an eye or
+         an error's tip inside a control keeps its own input. Prose links keep their text's reach. */
+      :where(button, a:is(.btn, .cap, .brand), [role="button"], .navigator) {
+        position: relative;
+        isolation: isolate;
+
+        &::before {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          inset: min(0px, calc(50% - var(--control-hit) / 2));
+        }
+      }
+
       /* A finger, not a pointer: targets a thumb can't miss, the look the desktop's (a field's words too: the viewport's
          most scale, 1, keeps iOS from zooming in on one under 16px). */
       @media (pointer: coarse) {
-        /* A finger reaches a control across 44px about its middle, its look the desktop's: not a bigger control, a
-           bigger reach, wherever there's room about it (a row of them spaced so each reaches to the next). Fields are
-           the desktop's size too; rows and a grid of swatches are as tall as a finger needs, reached as they are. */
-        /* (No weight of its own: one placed otherwise, Full screen in the axis's corner, stays so.) */
-        :where(.cap, .btn, .interval.btn, .tabs button, .preset, .pane-scale, .source-pick, button.more, button.reset, .grip, .foot-action, button.search, .path button, .crumbs button, .scope, .slot-chip, button.shelf-title) {
-          position: relative;
+        :root {
+          --control-hit: 44px;
+        }
 
-          &::before {
-            content: "";
-            position: absolute;
-            inset: min(0px, calc(50% - 22px));
+        .legend {
+          top: 11px;
+
+          &:not([data-chip]):not(:has(> button:not(.hidden))) {
+            row-gap: 22px;
+          }
+        }
+
+        .navigator {
+          margin-block: 10px;
+        }
+
+        /* (The search's reach over the list's top, and the list's heads 36 tall and 8 apart: their reaches meet.) */
+        .sidebar .search {
+          z-index: 1;
+        }
+
+        .chart-list {
+          --row-gap: 8px;
+          padding-top: 8px;
+
+          .list-head-name {
+            min-height: 36px;
           }
         }
 
@@ -10202,17 +10281,66 @@
           margin: 0;
         }
 
-        :is(.pane-head, .source-name, .level) .cap + .cap {
-          margin-left: 16px;
+        /* (Caps side by side, 44 apart: each one's reach meets the next's.) */
+        :is(.pane-head, .source-name, .field > .level) .cap + .cap {
+          margin-left: 20px;
         }
 
-        :is(.source-pick, .level .number-field) + .cap,
-        .level .cap + :is(.number-field, .under-label) {
+        :is(.source-pick, .field > .level .number-field) + .cap,
+        .field > .level .cap + .number-field {
           margin-left: 8px;
         }
 
         .inspector-head {
-          gap: 10px;
+          gap: 20px;
+          /* The reach beside the resize seam, clear of its original 7px inside the panel. */
+          padding-left: calc(8px + (var(--control-hit) - 24px) / 2);
+        }
+
+        :is(.label-input, .title:not([readonly]), .field:is(:has(> .preset), .switch), .stepper, .number-field, .level-name) {
+          min-height: var(--control-hit);
+        }
+
+        .number-field {
+          display: flex;
+          align-items: center;
+        }
+
+        .hex-field .hex-box {
+          min-height: var(--control-hit);
+        }
+
+        .field {
+          margin-top: 24px;
+          gap: 15px;
+        }
+
+        /* (The second over the fields' own min-width: 0.) */
+        .tabs button,
+        :is(.field, .inspector section, .pair) > .tabs button {
+          min-width: var(--control-hit);
+        }
+
+        .tabs.glyphs {
+          gap: 0;
+          padding: 0;
+        }
+
+        .field .pair {
+          flex-wrap: wrap;
+          row-gap: 22px;
+
+          > .tabs {
+            min-width: min-content;
+          }
+        }
+
+        .color-editor .color-source {
+          padding-block: 10px;
+        }
+
+        :is(.inspector-head, .panel-head) {
+          padding-right: 10px;
         }
 
         /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
@@ -10221,22 +10349,14 @@
           inset-inline: 0;
         }
 
-        .level .cap::before {
-          inset-block: -3px;
-        }
-
-        .field > span > button.reset::before {
-          bottom: -3px;
-        }
-
         /* (A list's All and None: their own width, down to the gap's middle, not onto its chips.) */
         .list-actions .cap::before {
           inset-inline: 0;
           bottom: -2px;
         }
 
-        .layer-row > .cap::before {
-          left: 0;
+        .layer-row > .cap {
+          margin-left: 10px;
         }
 
         /* (A layer's color chips and the tabs under them, the gap between halved; four, in two rows, those apart, each
@@ -10287,17 +10407,15 @@
           padding-right: 81px;
         }
 
-        /* (Rows, a list's, a menu's, ⌘K's, and a grid of swatches are reached as they are, no room between them: taller,
-           as a finger needs. Swatches ten to a row as anywhere, packed: each as wide as a keyboard's key, as tall as a
-           finger, a little larger (five to a row, spread across a sheet, read as loose).) */
+        /* Swatches keep their visible size; the grid fits as many finger-sized cells as its container can hold. */
         .swatch-grid,
         :is(.color-drop, .color-pick) .swatch-grid {
-          grid-template-columns: repeat(10, minmax(0, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(var(--control-hit), 1fr));
           gap: 0;
 
           button {
             width: auto;
-            height: 40px;
+            height: var(--control-hit);
           }
 
           .swatch {
@@ -10306,15 +10424,19 @@
           }
         }
 
-        /* (A help's summary: tall enough to hit, its words where they were.) */
-        .help > summary {
-          padding-block: 7px;
-          margin-block: -7px;
+        summary {
+          display: flex;
+          align-items: center;
+          min-height: var(--control-hit);
+        }
+
+        .formula-editor textarea {
+          min-height: var(--control-hit);
         }
 
         /* Pane and marker heads leave the rules clear. */
         :is(.pane-head, .markers-head) {
-          height: 40px;
+          height: 44px;
           margin-bottom: 0;
         }
 
@@ -10323,7 +10445,7 @@
         }
 
         #ranges button {
-          width: 38px;
+          width: 44px;
         }
 
         .menu > button {
@@ -10499,7 +10621,7 @@
         }
 
         /* (A control edged by an inset ring, every one: the ring's a shadow, gone here; an outline in its place.) */
-        :is(.btn:not(.ghost), .tabs, .search, .home-filter, .search-cta, .navigator, #link-view, .field-cap, .stepper, .number-input, .preset, .hex-box, .formula-editor, .pane-scale) {
+        :is(.btn:not(.ghost), .tabs, .search, .home-filter, .search-cta, .navigator, #link-view, .field-cap, .stepper-track, .number-input, .preset, .hex-box, .formula-editor, .pane-scale) {
           outline: 1px solid ButtonBorder;
           outline-offset: -1px;
         }
@@ -10560,7 +10682,7 @@
           forced-color-adjust: none;
         }
 
-        :is(.stepper, .letter, .tabs) {
+        :is(.stepper-track, .letter, .tabs) {
           border: 1px solid CanvasText;
         }
 
@@ -10698,8 +10820,8 @@
             <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
           </div>
         </div>
-        <div id="side-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Sidebar width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
       </aside>
+      <div id="side-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Sidebar width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
 
       <main id="main" class="card" style="--i: 2">
         <section id="about" class="about" aria-label="About Studio's links">
@@ -10868,7 +10990,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <!-- On a phone, under the layers' sheet (in the card's own layering, as the sheet is), over all else. -->
           <div id="scrim" class="scrim" data-action="close-sheet"></div>
           <aside id="panel" class="panel" aria-label="This chart" tabindex="-1">
-            <div id="panel-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Panel width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
             <section id="layers-view" class="panel-view" aria-label="Layers">
               <div class="panel-head">
                 <h2>Layers <span id="layer-count" class="count"></span></h2>
@@ -10889,6 +11010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </section>
             <section id="inspector" class="panel-view inspector" aria-label="Layer settings"></section>
           </aside>
+          <div id="panel-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Panel width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
         </div>
 
       </main>
@@ -11215,7 +11337,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let tokensFor = "";
       // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
       // (Chromium), its listeners never hearing of it.)
-      const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE), matchMedia("(prefers-contrast: more)")];
+      const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE), matchMedia("(prefers-contrast: more)"), matchMedia("(pointer: coarse)")];
       // (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
       probe.style.forcedColorAdjust = "none";
       /** Tokens read in one go: those named, else every one the page's root lists. @param {Iterable<string>} [names] */
@@ -15526,6 +15648,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       function applySidebar() {
         const collapsed = prefs.sidebar === "collapsed";
+        if (collapsed) keepFocus($("side-grip"), () => $("sidebar-toggle"));
         if (collapsed) document.body.dataset.sidebar = "collapsed";
         else delete document.body.dataset.sidebar;
         const toggle = $("sidebar-toggle");
@@ -15535,6 +15658,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The panel open or closed: as kept, or (full screen's, for the while) as given. */
       function applyPanel(state = prefs.panel) {
+        if (state === "closed") keepFocus($("panel-grip"), () => $("panel-toggle"), () => $("plot-keys"));
         document.body.dataset.panel = state;
         $("panel-toggle").setAttribute("aria-pressed", String(state === "open"));
       }
@@ -17981,11 +18105,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
       function paneFactors(/** @type {Chart} */ doc) {
-        const folded = foldedPanes(doc), count = engine.panes.length;
+        const folded = foldedPanes(doc), count = engine.panes.length, reach = folded.size ? parseFloat(css("--control-hit")) : 0;
         // (Its legend's names: hidden, its layers have no values under them; an error, if one has one.)
         const strip = (pane) => {
           const legend = $("chart").querySelector(`.legend[data-pane="${pane.id}"]`), top = legend?.parentElement?.getBoundingClientRect().top ?? 0;
-          return Math.max(28, ...[...(legend?.querySelectorAll(".legend-name, .legend-error") ?? [])].map((name) => Math.ceil(name.getBoundingClientRect().bottom - top) + 7));
+          return Math.max(28, ...[...(legend?.querySelectorAll(":scope > button") ?? [])].map((button) => {
+            const box = button.getBoundingClientRect();
+            return Math.ceil(box.bottom - top) + Math.max(5, (reach - box.height) / 2);
+          }));
         };
         const total = (chartHeight || $("chart").clientHeight) - engine.timeHeight - (count - 1);
         const strips = doc.panes.reduce((sum, pane) => sum + (folded.has(pane.id) ? strip(pane) : 0), 0);
@@ -18383,6 +18510,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folded = foldedInto(chart), colors = [...new Set(chart.layers.filter((other) => folded.get(other.id) === layer.id && !other.hidden).map((other) => ink(other.color)))];
         return colors.length ? `<span class="legend-key cloud-key">${colors.map((color) => `<i style="--c:${escape(color)}"></i>`).join("")}</span>` : "";
       }
+      /** A library legend's Studio controls: one action while folded, each layer while named (including export's mode). */
+      function legendAccess(/** @type {HTMLElement} */ element) {
+        const chip = element.hasAttribute("data-chip"), buttons = /** @type {HTMLButtonElement[]} */ ([...element.querySelectorAll(":scope > button")]);
+        const pane = chart.panes.findIndex((pane) => pane.id === element.dataset.pane) + 1;
+        const names = buttons.filter((button) => !button.classList.contains("hidden")).map((button) => button.querySelector(".name")?.textContent).filter(Boolean);
+        element.setAttribute("role", chip ? "button" : "group");
+        element.tabIndex = chip ? 0 : -1;
+        element.setAttribute("aria-label", chip ? `${names.length} layers in pane ${pane}: ${names.join(", ")}. Show layers` : `Legend for pane ${pane}`);
+        if (chip) element.setAttribute("aria-controls", "layers-view");
+        else element.removeAttribute("aria-controls");
+        for (const button of buttons) {
+          button.setAttribute("aria-hidden", String(chip));
+          button.tabIndex = chip ? -1 : 0;
+        }
+        element.onkeydown ??= (event) => {
+          if (event.target !== element || !element.hasAttribute("data-chip") || composing(event) || !["Enter", " "].includes(event.key)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (event.key === "Enter" && !event.repeat) element.click();
+        };
+        element.onkeyup ??= (event) => {
+          if (event.target !== element || !element.hasAttribute("data-chip") || composing(event) || event.key !== " ") return;
+          event.preventDefault();
+          event.stopPropagation();
+          element.click();
+        };
+        return chip;
+      }
       function updateLegends() {
         if (!chart) return;
         // (Nothing reached, the plot says so once: no layer's legend says it again.)
@@ -18425,8 +18580,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
             return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
           }), averageFor(chart, pane).name);
+          const chip = legendAccess(element);
           // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
-          restoreFocus(element, focus);
+          if (chip && (focus || element.contains(document.activeElement))) element.focus({ preventScroll: true });
+          else if (!chip && document.activeElement === element) /** @type {HTMLButtonElement | null} */ (element.querySelector("button:not([hidden])"))?.focus({ preventScroll: true });
+          else restoreFocus(element, focus);
         }
         markLegends();
         paintProfileItems();
@@ -30751,6 +30909,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A pane's layers in the panel's list (its legend's chip pressed): the list shown, that pane's at its top. */
       function paneLayers(/** @type {string} */ id) {
         showList();
+        // (A focus on its legend, hidden under the list now: to that pane's first row.)
+        keepFocus($("chart"), () => $("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"] [data-select]`));
         requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced.matches ? "auto" : "smooth" }));
       }
       /** Picks a layer: added or taken off; with `range`, every one from the last picked (or the one open) to it. */
@@ -31168,7 +31328,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <section>
             <h3>Style</h3>
             ${typeField([layer])}
-            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escape(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
+            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<label class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></label></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escape(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
             ${colorPicker(layer)}
             ${opacityField([layer])}
             ${widthField([layer])}
@@ -31194,7 +31354,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
         // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
         const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
-        const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(element, "::after").left, fill: getComputedStyle(element, "::before").width }]));
+        const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
         rewrite(panel, html);
         // (Its gradient's bar watched, its ticks fitted to its width: see gradientWidth.)
         gradientRoom.disconnect();
@@ -31207,11 +31367,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const element of all$("#inspector .stepper")) {
           const from = was.get(element.id);
           if (!from) continue;
-          const handle = getComputedStyle(element, "::after").left, fill = getComputedStyle(element, "::before").width;
+          const track = sliderTrack(element), handle = getComputedStyle(track, "::after").left, fill = getComputedStyle(track, "::before").width;
           const timing = { duration: MOTION.micro, easing: MOTION.ease };
           glidesUntil.set(element.id, performance.now() + MOTION.micro);
-          if (handle !== from.handle) element.animate({ left: [from.handle, handle] }, { ...timing, pseudoElement: "::after" });
-          if (fill !== from.fill) element.animate({ width: [from.fill, fill] }, { ...timing, pseudoElement: "::before" });
+          if (handle !== from.handle) track.animate({ left: [from.handle, handle] }, { ...timing, pseudoElement: "::after" });
+          if (fill !== from.fill) track.animate({ width: [from.fill, fill] }, { ...timing, pseudoElement: "::before" });
         }
         if (another) panel.scrollTop = 0;
         if (result?.missing) suggestReplacement(layer);
@@ -31368,13 +31528,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const glidesUntil = new Map();
       /** Where a slider's handle sits for a layer, from 0 to 1 (its stop's place among its stops). */
       const sliderAt = (/** @type {keyof typeof SLIDERS} */ id, /** @type {Layer} */ layer) => Math.max(0, SLIDERS[id].stops.indexOf(SLIDERS[id].of(layer))) / (SLIDERS[id].stops.length - 1);
+      const sliderTrack = (/** @type {HTMLElement} */ element) => /** @type {HTMLElement} */ (element.firstElementChild);
       /** A slider: its stops, a handle at the value, and the value written out at the end away from the handle. */
       function slider(id, /** @type {any} */ target, tip = "") {
         // (Several layers at different stops: "Mixed", no handle, no fill, till one's set for all.)
         const spec = SLIDERS[id], list = [target].flat(), value = sharedBy(list, spec.of), mixed = value === undefined, index = spec.stops.indexOf(value), n = spec.stops.length - 1;
         const at = mixed ? 0 : sliderAt(id, list[0]);
         return `<div id="${id}" class="stepper${mixed ? " mixed" : ""}" role="slider" tabindex="0" aria-label="${spec.label}" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${mixed ? "Mixed" : escape(spec.say(value))}" data-value-side="${at > 0.5 ? "start" : "end"}" style="--at: ${at}" ${tip ? `data-tip="${escape(tip)}"` : ""}>
-          ${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${mixed ? "Mixed" : escape(spec.text(value))}</span></div>`;
+          <span class="stepper-track">${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${mixed ? "Mixed" : escape(spec.text(value))}</span></span></div>`;
       }
       /** A value, as a slider sets it: one undo step per drag or run of keys, the chart rebuilt at each stop. */
       function setSlider(id, value) {
@@ -32026,7 +32187,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function gradientHand(layer, k) {
         const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, at = stops[k]?.[0] ?? 0, color = stops[k]?.[1] ?? layer.color;
-        return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escape(cssColor(color))}"></i>${escape(colorName(color))}</span><span class="gradient-at"><span class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escape(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></span><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escape(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.trash}</button></span></div>`;
+        return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escape(cssColor(color))}"></i>${escape(colorName(color))}</span><span class="gradient-at"><label class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escape(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></label><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escape(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.trash}</button></span></div>`;
       }
       /**
        * What a place along a gradient (0 to 100) is worth, as its values are written: between its lowest and highest of
@@ -33359,7 +33520,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return `<div class="level" role="listitem" data-level="${i}">
             <button type="button" class="cap small" data-line-color="${i}" aria-haspopup="menu" aria-label="${escape(said)}, its color: ${escape(colorName(color))}" data-tip="Color">${swatch(color)}</button>
             <input id="level-name-${i}" class="level-name named" style="--c:${escape(cssColor(color))}" enterkeyhint="done" aria-label="${escape(said)}, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(level.name ?? "")}" />
-            <span class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /></span>
+            <label class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /></label>
             <button type="button" class="cap small" data-level-menu="${i}" aria-haspopup="menu" aria-label="More for the level ${escape(said.toLowerCase())}" data-tip="More">${ICONS.more}</button>
           </div>`;
         };
@@ -39526,7 +39687,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folded = foldedPanes(chart), lit = profileLit;
         // (Each layer named, as the library lays a picture's: its chip let go, put back after.)
         const laid = engine.panes.flatMap((pane) => (pane.legend ? [pane.legend] : []));
-        for (const legend of laid) legend.setWhole(true);
+        for (const legend of laid) (legend.setWhole(true), legendAccess(legend.element));
         // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
         if (lit) (profileLit = null), paintProfileItems();
         // (Every layer as it is, none faded by the spotlight: lit again after.)
@@ -39543,7 +39704,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
           for (const [legend, cssText] of strips) legend.style.cssText = cssText;
           for (const [key, cssText] of keys) key.style.cssText = cssText;
-          for (const legend of laid) legend.setWhole(false);
+          for (const legend of laid) (legend.setWhole(false), legendAccess(legend.element));
           if (lit && !profileLit) (profileLit = lit), paintProfileItems();
           spotlight(spot);
         };
