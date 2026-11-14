@@ -1,7 +1,7 @@
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPerBlock, LazyPercentCumulativeRolling, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
 };
 use vecdb::{Rw, StorageMode};
 
@@ -18,6 +18,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// reward unclaimed.
     #[traversable(lead = "Block subsidy: the new bitcoin miners claimed, besides fees.")]
     pub subsidy: ValuePerBlockCumulativeRolling<M>,
+    /// Puell Multiple: 365 times trailing-24h claimed subsidy in USD divided by
+    /// trailing-365-day claimed subsidy in USD, valued at each block's spot price.
+    /// At an exact UTC day boundary these windows are that day's issuance and
+    /// the sum of 365 daily issuances, so this is daily issuance / its 365-day
+    /// moving average. Period indexes sample the final block, which can precede
+    /// that boundary. Windows use monotonic block time; null until the whole
+    /// year has exchange prices, or when its issuance value is zero.
+    #[traversable(lead = "Puell Multiple: miners' daily issuance value against its yearly average.")]
+    pub puell_multiple: LazyPerBlock<Multiple>,
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.
     #[traversable(lead = "Fees: what transactions paid miners.")]

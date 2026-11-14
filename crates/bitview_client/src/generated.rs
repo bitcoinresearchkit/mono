@@ -1121,6 +1121,7 @@ pub mod tree {
     shape! { Rewards at "series().mining.rewards" {
         coinbase: ValueFlow = "*",
         subsidy: TxValue = "subsidy",
+        puell_multiple: SeriesPattern1<Option<Multiple>> = "puell_multiple",
         fees: ValueFlowStats = "fees",
         unclaimed: ValueFlow = "unclaimed_rewards",
     } }
@@ -1213,6 +1214,7 @@ pub mod tree {
         inflation_rate: SeriesPattern1<Option<Percent>> = "inflation_rate",
         velocity: Velocity = "velocity",
         market_cap: WithDelta<Option<Dollars>, Option<Dollars>> = "market_cap",
+        nvt: SeriesPattern1<Option<Multiple>> = "nvt",
     } }
     shape! { BalanceUtxos at "series().addresses.balances._0_sats.utxos" {
         count: WithDelta<Count, CountSigned> = "*",
@@ -1579,6 +1581,7 @@ pub mod tree {
     } }
     shape! { Age at "series().age" {
         ranges: AgeRange<Range> = "*",
+        rhodl_ratio: SeriesPattern1<Option<Ratio>> = "rhodl_ratio",
         halving_epochs: ByHalvingEpoch = "halving_epoch",
         vintages: Vintage = "vintage",
     } }

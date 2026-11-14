@@ -13,6 +13,8 @@ bands before rounding weighted prices. These intermediate products stay out of
 the public catalogue. Age exposes total realized cap, each cohort's realized
 price (its exact raw product over its supply, stored) and every band's and
 cohort's capital change (`capital.delta.absolute` and `capital.delta.percent`).
+The market-age-weighted RHODL ratio lives here too: the 1d–1w realized cap over
+the combined 1y–18m and 18m–2y realized cap, times days since 2009-01-03 UTC.
 
 Age owns no address state and stores no URPD files. Block-based URPD models and
 queries reconstruct distributions through `bitview_urpd`. Entry-price

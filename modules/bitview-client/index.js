@@ -4359,6 +4359,7 @@ const _TxValue = _s({
  * @typedef {{
  *   coinbase: ValueFlow,
  *   subsidy: TxValue,
+ *   puellMultiple: SeriesPattern1<?Multiple>,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
  * }} Rewards
@@ -4366,6 +4367,7 @@ const _TxValue = _s({
 const _Rewards = _s({
   coinbase: [_ValueFlow, '*'],
   subsidy: [_TxValue, 'subsidy'],
+  puellMultiple: [_i1, 'puell_multiple'],
   fees: [_ValueFlowStats, 'fees'],
   unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
@@ -4588,6 +4590,7 @@ const _WithDelta = _s({
  *   inflationRate: SeriesPattern1<?Percent>,
  *   velocity: Velocity,
  *   marketCap: WithDelta<?Dollars, ?Dollars>,
+ *   nvt: SeriesPattern1<?Multiple>,
  * }} Supply
  */
 const _Supply = _s({
@@ -4596,6 +4599,7 @@ const _Supply = _s({
   inflationRate: [_i1, 'inflation_rate'],
   velocity: [_Velocity, 'velocity'],
   marketCap: [_WithDelta, 'market_cap'],
+  nvt: [_i1, 'nvt'],
 });
 
 /**
@@ -5466,12 +5470,14 @@ const _Cointime = _s({
 /**
  * @typedef {{
  *   ranges: AgeRange<Range>,
+ *   rhodlRatio: SeriesPattern1<?Ratio>,
  *   halvingEpochs: ByHalvingEpoch,
  *   vintages: Vintage,
  * }} Age
  */
 const _Age = _s({
   ranges: [(c, b) => _AgeRange(c, b, _Range), '*'],
+  rhodlRatio: [_i1, 'rhodl_ratio'],
   halvingEpochs: [_ByHalvingEpoch, 'halving_epoch'],
   vintages: [_Vintage, 'vintage'],
 });

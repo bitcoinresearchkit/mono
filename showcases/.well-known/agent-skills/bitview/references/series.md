@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-22901 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+22904 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -109,7 +109,7 @@
 
 ### mining
 
-- `mining.rewards` (122): `coinbase`, `coinbase_usd`, `coinbase_cumulative`, `coinbase_cumulative_usd`, `coinbase_sum_24h`
+- `mining.rewards` (123): `coinbase`, `coinbase_usd`, `coinbase_cumulative`, `coinbase_cumulative_usd`, `coinbase_sum_24h`
 - `mining.hashrate` (7): `hashrate`, `hashrate_sma_1w`, `hashrate_sma_1m`, `hashrate_sma_2m`, `hashrate_sma_1y`
 - `mining.hash_price` (3): `hash_price`, `hash_price_atl`, `hash_price_rebound`
 - `mining.hash_value` (3): `hash_value`, `hash_value_atl`, `hash_value_rebound`
@@ -149,6 +149,7 @@
 ### age
 
 - `age.ranges` (3036): `age_under_1h_supply`, `age_under_1h_supply_usd`, `age_under_1h_supply_delta_24h`, `age_under_1h_supply_delta_1w`, `age_under_1h_supply_delta_1m`
+- `age.rhodl_ratio` (1): `rhodl_ratio`
 - `age.halving_epochs` (540): `halving_epoch_0_supply`, `halving_epoch_0_supply_usd`, `halving_epoch_0_supply_delta_24h`, `halving_epoch_0_supply_delta_1w`, `halving_epoch_0_supply_delta_1m`
 - `age.vintages` (1710): `vintage_2009_supply`, `vintage_2009_supply_usd`, `vintage_2009_supply_delta_24h`, `vintage_2009_supply_delta_1w`, `vintage_2009_supply_delta_1m`
 
@@ -194,6 +195,7 @@
 - `supply.inflation_rate` (1): `inflation_rate`
 - `supply.velocity` (2): `velocity_btc`, `velocity_usd`
 - `supply.market_cap` (9): `market_cap`, `market_cap_delta_24h`, `market_cap_delta_1w`, `market_cap_delta_1m`, `market_cap_delta_1y`
+- `supply.nvt` (1): `nvt`
 
 ### cointime
 

@@ -72,6 +72,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- Three on-chain valuation series, in the families that own their inputs: mining rewards'
+  `puell_multiple` (365 times trailing-24h USD subsidy over trailing-365-day USD subsidy), supply's
+  `nvt` (market cap over trailing-24h USD transaction input value, including change), and age's
+  `rhodl_ratio` (1d–1w over 1y–2y realized cap, multiplied by market age in days). Their Studio
+  presets use these series directly; NVT's 90-day signal remains a formula over the same volume
 - Series metadata has an `accumulation`, how values combine over time: a `flow` sums over a window, a `level` is read
   at a point, and a `cumulative` series is already a running total, its flow the difference. `GET /api/series/{series}`,
   the catalog's leaves (`GET /api/series`), the MCP's `get_series_info` and the clients' `SeriesInfo` carry it, so a

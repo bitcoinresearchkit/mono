@@ -10,7 +10,7 @@ use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use crate::{RangeVecs, STORAGE, Vecs};
+use crate::{RangeVecs, STORAGE, Vecs, rhodl};
 
 const IMPORT_STACK_SIZE: usize = 8 * 1024 * 1024;
 
@@ -55,6 +55,7 @@ impl Vecs {
             mappings,
             windows,
         )?;
+        let rhodl_ratio = rhodl::new(version, &ranges, mappings);
         STORAGE.finalize_database(&db)?;
         Ok(Self {
             db,
@@ -62,6 +63,7 @@ impl Vecs {
             all_supply: all_supply.read_only_boxed_clone(),
             all_capital,
             ranges,
+            rhodl_ratio,
             halving_epochs,
             vintages,
             coinblocks_destroyed,

@@ -3675,6 +3675,7 @@ class TxValue(_Node):
 class Rewards(_Node):
     coinbase: ValueFlow = _at(ValueFlow, '*')
     subsidy: TxValue = _at(TxValue, 'subsidy')
+    puell_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'puell_multiple')
     fees: ValueFlowStats = _at(ValueFlowStats, 'fees')
     unclaimed: ValueFlow = _at(ValueFlow, 'unclaimed_rewards')
 
@@ -3782,6 +3783,7 @@ class Supply(_Node):
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'inflation_rate')
     velocity: Velocity = _at(Velocity, 'velocity')
     market_cap: WithDelta[Optional[Dollars], Optional[Dollars]] = _at(WithDelta, 'market_cap')
+    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'nvt')
 
 
 class BalanceUtxos(_Node):
@@ -4193,6 +4195,7 @@ class Cointime(_Node):
 
 class Age(_Node):
     ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
+    rhodl_ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rhodl_ratio')
     halving_epochs: ByHalvingEpoch = _at(ByHalvingEpoch, 'halving_epoch')
     vintages: Vintage = _at(Vintage, 'vintage')
 

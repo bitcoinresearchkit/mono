@@ -5,6 +5,7 @@ mod has;
 mod import;
 mod live;
 mod metrics;
+mod rhodl;
 mod state;
 
 pub use accounting_sources::AccountingSources;
@@ -15,9 +16,9 @@ pub use metrics::RangeVecs;
 use bitview_cohort::{AgeRange, ByHalvingEpoch, Vintage};
 use bitview_distribution::metrics::CreationCohort;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::CoinBlocks;
+use bitview_primitives::{CoinBlocks, Ratio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
+use bitview_vecs::{CachedSeries, LazyPerBlock, PerBlockCumulativeRolling};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
 
@@ -41,6 +42,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     all_capital: CachedSeries<Height, Cents, M>,
     /// Ages run on monotonic block time, the running maximum of block-header times.
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
+    /// Realized HODL (RHODL) ratio: realized cap of the 1d–1w band divided by
+    /// realized cap of the 1y–2y band (1y–18m plus 18m–2y), weighted by market
+    /// age in fractional days since 2009-01-03 UTC. The young band's weight is elapsed
+    /// market days and the older band's weight is 1; no band-width weighting.
+    /// Coin ages use monotonic block time, and 1y–2y means 365–730 days.
+    /// Null when the older band's realized cap is zero.
+    #[traversable(lead = "RHODL ratio: young coins' realized value against older coins', weighted by the market's age.")]
+    rhodl_ratio: LazyPerBlock<Ratio>,
     halving_epochs: Box<ByHalvingEpoch<CreationCohort<M>>>,
     /// Years are UTC calendar years of the creation block's monotonic time, the running maximum of
     /// block-header times.

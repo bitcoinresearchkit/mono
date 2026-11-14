@@ -3,14 +3,15 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::PartsPerMillionSigned64;
+use bitview_primitives::{Multiple, PartsPerMillionSigned64};
 use bitview_vecs::{
-    LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
-    LazyWindowStartVec, ValuePerBlockCumulativeRolling, shapes::Windows,
+    LazyFiatPerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
+    LazyRollingDeltasFiatFromHeight, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
-use vecdb::{Ident, LazyVec, ReadableCloneableVec};
+use vecdb::{BinaryTransform, Ident, LazyVec, ReadableCloneableVec};
 
 use crate::{STORAGE, Vecs, velocity};
 
@@ -77,6 +78,19 @@ impl Vecs {
             window_starts,
             mappings,
         );
+        let nvt_source = LazyIndexedVec::new(
+            "nvt_source",
+            version,
+            &all_chain.market_cap,
+            &transactions.transfer_volume.sum._24h.cents.height,
+            |_, cap, volume| Quotient::<Multiple>::apply(cap, volume),
+        );
+        let nvt = LazyPerBlock::from_height_source::<Ident>(
+            "nvt",
+            version,
+            &nvt_source,
+            mappings,
+        );
 
         let this = Self {
             db,
@@ -86,6 +100,7 @@ impl Vecs {
             velocity,
             market_cap,
             market_cap_delta,
+            nvt,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

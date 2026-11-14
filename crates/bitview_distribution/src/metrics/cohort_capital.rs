@@ -87,6 +87,11 @@ pub struct CohortCapital<M: StorageMode = Rw> {
 }
 
 impl CohortCapital {
+    /// The shared realized-capital source, in cents, before its display views.
+    pub fn cents_source(&self) -> &impl ReadableCloneableVec<Height, Cents> {
+        &self.stored
+    }
+
     pub fn import(
         db: &Database,
         name: impl Fn(&str) -> String,

@@ -11,7 +11,7 @@
 - Privacy policy: https://bitview.space/privacy/
 - Support: https://bitview.space/support/
 - Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.
-- Metrics: 22901
+- Metrics: 22904
 - Operations: 107
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).

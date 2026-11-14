@@ -1,14 +1,14 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_vecs::{
-    LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
-    ValuePerBlockFull,
+    LazyIndexedVec, LazyPerBlock, LazyPercentCumulativeRolling, LazyWindowStartVec,
+    ValuePerBlockCumulativeRolling, ValuePerBlockFull,
     ops::{OneMinusPpm, Quotient},
     shapes::Windows,
 };
 use brk_error::Result;
-use brk_types::{Sats, Version};
-use vecdb::{Database, ReverseOperands};
+use brk_types::{Cents, Sats, Version};
+use vecdb::{Database, Ident, ReverseOperands};
 
 use super::Vecs;
 
@@ -34,6 +34,19 @@ impl Vecs {
             window_starts,
         )?;
         let fees = ValuePerBlockFull::import(db, "fees", version, mappings, window_starts)?;
+        let puell_source = LazyIndexedVec::new(
+            "puell_multiple_source",
+            version,
+            &subsidy.sum._24h.cents.height,
+            &subsidy.sum._1y.cents.height,
+            |_, day: Cents, year: Cents| Multiple::from(365.0 * f64::from(day) / f64::from(year)),
+        );
+        let puell_multiple = LazyPerBlock::from_height_source::<Ident>(
+            "puell_multiple",
+            version,
+            &puell_source,
+            mappings,
+        );
 
         // Claimed subsidy over coinbase, so an underclaimed coinbase stays within 0..=100%;
         // the coinbase is read first.
@@ -57,6 +70,7 @@ impl Vecs {
         Ok(Vecs {
             coinbase,
             subsidy,
+            puell_multiple,
             fees,
             unclaimed: ValuePerBlockCumulativeRolling::import(
                 db,
