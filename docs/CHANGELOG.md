@@ -10,6 +10,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- Refresh MARA Pool’s Stratum V2 coinbase tags and payout address; blocks are re-attributed (`POOL_ATTRIBUTION_VERSION` 5)
+
 - Projected block 0 (`/api/v1/fees/mempool-blocks`, `/api/mempool-blocks/0`, the fee tiers) is packed by Bitview as
   the later blocks are, not taken from Core's `getblocktemplate`: one packer for every block. Core's template is still
   read each poll for the bodies it carries

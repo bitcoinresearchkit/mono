@@ -1282,11 +1282,16 @@
     "name": "MARA Pool",
     "addresses": [
       "15MdAHnkxt9TMC2Rj595hsg8Hnv693pPBB",
-      "1A32KFEX7JNPmU1PVjrtiXRrTQcesT3Nf1"
+      "1A32KFEX7JNPmU1PVjrtiXRrTQcesT3Nf1",
+      "32i1m6gNcSHwiPX9nfTNXVjme9j5DU8y5g"
     ],
     "tags": [
       "MARA Pool",
-      "MARA Made in USA"
+      "MARA Made in USA",
+      "mara_pool_sv2",
+      "mara-pool-sv2",
+      "mara_jdc_sv2",
+      "Sv2/MARA"
     ],
     "link": "https://marapool.com"
   },
