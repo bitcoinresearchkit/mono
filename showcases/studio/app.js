@@ -8,7 +8,7 @@ import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js
 import { inBands, bandNames } from "/studio/bands.js";
 import { studioApplication, presetDataset, presetInfo, sectionInfo, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "/studio/page-info.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, inSentence, shownStep } from "/studio/words.js";
-import { chainFacts } from "/studio/facts.js";
+import { presetsKept } from "/studio/presets-kept.js";
 import { addressSteps } from "/studio/addresses.js";
 import { initialsOf, initialsWord, initialsRanges } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
@@ -18347,12 +18347,6 @@ let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (n
  * The presets' list, read once (made from presets.js and the client, see presetsKept), and the looks they give series
  * (see looksOf). Nothing else: nothing opens or shows (that's loadPresets').
  */
-/**
- * Whether the page waits for the presets as it starts (to open what its address names, or a link: see presetsSettled),
- * said by the first to know (see presetsKept); not at all, once it's started.
- */
-let presetsWaited = /** @type {(waits: boolean) => void} */ (() => {});
-const presetsWaiting = new Promise((/** @type {(waits: boolean) => void} */ resolve) => (presetsWaited = resolve));
 function readPresetList() {
   return (presetsRead ??= (async () => {
     const { presets: list, labels } = await presetsKept();
@@ -18360,81 +18354,6 @@ function readPresetList() {
     presetLooks = looksOf(list);
     return list;
   })());
-}
-/**
- * The presets and their places' shown names (see studioPresets), made from presets.js and the client by the chain's
- * facts: kept in this browser by what made them (presets.js and the modules it imports, by the hash seo.mjs writes
- * of them, presets.hash; the client), read back at once on a reload, the chain's facts they were made by kept
- * beside them and looked at again behind (made anew for the next start when they've changed: a pool's first block,
- * a halving, a new year); made in a worker, the facts read there too (off the page's thread: Firefox took a fifth of
- * a second), when either changed. Without the Cache API (Lockdown Mode's Safari: nothing to keep them in), made in
- * the worker at each start all the same; without a worker, made here as ever.
- * @returns {Promise<{ presets: Preset[], labels: Record<string, string> }>}
- */
-async function presetsKept() {
-  const [presetsUrl, clientUrl, factsUrl] = ["/studio/presets.js", "/modules/bitview-client/index.js", "/studio/facts.js"].map((path) => new URL(path, location.origin).href);
-  const here = async () => (await import("/studio/presets.js")).studioPresets(client, await chainFacts(location.origin).catch(() => undefined));
-  /**
-   * Made in a worker, by the chain's facts it reads: as JSON, and those facts as text (see factsKey; none, ""). Given
-   * the facts kept ones were made by (`kept`), made only if the chain's now are others: else undefined.
-   * @param {string | null} [kept] @returns {Promise<{ text: string, said: string } | undefined>}
-   */
-  const made = (kept = null) => new Promise((resolve, reject) => {
-    const source = URL.createObjectURL(new Blob([`(${presetsMaker})(...${JSON.stringify([presetsUrl, clientUrl, factsUrl, location.origin, kept])});`], { type: "text/javascript" }));
-    let worker;
-    try {
-      worker = new Worker(source, { type: "module" });
-    } catch (error) {
-      URL.revokeObjectURL(source);
-      return reject(error);
-    }
-    const done = () => (worker.terminate(), URL.revokeObjectURL(source));
-    worker.onmessage = ({ data }) => (done(), data.error ? reject(new Error(data.error)) : resolve(data.text === undefined ? undefined : data));
-    worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
-  });
-  /** Made, from no kept ones: always some. */
-  const fresh = async () => /** @type {{ text: string, said: string }} */ (await made());
-  try {
-    // (Nothing to keep them in: made in the worker, but here while the page waits for them (an address or a link
-    // being read, see presetsWaited): ~150 ms sooner on a phone in Lockdown Mode, the client here already read.)
-    if (typeof caches === "undefined") return (await presetsWaiting) ? here() : JSON.parse((await fresh()).text);
-    const [store, texts] = await Promise.all([caches.open("bitview-studio:presets"), Promise.all([new URL("/studio/presets.hash", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))))]);
-    const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    const key = new URL(`presets-${hash}.json`, location.origin).href, kept = await store.match(key);
-    // (Kept alone, those made from anything else gone, with the facts they were made by; made without them (they
-    // didn't come), not kept, nor anything gone: their next start asks for them again.)
-    const keep = (/** @type {{ text: string, said: string }} */ result) => (result.said ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.said } }))]) : undefined);
-    if (kept) {
-      // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)
-      setTimeout(() => made(kept.headers.get("x-facts") ?? "").then((result) => result && keep(result)).catch(() => {}), 5000);
-      const text = await kept.text();
-      // (Read, then made sense of, a frame apart.)
-      await aFrame();
-      return JSON.parse(text);
-    }
-    const result = await fresh();
-    void keep(result)?.catch(() => {});
-    return JSON.parse(result.text);
-  } catch {
-    return here();
-  }
-}
-/**
- * The presets, made in a worker (see presetsKept): its whole source, its arguments written in. Reads the chain's facts
- * (none, if they don't come) as its modules load; given kept presets' facts (`kept`, as text: see factsKey), posts
- * nothing made if the facts are none or the same. Else posts them as JSON, and their facts as text.
- * @param {string} presetsUrl @param {string} clientUrl @param {string} factsUrl @param {string} origin @param {string | null} kept
- */
-async function presetsMaker(presetsUrl, clientUrl, factsUrl, origin, kept) {
-  try {
-    const factsModule = import(factsUrl), facts = factsModule.then(({ chainFacts }) => chainFacts(origin)).catch(() => undefined);
-    const [{ studioPresets }, { BitviewClient }, { factsKey }, come] = await Promise.all([import(presetsUrl), import(clientUrl), factsModule, facts]);
-    const said = factsKey(come);
-    if (kept !== null && (!said || said === kept)) return postMessage({});
-    postMessage({ text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), come)), said });
-  } catch (error) {
-    postMessage({ error: String(error) });
-  }
 }
 /**
  * The next frame, for work split across frames; a hidden tab (no frames: a tab opened behind, a prerender) or one
@@ -18508,7 +18427,7 @@ function loadPresets() {
  * The presets' list read, or given up on (readPresetList: nothing opens): a chart written by hand (a link, a file,
  * studio.open) and a series added are read after, as a series' first look comes from them (see firstLook).
  */
-const presetsSettled = () => (presetsWaited(true), readPresetList().then(() => {}, () => {}));
+const presetsSettled = () => readPresetList().then(() => {}, () => {});
 /** The presets read again, asked for (after a failure). */
 function retryPresets() {
   presetsLoad = presetsRead = null;
@@ -30400,7 +30319,6 @@ async function start() {
   const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
   // (An address of the presets', a reload too: what it says, over what this tab kept (the address follows what's shown).)
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
-  presetsWaited(Boolean(asked));
   if (asked) await loadPresets().catch(() => {});
   const routed = asked ? routeOf(asked) : null;
   chart = (routed && "preset" in routed ? presetByAddress(routed.preset) : resumed) || chart;
@@ -30447,4 +30365,4 @@ async function start() {
 }
 // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight, nor held from
 // input (see started).)
-navigate(start().finally(() => (presetsWaited(false), (started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
+navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));

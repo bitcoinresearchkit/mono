@@ -42,6 +42,8 @@
          comes, and kept by the browser for every address (each preset's page is its own document). Run once the page is
          parsed. It or its modules failing to load (the server lost mid-load): said as offline at load, Try again its way
          out. -->
+    <!-- The presets, read (made in a worker on a first visit) while the app downloads: run before it, which imports it. -->
+    <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
       @font-face {
