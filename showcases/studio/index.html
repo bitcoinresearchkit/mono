@@ -10773,7 +10773,7 @@
             <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
             <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
-            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
+            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the browser searches its catalog, including consecutive word initials. A cold page first loads its search index, whether shown or hidden; a failed catalog read rejects with why.</li>
           </ul>
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
@@ -11164,6 +11164,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { AGES, HOLDERS, capitalized, dimensionBand, holderName, inSentence, shownStep } from "/studio/words.js";
       import { chainFacts } from "/studio/facts.js";
       import { addressSteps } from "/studio/addresses.js";
+      import { initialsOf, initialsWord, initialsRanges } from "/studio/initials.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       document.getElementById("page-info")?.remove();
@@ -27664,12 +27665,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a search of the presets reads, made from the tree after they're read, a slice at a time in idle moments (none
        * of it at the start, nor a long task: see searchNow), the rest at once when a search comes first. Each preset's
-       * words (its title, its place, its places' steps as shown where they're shown otherwise, its own name as shown, and
-       * the key of a holder group it's in, as its series and the old charts say it: "sth", "lth"; lowercased): as shown
-       * (`shown`: what a slip's taken for, see slipsOf) and as a search reads them, its pieces' words joined in pairs too (`texts`, see searchText); its title as a search reads it, its name and its subject (its title
+       * words (its title, its place, its places' steps as shown where they're shown otherwise, and its own name as shown,
+       * lowercased): as shown (`shown`: what a slip's taken for, see slipsOf), as a search reads them (`texts`, see
+       * searchText), and their consecutive initials (`initials`); its title as a search reads it, its name and its subject (its title
        * before ": "), lowercased (`titles`); its rank among those alike in fit (see presetRankOf), and the presets in that
-       * order (`order`); those whose name or subject is a search exactly, by it (`exact`).
-       * @typedef {{ shown: string[], texts: string[], titles: { title: string, name: string, subject: string }[], rank: Int32Array, order: Int32Array, exact: Map<string, number[]> }} PresetSearch
+       * order (`order`); those whose name or subject is a search exactly, or whose whole initials it is, by it (`exact`).
+       * @typedef {{ shown: string[], texts: string[], initials: string[], titles: { title: string, initials: string, name: string, subject: string }[], rank: Int32Array, order: Int32Array, exact: Map<string, number[]> }} PresetSearch
        * @param {Preset[]} list @param {PresetNode} root @returns {Generator<void, PresetSearch>}
        */
       function* searchMaking(list, root) {
@@ -27682,15 +27683,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         };
         walk(root, []);
-        const holderKeys = new Map(Object.keys(HOLDERS).map((key) => [holderName(key).place, key]));
-        const shown = /** @type {string[]} */ (new Array(list.length)), texts = /** @type {string[]} */ (new Array(list.length)), titles = /** @type {PresetSearch["titles"]} */ (new Array(list.length));
+        const shown = /** @type {string[]} */ (new Array(list.length)), texts = /** @type {string[]} */ (new Array(list.length)), initials = /** @type {string[]} */ (new Array(list.length)), titles = /** @type {PresetSearch["titles"]} */ (new Array(list.length));
         for (let i = 0; i < list.length; i++) {
           const preset = list[i], own = presetLabels[JSON.stringify(preset.p)];
           // (Its pieces each a phrase: words paired within one, never across a place's steps.)
-          const pieces = [preset.t, ...preset.p, ...named[i], ...(own ? [own] : []), ...preset.p.flatMap((step) => holderKeys.get(step) ?? [])].map(searchCase), title = pieces[0];
+          const pieces = [preset.t, ...preset.p, ...named[i], ...(own ? [own] : [])].map(searchCase), title = pieces[0];
           shown[i] = pieces.join(" ");
           texts[i] = searchText(shown[i], pieces);
-          titles[i] = { title: searchText(title), name: searchCase(presetName(preset)), subject: title.split(": ")[0] };
+          initials[i] = initialsOf(pieces);
+          titles[i] = { title: searchText(title), initials: initials[i].split(" ", 1)[0], name: searchCase(presetName(preset)), subject: title.split(": ")[0] };
           if (i % 250 === 249) yield;
         }
         // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
@@ -27700,13 +27701,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = 0; i < rank.length; i++) order[starts[rank[i]]++] = i;
         const exact = /** @type {Map<string, number[]>} */ (new Map());
         for (let i = 0; i < titles.length; i++) {
-          for (const said of new Set([titles[i].name, titles[i].subject])) {
+          for (const said of new Set([titles[i].name, titles[i].subject, ...[titles[i].name, titles[i].subject].map((text) => initialsOf([text])).filter(initialsWord)])) {
             const found = exact.get(said);
             if (found) found.push(i);
             else exact.set(said, [i]);
           }
+          if (i % 250 === 249) yield;
         }
-        return { shown, texts, titles, rank, order, exact };
+        return { shown, texts, initials, titles, rank, order, exact };
       }
       /** A preset's rank among those alike in a search's fit: the nearest the top of the tree, then the shortest title. */
       const presetRankOf = (/** @type {number} */ depth, /** @type {string} */ title) => depth * 1000 + Math.min(title.length, 999);
@@ -30172,8 +30174,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * slipEdits, as fitScore's), the nearest first, then those more presets have; none if it's found as typed: in their words as shown, or, of letters
        * and digits only, two of them joined, in what's searched (`texts`, see searchText: "1week"; "profit," still a slip).
        */
-      function slipsOf(/** @type {string} */ word, /** @type {string[]} */ texts, /** @type {string[]} */ extra) {
-        if (word.length < 4 || extra.some((text) => text.includes(word))) return [];
+      function slipsOf(/** @type {string} */ word, /** @type {string[]} */ texts, /** @type {string[]} */ extra, /** @type {string[]} */ initials) {
+        if (word.length < 4 || extra.some((text) => text.includes(word)) || (initialsWord(word) && initials.some((text) => text.includes(word)))) return [];
         const counts = /** @type {Map<string, number>} */ (vocabNow()), most = word.length >= 7 ? 2 : 1, near = /** @type {[string, number, number][]} */ ([]);
         for (const each of counts.keys()) if (each.includes(word)) return [];
         if (/^[a-z0-9]+$/.test(word)) for (let i = 0; i < texts.length; i++) if (texts[i].includes(word)) return [];
@@ -30188,14 +30190,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetsGroup = (/** @type {boolean} */ partial) => (partial ? "Presets holding the most words" : "Presets");
       /**
        * The presets whose words hold every word typed (`words`, see typedWords), the best first (what's typed its name, or
-       * its title's subject, before ": "; then every word in its title, then its title starting with the first; at each,
+       * its title's subject, before ": "; then a whole name's initials; then word prefixes, initials, and substrings,
+       * each preferring every word in the title, then its title starting with the first; at each,
        * the nearest the top of the tree, then the shortest title: the measure itself before its families' members), as
        * many as `most`; none holding them all, those holding the most of them (see below). With how many it found, all of
        * them (`count`), and whether they hold only some of the words (`partial`).
        * @returns {{ found: number[], count: number, partial: boolean }}
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
-        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, titles, rank, order, exact } = presetSearch();
+        const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, initials: madeInitials, titles, rank, order, exact } = presetSearch();
         // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
         // among them all at each match: thousands, a word or two typed.)
         const copies = new Map();
@@ -30209,7 +30212,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (kept && titleOf(kept) !== list[i].t) renamed.set(i, titleOf(kept));
         }
         const texts = renamed.size ? made.slice() : made;
-        for (const [i, title] of renamed) texts[i] = `${made[i]} ${searchText(searchCase(title))}`;
+        const initials = renamed.size ? madeInitials.slice() : madeInitials;
+        for (const [i, title] of renamed) {
+          texts[i] = `${made[i]} ${searchText(searchCase(title))}`;
+          initials[i] = `${madeInitials[i]} ${initialsOf([title])}`;
+        }
+        const initialWords = words.map((word) => initialsWord(word) ? word : "\0");
+        const holds = (/** @type {number} */ i, /** @type {number} */ k) => texts[i].includes(words[k]) || initials[i].includes(initialWords[k]);
         // (One scan: each one's words held, counted, and kept those holding the most, every word where any does. Else, of
         // the presets as a whole, at least half of them and two (one word of two is a search for that word alone, not a
         // name half remembered: an older release's, "reused outputs share spendable"), said to be partial where they're
@@ -30225,18 +30234,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (wordCount === 1) {
             for (let j = 0; j < n; j++) {
               const i = among === null ? j : among[j];
-              if (texts[i].includes(first)) found.push(i);
+              if (texts[i].includes(first) || initials[i].includes(initialWords[0])) found.push(i);
             }
             return { found, top };
           }
           for (let j = 0; j < n; j++) {
-            const i = among === null ? j : among[j], text = texts[i];
+            const i = among === null ? j : among[j];
             let held = 1;
-            if (!text.includes(first)) {
+            if (!holds(i, 0)) {
               if (wordCount - 1 < top) continue;
               held = 0;
             }
-            for (let k = 1; k < wordCount && held + wordCount - k >= top; k++) if (text.includes(words[k])) held++;
+            for (let k = 1; k < wordCount && held + wordCount - k >= top; k++) if (holds(i, k)) held++;
             if (held < top) continue;
             if (held > top) (top = held), (found.length = 0);
             found.push(i);
@@ -30257,10 +30266,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // nearest first, then those more presets have), the first together found (where it's searched: a few tried, a
         // dozen at most), else the nearest of each. A slip only: the words as typed first.)
         if ((!found.length || partial) && !slipped) {
-          const extra = [...renamed.values()].map(searchCase), choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, texts, extra)));
+          const extra = [...renamed.values()].map(searchCase), choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, texts, extra, initials)));
           if (choices.some((options, k) => options[0] !== words[k])) {
             const anyHolds = (/** @type {string[]} */ some) => {
-              for (let i = 0; i < texts.length; i++) if ((!under || under(i)) && some.every((word) => texts[i].includes(word))) return true;
+              for (let i = 0; i < texts.length; i++) if ((!under || under(i)) && some.every((word) => texts[i].includes(word) || (initialsWord(word) && initials[i].includes(word)))) return true;
               return false;
             };
             // (Each combination in turn, the last word's choices turning fastest, as an odometer's.)
@@ -30278,21 +30287,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return presetsMatching(fixed, most, under, true);
           }
         }
-        // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
-        // the nearest the top, the shortest (`order`). Each one's fit found as it's reached, the fits in turn, till
+        // Exact names and their whole initials lead; then word prefixes, initials, and substrings. At each,
+        // prefer all words in the title, then its start, then the nearest the top and shortest (`order`). Each one's fit found as it's reached, the fits in turn, till
         // `most` are: a word or two matches thousands, a few dozen show.
         const inFound = new Uint8Array(list.length), fits = new Int8Array(list.length).fill(-1);
         for (let k = 0; k < found.length; k++) inFound[found[k]] = 1;
         // (Each one's title as read, but an edited one's as it is now.)
-        const holdsAll = (/** @type {string} */ text) => {
-          for (let k = 0; k < wordCount; k++) if (!text.includes(words[k])) return false;
+        const holdsAll = (/** @type {string} */ text, /** @type {string} */ initial) => {
+          for (let k = 0; k < wordCount; k++) if (!text.includes(words[k]) && !initial.includes(initialWords[k])) return false;
           return true;
         };
+        // Whole words and prefixes lead initials; initials lead incidental substrings of other words.
+        const prefixes = words.map((word) => new RegExp(`(?:^|[^a-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
         const fitOf = (/** @type {number} */ i) => {
           if (fits[i] < 0) {
             const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = titles[i], lower = kept ? searchCase(titleOf(kept)) : null, title = lower === null ? named.title : searchText(lower);
             const isExact = named.name === query || (lower === null ? named.subject : lower.split(": ")[0]) === query;
-            fits[i] = isExact ? 4 : (holdsAll(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+            const initial = lower === null ? named.initials : initialsOf([lower]);
+            const quality = words.every((_, k) => prefixes[k].test(texts[i])) ? 2 : words.every((_, k) => prefixes[k].test(texts[i]) || initials[i].includes(initialWords[k])) ? 1 : 0;
+            const isInitialName = wordCount === 1 && initialsWord(query) && ((exact.get(query)?.includes(i) ?? false) || (lower !== null && initialsOf([lower.split(": ")[0]]) === query));
+            fits[i] = isExact ? 15 : isInitialName ? 14 : quality * 5 + (holdsAll(title, initial) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
           }
           return fits[i];
         };
@@ -30300,7 +30314,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rankOf = (/** @type {number} */ i) => ((title) => (title === undefined ? rank[i] : presetRankOf(list[i].p.length, title)))(renamed.get(i));
         const byRank = (/** @type {number} */ a, /** @type {number} */ b) => rankOf(a) - rankOf(b) || a - b;
         // (Exactly what's typed: looked up, and the copies kept, whose title may say it now.)
-        const best = [...new Set([...(exact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) === 4).sort(byRank).slice(0, most);
+        const best = [...new Set([...(exact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) >= 14).sort((a, b) => fitOf(b) - fitOf(a) || byRank(a, b)).slice(0, most);
         // (Those found in rank order: a few, sorted; many, read along the presets' order, the renamed ones (few) in their
         // own places.)
         const few = found.length * 16 < order.length ? found.slice().sort(byRank) : null;
@@ -30316,7 +30330,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (; m < moved.length; m++) out.push(moved[m]);
           return out;
         })([...renamed.keys()].sort(byRank)));
-        for (let fit = 3; fit >= 0 && best.length < most; fit--) for (let k = 0; k < along.length && best.length < most; k++) {
+        for (let fit = 13; fit >= 0 && best.length < most; fit--) for (let k = 0; k < along.length && best.length < most; k++) {
           const i = along[k];
           if ((few || inFound[i]) && fitOf(i) === fit) best.push(i);
         }
@@ -30327,7 +30341,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
           // (Its mark as the sidebar's, drawn once its row's in sight (see paletteMarksSeen); the presets' icon till then.)
-          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: placeNames(preset.p.slice(0, -1)).join(" › "), under: true } : {}), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: placeNames(preset.p).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
@@ -34004,20 +34018,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return (text.match(/(?:[A-Za-z0-9<>=+%]|(?<=[0-9])\.(?=[0-9]))+/g) ?? []).join(" ").toLowerCase();
       }
       /**
-       * The series search as bitview.space runs it (crates/bitview_query/src/vecs/search.rs, on the same quickmatch): the
-       * query normalized, then whole name words, names matching every word (starts, joined words, plurals), whole
-       * description words, names a typo matches, description starts and typos; a description several series share ranks
+       * Studio's series search: the server's QuickMatch word matching, with consecutive initials before typos. Whole
+       * words and prefixes lead initials; a description several series share ranks
        * them by how few other words their names carry. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
        * average) in their place. It runs in a worker started from this function's own source: the catalog's names and
        * descriptions are indexed once, off the page, and each query is answered in milliseconds.
        * @param {string} quickmatch the module's URL @param {string} catalog the catalog's URL @param {string[]} dated
-       * @param {typeof normalizeQuery} normalize (handed over as its source)
+       * @param {typeof normalizeQuery} normalize (handed over as its source) @param {string} initialsUrl the shared initials module's URL
        */
-      async function seriesSearch(quickmatch, catalog, dated, normalize) {
+      async function seriesSearch(quickmatch, catalog, dated, normalize, initialsUrl) {
         const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("/modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
+        const { initialsOf, initialsWord } = /** @type {typeof import("/studio/initials.js")} */ (await import(initialsUrl));
         const byBytes = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
         const index = (async () => {
-          const response = await fetch(catalog);
+          const response = await fetch(catalog, { signal: AbortSignal.timeout(30_000) });
           if (!response.ok) throw new Error(`The catalog answered ${response.status}`);
           /** @type {Map<string, string>} */
           const described = new Map();
@@ -34053,10 +34067,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const text = normalize(described.get(name) ?? "");
             if (text) (byDescription.get(text) ?? byDescription.set(text, []).get(text))?.push(id);
           });
-          const descriptions = [...byDescription.keys()].sort(byBytes);
+          const descriptions = [...byDescription.keys()].sort(byBytes), nameInitials = names.map((name) => initialsOf([name])), descriptionInitials = descriptions.map((text) => initialsOf([text]));
+          const grouped = (/** @type {string[]} */ initials) => {
+            const groups = /** @type {Map<string, number[]>} */ (new Map());
+            initials.forEach((text, id) => (groups.get(text) ?? groups.set(text, []).get(text))?.push(id));
+            return groups;
+          };
           return {
             names,
             about,
+            descriptions,
+            nameInitials,
+            byNameInitials: grouped(nameInitials),
+            descriptionInitials,
+            byDescriptionInitials: grouped(descriptionInitials),
             wordCounts: names.map((name) => name.split("_").length),
             seriesOf: descriptions.map((text) => /** @type {number[]} */ (byDescription.get(text))),
             matcher: new QuickMatch(names),
@@ -34091,17 +34115,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
           // (Stage by stage: a name's whole words before its starts and slips.)
           const run = stages(found, words, limit);
-          for (let stage = 0; stage < 5; stage++) if (result.length < limit) append(run[stage]());
+          for (let stage = 0; stage < run.length; stage++) if (result.length < limit) append(run[stage]());
           return [...result, ...last].slice(0, limit).map((id) => found.names[id]);
         }
         /**
-         * The server's five stages for a query, each run when asked (while there's room): a name's whole words; a name
-         * every word of which matches (its starts, joined words, a plural); a description's whole words; a name some
-         * word of which only a typo matches; a description's starts and slips. What a series' name says first, unless
-         * it takes a typo to: then a description saying it whole leads. @param {Awaited<typeof index>} found
+         * Word matches first (whole words, then prefixes, in names and descriptions), then initials, then typos.
+         * Each stage runs only while there's room. @param {Awaited<typeof index>} found
          * @param {string} query @param {number} limit @returns {(() => number[])[]}
          */
-        function stages({ names, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
+        function stages({ names, descriptions, nameInitials, byNameInitials, descriptionInitials, byDescriptionInitials, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
           // (More than fit: those by block give way to those by date.)
           const room = Math.min(names.length, limit * 3), config = new QuickMatchConfig().withLimit(room).withUnionFallback(false);
           /** Series by matching description, those whose names carry fewer other words first. @param {[number, number][]} matches @param {Map<number, number>} nameWords */
@@ -34119,26 +34141,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {[number, number][] | null} */
           let fuzzy = null;
           const slips = () => (fuzzy ??= matcher.matchesWithIdsAndMatchedWords(query, config));
+          let descriptionSlips = /** @type {[number, number][] | null} */ (null);
+          const described = () => (descriptionSlips ??= descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig));
+          const typed = query.split(/[_\-\s:/]+/).filter(Boolean), initialWords = typed.map((word) => initialsWord(word) ? word : "\0");
+          const initialMatches = (/** @type {string[]} */ texts, /** @type {string[]} */ initials, /** @type {Map<string, number[]>} */ groups) => {
+            const candidates = /** @type {Set<number>} */ (new Set());
+            for (const word of typed) {
+              if (!initialsWord(word)) continue;
+              for (const [letters, ids] of groups) if (letters.includes(word)) for (const id of ids) candidates.add(id);
+            }
+            const found = /** @type {[number, number][]} */ ([]);
+            for (const i of candidates) {
+              let held = true;
+              for (let k = 0; k < typed.length; k++) if (!texts[i].includes(typed[k]) && !initials[i].includes(initialWords[k])) { held = false; break; }
+              if (held) found.push([i, count]);
+            }
+            return found.sort((a, b) => a[0] - b[0]);
+          };
           return [
             () => matcher.matchesExactWithIdsAndMatchedWords(query, config).map(([id]) => id),
+            () => initialsWord(query) ? byNameInitials.get(query) ?? [] : [],
             () => slips().filter(([, matched]) => matched >= count).map(([id]) => id),
             () => ranked(descriptionMatcher.matchesExactWithIdsAndMatchedWords(query, descriptionConfig), words()),
+            () => ranked(described().filter(([, matched]) => matched >= count), words()),
+            () => [...initialMatches(names, nameInitials, byNameInitials).map(([id]) => id), ...ranked(initialMatches(descriptions, descriptionInitials, byDescriptionInitials), words())],
             () => slips().filter(([, matched]) => matched < count).map(([id]) => id),
-            () => ranked(descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig), words()),
+            () => ranked(described().filter(([, matched]) => matched < count), words()),
           ];
         }
-        index.then(() => postMessage({ ready: true }), (error) => postMessage({ broken: String(error) }));
-        onmessage = async ({ data: { query, limit, about } }) => {
-          try {
-            postMessage(about !== undefined ? { about: (await index).about.get(about) ?? null } : { names: search(await index, query, limit) });
-          } catch {
-            postMessage({ names: null, about: null });
-          }
-        };
+        const found = await index;
+        return (/** @type {{ query?: string, limit?: number, about?: string }} */ { query = "", limit = 0, about }) => about !== undefined ? { about: found.about.get(about) ?? null } : { names: search(found, query, limit) };
       }
 
       /**
-       * The search's worker, started once the chart's asked for its data: it answers once its index is built; bitview.space until then.
+       * The search's worker: questions wait for its index to be built. Without workers the same engine runs on the page.
        * One question is with it at a time, the others wait their turn, and one given up (typing went on) leaves the line:
        * the latest is never stuck behind stale ones.
        */
@@ -34160,24 +34196,39 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** What the catalog says of a series (as its info does), from this machine's copy; null if it isn't there or can't say. */
       const aboutOf = (/** @type {string} */ name) => new Promise((resolve) => {
-        if (!finder.ready || !finder.worker) return resolve(null);
+        if (!finder.worker) return resolve(pageFinder ? pageFinder.then((answer) => answer({ about: name }).about ?? null).catch(() => null) : null);
+        if (!finder.ready) return resolve(null);
         finder.line.push({ message: { about: name }, reply: (data) => resolve(data?.about ?? null) });
         askNext();
       });
+      /** The same engine without a worker, built only when workers cannot run. */
+      let pageFinder = /** @type {ReturnType<typeof seriesSearch> | null} */ (null);
+      const finderUrls = () => ({ quickmatch: new URL("/modules/quickmatch-js/src/index.js", location.origin).href, initials: new URL("/studio/initials.js", location.origin).href, catalog: `${client.baseUrl}/api/series` });
+      function pageSearch() {
+        const urls = finderUrls();
+        return (pageFinder ??= seriesSearch(urls.quickmatch, urls.catalog, INTERVAL_ORDER, normalizeQuery, urls.initials).catch((error) => { pageFinder = null; throw error; }));
+      }
       function startFinder() {
         if (finder.started) return;
         finder.started = true;
         if (typeof Worker !== "function") return;
-        const quickmatch = new URL("/modules/quickmatch-js/src/index.js", location.origin).href;
-        const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery});`], { type: "text/javascript" }));
-        // (Workers turned off for the page: none, and bitview.space answers; never the page's start failing with it.)
+        const urls = finderUrls();
+        const source = URL.createObjectURL(new Blob([`
+          const engine = (${seriesSearch})(${JSON.stringify(urls.quickmatch)}, ${JSON.stringify(urls.catalog)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery}, ${JSON.stringify(urls.initials)});
+          engine.then(() => postMessage({ ready: true }), (error) => postMessage({ broken: String(error) }));
+          onmessage = async ({ data }) => {
+            try { postMessage((await engine)(data)); }
+            catch (error) { postMessage({ failed: String(error) }); }
+          };
+        `], { type: "text/javascript" }));
+        // (Workers turned off for the page: the page's engine answers; its start never fails with it.)
         let worker;
         try {
           worker = finder.worker = new Worker(source, { type: "module" });
         } catch {
           return void URL.revokeObjectURL(source);
         }
-        // A worker that fails leaves the search to bitview.space, the questions it had included.
+        // A worker that fails hands its questions to the same engine on the page.
         const stop = () => {
           worker.terminate();
           URL.revokeObjectURL(source);
@@ -34187,7 +34238,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         worker.onerror = stop;
         worker.onmessage = ({ data }) => {
-          if (data.broken !== undefined) return stop();
+          if (!data || data.broken !== undefined) return stop();
           if (data.ready) {
             finder.ready = true;
             return URL.revokeObjectURL(source);
@@ -34201,51 +34252,45 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Answers had already, by limit and query (the catalog stays as it is while the page is open): the oldest go past a few hundred. */
       const searched = new Map();
       /**
-       * Series by date first, one by block after them, its day's in its place (if Bitview has one): as this machine's
-       * search answers, for bitview.space's too. @param {string[]} names
+       * Series for a query, best first: a kept answer, else the worker's, or the same browser engine on the page when
+       * workers cannot run. More typing drops a queued question before it is searched.
+       * (`waiting`: told when the worker cannot run.)
+       * @param {string} query @param {number} limit @param {AbortSignal} [signal] @param {() => void} [waiting] @returns {Promise<string[]>}
        */
-      function byDate(names) {
-        indexCatalog();
-        const first = [], last = [], placed = new Set();
-        for (const name of names) {
-          if (placed.has(name)) continue;
-          placed.add(name);
-          if (!byBlock.has(name)) first.push(name);
-          else {
-            last.push(name);
-            const day = dailyOf(name);
-            if (day && !placed.has(day)) (placed.add(day), first.push(day));
-          }
-        }
-        return [...first, ...last].slice(0, names.length);
-      }
-      /**
-       * Series for a query, best first, as bitview.space ranks them: one asked before at once, else from this machine
-       * once its index is built, else from bitview.space (more typing aborts it; its answers aren't kept: this machine's
-       * come soon).
-       * (`remote`: told as it asks bitview.space.)
-       * @param {string} query @param {number} limit @param {AbortSignal} [signal] @param {() => void} [remote] @returns {Promise<string[]>}
-       */
-      function findSeries(query, limit, signal, remote = () => {}) {
+      function findSeries(query, limit, signal, waiting = () => {}) {
+        if (signal?.aborted) return Promise.reject(signal.reason);
         const key = `${limit}\n${query}`, kept = searched.get(key);
         if (kept) return Promise.resolve(kept);
-        const asked = () => (remote(), client.searchSeries(/** @type {any} */ (normalizeQuery(query)), /** @type {any} */ (limit), { signal }).then((names) => byDate(/** @type {string[]} */ (names).slice(0, limit))));
+        startFinder();
+        const asked = () => {
+          if (signal?.aborted) return Promise.reject(signal.reason);
+          waiting();
+          return pageSearch().then((answer) => { signal?.throwIfAborted(); return answer({ query, limit }).names ?? []; });
+        };
+        let onAbort = () => {};
         return new Promise((resolve, reject) => {
-          if (finder.ready && finder.worker) {
-            const question = { message: { query, limit }, reply: (/** @type {any} */ data) => (data?.names ? resolve((searched.set(key, data.names), data.names)) : asked().then(resolve, reject)) };
+          if (finder.worker) {
+            const question = { message: { query, limit }, reply: (/** @type {any} */ data) => {
+              if (signal?.aborted) return;
+              if (data?.failed) reject(new Error(data.failed));
+              else if (data?.names) resolve(data.names);
+              else asked().then(resolve, reject);
+            } };
             finder.line.push(question);
-            signal?.addEventListener("abort", () => {
+            onAbort = () => {
               const at = finder.line.indexOf(question);
               if (at >= 0) finder.line.splice(at, 1);
-              reject(signal.reason);
-            }, { once: true });
+              reject(signal?.reason);
+            };
+            signal?.addEventListener("abort", onAbort, { once: true });
             return askNext();
           }
           asked().then(resolve, reject);
         }).then((/** @type {string[]} */ names) => {
+          searched.set(key, names);
           if (searched.size > 300) searched.delete(/** @type {string} */ (searched.keys().next().value));
           return names;
-        });
+        }).finally(() => signal?.removeEventListener("abort", onAbort));
       }
 
       // ── Palette: search and browse the catalog ────────────────────────────────
@@ -34792,8 +34837,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderPalette();
           return;
         }
-        // Charts and commands match here; series too, on this machine once the search's index is built, else on
-        // bitview.space.
+        // Charts and commands match here; series in the browser's catalog index.
         const words = typedWords(query);
         // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
         const everything = !palette.adding && !palette.replacing;
@@ -34862,7 +34906,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (This machine's search answering within a frame or two: drawn once, with its series, then; meanwhile a key on the
         // list (↵ too) draws these first and goes on with them, a click or a hover on the last query's rows only draws
-        // them: nothing's done to a list no longer typed. bitview.space's: these now, its series after.)
+        // them: nothing's done to a list no longer typed. The search still building: these now, its series after.)
         if (finder.ready) palette.pending = searching;
         else searching();
         // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
@@ -34898,7 +34942,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-glow").hidden = true;
           renderPalette(false, note);
         };
-        // (Gone to bitview.space, this machine's failing: the rows waiting drawn meanwhile, its series after.)
+        // (The page's engine is building: draw the other rows meanwhile, its series after.)
         findSeries(query, 80, controller.signal, () => !controller.signal.aborted && palette.pending?.()).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
       }
 
@@ -35267,21 +35311,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** highlightMatch's pattern, by what's typed: made once a query, not for each row. */
-      let highlighting = { query: "", pattern: /** @type {RegExp | null} */ (null) };
+      let highlighting = { query: "", words: /** @type {string[]} */ ([]), pattern: /** @type {RegExp | null} */ (null) };
       /**
        * A text with what's typed marked in it (found in the text itself, then escaped around: no mark lands in an entity),
        * a pair typed joined as the search finds it (see writtenPattern): "bip69" marks BIP-69, "1week" 1 week.
        */
-      function highlightMatch(text, query) {
+      function highlightMatch(text, query, initials = false) {
         if (highlighting.query !== query) {
           const words = typedWords(query.replace(/_/g, " "));
-          highlighting = { query, pattern: words.length ? new RegExp(words.map(writtenPattern).join("|"), "gi") : null };
+          highlighting = { query, words, pattern: words.length ? new RegExp(words.map(writtenPattern).join("|"), "gi") : null };
         }
         if (!highlighting.pattern) return escape(text);
+        const ranges = initials ? initialsRanges(text, highlighting.words) : [];
+        for (const match of text.matchAll(highlighting.pattern)) ranges.push([match.index, match.index + match[0].length]);
+        ranges.sort((a, b) => a[0] - b[0]);
+        const merged = /** @type {[number, number][]} */ ([]);
+        for (const range of ranges) {
+          const prior = merged.at(-1);
+          if (prior && range[0] <= prior[1]) prior[1] = Math.max(prior[1], range[1]);
+          else merged.push(range);
+        }
         let out = "", last = 0;
-        for (const match of text.matchAll(highlighting.pattern)) {
-          out += `${escape(text.slice(last, match.index))}<mark>${escape(match[0])}</mark>`;
-          last = (match.index ?? 0) + match[0].length;
+        for (const [start, end] of merged) {
+          out += `${escape(text.slice(last, start))}<mark>${escape(text.slice(start, end))}</mark>`;
+          last = end;
         }
         return out + escape(text.slice(last));
       }
@@ -35368,7 +35421,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (item.kind === "series") {
             const blocked = byBlock.has(item.name), human = humanize(item.name);
             const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
-            return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
+            return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query, true) : escape(human)}</span>${end}</li>`;
           }
           // (A command's icon by its name, or drawn already: a folder's mark.)
           const icon = item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? (item.command.icon?.startsWith("<") ? item.command.icon : ICONS.series) : doc ? chartMark(doc) : ICONS.series;
@@ -35927,10 +35980,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return item.kind === "folder" || (item.kind === "command" ? Boolean(item.command.keepOpen && item.command.run) : Boolean((item.page || item.leads) && !item.disabled));
       }
       function rowHtml(item) {
-        const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", goesOn(item) ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
+        const initials = item.key?.startsWith("preset:");
+        const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : query && item.under ? item.aside.split(" › ").map((piece) => highlightMatch(piece, query, initials)).join(" › ") : escape(item.aside)) : "";
+        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", goesOn(item) ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
+        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query, initials) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
       }
       /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
       const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}<span class="name">${escape(labelOf(layer))}</span>${layer.hidden ? '<span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
@@ -41238,22 +41292,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return [closest ? closest.then((name) => ({ layer: layer.letter, error, ...(name ? { closest: name } : {}) })) : { layer: layer.letter, error }];
           }));
         },
-        /**
-         * Series names for words, as Studio's search finds them (this machine's index once it's built, bitview.space's
-         * until then, said and ranked alike): the best first, only those it can chart (by date). Nothing it waits on waits for the
-         * page to be shown (a hidden tab's frames and idle moments may never come); no answer in 5 s, rejected with why.
-         */
+        /** Series names, best first, only those Studio can chart. A cold page waits for the browser's catalog index. */
         async search(/** @type {string} */ text, count = 10) {
           const most = Math.round(bounded(count, "count", 1, 50));
-          startFinder();
           indexCatalog();
-          let timer = 0;
-          const late = new Promise((_, fail) => (timer = window.setTimeout(() => fail(new Error("studio.search: no answer in 5 s (bitview.space didn't answer, and this page's own search isn't up yet)")), 5000)));
-          try {
-            return (await Promise.race([findSeries(String(text), most + 20), late])).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, most);
-          } finally {
-            clearTimeout(timer);
-          }
+          return (await findSeries(String(text), most + 20)).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, most);
         },
       });
       Object.defineProperty(window, "studio", { value: studio });
