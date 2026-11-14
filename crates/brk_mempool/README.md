@@ -101,8 +101,12 @@ block, partially consumed components split into their residual components and ar
 again without consumed members. A chunk that doesn't fit waits for the next block, and so does
 each later chunk that depends on it; every other chunk is still tried, to the end of the pool
 (Core's block assembler skips the rest of the cluster and stops after 1,000 misses in a row, so
-its blocks' tails hold less); one no block can hold waits for the last. Up to eight blocks in
-all, mempool.space's count, the last a catch-all; empty trailing blocks are not projected.
+its blocks' tails hold less). Then each chunk that missed, in rank order, takes the place of the
+newest chunks taken when they pay less in all than it does and dropping them makes room: feerate
+order alone leaves a large chunk's room to smaller ones worth less, and dropping the newest never
+strands a child, always taken after its parents. One no block can hold waits for the last. Up to
+eight blocks in all, mempool.space's count, the last a catch-all; empty trailing blocks are not
+projected.
 Priority metadata is observed independently of membership. A failed priority RPC or parse retains
 the last valid ranking map with a warning while other data updates; an unsupported method uses
 base-fee compatibility. Paid rates and totals always use base fees. Listed transactions not loaded

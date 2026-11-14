@@ -278,10 +278,11 @@ fn pack(
     let mut deferred = Vec::new();
     while !pending.is_empty() {
         let last = blocks.len() + 1 == num_blocks;
-        let mut block = Vec::new();
-        let mut selected = vec![false; chunks.components.len()];
-        let mut selected_components = Vec::new();
-        let (mut weight, mut sigops) = (Weight::ZERO, SigOps::ZERO);
+        // The chunks taken, in order, the block's weight, sigops and modified fee before each and
+        // after the last, and the ready chunks that didn't fit.
+        let mut taken = Vec::new();
+        let mut sums = vec![(Weight::ZERO, SigOps::ZERO, 0i128)];
+        let mut missed = Vec::new();
         for (position, &index) in pending.iter().enumerate() {
             let cand = &cands[index];
             // Below Core's floor: it and all after it wait for the last block.
@@ -291,28 +292,76 @@ fn pack(
             }
             // Ready once every parent is placed: what an earlier chunk that missed holds back is
             // only what depends on it.
-            let members = chunks.members(index);
-            let ready = members.iter().all(|m| {
-                txs[m.as_usize()].parents.iter().all(|p| consumed[p.as_usize()] || members.contains(p))
-            });
-            let fits = cand.fits(weight, sigops);
-            if !(ready && (last || fits)) {
+            if !ready(txs, chunks.members(index), &consumed) {
                 deferred.push(index);
                 continue;
             }
-            overflow |= last && !fits;
-            let component = cand.component as usize;
-            if !selected[component] {
-                selected[component] = true;
-                selected_components.push(component);
+            let (weight, sigops, fee) = sums[taken.len()];
+            let fits = cand.fits(weight, sigops);
+            if !(last || fits) {
+                missed.push(index);
+                continue;
             }
-            weight += cand.weight;
-            sigops += cand.sigops;
+            overflow |= last && !fits;
+            taken.push(index);
+            sums.push((weight + cand.weight, sigops + cand.sigops, fee + cand.fee));
             for &member in chunks.members(index) {
                 consumed[member.as_usize()] = true;
-                block.push((member, cand.rate));
             }
         }
+        // By feerate alone, a large chunk that misses by a little leaves its room to smaller ones
+        // worth less in all: it takes the place of the newest chunks taken when it pays more than
+        // they do. Dropping the newest never strands a child, which is always taken after its
+        // parents.
+        for index in missed {
+            let cand = &cands[index];
+            // The longest prefix of the take order it fits after: past it, it fits after none.
+            let cut = sums
+                .partition_point(|&(weight, sigops, _)| cand.fits(weight, sigops))
+                .checked_sub(1)
+                .filter(|&cut| sums[taken.len()].2 - sums[cut].2 < cand.fee);
+            let Some(cut) = cut else {
+                deferred.push(index);
+                continue;
+            };
+            for &dropped in &taken[cut..] {
+                for &member in chunks.members(dropped) {
+                    consumed[member.as_usize()] = false;
+                }
+            }
+            // A swap before it may have dropped one of its parents.
+            if !ready(txs, chunks.members(index), &consumed) {
+                for &kept in &taken[cut..] {
+                    for &member in chunks.members(kept) {
+                        consumed[member.as_usize()] = true;
+                    }
+                }
+                deferred.push(index);
+                continue;
+            }
+            deferred.extend_from_slice(&taken[cut..]);
+            taken.truncate(cut);
+            sums.truncate(cut + 1);
+            let (weight, sigops, fee) = sums[cut];
+            taken.push(index);
+            sums.push((weight + cand.weight, sigops + cand.sigops, fee + cand.fee));
+            for &member in chunks.members(index) {
+                consumed[member.as_usize()] = true;
+            }
+        }
+        let mut block: Vec<_> = taken
+            .iter()
+            .flat_map(|&index| {
+                let rate = cands[index].rate;
+                chunks.members(index).iter().map(move |&member| (member, rate))
+            })
+            .collect();
+        let mut selected = vec![false; chunks.components.len()];
+        let mut selected_components: Vec<usize> = taken
+            .iter()
+            .map(|&index| cands[index].component as usize)
+            .filter(|&component| !std::mem::replace(&mut selected[component], true))
+            .collect();
         if last || block.is_empty() {
             // The last slot, or a pool no finite block can take: preserve the backlog contract.
             // Withheld members were already excluded before partition and remain omitted.
@@ -338,6 +387,13 @@ fn pack(
         split(txs, &mut chunks, &mut cands, &mut pending, &selected_components, &consumed, cache, kept);
     }
     Projection { blocks, overflow }
+}
+
+/// Whether every parent of a chunk's `members` is placed or one of them.
+fn ready(txs: &[SnapTx], members: &[TxIndex], consumed: &[bool]) -> bool {
+    members.iter().all(|m| {
+        txs[m.as_usize()].parents.iter().all(|p| consumed[p.as_usize()] || members.contains(p))
+    })
 }
 
 /// Every member comes after its parents: earlier blocks' or its own block's earlier.

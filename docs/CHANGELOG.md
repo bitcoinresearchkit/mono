@@ -16,7 +16,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   the later blocks are, not taken from Core's `getblocktemplate`: one packer for every block. Core's template is still
   read each poll for the bodies it carries. A block's tail is filled past Core's rules: a chunk that doesn't fit holds
   back only the chunks that depend on it, and every other chunk is tried to the end of the pool (Core skips the rest
-  of the cluster and stops after 1,000 misses in a row)
+  of the cluster and stops after 1,000 misses in a row). Then a chunk that missed takes the place of the newest chunks
+  taken when they pay less in all and dropping them makes room, so a large chunk that misses by a little no longer
+  leaves its room to smaller ones worth less
 - `GET /api/mempool-blocks/{index}` and `/diff/{since}` list each transaction in esplora's light shape, `{txid, fee,
   vsize, value}` as `/api/mempool/recent` does, not as a whole body (block 0 went from 9.4 MB to 0.44 MB raw, 2.4 MB to
   0.17 MB brotli): the diff's new entries too. Bodies stay at `GET /api/tx/{txid}`. The type is `MempoolTxSummary` (was `MempoolRecentTx`),
