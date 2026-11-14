@@ -9402,7 +9402,8 @@ function brushSpan(/** @type {number} */ left, /** @type {number} */ right, /** 
 function brushOn(/** @type {DOMRect} */ rect, /** @type {number} */ n, /** @type {{ from: number, to: number }} */ range) {
   const span = overviewSpan(n), perPixel = (span.to - span.from) / rect.width, px = (/** @type {number} */ at) => clamp((at - span.from) / perPixel, 0, rect.width);
   const [left, right] = brushSpan(px(range.from), px(range.to), rect.width);
-  return { span, perPixel, left, right, grip: Math.min(TOUCH ? 14 : 8, (right - left) / 4) };
+  // Each visible grip ends 5px from the edge; touch gets 2px more without taking the window's body.
+  return { span, perPixel, left, right, grip: TOUCH ? 7 : 5 };
 }
 function placeBrush() {
   const brush = $("brush");
