@@ -27,7 +27,7 @@ const FULL_ENOUGH: Weight = Weight::new(3_988_000);
 const MAX_CONSECUTIVE_FAILURES: u32 = 1_000;
 
 /// Every component's chunks in linearization order, components one after another.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Chunks {
     /// Members, chunk after chunk, each chunk's in topological order.
     txs: Vec<TxIndex>,
@@ -78,11 +78,6 @@ impl Chunks {
         &self.txs[start..self.chunks[c].0 as usize]
     }
 
-    /// Each component's chunk range.
-    fn components(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        (0..self.components.len()).map(|index| self.component(index))
-    }
-
     /// One component's chunk range, by component index.
     fn component(&self, index: usize) -> (usize, usize) {
         let start = index.checked_sub(1).map_or(0, |previous| self.components[previous] as usize);
@@ -114,73 +109,31 @@ pub fn partition(
     debug_assert!(num_blocks > 0);
     debug_assert_eq!(txs.len(), excluded.len());
     let mut kept = ChunkCache::default();
-    let left = residual(txs, chunks, excluded, cache, &mut kept);
-    let projection = pack(txs, left, excluded.to_vec(), num_blocks, cache, &mut kept);
+    let projection = pack(txs, chunks.clone(), excluded.to_vec(), num_blocks, cache, &mut kept);
     *cache = kept;
     #[cfg(debug_assertions)]
     check_order(txs, excluded, &projection.blocks);
     projection
 }
 
-/// One operation for GBT and all local virtual boundaries. Untouched components reuse their
-/// chunks. Partially consumed ones split and use the common solver, including its heuristic
-/// tiers; no assumption about a heuristic suffix being optimal or connected is needed.
-fn residual(
-    txs: &[SnapTx],
-    chunks: &Chunks,
-    excluded: &[bool],
-    cache: &mut ChunkCache,
-    kept: &mut ChunkCache,
-) -> Chunks {
-    let mut left = Chunks::default();
-    let mut graph = Cluster::default();
-    let mut rest: Vec<TxIndex> = Vec::new();
-    let mut ids = Vec::new();
-    for component in chunks.components() {
-        let members = chunks.span(component);
-        let taken = members.iter().filter(|m| excluded[m.as_usize()]).count();
-        if taken == 0 {
-            for c in component.0..component.1 {
-                left.push_chunk(chunks.members(c).iter().copied(), chunks.chunks[c].1);
-            }
-        } else if taken < members.len() {
-            rest.clear();
-            rest.extend(members.iter().filter(|m| !excluded[m.as_usize()]));
-            for piece in pieces(txs, &rest, excluded) {
-                let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, kept);
-                for positions in linearized.chunks() {
-                    let chunk = positions.iter().map(|&p| ids[p as usize].1);
-                    left.push_chunk(chunk.clone(), cluster::paid_rate(txs, chunk));
-                }
-                left.end_component();
-            }
-            continue;
-        } else {
-            continue;
-        }
-        left.end_component();
-    }
-    left
-}
-
-/// The clusters `rest` (what a virtual block left of one component) forms without the excluded members,
-/// each in txid order, as [`cluster::walk`] gives a component.
-fn pieces(txs: &[SnapTx], rest: &[TxIndex], excluded: &[bool]) -> Vec<Vec<TxIndex>> {
+/// The clusters `rest` (what a virtual block left of one component) forms without the consumed
+/// members, each in txid order, as [`cluster::walk`] gives a component.
+fn pieces(txs: &[SnapTx], rest: &[TxIndex], consumed: &[bool]) -> Vec<Vec<TxIndex>> {
     let mut placed: FxHashSet<TxIndex> = FxHashSet::default();
     let mut pieces = Vec::new();
     for &seed in rest {
         if placed.contains(&seed) {
             continue;
         }
-        let piece = cluster::walk_within(txs, seed, |n| !excluded[n.as_usize()]);
+        let piece = cluster::walk_within(txs, seed, |n| !consumed[n.as_usize()]);
         placed.extend(piece.iter().copied());
         pieces.push(piece);
     }
     pieces
 }
 
+/// A chunk as the packer ranks and tests it: candidate `i` is chunk `i`.
 struct Candidate {
-    chunk: u32,
     component: u32,
     /// The published feerate; the order compares `fee / policy` exactly, as the linearization
     /// did, so a component's chunks never reorder.
@@ -198,6 +151,8 @@ struct Candidate {
     /// Actual weight: what a block counts, and what a candidate is tested at (Core 32).
     weight: Weight,
     sigops: SigOps,
+    /// At or above the default mining floor: 1 sat/kvB over rounded-up policy vsize.
+    mineable: bool,
 }
 
 impl Candidate {
@@ -205,14 +160,27 @@ impl Candidate {
     fn fits(&self, weight: Weight, sigops: SigOps) -> bool {
         weight + self.weight < MAX_WEIGHT && sigops + self.sigops < MAX_SIGOPS
     }
+
+    /// Core's mining order: feerate, then the equal-feerate run, then the greatest txid: a strict
+    /// order, as a snapshot's txids are unique (the node's listing, then the template's txids it
+    /// lacks), so chunks never tie. A component's chunks keep their order (an equal-feerate later
+    /// one has the longer run).
+    fn order(&self, other: &Self) -> std::cmp::Ordering {
+        compare_feerates((other.fee, other.policy), (self.fee, self.policy))
+            .then(self.prefix.cmp(&other.prefix))
+            .then_with(|| self.max_txid.cmp(&other.max_txid))
+    }
 }
 
-fn candidates(txs: &[SnapTx], chunks: &Chunks) -> Vec<Candidate> {
-    let mut cands: Vec<Candidate> = Vec::with_capacity(chunks.chunks.len());
-    for (component, range) in chunks.components().enumerate() {
+/// Appends the candidates of the chunks pushed since the last, component by component.
+fn push_candidates(txs: &[SnapTx], chunks: &Chunks, cands: &mut Vec<Candidate>) {
+    let first = chunks.components.partition_point(|&end| end as usize <= cands.len());
+    for component in first..chunks.components.len() {
+        let (from, to) = chunks.component(component);
+        debug_assert_eq!(from, cands.len());
         let mut run: Option<(i128, Weight)> = None;
         let mut prefix = Weight::default();
-        for c in range.0..range.1 {
+        for c in from..to {
             let members = || chunks.members(c).iter().map(|m| &txs[m.as_usize()]);
             let fee: i128 = members().map(|t| i128::from(t.modified)).sum();
             let policy: Weight = members().map(|t| t.sigops.adjust_weight(t.weight)).sum();
@@ -224,7 +192,6 @@ fn candidates(txs: &[SnapTx], chunks: &Chunks) -> Vec<Candidate> {
             };
             run = Some(rate);
             cands.push(Candidate {
-                chunk: c as u32,
                 component: component as u32,
                 rate: chunks.chunks[c].1,
                 fee,
@@ -233,32 +200,57 @@ fn candidates(txs: &[SnapTx], chunks: &Chunks) -> Vec<Candidate> {
                 max_txid: members().map(|t| t.txid).max_by(|a, b| a.cmp(b)).unwrap(),
                 weight: members().map(|t| t.weight).sum(),
                 sigops: members().map(|t| t.sigops).sum(),
+                mineable: compare_feerates(
+                    (fee, Weight::from(u64::from(policy).div_ceil(4))),
+                    (1, Weight::from(1_000u64)),
+                )
+                .is_ge(),
             });
         }
     }
-    // Core's mining order: feerate, then the equal-feerate run, then the greatest txid. A
-    // component's chunks keep their order (an equal-feerate later one has the longer run).
-    cands.sort_unstable_by(|a, b| {
-        compare_feerates((b.fee, b.policy), (a.fee, a.policy))
-            .then(a.prefix.cmp(&b.prefix))
-            .then_with(|| a.max_txid.cmp(&b.max_txid))
-            .then(a.chunk.cmp(&b.chunk))
-    });
-
-    cands
 }
 
-/// The default mining floor: 1 sat/kvB over rounded-up policy vsize. Whole-component
-/// removal changes neither candidate rates nor this cutoff in their retained order.
-fn mineable_count(cands: &[Candidate]) -> usize {
-    cands.iter().position(|cand| {
-        compare_feerates(
-            (cand.fee, Weight::from(u64::from(cand.policy).div_ceil(4))),
-            (1, Weight::from(1_000u64)),
-        ).is_lt()
-    }).unwrap_or(cands.len())
+/// Splits each `touched` component (some members consumed) into the components its other members
+/// form, each linearized again and appended to `chunks` with its candidates. `pending` drops the
+/// touched components' candidates, takes the new ones and comes back in mining order; untouched
+/// components keep their chunks, candidates and places.
+#[allow(clippy::too_many_arguments)]
+fn split(
+    txs: &[SnapTx],
+    chunks: &mut Chunks,
+    cands: &mut Vec<Candidate>,
+    pending: &mut Vec<usize>,
+    touched: &[usize],
+    consumed: &[bool],
+    cache: &mut ChunkCache,
+    kept: &mut ChunkCache,
+) {
+    let mut is_touched = vec![false; chunks.components.len()];
+    let mut graph = Cluster::default();
+    let mut ids = Vec::new();
+    let mut rest = Vec::new();
+    for &component in touched {
+        is_touched[component] = true;
+        rest.clear();
+        rest.extend(chunks.span(chunks.component(component)).iter().filter(|m| !consumed[m.as_usize()]));
+        for piece in pieces(txs, &rest, consumed) {
+            let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, kept);
+            for positions in linearized.chunks() {
+                let chunk = positions.iter().map(|&p| ids[p as usize].1);
+                chunks.push_chunk(chunk.clone(), cluster::paid_rate(txs, chunk));
+            }
+            chunks.end_component();
+        }
+    }
+    let new = cands.len();
+    push_candidates(txs, chunks, cands);
+    pending.retain(|&i| !is_touched[cands[i].component as usize]);
+    pending.extend(new..cands.len());
+    // Stable: a run already in order merges with the new candidates in linear time.
+    pending.sort_by(|&a, &b| cands[a].order(&cands[b]));
 }
 
+/// Blocks after block 0 from `chunks`, `consumed` holding block 0's members and the withheld.
 fn pack(
     txs: &[SnapTx],
     mut chunks: Chunks,
@@ -269,9 +261,21 @@ fn pack(
 ) -> Projection {
     let mut blocks = Vec::new();
     let mut overflow = false;
-    let mut cands = candidates(txs, &chunks);
-    let mut mineable = mineable_count(&cands);
-    let mut pending: Vec<usize> = (0..cands.len()).collect();
+    let mut cands = Vec::with_capacity(chunks.chunks.len());
+    push_candidates(txs, &chunks, &mut cands);
+    // Block 0 and the withheld: components they took whole leave, ones they took part of split.
+    let mut pending = Vec::new();
+    let mut touched = Vec::new();
+    for component in 0..chunks.components.len() {
+        let range = chunks.component(component);
+        let members = chunks.span(range);
+        match members.iter().filter(|m| consumed[m.as_usize()]).count() {
+            0 => pending.extend(range.0..range.1),
+            taken if taken < members.len() => touched.push(component),
+            _ => {}
+        }
+    }
+    split(txs, &mut chunks, &mut cands, &mut pending, &touched, &consumed, cache, kept);
     let mut deferred = Vec::new();
     while !pending.is_empty() {
         let last = blocks.len() + 1 == num_blocks;
@@ -282,11 +286,12 @@ fn pack(
         let (mut weight, mut sigops) = (Weight::ZERO, SigOps::ZERO);
         let mut failures = 0;
         for (position, &index) in pending.iter().enumerate() {
-            if index >= mineable {
+            let cand = &cands[index];
+            // Below Core's floor: it and all after it wait for the last block.
+            if !cand.mineable {
                 deferred.extend_from_slice(&pending[position..]);
                 break;
             }
-            let cand = &cands[index];
             if missed[cand.component as usize] {
                 deferred.push(index);
                 continue;
@@ -311,7 +316,7 @@ fn pack(
             failures = 0;
             weight += cand.weight;
             sigops += cand.sigops;
-            for &member in chunks.members(cand.chunk as usize) {
+            for &member in chunks.members(index) {
                 consumed[member.as_usize()] = true;
                 block.push((member, cand.rate));
             }
@@ -320,11 +325,10 @@ fn pack(
             // The last slot, or a pool no finite block can take: preserve the backlog contract.
             // Withheld members were already excluded before partition and remain omitted.
             for &index in &pending {
-                let cand = &cands[index];
-                for &member in chunks.members(cand.chunk as usize) {
+                for &member in chunks.members(index) {
                     if !consumed[member.as_usize()] {
                         consumed[member.as_usize()] = true;
-                        block.push((member, cand.rate));
+                        block.push((member, cands[index].rate));
                         overflow = true;
                     }
                 }
@@ -333,21 +337,13 @@ fn pack(
             break;
         }
         blocks.push(block);
-        let partial = selected_components.into_iter().any(|component| {
+        std::mem::swap(&mut pending, &mut deferred);
+        deferred.clear();
+        // What the block took part of splits; the equal-rate prefixes of its pieces start anew.
+        selected_components.retain(|&component| {
             chunks.span(chunks.component(component)).iter().any(|m| !consumed[m.as_usize()])
         });
-        if partial {
-            // Split touched components and recompute equal-rate prefixes for the new graph.
-            chunks = residual(txs, &chunks, &consumed, cache, kept);
-            cands = candidates(txs, &chunks);
-            mineable = mineable_count(&cands);
-            pending = (0..cands.len()).collect();
-        } else {
-            // Only complete components were consumed. Surviving identities and tie prefixes are
-            // unchanged: keep their existing sorted order rather than solving/sorting again.
-            std::mem::swap(&mut pending, &mut deferred);
-        }
-        deferred.clear();
+        split(txs, &mut chunks, &mut cands, &mut pending, &selected_components, &consumed, cache, kept);
     }
     Projection { blocks, overflow }
 }
