@@ -6035,7 +6035,7 @@ function keepStretch(was) {
   // (Its box's new width and view, for the next resize: see holdView.)
   const range = shownSpan();
   lastBox = chartWidth();
-  (heldView = range ? { ...boxView(range), box: lastBox, at: { from: range.from, to: range.to } } : null), (madeView = null);
+  (heldView = range ? { box: lastBox, at: range } : null), (madeView = null);
 }
 /** The chart following its box again (a window resized meanwhile, at once): what's laid out by its size, again. */
 function releaseSize() {
@@ -9496,23 +9496,14 @@ function paintNavigator(lit) {
 }
 new ResizeObserver(() => (holdView(), relayout())).observe(engine.element);
 /**
- * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
+ * The view as left: what each resize of the box keeps (see
  * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
- * box), to tell it from one moved since.
- * @type {{ from: number, to: number, box: number, at: { from: number, to: number } } | null}
+ * plot), to tell it from one moved since.
+ * @type {{ box: number, at: { from: number, to: number } } | null}
  */
 let heldView = null, madeView = /** @type {{ from: number, to: number } | null} */ (null);
 /** The chart's own width, its plot's and its price scales': a price scale wider, the plot narrower, it's the same. */
 const chartWidth = () => engine.time.width + engine.left + engine.axisShown;
-/**
- * A view by the chart's box: its bars from the box's left edge to its right, the price scales' room counted. A price
- * scale wider or narrower, the library holds the bars where they are on screen: the
- * same view by the box, though the plot's range isn't.
- */
-function boxView(/** @type {{ from: number, to: number }} */ range) {
-  const spacing = engine.time.width / (range.to - range.from);
-  return { from: range.from - engine.left / spacing, to: range.to + engine.axisShown / spacing };
-}
 /** The chart's own width as last seen: a size change at it is a price scale's, not the box's. */
 let lastBox = 0;
 /** An image being made of the chart (its resizes the picture's: see chartImage). */
@@ -9522,7 +9513,7 @@ let exporting = false;
  */
 function holdView() {
   const width = engine.time.width, box = chartWidth(), was = heldView, resized = box !== lastBox;
-  // (Only the chart's box resized: a price scale's labels wider or narrower, the library holds the bars on screen.)
+  // (Only the chart's box resized: a price scale's labels can change without it.)
   if (exporting) return;
   if (width) lastBox = box;
   if (!was || !width || !resized) return;
@@ -9530,7 +9521,7 @@ function holdView() {
   if (!resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
   const view = resizeKeeps ?? was.at;
   fitSpacing(chart, resolved.times.length, view);
-  madeView = boxView(view);
+  madeView = view;
   showSpan(view, EXACT_RANGE);
 }
 engine.onRange(() => {
@@ -9539,8 +9530,8 @@ engine.onRange(() => {
   ((range, width, box) => {
     if (!range || !width || exporting) return;
     lastBox ||= box;
-    const now = boxView(range), made = madeView && Math.abs(now.from - madeView.from) < 0.05 && Math.abs(now.to - madeView.to) < 0.05;
-    if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { ...now, box, at: { from: range.from, to: range.to } }), (madeView = null);
+    const made = madeView && Math.abs(range.from - madeView.from) < 0.05 && Math.abs(range.to - madeView.to) < 0.05;
+    if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { box, at: range }), (madeView = null);
   })(shownSpan(), engine.time.width, chartWidth());
   // (A scale gliding follows the view moved again, at once.)
   if (scaleGliding) endScaleGlide();

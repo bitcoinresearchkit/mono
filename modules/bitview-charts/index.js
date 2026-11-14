@@ -89,9 +89,6 @@ export class Chart {
     this.fitting = false;
     /** The axes fitted again at the next frame, narrower too (see fitAxes). */
     this.refit = false;
-    /** Pending view work: the latest data update keeps screen positions; an explicit placement after it keeps the requested range.
-     * @type {"data" | "range" | null} */
-    this.placed = "range";
     this.timeHeight = timeHeight;
     this.time = new Timeline({ rightOffset, maxSpacing });
     this.timeAxis = new TimeAxis();
@@ -206,7 +203,6 @@ export class Chart {
    */
   setTimes(times) {
     this.time.setTimes(times);
-    this.placed = "data";
     this.#recross();
     this.invalidate(true);
   }
@@ -237,7 +233,6 @@ export class Chart {
     const { from, to } = this.time;
     this.time.show(span);
     this.#stopIfChanged(from, to);
-    this.placed = "range";
     this.invalidate(true);
   }
 
@@ -254,8 +249,6 @@ export class Chart {
     if (!exact && time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
     else time.setRange(from, to);
     this.#stopIfChanged(wasFrom, wasTo);
-    // (Exact, its endpoints held through the next render's axes fitted wider too (see render); else so after data.)
-    if (this.placed || exact) this.placed = "range";
     this.invalidate();
   }
 
@@ -398,13 +391,8 @@ export class Chart {
     return this.leftAxis && (this.fitted[1] || this.leftAxis);
   }
 
-  /**
-   * Laid out again at the element's size (watched: needed only for a change it can't see); `kept`, every point where it
-   * is on the screen (an axis fitted to its labels: it grows over the plot's edge or gives it back, nothing under it
-   * moving), else the view's points (a box resized: stretched, see Timeline.resize).
-   * @param {boolean} [kept]
-   */
-  layout(kept = false) {
+  /** Laid out again at the element's size (watched: needed only for a change it can't see), keeping the visible range. */
+  layout() {
     const box = this.element.getBoundingClientRect(), wasLeft = this.left;
     this.dpr = devicePixelRatio || 1;
     this.width = box.width;
@@ -439,7 +427,7 @@ export class Chart {
     const cornerWidth = axis || left;
     Object.assign(this.corner.style, { left: `${axis ? left + Math.max(1, width - axis) : 0}px`, top: `${room}px`, width: `${cornerWidth}px`, height: `${this.timeHeight}px`, display: cornerWidth ? "block" : "none" });
     this.crosshair.place(box.width, box.height, this.dpr);
-    this.time.resize(Math.max(1, width - axis), kept ? left - wasLeft : NaN);
+    this.time.resize(Math.max(1, width - axis));
     // (The crosshair's pane found again: panes moved, came or went.)
     this.#recross();
     this.invalidate(true);
@@ -500,8 +488,7 @@ export class Chart {
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
     // (Each axis as wide as its labels and tags need (4 pixels a step, AXIS_LEAST at least), each side on its own,
-    // every point kept where it is on the screen (the axis over the plot's edge, not the plot shifted; a view set anew,
-    // not seen yet, its right end and the room after its latest point as set): wider at once where they need it, never
+    // the visible time range kept as the plot's width changes: wider at once where they need it, never
     // narrower by itself (no plot growing and shrinking as values come and go); as narrow as they let it only when
     // fitted again (fitAxes: a price axis' double-click, the page's own). Laid out and drawn whole again now (a picture
     // taken from this render has it all); in that draw, only wider (it ends).)
@@ -515,7 +502,7 @@ export class Chart {
       if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
         if (this.axis) this.fitted[0] = wantRight;
         if (this.left) this.fitted[1] = wantLeft;
-        this.layout(this.placed !== "range");
+        this.layout();
         const was = this.fitting;
         this.fitting = true;
         try {
@@ -525,8 +512,6 @@ export class Chart {
         }
       }
     }
-    // (Only the data already drawn is consumed. A listener below may queue another update for the next draw.)
-    this.placed = null;
     // (The pointer refreshed on fitted geometry, through the same placement path as input. An unchanged pointer asks
     // for neither another hit test nor another frame.)
     if (this.recrossing || (this.#crossedInput && crosshair.index === crosshair.index)) {

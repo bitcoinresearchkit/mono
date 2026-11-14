@@ -134,25 +134,16 @@ export class Timeline {
   }
 
   /**
-   * The plot's width changed: the view kept (the same points from edge to edge, its spacing as the width makes it: a
-   * sidebar opening or shutting stretches it, nothing comes or goes, past the zoom's bound if it takes it: see `kept`);
-   * or (`moved`: its left edge moved that many CSS pixels on the screen, an axis growing over the plot) every point kept
-   * where it is on the screen, its spacing too, unless that'd take its latest point out of view (then its right end and
-   * spacing kept: one in view stays, the view follows it as more come, see setTimes).
-   * @param {number} width @param {number} [moved]
+   * The plot's width changed: keep the same points from edge to edge, with the spacing the new width makes.
+   * @param {number} width
    */
-  resize(width, moved = NaN) {
-    if (width === this.width && !moved) return;
-    const spacing = this.spacing, to = this.to, last = this.length - 1, following = last >= 0 && this.x(last) <= this.width;
+  resize(width) {
+    if (width === this.width) return;
     this.width = width;
-    if (moved !== moved) {
-      const span = this.to - this.from;
-      // (Its data's view, not the placeholder's before any.)
-      if (this.length && span < width / this.maxSpacing) this.kept = span;
-      return void this.limit();
-    }
-    (this.from += moved / spacing), (this.to = this.from + width / spacing), this.limit();
-    if (following && this.x(last) > width) (this.to = to), (this.from = to - width / spacing), this.limit();
+    const span = this.to - this.from;
+    // (Its data's view, not the placeholder's before any.)
+    if (this.length && span < width / this.maxSpacing) this.kept = span;
+    this.limit();
   }
 
   /**
