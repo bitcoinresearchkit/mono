@@ -16191,8 +16191,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null);
 
       /**
-       * @typedef {{ values?: Vector, measurement?: Vector, ohlc?: (number[] | null)[], low?: Vector, members?: Vector[], memberIds?: string[], highest?: Int8Array, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector, heat?: true, closes?: Vector }} Result
-       *   `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
+       * @typedef {{ values?: Vector, measurement?: Vector, opens?: Vector, highs?: Vector, lows?: Vector, low?: Vector, members?: Vector[], memberIds?: string[], highest?: Int8Array, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector, heat?: true, closes?: Vector }} Result
+       *   `opens`, `highs`, `lows`: an OHLC series' candles, column by column (their closes its values); `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
        *   flips, a formula's restarts (each the point before: see restarts); `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
        * @typedef {{ times: number[], results: Map<string, Result>, drawn: Set<string>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
@@ -16322,19 +16322,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const align = (data) => {
           if (aligned.has(data)) return aligned.get(data);
           const values = new Float64Array(length).fill(NaN);
-          /** @type {(number[] | null)[] | undefined} */
-          let ohlc;
+          /** @type {{ opens: Float64Array, highs: Float64Array, lows: Float64Array } | undefined} */
+          let candles;
           for (let k = 0; k < data.data.length; k++) {
             const value = data.data[k], p = position[data.start - lo + k];
             // (A number, as nearly all are, taken as it is: no call each value, thousands a series.)
             if (typeof value === "number") values[p] = value;
             else if (Array.isArray(value)) {
-              (ohlc ??= new Array(length).fill(null))[p] = value;
+              candles ??= { opens: new Float64Array(length).fill(NaN), highs: new Float64Array(length).fill(NaN), lows: new Float64Array(length).fill(NaN) };
+              candles.opens[p] = Number(value[0]);
+              candles.highs[p] = Number(value[1]);
+              candles.lows[p] = Number(value[2]);
               values[p] = Number(value[3]);
             } else if (value !== null && value !== undefined) values[p] = Number(value);
           }
-          aligned.set(data, { values, ohlc });
-          return { values, ohlc };
+          const columns = { values, ...candles };
+          aligned.set(data, columns);
+          return columns;
         };
         for (const layer of sources) {
           const { meta, data, error } = fetched.get(layer.series);
@@ -16351,8 +16355,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = frame.series.get(layer.series);
           if (before?.info === meta) results.set(layer.id, before);
           else {
-            const { values, ohlc } = align(data);
-            const result = { values, ohlc, unit: unitOf(meta.type), info: meta };
+            const result = { ...align(data), unit: unitOf(meta.type), info: meta };
             frame.series.set(layer.series, result);
             results.set(layer.id, result);
           }
@@ -16478,9 +16481,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
           if (by?.error === LOOP) throw new Error(LOOP);
           if (layer.type === "trend" && !by?.values) return { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
-          // (Its reference by its data: an OHLC series by its highs and lows, however it's drawn; else by its values.)
-          const wicks = by?.ohlc ?? null;
-          const key = [frame.id, layer.type, edgesOf(layer).join(), inputIds.join(), cloudLayers(layer).length, ...inputs.map((input) => idOf(/** @type {Vector} */ (input.values))), by?.values ? idOf(by.values) : "", wicks ? idOf(/** @type {any} */ (wicks)) : ""].join("|");
+          // (Its reference by its data: an OHLC series by its highs and lows, however it's drawn (see trendOf); else by its values.)
+          const key = [frame.id, layer.type, edgesOf(layer).join(), inputIds.join(), cloudLayers(layer).length, ...inputs.map((input) => idOf(/** @type {Vector} */ (input.values))), by?.values ? idOf(by.values) : "", by?.lows ? idOf(by.lows) : ""].join("|");
           return kept(layer, key, () => {
             if (layer.type === "cloud" && edges && inputs.length < 2) {
               const values = inputs[0]?.values ?? new Float64Array(length).fill(NaN);
@@ -16500,7 +16502,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (Where fewer than two have a value, none: a range of one value isn't one.)
             for (let i = 0; i < length; i++) if (count[i] < 2) low[i] = high[i] = NaN;
-            const trend = trendOf(low, high, /** @type {Vector} */ (by?.values), wicks);
+            const trend = trendOf(low, high, /** @type {Result} */ (by));
             return { values: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit };
           });
         });
@@ -16545,14 +16547,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return { times: frame.trimmed.times, results, drawn: new Set(layers.map(layer => layer.id)), failed };
       }
 
-      /** Maps all numeric columns together, including a view's source, cloud members and candle rows.
+      /** Maps all numeric columns together, including a view's source, cloud members and candles.
        * @param {Result} result @param {(values: any, field: string) => any} map @returns {Result}
        */
       function mapResult(result, map) {
         const out = { ...result };
         for (const [field, values] of Object.entries(result)) if (ArrayBuffer.isView(values)) out[field] = map(values, field);
         if (result.members) out.members = result.members.map((values) => map(values, "members"));
-        if (result.ohlc) out.ohlc = map(result.ohlc, "ohlc");
         return out;
       }
 
@@ -16572,16 +16573,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const mean = (/** @type {Vector} */ values) => rolling(values, points, partial).mean;
           const members = result.members?.map(mean);
           const shape = members ? cloudOf(members, edgesOf(layer).includes("top"), edgesOf(layer).includes("bottom"), cloudLayers(layer).length === 2)
-            : { values: mean(result.values), ...(result.low ? { low: mean(result.low) } : {}) };
+            : { values: mean(result.values), ...(result.low ? { low: mean(result.low) } : {}), ...(result.opens ? { opens: mean(result.opens), highs: mean(/** @type {Vector} */ (result.highs)), lows: mean(/** @type {Vector} */ (result.lows)) } : {}) };
           if (!partial && !shape.values.some(Number.isFinite) && outreaches(result.values, points)) throw windowTooLong("Average", span, spanDays(span), index, points > result.values.length, false);
-          let ohlc;
-          if (result.ohlc) {
-            const bars = result.ohlc;
-            const columns = Array.from({ length: 4 }, (_, k) => k === 3 ? shape.values : mean(Float64Array.from(bars, (bar) => bar?.[k] ?? NaN)));
-            ohlc = Array.from({ length: bars.length }, (_, i) => Number.isFinite(columns[3][i]) ? columns.map((column) => column[i]) : null);
-          }
           // Rolling outputs may be shared with formula results: never write to them.
-          out = { ...result, ...shape, measurement: result.values, ...(ohlc ? { ohlc } : {}) };
+          out = { ...result, ...shape, measurement: result.values };
         } catch (thrown) {
           const problem = /** @type {Error & { short?: string }} */ (thrown);
           out = { unit: result.unit, info: result.info, measurement: result.values, error: problem.short ?? problem.message, detail: problem.message };
@@ -17082,7 +17077,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Map<string, any>} layer id → its series on the chart */
       const drawn = new Map();
       /** A series' options without its format and scale (a restyle keeps both, and applying them again costs a pass over every point). */
-      /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
+      /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, opens?: Vector, highs?: Vector, lows?: Vector, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
       const built = new Map();
       /** The layers' order as last put in order (see build). */
       let drawnOrder = "";
@@ -17491,8 +17486,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // alone, and a color or a width scrubbed stays smooth however many points there are. (A histogram's set again
         // whole: its bars under its base in its second color, a palette made with its data.)
         // (Not where it is among them: a layer moved, or its pane reversed, keeps its series, put in order below.)
-        const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", layer.type === "bubbles" && !layer.ref, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
-        /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
+        const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", layer.type === "bubbles" && !layer.ref, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.opens), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
+        /** @type {Map<string, { shape: string, shown?: Vector, opens?: Vector, highs?: Vector, lows?: Vector, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
         for (const layer of doc.layers) {
           const before = built.get(layer.id);
@@ -17548,7 +17543,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const partial = periodAmount(layer);
           const stroke = { width: lineWidth ?? 1.5, dash: dashFor(lineWidth, layer.dash), steps: lineTypeOf(layer) === LINE_TYPE.WithSteps, curve: lineTypeOf(layer) === LINE_TYPE.Curved, marker: MARKER.radius, stroke: true, dots: 0, partial };
           const pane = paneIndex.get(layer.pane) ?? 0;
-          const candles = layer.type === "candles" && result?.ohlc;
+          const candles = layer.type === "candles" && result?.opens;
           // Its colors date by date, where they vary (or come from another layer). (A cloud by its layers: each band's its
           // own, theirs (see Cloud), not one a date.)
           const banded = layer.type === "cloud" && Boolean(layer.byLayers && result?.members?.length && result.memberIds);
@@ -17652,7 +17647,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             styleSeries(series, { ...tags, ...look });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
-          built.set(layer.id, { shape: layerShape(layer), shown: stack?.values ?? result?.values, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
+          built.set(layer.id, { shape: layerShape(layer), shown: stack?.values ?? result?.values, stacked: Boolean(stack), painted: painting, ...(result?.opens ? { opens: result.opens, highs: result.highs, lows: result.lows } : {}), ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
@@ -17666,7 +17661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Shading ? series.set(EMPTY) : series.set({ low: EMPTY, high: EMPTY });
             const close = closes.get(layer.id);
             if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
-          } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
+          } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.opens === result.opens && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
             if (carried) paintedLayers.set(layer.id, carried);
             linesAcross(layer, pane, format, op);
@@ -17712,7 +17707,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, close = closes.get(layer.id)?.series;
             const drawable = (/** @type {number} */ value) => (value - value === 0 && (!log || value > 0) ? value : NaN);
             const values = times.length ? (log || shown.some((/** @type {number} */ value) => value === Infinity || value === -Infinity) ? shown.map(drawable) : shown) : [];
-            if (candles) series.engine.setValues(candleColumns(result.ohlc, shown, log, at));
+            if (candles) series.engine.setValues(candleColumns(result, shown, log, at));
             else setColumn(series, values, Boolean(stack) && (stackedLine || (layer.type === "area" && layer.fill !== "above")));
             if (close) setColumn(close, values, false), tintClose(layer.id);
             const traced = close ?? (candles ? null : series);
@@ -18766,15 +18761,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * else its value at or past the line: from that date on, the other side. It starts on the low if the reference is
        * above the middle of the two, else on the high; where the edges have no value, none (the side kept). `breaks`:
        * each touch, the old side's last point (the date before it: nothing drawn up or down between).
-       * @param {Vector} low @param {Vector} high @param {Vector} ref @param {(number[] | null)[] | null} bars
+       * @param {Vector} low @param {Vector} high @param {Result} ref
        */
-      function trendOf(low, high, ref, bars) {
+      function trendOf(low, high, ref) {
         const n = low.length, values = new Float64Array(n).fill(NaN), breaks = new Uint8Array(n), onSide = new Uint8Array(n);
+        const downs = /** @type {Vector} */ (ref.lows ?? ref.values), ups = /** @type {Vector} */ (ref.highs ?? ref.values);
         // (Which it's on: 0 none yet, 1 the low, 2 the high; `last`, its last date with a value.)
         let side = 0, last = -1;
         for (let i = 0; i < n; i++) {
           if (!Number.isFinite(low[i]) || !Number.isFinite(high[i])) continue;
-          const bar = bars?.[i], down = bar ? Number(bar[2]) : ref[i], up = bar ? Number(bar[1]) : ref[i];
+          const down = downs[i], up = ups[i];
           if (!side) {
             if (!Number.isFinite(down) || !Number.isFinite(up)) continue;
             side = down + up >= low[i] + high[i] ? 1 : 2;
@@ -18888,8 +18884,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const base = baseOf(layer);
         if (layer.type === "baseline" || layer.type === "histogram") return (i) => (!Number.isFinite(values[i]) ? null : values[i] < base ? under : top);
         // Candles: a falling one's (its close under its open), the second.
-        const ohlc = result?.ohlc;
-        if (layer.type === "candles" && ohlc) return (i) => ((bar) => (!bar || !Number.isFinite(values[i]) ? null : bar[3] < bar[0] ? under : top))(ohlc[i]);
+        const opens = result?.opens;
+        if (layer.type === "candles" && opens) return (i) => (!Number.isFinite(values[i]) ? null : values[i] < opens[i] ? under : top);
         if (TWO_KEPT.has(layer.type) && result?.sides) return (i) => (/** @type {Uint8Array} */ (result.sides)[i] === 1 ? under : result.sides?.[i] ? top : null);
         return null;
       }
@@ -18909,7 +18905,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sig = [layer.type, layer.fill, layer.fillOpacity, layer.solid, op, base];
         for (const at of colorChain(doc, layer)) {
           const result = data.results.get(at.id);
-          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.byGradient ? `${JSON.stringify(at.gradient)}${at.upToDate ? "|to date" : `|${rangeOf(result?.values ?? []).join()}`}|${light}` : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "", at.type === "cloud" && at.byLayers ? (result?.memberIds ?? []).map((id) => ink(doc.layers.find((item) => item.id === id)?.color ?? "")).join() : "", at.type === "cloud" && at.byLayers ? result?.members : undefined, at.type === "candles" ? result?.ohlc : undefined);
+          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.byGradient ? `${JSON.stringify(at.gradient)}${at.upToDate ? "|to date" : `|${rangeOf(result?.values ?? []).join()}`}|${light}` : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "", at.type === "cloud" && at.byLayers ? (result?.memberIds ?? []).map((id) => ink(doc.layers.find((item) => item.id === id)?.color ?? "")).join() : "", at.type === "cloud" && at.byLayers ? result?.members : undefined, at.type === "candles" ? result?.opens : undefined);
         }
         return sig;
       }
@@ -19390,14 +19386,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Candles' open, high, low and close as columns on the timeline (`at`: a stacked one's on those under it; none where
        * its value isn't finite, or its low not over zero on a log scale).
-       * @param {any[]} ohlc @param {ArrayLike<number>} shown @param {boolean} log @param {(value: number, i: number) => number} at
+       * @param {Result} candles @param {ArrayLike<number>} shown @param {boolean} log @param {(value: number, i: number) => number} at
        */
-      function candleColumns(ohlc, shown, log, at) {
-        const n = ohlc.length, open = new Float64Array(n).fill(NaN), high = new Float64Array(n).fill(NaN), low = new Float64Array(n).fill(NaN), close = new Float64Array(n).fill(NaN);
+      function candleColumns(candles, shown, log, at) {
+        const closes = /** @type {Vector} */ (candles.values), opens = /** @type {Vector} */ (candles.opens), highs = /** @type {Vector} */ (candles.highs), lows = /** @type {Vector} */ (candles.lows);
+        const n = closes.length, open = new Float64Array(n).fill(NaN), high = new Float64Array(n).fill(NaN), low = new Float64Array(n).fill(NaN), close = new Float64Array(n).fill(NaN);
         for (let i = 0; i < n; i++) {
-          const bar = ohlc[i];
-          if (!bar || !Number.isFinite(shown[i]) || (log && !(at(bar[2], i) > 0))) continue;
-          (open[i] = at(bar[0], i)), (high[i] = at(bar[1], i)), (low[i] = at(bar[2], i)), (close[i] = at(bar[3], i));
+          if (!Number.isFinite(closes[i]) || !Number.isFinite(shown[i]) || (log && !(at(lows[i], i) > 0))) continue;
+          (open[i] = at(opens[i], i)), (high[i] = at(highs[i], i)), (low[i] = at(lows[i], i)), (close[i] = at(closes[i], i));
         }
         return { open, high, low, close };
       }
@@ -22457,7 +22453,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const made = built.get(layer.id), series = drawn.get(layer.id);
           // (Not a signal's: its carrier's drawn nowhere.)
           if (layer.pane !== pane || layer.hidden || placedOn(layer) || !made || !series) continue;
-          for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]]) {
+          for (const value of /** @type {number[]} */ (layer.type === "candles" && !made.stacked && made.opens && Number.isFinite(made.shown?.[bar]) ? [made.opens[bar], made.highs?.[bar], made.lows?.[bar], made.shown?.[bar]] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]])) {
             const at = Number.isFinite(value) ? seriesY(series, value) : null;
             if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
           }
@@ -31183,7 +31179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const typeField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every(seriesLooked)) return "";
-        const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.ohlc || (layer.series && isOhlc(layer.series)));
+        const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.opens || (layer.series && isOhlc(layer.series)));
         return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
       };
       /**
@@ -36410,7 +36406,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "hide", icon: glyph("bubbles"), label: "Hide below", aside: ((n) => (n ? `${hideText(n)} of the largest` : "None"))(layer.hide ?? BUBBLE_HIDE), group: "Bubbles", page: () => choicePage("Hide below", () => BUBBLE_HIDES.map((n) => ({ key: String(n), label: hideText(n), aside: n === BUBBLE_HIDE ? "Its own" : n ? undefined : "Every one, however small", current: (now().hide ?? BUBBLE_HIDE) === n, ...both((item) => (item.hide = n === BUBBLE_HIDE ? undefined : n)) }))) },
               { key: "sized", icon: glyph("bubbles"), label: "Sized to", aside: layer.scaleTo === "all" ? "All time" : "In view", verb: layer.scaleTo === "all" ? "Size to what's in view" : "Size to all time", group: "Bubbles", stay: true, run: set((item) => (item.scaleTo = item.scaleTo === "all" ? undefined : "all")) },
             ] : []),
-            ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
+            ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.opens || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
@@ -40755,28 +40751,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const opens = added.length > 0 || !Number.isFinite(result.values[at]);
           const last = opens ? lastIn(result.values, 0, at) : at;
           if (last < 0 || at - last > 100 || !Number.isFinite(result.values[last])) continue;
-          const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
+          const values = liveCopy(result.values), close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           // (Its gradient's range of all its history moved by it, either way: every point's color another, see below.)
           const was = layer.byGradient && !layer.upToDate ? rangeOf(result.values).join() : "";
           values[at] = value;
           rescan(values, at);
           if (was && rangeOf(values).join() !== was) regrade = true;
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
-          const ohlc = bar && result.ohlc ? liveCopy(result.ohlc) : result.ohlc;
-          if (bar && ohlc) {
-            const [open, high, low, before] = bar.map(Number), from = opens ? before : open;
-            const candle = opens ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
-            ohlc[at] = candle;
+          const candles = result.opens && Number.isFinite(result.opens[last]) ? { opens: liveCopy(result.opens), highs: liveCopy(/** @type {Vector} */ (result.highs)), lows: liveCopy(/** @type {Vector} */ (result.lows)) } : null;
+          if (candles) {
+            // (A bar opening, at the last close; else its own open, its wicks reaching the price.)
+            const open = opens ? values[last] : candles.opens[at];
+            candles.opens[at] = open;
+            candles.highs[at] = Math.max(opens ? open : candles.highs[at], value);
+            candles.lows[at] = Math.min(opens ? open : candles.lows[at], value);
             // (Its candle set in place on the library's columns (Studio's own, made at the build); a bar added, all again.)
             const own = close?.candles.engine;
-            if (own && own.close.length > at) own.set(at, candle[0], candle[1], candle[2], value), engine.invalidate();
-            else if (own) own.setValues(candleColumns(ohlc, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
+            if (own && own.close.length > at) own.set(at, open, candles.highs[at], candles.lows[at], value), engine.invalidate();
+            else if (own) own.setValues(candleColumns({ ...result, values, ...candles }, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
           }
           // (Bubbles' own below, with their places; a heatmap's closes above; a cloud's at the next build.)
-          data.results.set(layer.id, { ...result, values, ohlc });
+          data.results.set(layer.id, { ...result, values, ...candles });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
-          if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
+          if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ...candles });
           if (series instanceof Standard) liveColumn(series, values, at, value);
           // (Painted date by date: its point once every live value is in, from the colors as they are then.)
           if (paintedLayers.has(layer.id)) toPaint.push(layer.id);
