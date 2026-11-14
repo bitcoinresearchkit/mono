@@ -1,5 +1,5 @@
 use brk_oracle::{HistogramRaw, Tally};
-use brk_types::{MempoolRecentTx, Timestamp, Transaction, Txid};
+use brk_types::{MempoolTxSummary, Timestamp, Transaction, Txid};
 use rustc_hash::FxBuildHasher;
 
 use crate::{
@@ -17,7 +17,7 @@ pub struct ReadOnlyTxStore {
     pub(super) content_revision: u64,
     pub(super) membership_revision: u64,
     /// The latest arrivals by Core's first-seen time, newest first.
-    pub(super) recent: Vec<(Timestamp, MempoolRecentTx)>,
+    pub(super) recent: Vec<(Timestamp, MempoolTxSummary)>,
     pub(super) payments: LivePayments,
 }
 
@@ -78,7 +78,7 @@ impl ReadOnlyTxStore {
         self.membership_revision
     }
 
-    pub fn recent(&self) -> impl Iterator<Item = &MempoolRecentTx> {
+    pub fn recent(&self) -> impl Iterator<Item = &MempoolTxSummary> {
         self.recent.iter().map(|(_, tx)| tx)
     }
 

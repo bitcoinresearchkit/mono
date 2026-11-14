@@ -1,12 +1,12 @@
-//! A projected mempool block with its transactions: full content and incremental diff.
+//! A projected mempool block with its transactions in their light shape: whole and as a diff.
 
 use std::sync::Arc;
 
 use brk_error::Result;
 
 use brk_types::{
-    MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, RetainedRun,
-    Transaction, Txid,
+    MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, MempoolTxSummary,
+    RetainedRun, Transaction, Txid,
 };
 use rapidhash::RapidHashMap;
 use serde::{Serialize, Serializer};
@@ -157,12 +157,12 @@ impl ResolvedMempoolBlockDiff {
     }
 }
 
-/// A published block's bodies, serialized in place as a JSON array.
+/// A published block's bodies, serialized in place as a JSON array of their light shapes.
 pub struct BlockTxs(Arc<[Arc<Transaction>]>);
 
 impl Serialize for BlockTxs {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        serializer.collect_seq(self.0.iter().map(Arc::as_ref))
+        serializer.collect_seq(self.0.iter().map(|tx| MempoolTxSummary::from(&**tx)))
     }
 }
 
@@ -177,7 +177,7 @@ impl Serialize for BlockOrder {
         serializer.collect_seq(self.entries.iter().map(|entry| match *entry {
             MempoolBlockDiffEntry::Retained(run) => MempoolBlockDiffEntry::Retained(run),
             MempoolBlockDiffEntry::New(position) => {
-                MempoolBlockDiffEntry::New(&*self.bodies[position])
+                MempoolBlockDiffEntry::New(MempoolTxSummary::from(&*self.bodies[position]))
             }
         }))
     }

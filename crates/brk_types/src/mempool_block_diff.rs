@@ -7,7 +7,7 @@ use crate::{MempoolBlock, MempoolBlockDiffEntry, MempoolBlockHash, Txid};
 /// A projected mempool block's changes since a prior copy identified by `since`. Returned by
 /// `GET /api/mempool-blocks/{index}/diff/{since}`.
 ///
-/// `removed` lists txids no longer present. A changed body can be emitted as `New` without
+/// `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
 /// removing its txid; absence from every retained run alone does not imply removal.
 // `Order` holds the entries: owned by default, a view of the published bodies when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +25,7 @@ pub struct MempoolBlockDiff<Order = Vec<MempoolBlockDiffEntry>> {
     pub stats: MempoolBlock,
 
     /// The new block in order. Each entry is either a run of the prior copy's transactions,
-    /// `[start, count]`, or a full transaction body.
+    /// `[start, count]`, or a transaction in its light shape.
     pub order: Order,
 
     /// Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved

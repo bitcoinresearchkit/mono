@@ -8,7 +8,7 @@ use tokio::sync::Semaphore;
 
 use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended};
 
-/// A projected mempool block with its transactions (about 10 MB each).
+/// A projected mempool block with its transactions in their light shape (under 1 MB).
 pub async fn serve(
     state: AppState,
     headers: HeaderMap,

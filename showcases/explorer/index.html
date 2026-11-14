@@ -1719,8 +1719,8 @@
           return drawWeek();
         }
       });
-      // The next block's transactions, as the template has them, then only what changed. Only the latest read is kept.
-      const slim = (t) => ({ txid: t.txid, vsize: Math.ceil(t.weight / 4), rate: t.fee / Math.ceil(t.weight / 4), fee: t.fee, born: 0 });
+      // The next block's transactions in their light shape, then only what changed. Only the latest read is kept.
+      const slim = (t) => ({ txid: t.txid, vsize: t.vsize, rate: t.fee / t.vsize, fee: t.fee, born: 0 });
       let nextReads = 0;
       function loadNext() {
         const n = ++nextReads;

@@ -6,7 +6,7 @@ use std::{
     },
 };
 
-use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, Vin};
+use brk_types::{MempoolTxSummary, Transaction, TxOut, Txid, Vin};
 use rustc_hash::FxHashSet;
 
 use crate::{key::TxKey, state::TxEntry};
@@ -77,7 +77,7 @@ impl TxStore {
         if at < RECENT_CAP {
             recent.insert(
                 at,
-                (entry.first_seen, MempoolRecentTx::from((&entry.txid, tx))),
+                (entry.first_seen, MempoolTxSummary::from(tx)),
             );
             recent.truncate(RECENT_CAP);
         }

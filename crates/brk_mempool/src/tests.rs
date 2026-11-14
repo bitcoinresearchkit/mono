@@ -4,8 +4,8 @@ use bitcoin::hashes::Hash;
 use bitcoin::{ScriptBuf, Witness};
 use brk_cpfp::Cluster;
 use brk_types::{
-    BlockHash, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, Sats, SigOps, Timestamp, Transaction,
-    TxIn, TxOut, TxStatus, Txid, VSize, Vout, Weight,
+    BlockHash, CpfpClusterTxIndex, FeeRate, MempoolEntryInfo, MempoolTxSummary, Sats, SigOps,
+    Timestamp, Transaction, TxIn, TxOut, TxStatus, Txid, VSize, Vout, Weight,
 };
 use rapidhash::{RapidHashMap, RapidHashSet};
 use serde_json::{Value, to_value};
@@ -202,7 +202,7 @@ fn served_blocks_publish_and_diff() {
     let captured = served(&state, 1);
     // c's body changes under its txid (a prevout filled), d leaves block 1, e joins it.
     let c2 = Arc::new(Transaction {
-        total_sigop_cost: SigOps::new(1),
+        fee: c.fee + Sats::from(1u64),
         ..(*c).clone()
     });
     state.publish_projection(snapshot(&[&[&a], &[&b, &c2, &e]], 1), tip);
@@ -221,7 +221,7 @@ fn served_blocks_publish_and_diff() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|tx| &tx["sigops"])
+        .map(|tx| &tx["fee"])
         .collect();
     let txids: Vec<&Value> = built["transactions"]
         .as_array()
@@ -235,7 +235,7 @@ fn served_blocks_publish_and_diff() {
         [&id(&b), &id(&c), &id(&d)],
         "its own bodies, in its order"
     );
-    assert_eq!(bodies[1], 0, "c's body as it was then");
+    assert_eq!(*bodies[1], to_value(c.fee).unwrap(), "c's body as it was then");
     assert_ne!(served(&state, 1).hash(), since);
     let diff = state
         .resolve_mempool_block_diff(served(&state, 1), since)
@@ -249,7 +249,7 @@ fn served_blocks_publish_and_diff() {
         [&order[1]["txid"], &order[2]["txid"]],
         [&txid(&c2), &txid(&e)]
     );
-    assert_eq!(order[1]["sigops"], 1, "c's new body");
+    assert_eq!(order[1]["fee"], to_value(c2.fee).unwrap(), "c's new body");
     assert_eq!(
         diff["removed"],
         serde_json::json!([txid(&d)]),
@@ -1028,7 +1028,8 @@ fn served_json_carries_only_complete_content_and_retires() {
 #[test]
 fn block_diff_reconstructs_current_bodies() {
     let (a, b, c) = (body(1), body(2), body(3));
-    let changed = Arc::new(Transaction { total_sigop_cost: SigOps::new(7), ..(*b).clone() });
+    let changed = Arc::new(Transaction { fee: Sats::from(7u64), ..(*b).clone() });
+    let light = |tx: &Arc<Transaction>| to_value(MempoolTxSummary::from(&**tx)).unwrap();
     let cases: Vec<Vec<Arc<Transaction>>> = vec![
         vec![], vec![a.clone()], vec![a.clone(), b.clone(), c.clone()],
         vec![c.clone(), a.clone(), b.clone()], vec![a.clone(), changed],
@@ -1052,12 +1053,12 @@ fn block_diff_reconstructs_current_bodies() {
                 if let Some(run) = entry.as_array() {
                     let from = run[0].as_u64().unwrap() as usize;
                     let len = run[1].as_u64().unwrap() as usize;
-                    rebuilt.extend(base[from..from + len].iter().map(|tx| to_value(tx.as_ref()).unwrap()));
+                    rebuilt.extend(base[from..from + len].iter().map(light));
                 } else {
                     rebuilt.push(entry.clone());
                 }
             }
-            assert_eq!(rebuilt, current.iter().map(|tx| to_value(tx.as_ref()).unwrap()).collect::<Vec<_>>());
+            assert_eq!(rebuilt, current.iter().map(light).collect::<Vec<_>>());
             let full: Value = serde_json::from_slice(&source.json()).unwrap();
             assert_eq!(diff["stats"], full["stats"]);
             let expected_removed: Vec<_> = base.iter()

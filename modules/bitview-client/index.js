@@ -782,13 +782,14 @@
  * @typedef {Object} MempoolBlockContent
  * @property {MempoolBlockHash} hash - Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
  * @property {MempoolBlock} stats
- * @property {Transaction[]} transactions - Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
+ * @property {MempoolTxSummary[]} transactions - The transactions in block order (block 0's: `getblocktemplate`'s), each in its light
+ *   shape: the whole body is at `GET /api/tx/{txid}`.
  */
 /**
  * A projected mempool block's changes since a prior copy identified by `since`. Returned by
  * `GET /api/mempool-blocks/{index}/diff/{since}`.
  *
- * `removed` lists txids no longer present. A changed body can be emitted as `New` without
+ * `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
  * removing its txid; absence from every retained run alone does not imply removal.
  *
  * @typedef {Object} MempoolBlockDiff
@@ -796,7 +797,7 @@
  * @property {MempoolBlockHash} since - Echoed prior hash the diff was computed against.
  * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
  * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
- *   `[start, count]`, or a full transaction body.
+ *   `[start, count]`, or a transaction in its light shape.
  * @property {Txid[]} removed - Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved
  *   to another block).
  */
@@ -806,10 +807,10 @@
  * Untagged on the wire so JSON type disambiguates the variants:
  * - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
  *   `start..start + count` (which the client cached at `since`), kept in order.
- * - `New(tx)` serializes as a transaction object: a body that was new or changed since the
- *   prior block and takes this position.
+ * - `New(tx)` serializes as a transaction in its light shape: one that was new or changed since
+ *   the prior block and takes this position.
  *
- * @typedef {(RetainedRun|Transaction)} MempoolBlockDiffEntry
+ * @typedef {(RetainedRun|MempoolTxSummary)} MempoolBlockDiffEntry
  */
 /**
  * Content hash of a projected mempool block, including its statistics and complete
@@ -838,9 +839,10 @@
  *   a bin closing at the first fee rate change past 50,000 vB
  */
 /**
- * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+ * An unconfirmed transaction in esplora's light shape, as `/api/mempool/recent` and the projected
+ * mempool blocks list them: the whole body is at `GET /api/tx/{txid}`.
  *
- * @typedef {Object} MempoolRecentTx
+ * @typedef {Object} MempoolTxSummary
  * @property {Txid} txid
  * @property {Sats} fee - Transaction fee (sats)
  * @property {VSize} vsize - Virtual size (vbytes)
@@ -9853,8 +9855,8 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
    *
    * Endpoint: `GET /api/mempool/recent`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolRecentTx[]>) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Frozen<MempoolRecentTx[]>>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolTxSummary[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Frozen<MempoolTxSummary[]>>}
    */
   async getMempoolRecent({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/mempool/recent`;
@@ -9896,7 +9898,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block
    *
-   * A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+   * A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
@@ -9912,7 +9914,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block changes
    *
-   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
    *

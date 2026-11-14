@@ -66,7 +66,7 @@ pub struct SharedState {
     pub historical_price_cache: Arc<PublicationCache<(Bytes, RepresentationId)>>,
     #[cfg(feature = "full-api")]
     pub mempool_txid_bodies: Arc<Semaphore>,
-    /// Block templates, about 10 MB each.
+    /// Projected blocks, under 1 MB each.
     #[cfg(feature = "full-api")]
     pub mempool_block_bodies: Arc<Semaphore>,
     /// Block template diffs: small, except right after a block.

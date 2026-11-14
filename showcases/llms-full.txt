@@ -482,7 +482,7 @@ Recent mempool transactions
 
 Get the last 10 transactions to enter the mempool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
 
-Returns: JSON `MempoolRecentTx[]`
+Returns: JSON `MempoolTxSummary[]`
 
 #### GET `/api/mempool/txids`
 
@@ -498,7 +498,7 @@ Returns: JSON `Txid[]`
 
 Projected mempool block
 
-A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
 Parameters:
 - `index` (path, MempoolBlockIndex, required)
@@ -509,7 +509,7 @@ Returns: JSON `MempoolBlockContent`
 
 Projected mempool block changes
 
-The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
 
 Parameters:
 - `index` (path, MempoolBlockIndex, required)
@@ -1676,19 +1676,19 @@ Returns: JSON `ServerVersion`
 
 - `hash`: `MempoolBlockHash` (required) — Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
 - `stats`: `MempoolBlock` (required)
-- `transactions`: `Transaction[]` (required) — Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
+- `transactions`: `MempoolTxSummary[]` (required) — The transactions in block order (block 0's: `getblocktemplate`'s), each in its light shape: the whole body is at `GET /api/tx/{txid}`.
 
 ### `MempoolBlockDiff`
 
 - `hash`: `MempoolBlockHash` (required) — The block's current hash. Use as `since` on the next diff call.
 - `since`: `MempoolBlockHash` (required) — Echoed prior hash the diff was computed against.
 - `stats`: `MempoolBlock` (required) — Stats of the new block; they can change while every transaction is retained.
-- `order`: `MempoolBlockDiffEntry[]` (required) — The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
+- `order`: `MempoolBlockDiffEntry[]` (required) — The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a transaction in its light shape.
 - `removed`: `Txid[]` (required) — Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
 
 ### `MempoolBlockDiffEntry`
 
-`RetainedRun | Transaction`
+`RetainedRun | MempoolTxSummary`
 
 ### `MempoolBlockHash`
 
@@ -1705,7 +1705,7 @@ Returns: JSON `ServerVersion`
 - `total_fee`: `Sats` (required) — Total fees of all transactions in the mempool (satoshis)
 - `fee_histogram`: `number[][]` (required) — Fee histogram as Esplora bins it: `[[fee_rate, vsize], ...]` by descending fee rate, each entry the vsize of the transactions paying from its fee rate up to the previous entry's, a bin closing at the first fee rate change past 50,000 vB
 
-### `MempoolRecentTx`
+### `MempoolTxSummary`
 
 - `txid`: `Txid` (required)
 - `fee`: `Sats` (required) — Transaction fee (sats)

@@ -2,21 +2,21 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::Transaction;
+use crate::MempoolTxSummary;
 
 /// One stretch of the new block in a `MempoolBlockDiff`.
 ///
 /// Untagged on the wire so JSON type disambiguates the variants:
 /// - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
 ///   `start..start + count` (which the client cached at `since`), kept in order.
-/// - `New(tx)` serializes as a transaction object: a body that was new or changed since the
-///   prior block and takes this position.
-// `Tx` holds the new body: owned by default, a reference or a block position when serving.
+/// - `New(tx)` serializes as a transaction in its light shape: one that was new or changed since
+///   the prior block and takes this position.
+// `Tx` holds the new transaction: owned by default, a block position when serving.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "schemars", schemars(rename = "MempoolBlockDiffEntry"))]
 #[serde(untagged)]
-pub enum MempoolBlockDiffEntry<Tx = Transaction> {
+pub enum MempoolBlockDiffEntry<Tx = MempoolTxSummary> {
     Retained(RetainedRun),
     New(Tx),
 }

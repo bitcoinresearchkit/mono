@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Sats, Transaction, Txid, VSize};
 
-/// Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+/// An unconfirmed transaction in esplora's light shape, as `/api/mempool/recent` and the projected
+/// mempool blocks list them: the whole body is at `GET /api/tx/{txid}`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct MempoolRecentTx {
+pub struct MempoolTxSummary {
     pub txid: Txid,
     /// Transaction fee (sats)
     pub fee: Sats,
@@ -17,10 +18,10 @@ pub struct MempoolRecentTx {
     pub value: Sats,
 }
 
-impl From<(&Txid, &Transaction)> for MempoolRecentTx {
-    fn from((txid, tx): (&Txid, &Transaction)) -> Self {
+impl From<&Transaction> for MempoolTxSummary {
+    fn from(tx: &Transaction) -> Self {
         Self {
-            txid: *txid,
+            txid: tx.txid,
             fee: tx.fee,
             vsize: tx.vsize(),
             value: tx.output.iter().map(|o| o.value).sum(),

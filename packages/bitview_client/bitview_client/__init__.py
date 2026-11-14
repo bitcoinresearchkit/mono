@@ -130,6 +130,14 @@ Sats = int
 # Consecutive transactions kept from the prior block, `[start, count]`: its positions
 # `start..start + count`, in order.
 RetainedRun = List[int]
+# One stretch of the new block in a `MempoolBlockDiff`.
+#
+# Untagged on the wire so JSON type disambiguates the variants:
+# - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
+#   `start..start + count` (which the client cached at `since`), kept in order.
+# - `New(tx)` serializes as a transaction in its light shape: one that was new or changed since
+#   the prior block and takes this position.
+MempoolBlockDiffEntry = Union[RetainedRun, "MempoolTxSummary"]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
 # A dimensionless ratio: a quotient or share, read as a plain number.
@@ -312,14 +320,6 @@ Bitcoin = float
 AddressOutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2sh", "p2wpkh", "p2wsh", "p2tr", "p2a"]
 # Bitcoin address, or the hex public key of a P2PK output.
 Address = str
-# One stretch of the new block in a `MempoolBlockDiff`.
-#
-# Untagged on the wire so JSON type disambiguates the variants:
-# - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
-#   `start..start + count` (which the client cached at `since`), kept in order.
-# - `New(tx)` serializes as a transaction object: a body that was new or changed since the
-#   prior block and takes this position.
-MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
 # How a series' values combine over time.
 Accumulation = Union[Literal["flow"], Literal["level"], Literal["cumulative"]]
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
@@ -396,9 +396,10 @@ class DetailedSeriesCount(TypedDict):
     stored: int
     by_db: dict[str, SeriesCount]
 
-class MempoolRecentTx(TypedDict):
+class MempoolTxSummary(TypedDict):
     """
-    Simplified mempool transaction for the `/api/mempool/recent` endpoint.
+    An unconfirmed transaction in esplora's light shape, as `/api/mempool/recent` and the projected
+    mempool blocks list them: the whole body is at `GET /api/tx/{txid}`.
 
     Attributes:
         fee: Transaction fee (sats)
@@ -919,6 +920,42 @@ class MempoolBlock(TypedDict):
     totalFees: Sats
     medianFee: FeeRate
     feeRange: List[FeeRate]
+
+class MempoolBlockDiff(TypedDict):
+    """
+    A projected mempool block's changes since a prior copy identified by `since`. Returned by
+    `GET /api/mempool-blocks/{index}/diff/{since}`.
+    
+    `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
+    removing its txid; absence from every retained run alone does not imply removal.
+
+    Attributes:
+        hash: The block's current hash. Use as `since` on the next diff call.
+        since: Echoed prior hash the diff was computed against.
+        stats: Stats of the new block; they can change while every transaction is retained.
+        order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a transaction in its light shape.
+        removed: Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
+    """
+    hash: MempoolBlockHash
+    since: MempoolBlockHash
+    stats: MempoolBlock
+    order: List[MempoolBlockDiffEntry]
+    removed: List[Txid]
+
+class MempoolBlockContent(TypedDict):
+    """
+    A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
+    `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
+    ranked by signed modified fees within Core's default budgets, with paid-fee statistics. Returned by
+    `GET /api/mempool-blocks/{index}`.
+
+    Attributes:
+        hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
+        transactions: The transactions in block order (block 0's: `getblocktemplate`'s), each in its light shape: the whole body is at `GET /api/tx/{txid}`.
+    """
+    hash: MempoolBlockHash
+    stats: MempoolBlock
+    transactions: List[MempoolTxSummary]
 
 class BlockFeeRatesPreciseEntry(TypedDict):
     """
@@ -1500,42 +1537,6 @@ class Transaction(_TransactionRequired, total=False):
         fee: Transaction fee in satoshis
     """
     index: Union[TxIndex, None]
-
-class MempoolBlockDiff(TypedDict):
-    """
-    A projected mempool block's changes since a prior copy identified by `since`. Returned by
-    `GET /api/mempool-blocks/{index}/diff/{since}`.
-    
-    `removed` lists txids no longer present. A changed body can be emitted as `New` without
-    removing its txid; absence from every retained run alone does not imply removal.
-
-    Attributes:
-        hash: The block's current hash. Use as `since` on the next diff call.
-        since: Echoed prior hash the diff was computed against.
-        stats: Stats of the new block; they can change while every transaction is retained.
-        order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
-        removed: Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).
-    """
-    hash: MempoolBlockHash
-    since: MempoolBlockHash
-    stats: MempoolBlock
-    order: List[MempoolBlockDiffEntry]
-    removed: List[Txid]
-
-class MempoolBlockContent(TypedDict):
-    """
-    A projected mempool block with its transactions in block order: block 0 is Bitcoin Core's
-    `getblocktemplate` selection, the later ones packed after it as Core's block assembler packs,
-    ranked by signed modified fees within Core's default budgets, with paid-fee statistics. Returned by
-    `GET /api/mempool-blocks/{index}`.
-
-    Attributes:
-        hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
-        transactions: Full transaction bodies in block order (block 0's: `getblocktemplate`'s).
-    """
-    hash: MempoolBlockHash
-    stats: MempoolBlock
-    transactions: List[Transaction]
 
 class PoolDetailInfo(TypedDict):
     """
@@ -6805,7 +6806,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool/txids`"""
         return self.get_json('/api/mempool/txids')
 
-    def get_mempool_recent(self) -> List[MempoolRecentTx]:
+    def get_mempool_recent(self) -> List[MempoolTxSummary]:
         """Recent mempool transactions.
 
         Get the last 10 transactions to enter the mempool.
@@ -6838,7 +6839,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block(self, index: MempoolBlockIndex) -> MempoolBlockContent:
         """Projected mempool block.
 
-        A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+        A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
         Endpoint: `GET /api/mempool-blocks/{index}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}')
@@ -6846,7 +6847,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block_diff(self, index: MempoolBlockIndex, since: MempoolBlockHash) -> MempoolBlockDiff:
         """Projected mempool block changes.
 
-        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
 
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')

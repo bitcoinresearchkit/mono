@@ -3751,7 +3751,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
     ///
     /// Endpoint: `GET /api/mempool/recent`
-    pub fn get_mempool_recent(&self) -> Result<Vec<MempoolRecentTx>> {
+    pub fn get_mempool_recent(&self) -> Result<Vec<MempoolTxSummary>> {
         self.base.get_json(&format!("/api/mempool/recent"))
     }
 
@@ -3779,7 +3779,7 @@ impl BitviewClient {
 
     /// Projected mempool block
     ///
-    /// A projected mempool block with its transactions in block order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+    /// A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
     ///
     /// Endpoint: `GET /api/mempool-blocks/{index}`
     pub fn get_mempool_block(&self, index: MempoolBlockIndex) -> Result<MempoolBlockContent> {
@@ -3789,7 +3789,7 @@ impl BitviewClient {
 
     /// Projected mempool block changes
     ///
-    /// The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+    /// The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
     ///
     /// Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
     pub fn get_mempool_block_diff(

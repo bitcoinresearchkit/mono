@@ -10,6 +10,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- `GET /api/mempool-blocks/{index}` and `/diff/{since}` list each transaction in esplora's light shape, `{txid, fee,
+  vsize, value}` as `/api/mempool/recent` does, not as a whole body (block 0 went from 9.4 MB to 0.44 MB raw, 2.4 MB to
+  0.17 MB brotli): the diff's new entries too. Bodies stay at `GET /api/tx/{txid}`. The type is `MempoolTxSummary` (was `MempoolRecentTx`),
+  `MempoolBlockContent` and `MempoolBlockDiffEntry` default to it, and the Rust `From` takes the `&Transaction` alone
 - `bitview_traversable`: `Traversable::collect_series_descriptions` is `collect_series_metadata`, and
   `bitview_plugin`'s `PluginData::collect_descriptions` is `collect_metadata`: they collect `MetadataFragment`s, a
   description's `Fragment` or a series' accumulation, which `split_metadata` sets apart
