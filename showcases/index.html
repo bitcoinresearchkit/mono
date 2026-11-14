@@ -2567,7 +2567,10 @@
       function cover(/** @type {Title} */ t) {
         const name = el("span", { className: "name" }, t.name);
         if (t.face) name.dataset.face = t.face;
-        const a = el("a", { className: "tile named", href: t.href }, el("img", { alt: "", loading: "lazy", src: poster(t.id) }), name);
+        // (Drawn as wide as its tile from a desk's 1,100 px, 1.2 times it below, where tiles are 4:3: the 720 one for
+        // phones up to a 1440 desk at 2×.)
+        const picture = el("img", { alt: "", loading: "lazy", srcset: `${poster(t.id).replace(".jpg", "@720.jpg")} 720w, ${poster(t.id)} 960w`, sizes: "(min-width: 1100px) calc(25vw - 40px), (min-width: 720px) calc(30vw - 36px), calc(60vw - 26px)", src: poster(t.id) });
+        const a = el("a", { className: "tile named", href: t.href }, picture, name);
         a.dataset.open = t.id;
         return el("li", {}, a, info(t));
       }

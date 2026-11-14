@@ -229,7 +229,8 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 
 /** Each picture's making: its app's address (its screen's size, if not 1440×900), how long it's let settle, what's hidden
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
- * cut, in its screen's points: [x, y, width, height]. A cover 960×600; a banner 1,900 wide and 2,880 (@2x). */
+ * cut, in its screen's points: [x, y, width, height]. A cover 960×600 and 720 wide (@720, the apps' grid's, from
+ * phones to a 1440 desk at 2×); a banner 1,900 wide and 2,880 (@2x). */
 const PICTURES = {
   studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
   oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
@@ -314,7 +315,7 @@ async function makePictures() {
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
-        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80]] : []),
+        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80], [`covers/${id}@720.jpg`, recipe.cover, 720, 80]] : []),
         ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], [`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : []),
       ]);
       if (!wanted.length) continue;
