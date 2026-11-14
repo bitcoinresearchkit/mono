@@ -229,6 +229,7 @@
          page zoom where a pinch starts but on what holds and drags its rows (a touch-action on the page's root hands a
          held row's drag to the scroll). */
       html {
+        overflow: hidden;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -10695,6 +10696,7 @@
     <!-- Without JavaScript, the page is its guide (after the page's style: this wins). -->
     <noscript>
       <style>
+        html,
         body {
           height: auto;
           overflow: auto;
