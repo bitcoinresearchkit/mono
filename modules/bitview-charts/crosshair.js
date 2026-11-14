@@ -46,7 +46,8 @@ export class Crosshair {
 
   /** Its dates written by `format` (a point's time, seconds), whatever their points' spacing. @param {(t: number) => string} format */
   setFormat(format) {
-    this.day = this.fine = kept(format);
+    // A supplied formatter may depend on state beyond the time (such as the interval shown).
+    this.day = this.fine = format;
   }
 
   /** @param {number} width @param {number} height @param {number} dpr */
