@@ -5829,8 +5829,7 @@ let stretchKept = null;
 let drawnStretch = null;
 function sizeOnce() {
   const box = $("chart"), inMotion = /** @type {CSSTransition[]} */ (document.querySelector(".app")?.getAnimations({ subtree: true }).filter((motion) => motion instanceof CSSTransition && /^(width|height|margin|padding|border|inset|left|right|top|bottom)/.test(motion.transitionProperty)) ?? []);
-  // (No motion (reduced motion): the chart at its box's new size at once, its view's stretch kept as well (a preset
-  // showing shown again whole), not left to the resize watch, which keeps a window's bars as wide: see holdView.)
+  // (No motion (reduced motion): the chart at its box's new size at once, its view's stretch kept as well.)
   if (!inMotion.length) {
     const { width, height } = box.getBoundingClientRect();
     if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
@@ -6031,11 +6030,9 @@ function stretchDrawn(shown) {
 function keepStretch(was) {
   if (!chart || !resolved || drawnChart !== chart.id) return;
   fitSpacing(chart, resolved.times.length, was);
-  if (presetShown && !glideTarget) applyRange(chart, resolved);
-  else if (was) showSpan(was);
+  if (was) showSpan(was, EXACT_RANGE);
   engine.render(true);
-  // (Its box's new width seen, and the view as left in it: the resize it makes isn't one to hold the bars as wide for,
-  // and the next one (a window's) holds them as they are now, see holdView.)
+  // (Its box's new width and view, for the next resize: see holdView.)
   const range = shownSpan();
   lastBox = chartWidth();
   (heldView = range ? { ...boxView(range), box: lastBox, at: { from: range.from, to: range.to } } : null), (madeView = null);
@@ -9063,7 +9060,7 @@ function relayout() {
     if (sizeHeld) return void placeBelt();
     // (The lens shows what the chart draws next: after this frame's changes.)
     if (lensAt) lookAt(lensAt);
-    // A preset showing shows as much of it as the new width fits.
+    // The chart's width, for spacing and the range controls.
     const width = engine.time.width;
     // (A drawing placed by taps, its first made: it starts over, its pane moved from under it (the screen turned,
     // the sidebar went); its second, else, would land as if it hadn't. Said once the belt's placed: its toast by it.)
@@ -9081,7 +9078,6 @@ function relayout() {
       laidWidth = width;
       if (chart && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
       if (chart) renderRanges();
-      if (presetShown && !glideTarget && resolved && drawnChart === chart.id) applyRange(chart, resolved);
     }
     drawOverview();
     placeBelt();
@@ -9522,11 +9518,7 @@ let lastBox = 0;
 /** An image being made of the chart (its resizes the picture's: see chartImage). */
 let exporting = false;
 /**
- * The box resized (a window, a phone turned; a layout's motion keeps its stretch instead, see sizeOnce): its bars
- * as wide as they were, from the view as left (not as the library has already moved it): its right edge kept (at the
- * latest, the latest with its room after it); past the data's start, the share of it on the data (never less than
- * the library keeps on it: not pushed later each time it widens, and back as it was when the box is). A preset
- * showing is shown again whole (see relayout).
+ * The box resized: keep the view as it was before the change, including a range preset's endpoints.
  */
 function holdView() {
   const width = engine.time.width, box = chartWidth(), was = heldView, resized = box !== lastBox;
@@ -9535,21 +9527,11 @@ function holdView() {
   if (width) lastBox = box;
   if (!was || !width || !resized) return;
   if (rightGap(width) !== engine.time.rightOffset) (engine.time.rightOffset = rightGap(width)), engine.invalidate(true);
-  // (A width changed by hand (the sidebar's, the panel's): the view's stretch kept instead, its bars as close as that
-  // needs; a preset showing is shown again whole (see relayout).)
-  if (resizeKeeps && resolved && chart && drawnChart === chart.id) {
-    heldView = madeView = null;
-    fitSpacing(chart, resolved.times.length, resizeKeeps);
-    if (!presetShown) showSpan(resizeKeeps);
-    return;
-  }
-  if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
-  // (Its bars as wide: as many across the box as it holds, as the library counts them (point i at (i - from) bars in).)
-  const spacing = was.box / (was.to - was.from), bars = box / spacing, last = resolved.times.length - 1;
-  const right = engine.axisShown / spacing;
-  const to = was.at.from < 0 ? (was.to / (was.to - was.from)) * bars : was.at.to > last ? last + rightGap(width) / spacing + right : was.to;
-  madeView = { from: to - bars, to };
-  showSpan({ from: to - right - width / spacing, to: to - right });
+  if (!resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
+  const view = resizeKeeps ?? was.at;
+  fitSpacing(chart, resolved.times.length, view);
+  madeView = boxView(view);
+  showSpan(view, EXACT_RANGE);
 }
 engine.onRange(() => {
   // (The view as left: one moved in the box it was left in, or moved since a resize of the box made it; not one the
@@ -9572,8 +9554,7 @@ engine.onRange(() => {
   fitCandles();
   fitDots();
   valuesSoon();
-  // (Mid-resize, a preset showing still is: the new width's layout, on its way, puts it back, see relayout. A width
-  // changed with nothing coming (an axis grown with its labels), the view as it is.)
+  // (Mid-resize, keep the preset selected until the new width's layout settles.)
   const shown = engine.time.width !== laidWidth && layoutFrame ? presetShown : showsPreset();
   if (shown !== presetShown) setPresetShown(shown);
   prefetch();
