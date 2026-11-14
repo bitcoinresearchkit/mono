@@ -31,6 +31,8 @@ from playwright.sync_api import sync_playwright
 # loads, by the directories they're served from (see local); everything else is the server's.
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = (ROOT / "showcases" / "studio" / "index.html").resolve()
+# (The app's module, where --break's source edits go.)
+APP = PAGE.parent / "app.js"
 OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve()}
 mimetypes.add_type("text/javascript", ".mjs")
 STORE = "bitview-studio:v2"
@@ -98,9 +100,9 @@ def need(condition, message):
 
 
 def edit(old, new, times=1):
-    def apply(html):
-        need(html.count(old) == times, f"--break: the page no longer has exactly {times} of {old!r} to edit")
-        return html.replace(old, new)
+    def apply(source):
+        need(source.count(old) == times, f"--break: app.js no longer has exactly {times} of {old!r} to edit")
+        return source.replace(old, new)
 
     return apply
 
@@ -119,9 +121,9 @@ BREAKS = {
     # Compressed links can't be read.
     "bad-link": ("shared link", {"source": edit('new DecompressionStream("deflate-raw")', 'new DecompressionStream("gzip")')}),
     # A migration drops the layers of the older Studio's chart.
-    "old-layers-dropped": ("saved charts", {"source": edit("        doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;\n        return doc;", "        doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;\n        if (stored.id === 'oldchart1') doc.layers = [];\n        return doc;")}),
+    "old-layers-dropped": ("saved charts", {"source": edit("  doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;\n  return doc;", "  doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;\n  if (stored.id === 'oldchart1') doc.layers = [];\n  return doc;")}),
     # Move to folder moves another chart than the one it was asked about (a fault in what the fixture is made with).
-    "move-wrong-chart": ("saved charts", {"fixture": True, "source": edit("function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {", "function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {\n        keys = [`c:${library.charts.find((doc) => `c:${doc.id}` !== keys[0])?.id ?? ''}`];")}),
+    "move-wrong-chart": ("saved charts", {"fixture": True, "source": edit("function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {", "function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */ id, quiet = false) {\n  keys = [`c:${library.charts.find((doc) => `c:${doc.id}` !== keys[0])?.id ?? ''}`];")}),
     # A first-party GET fails in the network (net::ERR_FAILED), which the page may well catch and go on from.
     "request-failed": ("page draws", {"fail": "/api/oracle/price"}),
     # The chart library's first (empty) frame reaches for the chart before a shared link has given the page one: the page
@@ -131,7 +133,7 @@ BREAKS = {
     # drawn at its tile's size in the card's corner, its canvases a tile wide.
     "tile-sized": ("saved charts", {"source": edit("delete document.body.dataset.morph, unscaled(), (opening", "delete document.body.dataset.morph, (opening")}),
     # A link opened replaces the library it opens over.
-    "link-wipes-library": ("shared link", {"source": edit("        if (shared) {\n          const like =", "        if (shared) {\n          localStorage.removeItem(STORE); library.charts = []; library.folders = []; library.order = [];\n          const like =")}),
+    "link-wipes-library": ("shared link", {"source": edit("  if (shared) {\n    const like =", "  if (shared) {\n    localStorage.removeItem(STORE); library.charts = []; library.folders = []; library.order = [];\n    const like =")}),
 }
 
 
@@ -222,7 +224,7 @@ class Run:
             # (Not in the checkout: missing, never the server's copy.)
             return route.fulfill(status=404, body="not in this checkout")
         body = file.read_bytes()
-        if "source" in ctx.broken and file == PAGE:
+        if "source" in ctx.broken and file == APP:
             body = ctx.broken["source"](body.decode("utf-8"))
         kind = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
         kind += "; charset=utf-8" if kind.startswith("text/") else ""

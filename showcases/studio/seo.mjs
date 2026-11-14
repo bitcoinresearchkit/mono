@@ -26,6 +26,7 @@ const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "ht
 const ORIGIN = STUDIO_ORIGIN;
 
 const html = readFileSync(join(HERE, "index.html"), "utf8");
+const app = readFileSync(join(HERE, "app.js"), "utf8");
 const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
 const { studioPresets } = await import(pathToFileURL(join(HERE, "presets.js")).href);
 const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(HERE, "facts.js")).href);
@@ -73,9 +74,9 @@ const shown = [
 ];
 const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
 if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
-// The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
-const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
-if (!recommended) throw new Error("No RECOMMENDED in the page");
+// The presets the empty chart offers first (the app's RECOMMENDED), each one of them: a place renamed would drop it.
+const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(app)?.[1];
+if (!recommended) throw new Error("No RECOMMENDED in app.js");
 const places = new Set(presets.map((preset) => preset.p.join(" › ")));
 const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
