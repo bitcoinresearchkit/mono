@@ -14,6 +14,8 @@ pub const MAX_RESPONSE_BYTES: u64 = 8 * 1024 * 1024;
 /// How much of a body `fetch` reads at once: most responses end within it.
 const HEAD_BYTES: u64 = 64 * 1024;
 const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(15);
+/// Upstream connections kept open between calls: about 100 KB of buffers each (6 MiB for all), plus TLS and socket state.
+const IDLE_CONNECTIONS: usize = 64;
 
 pub struct Upstream {
     agent: Agent,
@@ -31,6 +33,10 @@ impl Upstream {
             // one TLS record in, and the longest request out.
             .input_buffer_size(16 * 1024)
             .output_buffer_size(MAX_UPSTREAM_URL_BYTES + 1024)
+            // Every call goes to the one API host. ureq keeps 3 idle connections per host by default: with more calls
+            // in flight, the rest close after use and the next calls open (and TLS-handshake) new ones.
+            .max_idle_connections(IDLE_CONNECTIONS)
+            .max_idle_connections_per_host(IDLE_CONNECTIONS)
             .build();
         Self {
             agent: Agent::new_with_config(config),
