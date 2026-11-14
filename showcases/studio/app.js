@@ -5697,18 +5697,15 @@ const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => 
 
 /**
  * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
- * the page's own font file (no second copy of it), as "Inter Chart" from 500 up (a variable font: a canvas's
+ * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
  * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. The page's
  * until it's loaded: the chart measures its labels in the font it's given, and a new one is what makes it measure
  * them again.
  */
 let chartSans = css("--sans");
-const chartFont = (async () => {
-  // (Begun as the page started, with the page's own Inter: see the first script.)
-  const face = [...document.fonts].find((face) => face.family.replace(/["']/g, "") === "Inter Chart");
-  return Boolean(face && (await face.loaded));
-})().catch(() => false);
+// (Begun as the page started, with the page's own Inter: see the first script; its file for the chart's characters.)
+const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
 // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
 // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
 const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
@@ -10183,9 +10180,12 @@ function paintArrow(context, a, b, /** @type {number} */ width) {
 }
 /** Tags' shapes as measured, by size and words (measured again once fonts have loaded). */
 const tagShapes = new Map();
+// (A face loaded late, as Inter's rest for a label in another script: the chart's words measured and drawn again in it,
+// as its tags and panes measure theirs at each frame.)
 document.fonts.addEventListener("loadingdone", () => {
   tagShapes.clear();
   repaintDrawings();
+  engine.invalidate(true);
 });
 /** A tag's lines and its box: its words at a size (half of it to each side, a line a third taller). */
 function tagShape(/** @type {string} */ text, /** @type {number} */ size) {

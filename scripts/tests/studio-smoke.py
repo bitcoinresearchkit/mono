@@ -27,13 +27,14 @@ from urllib.parse import quote, unquote, urlparse
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
-# The page under test is the one in this checkout, read from disk at each request: Studio's files and the modules it
-# loads, by the directories they're served from (see local); everything else is the server's.
+# The page under test is the one in this checkout, read from disk at each request: Studio's files, the modules and the
+# shared assets (fonts, launch) it loads, by the directories they're served from (see local); everything else is the
+# server's.
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = (ROOT / "showcases" / "studio" / "index.html").resolve()
 # (The app's module, where --break's source edits go.)
 APP = PAGE.parent / "app.js"
-OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve()}
+OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve(), "/assets/": (ROOT / "showcases" / "assets").resolve()}
 mimetypes.add_type("text/javascript", ".mjs")
 STORE = "bitview-studio:v2"
 PREFS = "bitview-studio:prefs"
