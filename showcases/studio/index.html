@@ -14962,35 +14962,48 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * (only making something does: a layer, a style, a drawing, a title; another's preview is kept by Keep alone);
        * `keepMenu`, made from a menu that stays (its slider), the menu stays open. `view`, a view's step (a range): undone
        * as a step, but no edit (nothing stamped, a preview untouched).
-       * @param {(doc: Chart) => void} edit @param {{ coalesce?: string, redraw?: Redraw, quiet?: boolean, look?: boolean, keepMenu?: boolean, view?: boolean }} [options]
+       * @param {(doc: Chart) => void} edit @param {EditOptions} [options]
        */
-      function commit(edit, { coalesce = "", redraw = /** @type {Redraw} */ (true), quiet = false, look = false, keepMenu = false, view = false } = {}) {
-        const before = JSON.stringify(chart), sources = new Map(chart.layers.map((layer) => [layer.id, layer.series ?? layer.formula]));
-        edit(chart);
+      function commit(edit, /** @type {EditOptions} */ options) {
+        return editChart(chart, edit, options);
+      }
+      /**
+       * An edit of any chart, as its own step (see commit): the open one's, whichever page shows; another's (from its row,
+       * its tile, ⌘K) kept with its steps (see keepHistory), shown in the lists.
+       * @typedef {{ coalesce?: string, redraw?: Redraw, quiet?: boolean, look?: boolean, keepMenu?: boolean, view?: boolean }} EditOptions
+       * @param {Chart} doc @param {(doc: Chart) => void} edit @param {EditOptions} [options] @returns {boolean} whether it changed anything
+       */
+      function editChart(doc, edit, { coalesce = "", redraw = /** @type {Redraw} */ (true), quiet = false, look = false, keepMenu = false, view = false } = {}) {
+        const open = doc === chart;
+        // (The open one's from the Charts page in reach there, where the page's own is the Library's.)
+        if (!open || home) reached(doc);
+        const before = JSON.stringify(doc), sources = new Map(doc.layers.map((layer) => [layer.id, layer.series ?? layer.formula]));
+        edit(doc);
         // (A layer's interval ceiling is its source's (see maxInterval): its source changed, let go of.)
-        for (const layer of chart.layers) if (layer.maxInterval && sources.get(layer.id) !== (layer.series ?? layer.formula)) delete layer.maxInterval;
-        normalize(chart);
+        for (const layer of doc.layers) if (layer.maxInterval && sources.get(layer.id) !== (layer.series ?? layer.formula)) delete layer.maxInterval;
+        normalize(doc);
         // (Something in it at last: a chart, not a blank one New chart made, for good.)
-        if (chart.blank && (chart.layers.length || chart.title || chart.drawings?.length)) delete chart.blank;
-        if (JSON.stringify(chart) === before) return false;
-        const now = Date.now();
+        if (doc.blank && (doc.layers.length || doc.title || doc.drawings?.length)) delete doc.blank;
+        if (JSON.stringify(doc) === before) return false;
+        const now = Date.now(), steps = open ? edits : histories.get(doc.id) ?? { past: [], future: [] };
         // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart. (Joining
         // only a step there's still: the history let go meanwhile (another tab's edit taken in), it starts one anew.)
         // (Nor across another step done since, in any history: one undo takes back one thing.)
-        const joins = coalesce && edits.past.at(-1)?.at === stepCount && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
+        const joins = open && coalesce && edits.past.at(-1)?.at === stepCount && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
         // (Joined, it's done now all the same: the newest, from where it began.)
-        recordStep(edits, joins ? /** @type {ChartStep} */ (edits.past.pop()).state : before);
-        const steps = edits.past.length;
+        recordStep(steps, joins ? /** @type {ChartStep} */ (edits.past.pop()).state : before);
+        // (A view's step (a range) is a step, not an edit: nothing stamped, a preview untouched, as a pan.)
+        if (!view) stampEdit(doc);
+        if (!view && isPreview(doc)) touchPreview(doc);
+        if (!open) return keepHistory(doc.id, steps), offPage(), true;
+        const kept = edits.past.length;
         if (edits.past.length > UNDO_STEPS) edits.past.shift();
         trimSteps(edits, UNDO_CHARS);
         // (Its oldest steps let go: the one that kept a chart started here may be among them, kept for good then.)
-        if (edits.past.length < steps) keptByEdit.delete(chart);
+        if (edits.past.length < kept) keptByEdit.delete(chart);
         edits.key = coalesce;
         edits.at = now;
         edits.held = holding;
-        // (A view's step (a range) is a step, not an edit: nothing stamped, a preview untouched, as a pan.)
-        if (!view) stampEdit(chart);
-        if (!view && isPreview(chart)) touchPreview(chart);
         if (isPreview(chart) && drafts.has(chart) && !quiet && !look) (keepPreview(false), keptByEdit.set(chart, edits.past.length));
         changed(!quiet, redraw, keepMenu);
         return true;
@@ -15138,27 +15151,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // steps' since, not this one's.)
         for (const layer of doc.layers) if (shapes.get(layer.id) !== shapeKey(layer)) looksLeft.delete(`${doc.id}:${layer.id}`);
         return rangeOnly;
-      }
-      /**
-       * An edit of any chart, as its own step: the open one's by commit, whichever page shows; another's (from its row,
-       * its tile, ⌘K) kept with its steps (see keepHistory). @param {Chart} doc @param {(doc: Chart) => void} edit
-       * @param {Parameters<typeof commit>[1]} [options] @returns {boolean} whether it changed anything
-       */
-      function editChart(doc, edit, options) {
-        // (The open one's from the Charts page in reach there, where the page's own is the Library's.)
-        if (doc !== chart || home) reached(doc);
-        if (doc === chart) return commit(edit, options);
-        const before = JSON.stringify(doc);
-        edit(doc);
-        normalize(doc);
-        if (JSON.stringify(doc) === before) return false;
-        const steps = histories.get(doc.id) ?? { past: [], future: [] };
-        recordStep(steps, before);
-        keepHistory(doc.id, steps);
-        stampEdit(doc);
-        if (isPreview(doc)) touchPreview(doc);
-        offPage();
-        return true;
       }
       /** The open chart's step taken back (`back`) or forth, whichever page shows. */
       function travel(/** @type {boolean} */ back) {
