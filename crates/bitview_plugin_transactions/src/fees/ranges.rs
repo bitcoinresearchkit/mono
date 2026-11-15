@@ -47,7 +47,7 @@ define_ranges! {
     over_1k_sat_vb,
 }
 
-pub(crate) const RANGES: usize = 14;
+const RANGES: usize = 14;
 
 /// The ranges' upper edges, in twentieths of a sat/vB: a fee and a size compare against them
 /// exactly.

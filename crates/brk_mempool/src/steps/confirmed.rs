@@ -132,7 +132,7 @@ impl Confirmed {
     /// Blocks that mined `txids`, spent `spends` (each outpoint with its spender) and took
     /// `disconnected` off the chain.
     #[cfg(test)]
-    pub fn of(
+    pub(crate) fn of(
         txids: impl IntoIterator<Item = Txid>,
         spends: impl IntoIterator<Item = ((Txid, Vout), Txid)>,
         disconnected: impl IntoIterator<Item = Txid>,

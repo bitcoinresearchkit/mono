@@ -125,7 +125,7 @@ impl Rebuilder {
 
 /// Marks what no block can hold: a transaction spending a listed transaction not loaded yet, and
 /// its descendants. `bodies` and `txs` are indexed alike.
-pub(crate) fn withhold(
+fn withhold(
     bodies: &[&Transaction],
     txs: &[SnapTx],
     unloaded: &RapidHashSet<Txid>,

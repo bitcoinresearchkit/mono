@@ -344,7 +344,7 @@ struct SpentWithin<M: StorageMode = Rw> {
 
 impl SpendAges {
     /// The ages `spent_within` counts up to, in blocks.
-    pub(crate) const AGES: [u32; 4] = [1, 6, 144, 2016];
+    const AGES: [u32; 4] = [1, 6, 144, 2016];
 
     fn import(
         db: &Database,

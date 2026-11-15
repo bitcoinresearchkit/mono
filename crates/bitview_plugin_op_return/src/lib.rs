@@ -114,13 +114,13 @@ impl Sizes {
     }
 
     /// Adds an output of `bytes` to a block's count over each limit.
-    pub(crate) fn add_output(counts: &mut [u64; 3], bytes: u32) {
+    fn add_output(counts: &mut [u64; 3], bytes: u32) {
         for (count, limit) in counts.iter_mut().zip(Self::LIMITS) {
             *count += u64::from(bytes > limit);
         }
     }
 
-    pub(crate) fn push_block(&mut self, counts: [u64; 3]) {
+    fn push_block(&mut self, counts: [u64; 3]) {
         for (over, count) in self.all_mut().into_iter().zip(counts) {
             over.push_block(Count::from(count));
         }

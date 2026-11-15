@@ -41,7 +41,7 @@ pub struct Snapshot {
     pub(crate) fees: fees::FeeView,
     /// Whether its view was complete (every listed transaction loaded or stuck): its fee tiers
     /// are its own. A rebuild reuses it only for a view alike.
-    pub(crate) complete: bool,
+    complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -53,7 +53,7 @@ pub struct Snapshot {
     served: Vec<ServedBlock>,
     content_revision: u64,
     /// The listed txids not loaded when it was built: a rebuild from the same view reuses it.
-    pub(crate) unloaded: RapidHashSet<Txid>,
+    unloaded: RapidHashSet<Txid>,
     /// The node's signed modified fees it ranked by: a rebuild under the same ones reuses it.
     pub(crate) modified_fees: Box<[(Txid, i64)]>,
     /// The served bodies of the fee tiers and every block's stats, serialized by the

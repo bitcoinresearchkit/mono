@@ -63,10 +63,10 @@ impl Payments {
 pub(crate) struct Timelocks<M: StorageMode = Rw> {
     /// Transactions with an nLockTime that is a block height above 0.
     #[traversable(lead = "Transactions locked to a height.")]
-    pub(crate) height: PerBlockCumulativeRolling<Count, M>,
+    height: PerBlockCumulativeRolling<Count, M>,
     /// Transactions with an nLockTime that is a timestamp.
     #[traversable(lead = "Transactions locked to a time.")]
-    pub(crate) time: PerBlockCumulativeRolling<Count, M>,
+    time: PerBlockCumulativeRolling<Count, M>,
     /// Transactions with a nonzero nLockTime and every sequence final, so it isn't enforced.
     #[traversable(lead = "Transactions with an unenforced locktime.")]
     unenforced: PerBlockCumulativeRolling<Count, M>,

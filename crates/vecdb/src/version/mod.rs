@@ -27,7 +27,7 @@ impl Version {
     }
 
     /// Mixes `other` into this version, in order; `+` and `Sum` compose with it.
-    pub(crate) const fn combine(self, other: Self) -> Self {
+    const fn combine(self, other: Self) -> Self {
         Self(
             self.0
                 ^ other

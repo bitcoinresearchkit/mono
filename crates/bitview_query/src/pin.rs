@@ -14,8 +14,8 @@ use crate::{Error, Query, Result};
 
 #[cfg(feature = "series")]
 pub(crate) struct PublishedBounds {
-    pub(crate) revision: u64,
-    pub(crate) bounds: ReadBounds,
+    revision: u64,
+    bounds: ReadBounds,
 }
 
 /// A pin that bounds this thread's reads, lazy calendar and count views included, by its

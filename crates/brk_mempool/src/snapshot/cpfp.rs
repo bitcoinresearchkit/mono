@@ -93,7 +93,7 @@ impl Snapshot {
 
     /// [`Self::cpfp_info_at`] over the members `keep` accepts alone (what a newer block didn't
     /// settle): the piece of the seed's component left, linearized afresh.
-    pub(crate) fn cpfp_info_within(
+    fn cpfp_info_within(
         &self,
         seed_idx: TxIndex,
         keep: impl Fn(TxIndex) -> bool,
