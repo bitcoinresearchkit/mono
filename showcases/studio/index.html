@@ -2661,6 +2661,8 @@
         flex: none;
         max-width: calc(100% - 7rem);
         align-items: center;
+        /* (Kept wider than its words (see renderChartPath): they're at its end, by the name.) */
+        justify-content: flex-end;
         color: var(--muted);
         /* (A title's size, the system's: the chart's, Quick Look's.) */
         font-size: 15px;

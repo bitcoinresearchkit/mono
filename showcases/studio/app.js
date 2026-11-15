@@ -14439,12 +14439,19 @@ function chartPlace(doc = chart) {
 }
 /** The step last drawn before the open chart's name (drawn again only changed: it keeps its focus). */
 let chartPathDrawn = "";
+/** The chart it was drawn for (itself, whatever its id: a preview saved again takes a new one). @type {Chart | null} */
+let chartPathOf = null;
 /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
 function renderChartPath() {
-  const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1);
+  const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1), path = $("chart-path");
   const html = parent ? `<button type="button" id="chart-place" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}"><span>${escape(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
-  $("chart-path").hidden = !html;
-  if (html !== chartPathDrawn) $("chart-path").innerHTML = chartPathDrawn = html;
+  // (The same chart somewhere else (a preview saved, and back): its path as wide as it's been at least, its name kept
+  // where it is; another chart's, as wide as its own.)
+  if (chart !== chartPathOf) path.style.minWidth = "";
+  else if (html !== chartPathDrawn && chartPathDrawn) path.style.minWidth = `${path.offsetWidth}px`;
+  chartPathOf = chart;
+  path.hidden = !html;
+  if (html !== chartPathDrawn) path.innerHTML = chartPathDrawn = html;
 }
 /**
  * The open chart's place as a menu: the way there, each a step to its page; then, apart, what's in it as the sidebar
