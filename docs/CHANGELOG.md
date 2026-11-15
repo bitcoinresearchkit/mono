@@ -189,6 +189,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Runes start at block 840,000, the protocol's activation: an earlier `OP_RETURN OP_13` output (28,334 of them, most
+  broadcast in the days before the halving) is classified like any other payload, so the `op_return_runes_*` series
+  begin there. The indexer re-imports once (version 49)
 - `GET /api/block-template` sets `mintime` at difficulty period boundaries using Bitcoin Core’s BIP94 and BIP54 rules
 
 - Log files older than seven days are deleted every day while the server runs, not only when it starts

@@ -57,7 +57,7 @@ impl<'a> BlockProcessor<'a> {
                 let single_sig = usize::from(is_single_sig(output_type));
                 (ProcessedOutputData::Address(hash), single_sig)
             } else if likely(output_type == OutputType::OpReturn) {
-                (ProcessedOutputData::OpReturn(op_return::analyze(script)), 0)
+                (ProcessedOutputData::OpReturn(op_return::analyze(script, self.height)), 0)
             } else if output_type == OutputType::EmptyScript {
                 (ProcessedOutputData::None, 0)
             } else {

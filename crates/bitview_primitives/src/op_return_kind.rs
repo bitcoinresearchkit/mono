@@ -17,7 +17,7 @@ macro_rules! with_op_return_kinds {
         $callback! {
             Runes => runes, "Runes",
                 "Runes: tokens issued on Bitcoin.",
-                "Restricted to OP_RETURN outputs classified as Runes by their payload opcode.",
+                "Restricted to OP_RETURN outputs classified as Runes by their payload opcode (`OP_13`), from the protocol's activation at block 840,000.",
             WitnessCommitment => witness_commitment, "Witness commitment",
                 "Witness commitments: the SegWit fingerprint each block's coinbase carries.",
                 "Restricted to OP_RETURN outputs that start with the BIP141 witness commitment header (a 36-byte push beginning `aa21a9ed`), which SegWit-era coinbases carry.",

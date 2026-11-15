@@ -15,7 +15,7 @@ pub struct OpReturnVecs<M: StorageMode = Rw> {
     /// Heuristic classification of the indexed OP_RETURN output from the first
     /// non-empty pushed-data prefix, or from the full post-OP_RETURN byte count
     /// for length-based formats. `runes` is recognized from an immediate
-    /// `OP_13` and `witness_commitment` from the BIP141 header; a payload
+    /// `OP_13` from block 840,000 (the protocol's activation) and `witness_commitment` from the BIP141 header; a payload
     /// without a non-empty push is `empty`, and other unmatched payloads are
     /// `text`, `bare_hash`, or `unknown`.
     #[traversable(rename = "protocol")]

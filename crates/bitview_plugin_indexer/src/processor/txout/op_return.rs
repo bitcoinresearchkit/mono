@@ -1,6 +1,6 @@
 use bitcoin::{Script, opcodes::all::OP_PUSHNUM_13, script::Instruction};
 use bitview_primitives::{Bytes32, OpReturnKind};
-use brk_types::SigOpCount;
+use brk_types::{Height, SigOpCount};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Facts {
@@ -11,9 +11,15 @@ pub struct Facts {
     pub post_op_return_bytes: Bytes32,
 }
 
-pub fn analyze(script: &Script) -> Facts {
+/// The Runes protocol's activation (ord's `first_rune_height` on mainnet, the fourth halving): an
+/// earlier `OP_RETURN OP_13` output is no Runestone.
+const FIRST_RUNE_HEIGHT: Height = Height::new(840_000);
+
+pub fn analyze(script: &Script, height: Height) -> Facts {
     let data = &script.as_bytes()[1..];
-    let (kind, legacy_sigops) = if data.first().copied() == Some(OP_PUSHNUM_13.to_u8()) {
+    let (kind, legacy_sigops) = if height >= FIRST_RUNE_HEIGHT
+        && data.first().copied() == Some(OP_PUSHNUM_13.to_u8())
+    {
         (OpReturnKind::Runes, SigOpCount::of(&script[1..]).legacy)
     } else {
         let (prefix, legacy_sigops) = scan(script);
