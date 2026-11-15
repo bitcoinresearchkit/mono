@@ -17692,16 +17692,15 @@ function slide(elements, key, was, { moved = null, fade = false, pseudo, layout 
   const timing = { duration: layout ? MOTION.layout : MOTION.panel, easing: layout ? MOTION.easeLayout : MOTION.ease, ...(pseudo ? { pseudoElement: pseudo } : {}) };
   // (Their ground, read once: they're one list's.)
   let ground = "";
-  for (const element of elements) {
-    const from = was.get(key(element));
-    if (from === undefined) {
-      // (At a layout's pace (the sidebar widening), with its words: once there's room for them, see data-sliding.)
-      if (fade) element.animate({ opacity: [0, 1] }, layout ? { delay: MOTION.wordsWait, duration: MOTION.wordsIn, easing: MOTION.ease, fill: "backwards" } : timing);
-      continue;
-    }
-    // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried.)
-    for (const animation of element.getAnimations()) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.getKeyframes().some((frame) => "transform" in frame)) animation.cancel();
-    const by = from - element.getBoundingClientRect().top;
+  const come = elements.filter((element) => was.get(key(element)) === undefined), going = elements.filter((element) => was.get(key(element)) !== undefined);
+  // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All
+  // cancelled, then all read, then all moved: a read between writes would lay a long list out again for each row.)
+  for (const element of going) for (const animation of element.getAnimations()) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.getKeyframes().some((frame) => "transform" in frame)) animation.cancel();
+  const tops = going.map((element) => element.getBoundingClientRect().top);
+  // (At a layout's pace (the sidebar widening), with its words: once there's room for them, see data-sliding.)
+  if (fade) for (const element of come) element.animate({ opacity: [0, 1] }, layout ? { delay: MOTION.wordsWait, duration: MOTION.wordsIn, easing: MOTION.ease, fill: "backwards" } : timing);
+  for (const [i, element] of going.entries()) {
+    const by = /** @type {number} */ (was.get(key(element))) - tops[i];
     if (Math.abs(by) < 0.5) continue;
     const lift = layout || (moved !== null && key(element) === moved), glide = {};
     // (Its ground over half its list's gap above and below too: what fades in under it never shows between them.)
