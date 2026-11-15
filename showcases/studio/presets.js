@@ -73,6 +73,10 @@ function percentileLabel(/** @type {number} */ p) {
   const text = String(p), last = text.at(-1), teen = /(^|\D)1\d$/.test(text);
   return `${text}${teen ? "th" : last === "1" ? "st" : last === "2" ? "nd" : last === "3" ? "rd" : "th"}`;
 }
+/** A rarity band's label: the interior ones (10th to 90th) are interpolated between the 5th and 95th boundaries, the middle one a midpoint. */
+function bandLabel(/** @type {number} */ p) {
+  return p === 50 ? "Midpoint" : p >= 10 && p <= 90 ? `Interpolated ${percentileLabel(p)}` : percentileLabel(p);
+}
 /** A Bedrock mode's name from its key: "awake" is "Awake". */
 const modeName = (/** @type {string} */ mode) => sentence(capitalized(mode));
 /** A Bedrock floor band's label from its key: "p95ToP98" is "95th–98th", "belowP99_9" "Below 99.9th". */
@@ -702,7 +706,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const component = (node, label, who, reference, color = "orange") => {
     const titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`, [base, ratio] = own(node) ? [own(node), node.ratio] : reference ?? [];
     return section(label, [
-      chart("Bands", titled("rarity bands"), ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === percentileLabel(p))), bandPercentiles(node))])([price(), ...(base ? [series(base, label, { color })] : []), ...bandLines(node, (v) => v.band)])),
+      chart("Bands", titled("rarity bands"), ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === bandLabel(p))), bandPercentiles(node))])([price(), ...(base ? [series(base, label, { color })] : []), ...bandLines(node, (v) => v.band)])),
       chart("Ratios", titled("rarity ratios"), [...(ratio ? [series(ratio, "Price ratio", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
     ]);
   };
@@ -729,7 +733,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), ps = bands.map(([k]) => percentile(k));
     // (A line on the cheap side in its band beneath's shade, on the dear side in its own: a band's color, its line's over
     // it, the rarer edge's either way, see rarityTails.)
-    return bands.map(([k, v], i) => series(pick(v), percentileLabel(percentile(k)), { ...rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50), ...(shown(percentile(k)) ? {} : { hidden: true }) }));
+    return bands.map(([k, v], i) => series(pick(v), bandLabel(percentile(k)), { ...rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50), ...(shown(percentile(k)) ? {} : { hidden: true }) }));
   };
   /**
    * A rarity band's look by how rare its percentile is (its tail's share, 50 the median's to 0.1 the rarest's, on a log
@@ -1201,7 +1205,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ]),
       section("Rarity meter", [
         ...entries(t.rarityMeter).filter(([key]) => ["full", "local", "cycle"].includes(key)).map(([key, node]) => section(capitalized(key), [
-          chart("Bands", `Rarity meter bands, ${key}`, ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === percentileLabel(p))), bandPercentiles(node))])([price(), ...bandLines(node, (v) => v)])),
+          chart("Bands", `Rarity meter bands, ${key}`, ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === bandLabel(p))), bandPercentiles(node))])([price(), ...bandLines(node, (v) => v)])),
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
@@ -1345,7 +1349,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       section("Transactions", [
         ...stats(tx.count, "Count", numberOf("transactions")),
         chart("Per second", "Transactions per second", windows(tx.perSecond, "")),
-        ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange"),
+        ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange", true),
         // (Fees rise as blocks fill: the month's median fee rate over the month's average fullness.)
         ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
           { ...price(), hidden: true },
@@ -1532,11 +1536,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /**
    * A measure's spread over each block's transactions (its percentiles, lowest and highest: fee rates, fees, sizes),
    * each a week's average (one block's jumps about), as a fan (see fan). `what`: the transactions' measure, as said inside a
-   * sentence ("transactions' effective fee rates"). @param {any} node @param {string} name @param {string} what @param {string} color
+   * sentence ("transactions' effective fee rates"); `estimated`: its lowest and highest are estimates (low and high estimates).
+   * @param {any} node @param {string} name @param {string} what @param {string} color @param {boolean} [estimated]
    */
-  function spread(node, name, what, color) {
+  function spread(node, name, what, color, estimated = false) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node?.[key]));
-    return fan(name, `Median and percentiles of ${what} in each block, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key), { pane: 2 })]), color, { average: "7d" });
+    return fan(name, `Median and percentiles of ${what} in each block, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key, estimated), { pane: 2 })]), color, { average: "7d" });
   }
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
@@ -1558,8 +1563,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
     return [chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [], ...(average ? { average: { 2: average } } : {}), size: { 1: 1.4, 2: 3 }, window })];
   }
-  function statLabel(/** @type {string} */ key) {
-    return key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key));
+  function statLabel(/** @type {string} */ key, estimated = false) {
+    return key === "avg" ? "Average" : key === "min" ? (estimated ? "Low estimate" : "Lowest") : key === "max" ? (estimated ? "High estimate" : "Highest") : percentileLabel(percentile(key));
   }
   /** A transaction feature's name ("P2TR", "SIGHASH_ALL"): an output type's, else as said (FEATURES), else its key's words. @param {string} key */
   function featureName(key) {
