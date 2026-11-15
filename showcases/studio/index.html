@@ -2315,8 +2315,10 @@
         min-width: 0;
         min-height: 0;
         margin: 8px 8px 8px 0;
-        /* Only full-screen changes animate the margin; viewport breakpoints must not resize the chart each frame. */
-        transition: margin var(--card-margin-duration, 0s) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
+        /* Its margins (and its inside's padding: a phone's sheet, full screen) move as the layout does, the chart sized
+           once for it (see sizeOnce); a breakpoint or a turned phone lands at once (--card-motion, see the resize
+           listener): it would resize the chart each frame. */
+        transition: margin var(--card-motion, var(--dur-layout)) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
         /* (Its sheen a line of its background, its ring an outline: resized, as the sidebar and the panel move, a box with
@@ -2336,7 +2338,7 @@
         min-width: 0;
         min-height: 0;
         clip-path: inset(0 round calc(var(--radius-xl) - 1px));
-        transition: clip-path var(--dur-layout) var(--ease-layout);
+        transition: clip-path var(--dur-layout) var(--ease-layout), padding var(--card-motion, var(--dur-layout)) var(--ease-layout);
       }
 
       .card-head {
@@ -9549,11 +9551,9 @@
 
         /* The tab bar, a phone's own: a pill floating over the page's foot, as wide as its content, its four tabs the same
            everywhere, each named under its icon, where you are on a raised chip; over what scrolls under it (the grid,
-           the sheet), translucent. Room is kept for it at the card's foot. What changes that room (the layers' sheet,
-           full screen) moves the chart's foot there with it, the chart sized once for it (see sizeOnce), not in a jump. */
+           the sheet), translucent. Room is kept for it at the card's foot. */
         .card-inner {
           padding-bottom: var(--bar-room);
-          transition: padding var(--dur-layout) var(--ease-layout);
         }
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the

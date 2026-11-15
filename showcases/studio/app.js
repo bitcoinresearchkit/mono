@@ -6060,7 +6060,18 @@ function releaseSize() {
   laidOut.observe(document.body, { attributes: true, attributeFilter: ["data-sidebar", "data-panel", "data-peek", "data-sheet", "data-keys"] });
   laidOut.observe(/** @type {HTMLElement} */ (document.querySelector(".app")), { attributes: true, attributeFilter: ["data-full"] });
 }
-addEventListener("resize", releaseSize);
+addEventListener("resize", () => {
+  releaseSize();
+  // A turn or a breakpoint lands at once: moving the card's margins and padding for it would resize the chart each
+  // frame, nothing sizing it once. Those already started (WebKit and Chromium restyle a turned page before this event)
+  // finish now; none start until the frame after next.
+  const card = /** @type {HTMLElement} */ (document.querySelector(".card"));
+  for (const motion of card.getAnimations({ subtree: true })) {
+    if (motion instanceof CSSTransition && /^(margin|padding)-/.test(motion.transitionProperty)) motion.finish();
+  }
+  card.style.setProperty("--card-motion", "0s");
+  requestAnimationFrame(() => requestAnimationFrame(() => card.style.removeProperty("--card-motion")));
+});
 // If the block period expired, use Inter when it eventually arrives and remeasure the chart.
 if (!chartFontReady) chartFont.then((loaded) => {
   if (!loaded) return;
@@ -19404,15 +19415,8 @@ function setFull(on = !fullOn()) {
 }
 /** The chart alone, laid out (full screen's, a picture's) or not: no peeking panel, no sheet; its button said so. */
 function layOutAlone(/** @type {boolean} */ on) {
-  const button = $("full"), card = /** @type {HTMLElement} */ (document.querySelector(".card"));
-  card.style.setProperty("--card-margin-duration", "var(--dur-layout)");
+  const button = $("full");
   /** @type {HTMLElement} */ (document.querySelector(".app")).toggleAttribute("data-full", on);
-  const release = () => {
-    const moving = card.getAnimations().filter((motion) => motion instanceof CSSTransition && motion.transitionProperty.startsWith("margin-") && (motion.playState === "running" || motion.playState === "paused"));
-    if (moving.length) void Promise.allSettled(moving.map((motion) => motion.finished)).then(release);
-    else card.style.removeProperty("--card-margin-duration");
-  };
-  release();
   if (on) {
     document.body.removeAttribute("data-peek");
     delete document.body.dataset.sheet;
