@@ -5934,8 +5934,10 @@ let footPinned = false;
  * stretch's `transform` (see stretchDrawn). @param {number} height
  */
 function placeFoot(height) {
-  const by = sizeHeld && footPinned ? height - chartSize.height : 0;
-  for (const item of [engine.timeAxis.canvas, engine.corner]) item.style.translate = Math.abs(by) < 0.5 ? "" : `0 ${by}px`;
+  const by = sizeHeld && footPinned ? height - chartSize.height : 0, moved = Math.abs(by) >= 0.5;
+  // (On the chart's own ground meanwhile: moved up over its plot (drawn taller, at its end's size), the plot hidden under
+  // it, as once it lands.)
+  for (const item of [engine.timeAxis.canvas, engine.corner]) Object.assign(item.style, { translate: moved ? `0 ${by}px` : "", background: moved ? engine.theme.background : "" });
 }
 /**
  * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
