@@ -17030,7 +17030,8 @@ function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolea
   closings++;
   Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
     if (--closings) return;
-    renderCharts();
+    // (Its rows folded to nothing already: dropped with nothing to glide.)
+    movingSide(renderCharts);
   });
 }
 /** A theme chosen: kept, named on its row, and on the page (see THEMES). @param {"system" | "light" | "dark"} theme */
