@@ -6057,7 +6057,7 @@ function releaseSize() {
 // Whatever lays the page out anew (a button, a key, ⌘K, a peek, another tab's settings): its motion, sized once.
 {
   const laidOut = new MutationObserver(sizeOnce);
-  laidOut.observe(document.body, { attributes: true, attributeFilter: ["data-sidebar", "data-panel", "data-peek"] });
+  laidOut.observe(document.body, { attributes: true, attributeFilter: ["data-sidebar", "data-panel", "data-peek", "data-sheet", "data-keys"] });
   laidOut.observe(/** @type {HTMLElement} */ (document.querySelector(".app")), { attributes: true, attributeFilter: ["data-full"] });
 }
 addEventListener("resize", releaseSize);

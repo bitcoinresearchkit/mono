@@ -2443,8 +2443,10 @@
           transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
         }
 
+        /* (A phone's tab bar fading out of its way as for a selection's bar, not gone in a frame.) */
         .mobile-bar {
-          display: none;
+          visibility: hidden;
+          opacity: 0;
         }
       }
 
@@ -9547,9 +9549,11 @@
 
         /* The tab bar, a phone's own: a pill floating over the page's foot, as wide as its content, its four tabs the same
            everywhere, each named under its icon, where you are on a raised chip; over what scrolls under it (the grid,
-           the sheet), translucent. Room is kept for it at the card's foot. */
+           the sheet), translucent. Room is kept for it at the card's foot. What changes that room (the layers' sheet,
+           full screen) moves the chart's foot there with it, the chart sized once for it (see sizeOnce), not in a jump. */
         .card-inner {
           padding-bottom: var(--bar-room);
+          transition: padding var(--dur-layout) var(--ease-layout);
         }
 
         /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
