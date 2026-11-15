@@ -46,6 +46,37 @@
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+
       @font-face {
         font-family: Inter;
         src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
@@ -163,10 +194,10 @@
         --card-ring: 2px solid light-dark(transparent, rgb(0 0 0 / 0.2));
         --lift: 0 1px 3px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.3)), 0 0 0 1px light-dark(rgb(0 0 0 / 0.07), transparent);
         --hint-shadow: 0 0 0 1px light-dark(rgb(0 0 0 / 0.08), transparent), 0 4px 12px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.45));
-        --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --sans: Inter, "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         /* The chart's own text (its axes, its value tags, the navigator): Inter a tad heavier (see chartFont). */
         --chart-sans: "Inter Chart", var(--sans);
-        --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
+        --mono: Lilex, "Lilex Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
         /* Popovers come in quickly and leave at once; layout changes leave as they came. */
         --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
         --dur-micro: 120ms;

@@ -24,6 +24,37 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+
       @font-face {
         font-family: Inter;
         src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
@@ -74,7 +105,7 @@
         --s-fear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
         /* An index's colours, 0 to 100: Fear's, Doubt's, Optimism's. */
         --index-ramp: linear-gradient(90deg, var(--s-fear), var(--s-doubt), var(--s-optimism));
-        --sans: Inter, -apple-system, system-ui, sans-serif;
+        --sans: Inter, "Inter Fallback", -apple-system, system-ui, sans-serif;
         --serif: "Instrument Serif", ui-serif, Georgia, serif;
         --gutter: max(16px, env(safe-area-inset-left));
       }

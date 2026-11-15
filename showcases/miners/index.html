@@ -23,6 +23,37 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <style>
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+
       @font-face {
         font-family: Inter;
         src: url(/assets/fonts/InterVariable.core.woff2) format("woff2");

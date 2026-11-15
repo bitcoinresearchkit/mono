@@ -24,6 +24,37 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+
       @font-face {
         font-family: Inter;
         src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
@@ -64,7 +95,7 @@
         --plain: var(--ink);
         --gain-fill: light-dark(rgb(0 214 50 / 0.04), rgb(0 214 50 / 0.06));
         --loss-fill: light-dark(rgb(217 45 32 / 0.04), rgb(255 81 71 / 0.06));
-        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --sans: Inter, "Inter Fallback", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         /* (A press gives a little and springs back; a choice slides.) */
         --spring: cubic-bezier(0.3, 0.7, 0.4, 1.4);
         --slide: cubic-bezier(0.2, 0.8, 0.2, 1);
