@@ -9,7 +9,7 @@ use super::{PercentileResult, PriceTotals};
 
 /// Bump when the URPD price grid (`bitview_urpd::COMPUTE_VERSION`) or the index's price ceiling
 /// changes. A price index's owner adds it to the version of what it computes from the index.
-pub const PRICE_INDEX_VERSION: Version = Version::new(3);
+pub const PRICE_INDEX_VERSION: Version = Version::new(4);
 
 /// A derived price index. Owners choose only the filters their queries require.
 #[derive(Clone)]
@@ -18,10 +18,11 @@ pub struct PriceIndex<const N: usize> {
     totals: PriceTotals<N>,
 }
 
-// Bucket mapping: `COST_BASIS_PRICE_DIGITS` significant digits of the price in cents, as
-// `Cents::round_to_significant` rounds. With 4 digits: exact cents under $100, then 9,000 buckets
-// per decade (steps of 10 cents, $1, $10, $100, $1,000, $10,000) up to $100,000,000; higher prices
-// share the last bucket.
+// Bucket mapping: `COST_BASIS_PRICE_DIGITS` significant digits of the price in cents. Origin prices
+// round in the compact domain (`CentsCompact::round_to_significant`, as the URPD does), spot prices
+// (`through`) at full width (`Cents::round_to_significant`); they differ only at the compact
+// ceiling. With 4 digits: exact cents under $100, then 9,000 buckets per decade (steps of 10 cents,
+// $1, $10, $100, $1,000, $10,000) up to $100,000,000; higher prices share the last bucket.
 const DIGITS: u32 = COST_BASIS_PRICE_DIGITS;
 /// Buckets under 10^DIGITS cents, one per cent.
 const EXACT: usize = 10usize.pow(DIGITS);
@@ -47,8 +48,8 @@ fn bucket_to_cents(bucket: usize) -> Cents {
 }
 
 #[inline]
-fn cents_to_bucket(price: Cents) -> usize {
-    let cents = u64::from(price.round_to_significant(DIGITS));
+fn rounded_cents_to_bucket(price: Cents) -> usize {
+    let cents = u64::from(price);
     match cents.checked_ilog10() {
         Some(log10) if log10 >= MAX_LOG10 => TREE_SIZE - 1,
         Some(log10) if log10 >= DIGITS => {
@@ -85,7 +86,7 @@ impl GridCut {
     /// Through `price`'s bucket: prices rounding to it count, like the in-profit side of
     /// `PriceIndex::density_split`.
     pub fn through(price: Cents) -> Self {
-        Self(cents_to_bucket(price) + 1)
+        Self(rounded_cents_to_bucket(price.round_to_significant(DIGITS)) + 1)
     }
 }
 
@@ -109,7 +110,8 @@ impl From<CentsCompact> for BucketedPrice {
     fn from(price: CentsCompact) -> Self {
         Self {
             price,
-            bucket: cents_to_bucket(price.into()) as u32,
+            // Round in the compact domain, as OriginUrpd does at the finite ceiling.
+            bucket: rounded_cents_to_bucket(price.round_to_significant(DIGITS).into()) as u32,
         }
     }
 }

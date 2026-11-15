@@ -196,6 +196,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   set (its count and supply, the type and amount cohorts, every cost basis) and of the dust flag, and its value
   counts as burned. None is on the chain yet; one a miner included would have counted as
   spendable. Part of the same indexer re-import (version 49)
+- Cost-basis percentiles (holders, profitability) round a price as the URPD does at the top of its range, from
+  $42,945,000 up: the two put such a price in different buckets. No price has come near it; they recompute once
+  (`PRICE_INDEX_VERSION` 4)
 - `GET /api/block-template` sets `mintime` at difficulty period boundaries using Bitcoin Core’s BIP94 and BIP54 rules
 
 - Log files older than seven days are deleted every day while the server runs, not only when it starts
