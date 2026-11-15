@@ -14402,7 +14402,7 @@ const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? 
 /** @typedef {{ name: string, at: Place }} Step */
 /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
 function crumbsHtml(steps) {
-  return steps.map((step) => `<button type="button" data-place="${escape(JSON.stringify(step.at))}"><span>${escape(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
+  return steps.map((step) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(step.at))}"><span>${escape(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
 }
 /**
  * The way to a place, the place last, from its group (none for the top): a section's, the Presets and the sections
@@ -14444,7 +14444,7 @@ let chartPathOf = null;
 /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
 function renderChartPath() {
   const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1), path = $("chart-path");
-  const html = parent ? `<button type="button" id="chart-place" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}"><span>${escape(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
+  const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}"><span>${escape(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
   // (The same chart somewhere else (a preview saved, and back): its path as wide as it's been at least, its name kept
   // where it is; another chart's, as wide as its own.)
   if (chart !== chartPathOf) path.style.minWidth = "";
