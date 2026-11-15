@@ -5763,18 +5763,10 @@ const paneBox = (i) => {
   const box = engine.element.getBoundingClientRect();
   return new DOMRect(box.left, box.top + pane.top, engine.left + pane.width, pane.height);
 };
-/** Pane `i`'s price scale on a side (its right one, or its left one once a series is on it), or none. @param {number} i @param {string} side */
-const scaleOn = (i, side) => ((pane) => (pane ? (side === "left" ? pane.left : pane.scale) : null))(engine.panes[i]);
-/** Whether pane `i`'s scale on a side fits itself to the view (else it's held where it was set). @param {number} i @param {string} side */
-const scaleFits = (i, side) => ((pane) => !pane || (side === "left" ? pane.leftAuto : pane.auto))(engine.panes[i]);
 /** A pane's two sides, its scales'. @type {readonly ["left", "right"]} */
 const SIDES = ["left", "right"];
-/** What pane `i`'s scale on a side shows, as values; none without it. @param {number} i @param {string} side */
-const scaleRange = (i, side) => ((scale) => (scale ? { from: scale.lo, to: scale.hi } : null))(scaleOn(i, side));
 /** Pane `i`'s scale on a side held at a range, or (none) fitted to the view again. @param {number} i @param {"left" | "right"} side @param {{ from: number, to: number } | null} range */
 const holdScale = (i, side, range) => (engine.panes[i]?.setRange(range?.from, range?.to, side), engine.invalidate(true));
-/** Pane `i`'s scale's mode on a side, as Studio numbers them (see MODES). @param {number} i @param {string} side */
-const scaleMode = (i, side) => SCALE_MODES.indexOf(scaleOn(i, side)?.mode ?? "linear");
 /** Where a drawn series draws a value: CSS pixels from its pane's top, on its scale (see the library's chart.y); none, null. @param {any} series @param {number} value */
 const seriesY = (series, value) => ((y) => (Number.isFinite(y) ? y : null))(series ? engine.y(series.engine, value) : NaN);
 /** A drawn series' value at a height in its pane (see the library's chart.value); none, NaN. @param {any} series @param {number} y */
@@ -5852,19 +5844,12 @@ function sizeOnce() {
   // (Only its width changing (the sidebar's, the panel's): the drawing as it is, stretched from the first frame,
   // nothing held back, nothing drawn (a draw waiting, the live price's, flushed now, would hold the motion's first
   // frame as long as a heavy chart takes); drawn at its end's width once the motion's over (releaseSize). Its height
-  // too (full screen): drawn at its end's size first.)
+  // too (full screen, a phone's sheet): drawn at its end's size first, its scales fitted to it at once: one motion,
+  // nothing gliding after it.)
   const later = across && Math.abs(end.height - chartSize.height) < 1;
   const was = across && !later ? (engine.render(true), shownSpan()) : null;
   stretchDrawn(null);
   const width = later ? chartSize.width : end.width, height = end.height;
-  // (Its height changing too (full screen): its prices held where they show as it's drawn at its end's size, then
-  // glided to where they fit once the motion's over (see holdPrices): its panes and their scales read as they show,
-  // before it's pinned to its end's size.)
-  const tall = !later && Math.abs(height - own.height) >= 1 && drawnChart === chart?.id && Boolean(resolved?.times.length);
-  // (A motion before this one holding them still: held anew from where they show, or glided off.)
-  if (tall) endScaleGlide();
-  else letPricesGo();
-  const marks = tall ? priceMarks(heldScales()) : [];
   stretchKept = later ? (chart?.id ?? null) : null;
   const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
   sizeHeld = true;
@@ -5875,7 +5860,8 @@ function sizeOnce() {
     // their start, not a long frame in.)
     for (const motion of inMotion) motion.pause();
     sizeChart(width, height);
-    if (tall) holdPrices(marks);
+    // (Its panes' room for their legends, a share of their height, fitted to it now too: nothing moves once it lands.)
+    fitMargins();
     if (across) keepStretch(was);
     // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
     // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
@@ -5890,67 +5876,8 @@ function sizeOnce() {
   Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => {
     if (run !== motionsSized) return;
     if (later) return whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 });
-    // (Laid out at the end (its panes, its margins: next frame, see relayout): held again from where they show, then
-    // glided to where they fit.)
-    const holding = pricesHeld, held = priceMarks(holding);
     releaseSize();
-    // (Still that hold (not let go meanwhile: a press, a draw), its panes drawn as laid out first.)
-    if (held.length) requestAnimationFrame(() => run === motionsSized && pricesHeld === holding && (engine.render(true), holdPrices(held), letPricesGo()));
   });
-}
-/** Each pane's box on the screen, top to bottom. */
-const paneBoxes = () => engine.panes.map((_, i) => paneBox(i));
-/** The scales holdPrices holds, as it held them: glided to where they fit once the motion's over (see letPricesGo). @type {ReturnType<typeof heldScales>} */
-let pricesHeld = [];
-/**
- * Where each scale's range shows on the screen (`top`, its high's y; `foot`, its low's), by a series on it, as the
- * chart maps them (its margins, its markers' room): a linear scale's or a log one's (a percentage's, an index's, in
- * units of their own, follow the plot). @param {ReturnType<typeof heldScales>} held
- */
-function priceMarks(held) {
-  const boxes = paneBoxes();
-  return held.flatMap((scale) => {
-    const box = boxes[scale.i];
-    if (!box || scale.mode > 1 || (scale.mode === 1 && !(scale.range.from > 0))) return [];
-    // (By the first of its series that maps it: one with no data yet maps nothing.)
-    // (A candle layer's close line too, shown as its candles are zoomed out; an overlay's scale its own, none of its side's.)
-    for (const series of [...drawn.values(), ...[...closes.values()].map((close) => close.series)]) {
-      const pane = engine.panes[scale.i], k = pane?.series.indexOf(series.engine) ?? -1;
-      if (k < 0 || (pane.sides[k] ? "left" : "right") !== scale.side || series.engine.hidden || series.engine.overlay) continue;
-      const top = seriesY(series, scale.range.to), foot = seriesY(series, scale.range.from);
-      if (top !== null && foot !== null && foot - top > 1) return [{ ...scale, series, top: box.top + top, foot: box.top + foot }];
-    }
-    return [];
-  });
-}
-/**
- * The chart drawn at another height, or laid out anew (full screen, on or off): each scale's prices kept where they
- * showed (`marks`, see priceMarks): as many to a pixel, its high where it was, between the edges it's drawn within
- * now (measured as the chart maps the range it has: its margins and markers' room as they are). A log scale's by its
- * logarithms. Nothing jumps as the motion starts or as it's laid out at its end. Pressed meanwhile, they follow the
- * plot at once (see endScaleGlide). @param {ReturnType<typeof priceMarks>} marks
- */
-function holdPrices(marks) {
-  const boxes = paneBoxes();
-  pricesHeld = marks.flatMap(({ i, side, mode, range, series, top, foot }) => {
-    const now = scaleRange(i, side), box = boxes[i];
-    const edgeTop = now && box ? seriesY(series, now.to) : null, edgeFoot = now && box ? seriesY(series, now.from) : null;
-    if (edgeTop === null || edgeFoot === null || !box || !(edgeFoot - edgeTop > 1)) return [];
-    // (A log scale's as the library maps it: by a price's logarithm.)
-    const log = mode === 1, f = (/** @type {number} */ x) => (log ? Math.log10(x) : x), g = (/** @type {number} */ x) => (log ? 10 ** x : x);
-    const k = (foot - top) / (f(range.to) - f(range.from)), high = f(range.to) + (top - (box.top + edgeTop)) / k, low = high - (edgeFoot - edgeTop) / k;
-    const kept = { from: g(low), to: g(high) };
-    if (!(kept.to > kept.from) || !Number.isFinite(kept.to + kept.from)) return [];
-    holdScale(i, side, kept);
-    return [{ i, side, mode, range: kept }];
-  });
-  scaleMoves = pricesHeld.map(({ i, side }) => ({ i, side }));
-}
-/** The prices holdPrices held, glided from there to where they fit (a press meanwhile already let them go). */
-function letPricesGo() {
-  const held = pricesHeld;
-  pricesHeld = [];
-  if (held.length) glideScales(held);
 }
 /**
  * The chart, drawn `width` wide, stretched to its box each frame (shown `shown` wide now) till `run` is over (see
@@ -6368,7 +6295,6 @@ async function draw(refit = false, fresh = false) {
   dataRevision++;
   drawnData = drawingData;
   const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
-  endScaleGlide();
   build(withLook(structuredClone(chart)), result, refit);
   drawnChart = doc.id;
   drawnVersion = version;
@@ -6445,8 +6371,6 @@ function buildChart(doc, data, refit) {
     // (Who waited for it, woken once this one's done: see settle.)
     queueMicrotask(() => { for (const wake of [...drawnWaiters]) wake(); });
   }
-  // (A scale gliding follows the plot again: the scales are set anew.)
-  endScaleGlide();
   // (What the live price paints its colors from: this, whatever builds it, a restyle and a preview too.)
   drawnDoc = doc;
   // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
@@ -9544,8 +9468,6 @@ engine.onRange(() => {
     const made = madeView && Math.abs(range.from - madeView.from) < 0.05 && Math.abs(range.to - madeView.to) < 0.05;
     if (!heldView || heldView.box === box || (madeView && !made)) (heldView = { box, at: range }), (madeView = null);
   })(shownSpan(), engine.time.width, chartWidth());
-  // (A scale gliding follows the view moved again, at once.)
-  if (scaleGliding) endScaleGlide();
   // (The lens shows the view as it's drawn next, moved by a key, a range, the navigator.)
   if (lensAt) lookAt(lensAt);
   nameAxis();
@@ -9567,8 +9489,8 @@ engine.onRange(() => {
 let reaching = false;
 /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
 const pressed = new Set(), fingers = new Set();
-// (A scale gliding follows the plot again before the chart takes the press: a drag on its axis is the drag's.)
-$("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId), endScaleGlide()), true);
+// (Counted as it goes down, before the chart's own handlers take it.)
+$("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId)), true);
 // (A finger's crosshair kept where it was lifted: let go at the next touch on the plot, before a drawing's press
 // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
 $("chart").addEventListener("pointerdown", (event) => {
@@ -9683,66 +9605,6 @@ const unfitHere = (formulas) => {
   const supported = supportedIntervals(chart), fit = INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
   return `Not at ${INTERVAL_LABEL[chart.index]}${fit.length ? `: ${INTERVAL_LABEL[fit[0]]}${fit.length > 1 ? ` to ${INTERVAL_LABEL[/** @type {string} */ (fit.at(-1))]}` : ""}` : ""}`;
 };
-/** Each scale's range as it's held, where it follows the plot (auto scaled). */
-function heldScales() {
-  return engine.panes.flatMap((_, i) => SIDES.flatMap((side) => {
-    const range = scaleRange(i, side);
-    return scaleFits(i, side) && range ? [{ i, side, mode: scaleMode(i, side), range }] : [];
-  }));
-}
-let scaleGlide = 0, scaleMoves = /** @type {{ i: number, side: "left" | "right" }[]} */ ([]), scaleGliding = false;
-/** A glide under way, ended: its scales follow the plot again. */
-function endScaleGlide() {
-  cancelAnimationFrame(scaleGlide);
-  scaleGliding = false;
-  pricesHeld = [];
-  if (!scaleMoves.length) return;
-  for (const { i, side } of scaleMoves) holdScale(i, side, null);
-  scaleMoves = [];
-}
-/**
- * The scales held (see holdPrices), glided from there to where they follow the plot now. Held through the draw,
- * where the view's applied (as it's drawn next), then glided to where they'd be: a
- * log scale's by its logarithms. Anything else moving the view (a press on the chart, a zoom, the navigator), another
- * draw, or the page hidden, lets them follow at once.
- * @param {ReturnType<typeof heldScales>} held
- */
-function glideScales(held) {
-  endScaleGlide();
-  const moves = held.flatMap(({ i, side, mode, range }) => {
-    if (!scaleOn(i, side) || !scaleFits(i, side) || scaleMode(i, side) !== mode) return [];
-    holdScale(i, side, range);
-    return [{ i, side, range, to: range, log: mode === 1 }];
-  });
-  if (!moves.length) return;
-  scaleMoves = moves.map(({ i, side }) => ({ i, side }));
-  /** @param {number} a @param {number} b @param {number} k @param {boolean} log */
-  const between = (a, b, k, log) => (log && a > 0 && b > 0 ? 10 ** (Math.log10(a) + (Math.log10(b) - Math.log10(a)) * k) : a + (b - a) * k);
-  let started = false;
-  const since = motionTime();
-  const step = (/** @type {number} */ now) => {
-    now = since(now);
-    try {
-      if (!started) {
-        started = true;
-        for (const move of moves) {
-          move.to = engine.panes[move.i]?.fittedRange(engine.time, move.side) ?? move.range;
-          holdScale(move.i, move.side, move.range);
-        }
-        // (From here on, a view moved is moved by something else.)
-        scaleGliding = true;
-      }
-      const t = Math.min(1, now / MOTION.small), k = eased(t);
-      if (t >= 1) return endScaleGlide();
-      for (const { i, side, range, to, log } of moves) holdScale(i, side, { from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
-      scaleGlide = requestAnimationFrame(step);
-    } catch {
-      endScaleGlide();
-    }
-  };
-  scaleGlide = requestAnimationFrame(step);
-}
-document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && endScaleGlide());
 
 /** @param {Span} span @param {number} by */
 async function grow(span, by) {
