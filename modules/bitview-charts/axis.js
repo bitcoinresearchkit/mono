@@ -1,13 +1,16 @@
 // @ts-check
 // The time axis under the panes: the starts of years, months, days, hours or minutes (whichever leave room enough
-// between their labels), each at its first point, its label under it (UTC).
+// between their labels: a label's width), each at its first point, its label under it (UTC).
 
 import { kept } from "./format.js";
 import { Tags, pill } from "./tags.js";
 
 const DAY = 86400;
-/** Labels' least room between them (CSS pixels). */
-const ROOM = 72;
+/**
+ * A time each unit's labels are measured by (their room, see #room): a wide one of each kind, as each kind is
+ * written (2000; Sep; 28 Sep; 22:30).
+ */
+const SAMPLE = { year: Date.UTC(2000, 0, 1) / 1000, month: Date.UTC(2000, 8, 1) / 1000, day: Date.UTC(2000, 8, 28) / 1000, hour: Date.UTC(2000, 8, 28, 22, 30) / 1000, minute: Date.UTC(2000, 8, 28, 22, 30) / 1000 };
 /** A column twice as long, its values kept. @param {Float64Array} column */
 const grown = (column) => ((longer) => (longer.set(column), longer))(new Float64Array(column.length * 2));
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -50,6 +53,10 @@ export class TimeAxis {
   /** Its labels' half widths in the font they were measured in (a pan's frames write the same few again). @type {Map<string, number>} */
   #widths = new Map();
   #widthsFont = "";
+  /** Each unit's labels' room as measured (see #room), for the font and the page's words they were measured in. @type {Map<string, number>} */
+  #rooms = new Map();
+  /** @type {((t: number, kind: string) => string | null) | null} */
+  #roomsFormat = null;
 
   constructor() {
     this.canvas = document.createElement("canvas");
@@ -120,9 +127,11 @@ export class TimeAxis {
     g.fillStyle = theme.background;
     g.fillRect(0, 0, this.width, this.height);
     g.font = theme.font;
-    if (this.#widthsFont !== theme.font) {
+    if (this.#widthsFont !== theme.font || this.#roomsFormat !== this.format) {
       this.#widths.clear();
+      this.#rooms.clear();
       this.#widthsFont = theme.font;
+      this.#roomsFormat = this.format;
     }
     (page.count = 0), (page.length = plot), (this.drawnCount = 0);
     for (const pane of panes) for (let k = 0; k < pane.series.length; k++) if (!pane.series[k].hidden && !pane.series[k].faint) pane.series[k].timeTags?.(page.add);
@@ -133,6 +142,20 @@ export class TimeAxis {
     this.#labels(time, theme, plot, page);
     g.textBaseline = "middle";
     for (let k = 0; k < page.count; k++) pill(g, page.texts[k], page.colors[k], page.inks[k], page.at[k], this.height / 2, "center");
+  }
+
+  /**
+   * The least room between a unit's labels' middles (CSS pixels): two of its labels' widths, a label's width of space
+   * between them, at any width (a phone's plot names every other year, not every fifth), measured once a font.
+   * @param {(typeof STEPS)[number][2]} unit
+   */
+  #room(unit) {
+    let room = this.#rooms.get(unit);
+    if (room === undefined) {
+      const t = SAMPLE[unit];
+      this.#rooms.set(unit, (room = 4 * this.#half(this.format?.(t, kindOf(t)) || this.labels[unit](t))));
+    }
+    return room;
   }
 
   /** Whether a label at `x` overlaps a page's tag, with four pixels between them. @param {number} x @param {Tags} page @param {number} half */
@@ -152,10 +175,10 @@ export class TimeAxis {
     if (n < 2) return;
     const a = Math.max(0, Math.floor(time.from)), b = Math.min(n - 1, Math.ceil(time.to));
     if (b <= a) return;
-    // (Seconds a pixel, over what's in view; labels at least 72 pixels apart.)
+    // (Seconds a pixel, over what's in view; labels their room apart.)
     const perPx = (times[b] - times[a]) / Math.max(1, time.x(b) - time.x(a));
     let k = 0;
-    while (k < STEPS.length - 1 && STEPS[k][0] / perPx < ROOM) k++;
+    while (k < STEPS.length - 1 && STEPS[k][0] / perPx < this.#room(STEPS[k][2])) k++;
     if (this.#row(time, theme, plot, page, a, b, STEPS[k])) return;
     let gap = Infinity;
     for (let i = a + 1; i <= b; i++) if (times[i] - times[i - 1] < gap) gap = times[i] - times[i - 1];
@@ -163,14 +186,14 @@ export class TimeAxis {
   }
 
   /**
-   * Its labels from point `a` to `b` by `step`, at least ROOM apart, each at the first point within a step (none
+   * Its labels from point `a` to `b` by `step`, at least their room apart (see #room), each at the first point within a step (none
    * where the data skips a whole step: a weekend's days not named on the Monday), named as the step (a month's name at
    * its first trading day) or, by hours and minutes, as the point's own time (points at :05 named so): how many it drew.
    * @param {import("./timeline.js").Timeline} time @param {import("./pane.js").Theme} theme @param {number} plot @param {Tags} page
    * @param {number} a @param {number} b @param {(typeof STEPS)[number]} step
    */
   #row(time, theme, plot, page, a, b, step) {
-    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit];
+    const g = this.g, times = time.times, [seconds, size, unit] = step, label = this.labels[unit], room = this.#room(unit);
     let drawn = 0;
     g.fillStyle = theme.text;
     g.textAlign = "center";
@@ -194,9 +217,9 @@ export class TimeAxis {
         const x = time.x(i);
         // Measure the final label: day/year text and page-supplied words have the same edge and overlap bounds.
         const when = calendar || unit === "day" ? t : times[i], words = this.format ? this.format(when, kindOf(when)) : null;
-        // (ROOM between labels' middles keeps a row as sparse as its step (a finer row tried after it too); measured,
+        // (Their room between labels' middles keeps a row as sparse as its step (a finer row tried after it too); measured,
         // none touches another, a page's tag or an edge.)
-        if (words !== "" && x - last >= ROOM) {
+        if (words !== "" && x - last >= room) {
           const text = words ?? label(when), half = this.#half(text);
           if (x < half || x + half > plot || x - half < lastRight + 4 || this.#covered(x, page, half)) { t = next; continue; }
           g.fillText(text, x, this.height / 2);

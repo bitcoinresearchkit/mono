@@ -83,7 +83,7 @@ export class Chart {
      */
     this.axis = axis;
     this.leftAxis = leftAxis;
-    /** Each side's axis as shown, as its labels and tags need it (right, left; 0: not drawn yet, `axis`'s). */
+    /** Each side's axis as shown, as its labels and tags need it (right, left; 0: not drawn yet, `axis`'s till then). */
     this.fitted = [0, 0];
     /** A render drawing again at the axes' new widths: in it they only widen (see render). */
     this.fitting = false;
@@ -488,20 +488,22 @@ export class Chart {
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
     // (Each axis as wide as its labels and tags need (4 pixels a step, AXIS_LEAST at least), each side on its own,
-    // the visible time range kept as the plot's width changes: wider at once where they need it, never
-    // narrower by itself (no plot growing and shrinking as values come and go); as narrow as they let it only when
-    // fitted again (fitAxes: a price axis' double-click, the page's own). Laid out and drawn whole again now (a picture
+    // from its first draw (`axis`, its width till then, no floor: a phone's plot not left short), the visible time
+    // range kept as the plot's width changes: wider at once where they need it, never narrower by itself after (no
+    // plot growing and shrinking as values come and go); as narrow as they let it only when fitted again (fitAxes: a
+    // price axis' double-click, the page's own). Laid out and drawn whole again now (a picture
     // taken from this render has it all); in that draw, only wider (it ends).)
     {
       let right = 0, leftNeed = 0;
       for (let k = 0; k < this.panes.length; k++) (right = Math.max(right, this.panes[k].axisNeed[0])), (leftNeed = Math.max(leftNeed, this.panes[k].left ? this.panes[k].axisNeed[1] : 0));
       const fit = (/** @type {number} */ need) => Math.max(AXIS_LEAST, Math.ceil(need / 4) * 4), refit = this.refit;
       this.refit = false;
-      const next = (/** @type {number} */ want, /** @type {number} */ shown) => (want > shown || refit ? want : shown);
-      const wantRight = this.axis ? next(fit(right), this.axisShown) : 0, wantLeft = this.left ? next(fit(leftNeed), this.leftShown) : 0;
-      if ((this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown)) {
-        if (this.axis) this.fitted[0] = wantRight;
-        if (this.left) this.fitted[1] = wantLeft;
+      const next = (/** @type {number} */ want, /** @type {number} */ fitted) => (want > fitted || refit || !fitted ? want : fitted);
+      const wantRight = this.axis ? next(fit(right), this.fitted[0]) : 0, wantLeft = this.left ? next(fit(leftNeed), this.fitted[1]) : 0;
+      const moved = (this.axis && wantRight !== this.axisShown) || (this.left && wantLeft !== this.leftShown);
+      if (this.axis) this.fitted[0] = wantRight;
+      if (this.left) this.fitted[1] = wantLeft;
+      if (moved) {
         this.layout();
         const was = this.fitting;
         this.fitting = true;
