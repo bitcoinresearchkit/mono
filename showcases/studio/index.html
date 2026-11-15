@@ -260,8 +260,12 @@
         color-scheme: light dark;
       }
 
+      /* (Each text read in its own direction (dir="auto" everywhere): words written in a right-to-left script, a title
+         or a name in Arabic, start at the right and a cut ends them, never takes their first words; ours, and numbers,
+         read as ever.) */
       * {
         box-sizing: border-box;
+        unicode-bidi: plaintext;
       }
 
       ::selection {
