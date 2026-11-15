@@ -37,10 +37,15 @@ impl LazySpotValuePerBlock {
         let sats =
             LazyPerBlock::from_lazy::<Ident, Sats>(&format!("{name}_sats"), version, &source.sats);
         let btc = LazyPerBlock::from_lazy::<Convert, Sats>(name, version, &source.sats);
-        let usd =
-            LazyPerBlock::from_lazy::<Ident, Dollars>(&format!("{name}_usd"), version, &source.usd);
+        let dollars =
+            |name: &str| LazyPerBlock::from_lazy::<Ident, Dollars>(name, version, &source.usd);
 
-        Self { btc, sats, usd }
+        Self {
+            btc,
+            sats,
+            usd: dollars(&format!("{name}_usd")),
+            market_cap: dollars(&market_cap_name(name)),
+        }
     }
 
     pub fn from_sats_source<V>(
@@ -55,7 +60,7 @@ impl LazySpotValuePerBlock {
     {
         Self::from_sats_source_named(
             name,
-            &format!("{name}_usd"),
+            &market_cap_name(name),
             version,
             source,
             indexes,
@@ -63,11 +68,11 @@ impl LazySpotValuePerBlock {
         )
     }
 
-    /// Like [`Self::from_sats_source`], with the USD series under its own name (e.g. market cap
-    /// for the circulating supply).
+    /// Like [`Self::from_sats_source`], with the market cap under its own name (`market_cap` for
+    /// the circulating supply).
     pub fn from_sats_source_named<V>(
         name: &str,
-        usd_name: &str,
+        market_cap: &str,
         version: Version,
         source: &V,
         indexes: &IndexSources,
@@ -91,9 +96,31 @@ impl LazySpotValuePerBlock {
             spot_price,
             |_, sats: Sats, spot| Dollars::from(sats.value_at(spot)),
         );
-        let usd =
-            LazyPerBlock::from_height_source::<Ident>(usd_name, version, &usd_source, indexes);
+        let dollars = |name: &str| {
+            LazyPerBlock::from_height_source::<Ident>(name, version, &usd_source, indexes)
+        };
 
-        Self { btc, sats, usd }
+        Self {
+            btc,
+            sats,
+            usd: dollars(&format!("{name}_usd")),
+            market_cap: dollars(market_cap),
+        }
     }
+}
+
+/// A supply stock's market-cap id: its id with `supply` read as `market_cap`
+/// (`age_1y_supply_in_loss` is `age_1y_market_cap_in_loss`).
+fn market_cap_name(name: &str) -> String {
+    let words = name.split('_').collect::<Vec<_>>();
+    assert_eq!(
+        words.iter().filter(|&&word| word == "supply").count(),
+        1,
+        "a spot value names one supply: {name}"
+    );
+    words
+        .into_iter()
+        .map(|word| if word == "supply" { "market_cap" } else { word })
+        .collect::<Vec<_>>()
+        .join("_")
 }

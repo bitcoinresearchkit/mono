@@ -3196,12 +3196,38 @@ class RarityMeter(_Node):
     cycle: Meter = _at(Meter, 'cycle_*_meter')
 
 
+class UnweightedEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_unweighted_entry_market_cap_*')
+
+
+class MobileEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_mobile_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_mobile_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_mobile_entry_market_cap_*')
+
+
 class EntryCapital(_Node):
     between_p95_and_p98_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p95_and_p98_floors')
     between_p98_and_p99_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p98_and_p99_floors')
     between_p99_and_p99_5_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_and_p99_5_floors')
     between_p99_5_and_p99_9_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_5_and_p99_9_floors')
     below_p99_9_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_p99_9_floor')
+
+
+class AwakeEntrySupplyBelowP99_9Floor(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'bedrock_awake_entry_supply_*')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_awake_entry_supply_*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'bedrock_awake_entry_market_cap_*')
+
+
+class EntrySupply(_Node, Generic[A]):
+    between_p95_and_p98_floors: A = _at(0, 'between_p95_and_p98_floors')
+    between_p98_and_p99_floors: A = _at(0, 'between_p98_and_*_floors')
+    between_p99_and_p99_5_floors: A = _at(0, 'between_*_and_p99_5_floors')
+    between_p99_5_and_p99_9_floors: A = _at(0, 'between_*_5_and_p99_9_floors')
+    below_p99_9_floor: A = _at(0, 'below_*_9_floor')
 
 
 class Levels(_Node):
@@ -3222,6 +3248,20 @@ class Percentiles(_Node, Generic[A]):
     p99: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99')
     p99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_5')
     p99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_9')
+
+
+class Mode(_Node, Generic[A]):
+    supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
+    floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
+    cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
+    entry_supply: EntrySupply[A] = _at((EntrySupply, 0), 'p99')
+    entry_capital: EntryCapital = _at(EntryCapital, '*_entry_capital')
+
+
+class Bedrock(_Node):
+    awake: Mode[AwakeEntrySupplyBelowP99_9Floor] = _at((Mode, AwakeEntrySupplyBelowP99_9Floor), '*_awake')
+    mobile: Mode[MobileEntrySupplyBelowP99_9Floor] = _at((Mode, MobileEntrySupplyBelowP99_9Floor), '*_mobile')
+    unweighted: Mode[UnweightedEntrySupplyBelowP99_9Floor] = _at((Mode, UnweightedEntrySupplyBelowP99_9Floor), '*_unweighted')
 
 
 class CointimePriceWithRatio(_Node):
@@ -3259,7 +3299,7 @@ class MobileCapital(_Node):
     realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_cap')
 
 
-class InLoss(_Node):
+class MobileSupplyInLoss(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*')
 
 
@@ -3329,9 +3369,24 @@ class Part(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
-class SpotValue(_Node):
+class AllSupplyInLoss(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_loss')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_loss_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_loss')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_in_loss_share')
+
+
+class SupplyInProfit(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_profit')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_profit_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_profit')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_in_profit_share')
+
+
+class HoldersSpotValue(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
-    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'market_cap')
 
 
 class FundedTotal(_Node):
@@ -3345,14 +3400,15 @@ class RespentCount(_Node):
 
 
 class PredicateSupply(_Node):
-    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
-    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class Exposed(_Node):
     count: FundedTotal = _at(FundedTotal, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_exposed_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_exposed_address')
 
 
 class ReusedCount(_Node):
@@ -3375,11 +3431,96 @@ class CreationUnrealized(_Node):
     net_pnl: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_net_unrealized_pnl')
 
 
+class InLoss(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_loss')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_loss_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_loss')
+
+
+class InProfit(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_profit')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_profit_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_profit')
+
+
 class AddressesWindows(_Node):
     _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h_percent')
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w_percent')
     _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m_percent')
     _1y: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1y_percent')
+
+
+class SpotValue(_Node):
+    btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply')
+    usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_usd')
+    market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap')
+
+
+class CointimeSupply(_Node):
+    vaulted: SpotValue = _at(SpotValue, '*')
+    hodled_or_lost: SpotValue = _at(SpotValue, 'hodled_or_lost')
+    active: SpotValue = _at(SpotValue, 'active')
+
+
+class MobileSupply(_Node):
+    total: SpotValue = _at(SpotValue, '*')
+    in_loss: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_loss_share')
+
+
+class Side(_Node):
+    supply: SpotValue = _at(SpotValue, '*')
+
+
+class Range(_Node):
+    spending_rate: SeriesPattern1[Optional[PerDay]] = _at(SeriesPattern1, '*_spending_rate')
+    spending_exposure: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*_spending_exposure')
+    mobility: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mobility')
+    mobile: Side = _at(Side, '*_mobile')
+    immobile: Side = _at(Side, '*_immobile')
+
+
+class BandSupply(_Node):
+    total: SpotValue = _at(SpotValue, '*')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
+
+
+class Band(_Node):
+    supply: BandSupply = _at(BandSupply, '*')
+    capital: BandCapital = _at(BandCapital, '*')
+
+
+class ProfitabilityRange(_Node):
+    profit_over_1000_percent: Band = _at(Band, '*_profit_over_1000_percent')
+    profit_500_to_1000_percent: Band = _at(Band, '*_profit_500_to_1000_percent')
+    profit_300_to_500_percent: Band = _at(Band, '*_profit_300_to_500_percent')
+    profit_200_to_300_percent: Band = _at(Band, '*_profit_200_to_300_percent')
+    profit_100_to_200_percent: Band = _at(Band, '*_profit_100_to_200_percent')
+    profit_90_to_100_percent: Band = _at(Band, '*_profit_90_to_100_percent')
+    profit_80_to_90_percent: Band = _at(Band, '*_profit_80_to_90_percent')
+    profit_70_to_80_percent: Band = _at(Band, '*_profit_70_to_80_percent')
+    profit_60_to_70_percent: Band = _at(Band, '*_profit_60_to_70_percent')
+    profit_50_to_60_percent: Band = _at(Band, '*_profit_50_to_60_percent')
+    profit_40_to_50_percent: Band = _at(Band, '*_profit_40_to_50_percent')
+    profit_30_to_40_percent: Band = _at(Band, '*_profit_30_to_40_percent')
+    profit_20_to_30_percent: Band = _at(Band, '*_profit_20_to_30_percent')
+    profit_10_to_20_percent: Band = _at(Band, '*_profit_10_to_20_percent')
+    profit_0_to_10_percent: Band = _at(Band, '*_profit_0_to_10_percent')
+    loss_0_to_10_percent: Band = _at(Band, '*_loss_0_to_10_percent')
+    loss_10_to_20_percent: Band = _at(Band, '*_loss_10_to_20_percent')
+    loss_20_to_30_percent: Band = _at(Band, '*_loss_20_to_30_percent')
+    loss_30_to_40_percent: Band = _at(Band, '*_loss_30_to_40_percent')
+    loss_40_to_50_percent: Band = _at(Band, '*_loss_40_to_50_percent')
+    loss_50_to_60_percent: Band = _at(Band, '*_loss_50_to_60_percent')
+    loss_60_to_70_percent: Band = _at(Band, '*_loss_60_to_70_percent')
+    loss_70_to_80_percent: Band = _at(Band, '*_loss_70_to_80_percent')
+    loss_80_to_90_percent: Band = _at(Band, '*_loss_80_to_90_percent')
+    loss_90_to_100_percent: Band = _at(Band, '*_loss_90_to_100_percent')
+
+
+class Profitability(_Node):
+    all: ProfitabilityRange = _at(ProfitabilityRange, '')
+    sth: ProfitabilityRange = _at(ProfitabilityRange, '*')
+    lth: ProfitabilityRange = _at(ProfitabilityRange, 'lth')
 
 
 class MarketPriceWithRatio(_Node):
@@ -3423,6 +3564,32 @@ class CostBasis(_Node):
     by_dollar: CostBasisByDollar = _at(CostBasisByDollar, '*')
     supply_density: Density = _at(Density, '*_supply_density')
     capital_density: Density = _at(Density, '*_capital_density')
+
+
+class Awake(_Node):
+    supply: MobileSupply = _at(MobileSupply, '*')
+    capital: MobileCapital = _at(MobileCapital, '*')
+    cost_basis: CostBasis = _at(CostBasis, '*')
+
+
+class CoinflowCohort(_Node):
+    mobile: Awake = _at(Awake, '*_mobile')
+    immobile: Side = _at(Side, '*_immobile')
+
+
+class CointimeCohort(_Node):
+    awake: Awake = _at(Awake, '*_awake')
+    dormant: Side = _at(Side, '*_dormant')
+
+
+class AgeAggregate(_Node, Generic[A]):
+    all: A = _at(0, '')
+    sth: A = _at(0, 'sth')
+    lth: A = _at(0, 'lth')
+    under_4m: A = _at(0, '*_under_4m')
+    under_6m: A = _at(0, '*_under_6m')
+    over_4m: A = _at(0, '*_over_4m')
+    over_6m: A = _at(0, '*_over_6m')
 
 
 class HoldersCostBasis(_Node):
@@ -3552,121 +3719,6 @@ class Fee(_Node):
 class Value(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
-
-
-class EntrySupply(_Node):
-    between_p95_and_p98_floors: Value = _at(Value, '*_between_p95_and_p98_floors')
-    between_p98_and_p99_floors: Value = _at(Value, '*_between_p98_and_p99_floors')
-    between_p99_and_p99_5_floors: Value = _at(Value, '*_between_p99_and_p99_5_floors')
-    between_p99_5_and_p99_9_floors: Value = _at(Value, '*_between_p99_5_and_p99_9_floors')
-    below_p99_9_floor: Value = _at(Value, '*_below_p99_9_floor')
-
-
-class Mode(_Node):
-    supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
-    floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
-    cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
-    entry_supply: EntrySupply = _at(EntrySupply, '*_entry_supply')
-    entry_capital: EntryCapital = _at(EntryCapital, '*_entry_capital')
-
-
-class Bedrock(_Node):
-    awake: Mode = _at(Mode, '*_awake')
-    mobile: Mode = _at(Mode, '*_mobile')
-    unweighted: Mode = _at(Mode, '*_unweighted')
-
-
-class CointimeSupply(_Node):
-    vaulted: Value = _at(Value, 'vaulted_*')
-    hodled_or_lost: Value = _at(Value, 'hodled_or_lost_*')
-    active: Value = _at(Value, 'active_*')
-
-
-class MobileSupply(_Node):
-    total: Value = _at(Value, '*')
-    in_loss: InLoss = _at(InLoss, '*_in_loss_share')
-
-
-class Awake(_Node):
-    supply: MobileSupply = _at(MobileSupply, '*_supply')
-    capital: MobileCapital = _at(MobileCapital, '*')
-    cost_basis: CostBasis = _at(CostBasis, '*')
-
-
-class Side(_Node):
-    supply: Value = _at(Value, '*')
-
-
-class CoinflowCohort(_Node):
-    mobile: Awake = _at(Awake, '*_mobile')
-    immobile: Side = _at(Side, '*_immobile_supply')
-
-
-class CoinflowRange(_Node):
-    spending_rate: SeriesPattern1[Optional[PerDay]] = _at(SeriesPattern1, '*_spending_rate')
-    spending_exposure: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*_spending_exposure')
-    mobility: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mobility')
-    mobile: Side = _at(Side, '*_mobile_supply')
-    immobile: Side = _at(Side, '*_immobile_supply')
-
-
-class CointimeCohort(_Node):
-    awake: Awake = _at(Awake, '*_awake')
-    dormant: Side = _at(Side, '*_dormant_supply')
-
-
-class AgeAggregate(_Node, Generic[A]):
-    all: A = _at(0, '')
-    sth: A = _at(0, 'sth')
-    lth: A = _at(0, 'lth')
-    under_4m: A = _at(0, '*_under_4m')
-    under_6m: A = _at(0, '*_under_6m')
-    over_4m: A = _at(0, '*_over_4m')
-    over_6m: A = _at(0, '*_over_6m')
-
-
-class BandSupply(_Node):
-    total: Value = _at(Value, '*')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-
-
-class Band(_Node):
-    supply: BandSupply = _at(BandSupply, '*_supply')
-    capital: BandCapital = _at(BandCapital, '*')
-
-
-class ProfitabilityRange(_Node):
-    profit_over_1000_percent: Band = _at(Band, '*_profit_over_1000_percent')
-    profit_500_to_1000_percent: Band = _at(Band, '*_profit_500_to_1000_percent')
-    profit_300_to_500_percent: Band = _at(Band, '*_profit_300_to_500_percent')
-    profit_200_to_300_percent: Band = _at(Band, '*_profit_200_to_300_percent')
-    profit_100_to_200_percent: Band = _at(Band, '*_profit_100_to_200_percent')
-    profit_90_to_100_percent: Band = _at(Band, '*_profit_90_to_100_percent')
-    profit_80_to_90_percent: Band = _at(Band, '*_profit_80_to_90_percent')
-    profit_70_to_80_percent: Band = _at(Band, '*_profit_70_to_80_percent')
-    profit_60_to_70_percent: Band = _at(Band, '*_profit_60_to_70_percent')
-    profit_50_to_60_percent: Band = _at(Band, '*_profit_50_to_60_percent')
-    profit_40_to_50_percent: Band = _at(Band, '*_profit_40_to_50_percent')
-    profit_30_to_40_percent: Band = _at(Band, '*_profit_30_to_40_percent')
-    profit_20_to_30_percent: Band = _at(Band, '*_profit_20_to_30_percent')
-    profit_10_to_20_percent: Band = _at(Band, '*_profit_10_to_20_percent')
-    profit_0_to_10_percent: Band = _at(Band, '*_profit_0_to_10_percent')
-    loss_0_to_10_percent: Band = _at(Band, '*_loss_0_to_10_percent')
-    loss_10_to_20_percent: Band = _at(Band, '*_loss_10_to_20_percent')
-    loss_20_to_30_percent: Band = _at(Band, '*_loss_20_to_30_percent')
-    loss_30_to_40_percent: Band = _at(Band, '*_loss_30_to_40_percent')
-    loss_40_to_50_percent: Band = _at(Band, '*_loss_40_to_50_percent')
-    loss_50_to_60_percent: Band = _at(Band, '*_loss_50_to_60_percent')
-    loss_60_to_70_percent: Band = _at(Band, '*_loss_60_to_70_percent')
-    loss_70_to_80_percent: Band = _at(Band, '*_loss_70_to_80_percent')
-    loss_80_to_90_percent: Band = _at(Band, '*_loss_80_to_90_percent')
-    loss_90_to_100_percent: Band = _at(Band, '*_loss_90_to_100_percent')
-
-
-class Profitability(_Node):
-    all: ProfitabilityRange = _at(ProfitabilityRange, '')
-    sth: ProfitabilityRange = _at(ProfitabilityRange, '*')
-    lth: ProfitabilityRange = _at(ProfitabilityRange, 'lth')
 
 
 class OpReturnWindows(_Node):
@@ -3804,11 +3856,11 @@ class SharedCapital(_Node):
 
 
 class SharedSupply(_Node):
-    total: Value = _at(Value, '*')
-    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
-    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    total: SpotValue = _at(SpotValue, '*')
+    in_profit: SupplyInProfit = _at(SupplyInProfit, '*')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class Capital(_Node):
@@ -3820,9 +3872,9 @@ class Capital(_Node):
 
 
 class HoldersSupply(_Node):
-    total: SpotValue = _at(SpotValue, 'circulating_*')
-    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
-    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
+    total: HoldersSpotValue = _at(HoldersSpotValue, 'circulating_*')
+    in_profit: SupplyInProfit = _at(SupplyInProfit, '')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
 
 
@@ -3834,17 +3886,17 @@ class CapitalViews(_Node):
 
 
 class CohortSupply(_Node):
-    total: Value = _at(Value, '*')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+    total: SpotValue = _at(SpotValue, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
 
 class CreationSupply(_Node):
-    total: Value = _at(Value, '*')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-    in_profit: Value = _at(Value, '*_in_profit')
-    in_loss: Value = _at(Value, '*_in_loss')
+    total: SpotValue = _at(SpotValue, '*')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
+    in_profit: InProfit = _at(InProfit, '*')
+    in_loss: InLoss = _at(InLoss, '*')
 
 
 class WithDelta(_Node, Generic[A, B]):
@@ -3880,11 +3932,11 @@ class CreationCapital(_Node):
 
 
 class AgeCreationSupply(_Node):
-    total: Value = _at(Value, '*_supply')
+    total: SpotValue = _at(SpotValue, '*')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
-    in_profit: Value = _at(Value, '*_supply_in_profit')
-    in_loss: Value = _at(Value, '*_supply_in_loss')
+    in_profit: InProfit = _at(InProfit, '*')
+    in_loss: InLoss = _at(InLoss, '*')
     aged_out: ValueFlow = _at(ValueFlow, '*_aged_out_supply')
 
 
@@ -4009,8 +4061,8 @@ class CointimeRange(_Node):
     coindays_consumed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_consumed')
     wakefulness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_wakefulness')
     awake_to_dormant: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_awake_to_dormant')
-    awake: Side = _at(Side, '*_awake_supply')
-    dormant: Side = _at(Side, '*_dormant_supply')
+    awake: Side = _at(Side, '*_awake')
+    dormant: Side = _at(Side, '*_dormant')
 
 
 class CointimeActivity(_Node):
@@ -4070,7 +4122,7 @@ class Realized(_Node):
 
 class Balance(_Node):
     funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_address_count')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     utxos: BalanceUtxos = _at(BalanceUtxos, '*_utxo_count')
     activity: Activity = _at(Activity, '*_transfer_volume')
@@ -4111,7 +4163,7 @@ class Metrics(_Node):
 
 
 class Cohort(_Node):
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     utxos: CohortUtxos = _at(CohortUtxos, '*')
     activity: Activity = _at(Activity, '*_transfer_volume')
@@ -4160,7 +4212,7 @@ class Utxos(_Node):
 
 
 class CreationCohort(_Node, Generic[A, B, C, D, E, F]):
-    supply: A = _at(0, '*_supply')
+    supply: A = _at(0, '*')
     capital: B = _at(1, '*')
     utxos: CohortUtxos = _at(CohortUtxos, '*')
     activity: C = _at(2, '*')
@@ -4215,16 +4267,6 @@ class ByHalvingEpoch(_Node):
     _5: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_5')
 
 
-class Range(_Node):
-    supply: AgeCreationSupply = _at(AgeCreationSupply, '*')
-    capital: CreationCapital = _at(CreationCapital, '*')
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-    activity: AgeCreationActivity = _at(AgeCreationActivity, '*')
-    realized: CreationRealized = _at(CreationRealized, '*')
-    unrealized: CreationUnrealized = _at(CreationUnrealized, '*')
-    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
-
-
 class AgeRange(_Node, Generic[A]):
     under_1h: A = _at(0, '*_under_1h')
     _1h_to_1d: A = _at(0, '*_1h_to_1d')
@@ -4252,7 +4294,7 @@ class AgeRange(_Node, Generic[A]):
 
 
 class Coinflow(_Node):
-    age_ranges: AgeRange[CoinflowRange] = _at((AgeRange, CoinflowRange), '*')
+    age_ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
     cohorts: AgeAggregate[CoinflowCohort] = _at((AgeAggregate, CoinflowCohort), '*')
 
 
@@ -4260,7 +4302,7 @@ class Cointime(_Node):
     activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
     age_ranges: AgeRange[CointimeRange] = _at((AgeRange, CointimeRange), '*')
     cohorts: AgeAggregate[CointimeCohort] = _at((AgeAggregate, CointimeCohort), '*')
-    supply: CointimeSupply = _at(CointimeSupply, 'supply')
+    supply: CointimeSupply = _at(CointimeSupply, 'vaulted')
     value: CointimeValue = _at(CointimeValue, 'cointime_value')
     caps: Caps = _at(Caps, 'cap')
     prices: Prices = _at(Prices, 'vaulted')
@@ -4269,7 +4311,7 @@ class Cointime(_Node):
 
 
 class Age(_Node):
-    ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
+    ranges: AgeRange[CreationCohort[AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis]] = _at((AgeRange, (CreationCohort, AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis)), '*')
     rhodl_ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rhodl_ratio')
     halving_epochs: ByHalvingEpoch = _at(ByHalvingEpoch, 'halving_epoch')
     vintages: Vintage = _at(Vintage, 'vintage')
@@ -4605,7 +4647,7 @@ class ReuseEvents(_Node):
 
 class Respent(_Node):
     count: RespentCount = _at(RespentCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address')
     events: ReuseEvents = _at(ReuseEvents, '*')
 
 
@@ -4617,13 +4659,13 @@ class AddressesReuseEvents(_Node):
 
 class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
+    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
 
 
 class AddressesReused(_Node):
     count: ReusedCount = _at(ReusedCount, '')
-    supply: PredicateSupply = _at(PredicateSupply, 'reused_*_supply')
+    supply: PredicateSupply = _at(PredicateSupply, 'reused_*')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '')
     direct: OutputCount = _at(OutputCount, 'output_back_to_input_*_count')
 
@@ -4667,7 +4709,7 @@ class Addresses(_Node):
     reused: AddressesReused = _at(AddressesReused, '*')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    supply: CohortSupply = _at(CohortSupply, '*')
     capital: CapitalViews = _at(CapitalViews, '*')
     types: AddressType = _at(AddressType, 'p2pk')
     balances: AmountRange[ZeroBalance, Balance] = _at((AmountRange, ZeroBalance, Balance), 'balance')

@@ -1161,13 +1161,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ]),
     ], { icon: "candles" }),
     section("Valuation", [
-      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
+      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.marketCap, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       // (The price in its MVRV's zone, date by date: under 1, under its realized value; over 3.5, far over it.)
       chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
       // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)
-      chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.usd.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.usd.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
+      chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.marketCap.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.marketCap.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
       // (The share of all supply in profit times the price's volatility over 30 days (its 30 days', not annualized: by
       // √(30/365)), as fractions: low where few coins are in profit, the price is still, or both: sellers exhausted.)
       chart("Seller exhaustion", "Seller exhaustion constant", [price(), { formula: `${t.holders.all.supply.inProfit.share.name} / 100 * volatility(A, 30d) / 100 * ${Math.sqrt(30 / 365).toFixed(4)}`, label: "Seller exhaustion constant", format: "ratio", pane: 2, color: "orange" }], { log: [2] }),

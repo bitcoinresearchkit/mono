@@ -3243,6 +3243,32 @@ const _RarityMeter = _s({
 
 /**
  * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} UnweightedEntrySupplyBelowP99_9Floor
+ */
+const _UnweightedEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_unweighted_entry_supply_*'],
+  usd: [_i1, 'bedrock_unweighted_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_unweighted_entry_market_cap_*'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} MobileEntrySupplyBelowP99_9Floor
+ */
+const _MobileEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_mobile_entry_supply_*'],
+  usd: [_i1, 'bedrock_mobile_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_mobile_entry_market_cap_*'],
+});
+
+/**
+ * @typedef {{
  *   betweenP95AndP98Floors: SeriesPattern1<?Dollars>,
  *   betweenP98AndP99Floors: SeriesPattern1<?Dollars>,
  *   betweenP99AndP99_5Floors: SeriesPattern1<?Dollars>,
@@ -3256,6 +3282,38 @@ const _EntryCapital = _s({
   betweenP99AndP99_5Floors: [_i1, '*_between_p99_and_p99_5_floors'],
   betweenP99_5AndP99_9Floors: [_i1, '*_between_p99_5_and_p99_9_floors'],
   belowP99_9Floor: [_i1, '*_below_p99_9_floor'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} AwakeEntrySupplyBelowP99_9Floor
+ */
+const _AwakeEntrySupplyBelowP99_9Floor = _s({
+  btc: [_i1, 'bedrock_awake_entry_supply_*'],
+  usd: [_i1, 'bedrock_awake_entry_supply_*_usd'],
+  marketCap: [_i1, 'bedrock_awake_entry_market_cap_*'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   betweenP95AndP98Floors: A,
+ *   betweenP98AndP99Floors: A,
+ *   betweenP99AndP99_5Floors: A,
+ *   betweenP99_5AndP99_9Floors: A,
+ *   belowP99_9Floor: A,
+ * }} EntrySupply
+ */
+/** @type {_Make} */
+const _EntrySupply = (c, b, f0) => _n(c, b, {
+  betweenP95AndP98Floors: [f0, 'between_p95_and_p98_floors'],
+  betweenP98AndP99Floors: [f0, 'between_p98_and_*_floors'],
+  betweenP99AndP99_5Floors: [f0, 'between_*_and_p99_5_floors'],
+  betweenP99_5AndP99_9Floors: [f0, 'between_*_5_and_p99_9_floors'],
+  belowP99_9Floor: [f0, 'below_*_9_floor'],
 });
 
 /**
@@ -3299,6 +3357,38 @@ const _Percentiles = _s({
   p99: [_i1, '*_p99'],
   p99_5: [_i1, '*_p99_5'],
   p99_9: [_i1, '*_p99_9'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   supplyInLossShareThreshold: Percentiles<?Percent>,
+ *   floor: Percentiles<?Dollars>,
+ *   costBasisAboveP95Floor: Levels,
+ *   entrySupply: EntrySupply<A>,
+ *   entryCapital: EntryCapital,
+ * }} Mode
+ */
+/** @type {_Make} */
+const _Mode = (c, b, f0) => _n(c, b, {
+  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
+  floor: [_Percentiles, '*_floor'],
+  costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
+  entrySupply: [(c, b) => _EntrySupply(c, b, f0), 'p99'],
+  entryCapital: [_EntryCapital, '*_entry_capital'],
+});
+
+/**
+ * @typedef {{
+ *   awake: Mode<AwakeEntrySupplyBelowP99_9Floor>,
+ *   mobile: Mode<MobileEntrySupplyBelowP99_9Floor>,
+ *   unweighted: Mode<UnweightedEntrySupplyBelowP99_9Floor>,
+ * }} Bedrock
+ */
+const _Bedrock = _s({
+  awake: [(c, b) => _Mode(c, b, _AwakeEntrySupplyBelowP99_9Floor), '*_awake'],
+  mobile: [(c, b) => _Mode(c, b, _MobileEntrySupplyBelowP99_9Floor), '*_mobile'],
+  unweighted: [(c, b) => _Mode(c, b, _UnweightedEntrySupplyBelowP99_9Floor), '*_unweighted'],
 });
 
 /**
@@ -3379,9 +3469,9 @@ const _MobileCapital = _s({
 /**
  * @typedef {{
  *   share: SeriesPattern1<?Percent>,
- * }} InLoss
+ * }} MobileSupplyInLoss
  */
-const _InLoss = _s({
+const _MobileSupplyInLoss = _s({
   share: [_i1, '*'],
 });
 
@@ -3529,11 +3619,43 @@ const _Part = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} SpotValue
+ *   marketCap: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} AllSupplyInLoss
  */
-const _SpotValue = _s({
+const _AllSupplyInLoss = _s({
+  btc: [_i1, '*_supply_in_loss'],
+  usd: [_i1, '*_supply_in_loss_usd'],
+  marketCap: [_i1, '*_market_cap_in_loss'],
+  share: [_i1, '*_supply_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ *   share: SeriesPattern1<?Percent>,
+ * }} SupplyInProfit
+ */
+const _SupplyInProfit = _s({
+  btc: [_i1, '*_supply_in_profit'],
+  usd: [_i1, '*_supply_in_profit_usd'],
+  marketCap: [_i1, '*_market_cap_in_profit'],
+  share: [_i1, '*_supply_in_profit_share'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} HoldersSpotValue
+ */
+const _HoldersSpotValue = _s({
   btc: [_i1, '*'],
-  usd: [_i1, 'market_cap'],
+  usd: [_i1, '*_usd'],
+  marketCap: [_i1, 'market_cap'],
 });
 
 /**
@@ -3562,13 +3684,15 @@ const _RespentCount = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
  * }} PredicateSupply
  */
 const _PredicateSupply = _s({
-  btc: [_i1, '*'],
-  usd: [_i1, '*_usd'],
-  share: [_i1, '*_share'],
+  btc: [_i1, '*_supply'],
+  usd: [_i1, '*_supply_usd'],
+  marketCap: [_i1, '*_market_cap'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
@@ -3579,7 +3703,7 @@ const _PredicateSupply = _s({
  */
 const _Exposed = _s({
   count: [_FundedTotal, '*'],
-  supply: [_PredicateSupply, '*_exposed_address_supply'],
+  supply: [_PredicateSupply, '*_exposed_address'],
 });
 
 /**
@@ -3628,6 +3752,32 @@ const _CreationUnrealized = _s({
 
 /**
  * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} InLoss
+ */
+const _InLoss = _s({
+  btc: [_i1, '*_supply_in_loss'],
+  usd: [_i1, '*_supply_in_loss_usd'],
+  marketCap: [_i1, '*_market_cap_in_loss'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} InProfit
+ */
+const _InProfit = _s({
+  btc: [_i1, '*_supply_in_profit'],
+  usd: [_i1, '*_supply_in_profit_usd'],
+  marketCap: [_i1, '*_market_cap_in_profit'],
+});
+
+/**
+ * @typedef {{
  *   _24h: SeriesPattern1<?Percent>,
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
@@ -3639,6 +3789,161 @@ const _AddressesWindows = _s({
   _1w: [_i1, '*_1w_percent'],
   _1m: [_i1, '*_1m_percent'],
   _1y: [_i1, '*_1y_percent'],
+});
+
+/**
+ * @typedef {{
+ *   btc: SeriesPattern1<?Bitcoin>,
+ *   usd: SeriesPattern1<?Dollars>,
+ *   marketCap: SeriesPattern1<?Dollars>,
+ * }} SpotValue
+ */
+const _SpotValue = _s({
+  btc: [_i1, '*_supply'],
+  usd: [_i1, '*_supply_usd'],
+  marketCap: [_i1, '*_market_cap'],
+});
+
+/**
+ * @typedef {{
+ *   vaulted: SpotValue,
+ *   hodledOrLost: SpotValue,
+ *   active: SpotValue,
+ * }} CointimeSupply
+ */
+const _CointimeSupply = _s({
+  vaulted: [_SpotValue, '*'],
+  hodledOrLost: [_SpotValue, 'hodled_or_lost'],
+  active: [_SpotValue, 'active'],
+});
+
+/**
+ * @typedef {{
+ *   total: SpotValue,
+ *   inLoss: MobileSupplyInLoss,
+ * }} MobileSupply
+ */
+const _MobileSupply = _s({
+  total: [_SpotValue, '*'],
+  inLoss: [_MobileSupplyInLoss, '*_supply_in_loss_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: SpotValue,
+ * }} Side
+ */
+const _Side = _s({
+  supply: [_SpotValue, '*'],
+});
+
+/**
+ * @typedef {{
+ *   spendingRate: SeriesPattern1<?PerDay>,
+ *   spendingExposure: SeriesPattern1<?Float>,
+ *   mobility: SeriesPattern1<?Ratio>,
+ *   mobile: Side,
+ *   immobile: Side,
+ * }} Range
+ */
+const _Range = _s({
+  spendingRate: [_i1, '*_spending_rate'],
+  spendingExposure: [_i1, '*_spending_exposure'],
+  mobility: [_i1, '*_mobility'],
+  mobile: [_Side, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   total: SpotValue,
+ *   share: SeriesPattern1<?Percent>,
+ * }} BandSupply
+ */
+const _BandSupply = _s({
+  total: [_SpotValue, '*'],
+  share: [_i1, '*_supply_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: BandSupply,
+ *   capital: BandCapital,
+ * }} Band
+ */
+const _Band = _s({
+  supply: [_BandSupply, '*'],
+  capital: [_BandCapital, '*'],
+});
+
+/**
+ * @typedef {{
+ *   profitOver1000Percent: Band,
+ *   profit500To1000Percent: Band,
+ *   profit300To500Percent: Band,
+ *   profit200To300Percent: Band,
+ *   profit100To200Percent: Band,
+ *   profit90To100Percent: Band,
+ *   profit80To90Percent: Band,
+ *   profit70To80Percent: Band,
+ *   profit60To70Percent: Band,
+ *   profit50To60Percent: Band,
+ *   profit40To50Percent: Band,
+ *   profit30To40Percent: Band,
+ *   profit20To30Percent: Band,
+ *   profit10To20Percent: Band,
+ *   profit0To10Percent: Band,
+ *   loss0To10Percent: Band,
+ *   loss10To20Percent: Band,
+ *   loss20To30Percent: Band,
+ *   loss30To40Percent: Band,
+ *   loss40To50Percent: Band,
+ *   loss50To60Percent: Band,
+ *   loss60To70Percent: Band,
+ *   loss70To80Percent: Band,
+ *   loss80To90Percent: Band,
+ *   loss90To100Percent: Band,
+ * }} ProfitabilityRange
+ */
+const _ProfitabilityRange = _s({
+  profitOver1000Percent: [_Band, '*_profit_over_1000_percent'],
+  profit500To1000Percent: [_Band, '*_profit_500_to_1000_percent'],
+  profit300To500Percent: [_Band, '*_profit_300_to_500_percent'],
+  profit200To300Percent: [_Band, '*_profit_200_to_300_percent'],
+  profit100To200Percent: [_Band, '*_profit_100_to_200_percent'],
+  profit90To100Percent: [_Band, '*_profit_90_to_100_percent'],
+  profit80To90Percent: [_Band, '*_profit_80_to_90_percent'],
+  profit70To80Percent: [_Band, '*_profit_70_to_80_percent'],
+  profit60To70Percent: [_Band, '*_profit_60_to_70_percent'],
+  profit50To60Percent: [_Band, '*_profit_50_to_60_percent'],
+  profit40To50Percent: [_Band, '*_profit_40_to_50_percent'],
+  profit30To40Percent: [_Band, '*_profit_30_to_40_percent'],
+  profit20To30Percent: [_Band, '*_profit_20_to_30_percent'],
+  profit10To20Percent: [_Band, '*_profit_10_to_20_percent'],
+  profit0To10Percent: [_Band, '*_profit_0_to_10_percent'],
+  loss0To10Percent: [_Band, '*_loss_0_to_10_percent'],
+  loss10To20Percent: [_Band, '*_loss_10_to_20_percent'],
+  loss20To30Percent: [_Band, '*_loss_20_to_30_percent'],
+  loss30To40Percent: [_Band, '*_loss_30_to_40_percent'],
+  loss40To50Percent: [_Band, '*_loss_40_to_50_percent'],
+  loss50To60Percent: [_Band, '*_loss_50_to_60_percent'],
+  loss60To70Percent: [_Band, '*_loss_60_to_70_percent'],
+  loss70To80Percent: [_Band, '*_loss_70_to_80_percent'],
+  loss80To90Percent: [_Band, '*_loss_80_to_90_percent'],
+  loss90To100Percent: [_Band, '*_loss_90_to_100_percent'],
+});
+
+/**
+ * @typedef {{
+ *   all: ProfitabilityRange,
+ *   sth: ProfitabilityRange,
+ *   lth: ProfitabilityRange,
+ * }} Profitability
+ */
+const _Profitability = _s({
+  all: [_ProfitabilityRange, ''],
+  sth: [_ProfitabilityRange, '*'],
+  lth: [_ProfitabilityRange, 'lth'],
 });
 
 /**
@@ -3729,6 +4034,64 @@ const _CostBasis = _s({
   byDollar: [_CostBasisByDollar, '*'],
   supplyDensity: [_Density, '*_supply_density'],
   capitalDensity: [_Density, '*_capital_density'],
+});
+
+/**
+ * @typedef {{
+ *   supply: MobileSupply,
+ *   capital: MobileCapital,
+ *   costBasis: CostBasis,
+ * }} Awake
+ */
+const _Awake = _s({
+  supply: [_MobileSupply, '*'],
+  capital: [_MobileCapital, '*'],
+  costBasis: [_CostBasis, '*'],
+});
+
+/**
+ * @typedef {{
+ *   mobile: Awake,
+ *   immobile: Side,
+ * }} CoinflowCohort
+ */
+const _CoinflowCohort = _s({
+  mobile: [_Awake, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   awake: Awake,
+ *   dormant: Side,
+ * }} CointimeCohort
+ */
+const _CointimeCohort = _s({
+  awake: [_Awake, '*_awake'],
+  dormant: [_Side, '*_dormant'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   all: A,
+ *   sth: A,
+ *   lth: A,
+ *   under4m: A,
+ *   under6m: A,
+ *   over4m: A,
+ *   over6m: A,
+ * }} AgeAggregate
+ */
+/** @type {_Make} */
+const _AgeAggregate = (c, b, f0) => _n(c, b, {
+  all: [f0, ''],
+  sth: [f0, 'sth'],
+  lth: [f0, 'lth'],
+  under4m: [f0, '*_under_4m'],
+  under6m: [f0, '*_under_6m'],
+  over4m: [f0, '*_over_4m'],
+  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -4005,253 +4368,6 @@ const _Fee = _s({
 const _Value = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
-});
-
-/**
- * @typedef {{
- *   betweenP95AndP98Floors: Value,
- *   betweenP98AndP99Floors: Value,
- *   betweenP99AndP99_5Floors: Value,
- *   betweenP99_5AndP99_9Floors: Value,
- *   belowP99_9Floor: Value,
- * }} EntrySupply
- */
-const _EntrySupply = _s({
-  betweenP95AndP98Floors: [_Value, '*_between_p95_and_p98_floors'],
-  betweenP98AndP99Floors: [_Value, '*_between_p98_and_p99_floors'],
-  betweenP99AndP99_5Floors: [_Value, '*_between_p99_and_p99_5_floors'],
-  betweenP99_5AndP99_9Floors: [_Value, '*_between_p99_5_and_p99_9_floors'],
-  belowP99_9Floor: [_Value, '*_below_p99_9_floor'],
-});
-
-/**
- * @typedef {{
- *   supplyInLossShareThreshold: Percentiles<?Percent>,
- *   floor: Percentiles<?Dollars>,
- *   costBasisAboveP95Floor: Levels,
- *   entrySupply: EntrySupply,
- *   entryCapital: EntryCapital,
- * }} Mode
- */
-const _Mode = _s({
-  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
-  floor: [_Percentiles, '*_floor'],
-  costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
-  entrySupply: [_EntrySupply, '*_entry_supply'],
-  entryCapital: [_EntryCapital, '*_entry_capital'],
-});
-
-/**
- * @typedef {{
- *   awake: Mode,
- *   mobile: Mode,
- *   unweighted: Mode,
- * }} Bedrock
- */
-const _Bedrock = _s({
-  awake: [_Mode, '*_awake'],
-  mobile: [_Mode, '*_mobile'],
-  unweighted: [_Mode, '*_unweighted'],
-});
-
-/**
- * @typedef {{
- *   vaulted: Value,
- *   hodledOrLost: Value,
- *   active: Value,
- * }} CointimeSupply
- */
-const _CointimeSupply = _s({
-  vaulted: [_Value, 'vaulted_*'],
-  hodledOrLost: [_Value, 'hodled_or_lost_*'],
-  active: [_Value, 'active_*'],
-});
-
-/**
- * @typedef {{
- *   total: Value,
- *   inLoss: InLoss,
- * }} MobileSupply
- */
-const _MobileSupply = _s({
-  total: [_Value, '*'],
-  inLoss: [_InLoss, '*_in_loss_share'],
-});
-
-/**
- * @typedef {{
- *   supply: MobileSupply,
- *   capital: MobileCapital,
- *   costBasis: CostBasis,
- * }} Awake
- */
-const _Awake = _s({
-  supply: [_MobileSupply, '*_supply'],
-  capital: [_MobileCapital, '*'],
-  costBasis: [_CostBasis, '*'],
-});
-
-/**
- * @typedef {{
- *   supply: Value,
- * }} Side
- */
-const _Side = _s({
-  supply: [_Value, '*'],
-});
-
-/**
- * @typedef {{
- *   mobile: Awake,
- *   immobile: Side,
- * }} CoinflowCohort
- */
-const _CoinflowCohort = _s({
-  mobile: [_Awake, '*_mobile'],
-  immobile: [_Side, '*_immobile_supply'],
-});
-
-/**
- * @typedef {{
- *   spendingRate: SeriesPattern1<?PerDay>,
- *   spendingExposure: SeriesPattern1<?Float>,
- *   mobility: SeriesPattern1<?Ratio>,
- *   mobile: Side,
- *   immobile: Side,
- * }} CoinflowRange
- */
-const _CoinflowRange = _s({
-  spendingRate: [_i1, '*_spending_rate'],
-  spendingExposure: [_i1, '*_spending_exposure'],
-  mobility: [_i1, '*_mobility'],
-  mobile: [_Side, '*_mobile_supply'],
-  immobile: [_Side, '*_immobile_supply'],
-});
-
-/**
- * @typedef {{
- *   awake: Awake,
- *   dormant: Side,
- * }} CointimeCohort
- */
-const _CointimeCohort = _s({
-  awake: [_Awake, '*_awake'],
-  dormant: [_Side, '*_dormant_supply'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   all: A,
- *   sth: A,
- *   lth: A,
- *   under4m: A,
- *   under6m: A,
- *   over4m: A,
- *   over6m: A,
- * }} AgeAggregate
- */
-/** @type {_Make} */
-const _AgeAggregate = (c, b, f0) => _n(c, b, {
-  all: [f0, ''],
-  sth: [f0, 'sth'],
-  lth: [f0, 'lth'],
-  under4m: [f0, '*_under_4m'],
-  under6m: [f0, '*_under_6m'],
-  over4m: [f0, '*_over_4m'],
-  over6m: [f0, '*_over_6m'],
-});
-
-/**
- * @typedef {{
- *   total: Value,
- *   share: SeriesPattern1<?Percent>,
- * }} BandSupply
- */
-const _BandSupply = _s({
-  total: [_Value, '*'],
-  share: [_i1, '*_share'],
-});
-
-/**
- * @typedef {{
- *   supply: BandSupply,
- *   capital: BandCapital,
- * }} Band
- */
-const _Band = _s({
-  supply: [_BandSupply, '*_supply'],
-  capital: [_BandCapital, '*'],
-});
-
-/**
- * @typedef {{
- *   profitOver1000Percent: Band,
- *   profit500To1000Percent: Band,
- *   profit300To500Percent: Band,
- *   profit200To300Percent: Band,
- *   profit100To200Percent: Band,
- *   profit90To100Percent: Band,
- *   profit80To90Percent: Band,
- *   profit70To80Percent: Band,
- *   profit60To70Percent: Band,
- *   profit50To60Percent: Band,
- *   profit40To50Percent: Band,
- *   profit30To40Percent: Band,
- *   profit20To30Percent: Band,
- *   profit10To20Percent: Band,
- *   profit0To10Percent: Band,
- *   loss0To10Percent: Band,
- *   loss10To20Percent: Band,
- *   loss20To30Percent: Band,
- *   loss30To40Percent: Band,
- *   loss40To50Percent: Band,
- *   loss50To60Percent: Band,
- *   loss60To70Percent: Band,
- *   loss70To80Percent: Band,
- *   loss80To90Percent: Band,
- *   loss90To100Percent: Band,
- * }} ProfitabilityRange
- */
-const _ProfitabilityRange = _s({
-  profitOver1000Percent: [_Band, '*_profit_over_1000_percent'],
-  profit500To1000Percent: [_Band, '*_profit_500_to_1000_percent'],
-  profit300To500Percent: [_Band, '*_profit_300_to_500_percent'],
-  profit200To300Percent: [_Band, '*_profit_200_to_300_percent'],
-  profit100To200Percent: [_Band, '*_profit_100_to_200_percent'],
-  profit90To100Percent: [_Band, '*_profit_90_to_100_percent'],
-  profit80To90Percent: [_Band, '*_profit_80_to_90_percent'],
-  profit70To80Percent: [_Band, '*_profit_70_to_80_percent'],
-  profit60To70Percent: [_Band, '*_profit_60_to_70_percent'],
-  profit50To60Percent: [_Band, '*_profit_50_to_60_percent'],
-  profit40To50Percent: [_Band, '*_profit_40_to_50_percent'],
-  profit30To40Percent: [_Band, '*_profit_30_to_40_percent'],
-  profit20To30Percent: [_Band, '*_profit_20_to_30_percent'],
-  profit10To20Percent: [_Band, '*_profit_10_to_20_percent'],
-  profit0To10Percent: [_Band, '*_profit_0_to_10_percent'],
-  loss0To10Percent: [_Band, '*_loss_0_to_10_percent'],
-  loss10To20Percent: [_Band, '*_loss_10_to_20_percent'],
-  loss20To30Percent: [_Band, '*_loss_20_to_30_percent'],
-  loss30To40Percent: [_Band, '*_loss_30_to_40_percent'],
-  loss40To50Percent: [_Band, '*_loss_40_to_50_percent'],
-  loss50To60Percent: [_Band, '*_loss_50_to_60_percent'],
-  loss60To70Percent: [_Band, '*_loss_60_to_70_percent'],
-  loss70To80Percent: [_Band, '*_loss_70_to_80_percent'],
-  loss80To90Percent: [_Band, '*_loss_80_to_90_percent'],
-  loss90To100Percent: [_Band, '*_loss_90_to_100_percent'],
-});
-
-/**
- * @typedef {{
- *   all: ProfitabilityRange,
- *   sth: ProfitabilityRange,
- *   lth: ProfitabilityRange,
- * }} Profitability
- */
-const _Profitability = _s({
-  all: [_ProfitabilityRange, ''],
-  sth: [_ProfitabilityRange, '*'],
-  lth: [_ProfitabilityRange, 'lth'],
 });
 
 /**
@@ -4545,19 +4661,19 @@ const _SharedCapital = _s({
 
 /**
  * @typedef {{
- *   total: Value,
- *   inProfit: PredicateSupply,
- *   inLoss: PredicateSupply,
+ *   total: SpotValue,
+ *   inProfit: SupplyInProfit,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} SharedSupply
  */
 const _SharedSupply = _s({
-  total: [_Value, '*'],
-  inProfit: [_PredicateSupply, '*_in_profit'],
-  inLoss: [_PredicateSupply, '*_in_loss'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
+  total: [_SpotValue, '*'],
+  inProfit: [_SupplyInProfit, '*'],
+  inLoss: [_AllSupplyInLoss, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
@@ -4579,16 +4695,16 @@ const _Capital = _s({
 
 /**
  * @typedef {{
- *   total: SpotValue,
- *   inProfit: PredicateSupply,
- *   inLoss: PredicateSupply,
+ *   total: HoldersSpotValue,
+ *   inProfit: SupplyInProfit,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  * }} HoldersSupply
  */
 const _HoldersSupply = _s({
-  total: [_SpotValue, 'circulating_*'],
-  inProfit: [_PredicateSupply, '*_in_profit'],
-  inLoss: [_PredicateSupply, '*_in_loss'],
+  total: [_HoldersSpotValue, 'circulating_*'],
+  inProfit: [_SupplyInProfit, ''],
+  inLoss: [_AllSupplyInLoss, ''],
   delta: [_Delta, '*_delta'],
 });
 
@@ -4609,32 +4725,32 @@ const _CapitalViews = _s({
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} CohortSupply
  */
 const _CohortSupply = _s({
-  total: [_Value, '*'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
+  total: [_SpotValue, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
 });
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: Value,
- *   inLoss: Value,
+ *   inProfit: InProfit,
+ *   inLoss: InLoss,
  * }} CreationSupply
  */
 const _CreationSupply = _s({
-  total: [_Value, '*'],
-  delta: [_Delta, '*_delta'],
-  share: [_i1, '*_share'],
-  inProfit: [_Value, '*_in_profit'],
-  inLoss: [_Value, '*_in_loss'],
+  total: [_SpotValue, '*'],
+  delta: [_Delta, '*_supply_delta'],
+  share: [_i1, '*_supply_share'],
+  inProfit: [_InProfit, '*'],
+  inLoss: [_InLoss, '*'],
 });
 
 /**
@@ -4709,20 +4825,20 @@ const _CreationCapital = _s({
 
 /**
  * @typedef {{
- *   total: Value,
+ *   total: SpotValue,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: Value,
- *   inLoss: Value,
+ *   inProfit: InProfit,
+ *   inLoss: InLoss,
  *   agedOut: ValueFlow,
  * }} AgeCreationSupply
  */
 const _AgeCreationSupply = _s({
-  total: [_Value, '*_supply'],
+  total: [_SpotValue, '*'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
-  inProfit: [_Value, '*_supply_in_profit'],
-  inLoss: [_Value, '*_supply_in_loss'],
+  inProfit: [_InProfit, '*'],
+  inLoss: [_InLoss, '*'],
   agedOut: [_ValueFlow, '*_aged_out_supply'],
 });
 
@@ -4987,8 +5103,8 @@ const _CointimeRange = _s({
   coindaysConsumed: [_Flow, '*_coindays_consumed'],
   wakefulness: [_i1, '*_wakefulness'],
   awakeToDormant: [_i1, '*_awake_to_dormant'],
-  awake: [_Side, '*_awake_supply'],
-  dormant: [_Side, '*_dormant_supply'],
+  awake: [_Side, '*_awake'],
+  dormant: [_Side, '*_dormant'],
 });
 
 /**
@@ -5119,7 +5235,7 @@ const _Realized = _s({
  */
 const _Balance = _s({
   funded: [_WithDelta, '*_address_count'],
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   utxos: [_BalanceUtxos, '*_utxo_count'],
   activity: [_Activity, '*_transfer_volume'],
@@ -5208,7 +5324,7 @@ const _Metrics = _s({
  * }} Cohort
  */
 const _Cohort = _s({
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   utxos: [_CohortUtxos, '*'],
   activity: [_Activity, '*_transfer_volume'],
@@ -5316,7 +5432,7 @@ const _Utxos = _s({
  */
 /** @type {_Make} */
 const _CreationCohort = (c, b, f0, f1, f2, f3, f4, f5) => _n(c, b, {
-  supply: [f0, '*_supply'],
+  supply: [f0, '*'],
   capital: [f1, '*'],
   utxos: [_CohortUtxos, '*'],
   activity: [f2, '*'],
@@ -5422,27 +5538,6 @@ const _ByHalvingEpoch = _s({
 });
 
 /**
- * @typedef {{
- *   supply: AgeCreationSupply,
- *   capital: CreationCapital,
- *   utxos: CohortUtxos,
- *   activity: AgeCreationActivity,
- *   realized: CreationRealized,
- *   unrealized: CreationUnrealized,
- *   costBasis: CohortCostBasis,
- * }} Range
- */
-const _Range = _s({
-  supply: [_AgeCreationSupply, '*'],
-  capital: [_CreationCapital, '*'],
-  utxos: [_CohortUtxos, '*'],
-  activity: [_AgeCreationActivity, '*'],
-  realized: [_CreationRealized, '*'],
-  unrealized: [_CreationUnrealized, '*'],
-  costBasis: [_CohortCostBasis, '*'],
-});
-
-/**
  * @template A
  * @typedef {{
  *   under1h: A,
@@ -5499,12 +5594,12 @@ const _AgeRange = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ageRanges: AgeRange<CoinflowRange>,
+ *   ageRanges: AgeRange<Range>,
  *   cohorts: AgeAggregate<CoinflowCohort>,
  * }} Coinflow
  */
 const _Coinflow = _s({
-  ageRanges: [(c, b) => _AgeRange(c, b, _CoinflowRange), '*'],
+  ageRanges: [(c, b) => _AgeRange(c, b, _Range), '*'],
   cohorts: [(c, b) => _AgeAggregate(c, b, _CoinflowCohort), '*'],
 });
 
@@ -5525,7 +5620,7 @@ const _Cointime = _s({
   activity: [_CointimeActivity, 'coinblocks'],
   ageRanges: [(c, b) => _AgeRange(c, b, _CointimeRange), '*'],
   cohorts: [(c, b) => _AgeAggregate(c, b, _CointimeCohort), '*'],
-  supply: [_CointimeSupply, 'supply'],
+  supply: [_CointimeSupply, 'vaulted'],
   value: [_CointimeValue, 'cointime_value'],
   caps: [_Caps, 'cap'],
   prices: [_Prices, 'vaulted'],
@@ -5535,14 +5630,14 @@ const _Cointime = _s({
 
 /**
  * @typedef {{
- *   ranges: AgeRange<Range>,
+ *   ranges: AgeRange<CreationCohort<AgeCreationSupply, CreationCapital, AgeCreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>>,
  *   rhodlRatio: SeriesPattern1<?Ratio>,
  *   halvingEpochs: ByHalvingEpoch,
  *   vintages: Vintage,
  * }} Age
  */
 const _Age = _s({
-  ranges: [(c, b) => _AgeRange(c, b, _Range), '*'],
+  ranges: [(c, b) => _AgeRange(c, b, (c, b) => _CreationCohort(c, b, _AgeCreationSupply, _CreationCapital, _AgeCreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis)), '*'],
   rhodlRatio: [_i1, 'rhodl_ratio'],
   halvingEpochs: [_ByHalvingEpoch, 'halving_epoch'],
   vintages: [_Vintage, 'vintage'],
@@ -6252,7 +6347,7 @@ const _ReuseEvents = _s({
  */
 const _Respent = _s({
   count: [_RespentCount, '*'],
-  supply: [_PredicateSupply, '*_respent_address_supply'],
+  supply: [_PredicateSupply, '*_respent_address'],
   events: [_ReuseEvents, '*'],
 });
 
@@ -6278,7 +6373,7 @@ const _AddressesReuseEvents = _s({
  */
 const _Reused = _s({
   count: [_ReusedCount, '*'],
-  supply: [_PredicateSupply, '*_reused_address_supply'],
+  supply: [_PredicateSupply, '*_reused_address'],
   events: [_AddressesReuseEvents, '*'],
 });
 
@@ -6292,7 +6387,7 @@ const _Reused = _s({
  */
 const _AddressesReused = _s({
   count: [_ReusedCount, ''],
-  supply: [_PredicateSupply, 'reused_*_supply'],
+  supply: [_PredicateSupply, 'reused_*'],
   events: [_AddressesReuseEvents, ''],
   direct: [_OutputCount, 'output_back_to_input_*_count'],
 });
@@ -6385,7 +6480,7 @@ const _Addresses = _s({
   reused: [_AddressesReused, '*'],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
-  supply: [_CohortSupply, '*_supply'],
+  supply: [_CohortSupply, '*'],
   capital: [_CapitalViews, '*'],
   types: [_AddressType, 'p2pk'],
   balances: [(c, b) => _AmountRange(c, b, _ZeroBalance, _Balance), 'balance'],
