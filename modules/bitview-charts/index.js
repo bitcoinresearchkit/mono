@@ -72,10 +72,16 @@ export class Chart {
 
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, rightOffset, maxSpacing, dateFormat } = {}) {
+  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, rightOffset, maxSpacing, dateFormat, embedded = false } = {}) {
     this.element = element;
+    /**
+     * In a page that scrolls: a finger's mostly vertical swipe scrolls the page, the browser deciding (`touch-action:
+     * pan-y`); the chart takes only what's sideways, a pinch and a held finger's crosshair (no separator or price axis by
+     * finger: their drags are vertical). Else it takes every gesture (a chart filling its screen).
+     */
+    this.embedded = embedded;
     this.theme = theme;
     /**
      * Whether an axis is at every pane's right, and at their left where one has a left scale (0: none), and its width till
@@ -147,7 +153,7 @@ export class Chart {
     this.letting = 0;
     // (Its canvases placed in it: a box for them, unless it's one already.)
     if (getComputedStyle(element).position === "static") element.style.position = "relative";
-    Object.assign(element.style, { overflow: "hidden", touchAction: "none", userSelect: "none", webkitUserSelect: "none" });
+    Object.assign(element.style, { overflow: "hidden", touchAction: embedded ? "pan-y" : "none", userSelect: "none", webkitUserSelect: "none" });
     /**
      * A page's own element in the chart's corner beside the time axis, under its price axis (the right one, else the
      * left): its buttons (Full screen). Laid out with the chart, as wide as that axis; it takes the pointer.
@@ -646,9 +652,9 @@ export class Chart {
       if (event.button || sizer >= 0 || (!down.size && event.target !== element && !this.#owns(event.target))) return;
       element.setPointerCapture(event.pointerId);
       // (On a separator: it's dragged, nothing else.)
-      const touch = !fine(event), y = event.clientY - element.getBoundingClientRect().top, on = down.size ? -1 : separator(y, touch);
+      const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.#clearPointer());
-      const box = element.getBoundingClientRect(), axis = down.size ? null : axisAt(event.clientX - box.left, y);
+      const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null });
       this.#stopGlide();
       trailSize = 0;
@@ -664,7 +670,7 @@ export class Chart {
         for (const each of down.values()) each.axis = null;
       }
       if (!touch && down.size === 1 && !axis) point(event);
-      if (touch && down.size === 1 && !down.get(event.pointerId)?.axis) {
+      if (touch && down.size === 1 && !found) {
         const id = event.pointerId;
         this.holding = setTimeout(() => {
           const at = down.get(id);
@@ -773,6 +779,9 @@ export class Chart {
       trailSize = 0;
       if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed);
     };
+    // (Embedded: a held finger's crosshair and a pinch keep the page from scrolling under them, its scroll otherwise
+    // the browser's (touch-action can't say "vertical unless held"; a touchmove's default can).)
+    element.addEventListener("touchmove", (event) => (held >= 0 || event.touches.length > 1) && event.cancelable && event.preventDefault(), { passive: false, signal });
     element.addEventListener("pointerup", up, { signal });
     element.addEventListener("lostpointercapture", up, { signal });
     element.addEventListener("pointercancel", up, { signal });

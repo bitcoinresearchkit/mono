@@ -20,7 +20,7 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Chart
 
-- `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat })`: `theme` is `DARK`
+- `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat, embedded })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
   and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
   then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
@@ -28,6 +28,10 @@ chart.show(365);                                 // the last 365 points in view
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's.
+  `embedded`, a chart in a page that scrolls: a finger's mostly vertical swipe scrolls the page (the browser deciding:
+  `touch-action: pan-y`), a sideways one pans, a pinch zooms, a held finger's crosshair holds the page still; a finger
+  takes no separator or price axis there (their drags are vertical; a mouse's still do). Else (a chart filling its
+  screen) it takes every gesture.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
   a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
   `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to, options?)` (logical indices,
